@@ -373,15 +373,6 @@ namespace OpenMetaverse
         /// <summary>Can subdivide and join parcels</summary>
         LandDivideJoin = 1UL << 15,
 
-
-        // Chat
-        /// <summary>Can join group chat sessions</summary>
-        JoinChat = 1UL << 16,
-        /// <summary>Can use voice chat in Group Chat sessions</summary>
-        AllowVoiceChat = 1UL << 27,
-        /// <summary>Can moderate group chat sessions</summary>
-        ModerateChat = 1UL << 37,
-
         // Parcel identity
         /// <summary>Can toggle "Show in Find Places" and set search category</summary>
         FindPlaces = 1UL << 17,
