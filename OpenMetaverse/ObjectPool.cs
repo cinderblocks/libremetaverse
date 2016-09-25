@@ -16,6 +16,10 @@ namespace OpenMetaverse
         public int DataLength;
         /// <summary>EndPoint of the remote host</summary>
         public EndPoint RemoteEndPoint;
+        /// <summary>
+        /// Was the buffer leased from a pool?
+        /// </summary>
+        public bool BytesLeasedFromPool;
 
         /// <summary>
         /// Create an allocated UDP packet buffer for receiving a packet
@@ -46,6 +50,11 @@ namespace OpenMetaverse
         {
             Data = new byte[bufferSize];
             RemoteEndPoint = endPoint;
+        }
+
+        public void ResetEndpoint()
+        {
+            RemoteEndPoint = new IPEndPoint(Settings.BIND_ADDR, 0);
         }
     }
 

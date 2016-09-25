@@ -372,15 +372,16 @@ namespace OpenMetaverse
         LandSetSale = 1UL << 14,
         /// <summary>Can subdivide and join parcels</summary>
         LandDivideJoin = 1UL << 15,
-        
-        // Parcel settings
-        /// <summary>Can change music and media settings</summary>
-        ChangeMedia = 1UL << 20,
-        /// <summary>Can toggle 'Edit Terrain' option in Land settings</summary>
-        LandEdit = 1UL << 21,
-        /// <summary>Can toggle various About Land > Options settings</summary>
-        LandOptions = 1UL << 22,
-        
+
+
+        // Chat
+        /// <summary>Can join group chat sessions</summary>
+        JoinChat = 1UL << 16,
+        /// <summary>Can use voice chat in Group Chat sessions</summary>
+        AllowVoiceChat = 1UL << 27,
+        /// <summary>Can moderate group chat sessions</summary>
+        ModerateChat = 1UL << 37,
+
         // Parcel identity
         /// <summary>Can toggle "Show in Find Places" and set search category</summary>
         FindPlaces = 1UL << 17,
@@ -388,6 +389,14 @@ namespace OpenMetaverse
         LandChangeIdentity = 1UL << 18,
         /// <summary>Can set the landing point and teleport routing on group land</summary>
         SetLandingPoint = 1UL << 19,
+
+        // Parcel settings
+        /// <summary>Can change music and media settings</summary>
+        ChangeMedia = 1UL << 20,
+        /// <summary>Can toggle 'Edit Terrain' option in Land settings</summary>
+        LandEdit = 1UL << 21,
+        /// <summary>Can toggle various About Land > Options settings</summary>
+        LandOptions = 1UL << 22,
 
         // Parcel powers
         /// <summary>Can always terraform land, even if parcel settings have it turned off</summary>
@@ -400,9 +409,8 @@ namespace OpenMetaverse
         AllowLandmark = 1UL << 26,
         /// <summary>Can set home location on any group owned parcel</summary>
         AllowSetHome = 1UL << 28,
-        /// <summary>Allowed to hold events on group-owned land</summary>
-        HostEvent = 1UL << 41,        
-        
+
+
         // Parcel access
         /// <summary>Can modify public access settings for group owned parcels</summary>
         LandManageAllowed = 1UL << 29,
@@ -412,7 +420,7 @@ namespace OpenMetaverse
         LandManagePasses = 1UL << 31,
         /// <summary>Can eject and freeze other avatars on group owned land</summary>
         LandEjectAndFreeze = 1UL << 32,
-        
+
         // Parcel content
         /// <summary>Can return objects set to group</summary>
         ReturnGroupSet = 1UL << 33,
@@ -420,9 +428,10 @@ namespace OpenMetaverse
         ReturnNonGroup = 1UL << 34,
         /// <summary>Can return group owned objects</summary>
         ReturnGroupOwned = 1UL << 48,
+
         /// <summary>Can landscape using Linden plants</summary>
-        LandGardening = 1UL << 35,        
-        
+        LandGardening = 1UL << 35,
+
         // Object Management
         /// <summary>Can deed objects to group</summary>
         DeedObject = 1UL << 36,
@@ -434,7 +443,10 @@ namespace OpenMetaverse
         // Accounting
         /// <summary>Pay group liabilities and receive group dividends</summary>
         Accountable = 1UL << 40,
-        
+
+        /// <summary>List and Host group events</summary>
+        HostEvent = 1UL << 41,
+
         // Notices and proposals
         /// <summary>Can send group notices</summary>
         SendNotices = 1UL << 42,
