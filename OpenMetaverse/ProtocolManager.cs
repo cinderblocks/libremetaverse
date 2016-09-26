@@ -27,7 +27,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using OpenMetaverse;
 
 namespace OpenMetaverse
 {    
@@ -103,21 +102,16 @@ namespace OpenMetaverse
 		{
 			MapField temp = (MapField)obj;
 
-			if (this.KeywordPosition > temp.KeywordPosition)
+			if (KeywordPosition > temp.KeywordPosition)
 			{
 				return 1;
 			}
-			else
-			{
-				if(temp.KeywordPosition == this.KeywordPosition)
-				{
-					return 0;
-				}
-				else
-				{
-					return -1;
-				}
-			}
+
+		    if(temp.KeywordPosition == KeywordPosition)
+		    {
+		        return 0;
+		    }
+		    return -1;
 		}
 	}
 
@@ -144,21 +138,15 @@ namespace OpenMetaverse
 		{
 			MapBlock temp = (MapBlock)obj;
 
-			if (this.KeywordPosition > temp.KeywordPosition)
+			if (KeywordPosition > temp.KeywordPosition)
 			{
 				return 1;
 			}
-			else
-			{
-				if(temp.KeywordPosition == this.KeywordPosition)
-				{
-					return 0;
-				}
-				else
-				{
-					return -1;
-				}
-			}
+		    if(temp.KeywordPosition == KeywordPosition)
+		    {
+		        return 0;
+		    }
+		    return -1;
 		}
 	}
 
@@ -214,28 +202,30 @@ namespace OpenMetaverse
 			HighMaps = new MapPacket[256];
 
 			// Build the type size hash table
-			TypeSizes = new Dictionary<FieldType,int>();
-			TypeSizes.Add(FieldType.U8, 1);
-			TypeSizes.Add(FieldType.U16, 2);
-			TypeSizes.Add(FieldType.U32, 4);
-			TypeSizes.Add(FieldType.U64, 8);
-			TypeSizes.Add(FieldType.S8, 1);
-			TypeSizes.Add(FieldType.S16, 2);
-			TypeSizes.Add(FieldType.S32, 4);
-			TypeSizes.Add(FieldType.F32, 4);
-			TypeSizes.Add(FieldType.F64, 8);
-			TypeSizes.Add(FieldType.UUID, 16);
-			TypeSizes.Add(FieldType.BOOL, 1);
-			TypeSizes.Add(FieldType.Vector3, 12);
-			TypeSizes.Add(FieldType.Vector3d, 24);
-			TypeSizes.Add(FieldType.Vector4, 16);
-			TypeSizes.Add(FieldType.Quaternion, 16);
-			TypeSizes.Add(FieldType.IPADDR, 4);
-			TypeSizes.Add(FieldType.IPPORT, 2);
-			TypeSizes.Add(FieldType.Variable, -1);
-			TypeSizes.Add(FieldType.Fixed, -2);
+		    TypeSizes = new Dictionary<FieldType, int>
+		    {
+		        {FieldType.U8, 1},
+		        {FieldType.U16, 2},
+		        {FieldType.U32, 4},
+		        {FieldType.U64, 8},
+		        {FieldType.S8, 1},
+		        {FieldType.S16, 2},
+		        {FieldType.S32, 4},
+		        {FieldType.F32, 4},
+		        {FieldType.F64, 8},
+		        {FieldType.UUID, 16},
+		        {FieldType.BOOL, 1},
+		        {FieldType.Vector3, 12},
+		        {FieldType.Vector3d, 24},
+		        {FieldType.Vector4, 16},
+		        {FieldType.Quaternion, 16},
+		        {FieldType.IPADDR, 4},
+		        {FieldType.IPPORT, 2},
+		        {FieldType.Variable, -1},
+		        {FieldType.Fixed, -2}
+		    };
 
-            KeywordPositions = new Dictionary<string, int>();
+		    KeywordPositions = new Dictionary<string, int>();
 			LoadMapFile(mapFile);
 		}
 
@@ -248,35 +238,32 @@ namespace OpenMetaverse
 		{
 			foreach (MapPacket map in HighMaps)
 			{
-				if (map != null)
-				{
-					if (command == map.Name)
-					{
-						return map;
-					}
-				}
+			    if (map == null) continue;
+
+			    if (command == map.Name)
+			    {
+			        return map;
+			    }
 			}
 
 			foreach (MapPacket map in MediumMaps)
 			{
-				if (map != null)
-				{
-					if (command == map.Name)
-					{
-						return map;
-					}
-				}
+			    if (map == null) continue;
+
+			    if (command == map.Name)
+			    {
+			        return map;
+			    }
 			}
 
 			foreach (MapPacket map in LowMaps)
 			{
-				if (map != null)
-				{
-					if (command == map.Name)
-					{
-						return map;
-					}
-				}
+			    if (map == null) continue;
+
+			    if (command == map.Name)
+			    {
+			        return map;
+			    }
 			}
 
 			throw new Exception("Cannot find map for command \"" + command + "\"");
@@ -396,14 +383,14 @@ namespace OpenMetaverse
 		{
 			byte magicKey = 0;
 			byte[] buffer = new byte[2048];
-			int nread;
 
-            try
+		    try
             {
                 using (BinaryReader map = new BinaryReader(new FileStream(mapFile, FileMode.Open)))
                 {
                     using (BinaryWriter output = new BinaryWriter(new FileStream(outputFile, FileMode.CreateNew)))
                     {
+                        int nread;
                         while ((nread = map.Read(buffer, 0, 2048)) != 0)
                         {
                             for (int i = 0; i < nread; ++i)
@@ -441,8 +428,6 @@ namespace OpenMetaverse
                     using (StreamReader r = new StreamReader(map))
                     {
                         r.BaseStream.Seek(0, SeekOrigin.Begin);
-                        string newline;
-                        string trimmedline;
                         bool inPacket = false;
                         bool inBlock = false;
                         MapPacket currentPacket = null;
@@ -454,8 +439,8 @@ namespace OpenMetaverse
                         {
                             #region ParseMap
 
-                            newline = r.ReadLine();
-                            trimmedline = System.Text.RegularExpressions.Regex.Replace(newline, @"\s+", " ");
+                            var newline = r.ReadLine();
+                            var trimmedline = System.Text.RegularExpressions.Regex.Replace(newline, @"\s+", " ");
                             trimmedline = trimmedline.Trim(trimArray);
 
                             if (!inPacket)
@@ -493,78 +478,85 @@ namespace OpenMetaverse
                                         // Splice the string in to tokens
                                         string[] tokens = trimmedline.Split(new char[] { ' ', '\t' });
 
-                                        if (tokens.Length > 3)
+                                        if (tokens.Length <= 3) continue;
+
+                                        //Hash packet name to insure correct keyword ordering
+                                        KeywordPosition(tokens[0]);
+
+                                        if (tokens[1] == "Fixed")
                                         {
-                                            //Hash packet name to insure correct keyword ordering
-                                            KeywordPosition(tokens[0]);
-
-                                            if (tokens[1] == "Fixed")
+                                            // Remove the leading "0x"
+                                            if (tokens[2].Substring(0, 2) == "0x")
                                             {
-                                                // Remove the leading "0x"
-                                                if (tokens[2].Substring(0, 2) == "0x")
-                                                {
-                                                    tokens[2] = tokens[2].Substring(2, tokens[2].Length - 2);
-                                                }
-
-                                                uint fixedID = UInt32.Parse(tokens[2], System.Globalization.NumberStyles.HexNumber);
-                                                // Truncate the id to a short
-                                                fixedID ^= 0xFFFF0000;
-                                                LowMaps[fixedID] = new MapPacket();
-                                                LowMaps[fixedID].ID = (ushort)fixedID;
-                                                LowMaps[fixedID].Frequency = PacketFrequency.Low;
-                                                LowMaps[fixedID].Name = tokens[0];
-                                                LowMaps[fixedID].Trusted = (tokens[3] == "Trusted");
-                                                LowMaps[fixedID].Encoded = (tokens[4] == "Zerocoded");
-                                                LowMaps[fixedID].Blocks = new List<MapBlock>();
-
-                                                currentPacket = LowMaps[fixedID];
+                                                tokens[2] = tokens[2].Substring(2, tokens[2].Length - 2);
                                             }
-                                            else if (tokens[1] == "Low")
+
+                                            uint fixedID = UInt32.Parse(tokens[2], System.Globalization.NumberStyles.HexNumber);
+                                            // Truncate the id to a short
+                                            fixedID ^= 0xFFFF0000;
+                                            LowMaps[fixedID] = new MapPacket
                                             {
-                                                LowMaps[low] = new MapPacket();
-                                                LowMaps[low].ID = low;
-                                                LowMaps[low].Frequency = PacketFrequency.Low;
-                                                LowMaps[low].Name = tokens[0];
-                                                LowMaps[low].Trusted = (tokens[2] == "Trusted");
-                                                LowMaps[low].Encoded = (tokens[3] == "Zerocoded");
-                                                LowMaps[low].Blocks = new List<MapBlock>();
+                                                ID = (ushort) fixedID,
+                                                Frequency = PacketFrequency.Low,
+                                                Name = tokens[0],
+                                                Trusted = (tokens[3] == "Trusted"),
+                                                Encoded = (tokens[4] == "Zerocoded"),
+                                                Blocks = new List<MapBlock>()
+                                            };
 
-                                                currentPacket = LowMaps[low];
-
-                                                low++;
-                                            }
-                                            else if (tokens[1] == "Medium")
+                                            currentPacket = LowMaps[fixedID];
+                                        }
+                                        else if (tokens[1] == "Low")
+                                        {
+                                            LowMaps[low] = new MapPacket
                                             {
-                                                MediumMaps[medium] = new MapPacket();
-                                                MediumMaps[medium].ID = medium;
-                                                MediumMaps[medium].Frequency = PacketFrequency.Medium;
-                                                MediumMaps[medium].Name = tokens[0];
-                                                MediumMaps[medium].Trusted = (tokens[2] == "Trusted");
-                                                MediumMaps[medium].Encoded = (tokens[3] == "Zerocoded");
-                                                MediumMaps[medium].Blocks = new List<MapBlock>();
+                                                ID = low,
+                                                Frequency = PacketFrequency.Low,
+                                                Name = tokens[0],
+                                                Trusted = (tokens[2] == "Trusted"),
+                                                Encoded = (tokens[3] == "Zerocoded"),
+                                                Blocks = new List<MapBlock>()
+                                            };
 
-                                                currentPacket = MediumMaps[medium];
+                                            currentPacket = LowMaps[low];
 
-                                                medium++;
-                                            }
-                                            else if (tokens[1] == "High")
+                                            low++;
+                                        }
+                                        else if (tokens[1] == "Medium")
+                                        {
+                                            MediumMaps[medium] = new MapPacket
                                             {
-                                                HighMaps[high] = new MapPacket();
-                                                HighMaps[high].ID = high;
-                                                HighMaps[high].Frequency = PacketFrequency.High;
-                                                HighMaps[high].Name = tokens[0];
-                                                HighMaps[high].Trusted = (tokens[2] == "Trusted");
-                                                HighMaps[high].Encoded = (tokens[3] == "Zerocoded");
-                                                HighMaps[high].Blocks = new List<MapBlock>();
+                                                ID = medium,
+                                                Frequency = PacketFrequency.Medium,
+                                                Name = tokens[0],
+                                                Trusted = (tokens[2] == "Trusted"),
+                                                Encoded = (tokens[3] == "Zerocoded"),
+                                                Blocks = new List<MapBlock>()
+                                            };
 
-                                                currentPacket = HighMaps[high];
+                                            currentPacket = MediumMaps[medium];
 
-                                                high++;
-                                            }
-                                            else
+                                            medium++;
+                                        }
+                                        else if (tokens[1] == "High")
+                                        {
+                                            HighMaps[high] = new MapPacket
                                             {
-                                                Logger.Log("Unknown packet frequency", Helpers.LogLevel.Error, Client);
-                                            }
+                                                ID = high,
+                                                Frequency = PacketFrequency.High,
+                                                Name = tokens[0],
+                                                Trusted = (tokens[2] == "Trusted"),
+                                                Encoded = (tokens[3] == "Zerocoded"),
+                                                Blocks = new List<MapBlock>()
+                                            };
+
+                                            currentPacket = HighMaps[high];
+
+                                            high++;
+                                        }
+                                        else
+                                        {
+                                            Logger.Log("Unknown packet frequency", Helpers.LogLevel.Error, Client);
                                         }
 
                                         #endregion
@@ -588,7 +580,7 @@ namespace OpenMetaverse
 
                                         if (tokens[3] != "}")
                                         {
-                                            field.Count = Int32.Parse(tokens[3]);
+                                            field.Count = int.Parse(tokens[3]);
                                         }
                                         else
                                         {

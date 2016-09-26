@@ -1546,27 +1546,27 @@ namespace OpenMetaverse.Packets
             {
                 FieldInfo[] fields = nestedArrayRecord.GetType().GetFields();
 
-                for (int i = 0; i < fields.Length; i++)
+                foreach (FieldInfo t in fields)
                 {
                     String special;
-                    if (SpecialDecoder(packet.GetType().Name + "." + fieldInfo.Name + "." + fields[i].Name,
-                        fields[i].GetValue(nestedArrayRecord), out special))
+                    if (SpecialDecoder(packet.GetType().Name + "." + fieldInfo.Name + "." + t.Name,
+                        t.GetValue(nestedArrayRecord), out special))
                     {
                         result.AppendLine(special);
                     }
-                    else if (fields[i].FieldType.IsArray) // default for an array (probably a byte[])
+                    else if (t.FieldType.IsArray) // default for an array (probably a byte[])
                     {
                         result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
-                            fields[i].Name,
-                            Utils.BytesToString((byte[])fields[i].GetValue(nestedArrayRecord)),
+                            t.Name,
+                            Utils.BytesToString((byte[])t.GetValue(nestedArrayRecord)),
                             /*fields[i].GetValue(nestedArrayRecord).GetType().Name*/ "String");
                     }
                     else // default for a field
                     {
                         result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
-                            fields[i].Name,
-                            fields[i].GetValue(nestedArrayRecord),
-                            fields[i].GetValue(nestedArrayRecord).GetType().Name);
+                            t.Name,
+                            t.GetValue(nestedArrayRecord),
+                            t.GetValue(nestedArrayRecord).GetType().Name);
                     }
                 }
 

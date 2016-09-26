@@ -25,7 +25,6 @@
  */
 
 using System;
-using System.Collections.Generic;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
@@ -42,8 +41,7 @@ namespace OpenMetaverse
         protected virtual void OnLandPatchReceived(LandPatchReceivedEventArgs e)
         {
             EventHandler<LandPatchReceivedEventArgs> handler = m_LandPatchReceivedEvent;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -57,7 +55,7 @@ namespace OpenMetaverse
         }
         #endregion
 
-        private GridClient Client;
+        private readonly GridClient Client;
 
         /// <summary>
         /// Default constructor
@@ -108,10 +106,12 @@ namespace OpenMetaverse
 
                 if (Client.Settings.STORE_LAND_PATCHES)
                 {
-                    TerrainPatch patch = new TerrainPatch();
-                    patch.Data = heightmap;
-                    patch.X = x;
-                    patch.Y = y;
+                    TerrainPatch patch = new TerrainPatch
+                    {
+                        Data = heightmap,
+                        X = x,
+                        Y = y
+                    };
                     simulator.Terrain[y * 16 + x] = patch;
                 }
             }
@@ -182,7 +182,7 @@ namespace OpenMetaverse
                     DecompressCloud(e.Simulator, bitpack, header);
                     break;
                 default:
-                    Logger.Log("Unrecognized LayerData type " + type.ToString(), Helpers.LogLevel.Warning, Client);
+                    Logger.Log("Unrecognized LayerData type " + type, Helpers.LogLevel.Warning, Client);
                     break;
             }
         }
@@ -199,23 +199,27 @@ namespace OpenMetaverse
         private readonly float[] m_HeightMap;
 
         /// <summary>Simulator from that sent tha data</summary>
-        public Simulator Simulator { get { return m_Simulator; } }
+        public Simulator Simulator => m_Simulator;
+
         /// <summary>Sim coordinate of the patch</summary>
-        public int X { get { return m_X; } }
+        public int X => m_X;
+
         /// <summary>Sim coordinate of the patch</summary>
-        public int Y { get { return m_Y; } }
+        public int Y => m_Y;
+
         /// <summary>Size of tha patch</summary>
-        public int PatchSize { get { return m_PatchSize; } }
+        public int PatchSize => m_PatchSize;
+
         /// <summary>Heightmap for the patch</summary>
-        public float[] HeightMap { get { return m_HeightMap; } }
+        public float[] HeightMap => m_HeightMap;
 
         public LandPatchReceivedEventArgs(Simulator simulator, int x, int y, int patchSize, float[] heightMap)
         {
-            this.m_Simulator = simulator;
-            this.m_X = x;
-            this.m_Y = y;
-            this.m_PatchSize = patchSize;
-            this.m_HeightMap = heightMap;
+            m_Simulator = simulator;
+            m_X = x;
+            m_Y = y;
+            m_PatchSize = patchSize;
+            m_HeightMap = heightMap;
         }
     }
     #endregion

@@ -25,7 +25,6 @@
  */
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -34,14 +33,14 @@ namespace OpenMetaverse
     public sealed class WrappedObject<T> : IDisposable where T : class
     {
         private T _instance;
-        internal readonly ObjectPoolSegment<T> _owningSegment;
-        internal readonly ObjectPoolBase<T> _owningObjectPool;
+        internal readonly ObjectPoolSegment<T> OwningSegment;
+        internal readonly ObjectPoolBase<T> OwningObjectPool;
         private bool _disposed = false;
 
         internal WrappedObject(ObjectPoolBase<T> owningPool, ObjectPoolSegment<T> ownerSegment, T activeInstance)
         {
-            _owningObjectPool = owningPool;
-            _owningSegment = ownerSegment;
+            OwningObjectPool = owningPool;
+            OwningSegment = ownerSegment;
             _instance = activeInstance;
         }
 
@@ -58,7 +57,7 @@ namespace OpenMetaverse
             GC.ReRegisterForFinalize(this);
 
             // Return this instance back to the owning queue
-            _owningObjectPool.CheckIn(_owningSegment, _instance);
+            OwningObjectPool.CheckIn(OwningSegment, _instance);
         }
 
         /// <summary>
@@ -83,7 +82,7 @@ namespace OpenMetaverse
                 return;
 
             _disposed = true;
-            _owningObjectPool.CheckIn(_owningSegment, _instance);
+            OwningObjectPool.CheckIn(OwningSegment, _instance);
             GC.SuppressFinalize(this);
         }
     }
@@ -152,7 +151,7 @@ namespace OpenMetaverse
             {
                 while (_segments.Count < this.MinimumSegmentCount)
                 {
-                    ObjectPoolSegment<T> segment = CreateSegment(false);
+                    var segment = CreateSegment(false);
                     _segments.Add(segment.SegmentNumber, segment);
                 }
             }
@@ -160,7 +159,7 @@ namespace OpenMetaverse
             // This forces a compact, to make sure our objects fill in any holes in the heap. 
             if (_gc)
             {
-                System.GC.Collect();
+                GC.Collect();
             }
 
             _timer = new Timer(CleanupThreadCallback, null, cleanupFrequenceMS, cleanupFrequenceMS);
@@ -233,7 +232,7 @@ namespace OpenMetaverse
             int segmentToAdd = _activeSegment;
             _activeSegment++;
 
-            Queue<T> buffers = new Queue<T>();
+            var buffers = new Queue<T>();
             for (int i = 1; i <= this._itemsPerSegment; i++)
             {
                 T obj = GetObjectInstance();
@@ -241,7 +240,7 @@ namespace OpenMetaverse
             }
 
             // certain segments we don't want to ever be cleaned up (the initial segments)
-            DateTime cleanupTime = (allowSegmentToBeCleanedUp) ? DateTime.Now.Add(this._minimumAgeToCleanup) : DateTime.MaxValue;
+            DateTime cleanupTime = (allowSegmentToBeCleanedUp) ? DateTime.Now.Add(_minimumAgeToCleanup) : DateTime.MaxValue;
             ObjectPoolSegment<T> segment = new ObjectPoolSegment<T>(segmentToAdd, buffers, cleanupTime);
 
             return segment;
@@ -429,27 +428,25 @@ namespace OpenMetaverse
 
         protected virtual void Dispose(bool disposing)
         {
-            if (disposing)
+            if (!disposing) return;
+            lock (_syncRoot)
             {
-                lock (_syncRoot)
+                if (_disposed)
+                    return;
+
+                _timer.Dispose();
+                _disposed = true;
+
+                foreach (var kvp in _segments)
                 {
-                    if (_disposed)
-                        return;
-
-                    _timer.Dispose();
-                    _disposed = true;
-
-                    foreach (KeyValuePair<int, ObjectPoolSegment<T>> kvp in _segments)
+                    try
                     {
-                        try
-                        {
-                            kvp.Value.Dispose();
-                        }
-                        catch (Exception) { }
+                        kvp.Value.Dispose();
                     }
-
-                    _segments.Clear();
+                    catch (Exception) { } // TODO: Investigate, this is smelly.
                 }
+
+                _segments.Clear();
             }
         }
 
@@ -461,12 +458,12 @@ namespace OpenMetaverse
         private Queue<T> _liveInstances = new Queue<T>();
         private int _segmentNumber;
         private int _originalCount;
-        private bool _isDisposed = false;
+        private bool _isDisposed;
         private DateTime _eligibleForDeletionAt;
 
-        public int SegmentNumber { get { return _segmentNumber; } }
-        public int AvailableItems { get { return _liveInstances.Count; } }
-        public DateTime DateEligibleForDeletion { get { return _eligibleForDeletionAt; } }
+        public int SegmentNumber => _segmentNumber;
+        public int AvailableItems => _liveInstances.Count;
+        public DateTime DateEligibleForDeletion => _eligibleForDeletionAt;
 
         public ObjectPoolSegment(int segmentNumber, Queue<T> liveInstances, DateTime eligibleForDeletionAt)
         {
@@ -478,7 +475,7 @@ namespace OpenMetaverse
 
         public bool CanBeCleanedUp()
         {
-            if (_isDisposed == true)
+            if (_isDisposed)
                 throw new ObjectDisposedException("ObjectPoolSegment");
 
             return ((_originalCount == _liveInstances.Count) && (DateTime.Now > _eligibleForDeletionAt));
@@ -494,7 +491,7 @@ namespace OpenMetaverse
             bool shouldDispose = (typeof(T) is IDisposable);
             while (_liveInstances.Count != 0)
             {
-                T instance = _liveInstances.Dequeue();
+                var instance = _liveInstances.Dequeue();
                 if (shouldDispose)
                 {
                     try
@@ -508,7 +505,7 @@ namespace OpenMetaverse
 
         internal void CheckInObject(T o)
         {
-            if (_isDisposed == true)
+            if (_isDisposed)
                 throw new ObjectDisposedException("ObjectPoolSegment");
 
             _liveInstances.Enqueue(o);
@@ -516,13 +513,13 @@ namespace OpenMetaverse
 
         internal T CheckOutObject()
         {
-            if (_isDisposed == true)
+            if (_isDisposed)
                 throw new ObjectDisposedException("ObjectPoolSegment");
 
             if (0 == _liveInstances.Count)
                 throw new InvalidOperationException("No Objects Available for Checkout");
 
-            T o = _liveInstances.Dequeue();
+            var o = _liveInstances.Dequeue();
             return o;
         }
     }

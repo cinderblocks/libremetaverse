@@ -15,7 +15,7 @@ namespace AvatarPreview
         /// Subclass of LODMesh that adds an index array suitable for pushing
         /// direct to OpenGL
         /// </summary>
-        new public class LODMesh : LindenMesh.LODMesh
+        public new class LODMesh : LindenMesh.LODMesh
         {
             public ushort[] Indices;
 
@@ -25,8 +25,8 @@ namespace AvatarPreview
 
                 // Generate the index array
                 Indices = new ushort[_numFaces * 3];
-                int current = 0;
-                for (int i = 0; i < _numFaces; i++)
+                var current = 0;
+                for (var i = 0; i < _numFaces; i++)
                 {
                     Indices[current++] = (ushort)_faces[i].Indices[0];
                     Indices[current++] = (ushort)_faces[i].Indices[1];
@@ -57,10 +57,10 @@ namespace AvatarPreview
         {
             base.LoadMesh(filename);
 
-            float minX, minY, minZ;
-            minX = minY = minZ = Single.MaxValue;
-            float maxX, maxY, maxZ;
-            maxX = maxY = maxZ = Single.MinValue;
+            float minY, minZ;
+            var minX = minY = minZ = Single.MaxValue;
+            float maxY, maxZ;
+            var maxX = maxY = maxZ = Single.MinValue;
 
             // Generate the vertex array
             RenderData.Vertices = new float[NumVertices * 3];

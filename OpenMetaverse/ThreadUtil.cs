@@ -2,7 +2,6 @@
 // http://www.eggheadcafe.com/articles/20060727.asp
 
 using System;
-using System.Threading;
 
 /// <summary>
 /// 
@@ -21,13 +20,13 @@ public class ThreadUtil
     /// which in turn calls the DynamicInvoke method of the wrapped
     /// delegate
     /// </summary>
-    static DelegateWrapper wrapperInstance = new DelegateWrapper(InvokeWrappedDelegate);
+    static readonly DelegateWrapper wrapperInstance = InvokeWrappedDelegate;
 
     /// <summary>
     /// Callback used to call EndInvoke on the asynchronously
     /// invoked DelegateWrapper
     /// </summary>
-    static AsyncCallback callback = new AsyncCallback(EndWrapperInvoke);
+    static readonly AsyncCallback callback = EndWrapperInvoke;
 
     /// <summary>
     /// Executes the specified delegate with the specified arguments
@@ -48,7 +47,7 @@ public class ThreadUtil
     /// </summary>
     /// <param name="d"></param>
     /// <param name="args"></param>
-    static void InvokeWrappedDelegate(Delegate d, object[] args)
+    private static void InvokeWrappedDelegate(Delegate d, object[] args)
     {
         d.DynamicInvoke(args);
     }
@@ -58,7 +57,7 @@ public class ThreadUtil
     /// to prevent resource leaks
     /// </summary>
     /// <param name="ar"></param>
-    static void EndWrapperInvoke(IAsyncResult ar)
+    public static void EndWrapperInvoke(IAsyncResult ar)
     {
         wrapperInstance.EndInvoke(ar);
         ar.AsyncWaitHandle.Close();

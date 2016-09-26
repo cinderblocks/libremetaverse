@@ -26,7 +26,6 @@
 
 using System;
 using System.Threading;
-using OpenMetaverse;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse

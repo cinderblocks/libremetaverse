@@ -28,7 +28,7 @@ using System;
 using log4net;
 using log4net.Config;
 
-[assembly: log4net.Config.XmlConfigurator(Watch = true)]
+[assembly: XmlConfigurator(Watch = true)]
 
 namespace OpenMetaverse
 {
@@ -63,8 +63,10 @@ namespace OpenMetaverse
             // ConsoleAppender
             if (!LogInstance.Logger.IsEnabledFor(log4net.Core.Level.Error))
             {
-                log4net.Appender.ConsoleAppender appender = new log4net.Appender.ConsoleAppender();
-                appender.Layout = new log4net.Layout.PatternLayout("%timestamp [%thread] %-5level - %message%newline");
+                log4net.Appender.ConsoleAppender appender = new log4net.Appender.ConsoleAppender
+                {
+                    Layout = new log4net.Layout.PatternLayout("%timestamp [%thread] %-5level - %message%newline")
+                };
                 BasicConfigurator.Configure(appender);
 
                 if(Settings.LOG_LEVEL != Helpers.LogLevel.None)
@@ -114,10 +116,9 @@ namespace OpenMetaverse
         public static void Log(object message, Helpers.LogLevel level, GridClient client, Exception exception)
         {
             if (client != null && client.Settings.LOG_NAMES)
-                message = String.Format("<{0}>: {1}", client.Self.Name, message);
+                message = $"<{client.Self.Name}>: {message}";
 
-            if (OnLogMessage != null)
-                OnLogMessage(message, level);
+            OnLogMessage?.Invoke(message, level);
 
             switch (level)
             {
@@ -172,16 +173,14 @@ namespace OpenMetaverse
         [System.Diagnostics.Conditional("DEBUG")]
         public static void DebugLog(object message, GridClient client)
         {
-            if (Settings.LOG_LEVEL == Helpers.LogLevel.Debug)
-            {
-                if (client != null && client.Settings.LOG_NAMES)
-                    message = String.Format("<{0}>: {1}", client.Self.Name, message);
+            if (Settings.LOG_LEVEL != Helpers.LogLevel.Debug) return;
 
-                if (OnLogMessage != null)
-                    OnLogMessage(message, Helpers.LogLevel.Debug);
+            if (client != null && client.Settings.LOG_NAMES)
+                message = $"<{client.Self.Name}>: {message}";
 
-                LogInstance.Debug(message);
-            }
+            OnLogMessage?.Invoke(message, Helpers.LogLevel.Debug);
+
+            LogInstance.Debug(message);
         }
     }
 }

@@ -25,10 +25,7 @@
  */
 
 using System;
-using System.Net;
 using System.Collections.Generic;
-using System.Threading;
-using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
 using System.Reflection;
 

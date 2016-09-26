@@ -101,7 +101,7 @@ namespace OpenMetaverse
         /// <param name="body">Method body to run for each object in the collection</param>
         public static void ForEach<T>(IEnumerable<T> enumerable, Action<T> body)
         {
-            ForEach<T>(processorCount, enumerable, body);
+            ForEach(processorCount, enumerable, body);
         }
 
         /// <summary>
@@ -123,8 +123,6 @@ namespace OpenMetaverse
                 WorkPool.QueueUserWorkItem(
                     delegate(object o)
                     {
-                        int threadIndex = (int)o;
-
                         while (exception == null)
                         {
                             T entry;
@@ -133,7 +131,7 @@ namespace OpenMetaverse
                             {
                                 if (!enumerator.MoveNext())
                                     break;
-                                entry = (T)enumerator.Current; // Explicit typecast for Mono's sake
+                                entry = enumerator.Current; // Explicit typecast for Mono's sake
                             }
 
                             try { body(entry); }

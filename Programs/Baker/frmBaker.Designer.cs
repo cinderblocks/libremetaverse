@@ -1,6 +1,6 @@
 namespace Baker
 {
-    partial class frmBaker
+    partial class FrmBaker
     {
         /// <summary>
         /// Required designer variable.
@@ -111,7 +111,7 @@ namespace Baker
             this.Controls.Add(this.scrollWeight);
             this.Controls.Add(this.cmdLoadShirt);
             this.Controls.Add(this.pic1);
-            this.Name = "frmBaker";
+            this.Name = "FrmBaker";
             this.Text = "Baker";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.frmBaker_FormClosing);
             this.Load += new System.EventHandler(this.frmBaker_Load);

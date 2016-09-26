@@ -45,51 +45,49 @@ namespace AvatarPreview
 
         private void lindenLabMeshToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            OpenFileDialog dialog = new OpenFileDialog();
-            dialog.Filter = "avatar_lad.xml|avatar_lad.xml";
+            var dialog = new OpenFileDialog {Filter = @"avatar_lad.xml|avatar_lad.xml"};
 
-            if (dialog.ShowDialog() == DialogResult.OK)
+            if (dialog.ShowDialog() != DialogResult.OK) return;
+
+            _meshes.Clear();
+
+            try
             {
-                _meshes.Clear();
+                // Parse through avatar_lad.xml to find all of the mesh references
+                XmlDocument lad = new XmlDocument();
+                lad.Load(dialog.FileName);
 
-                try
+                XmlNodeList meshes = lad.GetElementsByTagName("mesh");
+
+                foreach (XmlNode meshNode in meshes)
                 {
-                    // Parse through avatar_lad.xml to find all of the mesh references
-                    XmlDocument lad = new XmlDocument();
-                    lad.Load(dialog.FileName);
+                    string type = meshNode.Attributes.GetNamedItem("type").Value;
+                    int lod = Int32.Parse(meshNode.Attributes.GetNamedItem("lod").Value);
+                    string fileName = meshNode.Attributes.GetNamedItem("file_name").Value;
+                    //string minPixelWidth = meshNode.Attributes.GetNamedItem("min_pixel_width").Value;
 
-                    XmlNodeList meshes = lad.GetElementsByTagName("mesh");
+                    // Mash up the filename with the current path
+                    fileName = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(dialog.FileName), fileName);
 
-                    foreach (XmlNode meshNode in meshes)
+                    GLMesh mesh = (_meshes.ContainsKey(type) ? _meshes[type] : new GLMesh(type));
+
+                    if (lod == 0)
                     {
-                        string type = meshNode.Attributes.GetNamedItem("type").Value;
-                        int lod = Int32.Parse(meshNode.Attributes.GetNamedItem("lod").Value);
-                        string fileName = meshNode.Attributes.GetNamedItem("file_name").Value;
-                        //string minPixelWidth = meshNode.Attributes.GetNamedItem("min_pixel_width").Value;
-
-                        // Mash up the filename with the current path
-                        fileName = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(dialog.FileName), fileName);
-
-                        GLMesh mesh = (_meshes.ContainsKey(type) ? _meshes[type] : new GLMesh(type));
-
-                        if (lod == 0)
-                        {
-                            mesh.LoadMesh(fileName);
-                        }
-                        else
-                        {
-                            mesh.LoadLODMesh(lod, fileName);
-                        }
-
-                        _meshes[type] = mesh;
-                        glControl_Resize(null, null);
-                        glControl.Invalidate();
+                        mesh.LoadMesh(fileName);
                     }
+                    else
+                    {
+                        mesh.LoadLODMesh(lod, fileName);
+                    }
+
+                    _meshes[type] = mesh;
+                    glControl_Resize(null, null);
+                    glControl.Invalidate();
                 }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Failed to load avatar mesh: " + ex.Message);
-                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(@"Failed to load avatar mesh: " + ex.Message);
             }
         }
 
@@ -122,7 +120,7 @@ namespace AvatarPreview
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
         {
             MessageBox.Show(
-                "Written by John Hurliman <jhurliman@jhurliman.org> (http://www.jhurliman.org/)");
+                @"Written by John Hurliman <jhurliman@jhurliman.org> (http://www.jhurliman.org/)");
         }
 
         private void glControl_Paint(object sender, PaintEventArgs e)
@@ -227,7 +225,7 @@ namespace AvatarPreview
             {
                 try
                 {
-                    System.Drawing.Image image = System.Drawing.Image.FromFile(dialog.FileName);
+                    Image image = Image.FromFile(dialog.FileName);
 
                     #region Dimensions Check
 
@@ -271,7 +269,7 @@ namespace AvatarPreview
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Failed to load image: " + ex.Message);
+                    MessageBox.Show(@"Failed to load image: " + ex.Message);
                 }
             }
             else
@@ -281,8 +279,8 @@ namespace AvatarPreview
 
             #region Baking
 
-            Dictionary<int, float> paramValues = GetParamValues();
-            Dictionary<AvatarTextureIndex, AssetTexture> layers =
+            var paramValues = GetParamValues();
+            var layers =
                     new Dictionary<AvatarTextureIndex, AssetTexture>();
             int textureCount = 0;
 
@@ -304,10 +302,9 @@ namespace AvatarPreview
                 // Compute the head bake
                 Baker baker = new Baker(BakeType.Head);
 
-                foreach (KeyValuePair<AvatarTextureIndex, AssetTexture> kvp in layers)
+                foreach (var kvp in layers)
                 {
-                    AppearanceManager.TextureData tdata = new AppearanceManager.TextureData();
-                    tdata.Texture = kvp.Value;
+                    AppearanceManager.TextureData tdata = new AppearanceManager.TextureData {Texture = kvp.Value};
                     baker.AddTexture(tdata);
                 }
 
@@ -322,7 +319,7 @@ namespace AvatarPreview
                 }
                 else
                 {
-                    MessageBox.Show("Failed to create the bake layer, unknown error");
+                    MessageBox.Show(@"Failed to create the bake layer, unknown error");
                 }
             }
             else if ((string)control.Tag == "Upper")
@@ -379,7 +376,7 @@ namespace AvatarPreview
                 }
                 else
                 {
-                    MessageBox.Show("Failed to create the bake layer, unknown error");
+                    MessageBox.Show(@"Failed to create the bake layer, unknown error");
                 }
             }
             else if ((string)control.Tag == "Lower")
@@ -436,7 +433,7 @@ namespace AvatarPreview
                 }
                 else
                 {
-                    MessageBox.Show("Failed to create the bake layer, unknown error");
+                    MessageBox.Show(@"Failed to create the bake layer, unknown error");
                 }
             }
             else if ((string)control.Tag == "Bake")
@@ -450,9 +447,9 @@ namespace AvatarPreview
 
         private Dictionary<int, float> GetParamValues()
         {
-            Dictionary<int, float> paramValues = new Dictionary<int, float>(VisualParams.Params.Count);
+            var paramValues = new Dictionary<int, float>(VisualParams.Params.Count);
 
-            foreach (KeyValuePair<int, VisualParam> kvp in VisualParams.Params)
+            foreach (var kvp in VisualParams.Params)
             {
                 VisualParam vp = kvp.Value;
                 paramValues.Add(vp.ParamID, vp.DefaultValue);

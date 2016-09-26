@@ -1,21 +1,16 @@
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Drawing.Imaging;
-using System.Text;
 using System.Windows.Forms;
 using System.IO;
 using OpenMetaverse.Imaging;
 
 namespace Baker
 {
-    public partial class frmBaker : Form
+    public partial class FrmBaker : Form
     {
-        Bitmap AlphaMask;
+        Bitmap _alphaMask;
 
-        public frmBaker()
+        public FrmBaker()
         {
             InitializeComponent();
         }
@@ -32,13 +27,13 @@ namespace Baker
 
             if (stream != null)
             {
-                AlphaMask = LoadTGAClass.LoadTGA(stream);
+                _alphaMask = LoadTGAClass.LoadTGA(stream);
                 stream.Close();
 
                 //ManagedImage managedImage = new ManagedImage(AlphaMask);
 
                 // FIXME: Operate on ManagedImage instead of Bitmap
-                pic1.Image = Oven.ModifyAlphaMask(AlphaMask, (byte)scrollWeight.Value, 0.0f);
+                pic1.Image = Oven.ModifyAlphaMask(_alphaMask, (byte)scrollWeight.Value, 0.0f);
             }
             else
             {
@@ -49,7 +44,7 @@ namespace Baker
 
         private void scrollWeight_Scroll(object sender, ScrollEventArgs e)
         {
-            pic1.Image = Oven.ModifyAlphaMask(AlphaMask, (byte)scrollWeight.Value, 0.0f);
+            pic1.Image = Oven.ModifyAlphaMask(_alphaMask, (byte)scrollWeight.Value, 0.0f);
         }
 
         private void frmBaker_FormClosing(object sender, FormClosingEventArgs e)

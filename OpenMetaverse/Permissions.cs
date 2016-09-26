@@ -103,12 +103,14 @@ namespace OpenMetaverse
 
         public OSD GetOSD()
         {
-            OSDMap permissions = new OSDMap(5);
-            permissions["base_mask"] = OSD.FromInteger((uint)BaseMask);
-            permissions["everyone_mask"] = OSD.FromInteger((uint)EveryoneMask);
-            permissions["group_mask"] = OSD.FromInteger((uint)GroupMask);
-            permissions["next_owner_mask"] = OSD.FromInteger((uint)NextOwnerMask);
-            permissions["owner_mask"] = OSD.FromInteger((uint)OwnerMask);
+            OSDMap permissions = new OSDMap(5)
+            {
+                ["base_mask"] = OSD.FromInteger((uint) BaseMask),
+                ["everyone_mask"] = OSD.FromInteger((uint) EveryoneMask),
+                ["group_mask"] = OSD.FromInteger((uint) GroupMask),
+                ["next_owner_mask"] = OSD.FromInteger((uint) NextOwnerMask),
+                ["owner_mask"] = OSD.FromInteger((uint) OwnerMask)
+            };
             return permissions;
         }
 
@@ -143,7 +145,7 @@ namespace OpenMetaverse
 
         public override bool Equals(object obj)
         {
-            return (obj is Permissions) ? this == (Permissions)obj : false;
+            return (obj is Permissions) && this == (Permissions)obj;
         }
 
         public bool Equals(Permissions other)

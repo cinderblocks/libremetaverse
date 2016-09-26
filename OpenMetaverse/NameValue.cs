@@ -25,7 +25,6 @@
  */
 
 using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace OpenMetaverse
@@ -163,10 +162,8 @@ namespace OpenMetaverse
         /// <param name="data"></param>
         public NameValue(string data)
         {
-            int i;
-
             // Name
-            i = data.IndexOfAny(Separators);
+            var i = data.IndexOfAny(Separators);
             if (i < 1)
             {
                 Name = String.Empty;

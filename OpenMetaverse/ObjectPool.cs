@@ -9,7 +9,7 @@ namespace OpenMetaverse
     public class UDPPacketBuffer
     {
         /// <summary>Size of the byte array used to store raw packet data</summary>
-        public const int BUFFER_SIZE = 4096;
+        public const int BufferSize = 4096;
         /// <summary>Raw packet data buffer</summary>
         public readonly byte[] Data;
         /// <summary>Length of the data to transmit</summary>
@@ -26,7 +26,7 @@ namespace OpenMetaverse
         /// </summary>
         public UDPPacketBuffer()
         {
-            Data = new byte[UDPPacketBuffer.BUFFER_SIZE];
+            Data = new byte[BufferSize];
             // Will be modified later by BeginReceiveFrom()
             RemoteEndPoint = new IPEndPoint(Settings.BIND_ADDR, 0);
         }
@@ -37,7 +37,7 @@ namespace OpenMetaverse
         /// <param name="endPoint">EndPoint of the remote host</param>
         public UDPPacketBuffer(IPEndPoint endPoint)
         {
-            Data = new byte[UDPPacketBuffer.BUFFER_SIZE];
+            Data = new byte[BufferSize];
             RemoteEndPoint = endPoint;
         }
 
@@ -64,7 +64,7 @@ namespace OpenMetaverse
     /// </summary>
     public class PacketBufferPool : ObjectPoolBase<UDPPacketBuffer>
     {
-        private IPEndPoint EndPoint;
+        private IPEndPoint _endPoint;
 
         /// <summary>
         /// Initialize the object pool in client mode
@@ -75,7 +75,7 @@ namespace OpenMetaverse
         public PacketBufferPool(IPEndPoint endPoint, int itemsPerSegment, int minSegments)
             : base()
         {
-            EndPoint = endPoint;
+            _endPoint = endPoint;
             Initialize(itemsPerSegment, minSegments, true, 1000 * 60 * 5);
         }
 
@@ -85,9 +85,8 @@ namespace OpenMetaverse
         /// <param name="itemsPerSegment"></param>
         /// <param name="minSegments"></param>
         public PacketBufferPool(int itemsPerSegment, int minSegments)
-            : base()
         {
-            EndPoint = null;
+            _endPoint = null;
             Initialize(itemsPerSegment, minSegments, true, 1000 * 60 * 5);
         }
 
@@ -98,12 +97,7 @@ namespace OpenMetaverse
         /// <returns>Initialized UDPPacketBuffer object</returns>
         protected override UDPPacketBuffer GetObjectInstance()
         {
-            if (EndPoint != null)
-                // Client mode
-                return new UDPPacketBuffer(EndPoint);
-            else
-                // Server mode
-                return new UDPPacketBuffer();
+            return _endPoint != null ? new UDPPacketBuffer(_endPoint) : new UDPPacketBuffer();
         }
     }
 

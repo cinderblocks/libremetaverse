@@ -26,9 +26,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Net;
-using System.Net.Sockets;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
@@ -256,7 +256,7 @@ namespace OpenMetaverse
         /// <summary>A Unique Cache identifier for this simulator</summary>
         public UUID ID = UUID.Zero;
         /// <summary>The capabilities for this simulator</summary>
-        public Caps Caps = null;
+        public Caps Caps;
         /// <summary></summary>
         public ulong Handle;
         /// <summary>The current version of software this simulator is running</summary>
@@ -396,8 +396,7 @@ namespace OpenMetaverse
                 {
                     return DataPool.Parcels;
                 }
-                if (_Parcels == null) _Parcels = new InternalDictionary<int, Parcel>();
-                return _Parcels;
+                return _Parcels ?? (_Parcels = new InternalDictionary<int, Parcel>());
             }
         }
         private InternalDictionary<int, Parcel> _Parcels;
@@ -416,8 +415,7 @@ namespace OpenMetaverse
                     {
                         return DataPool.ParcelMap;
                     }
-                    if (_ParcelMap == null) _ParcelMap = new int[64, 64];
-                    return _ParcelMap;
+                    return _parcelMap ?? (_parcelMap = new int[64, 64]);
                 }
             }
         }
@@ -432,7 +430,7 @@ namespace OpenMetaverse
             {
                 for (int x = 0; x < 64; x++)
                 {
-                    if (this.ParcelMap[y, x] == 0)
+                    if (ParcelMap[y, x] == 0)
                         return false;
                 }
             }
@@ -494,7 +492,7 @@ namespace OpenMetaverse
         private Timer PingTimer;
         private Timer StatsTimer;
         // simulator <> parcel LocalID Map
-        private int[,] _ParcelMap;
+        private int[,] _parcelMap;
         public readonly SimulatorDataPool DataPool;
         internal bool DownloadingParcelMap
         {
@@ -555,21 +553,15 @@ namespace OpenMetaverse
 
         public virtual void Dispose(bool disposing)
         {
-            if (disposing)
-            {
-                if (AckTimer != null)
-                    AckTimer.Dispose();
-                if (PingTimer != null)
-                    PingTimer.Dispose();
-                if (StatsTimer != null)
-                    StatsTimer.Dispose();
-                if (ConnectedEvent != null)
-                    ConnectedEvent.Close();
+            if (!disposing) return;
 
-                // Force all the CAPS connections closed for this simulator
-                if (Caps != null)
-                    Caps.Disconnect(true);
-            }
+            AckTimer?.Dispose();
+            PingTimer?.Dispose();
+            StatsTimer?.Dispose();
+            ConnectedEvent?.Close();
+
+            // Force all the CAPS connections closed for this simulator
+            Caps?.Disconnect(true);
         }
 
         /// <summary>
@@ -585,7 +577,10 @@ namespace OpenMetaverse
             if (connected)
             {
                 UseCircuitCode(true);
-                if (moveToSim) Client.Self.CompleteAgentMovement(this);
+                if (moveToSim)
+                {
+                    Client.Self.CompleteAgentMovement(this);
+                }
                 return true;
             }
 
@@ -605,7 +600,7 @@ namespace OpenMetaverse
 
             #endregion Start Timers
 
-            Logger.Log("Connecting to " + this.ToString(), Helpers.LogLevel.Info, Client);
+            Logger.Log("Connecting to " + this, Helpers.LogLevel.Info, Client);
 
             try
             {
@@ -625,7 +620,7 @@ namespace OpenMetaverse
 
                 if (!ConnectedEvent.WaitOne(Client.Settings.LOGIN_TIMEOUT, false))
                 {
-                    Logger.Log("Giving up on waiting for RegionHandshake for " + this.ToString(),
+                    Logger.Log("Giving up on waiting for RegionHandshake for " + this,
                         Helpers.LogLevel.Warning, Client);
                     //Remove the simulator from the list, not useful if we haven't recieved the RegionHandshake
                     lock (Client.Network.Simulators) {
@@ -656,10 +651,15 @@ namespace OpenMetaverse
         public void UseCircuitCode(bool waitForAck)
         {
             // Send the UseCircuitCode packet to initiate the connection
-            UseCircuitCodePacket use = new UseCircuitCodePacket();
-            use.CircuitCode.Code = Network.CircuitCode;
-            use.CircuitCode.ID = Client.Self.AgentID;
-            use.CircuitCode.SessionID = Client.Self.SessionID;
+            UseCircuitCodePacket use = new UseCircuitCodePacket
+            {
+                CircuitCode =
+                {
+                    Code = Network.CircuitCode,
+                    ID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                }
+            };
 
             if (waitForAck)
             {
@@ -705,46 +705,44 @@ namespace OpenMetaverse
         /// </summary>
         public void Disconnect(bool sendCloseCircuit)
         {
-            if (connected)
+            if (!connected) return;
+
+            connected = false;
+            // Destroy the timers
+            AckTimer?.Dispose();
+            StatsTimer?.Dispose();
+            PingTimer?.Dispose();
+
+            AckTimer = null;
+            StatsTimer = null;
+            PingTimer = null;
+
+            // Kill the current CAPS system
+            if (Caps != null)
             {
-                connected = false;
-
-                // Destroy the timers
-                if (AckTimer != null) AckTimer.Dispose();
-                if (StatsTimer != null) StatsTimer.Dispose();
-                if (PingTimer != null) PingTimer.Dispose();
-
-                AckTimer = null;
-                StatsTimer = null;
-                PingTimer = null;
-
-                // Kill the current CAPS system
-                if (Caps != null)
-                {
-                    Caps.Disconnect(true);
-                    Caps = null;
-                }
-
-                if (sendCloseCircuit)
-                {
-                    // Try to send the CloseCircuit notice
-                    CloseCircuitPacket close = new CloseCircuitPacket();
-                    UDPPacketBuffer buf = new UDPPacketBuffer(remoteEndPoint);
-                    byte[] data = close.ToBytes();
-                    Buffer.BlockCopy(data, 0, buf.Data, 0, data.Length);
-                    buf.DataLength = data.Length;
-
-                    AsyncBeginSend(buf);
-                }
-
-                if (Client.Settings.POOL_PARCEL_DATA || Client.Settings.CACHE_PRIMITIVES)
-                {
-                    SimulatorDataPool.SimulatorRelease(this);
-                }
-
-                // Shut the socket communication down
-                Stop();
+                Caps.Disconnect(true);
+                Caps = null;
             }
+
+            if (sendCloseCircuit)
+            {
+                // Try to send the CloseCircuit notice
+                CloseCircuitPacket close = new CloseCircuitPacket();
+                UDPPacketBuffer buf = new UDPPacketBuffer(remoteEndPoint);
+                byte[] data = close.ToBytes();
+                Buffer.BlockCopy(data, 0, buf.Data, 0, data.Length);
+                buf.DataLength = data.Length;
+
+                AsyncBeginSend(buf);
+            }
+
+            if (Client.Settings.POOL_PARCEL_DATA || Client.Settings.CACHE_PRIMITIVES)
+            {
+                SimulatorDataPool.SimulatorRelease(this);
+            }
+
+            // Shut the socket communication down
+            Stop();
         }
 
         /// <summary>
@@ -752,10 +750,15 @@ namespace OpenMetaverse
         /// </summary>
         public void Pause()
         {
-            AgentPausePacket pause = new AgentPausePacket();
-            pause.AgentData.AgentID = Client.Self.AgentID;
-            pause.AgentData.SessionID = Client.Self.SessionID;
-            pause.AgentData.SerialNum = (uint)Interlocked.Exchange(ref pauseSerial, pauseSerial + 1);
+            AgentPausePacket pause = new AgentPausePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    SerialNum = (uint) Interlocked.Exchange(ref pauseSerial, pauseSerial + 1)
+                }
+            };
 
             Client.Network.SendPacket(pause, this);
         }
@@ -765,10 +768,15 @@ namespace OpenMetaverse
         /// </summary>
         public void Resume()
         {
-            AgentResumePacket resume = new AgentResumePacket();
-            resume.AgentData.AgentID = Client.Self.AgentID;
-            resume.AgentData.SessionID = Client.Self.SessionID;
-            resume.AgentData.SerialNum = (uint)Interlocked.Exchange(ref pauseSerial, pauseSerial + 1);
+            AgentResumePacket resume = new AgentResumePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    SerialNum = (uint) Interlocked.Exchange(ref pauseSerial, pauseSerial + 1)
+                }
+            };
 
             Client.Network.SendPacket(resume, this);
         }
@@ -849,7 +857,10 @@ namespace OpenMetaverse
             // Zerocode if needed
             if (doZerocode)
             {
-                try { dataLength = Helpers.ZeroEncode(data, dataLength, buffer.Data); }
+                try
+                {
+                    dataLength = Helpers.ZeroEncode(data, dataLength, buffer.Data);
+                }
                 catch (IndexOutOfRangeException)
                 {
                     // The packet grew larger than Packet.MTU bytes while zerocoding.
@@ -958,19 +969,26 @@ namespace OpenMetaverse
             {
                 if (NeedAck.Count > 0)
                 {
-                    SortedDictionary<uint, NetworkManager.OutgoingPacket>.KeyCollection.Enumerator en = NeedAck.Keys.GetEnumerator();
-                    en.MoveNext();
-                    oldestUnacked = en.Current;
+                    using (var en = NeedAck.Keys.GetEnumerator())
+                    {
+                        en.MoveNext();
+                        oldestUnacked = en.Current;
+                    }
                 }
             }
 
             //if (oldestUnacked != 0)
             //    Logger.DebugLog("Sending ping with oldestUnacked=" + oldestUnacked);
 
-            StartPingCheckPacket ping = new StartPingCheckPacket();
-            ping.PingID.PingID = Stats.LastPingID++;
-            ping.PingID.OldestUnacked = oldestUnacked;
-            ping.Header.Reliable = false;
+            StartPingCheckPacket ping = new StartPingCheckPacket
+            {
+                PingID =
+                {
+                    PingID = Stats.LastPingID++,
+                    OldestUnacked = oldestUnacked
+                },
+                Header = {Reliable = false}
+            };
             SendPacket(ping);
             Stats.LastPingSent = Environment.TickCount;
         }
@@ -983,10 +1001,9 @@ namespace OpenMetaverse
         /// <returns></returns>
         public override string ToString()
         {
-            if (!String.IsNullOrEmpty(Name))
-                return String.Format("{0} ({1})", Name, remoteEndPoint);
-            else
-                return String.Format("({0})", remoteEndPoint);
+            return !String.IsNullOrEmpty(Name)
+                ? $"{Name} ({remoteEndPoint})"
+                : $"({remoteEndPoint})";
         }
 
         /// <summary>
@@ -1006,15 +1023,13 @@ namespace OpenMetaverse
         public override bool Equals(object obj)
         {
             Simulator sim = obj as Simulator;
-            if (sim == null)
-                return false;
-            return (remoteEndPoint.Equals(sim.remoteEndPoint));
+            return sim != null && (remoteEndPoint.Equals(sim.remoteEndPoint));
         }
 
         public static bool operator ==(Simulator lhs, Simulator rhs)
         {
             // If both are null, or both are same instance, return true
-            if (System.Object.ReferenceEquals(lhs, rhs))
+            if (ReferenceEquals(lhs, rhs))
             {
                 return true;
             }
@@ -1041,7 +1056,7 @@ namespace OpenMetaverse
             if (!remoteEndPoint.Address.Equals(((IPEndPoint)buffer.RemoteEndPoint).Address))
             {
                 Logger.Log("Received " + buffer.DataLength + " bytes of data from unrecognized source " +
-                    ((IPEndPoint)buffer.RemoteEndPoint).ToString(), Helpers.LogLevel.Warning, Client);
+                    ((IPEndPoint)buffer.RemoteEndPoint), Helpers.LogLevel.Warning, Client);
                 return;
             }
 
@@ -1086,13 +1101,13 @@ namespace OpenMetaverse
             {
                 lock (NeedAck)
                 {
-                    for (int i = 0; i < packet.Header.AckList.Length; i++)
+                    foreach (var t in packet.Header.AckList)
                     {
-                        if (NeedAck.ContainsKey(packet.Header.AckList[i]) && NeedAck[packet.Header.AckList[i]].Type == PacketType.UseCircuitCode)
+                        if (NeedAck.ContainsKey(t) && NeedAck[t].Type == PacketType.UseCircuitCode)
                         {
                             GotUseCircuitCodeAck.Set();
                         }
-                        NeedAck.Remove(packet.Header.AckList[i]);
+                        NeedAck.Remove(t);
                     }
                 }
             }
@@ -1104,13 +1119,13 @@ namespace OpenMetaverse
 
                 lock (NeedAck)
                 {
-                    for (int i = 0; i < ackPacket.Packets.Length; i++)
+                    foreach (var t in ackPacket.Packets)
                     {
-                        if (NeedAck.ContainsKey(ackPacket.Packets[i].ID) && NeedAck[ackPacket.Packets[i].ID].Type == PacketType.UseCircuitCode)
+                        if (NeedAck.ContainsKey(t.ID) && NeedAck[t.ID].Type == PacketType.UseCircuitCode)
                         {
                             GotUseCircuitCodeAck.Set();
                         }
-                        NeedAck.Remove(ackPacket.Packets[i].ID);
+                        NeedAck.Remove(t.ID);
                     }
                 }
             }
@@ -1122,7 +1137,7 @@ namespace OpenMetaverse
                 #region ACK Sending
 
                 // Add this packet to the list of ACKs that need to be sent out
-                uint sequence = (uint)packet.Header.Sequence;
+                var sequence = packet.Header.Sequence;
                 PendingAcks.Enqueue(sequence);
 
                 // Send out ACKs if we have a lot of them
@@ -1191,20 +1206,20 @@ namespace OpenMetaverse
             if (PendingAcks.TryDequeue(out ack))
             {
                 List<PacketAckPacket.PacketsBlock> blocks = new List<PacketAckPacket.PacketsBlock>();
-                PacketAckPacket.PacketsBlock block = new PacketAckPacket.PacketsBlock();
-                block.ID = ack;
+                PacketAckPacket.PacketsBlock block = new PacketAckPacket.PacketsBlock {ID = ack};
                 blocks.Add(block);
 
                 while (PendingAcks.TryDequeue(out ack))
                 {
-                    block = new PacketAckPacket.PacketsBlock();
-                    block.ID = ack;
+                    block = new PacketAckPacket.PacketsBlock {ID = ack};
                     blocks.Add(block);
                 }
 
-                PacketAckPacket packet = new PacketAckPacket();
-                packet.Header.Reliable = false;
-                packet.Packets = blocks.ToArray();
+                PacketAckPacket packet = new PacketAckPacket
+                {
+                    Header = {Reliable = false},
+                    Packets = blocks.ToArray()
+                };
 
                 ackCount = blocks.Count;
                 SendPacket(packet);
@@ -1218,55 +1233,51 @@ namespace OpenMetaverse
         /// </summary>
         private void ResendUnacked()
         {
-            if (NeedAck.Count > 0)
+            if (NeedAck.Count <= 0) return;
+
+            NetworkManager.OutgoingPacket[] array;
+
+            lock (NeedAck)
             {
-                NetworkManager.OutgoingPacket[] array;
+                // Create a temporary copy of the outgoing packets array to iterate over
+                array = new NetworkManager.OutgoingPacket[NeedAck.Count];
+                NeedAck.Values.CopyTo(array, 0);
+            }
 
-                lock (NeedAck)
+            int now = Environment.TickCount;
+
+            // Resend packets
+            foreach (NetworkManager.OutgoingPacket outgoing in array)
+            {
+                if (outgoing.TickCount == 0 || now - outgoing.TickCount <= Client.Settings.RESEND_TIMEOUT) continue;
+
+                if (outgoing.ResendCount < Client.Settings.MAX_RESEND_COUNT)
                 {
-                    // Create a temporary copy of the outgoing packets array to iterate over
-                    array = new NetworkManager.OutgoingPacket[NeedAck.Count];
-                    NeedAck.Values.CopyTo(array, 0);
-                }
-
-                int now = Environment.TickCount;
-
-                // Resend packets
-                for (int i = 0; i < array.Length; i++)
-                {
-                    NetworkManager.OutgoingPacket outgoing = array[i];
-
-                    if (outgoing.TickCount != 0 && now - outgoing.TickCount > Client.Settings.RESEND_TIMEOUT)
+                    if (Client.Settings.LOG_RESENDS)
                     {
-                        if (outgoing.ResendCount < Client.Settings.MAX_RESEND_COUNT)
-                        {
-                            if (Client.Settings.LOG_RESENDS)
-                            {
-                                Logger.DebugLog(String.Format("Resending {2} packet #{0}, {1}ms have passed",
-                                    outgoing.SequenceNumber, now - outgoing.TickCount, outgoing.Type), Client);
-                            }
-
-                            // The TickCount will be set to the current time when the packet
-                            // is actually sent out again
-                            outgoing.TickCount = 0;
-
-                            // Set the resent flag
-                            outgoing.Buffer.Data[0] = (byte)(outgoing.Buffer.Data[0] | Helpers.MSG_RESENT);
-
-                            // Stats tracking
-                            Interlocked.Increment(ref outgoing.ResendCount);
-                            Interlocked.Increment(ref Stats.ResentPackets);
-
-                            SendPacketFinal(outgoing);
-                        }
-                        else
-                        {
-                            Logger.DebugLog(String.Format("Dropping packet #{0} after {1} failed attempts",
-                                outgoing.SequenceNumber, outgoing.ResendCount));
-
-                            lock (NeedAck) NeedAck.Remove(outgoing.SequenceNumber);
-                        }
+                        Logger.DebugLog(String.Format("Resending {2} packet #{0}, {1}ms have passed",
+                            outgoing.SequenceNumber, now - outgoing.TickCount, outgoing.Type), Client);
                     }
+
+                    // The TickCount will be set to the current time when the packet
+                    // is actually sent out again
+                    outgoing.TickCount = 0;
+
+                    // Set the resent flag
+                    outgoing.Buffer.Data[0] = (byte)(outgoing.Buffer.Data[0] | Helpers.MSG_RESENT);
+
+                    // Stats tracking
+                    Interlocked.Increment(ref outgoing.ResendCount);
+                    Interlocked.Increment(ref Stats.ResentPackets);
+
+                    SendPacketFinal(outgoing);
+                }
+                else
+                {
+                    Logger.DebugLog(String.Format("Dropping packet #{0} after {1} failed attempts",
+                        outgoing.SequenceNumber, outgoing.ResendCount));
+
+                    lock (NeedAck) NeedAck.Remove(outgoing.SequenceNumber);
                 }
             }
         }
@@ -1278,15 +1289,19 @@ namespace OpenMetaverse
 
             // Start the ACK handling functions again after NETWORK_TICK_INTERVAL milliseconds
             if (null == AckTimer) return;
-            try { AckTimer.Change(Settings.NETWORK_TICK_INTERVAL, Timeout.Infinite); }
-            catch (Exception) { }
+            try
+            {
+                AckTimer.Change(Settings.NETWORK_TICK_INTERVAL, Timeout.Infinite);
+            }
+            catch (Exception)
+            { } // *TODO: Review catch all code smell
         }
 
         private void StatsTimer_Elapsed(object obj)
         {
             long old_in = 0, old_out = 0;
-            long recv = Stats.RecvBytes;
-            long sent = Stats.SentBytes;
+            var recv = Stats.RecvBytes;
+            var sent = Stats.SentBytes;
 
             if (InBytes.Count >= Client.Settings.STATS_QUEUE_SIZE)
                 old_in = InBytes.Dequeue();
@@ -1315,7 +1330,7 @@ namespace OpenMetaverse
 
     public sealed class IncomingPacketIDCollection
     {
-        readonly uint[] Items;
+        readonly uint[] _items;
         HashSet<uint> hashSet;
         int first;
         int next;
@@ -1324,7 +1339,7 @@ namespace OpenMetaverse
         public IncomingPacketIDCollection(int capacity)
         {
             this.capacity = capacity;
-            Items = new uint[capacity];
+            _items = new uint[capacity];
             hashSet = new HashSet<uint>();
         }
 
@@ -1334,11 +1349,11 @@ namespace OpenMetaverse
             {
                 if (hashSet.Add(ack))
                 {
-                    Items[next] = ack;
+                    _items[next] = ack;
                     next = (next + 1) % capacity;
                     if (next == first)
                     {
-                        hashSet.Remove(Items[first]);
+                        hashSet.Remove(_items[first]);
                         first = (first + 1) % capacity;
                     }
 
@@ -1358,15 +1373,11 @@ namespace OpenMetaverse
         {
             lock (SimulatorDataPools)
             {
-                int SimTimeout = Settings.SIMULATOR_POOL_TIMEOUT;
-                List<ulong> reap = new List<ulong>();
-                foreach (var pool in SimulatorDataPools.Values)
-                {
-                    if (pool.InactiveSince != DateTime.MaxValue && pool.InactiveSince.AddMilliseconds(SimTimeout) < DateTime.Now)
-                    {
-                        reap.Add(pool.Handle);
-                    }
-                }
+                int simTimeout = Settings.SIMULATOR_POOL_TIMEOUT;
+                var reap = (from pool in SimulatorDataPools.Values
+                    where pool.InactiveSince != DateTime.MaxValue
+                          && pool.InactiveSince.AddMilliseconds(simTimeout) < DateTime.Now
+                    select pool.Handle).ToList();
                 foreach (var hndl in reap)
                 {
                     SimulatorDataPools.Remove(hndl);
@@ -1382,14 +1393,14 @@ namespace OpenMetaverse
                 {
                     InactiveSimReaper = new Timer(RemoveOldSims, null, TimeSpan.FromMinutes(3), TimeSpan.FromMinutes(3));
                 }
-                SimulatorDataPool pool = GetSimulatorData(sim.Handle);
+                var pool = GetSimulatorData(sim.Handle);
                 if (pool.ActiveClients < 1) pool.ActiveClients = 1; else pool.ActiveClients++;
                 pool.InactiveSince = DateTime.MaxValue;
             }
         }
         public static void SimulatorRelease(Simulator sim)
         {
-            ulong hndl = sim.Handle;
+            var hndl = sim.Handle;
             lock (SimulatorDataPools)
             {
                 SimulatorDataPool dataPool = GetSimulatorData(hndl);
@@ -1401,12 +1412,12 @@ namespace OpenMetaverse
             }
         }
 
-        static public Dictionary<ulong, SimulatorDataPool> SimulatorDataPools = new Dictionary<ulong, SimulatorDataPool>();
+        public static Dictionary<ulong, SimulatorDataPool> SimulatorDataPools = new Dictionary<ulong, SimulatorDataPool>();
 
         /// <summary>
         /// Simulator handle
         /// </summary>
-        readonly public ulong Handle;
+        public readonly ulong Handle;
         /// <summary>
         /// Number of GridClients using this datapool
         /// </summary>
@@ -1474,7 +1485,7 @@ namespace OpenMetaverse
         {
             lock (PrimCache)
             {
-                foreach (uint u in removePrims)
+                foreach (var u in removePrims)
                 {
                     Primitive prim;
                     if (PrimCache.TryGetValue(u, out prim)) prim.ActiveClients--;

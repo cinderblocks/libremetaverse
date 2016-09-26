@@ -26,10 +26,8 @@
 
 using System;
 using System.Net;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Reflection;
 using System.Collections.Generic;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Http;
@@ -773,8 +771,7 @@ namespace OpenMetaverse
         protected virtual void OnChat(ChatEventArgs e)
         {
             EventHandler<ChatEventArgs> handler = m_Chat;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -796,8 +793,7 @@ namespace OpenMetaverse
         protected virtual void OnScriptDialog(ScriptDialogEventArgs e)
         {
             EventHandler<ScriptDialogEventArgs> handler = m_ScriptDialog;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -819,8 +815,7 @@ namespace OpenMetaverse
         protected virtual void OnScriptQuestion(ScriptQuestionEventArgs e)
         {
             EventHandler<ScriptQuestionEventArgs> handler = m_ScriptQuestion;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -841,8 +836,7 @@ namespace OpenMetaverse
         protected virtual void OnLoadURL(LoadUrlEventArgs e)
         {
             EventHandler<LoadUrlEventArgs> handler = m_LoadURL;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -863,8 +857,7 @@ namespace OpenMetaverse
         protected virtual void OnBalance(BalanceEventArgs e)
         {
             EventHandler<BalanceEventArgs> handler = m_Balance;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -886,8 +879,7 @@ namespace OpenMetaverse
         protected virtual void OnMoneyBalanceReply(MoneyBalanceReplyEventArgs e)
         {
             EventHandler<MoneyBalanceReplyEventArgs> handler = m_MoneyBalance;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -909,8 +901,7 @@ namespace OpenMetaverse
         protected virtual void OnInstantMessage(InstantMessageEventArgs e)
         {
             EventHandler<InstantMessageEventArgs> handler = m_InstantMessage;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -932,8 +923,7 @@ namespace OpenMetaverse
         protected virtual void OnTeleport(TeleportEventArgs e)
         {
             EventHandler<TeleportEventArgs> handler = m_Teleport;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -955,8 +945,7 @@ namespace OpenMetaverse
         protected virtual void OnAgentData(AgentDataReplyEventArgs e)
         {
             EventHandler<AgentDataReplyEventArgs> handler = m_AgentData;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -978,8 +967,7 @@ namespace OpenMetaverse
         protected virtual void OnAnimationsChanged(AnimationsChangedEventArgs e)
         {
             EventHandler<AnimationsChangedEventArgs> handler = m_AnimationsChanged;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1001,8 +989,7 @@ namespace OpenMetaverse
         protected virtual void OnMeanCollision(MeanCollisionEventArgs e)
         {
             EventHandler<MeanCollisionEventArgs> handler = m_MeanCollision;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1024,8 +1011,7 @@ namespace OpenMetaverse
         protected virtual void OnRegionCrossed(RegionCrossedEventArgs e)
         {
             EventHandler<RegionCrossedEventArgs> handler = m_RegionCrossed;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1047,8 +1033,7 @@ namespace OpenMetaverse
         protected virtual void OnGroupChatJoined(GroupChatJoinedEventArgs e)
         {
             EventHandler<GroupChatJoinedEventArgs> handler = m_GroupChatJoined;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1070,8 +1055,7 @@ namespace OpenMetaverse
         protected virtual void OnAlertMessage(AlertMessageEventArgs e)
         {
             EventHandler<AlertMessageEventArgs> handler = m_AlertMessage;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1094,8 +1078,7 @@ namespace OpenMetaverse
         protected virtual void OnScriptControlChange(ScriptControlEventArgs e)
         {
             EventHandler<ScriptControlEventArgs> handler = m_ScriptControl;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>

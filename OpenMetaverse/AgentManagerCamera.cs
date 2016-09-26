@@ -24,8 +24,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-
 namespace OpenMetaverse
 {
     public partial class AgentManager

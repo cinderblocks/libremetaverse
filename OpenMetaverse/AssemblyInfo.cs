@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("openmetaverse.co")]
 [assembly: AssemblyProduct("OpenMetaverse")]
-[assembly: AssemblyCopyright("Copyright © openmetaverse.co 2006-2015")]
+[assembly: AssemblyCopyright("Copyright ï¿½ openmetaverse.co 2006-2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]		
 

@@ -27,8 +27,6 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Text;
-using System.Threading;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Interfaces;

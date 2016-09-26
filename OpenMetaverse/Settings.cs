@@ -24,8 +24,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Collections.Generic;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
@@ -307,7 +305,7 @@ namespace OpenMetaverse
 
         /// <summary>Cost of uploading an asset</summary>
         /// <remarks>Read-only since this value is dynamically fetched at login</remarks>
-        public int UPLOAD_COST { get { return priceUpload; } }
+        public int UPLOAD_COST => priceUpload;
 
         /// <summary>Maximum number of times to resend a failed packet</summary>
         public int MAX_RESEND_COUNT = 3;
@@ -375,7 +373,7 @@ namespace OpenMetaverse
         public Settings(GridClient client)
         {
             Client = client;
-            Client.Network.RegisterCallback(Packets.PacketType.EconomyData, EconomyDataHandler);
+            Client.Network.RegisterCallback(PacketType.EconomyData, EconomyDataHandler);
         }
 
         #endregion

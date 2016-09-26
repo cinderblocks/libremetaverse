@@ -24,7 +24,6 @@
  */
 
 using System;
-using System.Text;
 using System.Collections.Generic;
 using OpenMetaverse.Packets;
 
@@ -905,7 +904,7 @@ namespace OpenMetaverse
                 foreach (BuddyListEntry buddy in replyData.BuddyList)
                 {
                     UUID bubid;
-                    string id = buddy.buddy_id.Length > uuidLength ? buddy.buddy_id.Substring(0, uuidLength) : buddy.buddy_id;
+                    string id = buddy.BuddyId.Length > uuidLength ? buddy.BuddyId.Substring(0, uuidLength) : buddy.BuddyId;
                     if (UUID.TryParse(id, out bubid))
                     {
                         lock (FriendList.Dictionary)
@@ -913,8 +912,8 @@ namespace OpenMetaverse
                             if (!FriendList.ContainsKey(bubid))
                             {
                                 FriendList[bubid] = new FriendInfo(bubid, 
-                                    (FriendRights)buddy.buddy_rights_given,
-                                    (FriendRights)buddy.buddy_rights_has);
+                                    (FriendRights)buddy.BuddyRightsGiven,
+                                    (FriendRights)buddy.BuddyRightsHas);
                             }
                         }
                     }
