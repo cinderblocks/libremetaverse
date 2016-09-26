@@ -26,7 +26,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
+
 using System.Text;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Http;
@@ -71,17 +71,17 @@ namespace OpenMetaverse
             public DateTime Birthdate;
 
             // optional:
-            public Nullable<int> LimitedToEstate;
+            public int? LimitedToEstate;
             public string StartRegionName;
-            public Nullable<Vector3> StartLocation;
-            public Nullable<Vector3> StartLookAt;
+            public Vector3? StartLocation;
+            public Vector3? StartLookAt;
         }
 
         private UserInfo _userInfo;
         private RegistrationCaps _caps;
         private int _initializing;
-        private List<LastName> _lastNames = new List<LastName>();
-        private Dictionary<int, string> _errors = new Dictionary<int, string>();
+        private readonly List<LastName> _lastNames = new List<LastName>();
+        private readonly Dictionary<int, string> _errors = new Dictionary<int, string>();
 
         public bool Initializing
         {
@@ -110,11 +110,13 @@ namespace OpenMetaverse
         {
             _initializing = -2;
 
-            _userInfo = new UserInfo();
+            _userInfo = new UserInfo
+            {
+                FirstName = firstName,
+                LastName = lastName,
+                Password = password
+            };
 
-            _userInfo.FirstName = firstName;
-            _userInfo.LastName = lastName;
-            _userInfo.Password = password;
 
             GatherCaps();
         }
@@ -125,42 +127,37 @@ namespace OpenMetaverse
                 System.Threading.Thread.Sleep(10);
         }
 
-        public Uri RegistrationApiCaps
-        {
-            get { return new Uri("https://cap.secondlife.com/get_reg_capabilities"); }
-        }
+        public Uri RegistrationApiCaps => new Uri("https://cap.secondlife.com/get_reg_capabilities");
 
         private void GatherCaps()
         {
             // build post data
-            byte[] postData = Encoding.ASCII.GetBytes(
-                String.Format("first_name={0}&last_name={1}&password={2}", _userInfo.FirstName, _userInfo.LastName, 
-                _userInfo.Password));
+            var postData = Encoding.ASCII.GetBytes(
+                $"first_name={_userInfo.FirstName}&last_name={_userInfo.LastName}&password={_userInfo.Password}");
 
-            CapsClient request = new CapsClient(RegistrationApiCaps);
-            request.OnComplete += new CapsClient.CompleteCallback(GatherCapsResponse);
+            var request = new CapsClient(RegistrationApiCaps);
+            request.OnComplete += GatherCapsResponse;
             request.BeginGetResponse(postData, "application/x-www-form-urlencoded", REQUEST_TIMEOUT);
         }
 
         private void GatherCapsResponse(CapsClient client, OSD response, Exception error)
         {
-            if (response is OSDMap)
+            if (!(response is OSDMap)) return;
+            var respTable = (OSDMap)response;
+
+            // parse
+            _caps = new RegistrationCaps
             {
-                OSDMap respTable = (OSDMap)response;
+                CreateUser = respTable["create_user"].AsUri(),
+                CheckName = respTable["check_name"].AsUri(),
+                GetLastNames = respTable["get_last_names"].AsUri(),
+                GetErrorCodes = respTable["get_error_codes"].AsUri()
+            };
 
-                // parse
-                _caps = new RegistrationCaps();
+            // finalize
+            _initializing++;
 
-                _caps.CreateUser = respTable["create_user"].AsUri();
-                _caps.CheckName = respTable["check_name"].AsUri();
-                _caps.GetLastNames = respTable["get_last_names"].AsUri();
-                _caps.GetErrorCodes = respTable["get_error_codes"].AsUri();
-
-                // finalize
-                _initializing++;
-
-                GatherErrorMessages();
-            }
+            GatherErrorMessages();
         }
 
         private void GatherErrorMessages()
@@ -168,8 +165,8 @@ namespace OpenMetaverse
             if (_caps.GetErrorCodes == null)
                 throw new InvalidOperationException("access denied");	// this should work even for not-approved users
 
-            CapsClient request = new CapsClient(_caps.GetErrorCodes);
-            request.OnComplete += new CapsClient.CompleteCallback(GatherErrorMessagesResponse);
+            var request = new CapsClient(_caps.GetErrorCodes);
+            request.OnComplete += GatherErrorMessagesResponse;
             request.BeginGetResponse(REQUEST_TIMEOUT);
         }
 
@@ -206,8 +203,8 @@ namespace OpenMetaverse
             if (_caps.GetLastNames == null)
                 throw new InvalidOperationException("access denied: only approved developers have access to the registration api");
 
-            CapsClient request = new CapsClient(_caps.GetLastNames);
-            request.OnComplete += new CapsClient.CompleteCallback(GatherLastNamesResponse);
+            var request = new CapsClient(_caps.GetLastNames);
+            request.OnComplete += GatherLastNamesResponse;
             request.BeginGetResponse(REQUEST_TIMEOUT);
 
             // FIXME: Block
@@ -245,13 +242,15 @@ namespace OpenMetaverse
                 throw new InvalidOperationException("access denied; only approved developers have access to the registration api");
 
             // Create the POST data
-            OSDMap query = new OSDMap();
-            query.Add("username", OSD.FromString(firstName));
-            query.Add("last_name_id", OSD.FromInteger(lastName.ID));
+            var query = new OSDMap
+            {
+                {"username", OSD.FromString(firstName)},
+                {"last_name_id", OSD.FromInteger(lastName.ID)}
+            };
             //byte[] postData = OSDParser.SerializeXmlBytes(query);
 
-            CapsClient request = new CapsClient(_caps.CheckName);
-            request.OnComplete += new CapsClient.CompleteCallback(CheckNameResponse);
+            var request = new CapsClient(_caps.CheckName);
+            request.OnComplete += CheckNameResponse;
             request.BeginGetResponse(REQUEST_TIMEOUT);
 
             // FIXME:
@@ -286,12 +285,14 @@ namespace OpenMetaverse
                 throw new InvalidOperationException("access denied; only approved developers have access to the registration api");
 
             // Create the POST data
-            OSDMap query = new OSDMap();
-            query.Add("username", OSD.FromString(user.FirstName));
-            query.Add("last_name_id", OSD.FromInteger(user.LastName.ID));
-            query.Add("email", OSD.FromString(user.Email));
-            query.Add("password", OSD.FromString(user.Password));
-            query.Add("dob", OSD.FromString(user.Birthdate.ToString("yyyy-MM-dd")));
+            var query = new OSDMap
+            {
+                {"username", OSD.FromString(user.FirstName)},
+                {"last_name_id", OSD.FromInteger(user.LastName.ID)},
+                {"email", OSD.FromString(user.Email)},
+                {"password", OSD.FromString(user.Password)},
+                {"dob", OSD.FromString(user.Birthdate.ToString("yyyy-MM-dd"))}
+            };
 
             if (user.LimitedToEstate != null)
                 query.Add("limited_to_estate", OSD.FromInteger(user.LimitedToEstate.Value));
@@ -316,8 +317,8 @@ namespace OpenMetaverse
             //byte[] postData = OSDParser.SerializeXmlBytes(query);
 
             // Make the request
-            CapsClient request = new CapsClient(_caps.CreateUser);
-            request.OnComplete += new CapsClient.CompleteCallback(CreateUserResponse);
+            var request = new CapsClient(_caps.CreateUser);
+            request.OnComplete += CreateUserResponse;
             request.BeginGetResponse(REQUEST_TIMEOUT);
 
             // FIXME: Block
@@ -335,11 +336,11 @@ namespace OpenMetaverse
             else
             {
                 // an error happened
-                OSDArray al = (OSDArray)response;
+                var al = (OSDArray)response;
 
-                StringBuilder sb = new StringBuilder();
+                var sb = new StringBuilder();
 
-                foreach (OSD ec in al)
+                foreach (var ec in al)
                 {
                     if (sb.Length > 0)
                         sb.Append("; ");

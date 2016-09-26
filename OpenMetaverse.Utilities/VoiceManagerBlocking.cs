@@ -27,7 +27,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using OpenMetaverse;
 
 namespace OpenMetaverse.Utilities
 {
@@ -42,7 +41,7 @@ namespace OpenMetaverse.Utilities
 
         public List<string> CaptureDevices()
         {
-            AutoResetEvent evt = new AutoResetEvent(false);
+            var evt = new AutoResetEvent(false);
             Events[_CommandCookie] = evt;
 
             if (RequestCaptureDevices() == -1)
@@ -51,15 +50,12 @@ namespace OpenMetaverse.Utilities
                 return new List<string>();
             }
 
-            if (evt.WaitOne(BlockingTimeout, false))
-                return CurrentCaptureDevices();
-            else
-                return new List<string>();
+            return evt.WaitOne(BlockingTimeout, false) ? CurrentCaptureDevices() : new List<string>();
         }
 
         public List<string> RenderDevices()
         {
-            AutoResetEvent evt = new AutoResetEvent(false);
+            var evt = new AutoResetEvent(false);
             Events[_CommandCookie] = evt;
 
             if (RequestRenderDevices() == -1)
@@ -68,62 +64,53 @@ namespace OpenMetaverse.Utilities
                 return new List<string>();
             }
 
-            if (evt.WaitOne(BlockingTimeout, false))
-                return CurrentRenderDevices();
-            else
-                return new List<string>();
+            return evt.WaitOne(BlockingTimeout, false) ? CurrentRenderDevices() : new List<string>();
         }
 
         public string CreateConnector(out int status)
         {
             status = 0;
 
-            AutoResetEvent evt = new AutoResetEvent(false);
+            var evt = new AutoResetEvent(false);
             Events[_CommandCookie] = evt;
 
             if (RequestCreateConnector() == -1)
             {
                 Events.Remove(_CommandCookie);
-                return String.Empty;
+                return string.Empty;
             }
 
-            bool success = evt.WaitOne(BlockingTimeout, false);
+            var success = evt.WaitOne(BlockingTimeout, false);
             status = statusCode;
 
-            if (success && statusCode == 0)
-                return connectorHandle;
-            else
-                return String.Empty;
+            return success && statusCode == 0 ? connectorHandle : string.Empty;
         }
 
         public string Login(string accountName, string password, string connectorHandle, out int status)
         {
             status = 0;
 
-            AutoResetEvent evt = new AutoResetEvent(false);
+            var evt = new AutoResetEvent(false);
             Events[_CommandCookie] = evt;
 
             if (RequestLogin(accountName, password, connectorHandle) == -1)
             {
                 Events.Remove(_CommandCookie);
-                return String.Empty;
+                return string.Empty;
             }
 
-            bool success = evt.WaitOne(BlockingTimeout, false);
+            var success = evt.WaitOne(BlockingTimeout, false);
             status = statusCode;
 
-            if (success && statusCode == 0)
-                return accountHandle;
-            else
-                return String.Empty;
+            return success && statusCode == 0 ? accountHandle : string.Empty;
         }
 
         protected void RegisterCallbacks()
         {
-            OnCaptureDevices += new DevicesCallback(VoiceManager_OnCaptureDevices);
-            OnRenderDevices += new DevicesCallback(VoiceManager_OnRenderDevices);
-            OnConnectorCreated += new ConnectorCreatedCallback(VoiceManager_OnConnectorCreated);
-            OnLogin += new LoginCallback(VoiceManager_OnLogin);
+            OnCaptureDevices += VoiceManager_OnCaptureDevices;
+            OnRenderDevices += VoiceManager_OnRenderDevices;
+            OnConnectorCreated += VoiceManager_OnConnectorCreated;
+            OnLogin += VoiceManager_OnLogin;
         }
 
         #region Callbacks

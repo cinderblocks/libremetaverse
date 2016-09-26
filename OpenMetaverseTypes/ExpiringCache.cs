@@ -32,42 +32,36 @@ namespace OpenMetaverse
 {
     #region TimedCacheKey Class
 
-    class TimedCacheKey<TKey> : IComparable<TKey>
+    internal class TimedCacheKey<TKey> : IComparable<TKey>
     {
-        private DateTime expirationDate;
-        private bool slidingExpiration;
-        private TimeSpan slidingExpirationWindowSize;
-        private TKey key;
-
-        public DateTime ExpirationDate { get { return expirationDate; } }
-        public TKey Key { get { return key; } }
-        public bool SlidingExpiration { get { return slidingExpiration; } }
-        public TimeSpan SlidingExpirationWindowSize { get { return slidingExpirationWindowSize; } }
-
+        public DateTime ExpirationDate { get; private set; }
+        public TKey Key { get; }
+        public bool SlidingExpiration { get; }
+        public TimeSpan SlidingExpirationWindowSize { get; }
         public TimedCacheKey(TKey key, DateTime expirationDate)
         {
-            this.key = key;
-            this.slidingExpiration = false;
-            this.expirationDate = expirationDate;
+            Key = key;
+            SlidingExpiration = false;
+            ExpirationDate = expirationDate;
         }
 
         public TimedCacheKey(TKey key, TimeSpan slidingExpirationWindowSize)
         {
-            this.key = key;
-            this.slidingExpiration = true;
-            this.slidingExpirationWindowSize = slidingExpirationWindowSize;
+            Key = key;
+            SlidingExpiration = true;
+            SlidingExpirationWindowSize = slidingExpirationWindowSize;
             Accessed();
         }
 
         public void Accessed()
         {
-            if (slidingExpiration)
-                expirationDate = DateTime.Now.Add(slidingExpirationWindowSize);
+            if (SlidingExpiration)
+                ExpirationDate = DateTime.Now.Add(SlidingExpirationWindowSize);
         }
 
         public int CompareTo(TKey other)
         {
-            return key.GetHashCode().CompareTo(other.GetHashCode());
+            return Key.GetHashCode().CompareTo(other.GetHashCode());
         }
     }
 
@@ -85,8 +79,8 @@ namespace OpenMetaverse
         /// <summary>For thread safety</summary>
         object isPurging = new object();
 
-        Dictionary<TimedCacheKey<TKey>, TValue> timedStorage = new Dictionary<TimedCacheKey<TKey>, TValue>();
-        Dictionary<TKey, TimedCacheKey<TKey>> timedStorageIndex = new Dictionary<TKey, TimedCacheKey<TKey>>();
+        readonly Dictionary<TimedCacheKey<TKey>, TValue> timedStorage = new Dictionary<TimedCacheKey<TKey>, TValue>();
+        readonly Dictionary<TKey, TimedCacheKey<TKey>> timedStorageIndex = new Dictionary<TKey, TimedCacheKey<TKey>>();
         private System.Timers.Timer timer = new System.Timers.Timer(TimeSpan.FromSeconds(CACHE_PURGE_HZ).TotalMilliseconds);
 
         #endregion
@@ -116,7 +110,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    TimedCacheKey<TKey> internalKey = new TimedCacheKey<TKey>(key, DateTime.UtcNow + TimeSpan.FromSeconds(expirationSeconds));
+                    var internalKey = new TimedCacheKey<TKey>(key, DateTime.UtcNow + TimeSpan.FromSeconds(expirationSeconds));
                     timedStorage.Add(internalKey, value);
                     timedStorageIndex.Add(key, internalKey);
                     return true;
@@ -138,7 +132,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    TimedCacheKey<TKey> internalKey = new TimedCacheKey<TKey>(key, slidingExpiration);
+                    var internalKey = new TimedCacheKey<TKey>(key, slidingExpiration);
                     timedStorage.Add(internalKey, value);
                     timedStorageIndex.Add(key, internalKey);
                     return true;
@@ -210,27 +204,20 @@ namespace OpenMetaverse
             finally { Monitor.Exit(syncRoot); }
         }
 
-        public int Count
-        {
-            get
-            {
-                return timedStorage.Count;
-            }
-        }
+        public int Count => timedStorage.Count;
 
         public object this[TKey key]
         {
             get
             {
-                TValue o;
                 if (!Monitor.TryEnter(syncRoot, MAX_LOCK_WAIT))
                     throw new ApplicationException("Lock could not be acquired after " + MAX_LOCK_WAIT + "ms");
                 try
                 {
                     if (timedStorageIndex.ContainsKey(key))
                     {
-                        TimedCacheKey<TKey> tkey = timedStorageIndex[key];
-                        o = timedStorage[tkey];
+                        var tkey = timedStorageIndex[key];
+                        var o = timedStorage[tkey];
                         timedStorage.Remove(tkey);
                         tkey.Accessed();
                         timedStorage.Add(tkey, o);
@@ -275,7 +262,7 @@ namespace OpenMetaverse
             {
                 if (timedStorageIndex.ContainsKey(key))
                 {
-                    TimedCacheKey<TKey> tkey = timedStorageIndex[key];
+                    var tkey = timedStorageIndex[key];
                     o = timedStorage[tkey];
                     timedStorage.Remove(tkey);
                     tkey.Accessed();
@@ -351,7 +338,7 @@ namespace OpenMetaverse
                     return false;
                 }
 
-                TimedCacheKey<TKey> internalKey = new TimedCacheKey<TKey>(key, slidingExpiration);
+                var internalKey = new TimedCacheKey<TKey>(key, slidingExpiration);
                 timedStorage.Add(internalKey, value);
                 timedStorageIndex.Add(key, internalKey);
                 return true;
@@ -362,12 +349,12 @@ namespace OpenMetaverse
         public void CopyTo(Array array, int startIndex)
         {
             // Error checking
-            if (array == null) { throw new ArgumentNullException("array"); }
+            if (array == null) { throw new ArgumentNullException(nameof(array)); }
 
-            if (startIndex < 0) { throw new ArgumentOutOfRangeException("startIndex", "startIndex must be >= 0."); }
+            if (startIndex < 0) { throw new ArgumentOutOfRangeException(nameof(startIndex), "startIndex must be >= 0."); }
 
-            if (array.Rank > 1) { throw new ArgumentException("array must be of Rank 1 (one-dimensional)", "array"); }
-            if (startIndex >= array.Length) { throw new ArgumentException("startIndex must be less than the length of the array.", "startIndex"); }
+            if (array.Rank > 1) { throw new ArgumentException("array must be of Rank 1 (one-dimensional)", nameof(array)); }
+            if (startIndex >= array.Length) { throw new ArgumentException("startIndex must be less than the length of the array.", nameof(startIndex)); }
             if (Count > array.Length - startIndex) { throw new ArgumentException("There is not enough space from startIndex to the end of the array to accomodate all items in the cache."); }
 
             // Copy the data to the array (in a thread-safe manner)
@@ -375,7 +362,7 @@ namespace OpenMetaverse
                 throw new ApplicationException("Lock could not be acquired after " + MAX_LOCK_WAIT + "ms");
             try
             {
-                foreach (object o in timedStorage)
+                foreach (var o in timedStorage)
                 {
                     array.SetValue(o, startIndex);
                     startIndex++;
@@ -399,7 +386,7 @@ namespace OpenMetaverse
             if (!Monitor.TryEnter(isPurging))
                 return;
 
-            DateTime signalTime = DateTime.UtcNow;
+            var signalTime = DateTime.UtcNow;
 
             try
             {
@@ -408,9 +395,9 @@ namespace OpenMetaverse
                     return;
                 try
                 {
-                    Lazy<List<object>> expiredItems = new Lazy<List<object>>();
+                    var expiredItems = new Lazy<List<object>>();
 
-                    foreach (TimedCacheKey<TKey> timedKey in timedStorage.Keys)
+                    foreach (var timedKey in timedStorage.Keys)
                     {
                         if (timedKey.ExpirationDate < signalTime)
                         {
@@ -427,7 +414,7 @@ namespace OpenMetaverse
                     {
                         foreach (TKey key in expiredItems.Value)
                         {
-                            TimedCacheKey<TKey> timedKey = timedStorageIndex[key];
+                            var timedKey = timedStorageIndex[key];
                             timedStorageIndex.Remove(timedKey.Key);
                             timedStorage.Remove(timedKey);
                         }

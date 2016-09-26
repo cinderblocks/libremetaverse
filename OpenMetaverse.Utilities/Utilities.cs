@@ -25,11 +25,7 @@
  */
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.Utilities
 {
@@ -59,10 +55,7 @@ namespace OpenMetaverse.Utilities
         /// <returns></returns>
         public static bool Shoot(GridClient client, Vector3 target)
         {
-            if (client.Self.Movement.TurnToward(target))
-                return Shoot(client);
-            else
-                return false;
+            return client.Self.Movement.TurnToward(target) && Shoot(client);
         }
 
         /// <summary>
@@ -119,12 +112,12 @@ namespace OpenMetaverse.Utilities
         /// <param name="cps">Characters per second rate for chatting</param>
         public static void Chat(GridClient client, string message, ChatType type, int cps)
         {
-            Random rand = new Random();
-            int characters = 0;
-            bool typing = true;
+            var rand = new Random();
+            var characters = 0;
+            var typing = true;
 
             // Start typing
-            client.Self.Chat(String.Empty, 0, ChatType.StartTyping);
+            client.Self.Chat(string.Empty, 0, ChatType.StartTyping);
             client.Self.AnimationStart(Animations.TYPE, false);
 
             while (characters < message.Length)
@@ -132,7 +125,7 @@ namespace OpenMetaverse.Utilities
                 if (!typing)
                 {
                     // Start typing again
-                    client.Self.Chat(String.Empty, 0, ChatType.StartTyping);
+                    client.Self.Chat(string.Empty, 0, ChatType.StartTyping);
                     client.Self.AnimationStart(Animations.TYPE, false);
                     typing = true;
                 }
@@ -141,14 +134,14 @@ namespace OpenMetaverse.Utilities
                     // Randomly pause typing
                     if (rand.Next(10) >= 9)
                     {
-                        client.Self.Chat(String.Empty, 0, ChatType.StopTyping);
+                        client.Self.Chat(string.Empty, 0, ChatType.StopTyping);
                         client.Self.AnimationStop(Animations.TYPE, false);
                         typing = false;
                     }
                 }
 
                 // Sleep for a second and increase the amount of characters we've typed
-                System.Threading.Thread.Sleep(1000);
+                Thread.Sleep(1000);
                 characters += cps;
             }
 
@@ -156,24 +149,24 @@ namespace OpenMetaverse.Utilities
             client.Self.Chat(message, 0, type);
 
             // Stop typing
-            client.Self.Chat(String.Empty, 0, ChatType.StopTyping);
+            client.Self.Chat(string.Empty, 0, ChatType.StopTyping);
             client.Self.AnimationStop(Animations.TYPE, false);
         }
     }
 
     public class ConnectionManager
     {
-        private GridClient Client;
-        private ulong SimHandle;
-        private Vector3 Position = Vector3.Zero;
-        private System.Timers.Timer CheckTimer;
+        private readonly GridClient _client;
+        private ulong _simHandle;
+        private Vector3 _position = Vector3.Zero;
+        private readonly System.Timers.Timer _checkTimer;
 
         public ConnectionManager(GridClient client, int timerFrequency)
         {
-            Client = client;
+            _client = client;
 
-            CheckTimer = new System.Timers.Timer(timerFrequency);
-            CheckTimer.Elapsed += new System.Timers.ElapsedEventHandler(CheckTimer_Elapsed);
+            _checkTimer = new System.Timers.Timer(timerFrequency);
+            _checkTimer.Elapsed += CheckTimer_Elapsed;
         }
 
         public static bool PersistentLogin(GridClient client, string firstName, string lastName, string password,
@@ -188,41 +181,32 @@ namespace OpenMetaverse.Utilities
                 Logger.Log("Logged in to " + client.Network.CurrentSim, Helpers.LogLevel.Info, client);
                 return true;
             }
-            else
+            switch (client.Network.LoginErrorKey)
             {
-                if (client.Network.LoginErrorKey == "god")
-                {
+                case "god":
                     Logger.Log("Grid is down, waiting 10 minutes", Helpers.LogLevel.Warning, client);
                     LoginWait(10);
                     goto Start;
-                }
-                else if (client.Network.LoginErrorKey == "key")
-                {
+                case "key":
                     Logger.Log("Bad username or password, giving up on login", Helpers.LogLevel.Error, client);
                     return false;
-                }
-                else if (client.Network.LoginErrorKey == "presence")
-                {
+                case "presence":
                     Logger.Log("Server is still logging us out, waiting 1 minute", Helpers.LogLevel.Warning, client);
                     LoginWait(1);
                     goto Start;
-                }
-                else if (client.Network.LoginErrorKey == "disabled")
-                {
+                case "disabled":
                     Logger.Log("This account has been banned! Giving up on login", Helpers.LogLevel.Error, client);
                     return false;
-                }
-                else if (client.Network.LoginErrorKey == "timed out" ||client.Network.LoginErrorKey == "no connection" )
-                {
+                case "timed out":
+                case "no connection":
                     Logger.Log("Login request timed out, waiting 1 minute", Helpers.LogLevel.Warning, client);
                     LoginWait(1);
                     goto Start;
-                } else if (client.Network.LoginErrorKey == "bad response") {
+                case "bad response":
                     Logger.Log("Login server returned unparsable result", Helpers.LogLevel.Warning, client);
                     LoginWait(1);
                     goto Start;
-                } else
-                {
+                default:
                     ++unknownLogins;
 
                     if (unknownLogins < 5)
@@ -232,20 +216,16 @@ namespace OpenMetaverse.Utilities
                         LoginWait(2);
                         goto Start;
                     }
-                    else
-                    {
-                        Logger.Log("Too many unknown login error codes, giving up", Helpers.LogLevel.Error, client);
-                        return false;
-                    }
-                }
+                    Logger.Log("Too many unknown login error codes, giving up", Helpers.LogLevel.Error, client);
+                    return false;
             }
         }
 
         public void StayInSim(ulong handle, Vector3 desiredPosition)
         {
-            SimHandle = handle;
-            Position = desiredPosition;
-            CheckTimer.Start();
+            _simHandle = handle;
+            _position = desiredPosition;
+            _checkTimer.Start();
         }
 
         private static void LoginWait(int minutes)
@@ -255,14 +235,13 @@ namespace OpenMetaverse.Utilities
 
         private void CheckTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            if (SimHandle != 0)
+            if (_simHandle == 0) return;
+
+            if (_client.Network.CurrentSim.Handle != 0 &&
+                _client.Network.CurrentSim.Handle != _simHandle)
             {
-                if (Client.Network.CurrentSim.Handle != 0 &&
-                    Client.Network.CurrentSim.Handle != SimHandle)
-                {
-                    // Attempt to move to our target sim
-                    Client.Self.Teleport(SimHandle, Position);
-                }
+                // Attempt to move to our target sim
+                _client.Self.Teleport(_simHandle, _position);
             }
         }
     }

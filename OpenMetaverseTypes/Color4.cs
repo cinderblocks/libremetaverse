@@ -58,10 +58,10 @@ namespace OpenMetaverse
         {
             const float quanta = 1.0f / 255.0f;
 
-            R = (float)r * quanta;
-            G = (float)g * quanta;
-            B = (float)b * quanta;
-            A = (float)a * quanta;
+            R = r * quanta;
+            G = g * quanta;
+            B = b * quanta;
+            A = a * quanta;
         }
 
         public Color4(float r, float g, float b, float a)
@@ -70,8 +70,7 @@ namespace OpenMetaverse
             // like using float values from 0.0 - 255.0
             if (r > 1f || g > 1f || b > 1f || a > 1f)
                 throw new ArgumentException(
-                    String.Format("Attempting to initialize Color4 with out of range values <{0},{1},{2},{3}>",
-                    r, g, b, a));
+                    $"Attempting to initialize Color4 with out of range values <{r},{g},{b},{a}>");
 
             // Valid range is from 0.0 to 1.0
             R = Utils.Clamp(r, 0f, 1f);
@@ -136,36 +135,15 @@ namespace OpenMetaverse
         /// Alpha is only used when the colors are otherwise equivalent</remarks>
         public int CompareTo(Color4 color)
         {
-            float thisHue = GetHue();
-            float thatHue = color.GetHue();
+            var thisHue = GetHue();
+            var thatHue = color.GetHue();
 
             if (thisHue < 0f && thatHue < 0f)
             {
                 // Both monochromatic
-                if (R == color.R)
-                {
-                    // Monochromatic and equal, compare alpha
-                    return A.CompareTo(color.A);
-                }
-                else
-                {
-                    // Compare lightness
-                    return R.CompareTo(R);
-                }
+                return R == color.R ? A.CompareTo(color.A) : R.CompareTo(R);
             }
-            else
-            {
-                if (thisHue == thatHue)
-                {
-                    // RGB is equal, compare alpha
-                    return A.CompareTo(color.A);
-                }
-                else
-                {
-                    // Compare hues
-                    return thisHue.CompareTo(thatHue);
-                }
-            }
+            return thisHue == thatHue ? A.CompareTo(color.A) : thisHue.CompareTo(thatHue);
         }
 
         public void FromBytes(byte[] byteArray, int pos, bool inverted)
@@ -174,17 +152,17 @@ namespace OpenMetaverse
 
             if (inverted)
             {
-                R = (float)(255 - byteArray[pos]) * quanta;
-                G = (float)(255 - byteArray[pos + 1]) * quanta;
-                B = (float)(255 - byteArray[pos + 2]) * quanta;
-                A = (float)(255 - byteArray[pos + 3]) * quanta;
+                R = (255 - byteArray[pos]) * quanta;
+                G = (255 - byteArray[pos + 1]) * quanta;
+                B = (255 - byteArray[pos + 2]) * quanta;
+                A = (255 - byteArray[pos + 3]) * quanta;
             }
             else
             {
-                R = (float)byteArray[pos] * quanta;
-                G = (float)byteArray[pos + 1] * quanta;
-                B = (float)byteArray[pos + 2] * quanta;
-                A = (float)byteArray[pos + 3] * quanta;
+                R = byteArray[pos] * quanta;
+                G = byteArray[pos + 1] * quanta;
+                B = byteArray[pos + 2] * quanta;
+                A = byteArray[pos + 3] * quanta;
             }
         }
 
@@ -215,14 +193,14 @@ namespace OpenMetaverse
 
         public byte[] GetBytes(bool inverted)
         {
-            byte[] byteArray = new byte[4];
+            var byteArray = new byte[4];
             ToBytes(byteArray, 0, inverted);
             return byteArray;
         }
 
         public byte[] GetFloatBytes()
         {
-            byte[] bytes = new byte[16];
+            var bytes = new byte[16];
             ToFloatBytes(bytes, 0);
             return bytes;
         }
@@ -253,13 +231,12 @@ namespace OpenMetaverse
             dest[pos + 2] = Utils.FloatToByte(B, 0f, 1f);
             dest[pos + 3] = Utils.FloatToByte(A, 0f, 1f);
 
-            if (inverted)
-            {
-                dest[pos + 0] = (byte)(255 - dest[pos + 0]);
-                dest[pos + 1] = (byte)(255 - dest[pos + 1]);
-                dest[pos + 2] = (byte)(255 - dest[pos + 2]);
-                dest[pos + 3] = (byte)(255 - dest[pos + 3]);
-            }
+            if (!inverted) return;
+            
+            dest[pos + 0] = (byte)(255 - dest[pos + 0]);
+            dest[pos + 1] = (byte)(255 - dest[pos + 1]);
+            dest[pos + 2] = (byte)(255 - dest[pos + 2]);
+            dest[pos + 3] = (byte)(255 - dest[pos + 3]);
         }
 
         /// <summary>
@@ -280,30 +257,32 @@ namespace OpenMetaverse
         {
             const float HUE_MAX = 360f;
 
-            float max = Math.Max(Math.Max(R, G), B);
-            float min = Math.Min(Math.Min(R, B), B);
+            var max = Math.Max(Math.Max(R, G), B);
+            var min = Math.Min(Math.Min(R, B), B);
 
-            if (max == min)
+            double TOLERANCE = Math.Abs(max * .00001);
+
+            if (Math.Abs(max - min) < TOLERANCE)
             {
                 // Achromatic, hue is undefined
                 return -1f;
             }
-            else if (R == max)
+            if (Math.Abs(R - max) < TOLERANCE)
             {
-                float bDelta = (((max - B) * (HUE_MAX / 6f)) + ((max - min) / 2f)) / (max - min);
-                float gDelta = (((max - G) * (HUE_MAX / 6f)) + ((max - min) / 2f)) / (max - min);
+                var bDelta = (((max - B) * (HUE_MAX / 6f)) + ((max - min) / 2f)) / (max - min);
+                var gDelta = (((max - G) * (HUE_MAX / 6f)) + ((max - min) / 2f)) / (max - min);
                 return bDelta - gDelta;
             }
-            else if (G == max)
+            if (Math.Abs(G - max) < TOLERANCE)
             {
-                float rDelta = (((max - R) * (HUE_MAX / 6f)) + ((max - min) / 2f)) / (max - min);
-                float bDelta = (((max - B) * (HUE_MAX / 6f)) + ((max - min) / 2f)) / (max - min);
+                var rDelta = (((max - R) * (HUE_MAX / 6f)) + ((max - min) / 2f)) / (max - min);
+                var bDelta = (((max - B) * (HUE_MAX / 6f)) + ((max - min) / 2f)) / (max - min);
                 return (HUE_MAX / 3f) + rDelta - bDelta;
             }
             else // B == max
             {
-                float gDelta = (((max - G) * (HUE_MAX / 6f)) + ((max - min) / 2f)) / (max - min);
-                float rDelta = (((max - R) * (HUE_MAX / 6f)) + ((max - min) / 2f)) / (max - min);
+                var gDelta = (((max - G) * (HUE_MAX / 6f)) + ((max - min) / 2f)) / (max - min);
+                var rDelta = (((max - R) * (HUE_MAX / 6f)) + ((max - min) / 2f)) / (max - min);
                 return ((2f * HUE_MAX) / 3f) + gDelta - rDelta;
             }
         }
@@ -344,9 +323,9 @@ namespace OpenMetaverse
         /// <returns>An fully opaque RGB color (alpha is 1.0)</returns>
         public static Color4 FromHSV(double hue, double saturation, double value)
         {
-            double r = 0d;
-            double g = 0d;
-            double b = 0d;
+            var r = 0d;
+            var g = 0d;
+            var b = 0d;
 
             if (saturation == 0d)
             {
@@ -358,29 +337,21 @@ namespace OpenMetaverse
             }
             else
             {
-                double p;
-                double q;
-                double t;
-
-                double fractionalSector;
-                int sectorNumber;
-                double sectorPos;
-
                 // The color wheel consists of 6 sectors.
                 // Figure out which sector you//re in.
-                sectorPos = hue / 60d;
-                sectorNumber = (int)(Math.Floor(sectorPos));
+                var sectorPos = hue / 60d;
+                var sectorNumber = (int)(Math.Floor(sectorPos));
 
                 // get the fractional part of the sector.
                 // That is, how many degrees into the sector
                 // are you?
-                fractionalSector = sectorPos - sectorNumber;
+                var fractionalSector = sectorPos - sectorNumber;
 
                 // Calculate values for the three axes
                 // of the color. 
-                p = value * (1d - saturation);
-                q = value * (1d - (saturation * fractionalSector));
-                t = value * (1d - (saturation * (1d - fractionalSector)));
+                var p = value * (1d - saturation);
+                var q = value * (1d - (saturation * fractionalSector));
+                var t = value * (1d - (saturation * (1d - fractionalSector)));
 
                 // Assign the fractional colors to r, g, and b
                 // based on the sector the angle is in.
@@ -444,17 +415,17 @@ namespace OpenMetaverse
 
         public override string ToString()
         {
-            return String.Format(Utils.EnUsCulture, "<{0}, {1}, {2}, {3}>", R, G, B, A);
+            return string.Format(Utils.EnUsCulture, "<{0}, {1}, {2}, {3}>", R, G, B, A);
         }
 
         public string ToRGBString()
         {
-            return String.Format(Utils.EnUsCulture, "<{0}, {1}, {2}>", R, G, B);
+            return string.Format(Utils.EnUsCulture, "<{0}, {1}, {2}>", R, G, B);
         }
 
         public override bool Equals(object obj)
         {
-            return (obj is Color4) ? this == (Color4)obj : false;
+            return (obj is Color4) && this == (Color4)obj;
         }
 
         public bool Equals(Color4 other)
@@ -517,9 +488,9 @@ namespace OpenMetaverse
         #endregion Operators
 
         /// <summary>A Color4 with zero RGB values and fully opaque (alpha 1.0)</summary>
-        public readonly static Color4 Black = new Color4(0f, 0f, 0f, 1f);
+        public static readonly Color4 Black = new Color4(0f, 0f, 0f, 1f);
 
         /// <summary>A Color4 with full RGB values (1.0) and fully opaque (alpha 1.0)</summary>
-        public readonly static Color4 White = new Color4(1f, 1f, 1f, 1f);
+        public static readonly Color4 White = new Color4(1f, 1f, 1f, 1f);
     }
 }

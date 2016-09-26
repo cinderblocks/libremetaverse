@@ -24,27 +24,23 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-
 namespace OpenMetaverse
 {
     public class CircularQueue<T>
     {
         public readonly T[] Items;
 
-        int first;
-        int next;
-        int capacity;
-        object syncRoot;
+        private readonly int _capacity;
+        private readonly object _syncRoot;
 
-        public int First { get { return first; } }
-        public int Next { get { return next; } }
+        public int First { get; private set; }
+        public int Next { get; private set; }
 
         public CircularQueue(int capacity)
         {
-            this.capacity = capacity;
+            _capacity = capacity;
             Items = new T[capacity];
-            syncRoot = new object();
+            _syncRoot = new object();
         }
 
         /// <summary>
@@ -53,51 +49,51 @@ namespace OpenMetaverse
         /// <param name="queue">Circular queue to copy</param>
         public CircularQueue(CircularQueue<T> queue)
         {
-            lock (queue.syncRoot)
+            lock (queue._syncRoot)
             {
-                capacity = queue.capacity;
-                Items = new T[capacity];
-                syncRoot = new object();
+                _capacity = queue._capacity;
+                Items = new T[_capacity];
+                _syncRoot = new object();
 
-                for (int i = 0; i < capacity; i++)
+                for (var i = 0; i < _capacity; i++)
                     Items[i] = queue.Items[i];
 
-                first = queue.first;
-                next = queue.next;
+                First = queue.First;
+                Next = queue.Next;
             }
         }
 
         public void Clear()
         {
-            lock (syncRoot)
+            lock (_syncRoot)
             {
                 // Explicitly remove references to help garbage collection
-                for (int i = 0; i < capacity; i++)
+                for (var i = 0; i < _capacity; i++)
                     Items[i] = default(T);
 
-                first = next;
+                First = Next;
             }
         }
 
         public void Enqueue(T value)
         {
-            lock (syncRoot)
+            lock (_syncRoot)
             {
-                Items[next] = value;
-                next = (next + 1) % capacity;
-                if (next == first) first = (first + 1) % capacity;
+                Items[Next] = value;
+                Next = (Next + 1) % _capacity;
+                if (Next == First) First = (First + 1) % _capacity;
             }
         }
 
         public T Dequeue()
         {
-            lock (syncRoot)
+            lock (_syncRoot)
             {
-                T value = Items[first];
-                Items[first] = default(T);
+                var value = Items[First];
+                Items[First] = default(T);
 
-                if (first != next)
-                    first = (first + 1) % capacity;
+                if (First != Next)
+                    First = (First + 1) % _capacity;
 
                 return value;
             }
@@ -105,29 +101,29 @@ namespace OpenMetaverse
 
         public T DequeueLast()
         {
-            lock (syncRoot)
+            lock (_syncRoot)
             {
                 // If the next element is right behind the first element (queue is full),
                 // back up the first element by one
-                int firstTest = first - 1;
-                if (firstTest < 0) firstTest = capacity - 1;
+                var firstTest = First - 1;
+                if (firstTest < 0) firstTest = _capacity - 1;
 
-                if (firstTest == next)
+                if (firstTest == Next)
                 {
-                    --next;
-                    if (next < 0) next = capacity - 1;
+                    --Next;
+                    if (Next < 0) Next = _capacity - 1;
 
-                    --first;
-                    if (first < 0) first = capacity - 1;
+                    --First;
+                    if (First < 0) First = _capacity - 1;
                 }
-                else if (first != next)
+                else if (First != Next)
                 {
-                    --next;
-                    if (next < 0) next = capacity - 1;
+                    --Next;
+                    if (Next < 0) Next = _capacity - 1;
                 }
 
-                T value = Items[next];
-                Items[next] = default(T);
+                var value = Items[Next];
+                Items[Next] = default(T);
 
                 return value;
             }

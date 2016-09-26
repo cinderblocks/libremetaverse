@@ -27,7 +27,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using OpenMetaverse;
 
 namespace OpenMetaverse
 {
@@ -37,8 +36,8 @@ namespace OpenMetaverse
     /// </summary>
     public class BlockingQueue<T> : Queue<T>
     {
-        private object SyncRoot;
-        private bool open;
+        private readonly object _syncRoot;
+        private bool _open;
 
         /// <summary>
         /// Create new BlockingQueue.
@@ -47,8 +46,8 @@ namespace OpenMetaverse
         public BlockingQueue(IEnumerable<T> col)
             : base(col)
         {
-            SyncRoot = new object();
-            open = true;
+            _syncRoot = new object();
+            _open = true;
         }
 
         /// <summary>
@@ -58,8 +57,8 @@ namespace OpenMetaverse
         public BlockingQueue(int capacity)
             : base(capacity)
         {
-            SyncRoot = new object();
-            open = true;
+            _syncRoot = new object();
+            _open = true;
         }
 
         /// <summary>
@@ -68,8 +67,8 @@ namespace OpenMetaverse
         public BlockingQueue()
             : base()
         {
-            SyncRoot = new object();
-            open = true;
+            _syncRoot = new object();
+            _open = true;
         }
 
         /// <summary>
@@ -85,7 +84,7 @@ namespace OpenMetaverse
         /// </summary>
         public new void Clear()
         {
-            lock (SyncRoot)
+            lock (_syncRoot)
             {
                 base.Clear();
             }
@@ -96,11 +95,11 @@ namespace OpenMetaverse
         /// </summary>
         public void Close()
         {
-            lock (SyncRoot)
+            lock (_syncRoot)
             {
-                open = false;
+                _open = false;
                 base.Clear();
-                Monitor.PulseAll(SyncRoot); // resume any waiting threads
+                Monitor.PulseAll(_syncRoot); // resume any waiting threads
             }
         }
 
@@ -130,39 +129,35 @@ namespace OpenMetaverse
         /// <returns>Object in queue.</returns>
         public T Dequeue(int timeout)
         {
-            lock (SyncRoot)
+            lock (_syncRoot)
             {
-                while (open && (base.Count == 0))
+                while (_open && (Count == 0))
                 {
-                    if (!Monitor.Wait(SyncRoot, timeout))
+                    if (!Monitor.Wait(_syncRoot, timeout))
                         throw new InvalidOperationException("Timeout");
                 }
-                if (open)
+                if (_open)
                     return base.Dequeue();
-                else
-                    throw new InvalidOperationException("Queue Closed");
+                throw new InvalidOperationException("Queue Closed");
             }
         }
 
         public bool Dequeue(int timeout, ref T obj)
         {
-            lock (SyncRoot)
+            lock (_syncRoot)
             {
-                while (open && (base.Count == 0))
+                while (_open && (base.Count == 0))
                 {
-                    if (!Monitor.Wait(SyncRoot, timeout))
+                    if (!Monitor.Wait(_syncRoot, timeout))
                         return false;
                 }
-                if (open)
+                if (_open)
                 {
                     obj = base.Dequeue();
                     return true;
                 }
-                else
-                {
-                    obj = default(T);
-                    return false;
-                }
+                obj = default(T);
+                return false;
             }
         }
 
@@ -172,10 +167,10 @@ namespace OpenMetaverse
         /// <param name="obj">Object to put in queue</param>
         public new void Enqueue(T obj)
         {
-            lock (SyncRoot)
+            lock (_syncRoot)
             {
                 base.Enqueue(obj);
-                Monitor.Pulse(SyncRoot);
+                Monitor.Pulse(_syncRoot);
             }
         }
 
@@ -184,18 +179,15 @@ namespace OpenMetaverse
         /// </summary>
         public void Open()
         {
-            lock (SyncRoot)
+            lock (_syncRoot)
             {
-                open = true;
+                _open = true;
             }
         }
 
         /// <summary>
         /// Gets flag indicating if queue has been closed.
         /// </summary>
-        public bool Closed
-        {
-            get { return !open; }
-        }
+        public bool Closed => !_open;
     }
 }

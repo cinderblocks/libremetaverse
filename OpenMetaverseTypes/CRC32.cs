@@ -94,7 +94,7 @@ namespace OpenMetaverse
 
         public void Update(byte[] value, int pos, int length)
         {
-            for (int i = pos; i < length; i++)
+            for (var i = pos; i < length; i++)
                 CRC = crcTable[(CRC ^ value[i]) & 0xff] ^ (CRC >> 8);
         }
     }

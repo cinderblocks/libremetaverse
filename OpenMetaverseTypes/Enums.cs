@@ -42,7 +42,7 @@ namespace OpenMetaverse
         /// <summary>Text used when presenting ENUM to user</summary>
         public EnumInfoAttribute(string text)
         {
-            this.Text = text;
+            Text = text;
         }
     }
 
