@@ -225,7 +225,23 @@ namespace OpenMetaverse
 	        "ATTACH_HUD_BOTTOM",
 	        "ATTACH_HUD_BOTTOM_RIGHT",
             "ATTACH_NECK",
-            "ATTACH_AVATAR_CENTER"
+            "ATTACH_AVATAR_CENTER",
+            /* Bento Additions */
+            "ATTACH_LHAND_RING1",
+            "ATTACH_RHAND_RING1",
+            "ATTACH_TAIL_BASE",
+            "ATTACH_TAIL_TIP",
+            "ATTACH_LWING",
+            "ATTACH_RWING",
+            "ATTACH_FACE_JAW",
+            "ATTACH_FACE_LEAR",
+            "ATTACH_FACE_REAR",
+            "ATTACH_FACE_LEYE",
+            "ATTACH_FACE_REYE",
+            "ATTACH_FACE_TONGUE",
+            "ATTACH_GROIN",
+            "ATTACH_HIND_LFOOT",
+            "ATTACH_HIND_RFOOT",
         };
 
         public static bool InternStrings = false;
