@@ -223,7 +223,9 @@ namespace OpenMetaverse
 	        "ATTACH_HUD_CENTER_1",
 	        "ATTACH_HUD_BOTTOM_LEFT",
 	        "ATTACH_HUD_BOTTOM",
-	        "ATTACH_HUD_BOTTOM_RIGHT"
+	        "ATTACH_HUD_BOTTOM_RIGHT",
+            "ATTACH_NECK",
+            "ATTACH_AVATAR_CENTER"
         };
 
         public static bool InternStrings = false;
