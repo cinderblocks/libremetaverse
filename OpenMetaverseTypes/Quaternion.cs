@@ -27,19 +27,28 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Globalization;
+using ProtoBuf;
 
 namespace OpenMetaverse
 {
     [Serializable]
     [StructLayout(LayoutKind.Sequential)]
+    [ProtoContract]
     public struct Quaternion : IEquatable<Quaternion>
     {
+        [ProtoMember(1)]
         /// <summary>X value</summary>
         public float X;
+
+        [ProtoMember(2)]
         /// <summary>Y value</summary>
         public float Y;
+
+        [ProtoMember(3)]
         /// <summary>Z value</summary>
         public float Z;
+
+        [ProtoMember(4)]
         /// <summary>W value</summary>
         public float W;
 

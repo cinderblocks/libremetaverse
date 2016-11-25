@@ -454,6 +454,51 @@ namespace OpenMetaverse
         /// <summary>Avatar Center</summary>
         [EnumInfo(Text = "Avatar Center")]
         Root,
+        /// <summary>Left Ring Finger</summary>
+        [EnumInfo(Text = "Left Ring Finger")]
+        LeftHandRing,
+        /// <summary>Right Ring Finger</summary>
+        [EnumInfo(Text = "Right Ring Finger")]
+        RightHandRing,
+        /// <summary>Tail Base</summary>
+        [EnumInfo(Text = "Tail Base")]
+        TailBase,
+        /// <summary>Tail Tip</summary>
+        [EnumInfo(Text = "Tail Tip")]
+        TailTip,
+        /// <summary>Left Wing</summary>
+        [EnumInfo(Text = "Left Wing")]
+        LeftWing,
+        /// <summary>Right Wing</summary>
+        [EnumInfo(Text = "Right Wing")]
+        RightWing,
+        /// <summary>Jaw</summary>
+        [EnumInfo(Text = "Jaw")]
+        Jaw,
+        /// <summary>Alt Left Ear</summary>
+        [EnumInfo(Text = "Alt Left Ear")]
+        AltLeftEar,
+        /// <summary>Alt Right Ear</summary>
+        [EnumInfo(Text = "Alt Right Ear")]
+        AltRightEar,
+        /// <summary>Alt Left Eye</summary>
+        [EnumInfo(Text = "Alt Left Eye")]
+        AltLeftEye,
+        /// <summary>Alt Right Eye</summary>
+        [EnumInfo(Text = "Alt Right Eye")]
+        AltRightEye,
+        /// <summary>Tongue</summary>
+        [EnumInfo(Text = "Tongue")]
+        Tongue,
+        /// <summary>Groin</summary>
+        [EnumInfo(Text = "Groin")]
+        Groin,
+        /// <summary>Left Hind Foot</summary>
+        [EnumInfo(Text = "Left Hind Foot")]
+        LeftHindFoot,
+        /// <summary>Right Hind Foot</summary>
+        [EnumInfo(Text = "Right Hind Foot")]
+        RightHindFoot,
     }
 
     /// <summary>
