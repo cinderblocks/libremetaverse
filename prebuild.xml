@@ -72,6 +72,7 @@
       <ReferencePath>../bin/</ReferencePath>
       <Reference name="System"/>
       <Reference name="System.Core"/>
+      <Reference name="protobuf-net.dll"/>
       <Files>
         <Match pattern="*.cs" recurse="true"/>
       </Files>
