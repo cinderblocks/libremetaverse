@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Reflection;
@@ -35,8 +36,7 @@ namespace OpenMetaverse
     {
         #region String Arrays
 
-        private static readonly string[] _AssetTypeNames = new string[]
-        {
+        private static readonly string[] _AssetTypeNames = {
             "texture",    //  0
 	        "sound",      //  1
 	        "callcard",   //  2
@@ -46,77 +46,76 @@ namespace OpenMetaverse
 	        "object",     //  6
 	        "notecard",   //  7
 	        "category",   //  8
-	        String.Empty, //  9
+	        string.Empty, //  9
 	        "lsltext",    // 10
 	        "lslbyte",    // 11
 	        "txtr_tga",   // 12
 	        "bodypart",   // 13
-	        String.Empty, // 14
-	        String.Empty, // 15
-	        String.Empty, // 16
+	        string.Empty, // 14
+	        string.Empty, // 15
+	        string.Empty, // 16
 	        "snd_wav",    // 17
 	        "img_tga",    // 18
 	        "jpeg",       // 19
 	        "animatn",    // 20
 	        "gesture",    // 21
 	        "simstate",   // 22
-            String.Empty, // 23
+            string.Empty, // 23
             "link",       // 24
             "linkfolder", // 25
             "marketplacefolder", // 26
-            String.Empty, // 27
-            String.Empty, // 28
-            String.Empty, // 29
-            String.Empty, // 30
-            String.Empty, // 31
-            String.Empty, // 32
-            String.Empty, // 33
-            String.Empty, // 34
-            String.Empty, // 35
-            String.Empty, // 36
-            String.Empty, // 37
-            String.Empty, // 38
-            String.Empty, // 39
-            String.Empty, // 40
-            String.Empty, // 41
-            String.Empty, // 42
-            String.Empty, // 43
-            String.Empty, // 44
-            String.Empty, // 45
-            String.Empty, // 46
-            String.Empty, // 47
-            String.Empty, // 48
+            string.Empty, // 27
+            string.Empty, // 28
+            string.Empty, // 29
+            string.Empty, // 30
+            string.Empty, // 31
+            string.Empty, // 32
+            string.Empty, // 33
+            string.Empty, // 34
+            string.Empty, // 35
+            string.Empty, // 36
+            string.Empty, // 37
+            string.Empty, // 38
+            string.Empty, // 39
+            string.Empty, // 40
+            string.Empty, // 41
+            string.Empty, // 42
+            string.Empty, // 43
+            string.Empty, // 44
+            string.Empty, // 45
+            string.Empty, // 46
+            string.Empty, // 47
+            string.Empty, // 48
             "mesh",       // 49
         };
 
-        private static readonly string[] _FolderTypeNames = new string[]
-        {
+        private static readonly string[] _FolderTypeNames = {
             "texture",    //  0
             "sound",      //  1
             "callcard",   //  2
             "landmark",   //  3
-            String.Empty, //  4
+            string.Empty, //  4
             "clothing",   //  5
             "object",     //  6
             "notecard",   //  7
             "root_inv",   //  8
-            String.Empty, //  9
+            string.Empty, //  9
             "lsltext",    // 10
-            String.Empty, // 11
-            String.Empty, // 12
+            string.Empty, // 11
+            string.Empty, // 12
             "bodypart",   // 13
             "trash",      // 14
             "snapshot",   // 15
             "lstndfnd",   // 16
-            String.Empty, // 17
-            String.Empty, // 18
-            String.Empty, // 19
+            string.Empty, // 17
+            string.Empty, // 18
+            string.Empty, // 19
             "animatn",    // 20
             "gesture",    // 21
-            String.Empty, // 22
+            string.Empty, // 22
             "favorite",   // 23
-            String.Empty, // 24
-            String.Empty, // 25
+            string.Empty, // 24
+            string.Empty, // 25
             "ensemble",   // 26
             "ensemble",   // 27
             "ensemble",   // 28
@@ -148,43 +147,40 @@ namespace OpenMetaverse
             "stock",      // 54
         };
 
-        private static readonly string[] _InventoryTypeNames = new string[]
-        {
+        private static readonly string[] _InventoryTypeNames = {
             "texture",    //  0
 	        "sound",      //  1
 	        "callcard",   //  2
 	        "landmark",   //  3
-	        String.Empty, //  4
-	        String.Empty, //  5
+	        string.Empty, //  4
+	        string.Empty, //  5
 	        "object",     //  6
 	        "notecard",   //  7
 	        "category",   //  8
 	        "root",       //  9
 	        "script",     // 10
-	        String.Empty, // 11
-	        String.Empty, // 12
-	        String.Empty, // 13
-	        String.Empty, // 14
+	        string.Empty, // 11
+	        string.Empty, // 12
+	        string.Empty, // 13
+	        string.Empty, // 14
 	        "snapshot",   // 15
-	        String.Empty, // 16
+	        string.Empty, // 16
 	        "attach",     // 17
 	        "wearable",   // 18
 	        "animation",  // 19
 	        "gesture",    // 20
-            String.Empty, // 21
+            string.Empty, // 21
             "mesh"        // 22
         };
 
-        private static readonly string[] _SaleTypeNames = new string[]
-        {
+        private static readonly string[] _SaleTypeNames = {
             "not",
             "orig",
             "copy",
             "cntn"
         };
 
-        private static readonly string[] _AttachmentPointNames = new string[]
-        {
+        private static readonly string[] _AttachmentPointNames = {
             string.Empty,
             "ATTACH_CHEST",
 	        "ATTACH_HEAD",
@@ -426,10 +422,7 @@ namespace OpenMetaverse
                 Array.Reverse(newBytes, 0, 4);
                 return BitConverter.ToSingle(newBytes, 0);
             }
-            else
-            {
-                return BitConverter.ToSingle(bytes, pos);
-            }
+            return BitConverter.ToSingle(bytes, pos);
         }
 
         public static double BytesToDouble(byte[] bytes, int pos)
@@ -441,10 +434,7 @@ namespace OpenMetaverse
                 Array.Reverse(newBytes, 0, 8);
                 return BitConverter.ToDouble(newBytes, 0);
             }
-            else
-            {
-                return BitConverter.ToDouble(bytes, pos);
-            }
+            return BitConverter.ToDouble(bytes, pos);
         }
 
         #endregion BytesTo
@@ -726,7 +716,7 @@ namespace OpenMetaverse
                 if (i != 0)
                     output.Append('\n');
 
-                if (!String.IsNullOrEmpty(fieldName))
+                if (!string.IsNullOrEmpty(fieldName))
                 {
                     output.Append(fieldName);
                     output.Append(": ");
@@ -754,9 +744,9 @@ namespace OpenMetaverse
         /// <returns>A null-terminated UTF8 byte array</returns>
         public static byte[] StringToBytes(string str)
         {
-            if (String.IsNullOrEmpty(str)) { return Utils.EmptyBytes; }
+            if (String.IsNullOrEmpty(str)) { return EmptyBytes; }
             if (!str.EndsWith("\0")) { str += "\0"; }
-            return System.Text.UTF8Encoding.UTF8.GetBytes(str);
+            return UTF8Encoding.UTF8.GetBytes(str);
         }
 
         /// <summary>
@@ -771,7 +761,7 @@ namespace OpenMetaverse
             if (handleDirty)
             {
                 if (String.IsNullOrEmpty(hexString))
-                    return Utils.EmptyBytes;
+                    return EmptyBytes;
 
                 StringBuilder stripped = new StringBuilder(hexString.Length);
                 char c;
@@ -823,10 +813,7 @@ namespace OpenMetaverse
 
             if (numChar >= numA && numChar < (numA + 6))
                 return true;
-            else if (numChar >= num0 && numChar < (num0 + 10))
-                return true;
-            else
-                return false;
+            return numChar >= num0 && numChar < (num0 + 10);
         }
 
         /// <summary>
@@ -838,7 +825,7 @@ namespace OpenMetaverse
         {
             if (hex.Length > 2 || hex.Length <= 0)
                 throw new ArgumentException("hex must be 1 or 2 characters in length");
-            byte newByte = Byte.Parse(hex, System.Globalization.NumberStyles.HexNumber);
+            byte newByte = byte.Parse(hex, System.Globalization.NumberStyles.HexNumber);
             return newByte;
         }
 
@@ -855,12 +842,12 @@ namespace OpenMetaverse
         /// <returns>A single byte representing the original float value</returns>
         public static byte FloatToByte(float val, float lower, float upper)
         {
-            val = Utils.Clamp(val, lower, upper);
+            val = Clamp(val, lower, upper);
             // Normalize the value
             val -= lower;
             val /= (upper - lower);
 
-            return (byte)Math.Floor(val * (float)byte.MaxValue);
+            return (byte)Math.Floor(val * byte.MaxValue);
         }
 
         /// <summary>
@@ -873,8 +860,7 @@ namespace OpenMetaverse
         /// <returns>A float value inclusively between lower and upper</returns>
         public static float ByteToFloat(byte[] bytes, int pos, float lower, float upper)
         {
-            if (bytes.Length <= pos) return 0;
-            return ByteToFloat(bytes[pos], lower, upper);
+            return bytes.Length <= pos ? 0 : ByteToFloat(bytes[pos], lower, upper);
         }
 
         /// <summary>
@@ -888,7 +874,7 @@ namespace OpenMetaverse
         {
             const float ONE_OVER_BYTEMAX = 1.0f / (float)byte.MaxValue;
 
-            float fval = (float)val * ONE_OVER_BYTEMAX;
+            float fval = val * ONE_OVER_BYTEMAX;
             float delta = (upper - lower);
             fval *= delta;
             fval += lower;
@@ -909,9 +895,9 @@ namespace OpenMetaverse
 
         public static float UInt16ToFloat(ushort val, float lower, float upper)
         {
-            const float ONE_OVER_U16_MAX = 1.0f / (float)UInt16.MaxValue;
+            const float ONE_OVER_U16_MAX = 1.0f / (float)ushort.MaxValue;
 
-            float fval = (float)val * ONE_OVER_U16_MAX;
+            float fval = val * ONE_OVER_U16_MAX;
             float delta = upper - lower;
             fval *= delta;
             fval += lower;
@@ -929,7 +915,7 @@ namespace OpenMetaverse
             float delta = upper - lower;
             value -= lower;
             value /= delta;
-            value *= (float)UInt16.MaxValue;
+            value *= ushort.MaxValue;
 
             return (ushort)value;
         }
@@ -947,7 +933,7 @@ namespace OpenMetaverse
         /// <returns>True if the parse was successful, otherwise false</returns>
         public static bool TryParseSingle(string s, out float result)
         {
-            return Single.TryParse(s, System.Globalization.NumberStyles.Float, EnUsCulture.NumberFormat, out result);
+            return float.TryParse(s, System.Globalization.NumberStyles.Float, EnUsCulture.NumberFormat, out result);
         }
 
         /// <summary>
@@ -961,7 +947,7 @@ namespace OpenMetaverse
         {
             // NOTE: Double.TryParse can't parse Double.[Min/Max]Value.ToString(), see:
             // http://blogs.msdn.com/bclteam/archive/2006/05/24/598169.aspx
-            return Double.TryParse(s, System.Globalization.NumberStyles.Float, EnUsCulture.NumberFormat, out result);
+            return double.TryParse(s, System.Globalization.NumberStyles.Float, EnUsCulture.NumberFormat, out result);
         }
 
         /// <summary>
@@ -972,7 +958,7 @@ namespace OpenMetaverse
         /// <returns>True if the parse was successful, otherwise false</returns>
         public static bool TryParseHex(string s, out uint result)
         {
-            return UInt32.TryParse(s, System.Globalization.NumberStyles.HexNumber, EnUsCulture.NumberFormat, out result);
+            return uint.TryParse(s, System.Globalization.NumberStyles.HexNumber, EnUsCulture.NumberFormat, out result);
         }
 
         #endregion TryParse
@@ -1252,19 +1238,17 @@ namespace OpenMetaverse
                 result = (T)Enum.Parse(t, strType, true);
                 return true;
             }
-            else
+
+            foreach (string value in Enum.GetNames(typeof(T)))
             {
-                foreach (string value in Enum.GetNames(typeof(T)))
+                if (value.Equals(strType, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (value.Equals(strType, StringComparison.OrdinalIgnoreCase))
-                    {
-                        result = (T)Enum.Parse(typeof(T), value);
-                        return true;
-                    }
+                    result = (T)Enum.Parse(typeof(T), value);
+                    return true;
                 }
-                result = default(T);
-                return false;
             }
+            result = default(T);
+            return false;
         }
 
         /// <summary>
@@ -1293,15 +1277,7 @@ namespace OpenMetaverse
 
             IPAddress[] hosts = Dns.GetHostEntry(hostname).AddressList;
 
-            for (int i = 0; i < hosts.Length; i++)
-            {
-                IPAddress host = hosts[i];
-
-                if (host.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                    return host;
-            }
-
-            return null;
+            return hosts.FirstOrDefault(host => host.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
         }
 
         #endregion Miscellaneous

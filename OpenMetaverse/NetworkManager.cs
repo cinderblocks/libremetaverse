@@ -122,8 +122,7 @@ namespace OpenMetaverse
         protected virtual void OnPacketSent(PacketSentEventArgs e)
         {
             EventHandler<PacketSentEventArgs> handler = m_PacketSent;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -146,8 +145,7 @@ namespace OpenMetaverse
         protected virtual void OnLoggedOut(LoggedOutEventArgs e)
         {
             EventHandler<LoggedOutEventArgs> handler = m_LoggedOut;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -170,8 +168,7 @@ namespace OpenMetaverse
         protected virtual void OnSimConnecting(SimConnectingEventArgs e)
         {
             EventHandler<SimConnectingEventArgs> handler = m_SimConnecting;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -194,8 +191,7 @@ namespace OpenMetaverse
         protected virtual void OnSimConnected(SimConnectedEventArgs e)
         {
             EventHandler<SimConnectedEventArgs> handler = m_SimConnected;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -218,8 +214,7 @@ namespace OpenMetaverse
         protected virtual void OnSimDisconnected(SimDisconnectedEventArgs e)
         {
             EventHandler<SimDisconnectedEventArgs> handler = m_SimDisconnected;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -242,8 +237,7 @@ namespace OpenMetaverse
         protected virtual void OnDisconnected(DisconnectedEventArgs e)
         {
             EventHandler<DisconnectedEventArgs> handler = m_Disconnected;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -266,8 +260,7 @@ namespace OpenMetaverse
         protected virtual void OnSimChanged(SimChangedEventArgs e)
         {
             EventHandler<SimChangedEventArgs> handler = m_SimChanged;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -290,8 +283,7 @@ namespace OpenMetaverse
         protected virtual void OnEventQueueRunning(EventQueueRunningEventArgs e)
         {
             EventHandler<EventQueueRunningEventArgs> handler = m_EventQueueRunning;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -311,25 +303,21 @@ namespace OpenMetaverse
 
         /// <summary>Unique identifier associated with our connections to
         /// simulators</summary>
-        public uint CircuitCode
-        {
-            get { return _CircuitCode; }
-            set { _CircuitCode = value; }
-        }
-        /// <summary>The simulator that the logged in avatar is currently 
+        public uint CircuitCode { get; set; }
+
+        /// <summary>The simulator that the logged in avatar is currently
         /// occupying</summary>
-        public Simulator CurrentSim
-        {
-            get { return _CurrentSim; }
-            set { _CurrentSim = value; }
-        }
+        public Simulator CurrentSim { get; set; }
+
         /// <summary>Shows whether the network layer is logged in to the
         /// grid or not</summary>
-        public bool Connected { get { return connected; } }
+        public bool Connected => connected;
+
         /// <summary>Number of packets in the incoming queue</summary>
-        public int InboxCount { get { return PacketInbox.Count; } }
+        public int InboxCount => PacketInbox.Count;
+
         /// <summary>Number of packets in the outgoing queue</summary>
-        public int OutboxCount { get { return PacketOutbox.Count; } }
+        public int OutboxCount => PacketOutbox.Count;
 
         #endregion Properties
 
@@ -347,9 +335,7 @@ namespace OpenMetaverse
 
         private GridClient Client;
         private Timer DisconnectTimer;
-        private uint _CircuitCode;
-        private Simulator _CurrentSim = null;
-        private bool connected = false;
+        private bool connected;
 
         /// <summary>
         /// Default constructor
@@ -963,8 +949,8 @@ namespace OpenMetaverse
             else if (CurrentSim.DisconnectCandidate)
             {
                 // The currently occupied simulator hasn't sent us any traffic in a while, shutdown
-                Logger.Log("Network timeout for the current simulator (" +
-                    CurrentSim.ToString() + "), logging out", Helpers.LogLevel.Warning, Client);
+                Logger.Log($"Network timeout for the current simulator ({CurrentSim}), logging out",
+                    Helpers.LogLevel.Warning, Client);
 
                 if (DisconnectTimer != null)
                 {
@@ -1004,7 +990,7 @@ namespace OpenMetaverse
                 // Deal with callbacks, if any
                 if (m_LoggedOut != null)
                 {
-                    var itemIDs = logout.InventoryData.Select(InventoryData => InventoryData.ItemID).ToList();
+                    var itemIDs = logout.InventoryData.Select(inventoryData => inventoryData.ItemID).ToList();
 
                     OnLoggedOut(new LoggedOutEventArgs(itemIDs));
                 }
@@ -1024,9 +1010,11 @@ namespace OpenMetaverse
         protected void StartPingCheckHandler(object sender, PacketReceivedEventArgs e)
         {
             StartPingCheckPacket incomingPing = (StartPingCheckPacket)e.Packet;
-            CompletePingCheckPacket ping = new CompletePingCheckPacket();
-            ping.PingID.PingID = incomingPing.PingID.PingID;
-            ping.Header.Reliable = false;
+            CompletePingCheckPacket ping = new CompletePingCheckPacket
+            {
+                PingID = {PingID = incomingPing.PingID.PingID},
+                Header = {Reliable = false}
+            };
             // TODO: We can use OldestUnacked to correct transmission errors
             //   I don't think that's right.  As far as I can tell, the Viewer
             //   only uses this to prune its duplicate-checking buffer. -bushing
@@ -1190,10 +1178,15 @@ namespace OpenMetaverse
             }
 
             // Send a RegionHandshakeReply
-            RegionHandshakeReplyPacket reply = new RegionHandshakeReplyPacket();
-            reply.AgentData.AgentID = Client.Self.AgentID;
-            reply.AgentData.SessionID = Client.Self.SessionID;
-            reply.RegionInfo.Flags = (uint)RegionProtocols.SelfAppearanceSupport;
+            RegionHandshakeReplyPacket reply = new RegionHandshakeReplyPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                RegionInfo = {Flags = (uint) RegionProtocols.SelfAppearanceSupport}
+            };
             SendPacket(reply, simulator);
 
             // We're officially connected to this sim
@@ -1220,7 +1213,7 @@ namespace OpenMetaverse
 
                 if (Connect(ip, port, handle, false, null) == null)
                 {
-                    Logger.Log("Unabled to connect to new sim " + ip + ":" + port,
+                    Logger.Log($"Unabled to connect to new sim {ip}:{port}",
                         Helpers.LogLevel.Error, Client);
                 }
             }
@@ -1325,16 +1318,14 @@ namespace OpenMetaverse
 
     public class DisconnectedEventArgs : EventArgs
     {
-        private readonly NetworkManager.DisconnectType m_Reason;
-        private readonly String m_Message;
+        public NetworkManager.DisconnectType Reason { get; }
 
-        public NetworkManager.DisconnectType Reason => m_Reason;
-        public String Message => m_Message;
+        public string Message { get; }
 
         public DisconnectedEventArgs(NetworkManager.DisconnectType reason, string message)
         {
-            m_Reason = reason;
-            m_Message = message;
+            Reason = reason;
+            Message = message;
         }
     }
 
