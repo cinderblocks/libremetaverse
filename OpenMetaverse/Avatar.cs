@@ -80,15 +80,17 @@ namespace OpenMetaverse
 
             public OSD GetOSD()
             {
-                OSDMap tex = new OSDMap(8);
-                tex["behavior_positive"] = OSD.FromInteger(BehaviorPositive);
-                tex["behavior_negative"] = OSD.FromInteger(BehaviorNegative);
-                tex["appearance_positive"] = OSD.FromInteger(AppearancePositive);
-                tex["appearance_negative"] = OSD.FromInteger(AppearanceNegative);
-                tex["buildings_positive"] = OSD.FromInteger(BuildingPositive);
-                tex["buildings_negative"] = OSD.FromInteger(BuildingNegative);
-                tex["given_positive"] = OSD.FromInteger(GivenPositive);
-                tex["given_negative"] = OSD.FromInteger(GivenNegative);
+                OSDMap tex = new OSDMap(8)
+                {
+                    ["behavior_positive"] = OSD.FromInteger(BehaviorPositive),
+                    ["behavior_negative"] = OSD.FromInteger(BehaviorNegative),
+                    ["appearance_positive"] = OSD.FromInteger(AppearancePositive),
+                    ["appearance_negative"] = OSD.FromInteger(AppearanceNegative),
+                    ["buildings_positive"] = OSD.FromInteger(BuildingPositive),
+                    ["buildings_negative"] = OSD.FromInteger(BuildingNegative),
+                    ["given_positive"] = OSD.FromInteger(GivenPositive),
+                    ["given_negative"] = OSD.FromInteger(GivenNegative)
+                };
                 return tex;
             }
 
@@ -145,7 +147,7 @@ namespace OpenMetaverse
                 get { return ((Flags & ProfileFlags.AllowPublish) != 0); }
                 set
                 {
-                    if (value == true)
+                    if (value)
                         Flags |= ProfileFlags.AllowPublish;
                     else
                         Flags &= ~ProfileFlags.AllowPublish;
@@ -157,7 +159,7 @@ namespace OpenMetaverse
                 get { return ((Flags & ProfileFlags.Online) != 0); }
                 set
                 {
-                    if (value == true)
+                    if (value)
                         Flags |= ProfileFlags.Online;
                     else
                         Flags &= ~ProfileFlags.Online;
@@ -169,7 +171,7 @@ namespace OpenMetaverse
                 get { return ((Flags & ProfileFlags.MaturePublish) != 0); }
                 set
                 {
-                    if (value == true)
+                    if (value)
                         Flags |= ProfileFlags.MaturePublish;
                     else
                         Flags &= ~ProfileFlags.MaturePublish;
@@ -181,7 +183,7 @@ namespace OpenMetaverse
                 get { return ((Flags & ProfileFlags.Identified) != 0); }
                 set
                 {
-                    if (value == true)
+                    if (value)
                         Flags |= ProfileFlags.Identified;
                     else
                         Flags &= ~ProfileFlags.Identified;
@@ -193,7 +195,7 @@ namespace OpenMetaverse
                 get { return ((Flags & ProfileFlags.Transacted) != 0); }
                 set
                 {
-                    if (value == true)
+                    if (value)
                         Flags |= ProfileFlags.Transacted;
                     else
                         Flags &= ~ProfileFlags.Transacted;
@@ -202,16 +204,18 @@ namespace OpenMetaverse
 
             public OSD GetOSD()
             {
-                OSDMap tex = new OSDMap(9);
-                tex["first_life_text"] = OSD.FromString(FirstLifeText);
-                tex["first_life_image"] = OSD.FromUUID(FirstLifeImage);
-                tex["partner"] = OSD.FromUUID(Partner);
-                tex["about_text"] = OSD.FromString(AboutText);
-                tex["born_on"] = OSD.FromString(BornOn);
-                tex["charter_member"] = OSD.FromString(CharterMember);
-                tex["profile_image"] = OSD.FromUUID(ProfileImage);
-                tex["flags"] = OSD.FromInteger((byte)Flags);
-                tex["profile_url"] = OSD.FromString(ProfileURL);
+                OSDMap tex = new OSDMap(9)
+                {
+                    ["first_life_text"] = OSD.FromString(FirstLifeText),
+                    ["first_life_image"] = OSD.FromUUID(FirstLifeImage),
+                    ["partner"] = OSD.FromUUID(Partner),
+                    ["about_text"] = OSD.FromString(AboutText),
+                    ["born_on"] = OSD.FromString(BornOn),
+                    ["charter_member"] = OSD.FromString(CharterMember),
+                    ["profile_image"] = OSD.FromUUID(ProfileImage),
+                    ["flags"] = OSD.FromInteger((byte) Flags),
+                    ["profile_url"] = OSD.FromString(ProfileURL)
+                };
                 return tex;
             }
 
@@ -258,12 +262,14 @@ namespace OpenMetaverse
 
             public OSD GetOSD()
             {
-                OSDMap InterestsOSD = new OSDMap(5);
-                InterestsOSD["languages_text"] = OSD.FromString(LanguagesText);
-                InterestsOSD["skills_mask"] = OSD.FromUInteger(SkillsMask);
-                InterestsOSD["skills_text"] = OSD.FromString(SkillsText);
-                InterestsOSD["want_to_mask"] = OSD.FromUInteger(WantToMask);
-                InterestsOSD["want_to_text"] = OSD.FromString(WantToText);
+                OSDMap InterestsOSD = new OSDMap(5)
+                {
+                    ["languages_text"] = OSD.FromString(LanguagesText),
+                    ["skills_mask"] = OSD.FromUInteger(SkillsMask),
+                    ["skills_text"] = OSD.FromString(SkillsText),
+                    ["want_to_mask"] = OSD.FromUInteger(WantToMask),
+                    ["want_to_text"] = OSD.FromString(WantToText)
+                };
                 return InterestsOSD;
             }
 
@@ -279,7 +285,6 @@ namespace OpenMetaverse
                 I.WantToText = tex["want_to_text"].AsString();
 
                 return I;
-
             }
         }
 
@@ -344,7 +349,7 @@ namespace OpenMetaverse
                         return (string)NameValues[i].Value;
                 }
 
-                return String.Empty;
+                return string.Empty;
             }
         }
 
@@ -359,7 +364,7 @@ namespace OpenMetaverse
                         return (string)NameValues[i].Value;
                 }
 
-                return String.Empty;
+                return string.Empty;
             }
         }
 
@@ -368,11 +373,11 @@ namespace OpenMetaverse
         {
             get
             {
-                if (!String.IsNullOrEmpty(name))
+                if (!string.IsNullOrEmpty(name))
                 {
                     return name;
                 }
-                else if (NameValues != null && NameValues.Length > 0)
+                if (NameValues != null && NameValues.Length > 0)
                 {
                     lock (NameValues)
                     {
@@ -387,20 +392,20 @@ namespace OpenMetaverse
                                 lastName = (string)NameValues[i].Value;
                         }
 
-                        if (firstName != String.Empty && lastName != String.Empty)
+                        if (firstName != string.Empty && lastName != String.Empty)
                         {
-                            name = String.Format("{0} {1}", firstName, lastName);
+                            name = $"{firstName} {lastName}";
                             return name;
                         }
                         else
                         {
-                            return String.Empty;
+                            return string.Empty;
                         }
                     }
                 }
                 else
                 {
-                    return String.Empty;
+                    return string.Empty;
                 }
             }
         }
@@ -410,31 +415,28 @@ namespace OpenMetaverse
         {
             get
             {
-                if (!String.IsNullOrEmpty(groupName))
+                if (!string.IsNullOrEmpty(groupName))
                 {
                     return groupName;
                 }
+                if (NameValues == null || NameValues.Length == 0)
+                {
+                    return string.Empty;
+                }
                 else
                 {
-                    if (NameValues == null || NameValues.Length == 0)
+                    lock (NameValues)
                     {
-                        return String.Empty;
-                    }
-                    else
-                    {
-                        lock (NameValues)
+                        for (int i = 0; i < NameValues.Length; i++)
                         {
-                            for (int i = 0; i < NameValues.Length; i++)
+                            if (NameValues[i].Name == "Title" && NameValues[i].Type == NameValue.ValueType.String)
                             {
-                                if (NameValues[i].Name == "Title" && NameValues[i].Type == NameValue.ValueType.String)
-                                {
-                                    groupName = (string)NameValues[i].Value;
-                                    return groupName;
-                                }
+                                groupName = (string)NameValues[i].Value;
+                                return groupName;
                             }
                         }
-                        return String.Empty;
                     }
+                    return string.Empty;
                 }
             }
         }
@@ -448,9 +450,9 @@ namespace OpenMetaverse
 
             OSDArray vp = new OSDArray();
 
-            for (int i = 0; i < VisualParameters.Length; i++)
+            foreach (byte t in VisualParameters)
             {
-                vp.Add(OSD.FromInteger(VisualParameters[i]));
+                vp.Add(OSD.FromInteger(t));
             }
 
             Avi["groups"] = grp;
@@ -467,7 +469,7 @@ namespace OpenMetaverse
 
         }
 
-        public static new Avatar FromOSD(OSD O)
+        public new static Avatar FromOSD(OSD O)
         {
 
             OSDMap tex = (OSDMap)O;
@@ -480,10 +482,10 @@ namespace OpenMetaverse
 
             FieldInfo[] Fields = Prim.GetFields();
 
-            for (int x = 0; x < Fields.Length; x++)
+            foreach (FieldInfo info in Fields)
             {
-                Logger.Log("Field Matched in FromOSD: "+Fields[x].Name, Helpers.LogLevel.Debug);
-                Fields[x].SetValue(A, Fields[x].GetValue(P));
+                Logger.Log("Field Matched in FromOSD: "+info.Name, Helpers.LogLevel.Debug);
+                info.SetValue(A, info.GetValue(P));
             }            
 
             A.Groups = new List<UUID>();
@@ -515,24 +517,30 @@ namespace OpenMetaverse
 
             A.NameValues = new NameValue[3];
 
-            NameValue First = new NameValue();
-            First.Name = "FirstName";
-            First.Type = NameValue.ValueType.String;
-            First.Value = tex["first_name"].AsString();
+            NameValue First = new NameValue
+            {
+                Name = "FirstName",
+                Type = NameValue.ValueType.String,
+                Value = tex["first_name"].AsString()
+            };
 
-            NameValue Last = new NameValue();
-            Last.Name = "LastName";
-            Last.Type = NameValue.ValueType.String;
-            Last.Value = tex["last_name"].AsString();
+            NameValue Last = new NameValue
+            {
+                Name = "LastName",
+                Type = NameValue.ValueType.String,
+                Value = tex["last_name"].AsString()
+            };
 
             // ***************From Code Above***************
             // if (NameValues[i].Name == "Title" && NameValues[i].Type == NameValue.ValueType.String)
             // *********************************************
 
-            NameValue Group = new NameValue();
-            Group.Name = "Title";
-            Group.Type = NameValue.ValueType.String;
-            Group.Value = tex["group_name"].AsString();
+            NameValue Group = new NameValue
+            {
+                Name = "Title",
+                Type = NameValue.ValueType.String,
+                Value = tex["group_name"].AsString()
+            };
 
 
 
