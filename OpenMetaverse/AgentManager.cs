@@ -4952,15 +4952,15 @@ namespace OpenMetaverse
         /// <param name="ownerID">The ID of the owner of the object sending the request</param>
         /// <param name="ownerIsGroup">True if the object is owned by a group</param>
         /// <param name="message">The message sent with the request</param>
-        /// <param name="URL">The URL the object sent</param>
-        public LoadUrlEventArgs(string objectName, UUID objectID, UUID ownerID, bool ownerIsGroup, string message, string URL)
+        /// <param name="url">The URL the object sent</param>
+        public LoadUrlEventArgs(string objectName, UUID objectID, UUID ownerID, bool ownerIsGroup, string message, string url)
         {
             ObjectName = objectName;
             ObjectID = objectID;
             OwnerID = ownerID;
             OwnerIsGroup = ownerIsGroup;
             Message = message;
-            URL = URL;
+            URL = url;
         }
     }
 
