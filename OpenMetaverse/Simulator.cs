@@ -478,7 +478,7 @@ namespace OpenMetaverse
         /// (for duplicate checking)</summary>
         internal IncomingPacketIDCollection PacketArchive;
         /// <summary>Packets we sent out that need ACKs from the simulator</summary>
-        internal SortedDictionary<uint, NetworkManager.OutgoingPacket> NeedAck = new SortedDictionary<uint, NetworkManager.OutgoingPacket>();
+        internal SortedDictionary<uint, OutgoingPacket> NeedAck = new SortedDictionary<uint, OutgoingPacket>();
         /// <summary>Sequence number for pause/resume</summary>
         internal int pauseSerial;
         /// <summary>Indicates if UDP connection to the sim is fully established</summary>
@@ -730,7 +730,7 @@ namespace OpenMetaverse
                 CloseCircuitPacket close = new CloseCircuitPacket();
                 UDPPacketBuffer buf = new UDPPacketBuffer(remoteEndPoint);
                 byte[] data = close.ToBytes();
-                Buffer.BlockCopy(data, 0, buf.Data, 0, data.Length);
+                buf.CopyFrom(data);
                 buf.DataLength = data.Length;
 
                 AsyncBeginSend(buf);
@@ -867,18 +867,18 @@ namespace OpenMetaverse
                     // Remove the MSG_ZEROCODED flag and send the unencoded data
                     // instead
                     data[0] = (byte)(data[0] & ~Helpers.MSG_ZEROCODED);
-                    Buffer.BlockCopy(data, 0, buffer.Data, 0, dataLength);
+                    buffer.CopyFrom(data, dataLength);
                 }
             }
             else
             {
-                Buffer.BlockCopy(data, 0, buffer.Data, 0, dataLength);
+                buffer.CopyFrom(data, dataLength);
             }
             buffer.DataLength = dataLength;
 
             #region Queue or Send
 
-            NetworkManager.OutgoingPacket outgoingPacket = new NetworkManager.OutgoingPacket(this, buffer, type);
+            OutgoingPacket outgoingPacket = new OutgoingPacket(this, buffer, type);
 
             // Send ACK and logout packets directly, everything else goes through the queue
             if (Client.Settings.THROTTLE_OUTGOING_PACKETS == false ||
@@ -902,7 +902,7 @@ namespace OpenMetaverse
             #endregion
         }
 
-        internal void SendPacketFinal(NetworkManager.OutgoingPacket outgoingPacket)
+        internal void SendPacketFinal(OutgoingPacket outgoingPacket)
         {
             UDPPacketBuffer buffer = outgoingPacket.Buffer;
             byte flags = buffer.Data[0];
@@ -1235,19 +1235,19 @@ namespace OpenMetaverse
         {
             if (NeedAck.Count <= 0) return;
 
-            NetworkManager.OutgoingPacket[] array;
+            OutgoingPacket[] array;
 
             lock (NeedAck)
             {
                 // Create a temporary copy of the outgoing packets array to iterate over
-                array = new NetworkManager.OutgoingPacket[NeedAck.Count];
+                array = new OutgoingPacket[NeedAck.Count];
                 NeedAck.Values.CopyTo(array, 0);
             }
 
             int now = Environment.TickCount;
 
             // Resend packets
-            foreach (NetworkManager.OutgoingPacket outgoing in array)
+            foreach (OutgoingPacket outgoing in array)
             {
                 if (outgoing.TickCount == 0 || now - outgoing.TickCount <= Client.Settings.RESEND_TIMEOUT) continue;
 
