@@ -82,33 +82,6 @@ namespace OpenMetaverse
             }
         }
 
-        /// <summary>
-        /// Holds a simulator reference and a serialized packet, these structs are put in
-        /// the packet outbox for sending
-        /// </summary>
-        public class OutgoingPacket
-        {
-            /// <summary>Reference to the simulator this packet is destined for</summary>
-            public readonly Simulator Simulator;
-            /// <summary>Packet that needs to be sent</summary>
-            public readonly UDPPacketBuffer Buffer;
-            /// <summary>Sequence number of the wrapped packet</summary>
-            public uint SequenceNumber;
-            /// <summary>Number of times this packet has been resent</summary>
-            public int ResendCount;
-            /// <summary>Environment.TickCount when this packet was last sent over the wire</summary>
-            public int TickCount;
-            /// <summary>Type of the packet</summary>
-            public PacketType Type;
-
-            public OutgoingPacket(Simulator simulator, UDPPacketBuffer buffer, PacketType type)
-            {
-                Simulator = simulator;
-                Buffer = buffer;
-                this.Type = type;
-            }
-        }
-
         #endregion Structs
 
         #region Delegates
