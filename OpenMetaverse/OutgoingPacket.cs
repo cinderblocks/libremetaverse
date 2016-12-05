@@ -1,6 +1,5 @@
 ﻿/*
- * Copyright (c) Contributors, http://opensimulator.org/
- * See CONTRIBUTORS.TXT for a full list of copyright holders.
+ * Copyright (c) 2006-2016, openmetaverse.co
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
