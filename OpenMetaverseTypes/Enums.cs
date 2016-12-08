@@ -128,6 +128,9 @@ namespace OpenMetaverse
         Notecard = 7,
         /// <summary>The root folder type</summary>
         Root = 8,
+        /// <summary>Non-conformant OpenSim root folder type</summary>
+        [Obsolete("No longer used, please use FolderType.Root")]
+        OldRoot = 9,
         /// <summary>LSLText folder</summary>
         LSLText = 10,
         /// <summary>Bodyparts folder</summary>
