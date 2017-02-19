@@ -209,16 +209,12 @@ namespace OpenMetaverse.Imaging
                     MultiplyLayerFromAlpha(texture, LoadResourceLayer("head_hair.tga"));
                 }
 
-                bool processingSkin = true;
-
                 // Aply tint and alpha masks except for skin that has a texture
                 // on layer 0 which always overrides other skin settings
                 if (!(textures[i].TextureIndex == AvatarTextureIndex.HeadBodypaint ||
                         textures[i].TextureIndex == AvatarTextureIndex.UpperBodypaint ||
                         textures[i].TextureIndex == AvatarTextureIndex.LowerBodypaint))
                 {
-                    processingSkin = false;
-
                     ApplyTint(texture, textures[i].Color);
 
                     // For hair bake, we skip all alpha masks
