@@ -255,7 +255,7 @@ namespace OpenMetaverse
         /// <summary>
         /// 
         /// </summary>
-        /// <returns></returns>
+        /// <returns>UUID</returns>
         public static UUID Random()
         {
             return new UUID(Guid.NewGuid());
@@ -264,7 +264,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Slower than Random(), but generates a cryptographically secure UUID
         /// </summary>
-        /// <returns></returns>
+        /// <returns>UUID</returns>
         public static UUID SecureRandom()
         {
             var rng = new RNGCryptoServiceProvider();
