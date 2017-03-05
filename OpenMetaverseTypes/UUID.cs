@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.Security.Cryptography;
 
 namespace OpenMetaverse
 {
@@ -258,6 +259,22 @@ namespace OpenMetaverse
         public static UUID Random()
         {
             return new UUID(Guid.NewGuid());
+        }
+
+        /// <summary>
+        /// Slower than Random(), but generates a cryptographically secure UUID
+        /// </summary>
+        /// <returns></returns>
+        public static UUID SecureRandom()
+        {
+            var rng = new RNGCryptoServiceProvider();
+            byte[] data = new byte[16];
+            rng.GetBytes(data);
+
+            // Mark as UUIDv4
+            data[7] = (byte)((data[7] | 0x40) & 0x4f);
+            data[8] = (byte)((data[8] | 0x80) & 0xbf);
+            return new UUID(new Guid(data));
         }
 
         #endregion Static Methods
