@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace OpenMetaverse
@@ -71,9 +72,10 @@ namespace OpenMetaverse
         /// <summary>Used for converting radians to degrees</summary>
         public const float RAD_TO_DEG = (float)(180.0d / Math.PI);
 
-        /// <summary>Provide a single instance of the CultureInfo class to
-        /// help parsing in situations where the grid assumes an en-us 
-        /// culture</summary>
+        /// <summary>
+        /// Provide a single instance of the CultureInfo class to help
+        ///  parsing in situations where the grid assumes an en-us culture
+        /// </summary>
         public static readonly System.Globalization.CultureInfo EnUsCulture =
             new System.Globalization.CultureInfo("en-us");
 
@@ -82,21 +84,27 @@ namespace OpenMetaverse
 
         public static readonly byte[] EmptyBytes = new byte[0];
 
-        /// <summary>Provide a single instance of the MD5 class to avoid making
-        /// duplicate copies and handle thread safety</summary>
+        /// <summary>
+        /// Provide a single instance of the MD5 class to avoid making
+        /// duplicate copies and handle thread safety
+        /// </summary>
         private static readonly System.Security.Cryptography.MD5 MD5Builder =
             new System.Security.Cryptography.MD5CryptoServiceProvider();
 
-        /// <summary>Provide a single instance of the SHA-1 class to avoid
-        /// making duplicate copies and handle thread safety</summary>
+        /// <summary>
+        /// Provide a single instance of the SHA-1 class to avoid
+        /// making duplicate copies and handle thread safety
+        /// </summary>
         private static readonly System.Security.Cryptography.SHA1 SHA1Builder =
             new System.Security.Cryptography.SHA1CryptoServiceProvider();
 
         private static readonly System.Security.Cryptography.SHA256 SHA256Builder =
             new System.Security.Cryptography.SHA256Managed();
 
-        /// <summary>Provide a single instance of a random number generator
-        /// to avoid making duplicate copies and handle thread safety</summary>
+        /// <summary>
+        /// Provide a single instance of a random number generator
+        /// to avoid making duplicate copies and handle thread safety
+        /// </summary>
         private static readonly Random RNG = new Random();
 
         #region Math
@@ -347,12 +355,12 @@ namespace OpenMetaverse
         /// <summary>
         /// Calculate the MD5 hash of a given string
         /// </summary>
-        /// <param name="password">The password to hash</param>
+        /// <param name="str">The string to hash</param>
         /// <returns>An MD5 hash in string format, with $1$ prepended</returns>
-        public static string MD5(string password)
+        public static string MD5(string str)
         {
             StringBuilder digest = new StringBuilder(32);
-            byte[] hash = MD5(ASCIIEncoding.Default.GetBytes(password));
+            byte[] hash = MD5(ASCIIEncoding.Default.GetBytes(str));
 
             // Convert the hash to a hex string
             foreach (byte b in hash)
@@ -376,6 +384,19 @@ namespace OpenMetaverse
                 digest.AppendFormat(Utils.EnUsCulture, "{0:x2}", b);
 
             return digest.ToString();
+        }
+
+        /// <summary>
+        /// Calculates a PBKDF2 hash of a given string
+        /// </summary>
+        /// <param name="str">The string to hash</param>
+        /// <returns>The PBKDF2 hash of the supplied string</returns>
+        public static string PBKDF2(string str)
+        {
+            var derivebytes = new Rfc2898DeriveBytes(str, 32) {IterationCount = 10000};
+            byte[] hash = derivebytes.GetBytes(20);
+            byte[] salt = derivebytes.Salt;
+            return Convert.ToBase64String(salt) + "|" + Convert.ToBase64String(hash);
         }
 
         /// <summary>
@@ -404,22 +425,14 @@ namespace OpenMetaverse
             {
                 return Platform.WindowsCE;
             }
-            else
-            {
-                int plat = (int)Environment.OSVersion.Platform;
+            int plat = (int)Environment.OSVersion.Platform;
 
-                if ((plat != 4) && (plat != 128))
-                {
-                    return Platform.Windows;
-                }
-                else
-                {
-                    if (System.IO.File.Exists(OSX_CHECK_FILE))
-                        return Platform.OSX;
-                    else
-                        return Platform.Linux;
-                }
+            if ((plat != 4) && (plat != 128))
+            {
+                return Platform.Windows;
             }
+            return System.IO.File.Exists(OSX_CHECK_FILE) 
+                ? Platform.OSX : Platform.Linux;
         }
 
         /// <summary>
@@ -429,10 +442,7 @@ namespace OpenMetaverse
         public static Runtime GetRunningRuntime()
         {
             Type t = Type.GetType("Mono.Runtime");
-            if (t != null)
-                return Runtime.Mono;
-            else
-                return Runtime.Windows;
+            return t != null ? Runtime.Mono : Runtime.Windows;
         }
 
         #endregion Platform
