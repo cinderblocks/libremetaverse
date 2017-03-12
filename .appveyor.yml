@@ -7,6 +7,7 @@ configuration: Release
 build:
   parallel: true
   verbosity: minimal
+  project: LibreMetaverse.sln
 
 before_build:
   - del "C:\Program Files (x86)\MSBuild\4.0\Microsoft.Common.targets\ImportAfter\Xamarin.Common.targets"
