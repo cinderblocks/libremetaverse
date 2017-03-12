@@ -5,14 +5,14 @@ using System.Runtime.CompilerServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("OpenMetaverse")]
-[assembly: AssemblyDescription("OpenMetaverse library")]
+[assembly: AssemblyTitle("LibreMetaverse")]
+[assembly: AssemblyDescription("LibreMetaverse library")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("openmetaverse.co")]
-[assembly: AssemblyProduct("OpenMetaverse")]
-[assembly: AssemblyCopyright("Copyright � openmetaverse.co 2006-2016")]
+[assembly: AssemblyCompany("")]
+[assembly: AssemblyProduct("LibreMetaverse")]
+[assembly: AssemblyCopyright("Copyright © openmetaverse.co 2006-2016")]
 [assembly: AssemblyTrademark("")]
-[assembly: AssemblyCulture("")]		
+[assembly: AssemblyCulture("")]
 
 //
 // Version information for an assembly consists of the following four values:
@@ -25,7 +25,7 @@ using System.Runtime.CompilerServices;
 // You can specify all the values or you can default the Revision and Build Numbers 
 // by using the '*' as shown below:
 
-[assembly: AssemblyVersion("0.9.4.*")]
+[assembly: AssemblyVersion("1.0.0.*")]
 
 //
 // In order to sign your assembly you must specify a key to use. Refer to the 
@@ -55,4 +55,4 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyDelaySign(false)]
 [assembly: AssemblyKeyFile("")]
 [assembly: AssemblyKeyName("")]
-[assembly: AssemblyFileVersion("0.9.4.0")]
+[assembly: AssemblyFileVersion("1.0.0.*")]
