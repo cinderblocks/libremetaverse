@@ -34,3 +34,5 @@ assembly_info:
 before_build:
   - del "C:\Program Files (x86)\MSBuild\4.0\Microsoft.Common.targets\ImportAfter\Xamarin.Common.targets"
   - nuget restore LibreMetaverse.sln
+
+test: off
