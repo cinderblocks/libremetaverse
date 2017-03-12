@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Prebuild xmlns="http://dnpb.sourceforge.net/schemas/prebuild-1.7.xsd" version="1.7">
-  <Solution name="OpenMetaverse" activeConfig="Debug" version="0.6.0">
+  <Solution name="LibreMetaverse" activeConfig="Debug" version="0.6.0">
     <Configuration name="Debug">
       <Options>
         <CompilerDefines>TRACE;DEBUG</CompilerDefines>
@@ -56,7 +56,7 @@
 
     <!-- Libraries -->
 
-    <Project name="OpenMetaverseTypes" path="OpenMetaverseTypes" type="Library" rootNamespace="OpenMetaverse" frameworkVersion="v4_0">
+    <Project name="LibreMetaverseTypes" path="LibreMetaverseTypes" type="Library" rootNamespace="LibreMetaverse" frameworkVersion="v4_0">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -65,7 +65,7 @@
       <Configuration name="Release">
         <Options>
           <OutputPath>../bin/</OutputPath>
-          <XmlDocFile>OpenMetaverseTypes.XML</XmlDocFile>
+          <XmlDocFile>LibreMetaverseTypes.XML</XmlDocFile>
         </Options>
       </Configuration>
 
@@ -78,7 +78,7 @@
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse.StructuredData" path="OpenMetaverse.StructuredData" type="Library" rootNamespace="OpenMetaverse.StructuredData" frameworkVersion="v4_0">
+    <Project name="LibreMetaverse.StructuredData" path="LibreMetaverse.StructuredData" type="Library" rootNamespace="LibreMetaverse.StructuredData" frameworkVersion="v4_0">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -87,20 +87,20 @@
       <Configuration name="Release">
         <Options>
           <OutputPath>../bin/</OutputPath>
-          <XmlDocFile>OpenMetaverse.StructuredData.XML</XmlDocFile>
+          <XmlDocFile>LibreMetaverse.StructuredData.XML</XmlDocFile>
         </Options>
       </Configuration>
 
       <ReferencePath>../bin/</ReferencePath>
       <Reference name="System"/>
       <Reference name="System.Xml"/>
-      <Reference name="OpenMetaverseTypes"/>
+      <Reference name="LibreMetaverseTypes"/>
       <Files>
         <Match pattern="*.cs" recurse="true"/>
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse" path="OpenMetaverse" type="Library" rootNamespace="OpenMetaverse" frameworkVersion="v4_0">
+    <Project name="LibreMetaverse" path="LibreMetaverse" type="Library" rootNamespace="LibreMetaverse" frameworkVersion="v4_0">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -109,7 +109,7 @@
       <Configuration name="Release">
         <Options>
           <OutputPath>../bin/</OutputPath>
-          <XmlDocFile>OpenMetaverse.XML</XmlDocFile>
+          <XmlDocFile>LibreMetaverse.XML</XmlDocFile>
         </Options>
       </Configuration>
 
@@ -119,8 +119,8 @@
       <Reference name="System.Xml"/>
       <Reference name="System.Data"/>
       <Reference name="System.Drawing"/>
-      <Reference name="OpenMetaverseTypes"/>
-      <Reference name="OpenMetaverse.StructuredData"/>
+      <Reference name="LibreMetaverseTypes"/>
+      <Reference name="LibreMetaverse.StructuredData"/>
       <Reference name="log4net"/>            
       <Reference name="XMLRPC"/>
 	  <Reference name="zlib.net" />
@@ -130,7 +130,7 @@
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse.Utilities" path="OpenMetaverse.Utilities" type="Library" frameworkVersion="v4_0">
+    <Project name="LibreMetaverse.Utilities" path="LibreMetaverse.Utilities" type="Library" frameworkVersion="v4_0">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -139,7 +139,7 @@
       <Configuration name="Release">
         <Options>
           <OutputPath>../bin/</OutputPath>
-          <XmlDocFile>OpenMetaverse.Utilities.XML</XmlDocFile>
+          <XmlDocFile>LibreMetaverse.Utilities.XML</XmlDocFile>
         </Options>
       </Configuration>
 
@@ -147,15 +147,15 @@
       <Reference name="System"/>
       <Reference name="System.Xml"/>
       <Reference name="System.Data"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
-      <Reference name="OpenMetaverse.StructuredData"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
+      <Reference name="LibreMetaverse.StructuredData"/>
       <Files>
         <Match pattern="*.cs" recurse="true"/>
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse.Tests" path="OpenMetaverse.Tests" type="Library" frameworkVersion="v4_0">
+    <Project name="LibreMetaverse.Tests" path="LibreMetaverse.Tests" type="Library" frameworkVersion="v4_0">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -172,9 +172,9 @@
       <Reference name="System.Xml"/>
       <Reference name="System.Data"/>
       <Reference name="nunit.framework"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
-      <Reference name="OpenMetaverse.StructuredData"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
+      <Reference name="LibreMetaverse.StructuredData"/>
       <Files>
         <Match pattern="*.cs" recurse="true"/>
       </Files>
@@ -195,9 +195,9 @@
       <ReferencePath>../../bin/</ReferencePath>
       <Reference name="System"/>
       <Reference name="System.Xml"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
-      <Reference name="OpenMetaverse.StructuredData"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
+      <Reference name="LibreMetaverse.StructuredData"/>
       <Reference name="XMLRPC"/>
       <Reference name="log4net"/>
       
@@ -208,7 +208,7 @@
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse.Rendering.Simple" path="OpenMetaverse.Rendering.Simple" type="Library" frameworkVersion="v4_0">
+    <Project name="LibreMetaverse.Rendering.Simple" path="LibreMetaverse.Rendering.Simple" type="Library" frameworkVersion="v4_0">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -223,14 +223,14 @@
       <ReferencePath>../bin/</ReferencePath>
       <Reference name="System"/>
       <Reference name="System.Drawing"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
       <Files>
         <Match pattern="*.cs" recurse="true"/>
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse.Rendering.Meshmerizer" path="OpenMetaverse.Rendering.Meshmerizer" type="Library" frameworkVersion="v4_0">
+    <Project name="LibreMetaverse.Rendering.Meshmerizer" path="LibreMetaverse.Rendering.Meshmerizer" type="Library" frameworkVersion="v4_0">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -245,15 +245,15 @@
       <ReferencePath>../bin/</ReferencePath>
       <Reference name="System"/>
       <Reference name="System.Drawing"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
       <Reference name="PrimMesher"/>
       <Files>
         <Match pattern="*.cs" recurse="true"/>
       </Files>
     </Project>
 
-    <Project name="OpenMetaverse.GUI" path="OpenMetaverse.GUI" type="Library" frameworkVersion="v4_0">
+    <Project name="LibreMetaverse.GUI" path="LibreMetaverse.GUI" type="Library" frameworkVersion="v4_0">
       <Configuration name="Debug">
         <Options>
           <OutputPath>../bin/</OutputPath>
@@ -262,7 +262,7 @@
       <Configuration name="Release">
         <Options>
           <OutputPath>../bin/</OutputPath>
-          <XmlDocFile>OpenMetaverse.GUI.XML</XmlDocFile>
+          <XmlDocFile>LibreMetaverse.GUI.XML</XmlDocFile>
         </Options>
       </Configuration>
 
@@ -271,8 +271,8 @@
       <Reference name="System.Data"/>
       <Reference name="System.Drawing"/>
       <Reference name="System.Windows.Forms"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
       <Files>
         <Match pattern="*.cs" recurse="true"/>
       </Files>
@@ -300,8 +300,8 @@
       <Reference name="System.Windows.Forms"/>
       <Reference name="Tao.OpenGl"/>
       <Reference name="Tao.Platform.Windows"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
 
       <Files>
         <Match pattern="*.cs" recurse="true"/>
@@ -328,8 +328,8 @@
       <Reference name="System.Data"/>
       <Reference name="System.Drawing"/>
       <Reference name="System.Windows.Forms"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
 
       <Files>
         <Match pattern="*.cs" recurse="true"/>
@@ -354,8 +354,8 @@
       <ReferencePath>../../bin/</ReferencePath>
       <Reference name="System"/>
       <Reference name="System.Drawing"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
 
       <Files>
         <Match pattern="*.cs" recurse="true"/>
@@ -397,8 +397,8 @@
 
       <ReferencePath>../../../bin/</ReferencePath>
       <Reference name="System"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
       <Files>
         <Match pattern="*.cs" recurse="true"/>
       </Files>
@@ -420,9 +420,9 @@
       <Reference name="System"/>
       <Reference name="System.Drawing"/>
       <Reference name="System.Windows.Forms"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
-      <Reference name="OpenMetaverse.GUI"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
+      <Reference name="LibreMetaverse.GUI"/>
 
       <Files>
         <Match pattern="*.cs" recurse="true"/>
@@ -450,8 +450,8 @@
       <Reference name="System"/>
       <Reference name="System.Drawing"/>
       <Reference name="System.Windows.Forms"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
 
       <Files>
         <Match pattern="*.cs" recurse="true"/>
@@ -483,9 +483,9 @@
       <Reference name="Tao.Platform.Windows"/>
       <Reference name="GlacialList"/>
       <Reference name="ICSharpCode.SharpZipLib"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
-      <Reference name="OpenMetaverse.StructuredData"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
+      <Reference name="LibreMetaverse.StructuredData"/>
 
       <Files>
         <Match pattern="*.cs" recurse="true"/>
@@ -512,8 +512,8 @@
       <Reference name="System.Data"/>
       <Reference name="System.Drawing"/>
       <Reference name="System.Windows.Forms"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
 
       <Files>
         <Match pattern="*.cs" recurse="true"/>
@@ -539,7 +539,7 @@
       <Reference name="System"/>
       <Reference name="System.Xml"/>
       <Reference name="GridProxy"/>
-      <Reference name="OpenMetaverseTypes"/>
+      <Reference name="LibreMetaverseTypes"/>
 
       <Files>
         <Match pattern="GridProxyMain.cs"/>
@@ -566,9 +566,9 @@
       <Reference name="System.Data"/>
       <Reference name="System.Drawing"/>
       <Reference name="System.Windows.Forms"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
-      <Reference name="OpenMetaverse.StructuredData"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
+      <Reference name="LibreMetaverse.StructuredData"/>
       <Reference name="GridProxy"/>
       <Reference name="XMLRPC"/>
       <Reference name="Be.Windows.Forms.HexBox"/>
@@ -601,9 +601,9 @@
       <Reference name="System.Xml"/>
       <Reference name="System.Drawing"/>
       <Reference name="System.Windows.Forms"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
-      <Reference name="OpenMetaverse.StructuredData"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
+      <Reference name="LibreMetaverse.StructuredData"/>
       <Reference name="GridProxy"/>
       <Reference name="XMLRPC"/>
       <Reference name="log4net"/>
@@ -639,8 +639,8 @@
       <ReferencePath>../../bin/</ReferencePath>
       <Reference name="System"/>
       <Reference name="System.Xml"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
 
       <Files>
         <Match pattern="VisualParamGenerator.cs"/>
@@ -661,9 +661,9 @@
 
       <ReferencePath>../../bin/</ReferencePath>
       <Reference name="System"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
-      <Reference name="OpenMetaverse.Utilities"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
+      <Reference name="LibreMetaverse.Utilities"/>
 
       <Files>
         <Match pattern="*.cs" recurse="true"/>
@@ -689,8 +689,8 @@
       <Reference name="System.Data"/>
       <Reference name="System.Drawing"/>
       <Reference name="System.Windows.Forms"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
 
       <Files>
         <Match pattern="*.cs" recurse="true"/>
@@ -717,8 +717,8 @@
       <Reference name="System.Data"/>
       <Reference name="System.Drawing"/>
       <Reference name="System.Windows.Forms"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
 
       <Files>
         <Match pattern="*.cs" recurse="true"/>
@@ -745,8 +745,8 @@
       <Reference name="System.Data"/>
       <Reference name="System.Drawing"/>
       <Reference name="System.Windows.Forms"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
 
       <Files>
         <Match pattern="*.cs" recurse="true"/>
@@ -770,8 +770,8 @@
 
       <ReferencePath>../../../bin/</ReferencePath>
       <Reference name="System"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
 
       <Files>
         <Match pattern="*.cs" recurse="true"/>
@@ -795,10 +795,10 @@
       <Reference name="System.Xml"/>
       <Reference name="System.Web"/>
       <Reference name="System.Drawing"/>
-      <Reference name="OpenMetaverse"/>
-      <Reference name="OpenMetaverseTypes"/>
-      <Reference name="OpenMetaverse.Utilities"/>
-      <Reference name="OpenMetaverse.StructuredData"/>
+      <Reference name="LibreMetaverse"/>
+      <Reference name="LibreMetaverseTypes"/>
+      <Reference name="LibreMetaverse.Utilities"/>
+      <Reference name="LibreMetaverse.StructuredData"/>
 
       <Files>
         <Match pattern="*.cs" recurse="true"/>

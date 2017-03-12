@@ -1,6 +1,6 @@
 @echo off
 ::
-:: Prebuild generator for the OpenMetaverse Library
+:: Prebuild generator for the LibreMetaverse Library
 ::
 :: Command Line Options:
 :: (none)            - create solution/project files and create compile.bat file to build solution
@@ -24,29 +24,29 @@ bin\Prebuild.exe /target vs2010
 
 :: build compile.bat file based on command line parameters
 echo @echo off > compile.bat
-if(.%1)==(.) echo C:\WINDOWS\Microsoft.NET\Framework\v4.0.30319\msbuild OpenMetaverse.sln >> compile.bat
+if(.%1)==(.) echo C:\WINDOWS\Microsoft.NET\Framework\v4.0.30319\msbuild LibreMetaverse.sln >> compile.bat
 
 if(.%1)==(.msbuild) echo echo ==== COMPILE BEGIN ==== >> compile.bat
-if(.%1)==(.msbuild) echo %SystemRoot%\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe /p:Configuration=Release OpenMetaverse.sln >> compile.bat
+if(.%1)==(.msbuild) echo %SystemRoot%\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe /p:Configuration=Release LibreMetaverse.sln >> compile.bat
 if(.%1)==(.msbuild) echo IF ERRORLEVEL 1 GOTO FAIL >> compile.bat
 
 if(.%1)==(.nant) echo nant >> compile.bat
 if(.%1)==(.nant) echo IF ERRORLEVEL 1 GOTO FAIL >> compile.bat
 
 if(.%2)==(.docs) echo echo ==== GENERATE DOCUMENTATION BEGIN ==== >> compile.bat
-if(.%2)==(.docs) echo %SystemRoot%\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe /p:Configuration=Release docs\OpenMetaverse.shfbproj >> compile.bat
+if(.%2)==(.docs) echo %SystemRoot%\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe /p:Configuration=Release docs\LibreMetaverse.shfbproj >> compile.bat
 if(.%2)==(.docs) echo IF ERRORLEVEL 1 GOTO FAIL >> compile.bat
 if(.%2)==(.docs) echo 7z.exe a -tzip docs\documentation.zip docs\trunk >> compile.bat
 if(.%2)==(.docs) echo IF ERRORLEVEL 1 GOTO FAIL >> compile.bat
 
 if(.%2)==(.runtests) echo echo ==== UNIT TESTS BEGIN ==== >> compile.bat
-if(.%2)==(.runtests) echo nunit-console bin\OpenMetaverse.Tests.dll /exclude:Network /nodots /labels /xml:testresults.xml >> compile.bat
+if(.%2)==(.runtests) echo nunit-console bin\LibreMetaverse.Tests.dll /exclude:Network /nodots /labels /xml:testresults.xml >> compile.bat
 
 if(.%2)==(.runtests) echo IF ERRORLEVEL 1 GOTO FAIL >> compile.bat
 
 :: nsis compiler needs to be in path
 if(.%3)==(.dist) echo echo ==== GENERATE DISTRIBUTION BEGIN ==== >> compile.bat
-if(.%3)==(.dist) echo makensis.exe /DPlatform=test docs\OpenMetaverse-installer.nsi >> compile.bat
+if(.%3)==(.dist) echo makensis.exe /DPlatform=test docs\LibreMetaverse-installer.nsi >> compile.bat
 if(.%3)==(.dist) echo IF ERRORLEVEL 1 GOTO FAIL >> compile.bat
 if(.%3)==(.dist) echo 7z.exe a -tzip dist\openmetaverse-dist.zip @docs\distfiles.lst >> compile.bat
 if(.%3)==(.dist) echo IF ERRORLEVEL 1 GOTO FAIL >> compile.bat
