@@ -10,7 +10,6 @@
 
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -34,43 +33,22 @@ namespace LitJson
         private static int[]          fsm_return_table;
         private static StateHandler[] fsm_handler_table;
 
-        private bool          allow_comments;
-        private bool          allow_single_quoted_strings;
-        private bool          end_of_input;
         private FsmContext    fsm_context;
         private int           input_buffer;
         private int           input_char;
         private TextReader    reader;
         private int           state;
         private StringBuilder string_buffer;
-        private string        string_value;
-        private int           token;
         private int           unichar;
         #endregion
 
 
         #region Properties
-        public bool AllowComments {
-            get { return allow_comments; }
-            set { allow_comments = value; }
-        }
-
-        public bool AllowSingleQuotedStrings {
-            get { return allow_single_quoted_strings; }
-            set { allow_single_quoted_strings = value; }
-        }
-
-        public bool EndOfInput {
-            get { return end_of_input; }
-        }
-
-        public int Token {
-            get { return token; }
-        }
-
-        public string StringValue {
-            get { return string_value; }
-        }
+        public bool AllowComments { get; set; }
+        public bool AllowSingleQuotedStrings { get; set; }
+        public bool EndOfInput { get; private set; }
+        public int Token { get; private set; }
+        public string StringValue { get; private set; }
         #endregion
 
 
@@ -82,17 +60,16 @@ namespace LitJson
 
         public Lexer (TextReader reader)
         {
-            allow_comments = true;
-            allow_single_quoted_strings = true;
+            AllowComments = true;
+            AllowSingleQuotedStrings = true;
 
             input_buffer = 0;
             string_buffer = new StringBuilder (128);
             state = 1;
-            end_of_input = false;
+            EndOfInput = false;
             this.reader = reader;
 
-            fsm_context = new FsmContext ();
-            fsm_context.L = this;
+            fsm_context = new FsmContext {L = this};
         }
         #endregion
 
@@ -277,7 +254,7 @@ namespace LitJson
                     return true;
 
                 case '\'':
-                    if (! ctx.L.allow_single_quoted_strings)
+                    if (! ctx.L.AllowSingleQuotedStrings)
                         return false;
 
                     ctx.L.input_char = '"';
@@ -286,7 +263,7 @@ namespace LitJson
                     return true;
 
                 case '/':
-                    if (! ctx.L.allow_comments)
+                    if (! ctx.L.AllowComments)
                         return false;
 
                     ctx.NextState = 25;
@@ -403,13 +380,11 @@ namespace LitJson
         {
             ctx.L.GetChar ();
 
-            if (ctx.L.input_char >= '0' && ctx.L.input_char <= '9') {
-                ctx.L.string_buffer.Append ((char) ctx.L.input_char);
-                ctx.NextState = 6;
-                return true;
-            }
+            if (ctx.L.input_char < '0' || ctx.L.input_char > '9') return false;
 
-            return false;
+            ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+            ctx.NextState = 6;
+            return true;
         }
 
         private static bool State6 (FsmContext ctx)
@@ -855,7 +830,7 @@ namespace LitJson
             if ((input_char = NextChar ()) != -1)
                 return true;
 
-            end_of_input = true;
+            EndOfInput = true;
             return false;
         }
 
@@ -873,25 +848,24 @@ namespace LitJson
 
         public bool NextToken ()
         {
-            StateHandler handler;
             fsm_context.Return = false;
 
             while (true) {
-                handler = fsm_handler_table[state - 1];
+                var handler = fsm_handler_table[state - 1];
 
                 if (! handler (fsm_context))
                     throw new JsonException (input_char);
 
-                if (end_of_input)
+                if (EndOfInput)
                     return false;
 
                 if (fsm_context.Return) {
-                    string_value = string_buffer.ToString ();
+                    StringValue = string_buffer.ToString ();
                     string_buffer.Remove (0, string_buffer.Length);
-                    token = fsm_return_table[state - 1];
+                    Token = fsm_return_table[state - 1];
 
-                    if (token == (int) ParserToken.Char)
-                        token = input_char;
+                    if (Token == (int) ParserToken.Char)
+                        Token = input_char;
 
                     state = fsm_context.NextState;
 
