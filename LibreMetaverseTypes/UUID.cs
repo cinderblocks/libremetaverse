@@ -37,7 +37,7 @@ namespace OpenMetaverse
     public struct UUID : IComparable<UUID>, IEquatable<UUID>
     {
         /// <summary>The System.Guid object this struct wraps around</summary>
-        public readonly Guid Guid;
+        public Guid Guid { get; internal set; }
 
         #region Constructors
 
