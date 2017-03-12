@@ -36,3 +36,12 @@ before_build:
   - nuget restore LibreMetaverse.sln
 
 test: off
+
+deploy:
+  - provider: NuGet
+    name: nuget_release
+    api_key:
+      secure: gKV6ye5OrfO434yGWbMxqbFHBt5w0Rfzao4Ixowol6DoOS8ksIY8p+/1+VM5CI1l
+    skip_symbols: true
+    on:
+      appveyor_repo_tag: true
