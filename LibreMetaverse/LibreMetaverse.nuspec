@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>LibreMetaverse</id>
+    <version>$version$</version>
+    <authors>Cinder Biscuits</authors>
+    <owners>Cinder Biscuits</owners>
+    <licenseUrl>https://bitbucket.org/cinderblocks/libremetaverse/raw/34af5a40cf4bc32a7e012c61014966f5f534540d/LICENSE.txt</licenseUrl>
+    <projectUrl>https://bitbucket.org/cinderblocks/libremetaverse</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>LibreMetaverse allows your code to read and work with data send across a SecondLife, Halcyon, OpenSimulator, or related connection.</description>
+    <copyright>Copyright 2017</copyright>
+    <tags>LMV OMV OpenMetaverse OpenSim OpenSimulator Halcyon OpenMetaverseFoundation VirtualWorld</tags>
+  </metadata>
+</package>

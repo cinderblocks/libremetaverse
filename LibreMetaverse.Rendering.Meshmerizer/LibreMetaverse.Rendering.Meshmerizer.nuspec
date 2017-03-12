@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>LibreMetaverse.Rendering.Meshmerizer</id>
+    <version>$version$</version>
+    <authors>Cinder Biscuits</authors>
+    <owners>Cinder Biscuits</owners>
+    <licenseUrl>https://bitbucket.org/cinderblocks/libremetaverse/raw/34af5a40cf4bc32a7e012c61014966f5f534540d/LICENSE.txt</licenseUrl>
+    <projectUrl>https://bitbucket.org/cinderblocks/libremetaverse</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Meshmerizer library for rendering mesh assets in LibreMetaverse</description>
+    <copyright>Copyright 2017</copyright>
+    <tags>LMV OMV OpenMetaverse OpenSim Halcyon OpenMetaverseFoundation VirtualWorld</tags>
+  </metadata>
+</package>

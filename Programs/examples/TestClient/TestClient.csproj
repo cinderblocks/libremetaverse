@@ -1,0 +1,493 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+	<PropertyGroup>
+	  <ProjectType>Local</ProjectType>
+	  <ProductVersion>14.0.25123</ProductVersion>
+	  <SchemaVersion>2.0</SchemaVersion>
+	  <ProjectGuid>{9F71FDB3-0000-0000-0000-000000000000}</ProjectGuid>
+	  <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+	  <ApplicationIcon></ApplicationIcon>
+	  <AssemblyKeyContainerName>
+	  </AssemblyKeyContainerName>
+	  <AssemblyName>TestClient</AssemblyName>
+	  <DefaultClientScript>JScript</DefaultClientScript>
+	  <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
+	  <DefaultTargetSchema>IE50</DefaultTargetSchema>
+	  <DelaySign>false</DelaySign>
+	  <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+	  <OutputType>Exe</OutputType>
+	  <AppDesignerFolder></AppDesignerFolder>
+	  <RootNamespace>TestClient</RootNamespace>
+	  <StartupObject></StartupObject>
+	  <StartArguments></StartArguments>
+	  <FileUpgradeFlags>
+	  </FileUpgradeFlags>
+	</PropertyGroup>
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+	  <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+	  <BaseAddress>285212672</BaseAddress>
+	  <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+	  <ConfigurationOverrideFile>
+	  </ConfigurationOverrideFile>
+	  <DefineConstants>TRACE;DEBUG</DefineConstants>
+	  <DocumentationFile></DocumentationFile>
+	  <DebugSymbols>True</DebugSymbols>
+	  <FileAlignment>4096</FileAlignment>
+	  <Optimize>False</Optimize>
+	  <OutputPath>..\..\..\bin\</OutputPath>
+	  <RegisterForComInterop>False</RegisterForComInterop>
+	  <RemoveIntegerChecks>False</RemoveIntegerChecks>
+	  <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+	  <WarningLevel>4</WarningLevel>
+	  <NoStdLib>False</NoStdLib>
+	  <NoWarn>1591,1574,0419,0618</NoWarn>
+	  <PlatformTarget>AnyCPU</PlatformTarget>
+	</PropertyGroup>
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+	  <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+	  <BaseAddress>285212672</BaseAddress>
+	  <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+	  <ConfigurationOverrideFile>
+	  </ConfigurationOverrideFile>
+	  <DefineConstants>TRACE</DefineConstants>
+	  <DocumentationFile></DocumentationFile>
+	  <DebugSymbols>False</DebugSymbols>
+	  <FileAlignment>4096</FileAlignment>
+	  <Optimize>True</Optimize>
+	  <OutputPath>..\..\..\bin\</OutputPath>
+	  <RegisterForComInterop>False</RegisterForComInterop>
+	  <RemoveIntegerChecks>False</RemoveIntegerChecks>
+	  <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+	  <WarningLevel>4</WarningLevel>
+	  <NoStdLib>False</NoStdLib>
+	  <NoWarn>1591,1574,0419,0618</NoWarn>
+	  <PlatformTarget>AnyCPU</PlatformTarget>
+	</PropertyGroup>
+	<ItemGroup>
+	  <Reference Include="System" >
+		  <Name>System</Name>
+		<Private>False</Private>
+	  </Reference>
+	  <Reference Include="System.Drawing" >
+		  <Name>System.Drawing</Name>
+		<Private>False</Private>
+	  </Reference>
+	  <Reference Include="System.Web" >
+		  <Name>System.Web</Name>
+		<Private>False</Private>
+	  </Reference>
+	  <Reference Include="System.Xml" >
+		  <Name>System.Xml</Name>
+		<Private>False</Private>
+	  </Reference>
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\..\..\LibreMetaverse\LibreMetaverse.csproj">
+		<Name>LibreMetaverse</Name>
+		<Project>{27C70F3A-0000-0000-0000-000000000000}</Project>
+		<Package>{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</Package>
+		<Private>False</Private>
+	  </ProjectReference>
+	  <ProjectReference Include="..\..\..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj">
+		<Name>LibreMetaverse.StructuredData</Name>
+		<Project>{89D7A3E5-0000-0000-0000-000000000000}</Project>
+		<Package>{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</Package>
+		<Private>False</Private>
+	  </ProjectReference>
+	  <ProjectReference Include="..\..\..\LibreMetaverse.Utilities\LibreMetaverse.Utilities.csproj">
+		<Name>LibreMetaverse.Utilities</Name>
+		<Project>{1266CE08-0000-0000-0000-000000000000}</Project>
+		<Package>{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</Package>
+		<Private>False</Private>
+	  </ProjectReference>
+	  <ProjectReference Include="..\..\..\LibreMetaverseTypes\LibreMetaverseTypes.csproj">
+		<Name>LibreMetaverseTypes</Name>
+		<Project>{B37B02AD-0000-0000-0000-000000000000}</Project>
+		<Package>{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</Package>
+		<Private>False</Private>
+	  </ProjectReference>
+	</ItemGroup>
+	<ItemGroup>
+	  <Compile Include="Arguments.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="ClientManager.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Command.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Parsing.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Program.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="TestClient.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Agent\BotsCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Agent\CloneProfileCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Agent\GenericMessageCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Agent\PlayAnimationCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Agent\TouchCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Agent\WhoCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Appearance\AppearanceCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Appearance\AttachmentsCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Appearance\AvatarInfoCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Appearance\CloneCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Appearance\WearCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Communication\EchoMasterCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Communication\IMCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Communication\IMGroupCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Communication\SayCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Communication\ShoutCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Communication\WhisperCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Directory\Key2NameCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Directory\SearchClassifiedsCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Directory\SearchEventsCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Directory\SearchGroupsCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Directory\SearchLandCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Directory\SearchPeopleCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Directory\SearchPlacesCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Directory\ShowEventDetailsCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Estate\DownloadTerrainCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Estate\UploadRawTerrainCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Friends\FriendsCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Friends\MapFriendCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Groups\ActivateGroupCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Groups\GroupMembersCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Groups\GroupRolesCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Groups\GroupsCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Groups\InviteGroupCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Groups\JoinGroupCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Groups\LeaveGroupCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\BackupCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\BalanceCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\ChangeDirectoryCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\CreateNotecardCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\DeleteFolderCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\DownloadCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\DumpOutfitCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\EmptyLostAndFound.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\EmptyTrashCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\GiveAllCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\GiveItemCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\InventoryCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\ListContentsCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\ObjectInventoryCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\ScriptCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\TaskRunningCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\TreeCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\UploadImageCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\UploadScriptCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\ViewNotecardCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Inventory\XferCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Land\AgentLocationsCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Land\FindSimCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Land\GridLayerCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Land\GridMapCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Land\ParcelDetailsCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Land\ParcelInfoCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Land\ParcelPrimOwnersCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Land\ParcelSelectObjectsCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Land\WindCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\BackCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\CrouchCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\FlyCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\FlyToCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\FollowCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\ForwardCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\GoHome.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\GotoCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\GotoLandmark.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\JumpCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\LeftCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\LocationCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\MoveToCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\RightCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\SetHome.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\SitCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\SitOnCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\StandCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Movement\TurnToCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Prims\ChangePermsCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Prims\DeRezObjectCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Prims\DownloadTextureCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Prims\ExportCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Prims\ExportParticlesCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Prims\FindObjectsCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Prims\FindTextureCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Prims\ImportCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Prims\PrimCountCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Prims\PrimInfoCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Prims\PrimRegexCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Prims\TexturesCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Stats\DilationCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Stats\NetstatsCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Stats\RegionInfoCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Stats\StatsCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Stats\UptimeCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\System\AtCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\System\DebugCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\System\HelpCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\System\LoadCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\System\LoginCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\System\LogoutCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\System\LogPacketCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\System\MD5Command.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\System\QuitCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\System\SetMasterCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\System\SetMasterKeyCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\System\ShowEffectsCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\System\SleepCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\System\WaitForLoginCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Voice\ParcelVoiceInfo.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Commands\Voice\VoiceAcountCommand.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	  <Compile Include="Properties\AssemblyInfo.cs">
+		<SubType>Code</SubType>
+	  </Compile>
+	</ItemGroup>
+	<Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
+	<PropertyGroup>
+	  <PreBuildEvent>
+	  </PreBuildEvent>
+	  <PostBuildEvent>
+	  </PostBuildEvent>
+	</PropertyGroup>
+</Project>

@@ -1,0 +1,47 @@
+init:
+  - ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { $env:TAG_VERSION = "$env:APPVEYOR_REPO_TAG_NAME.$env:APPVEYOR_BUILD_NUMBER" } else { $env:TAG_VERSION = "v1.0.0.$env:APPVEYOR_BUILD_NUMBER-alpha" }
+  - ps: $env:TAG_VERSION = $env:TAG_VERSION -replace 'v',''
+  - ps: Write-Host "Setting version to '$env:TAG_VERSION'"
+  - ps: Update-AppveyorBuild -Version "$env:TAG_VERSION"
+
+image: Visual Studio 2015
+
+configuration: Release
+
+pull_requests:
+  do_not_increment_build_number: true
+
+nuget:
+  disable_publish_on_pr: true
+
+build:
+  project: LibreMetaverse.sln
+  parallel: true
+  verbosity: minimal
+  publish_nuget: true
+  publish_nuget_symbols: false
+
+cache:
+  - packages -> **\packages.config
+  - '%LocalAppData%\NuGet\Cache'
+
+assembly_info:
+  patch: true
+  assembly_version: '{version}'
+  assembly_file_version: '{version}'
+  assembly_informational_version: '{version}'
+
+before_build:
+  - del "C:\Program Files (x86)\MSBuild\4.0\Microsoft.Common.targets\ImportAfter\Xamarin.Common.targets"
+  - nuget restore LibreMetaverse.sln
+
+test: off
+
+deploy:
+  - provider: NuGet
+    name: nuget_release
+    api_key:
+      secure: gKV6ye5OrfO434yGWbMxqbFHBt5w0Rfzao4Ixowol6DoOS8ksIY8p+/1+VM5CI1l
+    skip_symbols: true
+    on:
+      appveyor_repo_tag: true
