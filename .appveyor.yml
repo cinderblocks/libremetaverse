@@ -8,6 +8,12 @@ image: Visual Studio 2015
 
 configuration: Release
 
+pull_requests:
+  do_not_increment_build_number: true
+
+nuget:
+  disable_publish_on_pr: true
+
 build:
   project: LibreMetaverse.sln
   parallel: true
@@ -17,6 +23,7 @@ build:
 
 cache:
   - packages -> **\packages.config
+  - '%LocalAppData%\NuGet\Cache'
 
 assembly_info:
   patch: true
