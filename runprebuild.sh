@@ -5,18 +5,18 @@ mono bin/Prebuild.exe /target monodev
 mono bin/Prebuild.exe /target vs2010
 
 if [ x$1 == xnant ]; then
-    nant -buildfile:OpenMetaverse.build
+    nant -buildfile:LibreMetaverse.build
     RES=$?
     echo Build Exit Code: $RES
     if [ x$2 == xruntests ]; then
-	nunit-console bin/OpenMetaverse.Tests.dll -exclude=Network -labels -xml=testresults.xml
+	nunit-console bin/LibreMetaverse.Tests.dll -exclude=Network -labels -xml=testresults.xml
     fi
     
     exit $RES
 fi
 
 if [ x$1 == xprimrender ]; then
-    nant -buildfile:OpenMetaverse.Rendering.GPL.build
+    nant -buildfile:LibreMetaverse.Rendering.GPL.build
     exit $?
 fi
 
