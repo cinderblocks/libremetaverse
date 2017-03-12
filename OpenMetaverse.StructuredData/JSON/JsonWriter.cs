@@ -48,9 +48,7 @@ namespace LitJson
         private int                  indentation;
         private int                  indent_value;
         private StringBuilder        inst_string_builder;
-        private bool                 pretty_print;
-        private bool                 validate;
-        private TextWriter           writer;
+
         #endregion
 
 
@@ -63,21 +61,10 @@ namespace LitJson
             }
         }
 
-        public bool PrettyPrint {
-            get { return pretty_print; }
-            set { pretty_print = value; }
-        }
-
-        public TextWriter TextWriter {
-            get { return writer; }
-        }
-
-        public bool Validate {
-            get { return validate; }
-            set { validate = value; }
-        }
+        public bool PrettyPrint { get; set; }
+        public TextWriter TextWriter { get; }
+        public bool Validate { get; set; }
         #endregion
-
 
         #region Constructors
         static JsonWriter ()
@@ -88,7 +75,7 @@ namespace LitJson
         public JsonWriter ()
         {
             inst_string_builder = new StringBuilder ();
-            writer = new StringWriter (inst_string_builder);
+            TextWriter = new StringWriter (inst_string_builder);
 
             Init ();
         }
@@ -101,9 +88,9 @@ namespace LitJson
         public JsonWriter (TextWriter writer)
         {
             if (writer == null)
-                throw new ArgumentNullException ("writer");
+                throw new ArgumentNullException (nameof(writer));
 
-            this.writer = writer;
+            this.TextWriter = writer;
 
             Init ();
         }
@@ -116,7 +103,7 @@ namespace LitJson
             if (! context.ExpectingValue)
                 context.Count++;
 
-            if (! validate)
+            if (! Validate)
                 return;
 
             if (has_reached_end)
@@ -164,8 +151,8 @@ namespace LitJson
             hex_seq = new char[4];
             indentation = 0;
             indent_value = 4;
-            pretty_print = false;
-            validate = true;
+            PrettyPrint = false;
+            Validate = true;
 
             ctx_stack = new Stack<WriterContext> ();
             context = new WriterContext ();
@@ -174,10 +161,8 @@ namespace LitJson
 
         private static void IntToHex (int n, char[] hex)
         {
-            int num;
-
             for (int i = 0; i < 4; i++) {
-                num = n % 16;
+                var num = n % 16;
 
                 if (num < 10)
                     hex[3 - i] = (char) ('0' + num);
@@ -190,88 +175,83 @@ namespace LitJson
 
         private void Indent ()
         {
-            if (pretty_print)
+            if (PrettyPrint)
                 indentation += indent_value;
         }
 
 
         private void Put (string str)
         {
-            if (pretty_print && ! context.ExpectingValue)
+            if (PrettyPrint && ! context.ExpectingValue)
                 for (int i = 0; i < indentation; i++)
-                    writer.Write (' ');
+                    TextWriter.Write (' ');
 
-            writer.Write (str);
+            TextWriter.Write (str);
         }
 
-        private void PutNewline ()
-        {
-            PutNewline (true);
-        }
-
-        private void PutNewline (bool add_comma)
+        private void PutNewline (bool add_comma = true)
         {
             if (add_comma && ! context.ExpectingValue &&
                 context.Count > 1)
-                writer.Write (',');
+                TextWriter.Write (',');
 
-            if (pretty_print && ! context.ExpectingValue)
-                writer.Write ('\n');
+            if (PrettyPrint && ! context.ExpectingValue)
+                TextWriter.Write ('\n');
         }
 
         private void PutString (string str)
         {
-            Put (String.Empty);
+            Put (string.Empty);
 
-            writer.Write ('"');
+            TextWriter.Write ('"');
 
             int n = str.Length;
             for (int i = 0; i < n; i++) {
                 switch (str[i]) {
                 case '\n':
-                    writer.Write ("\\n");
+                    TextWriter.Write ("\\n");
                     continue;
 
                 case '\r':
-                    writer.Write ("\\r");
+                    TextWriter.Write ("\\r");
                     continue;
 
                 case '\t':
-                    writer.Write ("\\t");
+                    TextWriter.Write ("\\t");
                     continue;
 
                 case '"':
                 case '\\':
-                    writer.Write ('\\');
-                    writer.Write (str[i]);
+                    TextWriter.Write ('\\');
+                    TextWriter.Write (str[i]);
                     continue;
 
                 case '\f':
-                    writer.Write ("\\f");
+                    TextWriter.Write ("\\f");
                     continue;
 
                 case '\b':
-                    writer.Write ("\\b");
+                    TextWriter.Write ("\\b");
                     continue;
                 }
 
-                if ((int) str[i] >= 32 && (int) str[i] <= 126) {
-                    writer.Write (str[i]);
+                if (str[i] >= 32 && str[i] <= 126) {
+                    TextWriter.Write (str[i]);
                     continue;
                 }
 
                 // Default, turn into a \uXXXX sequence
                 IntToHex ((int) str[i], hex_seq);
-                writer.Write ("\\u");
-                writer.Write (hex_seq);
+                TextWriter.Write ("\\u");
+                TextWriter.Write (hex_seq);
             }
 
-            writer.Write ('"');
+            TextWriter.Write ('"');
         }
 
         private void Unindent ()
         {
-            if (pretty_print)
+            if (PrettyPrint)
                 indentation -= indent_value;
         }
         #endregion
@@ -279,10 +259,7 @@ namespace LitJson
 
         public override string ToString ()
         {
-            if (inst_string_builder == null)
-                return String.Empty;
-
-            return inst_string_builder.ToString ();
+            return inst_string_builder?.ToString () ?? string.Empty;
         }
 
         public void Reset ()
@@ -293,8 +270,7 @@ namespace LitJson
             context = new WriterContext ();
             ctx_stack.Push (context);
 
-            if (inst_string_builder != null)
-                inst_string_builder.Remove (0, inst_string_builder.Length);
+            inst_string_builder?.Remove(0, inst_string_builder.Length);
         }
 
         public void Write (bool boolean)
@@ -330,7 +306,7 @@ namespace LitJson
                 Put(str);
 
                 if (str.IndexOf('.') == -1 && str.IndexOf('E') == -1)
-                    writer.Write(".0");
+                    TextWriter.Write(".0");
             }
 
             context.ExpectingValue = false;
@@ -403,8 +379,7 @@ namespace LitJson
 
             Put ("[");
 
-            context = new WriterContext ();
-            context.InArray = true;
+            context = new WriterContext {InArray = true};
             ctx_stack.Push (context);
 
             Indent ();
@@ -434,8 +409,7 @@ namespace LitJson
 
             Put ("{");
 
-            context = new WriterContext ();
-            context.InObject = true;
+            context = new WriterContext {InObject = true};
             ctx_stack.Push (context);
 
             Indent ();
@@ -448,17 +422,17 @@ namespace LitJson
 
             PutString (property_name);
 
-            if (pretty_print) {
+            if (PrettyPrint) {
                 if (property_name.Length > context.Padding)
                     context.Padding = property_name.Length;
 
                 for (int i = context.Padding - property_name.Length;
                      i >= 0; i--)
-                    writer.Write (' ');
+                    TextWriter.Write (' ');
 
-                writer.Write (": ");
+                TextWriter.Write (": ");
             } else
-                writer.Write (':');
+                TextWriter.Write (':');
 
             context.ExpectingValue = true;
         }

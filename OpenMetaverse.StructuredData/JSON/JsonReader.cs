@@ -12,7 +12,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 
 
 namespace LitJson
@@ -71,21 +70,14 @@ namespace LitJson
             set { lexer.AllowSingleQuotedStrings = value; }
         }
 
-        public bool EndOfInput {
-            get { return end_of_input; }
-        }
+        public bool EndOfInput => end_of_input;
 
-        public bool EndOfJson {
-            get { return end_of_json; }
-        }
+        public bool EndOfJson => end_of_json;
 
-        public JsonToken Token {
-            get { return token; }
-        }
+        public JsonToken Token => token;
 
-        public object Value {
-            get { return token_value; }
-        }
+        public object Value => token_value;
+
         #endregion
 
 
@@ -108,7 +100,7 @@ namespace LitJson
         private JsonReader (TextReader reader, bool owned)
         {
             if (reader == null)
-                throw new ArgumentNullException ("reader");
+                throw new ArgumentNullException (nameof(reader));
 
             parser_in_string = false;
             parser_return = false;
@@ -405,8 +397,6 @@ namespace LitJson
             }
 
 
-            int[] entry_symbols;
-
             while (true) {
                 if (parser_return) {
                     if (automaton_stack.Peek () == (int) ParserToken.End)
@@ -434,6 +424,7 @@ namespace LitJson
                     continue;
                 }
 
+                int[] entry_symbols;
                 try {
 
                     entry_symbols =
