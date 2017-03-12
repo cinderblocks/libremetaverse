@@ -1,0 +1,12 @@
+version: 1.0.0.{build}
+
+image: Visual Studio 2015
+
+configuration: Release
+
+build:
+  parallel: true
+  verbosity: minimal
+
+build_script:
+  - runprebuild2015.bat msbuild docs dist
