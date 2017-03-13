@@ -58,6 +58,10 @@ namespace OpenMetaverse.Tests
         [TestFixtureSetUp]
         public void Init()
         {
+            // *FIXME: Come up with a way to handle this test without exposing password to a test agent.
+            // Skipping for now.
+            Assert.Ignore();
+
             Console.Write("Logging in Testing Anvil...");
             // Connect to the grid
             string startLoc = NetworkManager.StartLocation("Hooper", 179, 18, 32);
