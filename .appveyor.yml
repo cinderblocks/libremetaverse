@@ -8,6 +8,11 @@ image: Visual Studio 2015
 
 configuration: Release
 
+environment:
+  LMVTestAgentUsername: SecretAgentTest Resident
+  LMVTestAgentPassword:
+    secure: bOoXrGfLiHjZlCG1tJ+nDQ==
+
 pull_requests:
   do_not_increment_build_number: true
 
@@ -34,8 +39,6 @@ assembly_info:
 before_build:
   - del "C:\Program Files (x86)\MSBuild\4.0\Microsoft.Common.targets\ImportAfter\Xamarin.Common.targets"
   - nuget restore LibreMetaverse.sln
-
-test: on
 
 deploy:
   - provider: NuGet

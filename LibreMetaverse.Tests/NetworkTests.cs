@@ -58,14 +58,16 @@ namespace OpenMetaverse.Tests
         [TestFixtureSetUp]
         public void Init()
         {
-            // *FIXME: Come up with a way to handle this test without exposing password to a test agent.
-            // Skipping for now.
-            Assert.Ignore();
+            var fullusername = Environment.GetEnvironmentVariable("LMVTestAgentUsername");
+            var password = Environment.GetEnvironmentVariable("LMVTestAgentPassword");
+            if (string.IsNullOrWhiteSpace(fullusername)) fullusername = "Testing Anvil";
+            if (string.IsNullOrWhiteSpace(password)) password = "testinganvil";
+            var username = fullusername.Split(' ');
 
-            Console.Write("Logging in Testing Anvil...");
+            Console.Write($"Logging in {fullusername}...");
             // Connect to the grid
             string startLoc = NetworkManager.StartLocation("Hooper", 179, 18, 32);
-            Assert.IsTrue(Client.Network.Login("Testing", "Anvil", "testinganvil", "Unit Test Framework", startLoc,
+            Assert.IsTrue(Client.Network.Login(username[0], username[1], password, "Unit Test Framework", startLoc,
                 "contact@openmetaverse.co"), "Client failed to login, reason: " + Client.Network.LoginMessage);
             Console.WriteLine("Done");
 
