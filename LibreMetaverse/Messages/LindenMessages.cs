@@ -28,7 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.IO;
-using ComponentAce.Compression.Libs.zlib;
+using zlib;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Interfaces;
 

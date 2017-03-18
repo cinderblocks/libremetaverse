@@ -133,22 +133,22 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AboutBox1.cs">
-      <SubType>Code</SubType>
+      <SubType>Form</SubType>
     </Compile>
     <Compile Include="FireEventAppender.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="FormPluginManager.cs">
-      <SubType>Code</SubType>
+      <SubType>Form</SubType>
     </Compile>
     <Compile Include="FormSessionSearch.cs">
-      <SubType>Code</SubType>
+      <SubType>Form</SubType>
     </Compile>
     <Compile Include="FormWinGridProxy.cs">
-      <SubType>Code</SubType>
+      <SubType>Form</SubType>
     </Compile>
     <Compile Include="ListViewNoFlicker.cs">
-      <SubType>Code</SubType>
+      <SubType>Component</SubType>
     </Compile>
     <Compile Include="Program.cs">
       <SubType>Code</SubType>
