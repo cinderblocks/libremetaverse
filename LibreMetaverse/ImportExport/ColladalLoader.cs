@@ -31,6 +31,7 @@ using System.Text.RegularExpressions;
 using System.IO;
 using System.Xml;
 using System.Drawing;
+using System.Linq;
 using System.Xml.Serialization;
 using OpenMetaverse.ImportExport.Collada14;
 using OpenMetaverse.Rendering;
@@ -95,7 +96,7 @@ namespace OpenMetaverse.ImportExport
             }
         }
 
-        void LoadImages(List<ModelPrim> prims)
+        void LoadImages(IEnumerable<ModelPrim> prims)
         {
             foreach (var prim in prims)
             {
@@ -119,19 +120,18 @@ namespace OpenMetaverse.ImportExport
 
                 Bitmap bitmap = null;
 
-                if (ext == ".jp2" || ext == ".j2c")
+                switch (ext)
                 {
-                    material.TextureData = File.ReadAllBytes(fname);
-                    return;
-                }
-
-                if (ext == ".tga")
-                {
-                    bitmap = LoadTGAClass.LoadTGA(fname);
-                }
-                else
-                {
-                    bitmap = (Bitmap)Image.FromFile(fname);
+                    case ".jp2":
+                    case ".j2c":
+                        material.TextureData = File.ReadAllBytes(fname);
+                        return;
+                    case ".tga":
+                        bitmap = LoadTGAClass.LoadTGA(fname);
+                        break;
+                    default:
+                        bitmap = (Bitmap)Image.FromFile(fname);
+                        break;
                 }
 
                 int width = bitmap.Width;
@@ -216,8 +216,8 @@ namespace OpenMetaverse.ImportExport
             Materials = new List<ModelMaterial>();
 
             // Material -> effect mapping
-            Dictionary<string, string> matEffect = new Dictionary<string, string>();
-            List<ModelMaterial> tmpEffects = new List<ModelMaterial>();
+            var matEffect = new Dictionary<string, string>();
+            var tmpEffects = new List<ModelMaterial>();
 
             // Image ID -> filename mapping
             Dictionary<string, string> imgMap = new Dictionary<string, string>();
@@ -252,12 +252,9 @@ namespace OpenMetaverse.ImportExport
                         foreach (var material in materials.material)
                         {
                             var ID = material.id;
-                            if (material.instance_effect != null)
+                            if (!string.IsNullOrEmpty(material.instance_effect?.url))
                             {
-                                if (!string.IsNullOrEmpty(material.instance_effect.url))
-                                {
-                                    matEffect[material.instance_effect.url.Substring(1)] = ID;
-                                }
+                                matEffect[material.instance_effect.url.Substring(1)] = ID;
                             }
                         }
                     }
@@ -328,8 +325,7 @@ namespace OpenMetaverse.ImportExport
 
         void ProcessNode(node node)
         {
-            Node n = new Node();
-            n.ID = node.id;
+            Node n = new Node {ID = node.id};
 
             if (node.Items != null)
                 // Try finding matrix
@@ -354,16 +350,15 @@ namespace OpenMetaverse.ImportExport
                 {
                     n.MeshID = instGeom.url.Substring(1);
                 }
-                if (instGeom.bind_material != null && instGeom.bind_material.technique_common != null)
+                if (instGeom.bind_material?.technique_common != null)
                 {
                     foreach (var teq in instGeom.bind_material.technique_common)
                     {
                         var target = teq.target;
-                        if (!string.IsNullOrEmpty(target))
-                        {
-                            target = target.Substring(1);
-                            MatSymTarget[teq.symbol] = target;
-                        }
+                        if (string.IsNullOrEmpty(target)) continue;
+
+                        target = target.Substring(1);
+                        MatSymTarget[teq.symbol] = target;
                     }
                 }
             }
@@ -504,16 +499,11 @@ namespace OpenMetaverse.ImportExport
             return Prims;
         }
 
-        source FindSource(source[] sources, string id)
+        source FindSource(IEnumerable<source> sources, string id)
         {
             id = id.Substring(1);
 
-            foreach (var src in sources)
-            {
-                if (src.id == id)
-                    return src;
-            }
-            return null;
+            return sources.FirstOrDefault(src => src.id == id);
         }
 
         void AddPositions(out Vector3 scale, out Vector3 offset, mesh mesh, ModelPrim prim, Matrix4 transform)
@@ -588,20 +578,20 @@ namespace OpenMetaverse.ImportExport
             {
                 stride = Math.Max(stride, inp.offset);
 
-                if (inp.semantic == "VERTEX")
+                switch (inp.semantic)
                 {
-                    posSrc = FindSource(mesh.source, mesh.vertices.input[0].source);
-                    posOffset = (int)inp.offset;
-                }
-                else if (inp.semantic == "NORMAL")
-                {
-                    normalSrc = FindSource(mesh.source, inp.source);
-                    norOffset = (int)inp.offset;
-                }
-                else if (inp.semantic == "TEXCOORD")
-                {
-                    uvSrc = FindSource(mesh.source, inp.source);
-                    uvOffset = (int)inp.offset;
+                    case "VERTEX":
+                        posSrc = FindSource(mesh.source, mesh.vertices.input[0].source);
+                        posOffset = (int)inp.offset;
+                        break;
+                    case "NORMAL":
+                        normalSrc = FindSource(mesh.source, inp.source);
+                        norOffset = (int)inp.offset;
+                        break;
+                    case "TEXCOORD":
+                        uvSrc = FindSource(mesh.source, inp.source);
+                        uvOffset = (int)inp.offset;
+                        break;
                 }
             }
 
@@ -639,8 +629,7 @@ namespace OpenMetaverse.ImportExport
 
             }
 
-            ModelFace face = new ModelFace();
-            face.MaterialID = list.material;
+            ModelFace face = new ModelFace {MaterialID = list.material};
             if (face.MaterialID != null)
             {
                 if (MatSymTarget.ContainsKey(list.material))
@@ -655,9 +644,8 @@ namespace OpenMetaverse.ImportExport
 
             int curIdx = 0;
 
-            for (int i = 0; i < vcount.Length; i++)
+            foreach (var nvert in vcount)
             {
-                var nvert = vcount[i];
                 if (nvert < 3 || nvert > 4)
                 {
                     throw new InvalidDataException("Only triangles and quads supported");
@@ -680,21 +668,22 @@ namespace OpenMetaverse.ImportExport
                 }
 
 
-                if (nvert == 3) // add the triangle
+                switch (nvert)
                 {
-                    face.AddVertex(verts[0]);
-                    face.AddVertex(verts[1]);
-                    face.AddVertex(verts[2]);
-                }
-                else if (nvert == 4) // quad, add two triangles
-                {
-                    face.AddVertex(verts[0]);
-                    face.AddVertex(verts[1]);
-                    face.AddVertex(verts[2]);
+                    case 3:
+                        face.AddVertex(verts[0]);
+                        face.AddVertex(verts[1]);
+                        face.AddVertex(verts[2]);
+                        break;
+                    case 4:
+                        face.AddVertex(verts[0]);
+                        face.AddVertex(verts[1]);
+                        face.AddVertex(verts[2]);
 
-                    face.AddVertex(verts[0]);
-                    face.AddVertex(verts[2]);
-                    face.AddVertex(verts[3]);
+                        face.AddVertex(verts[0]);
+                        face.AddVertex(verts[2]);
+                        face.AddVertex(verts[3]);
+                        break;
                 }
 
                 curIdx += (int)stride * nvert;
@@ -707,12 +696,14 @@ namespace OpenMetaverse.ImportExport
 
         polylist Triangles2Polylist(triangles triangles)
         {
-            polylist poly = new polylist();
-            poly.count = triangles.count;
-            poly.input = triangles.input;
-            poly.material = triangles.material;
-            poly.name = triangles.name;
-            poly.p = triangles.p;
+            polylist poly = new polylist
+            {
+                count = triangles.count,
+                input = triangles.input,
+                material = triangles.material,
+                name = triangles.name,
+                p = triangles.p
+            };
 
             string str = "3 ";
             System.Text.StringBuilder builder = new System.Text.StringBuilder(str.Length * (int)poly.count);
