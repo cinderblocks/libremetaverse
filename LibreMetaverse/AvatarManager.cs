@@ -1441,6 +1441,9 @@ namespace OpenMetaverse
         /// <param name="defaultTexture">The default agent texture</param>
         /// <param name="faceTextures">The agents appearance layer textures</param>
         /// <param name="visualParams">The <see cref="VisualParams"/> for the agent</param>
+        /// <param name="appearanceVersion">Appearance Version</param>
+        /// <param name="COFVersion">Current outfit folder version</param>
+        /// <param name="appearanceFlags">Appearance Flags</param>
         public AvatarAppearanceEventArgs(Simulator sim, UUID avatarID, bool isTrial, Primitive.TextureEntryFace defaultTexture,
             Primitive.TextureEntryFace[] faceTextures, List<byte> visualParams,
             byte appearanceVersion, int COFVersion, AppearanceFlags appearanceFlags)

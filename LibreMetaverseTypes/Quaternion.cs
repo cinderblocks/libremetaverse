@@ -36,20 +36,20 @@ namespace OpenMetaverse
     [ProtoContract]
     public struct Quaternion : IEquatable<Quaternion>
     {
-        [ProtoMember(1)]
         /// <summary>X value</summary>
+        [ProtoMember(1)]
         public float X;
 
-        [ProtoMember(2)]
         /// <summary>Y value</summary>
+        [ProtoMember(2)]
         public float Y;
 
-        [ProtoMember(3)]
         /// <summary>Z value</summary>
+        [ProtoMember(3)]
         public float Z;
 
-        [ProtoMember(4)]
         /// <summary>W value</summary>
+        [ProtoMember(4)]
         public float W;
 
         #region Constructors

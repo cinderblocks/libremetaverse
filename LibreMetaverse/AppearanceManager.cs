@@ -686,7 +686,6 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="wearableItems">List of wearable inventory items to
         /// be added to the outfit</param>
-        /// <param name="replace">Should existing item on the same point or of the same type be replaced</param>
         public void AddToOutfit(List<InventoryItem> wearableItems)
         {
             AddToOutfit(wearableItems, true);
@@ -1346,10 +1345,7 @@ namespace OpenMetaverse
         /// Populates textures and visual params from a decoded asset
         /// </summary>
         /// <param name="wearable">Wearable to decode</param>
-        /// <summary>
-        /// Populates textures and visual params from a decoded asset
-        /// </summary>
-        /// <param name="wearable">Wearable to decode</param>
+        /// <param name="textures">Texture data</param>
         public static void DecodeWearableParams(WearableData wearable, ref TextureData[] textures)
         {
             var alphaMasks = new Dictionary<VisualAlphaParam, float>();

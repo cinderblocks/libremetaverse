@@ -4451,7 +4451,7 @@ namespace OpenMetaverse.Messages.Linden
 
     public class GetObjectCostRequest : IMessage
     {
-        /// <summary> Object IDs for which to request cost information
+        /// <summary> Object IDs for which to request cost information </summary>
         public UUID[] ObjectIDs;
 
         /// <summary>

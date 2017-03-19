@@ -537,11 +537,13 @@ namespace OpenMetaverse
         /// Request an asset download
         /// </summary>
         /// <param name="assetID">Asset UUID</param>
+        /// <param name="taskID">task ID</param>
         /// <param name="type">Asset type, must be correct for the transfer to succeed</param>
         /// <param name="priority">Whether to give this transfer an elevated priority</param>
         /// <param name="sourceType">Source location of the requested asset</param>
         /// <param name="transactionID">UUID of the transaction</param>
         /// <param name="callback">The callback to fire when the simulator responds with the asset data</param>
+        /// <param name="itemID">Item ID</param>
         public void RequestAsset(UUID assetID, UUID itemID, UUID taskID, AssetType type, bool priority, SourceType sourceType, UUID transactionID, AssetReceivedCallback callback)
         {
             AssetDownload transfer = new AssetDownload();

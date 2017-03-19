@@ -20,8 +20,6 @@ namespace OpenMetaverse.TestClient
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            UUID target;
-
             if (args.Length < 1)
                 return "Usage: sendgeneric method_name [value1 value2 ...]";
 

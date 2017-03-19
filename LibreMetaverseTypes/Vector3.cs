@@ -39,16 +39,16 @@ namespace OpenMetaverse
     [ProtoContract]
     public struct Vector3 : IComparable<Vector3>, IEquatable<Vector3>
     {
-        [ProtoMember(1)]
         /// <summary>X value</summary>
+        [ProtoMember(1)]
         public float X;
 
-        [ProtoMember(2)]
         /// <summary>Y value</summary>
+        [ProtoMember(2)]
         public float Y;
 
-        [ProtoMember(3)]
         /// <summary>Z value</summary>
+        [ProtoMember(3)]
         public float Z;
 
         #region Constructors
