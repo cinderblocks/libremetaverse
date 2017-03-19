@@ -91,8 +91,8 @@
       <Name>System.Xml</Name>
       <Private>False</Private>
     </Reference>
-    <Reference Include="XmlRpcCs, Version=2.0.0.4, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\XmlRpcCS.2.0.0.4\lib\net40\XmlRpcCs.dll</HintPath>
+    <Reference Include="XmlRpcCs, Version=2.0.0.7, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\XmlRpcCS.2.0.0.7\lib\net40\XmlRpcCs.dll</HintPath>
     </Reference>
     <Reference Include="zlib.net, Version=1.0.3.0, Culture=neutral, PublicKeyToken=47d7877cb3620160">
       <HintPath>..\packages\zlib.net.1.0.4.0\lib\zlib.net.dll</HintPath>
