@@ -80,9 +80,8 @@
       <Name>System.Xml</Name>
       <Private>False</Private>
     </Reference>
-    <Reference Include="XMLRPC">
-      <Name>XMLRPC</Name>
-      <Private>False</Private>
+    <Reference Include="XmlRpcCs, Version=2.0.0.4, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\XmlRpcCS.2.0.0.4\lib\net40\XmlRpcCs.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
