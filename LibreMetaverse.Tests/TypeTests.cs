@@ -334,7 +334,7 @@ namespace OpenMetaverse.Tests
             string testThree = "{'region_handle':[r255232, r256512], 'position':[r33.6, r33.71, r43.13], 'look_at':[r34.6, r33.71, r43.13]}";
 
             OSD obj = OSDParser.DeserializeLLSDNotation(testOne);
-            Assert.IsInstanceOfType(typeof(OSDArray), obj, "Expected SDArray, got " + obj.GetType().ToString());
+            Assert.IsInstanceOf<OSDArray>(obj, "Expected SDArray, got " + obj.GetType().ToString());
             OSDArray array = (OSDArray)obj;
             Assert.IsTrue(array.Count == 3, "Expected three contained objects, got " + array.Count);
             Assert.IsTrue(array[0].AsReal() > 0.9d && array[0].AsReal() < 1.0d, "Unexpected value for first real " + array[0].AsReal());
@@ -342,26 +342,26 @@ namespace OpenMetaverse.Tests
             Assert.IsTrue(array[2].AsReal() == 0.0d, "Unexpected value for third real " + array[2].AsReal());
 
             obj = OSDParser.DeserializeLLSDNotation(testTwo);
-            Assert.IsInstanceOfType(typeof(OSDArray), obj, "Expected SDArray, got " + obj.GetType().ToString());
+            Assert.IsInstanceOf<OSDArray>(obj, "Expected SDArray, got " + obj.GetType().ToString());
             array = (OSDArray)obj;
             Assert.IsTrue(array.Count == 2, "Expected two contained objects, got " + array.Count);
             Assert.IsTrue(array[1].AsReal() == 0.0d, "Unexpected value for real " + array[1].AsReal());
             obj = array[0];
-            Assert.IsInstanceOfType(typeof(OSDArray), obj, "Expected ArrayList, got " + obj.GetType().ToString());
+            Assert.IsInstanceOf<OSDArray>(obj, "Expected ArrayList, got " + obj.GetType().ToString());
             array = (OSDArray)obj;
             Assert.IsTrue(array[0].AsReal() == 1.0d && array[1].AsReal() == 1.0d && array[2].AsReal() == 1.0d,
                 "Unexpected value(s) for nested array: " + array[0].AsReal() + ", " + array[1].AsReal() + ", " +
                 array[2].AsReal());
 
             obj = OSDParser.DeserializeLLSDNotation(testThree);
-            Assert.IsInstanceOfType(typeof(OSDMap), obj, "Expected LLSDMap, got " + obj.GetType().ToString());
+            Assert.IsInstanceOf<OSDMap>(obj, "Expected LLSDMap, got " + obj.GetType().ToString());
             OSDMap hashtable = (OSDMap)obj;
             Assert.IsTrue(hashtable.Count == 3, "Expected three contained objects, got " + hashtable.Count);
-            Assert.IsInstanceOfType(typeof(OSDArray), hashtable["region_handle"]);
+            Assert.IsInstanceOf<OSDArray>(hashtable["region_handle"]);
             Assert.IsTrue(((OSDArray)hashtable["region_handle"]).Count == 2);
-            Assert.IsInstanceOfType(typeof(OSDArray), hashtable["position"]);
+            Assert.IsInstanceOf<OSDArray>(hashtable["position"]);
             Assert.IsTrue(((OSDArray)hashtable["position"]).Count == 3);
-            Assert.IsInstanceOfType(typeof(OSDArray), hashtable["look_at"]);
+            Assert.IsInstanceOf<OSDArray>(hashtable["look_at"]);
             Assert.IsTrue(((OSDArray)hashtable["look_at"]).Count == 3);
         }
     }

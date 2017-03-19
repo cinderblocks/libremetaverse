@@ -55,7 +55,7 @@ namespace OpenMetaverse.Tests
             //Client.Self.OnTeleport += new MainAvatar.TeleportCallback(OnTeleportHandler)
         }
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void Init()
         {
             var fullusername = Environment.GetEnvironmentVariable("LMVTestAgentUsername");
@@ -183,7 +183,7 @@ namespace OpenMetaverse.Tests
             //CurrentRegionHandle = update.RegionData.RegionHandle;
         }
 
-        [TestFixtureTearDown]
+        [OneTimeTearDown]
         public void Shutdown()
         {
             Console.Write("Logging out...");
