@@ -70,15 +70,18 @@ namespace OpenMetaverse.Messages.Linden
 
             OSDArray infoArray = new OSDArray(1);
 
-            OSDMap info = new OSDMap(8);
-            info.Add("AgentID", OSD.FromUUID(AgentID));
-            info.Add("LocationID", OSD.FromInteger(LocationID)); // Unused by the client
-            info.Add("RegionHandle", OSD.FromULong(RegionHandle));
-            info.Add("SeedCapability", OSD.FromUri(SeedCapability));
-            info.Add("SimAccess", OSD.FromInteger((byte)SimAccess));
-            info.Add("SimIP", MessageUtils.FromIP(IP));
-            info.Add("SimPort", OSD.FromInteger(Port));
-            info.Add("TeleportFlags", OSD.FromUInteger((uint)Flags));
+            OSDMap info = new OSDMap(8)
+            {
+                {"AgentID", OSD.FromUUID(AgentID)},
+                {"LocationID", OSD.FromInteger(LocationID)},
+                {"RegionHandle", OSD.FromULong(RegionHandle)},
+                {"SeedCapability", OSD.FromUri(SeedCapability)},
+                {"SimAccess", OSD.FromInteger((byte) SimAccess)},
+                {"SimIP", MessageUtils.FromIP(IP)},
+                {"SimPort", OSD.FromInteger(Port)},
+                {"TeleportFlags", OSD.FromUInteger((uint) Flags)}
+            };
+            // Unused by the client
 
             infoArray.Add(info);
 
@@ -123,10 +126,12 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(3);
-            map["agent-id"] = OSD.FromUUID(AgentID);
-            map["sim-ip-and-port"] = OSD.FromString(String.Format("{0}:{1}", Address, Port));
-            map["seed-capability"] = OSD.FromUri(SeedCapability);
+            OSDMap map = new OSDMap(3)
+            {
+                ["agent-id"] = OSD.FromUUID(AgentID),
+                ["sim-ip-and-port"] = OSD.FromString($"{Address}:{Port}"),
+                ["seed-capability"] = OSD.FromUri(SeedCapability)
+            };
             return map;
         }
 
@@ -166,25 +171,31 @@ namespace OpenMetaverse.Messages.Linden
             OSDMap map = new OSDMap(3);
 
             OSDArray infoArray = new OSDArray(1);
-            OSDMap infoMap = new OSDMap(2);
-            infoMap["LookAt"] = OSD.FromVector3(LookAt);
-            infoMap["Position"] = OSD.FromVector3(Position);
+            OSDMap infoMap = new OSDMap(2)
+            {
+                ["LookAt"] = OSD.FromVector3(LookAt),
+                ["Position"] = OSD.FromVector3(Position)
+            };
             infoArray.Add(infoMap);
             map["Info"] = infoArray;
 
             OSDArray agentDataArray = new OSDArray(1);
-            OSDMap agentDataMap = new OSDMap(2);
-            agentDataMap["AgentID"] = OSD.FromUUID(AgentID);
-            agentDataMap["SessionID"] = OSD.FromUUID(SessionID);
+            OSDMap agentDataMap = new OSDMap(2)
+            {
+                ["AgentID"] = OSD.FromUUID(AgentID),
+                ["SessionID"] = OSD.FromUUID(SessionID)
+            };
             agentDataArray.Add(agentDataMap);
             map["AgentData"] = agentDataArray;
 
             OSDArray regionDataArray = new OSDArray(1);
-            OSDMap regionDataMap = new OSDMap(4);
-            regionDataMap["RegionHandle"] = OSD.FromULong(RegionHandle);
-            regionDataMap["SeedCapability"] = OSD.FromUri(SeedCapability);
-            regionDataMap["SimIP"] = MessageUtils.FromIP(IP);
-            regionDataMap["SimPort"] = OSD.FromInteger(Port);
+            OSDMap regionDataMap = new OSDMap(4)
+            {
+                ["RegionHandle"] = OSD.FromULong(RegionHandle),
+                ["SeedCapability"] = OSD.FromUri(SeedCapability),
+                ["SimIP"] = MessageUtils.FromIP(IP),
+                ["SimPort"] = OSD.FromInteger(Port)
+            };
             regionDataArray.Add(regionDataMap);
             map["RegionData"] = regionDataArray;
 
@@ -233,14 +244,14 @@ namespace OpenMetaverse.Messages.Linden
             OSDMap map = new OSDMap(1);
 
             OSDArray array = new OSDArray(Simulators.Length);
-            for (int i = 0; i < Simulators.Length; i++)
+            foreach (SimulatorInfoBlock block in Simulators)
             {
-                SimulatorInfoBlock block = Simulators[i];
-
-                OSDMap blockMap = new OSDMap(3);
-                blockMap["Handle"] = OSD.FromULong(block.RegionHandle);
-                blockMap["IP"] = MessageUtils.FromIP(block.IP);
-                blockMap["Port"] = OSD.FromInteger(block.Port);
+                OSDMap blockMap = new OSDMap(3)
+                {
+                    ["Handle"] = OSD.FromULong(block.RegionHandle),
+                    ["IP"] = MessageUtils.FromIP(block.IP),
+                    ["Port"] = OSD.FromInteger(block.Port)
+                };
                 array.Add(blockMap);
             }
 
@@ -261,10 +272,12 @@ namespace OpenMetaverse.Messages.Linden
             {
                 OSDMap blockMap = (OSDMap)array[i];
 
-                SimulatorInfoBlock block = new SimulatorInfoBlock();
-                block.RegionHandle = blockMap["Handle"].AsULong();
-                block.IP = MessageUtils.ToIP(blockMap["IP"]);
-                block.Port = blockMap["Port"].AsInteger();
+                SimulatorInfoBlock block = new SimulatorInfoBlock
+                {
+                    RegionHandle = blockMap["Handle"].AsULong(),
+                    IP = MessageUtils.ToIP(blockMap["IP"]),
+                    Port = blockMap["Port"].AsInteger()
+                };
                 Simulators[i] = block;
             }
         }
@@ -295,19 +308,21 @@ namespace OpenMetaverse.Messages.Linden
         {
             OSDMap map = new OSDMap(2);
 
-            OSDMap alertInfoMap = new OSDMap(2);
+            OSDMap alertInfoMap = new OSDMap(2)
+            {
+                ["ExtraParams"] = OSD.FromString(ExtraParams),
+                ["Message"] = OSD.FromString(MessageKey)
+            };
 
-            alertInfoMap["ExtraParams"] = OSD.FromString(ExtraParams);
-            alertInfoMap["Message"] = OSD.FromString(MessageKey);
-            OSDArray alertArray = new OSDArray();
-            alertArray.Add(alertInfoMap);
+            OSDArray alertArray = new OSDArray {alertInfoMap};
             map["AlertInfo"] = alertArray;
 
-            OSDMap infoMap = new OSDMap(2);
-            infoMap["AgentID"] = OSD.FromUUID(AgentID);
-            infoMap["Reason"] = OSD.FromString(Reason);
-            OSDArray infoArray = new OSDArray();
-            infoArray.Add(infoMap);
+            OSDMap infoMap = new OSDMap(2)
+            {
+                ["AgentID"] = OSD.FromUUID(AgentID),
+                ["Reason"] = OSD.FromString(Reason)
+            };
+            OSDArray infoArray = new OSDArray {infoMap};
             map["Info"] = infoArray;
 
             return map;
@@ -361,33 +376,38 @@ namespace OpenMetaverse.Messages.Linden
         {
             OSDMap map = new OSDMap(3);
 
-            OSDMap requestDataMap = new OSDMap(3);
-            requestDataMap["ReportType"] = OSD.FromUInteger(this.ReportType);
-            requestDataMap["RequestFlags"] = OSD.FromUInteger(this.RequestFlags);
-            requestDataMap["TotalObjectCount"] = OSD.FromUInteger(this.TotalObjectCount);
+            OSDMap requestDataMap = new OSDMap(3)
+            {
+                ["ReportType"] = OSD.FromUInteger(this.ReportType),
+                ["RequestFlags"] = OSD.FromUInteger(this.RequestFlags),
+                ["TotalObjectCount"] = OSD.FromUInteger(this.TotalObjectCount)
+            };
 
-            OSDArray requestDatArray = new OSDArray();
-            requestDatArray.Add(requestDataMap);
+            OSDArray requestDatArray = new OSDArray {requestDataMap};
             map["RequestData"] = requestDatArray;
 
             OSDArray reportDataArray = new OSDArray();
             OSDArray dataExtendedArray = new OSDArray();
-            for (int i = 0; i < ReportDataBlocks.Length; i++)
+            foreach (ReportDataBlock t in ReportDataBlocks)
             {
-                OSDMap reportMap = new OSDMap(8);
-                reportMap["LocationX"] = OSD.FromReal(ReportDataBlocks[i].Location.X);
-                reportMap["LocationY"] = OSD.FromReal(ReportDataBlocks[i].Location.Y);
-                reportMap["LocationZ"] = OSD.FromReal(ReportDataBlocks[i].Location.Z);
-                reportMap["OwnerName"] = OSD.FromString(ReportDataBlocks[i].OwnerName);
-                reportMap["Score"] = OSD.FromReal(ReportDataBlocks[i].Score);
-                reportMap["TaskID"] = OSD.FromUUID(ReportDataBlocks[i].TaskID);
-                reportMap["TaskLocalID"] = OSD.FromReal(ReportDataBlocks[i].TaskLocalID);
-                reportMap["TaskName"] = OSD.FromString(ReportDataBlocks[i].TaskName);
+                OSDMap reportMap = new OSDMap(8)
+                {
+                    ["LocationX"] = OSD.FromReal(t.Location.X),
+                    ["LocationY"] = OSD.FromReal(t.Location.Y),
+                    ["LocationZ"] = OSD.FromReal(t.Location.Z),
+                    ["OwnerName"] = OSD.FromString(t.OwnerName),
+                    ["Score"] = OSD.FromReal(t.Score),
+                    ["TaskID"] = OSD.FromUUID(t.TaskID),
+                    ["TaskLocalID"] = OSD.FromReal(t.TaskLocalID),
+                    ["TaskName"] = OSD.FromString(t.TaskName)
+                };
                 reportDataArray.Add(reportMap);
 
-                OSDMap extendedMap = new OSDMap(2);
-                extendedMap["MonoScore"] = OSD.FromReal(ReportDataBlocks[i].MonoScore);
-                extendedMap["TimeStamp"] = OSD.FromDate(ReportDataBlocks[i].TimeStamp);
+                OSDMap extendedMap = new OSDMap(2)
+                {
+                    ["MonoScore"] = OSD.FromReal(t.MonoScore),
+                    ["TimeStamp"] = OSD.FromDate(t.TimeStamp)
+                };
                 dataExtendedArray.Add(extendedMap);
             }
 
@@ -425,18 +445,20 @@ namespace OpenMetaverse.Messages.Linden
             {
                 OSDMap blockMap = (OSDMap)dataArray[i];
                 OSDMap extMap = (OSDMap)dataExtendedArray[i];
-                ReportDataBlock block = new ReportDataBlock();
-                block.Location = new Vector3(
-                    (float)blockMap["LocationX"].AsReal(),
-                    (float)blockMap["LocationY"].AsReal(),
-                    (float)blockMap["LocationZ"].AsReal());
-                block.OwnerName = blockMap["OwnerName"].AsString();
-                block.Score = (float)blockMap["Score"].AsReal();
-                block.TaskID = blockMap["TaskID"].AsUUID();
-                block.TaskLocalID = blockMap["TaskLocalID"].AsUInteger();
-                block.TaskName = blockMap["TaskName"].AsString();
-                block.MonoScore = (float)extMap["MonoScore"].AsReal();
-                block.TimeStamp = Utils.UnixTimeToDateTime(extMap["TimeStamp"].AsUInteger());
+                ReportDataBlock block = new ReportDataBlock
+                {
+                    Location = new Vector3(
+                        (float) blockMap["LocationX"].AsReal(),
+                        (float) blockMap["LocationY"].AsReal(),
+                        (float) blockMap["LocationZ"].AsReal()),
+                    OwnerName = blockMap["OwnerName"].AsString(),
+                    Score = (float) blockMap["Score"].AsReal(),
+                    TaskID = blockMap["TaskID"].AsUUID(),
+                    TaskLocalID = blockMap["TaskLocalID"].AsUInteger(),
+                    TaskName = blockMap["TaskName"].AsString(),
+                    MonoScore = (float) extMap["MonoScore"].AsReal(),
+                    TimeStamp = Utils.UnixTimeToDateTime(extMap["TimeStamp"].AsUInteger())
+                };
 
                 ReportDataBlocks[i] = block;
             }
@@ -489,22 +511,22 @@ namespace OpenMetaverse.Messages.Linden
             OSDArray dataArray = new OSDArray(PrimOwnersBlock.Length);
             OSDArray dataExtendedArray = new OSDArray();
 
-            for (int i = 0; i < PrimOwnersBlock.Length; i++)
+            foreach (PrimOwner t in PrimOwnersBlock)
             {
-                OSDMap dataMap = new OSDMap(4);
-                dataMap["OwnerID"] = OSD.FromUUID(PrimOwnersBlock[i].OwnerID);
-                dataMap["Count"] = OSD.FromInteger(PrimOwnersBlock[i].Count);
-                dataMap["IsGroupOwned"] = OSD.FromBoolean(PrimOwnersBlock[i].IsGroupOwned);
-                dataMap["OnlineStatus"] = OSD.FromBoolean(PrimOwnersBlock[i].OnlineStatus);
+                OSDMap dataMap = new OSDMap(4)
+                {
+                    ["OwnerID"] = OSD.FromUUID(t.OwnerID),
+                    ["Count"] = OSD.FromInteger(t.Count),
+                    ["IsGroupOwned"] = OSD.FromBoolean(t.IsGroupOwned),
+                    ["OnlineStatus"] = OSD.FromBoolean(t.OnlineStatus)
+                };
                 dataArray.Add(dataMap);
 
-                OSDMap dataExtendedMap = new OSDMap(1);
-                dataExtendedMap["TimeStamp"] = OSD.FromDate(PrimOwnersBlock[i].TimeStamp);
+                OSDMap dataExtendedMap = new OSDMap(1) {["TimeStamp"] = OSD.FromDate(t.TimeStamp)};
                 dataExtendedArray.Add(dataExtendedMap);
             }
 
-            OSDMap map = new OSDMap();
-            map.Add("Data", dataArray);
+            OSDMap map = new OSDMap {{"Data", dataArray}};
             if (dataExtendedArray.Count > 0)
                 map.Add("DataExtended", dataExtendedArray);
 
@@ -535,11 +557,14 @@ namespace OpenMetaverse.Messages.Linden
             for (int i = 0; i < dataArray.Count; i++)
             {
                 OSDMap dataMap = (OSDMap)dataArray[i];
-                PrimOwner block = new PrimOwner();
-                block.OwnerID = dataMap["OwnerID"].AsUUID();
-                block.Count = dataMap["Count"].AsInteger();
-                block.IsGroupOwned = dataMap["IsGroupOwned"].AsBoolean();
-                block.OnlineStatus = dataMap["OnlineStatus"].AsBoolean(); // deprecated
+                PrimOwner block = new PrimOwner
+                {
+                    OwnerID = dataMap["OwnerID"].AsUUID(),
+                    Count = dataMap["Count"].AsInteger(),
+                    IsGroupOwned = dataMap["IsGroupOwned"].AsBoolean(),
+                    OnlineStatus = dataMap["OnlineStatus"].AsBoolean()
+                };
+                // deprecated
 
                 /* if the agent has no permissions, or there are no prims, the counts
                  * should not match up, so we don't decode the DataExtended map */
@@ -708,78 +733,84 @@ namespace OpenMetaverse.Messages.Linden
             OSDMap map = new OSDMap(3);
 
             OSDArray dataArray = new OSDArray(1);
-            OSDMap parcelDataMap = new OSDMap(47);
-            parcelDataMap["LocalID"] = OSD.FromInteger(LocalID);
-            parcelDataMap["AABBMax"] = OSD.FromVector3(AABBMax);
-            parcelDataMap["AABBMin"] = OSD.FromVector3(AABBMin);
-            parcelDataMap["Area"] = OSD.FromInteger(Area);
-            parcelDataMap["AuctionID"] = OSD.FromInteger(AuctionID);
-            parcelDataMap["AuthBuyerID"] = OSD.FromUUID(AuthBuyerID);
-            parcelDataMap["Bitmap"] = OSD.FromBinary(Bitmap);
-            parcelDataMap["Category"] = OSD.FromInteger((int)Category);
-            parcelDataMap["ClaimDate"] = OSD.FromDate(ClaimDate);
-            parcelDataMap["ClaimPrice"] = OSD.FromInteger(ClaimPrice);
-            parcelDataMap["Desc"] = OSD.FromString(Desc);
-            parcelDataMap["ParcelFlags"] = OSD.FromUInteger((uint)ParcelFlags);
-            parcelDataMap["GroupID"] = OSD.FromUUID(GroupID);
-            parcelDataMap["GroupPrims"] = OSD.FromInteger(GroupPrims);
-            parcelDataMap["IsGroupOwned"] = OSD.FromBoolean(IsGroupOwned);
-            parcelDataMap["LandingType"] = OSD.FromInteger((int)LandingType);
-            parcelDataMap["MaxPrims"] = OSD.FromInteger(MaxPrims);
-            parcelDataMap["MediaID"] = OSD.FromUUID(MediaID);
-            parcelDataMap["MediaURL"] = OSD.FromString(MediaURL);
-            parcelDataMap["MediaAutoScale"] = OSD.FromBoolean(MediaAutoScale);
-            parcelDataMap["MusicURL"] = OSD.FromString(MusicURL);
-            parcelDataMap["Name"] = OSD.FromString(Name);
-            parcelDataMap["OtherCleanTime"] = OSD.FromInteger(OtherCleanTime);
-            parcelDataMap["OtherCount"] = OSD.FromInteger(OtherCount);
-            parcelDataMap["OtherPrims"] = OSD.FromInteger(OtherPrims);
-            parcelDataMap["OwnerID"] = OSD.FromUUID(OwnerID);
-            parcelDataMap["OwnerPrims"] = OSD.FromInteger(OwnerPrims);
-            parcelDataMap["ParcelPrimBonus"] = OSD.FromReal((float)ParcelPrimBonus);
-            parcelDataMap["PassHours"] = OSD.FromReal((float)PassHours);
-            parcelDataMap["PassPrice"] = OSD.FromInteger(PassPrice);
-            parcelDataMap["PublicCount"] = OSD.FromInteger(PublicCount);
-            parcelDataMap["Privacy"] = OSD.FromBoolean(Privacy);
-            parcelDataMap["RegionDenyAnonymous"] = OSD.FromBoolean(RegionDenyAnonymous);
-            parcelDataMap["RegionDenyIdentified"] = OSD.FromBoolean(RegionDenyIdentified);
-            parcelDataMap["RegionDenyTransacted"] = OSD.FromBoolean(RegionDenyTransacted);
-            parcelDataMap["RegionPushOverride"] = OSD.FromBoolean(RegionPushOverride);
-            parcelDataMap["RentPrice"] = OSD.FromInteger(RentPrice);
-            parcelDataMap["RequestResult"] = OSD.FromInteger((int)RequestResult);
-            parcelDataMap["SalePrice"] = OSD.FromInteger(SalePrice);
-            parcelDataMap["SelectedPrims"] = OSD.FromInteger(SelectedPrims);
-            parcelDataMap["SelfCount"] = OSD.FromInteger(SelfCount);
-            parcelDataMap["SequenceID"] = OSD.FromInteger(SequenceID);
-            parcelDataMap["SimWideMaxPrims"] = OSD.FromInteger(SimWideMaxPrims);
-            parcelDataMap["SimWideTotalPrims"] = OSD.FromInteger(SimWideTotalPrims);
-            parcelDataMap["SnapSelection"] = OSD.FromBoolean(SnapSelection);
-            parcelDataMap["SnapshotID"] = OSD.FromUUID(SnapshotID);
-            parcelDataMap["Status"] = OSD.FromInteger((int)Status);
-            parcelDataMap["TotalPrims"] = OSD.FromInteger(TotalPrims);
-            parcelDataMap["UserLocation"] = OSD.FromVector3(UserLocation);
-            parcelDataMap["UserLookAt"] = OSD.FromVector3(UserLookAt);
-            parcelDataMap["SeeAVs"] = OSD.FromBoolean(SeeAVs);
-            parcelDataMap["AnyAVSounds"] = OSD.FromBoolean(AnyAVSounds);
-            parcelDataMap["GroupAVSounds"] = OSD.FromBoolean(GroupAVSounds);
+            OSDMap parcelDataMap = new OSDMap(47)
+            {
+                ["LocalID"] = OSD.FromInteger(LocalID),
+                ["AABBMax"] = OSD.FromVector3(AABBMax),
+                ["AABBMin"] = OSD.FromVector3(AABBMin),
+                ["Area"] = OSD.FromInteger(Area),
+                ["AuctionID"] = OSD.FromInteger(AuctionID),
+                ["AuthBuyerID"] = OSD.FromUUID(AuthBuyerID),
+                ["Bitmap"] = OSD.FromBinary(Bitmap),
+                ["Category"] = OSD.FromInteger((int) Category),
+                ["ClaimDate"] = OSD.FromDate(ClaimDate),
+                ["ClaimPrice"] = OSD.FromInteger(ClaimPrice),
+                ["Desc"] = OSD.FromString(Desc),
+                ["ParcelFlags"] = OSD.FromUInteger((uint) ParcelFlags),
+                ["GroupID"] = OSD.FromUUID(GroupID),
+                ["GroupPrims"] = OSD.FromInteger(GroupPrims),
+                ["IsGroupOwned"] = OSD.FromBoolean(IsGroupOwned),
+                ["LandingType"] = OSD.FromInteger((int) LandingType),
+                ["MaxPrims"] = OSD.FromInteger(MaxPrims),
+                ["MediaID"] = OSD.FromUUID(MediaID),
+                ["MediaURL"] = OSD.FromString(MediaURL),
+                ["MediaAutoScale"] = OSD.FromBoolean(MediaAutoScale),
+                ["MusicURL"] = OSD.FromString(MusicURL),
+                ["Name"] = OSD.FromString(Name),
+                ["OtherCleanTime"] = OSD.FromInteger(OtherCleanTime),
+                ["OtherCount"] = OSD.FromInteger(OtherCount),
+                ["OtherPrims"] = OSD.FromInteger(OtherPrims),
+                ["OwnerID"] = OSD.FromUUID(OwnerID),
+                ["OwnerPrims"] = OSD.FromInteger(OwnerPrims),
+                ["ParcelPrimBonus"] = OSD.FromReal((float) ParcelPrimBonus),
+                ["PassHours"] = OSD.FromReal((float) PassHours),
+                ["PassPrice"] = OSD.FromInteger(PassPrice),
+                ["PublicCount"] = OSD.FromInteger(PublicCount),
+                ["Privacy"] = OSD.FromBoolean(Privacy),
+                ["RegionDenyAnonymous"] = OSD.FromBoolean(RegionDenyAnonymous),
+                ["RegionDenyIdentified"] = OSD.FromBoolean(RegionDenyIdentified),
+                ["RegionDenyTransacted"] = OSD.FromBoolean(RegionDenyTransacted),
+                ["RegionPushOverride"] = OSD.FromBoolean(RegionPushOverride),
+                ["RentPrice"] = OSD.FromInteger(RentPrice),
+                ["RequestResult"] = OSD.FromInteger((int) RequestResult),
+                ["SalePrice"] = OSD.FromInteger(SalePrice),
+                ["SelectedPrims"] = OSD.FromInteger(SelectedPrims),
+                ["SelfCount"] = OSD.FromInteger(SelfCount),
+                ["SequenceID"] = OSD.FromInteger(SequenceID),
+                ["SimWideMaxPrims"] = OSD.FromInteger(SimWideMaxPrims),
+                ["SimWideTotalPrims"] = OSD.FromInteger(SimWideTotalPrims),
+                ["SnapSelection"] = OSD.FromBoolean(SnapSelection),
+                ["SnapshotID"] = OSD.FromUUID(SnapshotID),
+                ["Status"] = OSD.FromInteger((int) Status),
+                ["TotalPrims"] = OSD.FromInteger(TotalPrims),
+                ["UserLocation"] = OSD.FromVector3(UserLocation),
+                ["UserLookAt"] = OSD.FromVector3(UserLookAt),
+                ["SeeAVs"] = OSD.FromBoolean(SeeAVs),
+                ["AnyAVSounds"] = OSD.FromBoolean(AnyAVSounds),
+                ["GroupAVSounds"] = OSD.FromBoolean(GroupAVSounds)
+            };
             dataArray.Add(parcelDataMap);
             map["ParcelData"] = dataArray;
 
             OSDArray mediaDataArray = new OSDArray(1);
-            OSDMap mediaDataMap = new OSDMap(7);
-            mediaDataMap["MediaDesc"] = OSD.FromString(MediaDesc);
-            mediaDataMap["MediaHeight"] = OSD.FromInteger(MediaHeight);
-            mediaDataMap["MediaWidth"] = OSD.FromInteger(MediaWidth);
-            mediaDataMap["MediaLoop"] = OSD.FromBoolean(MediaLoop);
-            mediaDataMap["MediaType"] = OSD.FromString(MediaType);
-            mediaDataMap["ObscureMedia"] = OSD.FromBoolean(ObscureMedia);
-            mediaDataMap["ObscureMusic"] = OSD.FromBoolean(ObscureMusic);
+            OSDMap mediaDataMap = new OSDMap(7)
+            {
+                ["MediaDesc"] = OSD.FromString(MediaDesc),
+                ["MediaHeight"] = OSD.FromInteger(MediaHeight),
+                ["MediaWidth"] = OSD.FromInteger(MediaWidth),
+                ["MediaLoop"] = OSD.FromBoolean(MediaLoop),
+                ["MediaType"] = OSD.FromString(MediaType),
+                ["ObscureMedia"] = OSD.FromBoolean(ObscureMedia),
+                ["ObscureMusic"] = OSD.FromBoolean(ObscureMusic)
+            };
             mediaDataArray.Add(mediaDataMap);
             map["MediaData"] = mediaDataArray;
 
             OSDArray ageVerificationBlockArray = new OSDArray(1);
-            OSDMap ageVerificationBlockMap = new OSDMap(1);
-            ageVerificationBlockMap["RegionDenyAgeUnverified"] = OSD.FromBoolean(RegionDenyAgeUnverified);
+            OSDMap ageVerificationBlockMap = new OSDMap(1)
+            {
+                ["RegionDenyAgeUnverified"] = OSD.FromBoolean(RegionDenyAgeUnverified)
+            };
             ageVerificationBlockArray.Add(ageVerificationBlockMap);
             map["AgeVerificationBlock"] = ageVerificationBlockArray;
 
@@ -995,37 +1026,39 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap();
-            map["auth_buyer_id"] = OSD.FromUUID(AuthBuyerID);
-            map["auto_scale"] = OSD.FromBoolean(MediaAutoScale);
-            map["category"] = OSD.FromInteger((byte)Category);
-            map["description"] = OSD.FromString(Desc);
-            map["flags"] = OSD.FromBinary(Utils.EmptyBytes);
-            map["group_id"] = OSD.FromUUID(GroupID);
-            map["landing_type"] = OSD.FromInteger((byte)Landing);
-            map["local_id"] = OSD.FromInteger(LocalID);
-            map["media_desc"] = OSD.FromString(MediaDesc);
-            map["media_height"] = OSD.FromInteger(MediaHeight);
-            map["media_id"] = OSD.FromUUID(MediaID);
-            map["media_loop"] = OSD.FromBoolean(MediaLoop);
-            map["media_type"] = OSD.FromString(MediaType);
-            map["media_url"] = OSD.FromString(MediaURL);
-            map["media_width"] = OSD.FromInteger(MediaWidth);
-            map["music_url"] = OSD.FromString(MusicURL);
-            map["name"] = OSD.FromString(Name);
-            map["obscure_media"] = OSD.FromBoolean(ObscureMedia);
-            map["obscure_music"] = OSD.FromBoolean(ObscureMusic);
-            map["parcel_flags"] = OSD.FromUInteger((uint)ParcelFlags);
-            map["pass_hours"] = OSD.FromReal(PassHours);
-            map["privacy"] = OSD.FromBoolean(Privacy);
-            map["pass_price"] = OSD.FromInteger(PassPrice);
-            map["sale_price"] = OSD.FromInteger(SalePrice);
-            map["snapshot_id"] = OSD.FromUUID(SnapshotID);
-            map["user_location"] = OSD.FromVector3(UserLocation);
-            map["user_look_at"] = OSD.FromVector3(UserLookAt);
-            map["see_avs"] = OSD.FromBoolean(SeeAVs);
-            map["any_av_sounds"] = OSD.FromBoolean(AnyAVSounds);
-            map["group_av_sounds"] = OSD.FromBoolean(GroupAVSounds);
+            OSDMap map = new OSDMap
+            {
+                ["auth_buyer_id"] = OSD.FromUUID(AuthBuyerID),
+                ["auto_scale"] = OSD.FromBoolean(MediaAutoScale),
+                ["category"] = OSD.FromInteger((byte) Category),
+                ["description"] = OSD.FromString(Desc),
+                ["flags"] = OSD.FromBinary(Utils.EmptyBytes),
+                ["group_id"] = OSD.FromUUID(GroupID),
+                ["landing_type"] = OSD.FromInteger((byte) Landing),
+                ["local_id"] = OSD.FromInteger(LocalID),
+                ["media_desc"] = OSD.FromString(MediaDesc),
+                ["media_height"] = OSD.FromInteger(MediaHeight),
+                ["media_id"] = OSD.FromUUID(MediaID),
+                ["media_loop"] = OSD.FromBoolean(MediaLoop),
+                ["media_type"] = OSD.FromString(MediaType),
+                ["media_url"] = OSD.FromString(MediaURL),
+                ["media_width"] = OSD.FromInteger(MediaWidth),
+                ["music_url"] = OSD.FromString(MusicURL),
+                ["name"] = OSD.FromString(Name),
+                ["obscure_media"] = OSD.FromBoolean(ObscureMedia),
+                ["obscure_music"] = OSD.FromBoolean(ObscureMusic),
+                ["parcel_flags"] = OSD.FromUInteger((uint) ParcelFlags),
+                ["pass_hours"] = OSD.FromReal(PassHours),
+                ["privacy"] = OSD.FromBoolean(Privacy),
+                ["pass_price"] = OSD.FromInteger(PassPrice),
+                ["sale_price"] = OSD.FromInteger(SalePrice),
+                ["snapshot_id"] = OSD.FromUUID(SnapshotID),
+                ["user_location"] = OSD.FromVector3(UserLocation),
+                ["user_look_at"] = OSD.FromVector3(UserLookAt),
+                ["see_avs"] = OSD.FromBoolean(SeeAVs),
+                ["any_av_sounds"] = OSD.FromBoolean(AnyAVSounds),
+                ["group_av_sounds"] = OSD.FromBoolean(GroupAVSounds)
+            };
 
             return map;
         }
@@ -1058,10 +1091,12 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public override OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(3);
-            map["location"] = OSD.FromVector3(Location);
-            map["region_handle"] = OSD.FromULong(RegionHandle);
-            map["region_id"] = OSD.FromUUID(RegionID);
+            OSDMap map = new OSDMap(3)
+            {
+                ["location"] = OSD.FromVector3(Location),
+                ["region_handle"] = OSD.FromULong(RegionHandle),
+                ["region_id"] = OSD.FromUUID(RegionID)
+            };
             return map;
         }
 
@@ -1093,8 +1128,7 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public override OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(1);
-            map["parcel_id"] = OSD.FromUUID(ParcelID);
+            OSDMap map = new OSDMap(1) {["parcel_id"] = OSD.FromUUID(ParcelID)};
             return map;
         }
 
@@ -1143,8 +1177,7 @@ namespace OpenMetaverse.Messages.Linden
             else
                 Logger.Log("Unable to deserialize RemoteParcelRequest: No message handler exists for method: " + map.AsString(), Helpers.LogLevel.Warning);
 
-            if (Request != null)
-                Request.Deserialize(map);
+            Request?.Deserialize(map);
         }
     }
     #endregion
@@ -1168,15 +1201,17 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(5);
-            map["folder_id"] = OSD.FromUUID(FolderID);
-            map["asset_type"] = OSD.FromString(Utils.AssetTypeToString(AssetType));
-            map["inventory_type"] = OSD.FromString(Utils.InventoryTypeToString(InventoryType));
-            map["name"] = OSD.FromString(Name);
-            map["description"] = OSD.FromString(Description);
-            map["everyone_mask"] = OSD.FromInteger((int)EveryoneMask);
-            map["group_mask"] = OSD.FromInteger((int)GroupMask);
-            map["next_owner_mask"] = OSD.FromInteger((int)NextOwnerMask);
+            OSDMap map = new OSDMap(5)
+            {
+                ["folder_id"] = OSD.FromUUID(FolderID),
+                ["asset_type"] = OSD.FromString(Utils.AssetTypeToString(AssetType)),
+                ["inventory_type"] = OSD.FromString(Utils.InventoryTypeToString(InventoryType)),
+                ["name"] = OSD.FromString(Name),
+                ["description"] = OSD.FromString(Description),
+                ["everyone_mask"] = OSD.FromInteger((int) EveryoneMask),
+                ["group_mask"] = OSD.FromInteger((int) GroupMask),
+                ["next_owner_mask"] = OSD.FromInteger((int) NextOwnerMask)
+            };
 
             return map;
         }
@@ -1210,9 +1245,11 @@ namespace OpenMetaverse.Messages.Linden
 
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap();
-            map["state"] = OSD.FromString(State);
-            map["uploader"] = OSD.FromUri(Uploader);
+            OSDMap map = new OSDMap
+            {
+                ["state"] = OSD.FromString(State),
+                ["uploader"] = OSD.FromUri(Uploader)
+            };
 
             return map;
         }
@@ -1242,15 +1279,17 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap();
-            map["folder_id"] = OSD.FromUUID(FolderID);
-            map["asset_type"] = OSD.FromString(Utils.AssetTypeToString(AssetType));
-            map["inventory_type"] = OSD.FromString(Utils.InventoryTypeToString(InventoryType));
-            map["name"] = OSD.FromString(Name);
-            map["description"] = OSD.FromString(Description);
-            map["everyone_mask"] = OSD.FromInteger((int)EveryoneMask);
-            map["group_mask"] = OSD.FromInteger((int)GroupMask);
-            map["next_owner_mask"] = OSD.FromInteger((int)NextOwnerMask);
+            OSDMap map = new OSDMap
+            {
+                ["folder_id"] = OSD.FromUUID(FolderID),
+                ["asset_type"] = OSD.FromString(Utils.AssetTypeToString(AssetType)),
+                ["inventory_type"] = OSD.FromString(Utils.InventoryTypeToString(InventoryType)),
+                ["name"] = OSD.FromString(Name),
+                ["description"] = OSD.FromString(Description),
+                ["everyone_mask"] = OSD.FromInteger((int) EveryoneMask),
+                ["group_mask"] = OSD.FromInteger((int) GroupMask),
+                ["next_owner_mask"] = OSD.FromInteger((int) NextOwnerMask)
+            };
 
             return map;
         }
@@ -1286,11 +1325,13 @@ namespace OpenMetaverse.Messages.Linden
 
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap();
-            map["resource_cost"] = OSD.FromInteger(ResourceCost);
-            map["state"] = OSD.FromString(State);
-            map["upload_price"] = OSD.FromInteger(UploadPrice);
-            map["rsvp"] = OSD.FromUri(Rsvp);
+            OSDMap map = new OSDMap
+            {
+                ["resource_cost"] = OSD.FromInteger(ResourceCost),
+                ["state"] = OSD.FromString(State),
+                ["upload_price"] = OSD.FromInteger(UploadPrice),
+                ["rsvp"] = OSD.FromUri(Rsvp)
+            };
 
             return map;
         }
@@ -1321,14 +1362,16 @@ namespace OpenMetaverse.Messages.Linden
 
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap();
-            map["new_inventory_item"] = OSD.FromUUID(NewInventoryItem);
-            map["new_asset"] = OSD.FromUUID(NewAsset);
-            map["state"] = OSD.FromString(State);
-            map["new_base_mask"] = OSD.FromInteger((int)NewBaseMask);
-            map["new_everyone_mask"] = OSD.FromInteger((int)NewEveryoneMask);
-            map["new_owner_mask"] = OSD.FromInteger((int)NewOwnerMask);
-            map["new_next_owner_mask"] = OSD.FromInteger((int)NewNextOwnerMask);
+            OSDMap map = new OSDMap
+            {
+                ["new_inventory_item"] = OSD.FromUUID(NewInventoryItem),
+                ["new_asset"] = OSD.FromUUID(NewAsset),
+                ["state"] = OSD.FromString(State),
+                ["new_base_mask"] = OSD.FromInteger((int) NewBaseMask),
+                ["new_everyone_mask"] = OSD.FromInteger((int) NewEveryoneMask),
+                ["new_owner_mask"] = OSD.FromInteger((int) NewOwnerMask),
+                ["new_next_owner_mask"] = OSD.FromInteger((int) NewNextOwnerMask)
+            };
 
             return map;
         }
@@ -1537,37 +1580,36 @@ namespace OpenMetaverse.Messages.Linden
         {
             OSDMap map = new OSDMap(3);
 
-            OSDMap agent = new OSDMap(1);
-            agent["AgentID"] = OSD.FromUUID(AgentID);
+            OSDMap agent = new OSDMap(1) {["AgentID"] = OSD.FromUUID(AgentID)};
 
-            OSDArray agentArray = new OSDArray();
-            agentArray.Add(agent);
+            OSDArray agentArray = new OSDArray {agent};
 
             map["AgentData"] = agentArray;
 
             OSDArray groupDataArray = new OSDArray(GroupDataBlock.Length);
 
-            for (int i = 0; i < GroupDataBlock.Length; i++)
+            foreach (GroupData t in GroupDataBlock)
             {
-                OSDMap group = new OSDMap(6);
-                group["AcceptNotices"] = OSD.FromBoolean(GroupDataBlock[i].AcceptNotices);
-                group["Contribution"] = OSD.FromInteger(GroupDataBlock[i].Contribution);
-                group["GroupID"] = OSD.FromUUID(GroupDataBlock[i].GroupID);
-                group["GroupInsigniaID"] = OSD.FromUUID(GroupDataBlock[i].GroupInsigniaID);
-                group["GroupName"] = OSD.FromString(GroupDataBlock[i].GroupName);
-                group["GroupPowers"] = OSD.FromLong((long)GroupDataBlock[i].GroupPowers);
-                groupDataArray.Add(group);
+                OSDMap group = new OSDMap(6)
+                {
+                    ["AcceptNotices"] = OSD.FromBoolean(t.AcceptNotices),
+                    ["Contribution"] = OSD.FromInteger(t.Contribution),
+                    ["GroupID"] = OSD.FromUUID(t.GroupID),
+                    ["GroupInsigniaID"] = OSD.FromUUID(t.GroupInsigniaID),
+                    ["GroupName"] = OSD.FromString(t.GroupName),
+                    ["GroupPowers"] = OSD.FromLong((long) t.GroupPowers)
+                };
+                groupDataArray.Add(@group);
             }
 
             map["GroupData"] = groupDataArray;
 
             OSDArray newGroupDataArray = new OSDArray(NewGroupDataBlock.Length);
 
-            for (int i = 0; i < NewGroupDataBlock.Length; i++)
+            foreach (NewGroupData t in NewGroupDataBlock)
             {
-                OSDMap group = new OSDMap(1);
-                group["ListInProfile"] = OSD.FromBoolean(NewGroupDataBlock[i].ListInProfile);
-                newGroupDataArray.Add(group);
+                OSDMap group = new OSDMap(1) {["ListInProfile"] = OSD.FromBoolean(t.ListInProfile)};
+                newGroupDataArray.Add(@group);
             }
 
             map["NewGroupData"] = newGroupDataArray;
@@ -1593,14 +1635,16 @@ namespace OpenMetaverse.Messages.Linden
             {
                 OSDMap groupMap = (OSDMap)groupArray[i];
 
-                GroupData groupData = new GroupData();
+                GroupData groupData = new GroupData
+                {
+                    GroupID = groupMap["GroupID"].AsUUID(),
+                    Contribution = groupMap["Contribution"].AsInteger(),
+                    GroupInsigniaID = groupMap["GroupInsigniaID"].AsUUID(),
+                    GroupName = groupMap["GroupName"].AsString(),
+                    GroupPowers = (GroupPowers) groupMap["GroupPowers"].AsLong(),
+                    AcceptNotices = groupMap["AcceptNotices"].AsBoolean()
+                };
 
-                groupData.GroupID = groupMap["GroupID"].AsUUID();
-                groupData.Contribution = groupMap["Contribution"].AsInteger();
-                groupData.GroupInsigniaID = groupMap["GroupInsigniaID"].AsUUID();
-                groupData.GroupName = groupMap["GroupName"].AsString();
-                groupData.GroupPowers = (GroupPowers)groupMap["GroupPowers"].AsLong();
-                groupData.AcceptNotices = groupMap["AcceptNotices"].AsBoolean();
                 GroupDataBlock[i] = groupData;
             }
 
@@ -1616,8 +1660,10 @@ namespace OpenMetaverse.Messages.Linden
                 for (int i = 0; i < newGroupArray.Count; i++)
                 {
                     OSDMap newGroupMap = (OSDMap)newGroupArray[i];
-                    NewGroupData newGroupData = new NewGroupData();
-                    newGroupData.ListInProfile = newGroupMap["ListInProfile"].AsBoolean();
+                    NewGroupData newGroupData = new NewGroupData
+                    {
+                        ListInProfile = newGroupMap["ListInProfile"].AsBoolean()
+                    };
                     NewGroupDataBlock[i] = newGroupData;
                 }
             }
@@ -1626,8 +1672,7 @@ namespace OpenMetaverse.Messages.Linden
                 NewGroupDataBlock = new NewGroupData[GroupDataBlock.Length];
                 for (int i = 0; i < NewGroupDataBlock.Length; i++)
                 {
-                    NewGroupData newGroupData = new NewGroupData();
-                    newGroupData.ListInProfile = false;
+                    NewGroupData newGroupData = new NewGroupData {ListInProfile = false};
                     NewGroupDataBlock[i] = newGroupData;
                 }
             }
@@ -1654,10 +1699,12 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(2);
+            OSDMap map = new OSDMap(2)
+            {
+                ["language"] = OSD.FromString(Language),
+                ["language_is_public"] = OSD.FromBoolean(LanguagePublic)
+            };
 
-            map["language"] = OSD.FromString(Language);
-            map["language_is_public"] = OSD.FromBoolean(LanguagePublic);
 
             return map;
         }
@@ -1703,11 +1750,13 @@ namespace OpenMetaverse.Messages.Linden
 
             OSDArray agentDataArray = new OSDArray(AgentDataBlock.Length);
 
-            for (int i = 0; i < AgentDataBlock.Length; i++)
+            foreach (AgentData t in AgentDataBlock)
             {
-                OSDMap agentMap = new OSDMap(2);
-                agentMap["AgentID"] = OSD.FromUUID(AgentDataBlock[i].AgentID);
-                agentMap["GroupID"] = OSD.FromUUID(AgentDataBlock[i].GroupID);
+                OSDMap agentMap = new OSDMap(2)
+                {
+                    ["AgentID"] = OSD.FromUUID(t.AgentID),
+                    ["GroupID"] = OSD.FromUUID(t.GroupID)
+                };
                 agentDataArray.Add(agentMap);
             }
             map["AgentData"] = agentDataArray;
@@ -1728,10 +1777,12 @@ namespace OpenMetaverse.Messages.Linden
             for (int i = 0; i < agentDataArray.Count; i++)
             {
                 OSDMap agentMap = (OSDMap)agentDataArray[i];
-                AgentData agentData = new AgentData();
+                AgentData agentData = new AgentData
+                {
+                    AgentID = agentMap["AgentID"].AsUUID(),
+                    GroupID = agentMap["GroupID"].AsUUID()
+                };
 
-                agentData.AgentID = agentMap["AgentID"].AsUUID();
-                agentData.GroupID = agentMap["GroupID"].AsUUID();
 
                 AgentDataBlock[i] = agentData;
             }
@@ -1773,9 +1824,11 @@ namespace OpenMetaverse.Messages.Linden
 
         public OSDMap Serialize()
         {
-            RawData = new OSDMap();
-            RawData["can_modify_navmesh"] = CanModifyNavmesh;
-            RawData["has_modified_navmesh"] = HasModifiedNavmesh;
+            RawData = new OSDMap
+            {
+                ["can_modify_navmesh"] = CanModifyNavmesh,
+                ["has_modified_navmesh"] = HasModifiedNavmesh
+            };
 
             OSDMap prefs = new OSDMap();
             {
@@ -1833,9 +1886,11 @@ namespace OpenMetaverse.Messages.Linden
 
         public override OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(2);
-            map["state"] = OSD.FromString(State);
-            map["uploader"] = OSD.FromUri(Url);
+            OSDMap map = new OSDMap(2)
+            {
+                ["state"] = OSD.FromString(State),
+                ["uploader"] = OSD.FromUri(Url)
+            };
 
             return map;
         }
@@ -1863,9 +1918,11 @@ namespace OpenMetaverse.Messages.Linden
 
         public override OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(2);
-            map["state"] = OSD.FromString(State);
-            map["new_asset"] = OSD.FromUUID(AssetID);
+            OSDMap map = new OSDMap(2)
+            {
+                ["state"] = OSD.FromString(State),
+                ["new_asset"] = OSD.FromUUID(AssetID)
+            };
 
             return map;
         }
@@ -1908,8 +1965,7 @@ namespace OpenMetaverse.Messages.Linden
             else
                 Logger.Log("Unable to deserialize UploadBakedTexture: No message handler exists for state " + map["state"].AsString(), Helpers.LogLevel.Warning);
 
-            if (Request != null)
-                Request.Deserialize(map);
+            Request?.Deserialize(map);
         }
     }
     #endregion
@@ -1934,10 +1990,12 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(4);
-            map["major_version"] = OSD.FromInteger(MajorVersion);
-            map["minor_version"] = OSD.FromInteger(MinorVersion);
-            map["region_name"] = OSD.FromString(RegionName);
+            OSDMap map = new OSDMap(4)
+            {
+                ["major_version"] = OSD.FromInteger(MajorVersion),
+                ["minor_version"] = OSD.FromInteger(MinorVersion),
+                ["region_name"] = OSD.FromString(RegionName)
+            };
 
             return map;
         }
@@ -1974,12 +2032,13 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(3);
-            map["parcel_local_id"] = OSD.FromInteger(ParcelID);
-            map["region_name"] = OSD.FromString(RegionName);
+            OSDMap map = new OSDMap(3)
+            {
+                ["parcel_local_id"] = OSD.FromInteger(ParcelID),
+                ["region_name"] = OSD.FromString(RegionName)
+            };
 
-            OSDMap vcMap = new OSDMap(1);
-            vcMap["channel_uri"] = OSD.FromUri(SipChannelUri);
+            OSDMap vcMap = new OSDMap(1) {["channel_uri"] = OSD.FromUri(SipChannelUri)};
 
             map["voice_credentials"] = vcMap;
 
@@ -2016,10 +2075,12 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(2);
+            OSDMap map = new OSDMap(2)
+            {
+                ["username"] = OSD.FromString(Username),
+                ["password"] = OSD.FromString(Password)
+            };
 
-            map["username"] = OSD.FromString(Username);
-            map["password"] = OSD.FromString(Password);
 
             return map;
         }
@@ -2097,14 +2158,15 @@ namespace OpenMetaverse.Messages.Linden
         {
             OSDMap map = new OSDMap(2);
 
-            OSDMap scriptMap = new OSDMap(4);
-            scriptMap["ItemID"] = OSD.FromUUID(ItemID);
-            scriptMap["Mono"] = OSD.FromBoolean(Mono);
-            scriptMap["ObjectID"] = OSD.FromUUID(ObjectID);
-            scriptMap["Running"] = OSD.FromBoolean(Running);
+            OSDMap scriptMap = new OSDMap(4)
+            {
+                ["ItemID"] = OSD.FromUUID(ItemID),
+                ["Mono"] = OSD.FromBoolean(Mono),
+                ["ObjectID"] = OSD.FromUUID(ObjectID),
+                ["Running"] = OSD.FromBoolean(Running)
+            };
 
-            OSDArray scriptArray = new OSDArray(1);
-            scriptArray.Add((OSD)scriptMap);
+            OSDArray scriptArray = new OSDArray(1) {(OSD) scriptMap};
 
             map["Script"] = scriptArray;
 
@@ -2161,8 +2223,7 @@ namespace OpenMetaverse.Messages.Linden
             else
                 Logger.Log("Unable to deserialize UpdateGestureAgentInventory: No message handler exists: " + map.AsString(), Helpers.LogLevel.Warning);
 
-            if (Request != null)
-                Request.Deserialize(map);
+            Request?.Deserialize(map);
         }
     }
 
@@ -2183,9 +2244,11 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(1);
-            map["task_id"] = OSD.FromUUID(TaskID);
-            map["item_id"] = OSD.FromUUID(ItemID);
+            OSDMap map = new OSDMap(1)
+            {
+                ["task_id"] = OSD.FromUUID(TaskID),
+                ["item_id"] = OSD.FromUUID(ItemID)
+            };
 
             return map;
         }
@@ -2219,8 +2282,7 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public override OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(1);
-            map["item_id"] = OSD.FromUUID(ItemID);
+            OSDMap map = new OSDMap(1) {["item_id"] = OSD.FromUUID(ItemID)};
 
             return map;
         }
@@ -2268,8 +2330,7 @@ namespace OpenMetaverse.Messages.Linden
             else
                 Logger.Log("Unable to deserialize UpdateNotecardAgentInventory: No message handler exists for state " + map["state"].AsString(), Helpers.LogLevel.Warning);
 
-            if (Request != null)
-                Request.Deserialize(map);
+            Request?.Deserialize(map);
         }
     }
 
@@ -2287,12 +2348,14 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(5);
-            map["callback-id"] = OSD.FromInteger(CallbackID);
-            map["folder-id"] = OSD.FromUUID(FolderID);
-            map["item-id"] = OSD.FromUUID(ItemID);
-            map["notecard-id"] = OSD.FromUUID(NotecardID);
-            map["object-id"] = OSD.FromUUID(ObjectID);
+            OSDMap map = new OSDMap(5)
+            {
+                ["callback-id"] = OSD.FromInteger(CallbackID),
+                ["folder-id"] = OSD.FromUUID(FolderID),
+                ["item-id"] = OSD.FromUUID(ItemID),
+                ["notecard-id"] = OSD.FromUUID(NotecardID),
+                ["object-id"] = OSD.FromUUID(ObjectID)
+            };
 
             return map;
         }
@@ -2328,15 +2391,14 @@ namespace OpenMetaverse.Messages.Linden
 
         public override OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(4);
-            map["state"] = OSD.FromString(State);
-            map["new_asset"] = OSD.FromUUID(AssetID);
-            map["compiled"] = OSD.FromBoolean(Compiled);
+            OSDMap map = new OSDMap(4)
+            {
+                ["state"] = OSD.FromString(State),
+                ["new_asset"] = OSD.FromUUID(AssetID),
+                ["compiled"] = OSD.FromBoolean(Compiled)
+            };
 
-            OSDArray errorsArray = new OSDArray();
-            errorsArray.Add(Error);
-
-
+            OSDArray errorsArray = new OSDArray {Error};
             map["errors"] = errorsArray;
             return map;
         }
@@ -2376,11 +2438,13 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public override OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(4);
-            map["is_script_running"] = OSD.FromBoolean(ScriptRunning);
-            map["item_id"] = OSD.FromUUID(ItemID);
-            map["target"] = OSD.FromString(Target);
-            map["task_id"] = OSD.FromUUID(TaskID);
+            OSDMap map = new OSDMap(4)
+            {
+                ["is_script_running"] = OSD.FromBoolean(ScriptRunning),
+                ["item_id"] = OSD.FromUUID(ItemID),
+                ["target"] = OSD.FromString(Target),
+                ["task_id"] = OSD.FromUUID(TaskID)
+            };
             return map;
         }
 
@@ -2433,8 +2497,7 @@ namespace OpenMetaverse.Messages.Linden
             else
                 Logger.Log("Unable to deserialize UpdateScriptTaskMessage: No message handler exists for state " + map["state"].AsString(), Helpers.LogLevel.Warning);
 
-            if (Request != null)
-                Request.Deserialize(map);
+            Request?.Deserialize(map);
         }
     }
 
@@ -2456,10 +2519,12 @@ namespace OpenMetaverse.Messages.Linden
 
         public override OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(2);
-            map["state"] = OSD.FromString(State);
-            map["new_asset"] = OSD.FromUUID(AssetID);
-            map["compiled"] = OSD.FromBoolean(Compiled);
+            OSDMap map = new OSDMap(2)
+            {
+                ["state"] = OSD.FromString(State),
+                ["new_asset"] = OSD.FromUUID(AssetID),
+                ["compiled"] = OSD.FromBoolean(Compiled)
+            };
             return map;
         }
 
@@ -2488,9 +2553,11 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public override OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(2);
-            map["item_id"] = OSD.FromUUID(ItemID);
-            map["target"] = OSD.FromString(Target);
+            OSDMap map = new OSDMap(2)
+            {
+                ["item_id"] = OSD.FromUUID(ItemID),
+                ["target"] = OSD.FromString(Target)
+            };
             return map;
         }
 
@@ -2540,8 +2607,7 @@ namespace OpenMetaverse.Messages.Linden
             else
                 Logger.Log("Unable to deserialize UpdateScriptAgent: No message handler exists for state " + map["state"].AsString(), Helpers.LogLevel.Warning);
 
-            if (Request != null)
-                Request.Deserialize(map);
+            Request?.Deserialize(map);
         }
     }
 
@@ -2561,13 +2627,15 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(6);
-            map["from"] = OSD.FromString(FromEmail);
-            map["msg"] = OSD.FromString(Message);
-            map["name"] = OSD.FromString(FromName);
-            map["pos-global"] = OSD.FromVector3(GlobalPosition);
-            map["subject"] = OSD.FromString(Subject);
-            map["to"] = OSD.FromString(ToEmail);
+            OSDMap map = new OSDMap(6)
+            {
+                ["from"] = OSD.FromString(FromEmail),
+                ["msg"] = OSD.FromString(Message),
+                ["name"] = OSD.FromString(FromName),
+                ["pos-global"] = OSD.FromVector3(GlobalPosition),
+                ["subject"] = OSD.FromString(Subject),
+                ["to"] = OSD.FromString(ToEmail)
+            };
             return map;
         }
 
@@ -2616,8 +2684,7 @@ namespace OpenMetaverse.Messages.Linden
     {
         public override OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(1);
-            map["Flags"] = OSD.FromInteger(Flags);
+            OSDMap map = new OSDMap(1) {["Flags"] = OSD.FromInteger(Flags)};
             return map;
         }
 
@@ -2659,20 +2726,21 @@ namespace OpenMetaverse.Messages.Linden
         public override OSDMap Serialize()
         {
             OSDMap map = new OSDMap(2);
-            OSDMap agentMap = new OSDMap(1);
-            agentMap["Flags"] = OSD.FromInteger(Flags);
+            OSDMap agentMap = new OSDMap(1) {["Flags"] = OSD.FromInteger(Flags)};
             map["AgentData"] = agentMap;
 
             OSDArray layerArray = new OSDArray(LayerDataBlocks.Length);
 
-            for (int i = 0; i < LayerDataBlocks.Length; i++)
+            foreach (LayerData t in LayerDataBlocks)
             {
-                OSDMap layerMap = new OSDMap(5);
-                layerMap["ImageID"] = OSD.FromUUID(LayerDataBlocks[i].ImageID);
-                layerMap["Bottom"] = OSD.FromInteger(LayerDataBlocks[i].Bottom);
-                layerMap["Left"] = OSD.FromInteger(LayerDataBlocks[i].Left);
-                layerMap["Top"] = OSD.FromInteger(LayerDataBlocks[i].Top);
-                layerMap["Right"] = OSD.FromInteger(LayerDataBlocks[i].Right);
+                OSDMap layerMap = new OSDMap(5)
+                {
+                    ["ImageID"] = OSD.FromUUID(t.ImageID),
+                    ["Bottom"] = OSD.FromInteger(t.Bottom),
+                    ["Left"] = OSD.FromInteger(t.Left),
+                    ["Top"] = OSD.FromInteger(t.Top),
+                    ["Right"] = OSD.FromInteger(t.Right)
+                };
 
                 layerArray.Add(layerMap);
             }
@@ -2699,12 +2767,14 @@ namespace OpenMetaverse.Messages.Linden
             {
                 OSDMap layerMap = (OSDMap)layerArray[i];
 
-                LayerData layer = new LayerData();
-                layer.ImageID = layerMap["ImageID"].AsUUID();
-                layer.Top = layerMap["Top"].AsInteger();
-                layer.Right = layerMap["Right"].AsInteger();
-                layer.Left = layerMap["Left"].AsInteger();
-                layer.Bottom = layerMap["Bottom"].AsInteger();
+                LayerData layer = new LayerData
+                {
+                    ImageID = layerMap["ImageID"].AsUUID(),
+                    Top = layerMap["Top"].AsInteger(),
+                    Right = layerMap["Right"].AsInteger(),
+                    Left = layerMap["Left"].AsInteger(),
+                    Bottom = layerMap["Bottom"].AsInteger()
+                };
 
                 LayerDataBlocks[i] = layer;
             }
@@ -2738,8 +2808,7 @@ namespace OpenMetaverse.Messages.Linden
             else
                 Logger.Log("Unable to deserialize MapLayerMessage: No message handler exists", Helpers.LogLevel.Warning);
 
-            if (Request != null)
-                Request.Deserialize(map);
+            Request?.Deserialize(map);
         }
     }
 
@@ -3075,9 +3144,12 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(2);
-            map["success"] = OSD.FromBoolean(Success);
-            map["session_id"] = OSD.FromUUID(SessionID); // FIXME: Verify this is correct map name
+            OSDMap map = new OSDMap(2)
+            {
+                ["success"] = OSD.FromBoolean(Success),
+                ["session_id"] = OSD.FromUUID(SessionID)
+            };
+            // FIXME: Verify this is correct map name
 
             return map;
         }
@@ -3113,20 +3185,23 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap moderatedMap = new OSDMap(1);
-            moderatedMap["voice"] = OSD.FromBoolean(ModeratedVoice);
+            OSDMap moderatedMap = new OSDMap(1) {["voice"] = OSD.FromBoolean(ModeratedVoice)};
 
-            OSDMap sessionMap = new OSDMap(4);
-            sessionMap["type"] = OSD.FromInteger(Type);
-            sessionMap["session_name"] = OSD.FromString(SessionName);
-            sessionMap["voice_enabled"] = OSD.FromBoolean(VoiceEnabled);
-            sessionMap["moderated_mode"] = moderatedMap;
+            OSDMap sessionMap = new OSDMap(4)
+            {
+                ["type"] = OSD.FromInteger(Type),
+                ["session_name"] = OSD.FromString(SessionName),
+                ["voice_enabled"] = OSD.FromBoolean(VoiceEnabled),
+                ["moderated_mode"] = moderatedMap
+            };
 
-            OSDMap map = new OSDMap(4);
-            map["session_id"] = OSD.FromUUID(SessionID);
-            map["temp_session_id"] = OSD.FromUUID(TempSessionID);
-            map["success"] = OSD.FromBoolean(Success);
-            map["session_info"] = sessionMap;
+            OSDMap map = new OSDMap(4)
+            {
+                ["session_id"] = OSD.FromUUID(SessionID),
+                ["temp_session_id"] = OSD.FromUUID(TempSessionID),
+                ["success"] = OSD.FromBoolean(Success),
+                ["session_info"] = sessionMap
+            };
 
             return map;
         }
@@ -3141,16 +3216,14 @@ namespace OpenMetaverse.Messages.Linden
             TempSessionID = map["temp_session_id"].AsUUID();
             Success = map["success"].AsBoolean();
 
-            if (Success)
-            {
-                OSDMap sessionMap = (OSDMap)map["session_info"];
-                SessionName = sessionMap["session_name"].AsString();
-                Type = sessionMap["type"].AsInteger();
-                VoiceEnabled = sessionMap["voice_enabled"].AsBoolean();
+            if (!Success) return;
+            OSDMap sessionMap = (OSDMap)map["session_info"];
+            SessionName = sessionMap["session_name"].AsString();
+            Type = sessionMap["type"].AsInteger();
+            VoiceEnabled = sessionMap["voice_enabled"].AsBoolean();
 
-                OSDMap moderatedModeMap = (OSDMap)sessionMap["moderated_mode"];
-                ModeratedVoice = moderatedModeMap["voice"].AsBoolean();
-            }
+            OSDMap moderatedModeMap = (OSDMap)sessionMap["moderated_mode"];
+            ModeratedVoice = moderatedModeMap["voice"].AsBoolean();
         }
     }
 
@@ -3191,31 +3264,29 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap dataMap = new OSDMap(3);
-            dataMap["timestamp"] = OSD.FromDate(Timestamp);
-            dataMap["type"] = OSD.FromInteger((uint)Dialog);
-            dataMap["binary_bucket"] = OSD.FromBinary(BinaryBucket);
+            OSDMap dataMap = new OSDMap(3)
+            {
+                ["timestamp"] = OSD.FromDate(Timestamp),
+                ["type"] = OSD.FromInteger((uint) Dialog),
+                ["binary_bucket"] = OSD.FromBinary(BinaryBucket)
+            };
 
-            OSDMap paramsMap = new OSDMap(11);
-            paramsMap["from_id"] = OSD.FromUUID(FromAgentID);
-            paramsMap["from_name"] = OSD.FromString(FromAgentName);
-            paramsMap["to_id"] = OSD.FromUUID(ToAgentID);
-            paramsMap["parent_estate_id"] = OSD.FromInteger(ParentEstateID);
-            paramsMap["region_id"] = OSD.FromUUID(RegionID);
-            paramsMap["position"] = OSD.FromVector3(Position);
-            paramsMap["from_group"] = OSD.FromBoolean(GroupIM);
-            paramsMap["id"] = OSD.FromUUID(IMSessionID);
-            paramsMap["message"] = OSD.FromString(Message);
-            paramsMap["offline"] = OSD.FromInteger((uint)Offline);
-
-            paramsMap["data"] = dataMap;
-
-            OSDMap imMap = new OSDMap(1);
-            imMap["message_params"] = paramsMap;
-
-            OSDMap map = new OSDMap(1);
-            map["instantmessage"] = imMap;
-
+            OSDMap paramsMap = new OSDMap(11)
+            {
+                ["from_id"] = OSD.FromUUID(FromAgentID),
+                ["from_name"] = OSD.FromString(FromAgentName),
+                ["to_id"] = OSD.FromUUID(ToAgentID),
+                ["parent_estate_id"] = OSD.FromInteger(ParentEstateID),
+                ["region_id"] = OSD.FromUUID(RegionID),
+                ["position"] = OSD.FromVector3(Position),
+                ["from_group"] = OSD.FromBoolean(GroupIM),
+                ["id"] = OSD.FromUUID(IMSessionID),
+                ["message"] = OSD.FromString(Message),
+                ["offline"] = OSD.FromInteger((uint) Offline),
+                ["data"] = dataMap
+            };
+            OSDMap imMap = new OSDMap(1) {["message_params"] = paramsMap};
+            OSDMap map = new OSDMap(1) {["instantmessage"] = imMap};
             return map;
         }
 
@@ -3267,11 +3338,12 @@ namespace OpenMetaverse.Messages.Linden
 
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(3);
-            map["parcel_local_id"] = OSD.FromInteger(ParcelLocalID);
-            map["region_name"] = OSD.FromString(RegionName);
-            OSDMap voiceMap = new OSDMap(1);
-            voiceMap["channel_uri"] = OSD.FromString(ChannelUri);
+            OSDMap map = new OSDMap(3)
+            {
+                ["parcel_local_id"] = OSD.FromInteger(ParcelLocalID),
+                ["region_name"] = OSD.FromString(RegionName)
+            };
+            OSDMap voiceMap = new OSDMap(1) {["channel_uri"] = OSD.FromString(ChannelUri)};
             map["voice_credentials"] = voiceMap;
             return map;
         }
@@ -3332,22 +3404,28 @@ namespace OpenMetaverse.Messages.Linden
             OSDMap map = new OSDMap();
 
             OSDMap agent_updatesMap = new OSDMap(1);
-            for (int i = 0; i < Updates.Length; i++)
+            foreach (AgentUpdatesBlock t in Updates)
             {
-                OSDMap mutesMap = new OSDMap(2);
-                mutesMap["text"] = OSD.FromBoolean(Updates[i].MuteText);
-                mutesMap["voice"] = OSD.FromBoolean(Updates[i].MuteVoice);
+                OSDMap mutesMap = new OSDMap(2)
+                {
+                    ["text"] = OSD.FromBoolean(t.MuteText),
+                    ["voice"] = OSD.FromBoolean(t.MuteVoice)
+                };
 
-                OSDMap infoMap = new OSDMap(4);
-                infoMap["can_voice_chat"] = OSD.FromBoolean((bool)Updates[i].CanVoiceChat);
-                infoMap["is_moderator"] = OSD.FromBoolean((bool)Updates[i].IsModerator);
-                infoMap["mutes"] = mutesMap;
+                OSDMap infoMap = new OSDMap(4)
+                {
+                    ["can_voice_chat"] = OSD.FromBoolean((bool) t.CanVoiceChat),
+                    ["is_moderator"] = OSD.FromBoolean((bool) t.IsModerator),
+                    ["mutes"] = mutesMap
+                };
 
-                OSDMap imap = new OSDMap(1);
-                imap["info"] = infoMap;
-                imap["transition"] = OSD.FromString(Updates[i].Transition);
+                OSDMap imap = new OSDMap(1)
+                {
+                    ["info"] = infoMap,
+                    ["transition"] = OSD.FromString(t.Transition)
+                };
 
-                agent_updatesMap.Add(Updates[i].AgentID.ToString(), imap);
+                agent_updatesMap.Add(t.AgentID.ToString(), imap);
             }
 
             map.Add("agent_updates", agent_updatesMap);
@@ -3372,25 +3450,23 @@ namespace OpenMetaverse.Messages.Linden
             foreach (KeyValuePair<string, OSD> kvp in agent_updates)
             {
 
-                if (kvp.Key == "updates")
+                switch (kvp.Key)
                 {
-                    // This appears to be redundant and duplicated by the info block, more dumps will confirm this
-                    /* <key>32939971-a520-4b52-8ca5-6085d0e39933</key>
+                    case "updates":
+                        // This appears to be redundant and duplicated by the info block, more dumps will confirm this
+                        /* <key>32939971-a520-4b52-8ca5-6085d0e39933</key>
                             <string>ENTER</string> */
-                }
-                else if (kvp.Key == "session_id")
-                {
-                    // I am making the assumption that each osdmap will contain the information for a 
-                    // single session. This is how the map appears to read however more dumps should be taken
-                    // to confirm this.
-                    /* <key>session_id</key>
+                        break;
+                    case "session_id":
+                        // I am making the assumption that each osdmap will contain the information for a 
+                        // single session. This is how the map appears to read however more dumps should be taken
+                        // to confirm this.
+                        /* <key>session_id</key>
                             <string>984f6a1e-4ceb-6366-8d5e-a18c6819c6f7</string> */
-
-                }
-                else  // key is an agent uuid (we hope!)
-                {
-                    // should be the agents uuid as the key, and "info" as the datablock
-                    /* <key>32939971-a520-4b52-8ca5-6085d0e39933</key>
+                        break;
+                    default:
+                        // should be the agents uuid as the key, and "info" as the datablock
+                        /* <key>32939971-a520-4b52-8ca5-6085d0e39933</key>
                             <map>
                                 <key>info</key>
                                     <map>
@@ -3402,25 +3478,26 @@ namespace OpenMetaverse.Messages.Linden
                                 <key>transition</key>
                                     <string>ENTER</string>
                             </map>*/
-                    AgentUpdatesBlock block = new AgentUpdatesBlock();
-                    block.AgentID = UUID.Parse(kvp.Key);
+                        AgentUpdatesBlock block = new AgentUpdatesBlock();
+                        block.AgentID = UUID.Parse(kvp.Key);
 
-                    OSDMap infoMap = (OSDMap)agent_updates[kvp.Key];
+                        OSDMap infoMap = (OSDMap)agent_updates[kvp.Key];
 
-                    OSDMap agentPermsMap = (OSDMap)infoMap["info"];
+                        OSDMap agentPermsMap = (OSDMap)infoMap["info"];
 
-                    block.CanVoiceChat = agentPermsMap["can_voice_chat"].AsBoolean();
-                    block.IsModerator = agentPermsMap["is_moderator"].AsBoolean();
+                        block.CanVoiceChat = agentPermsMap["can_voice_chat"].AsBoolean();
+                        block.IsModerator = agentPermsMap["is_moderator"].AsBoolean();
 
-                    block.Transition = infoMap["transition"].AsString();
+                        block.Transition = infoMap["transition"].AsString();
 
-                    if (agentPermsMap.ContainsKey("mutes"))
-                    {
-                        OSDMap mutesMap = (OSDMap)agentPermsMap["mutes"];
-                        block.MuteText = mutesMap["text"].AsBoolean();
-                        block.MuteVoice = mutesMap["voice"].AsBoolean();
-                    }
-                    updatesList.Add(block);
+                        if (agentPermsMap.ContainsKey("mutes"))
+                        {
+                            OSDMap mutesMap = (OSDMap)agentPermsMap["mutes"];
+                            block.MuteText = mutesMap["text"].AsBoolean();
+                            block.MuteVoice = mutesMap["voice"].AsBoolean();
+                        }
+                        updatesList.Add(block);
+                        break;
                 }
             }
 
@@ -3428,13 +3505,15 @@ namespace OpenMetaverse.Messages.Linden
 
             for (int i = 0; i < updatesList.Count; i++)
             {
-                AgentUpdatesBlock block = new AgentUpdatesBlock();
-                block.AgentID = updatesList[i].AgentID;
-                block.CanVoiceChat = updatesList[i].CanVoiceChat;
-                block.IsModerator = updatesList[i].IsModerator;
-                block.MuteText = updatesList[i].MuteText;
-                block.MuteVoice = updatesList[i].MuteVoice;
-                block.Transition = updatesList[i].Transition;
+                AgentUpdatesBlock block = new AgentUpdatesBlock
+                {
+                    AgentID = updatesList[i].AgentID,
+                    CanVoiceChat = updatesList[i].CanVoiceChat,
+                    IsModerator = updatesList[i].IsModerator,
+                    MuteText = updatesList[i].MuteText,
+                    MuteVoice = updatesList[i].MuteVoice,
+                    Transition = updatesList[i].Transition
+                };
                 Updates[i] = block;
             }
         }
@@ -3460,9 +3539,11 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(2);
-            map["reason"] = OSD.FromString(Reason);
-            map["session_id"] = OSD.FromUUID(SessionID);
+            OSDMap map = new OSDMap(2)
+            {
+                ["reason"] = OSD.FromString(Reason),
+                ["session_id"] = OSD.FromUUID(SessionID)
+            };
 
             return map;
         }
@@ -3499,9 +3580,11 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public override OSDMap Serialize()
         {
-            OSDMap map = new OSDMap();
-            map["ack"] = OSD.FromInteger(AckID);
-            map["done"] = OSD.FromBoolean(Done);
+            OSDMap map = new OSDMap
+            {
+                ["ack"] = OSD.FromInteger(AckID),
+                ["done"] = OSD.FromBoolean(Done)
+            };
             return map;
         }
 
@@ -3537,11 +3620,13 @@ namespace OpenMetaverse.Messages.Linden
 
             OSDArray eventsArray = new OSDArray();
 
-            for (int i = 0; i < MessageEvents.Length; i++)
+            foreach (QueueEvent t in MessageEvents)
             {
-                OSDMap eventMap = new OSDMap(2);
-                eventMap["body"] = MessageEvents[i].EventMessage.Serialize();
-                eventMap["message"] = OSD.FromString(MessageEvents[i].MessageKey);
+                OSDMap eventMap = new OSDMap(2)
+                {
+                    ["body"] = t.EventMessage.Serialize(),
+                    ["message"] = OSD.FromString(t.MessageKey)
+                };
                 eventsArray.Add(eventMap);
             }
 
@@ -3565,9 +3650,8 @@ namespace OpenMetaverse.Messages.Linden
             for (int i = 0; i < arrayEvents.Count; i++)
             {
                 OSDMap eventMap = (OSDMap)arrayEvents[i];
-                QueueEvent ev = new QueueEvent();
+                QueueEvent ev = new QueueEvent {MessageKey = eventMap["message"].AsString()};
 
-                ev.MessageKey = eventMap["message"].AsString();
                 ev.EventMessage = MessageUtils.DecodeEvent(ev.MessageKey, (OSDMap)eventMap["body"]);
                 MessageEvents[i] = ev;
             }
@@ -3666,80 +3750,95 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(5);
-            map["session_id"] = OSD.FromUUID(SessionID);
+            OSDMap map = new OSDMap(5) {["session_id"] = OSD.FromUUID(SessionID)};
 
-            OSDMap agentMap = new OSDMap(11);
-            agentMap["agents_in_view"] = OSD.FromInteger(AgentsInView);
-            agentMap["fps"] = OSD.FromReal(AgentFPS);
-            agentMap["language"] = OSD.FromString(AgentLanguage);
-            agentMap["mem_use"] = OSD.FromReal(AgentMemoryUsed);
-            agentMap["meters_traveled"] = OSD.FromReal(MetersTraveled);
-            agentMap["ping"] = OSD.FromReal(AgentPing);
-            agentMap["regions_visited"] = OSD.FromInteger(RegionsVisited);
-            agentMap["run_time"] = OSD.FromReal(AgentRuntime);
-            agentMap["sim_fps"] = OSD.FromReal(SimulatorFPS);
-            agentMap["start_time"] = OSD.FromUInteger(Utils.DateTimeToUnixTime(AgentStartTime));
-            agentMap["version"] = OSD.FromString(AgentVersion);
+            OSDMap agentMap = new OSDMap(11)
+            {
+                ["agents_in_view"] = OSD.FromInteger(AgentsInView),
+                ["fps"] = OSD.FromReal(AgentFPS),
+                ["language"] = OSD.FromString(AgentLanguage),
+                ["mem_use"] = OSD.FromReal(AgentMemoryUsed),
+                ["meters_traveled"] = OSD.FromReal(MetersTraveled),
+                ["ping"] = OSD.FromReal(AgentPing),
+                ["regions_visited"] = OSD.FromInteger(RegionsVisited),
+                ["run_time"] = OSD.FromReal(AgentRuntime),
+                ["sim_fps"] = OSD.FromReal(SimulatorFPS),
+                ["start_time"] = OSD.FromUInteger(Utils.DateTimeToUnixTime(AgentStartTime)),
+                ["version"] = OSD.FromString(AgentVersion)
+            };
             map["agent"] = agentMap;
 
 
-            OSDMap downloadsMap = new OSDMap(3); // downloads
-            downloadsMap["object_kbytes"] = OSD.FromReal(object_kbytes);
-            downloadsMap["texture_kbytes"] = OSD.FromReal(texture_kbytes);
-            downloadsMap["world_kbytes"] = OSD.FromReal(world_kbytes);
+            OSDMap downloadsMap = new OSDMap(3)
+            {
+                ["object_kbytes"] = OSD.FromReal(object_kbytes),
+                ["texture_kbytes"] = OSD.FromReal(texture_kbytes),
+                ["world_kbytes"] = OSD.FromReal(world_kbytes)
+            }; // downloads
             map["downloads"] = downloadsMap;
 
-            OSDMap miscMap = new OSDMap(2);
-            miscMap["Version"] = OSD.FromReal(MiscVersion);
-            miscMap["Vertex Buffers Enabled"] = OSD.FromBoolean(VertexBuffersEnabled);
+            OSDMap miscMap = new OSDMap(2)
+            {
+                ["Version"] = OSD.FromReal(MiscVersion),
+                ["Vertex Buffers Enabled"] = OSD.FromBoolean(VertexBuffersEnabled)
+            };
             map["misc"] = miscMap;
 
             OSDMap statsMap = new OSDMap(2);
 
-            OSDMap failuresMap = new OSDMap(6);
-            failuresMap["dropped"] = OSD.FromInteger(StatsDropped);
-            failuresMap["failed_resends"] = OSD.FromInteger(StatsFailedResends);
-            failuresMap["invalid"] = OSD.FromInteger(FailuresInvalid);
-            failuresMap["off_circuit"] = OSD.FromInteger(FailuresOffCircuit);
-            failuresMap["resent"] = OSD.FromInteger(FailuresResent);
-            failuresMap["send_packet"] = OSD.FromInteger(FailuresSendPacket);
+            OSDMap failuresMap = new OSDMap(6)
+            {
+                ["dropped"] = OSD.FromInteger(StatsDropped),
+                ["failed_resends"] = OSD.FromInteger(StatsFailedResends),
+                ["invalid"] = OSD.FromInteger(FailuresInvalid),
+                ["off_circuit"] = OSD.FromInteger(FailuresOffCircuit),
+                ["resent"] = OSD.FromInteger(FailuresResent),
+                ["send_packet"] = OSD.FromInteger(FailuresSendPacket)
+            };
             statsMap["failures"] = failuresMap;
 
-            OSDMap statsMiscMap = new OSDMap(3);
-            statsMiscMap["int_1"] = OSD.FromInteger(MiscInt1);
-            statsMiscMap["int_2"] = OSD.FromInteger(MiscInt2);
-            statsMiscMap["string_1"] = OSD.FromString(MiscString1);
+            OSDMap statsMiscMap = new OSDMap(3)
+            {
+                ["int_1"] = OSD.FromInteger(MiscInt1),
+                ["int_2"] = OSD.FromInteger(MiscInt2),
+                ["string_1"] = OSD.FromString(MiscString1)
+            };
             statsMap["misc"] = statsMiscMap;
 
             OSDMap netMap = new OSDMap(3);
 
             // in
-            OSDMap netInMap = new OSDMap(4);
-            netInMap["compressed_packets"] = OSD.FromInteger(InCompressedPackets);
-            netInMap["kbytes"] = OSD.FromReal(InKbytes);
-            netInMap["packets"] = OSD.FromReal(InPackets);
-            netInMap["savings"] = OSD.FromReal(InSavings);
+            OSDMap netInMap = new OSDMap(4)
+            {
+                ["compressed_packets"] = OSD.FromInteger(InCompressedPackets),
+                ["kbytes"] = OSD.FromReal(InKbytes),
+                ["packets"] = OSD.FromReal(InPackets),
+                ["savings"] = OSD.FromReal(InSavings)
+            };
             netMap["in"] = netInMap;
             // out
-            OSDMap netOutMap = new OSDMap(4);
-            netOutMap["compressed_packets"] = OSD.FromInteger(OutCompressedPackets);
-            netOutMap["kbytes"] = OSD.FromReal(OutKbytes);
-            netOutMap["packets"] = OSD.FromReal(OutPackets);
-            netOutMap["savings"] = OSD.FromReal(OutSavings);
+            OSDMap netOutMap = new OSDMap(4)
+            {
+                ["compressed_packets"] = OSD.FromInteger(OutCompressedPackets),
+                ["kbytes"] = OSD.FromReal(OutKbytes),
+                ["packets"] = OSD.FromReal(OutPackets),
+                ["savings"] = OSD.FromReal(OutSavings)
+            };
             netMap["out"] = netOutMap;
 
             statsMap["net"] = netMap;
 
             //system
-            OSDMap systemStatsMap = new OSDMap(7);
-            systemStatsMap["cpu"] = OSD.FromString(SystemCPU);
-            systemStatsMap["gpu"] = OSD.FromString(SystemGPU);
-            systemStatsMap["gpu_class"] = OSD.FromInteger(SystemGPUClass);
-            systemStatsMap["gpu_vendor"] = OSD.FromString(SystemGPUVendor);
-            systemStatsMap["gpu_version"] = OSD.FromString(SystemGPUVersion);
-            systemStatsMap["os"] = OSD.FromString(SystemOS);
-            systemStatsMap["ram"] = OSD.FromInteger(SystemInstalledRam);
+            OSDMap systemStatsMap = new OSDMap(7)
+            {
+                ["cpu"] = OSD.FromString(SystemCPU),
+                ["gpu"] = OSD.FromString(SystemGPU),
+                ["gpu_class"] = OSD.FromInteger(SystemGPUClass),
+                ["gpu_vendor"] = OSD.FromString(SystemGPUVendor),
+                ["gpu_version"] = OSD.FromString(SystemGPUVersion),
+                ["os"] = OSD.FromString(SystemOS),
+                ["ram"] = OSD.FromInteger(SystemInstalledRam)
+            };
             map["system"] = systemStatsMap;
 
             map["stats"] = statsMap;
@@ -3853,44 +3952,45 @@ namespace OpenMetaverse.Messages.Linden
             OSDMap map = new OSDMap(3);
 
             // add the AgentData map
-            OSDMap agentIDmap = new OSDMap(2);
-            agentIDmap["AgentID"] = OSD.FromUUID(AgentID);
-            agentIDmap["QueryID"] = OSD.FromUUID(QueryID);
+            OSDMap agentIDmap = new OSDMap(2)
+            {
+                ["AgentID"] = OSD.FromUUID(AgentID),
+                ["QueryID"] = OSD.FromUUID(QueryID)
+            };
 
-            OSDArray agentDataArray = new OSDArray();
-            agentDataArray.Add(agentIDmap);
+            OSDArray agentDataArray = new OSDArray {agentIDmap};
 
             map["AgentData"] = agentDataArray;
 
             // add the QueryData map
             OSDArray dataBlocksArray = new OSDArray(QueryDataBlocks.Length);
-            for (int i = 0; i < QueryDataBlocks.Length; i++)
+            foreach (QueryData t in QueryDataBlocks)
             {
-                OSDMap queryDataMap = new OSDMap(14);
-                queryDataMap["ActualArea"] = OSD.FromInteger(QueryDataBlocks[i].ActualArea);
-                queryDataMap["BillableArea"] = OSD.FromInteger(QueryDataBlocks[i].BillableArea);
-                queryDataMap["Desc"] = OSD.FromString(QueryDataBlocks[i].Description);
-                queryDataMap["Dwell"] = OSD.FromReal(QueryDataBlocks[i].Dwell);
-                queryDataMap["Flags"] = OSD.FromInteger(QueryDataBlocks[i].Flags);
-                queryDataMap["GlobalX"] = OSD.FromReal(QueryDataBlocks[i].GlobalX);
-                queryDataMap["GlobalY"] = OSD.FromReal(QueryDataBlocks[i].GlobalY);
-                queryDataMap["GlobalZ"] = OSD.FromReal(QueryDataBlocks[i].GlobalZ);
-                queryDataMap["Name"] = OSD.FromString(QueryDataBlocks[i].Name);
-                queryDataMap["OwnerID"] = OSD.FromUUID(QueryDataBlocks[i].OwnerID);
-                queryDataMap["Price"] = OSD.FromInteger(QueryDataBlocks[i].Price);
-                queryDataMap["SimName"] = OSD.FromString(QueryDataBlocks[i].SimName);
-                queryDataMap["SnapshotID"] = OSD.FromUUID(QueryDataBlocks[i].SnapShotID);
-                queryDataMap["ProductSKU"] = OSD.FromString(QueryDataBlocks[i].ProductSku);
+                OSDMap queryDataMap = new OSDMap(14)
+                {
+                    ["ActualArea"] = OSD.FromInteger(t.ActualArea),
+                    ["BillableArea"] = OSD.FromInteger(t.BillableArea),
+                    ["Desc"] = OSD.FromString(t.Description),
+                    ["Dwell"] = OSD.FromReal(t.Dwell),
+                    ["Flags"] = OSD.FromInteger(t.Flags),
+                    ["GlobalX"] = OSD.FromReal(t.GlobalX),
+                    ["GlobalY"] = OSD.FromReal(t.GlobalY),
+                    ["GlobalZ"] = OSD.FromReal(t.GlobalZ),
+                    ["Name"] = OSD.FromString(t.Name),
+                    ["OwnerID"] = OSD.FromUUID(t.OwnerID),
+                    ["Price"] = OSD.FromInteger(t.Price),
+                    ["SimName"] = OSD.FromString(t.SimName),
+                    ["SnapshotID"] = OSD.FromUUID(t.SnapShotID),
+                    ["ProductSKU"] = OSD.FromString(t.ProductSku)
+                };
                 dataBlocksArray.Add(queryDataMap);
             }
 
             map["QueryData"] = dataBlocksArray;
 
             // add the TransactionData map
-            OSDMap transMap = new OSDMap(1);
-            transMap["TransactionID"] = OSD.FromUUID(TransactionID);
-            OSDArray transArray = new OSDArray();
-            transArray.Add(transMap);
+            OSDMap transMap = new OSDMap(1) {["TransactionID"] = OSD.FromUUID(TransactionID)};
+            OSDArray transArray = new OSDArray {transMap};
             map["TransactionData"] = transArray;
 
             return map;
@@ -3914,21 +4014,23 @@ namespace OpenMetaverse.Messages.Linden
             for (int i = 0; i < dataBlocksArray.Count; i++)
             {
                 OSDMap dataMap = (OSDMap)dataBlocksArray[i];
-                QueryData data = new QueryData();
-                data.ActualArea = dataMap["ActualArea"].AsInteger();
-                data.BillableArea = dataMap["BillableArea"].AsInteger();
-                data.Description = dataMap["Desc"].AsString();
-                data.Dwell = (float)dataMap["Dwell"].AsReal();
-                data.Flags = dataMap["Flags"].AsInteger();
-                data.GlobalX = (float)dataMap["GlobalX"].AsReal();
-                data.GlobalY = (float)dataMap["GlobalY"].AsReal();
-                data.GlobalZ = (float)dataMap["GlobalZ"].AsReal();
-                data.Name = dataMap["Name"].AsString();
-                data.OwnerID = dataMap["OwnerID"].AsUUID();
-                data.Price = dataMap["Price"].AsInteger();
-                data.SimName = dataMap["SimName"].AsString();
-                data.SnapShotID = dataMap["SnapshotID"].AsUUID();
-                data.ProductSku = dataMap["ProductSKU"].AsString();
+                QueryData data = new QueryData
+                {
+                    ActualArea = dataMap["ActualArea"].AsInteger(),
+                    BillableArea = dataMap["BillableArea"].AsInteger(),
+                    Description = dataMap["Desc"].AsString(),
+                    Dwell = (float) dataMap["Dwell"].AsReal(),
+                    Flags = dataMap["Flags"].AsInteger(),
+                    GlobalX = (float) dataMap["GlobalX"].AsReal(),
+                    GlobalY = (float) dataMap["GlobalY"].AsReal(),
+                    GlobalZ = (float) dataMap["GlobalZ"].AsReal(),
+                    Name = dataMap["Name"].AsString(),
+                    OwnerID = dataMap["OwnerID"].AsUUID(),
+                    Price = dataMap["Price"].AsInteger(),
+                    SimName = dataMap["SimName"].AsString(),
+                    SnapShotID = dataMap["SnapshotID"].AsUUID(),
+                    ProductSku = dataMap["ProductSKU"].AsString()
+                };
                 QueryDataBlocks[i] = data;
             }
 
@@ -3949,8 +4051,7 @@ namespace OpenMetaverse.Messages.Linden
         public OSDMap Serialize()
         {
             OSDMap map = new OSDMap(1);
-            OSDMap prefsMap = new OSDMap(1);
-            prefsMap["max"] = OSD.FromString(MaxAccess);
+            OSDMap prefsMap = new OSDMap(1) {["max"] = OSD.FromString(MaxAccess)};
             map["access_prefs"] = prefsMap;
             return map;
         }
@@ -3994,29 +4095,27 @@ namespace OpenMetaverse.Messages.Linden
         {
             OSDMap map = new OSDMap(3);
 
-            OSDMap agentMap = new OSDMap(1);
-            agentMap["AgentID"] = OSD.FromUUID(AgentID);
-            OSDArray agentDataArray = new OSDArray(1);
-            agentDataArray.Add(agentMap);
+            OSDMap agentMap = new OSDMap(1) {["AgentID"] = OSD.FromUUID(AgentID)};
+            OSDArray agentDataArray = new OSDArray(1) {agentMap};
             map["AgentData"] = agentDataArray;
 
-            OSDMap queryMap = new OSDMap(1);
-            queryMap["QueryID"] = OSD.FromUUID(QueryID);
-            OSDArray queryDataArray = new OSDArray(1);
-            queryDataArray.Add(queryMap);
+            OSDMap queryMap = new OSDMap(1) {["QueryID"] = OSD.FromUUID(QueryID)};
+            OSDArray queryDataArray = new OSDArray(1) {queryMap};
             map["QueryData"] = queryDataArray;
 
             OSDArray queryReplyArray = new OSDArray();
-            for (int i = 0; i < QueryReplies.Length; i++)
+            foreach (QueryReply t in QueryReplies)
             {
-                OSDMap queryReply = new OSDMap(100);
-                queryReply["ActualArea"] = OSD.FromInteger(QueryReplies[i].ActualArea);
-                queryReply["Auction"] = OSD.FromBoolean(QueryReplies[i].Auction);
-                queryReply["ForSale"] = OSD.FromBoolean(QueryReplies[i].ForSale);
-                queryReply["Name"] = OSD.FromString(QueryReplies[i].Name);
-                queryReply["ParcelID"] = OSD.FromUUID(QueryReplies[i].ParcelID);
-                queryReply["ProductSKU"] = OSD.FromString(QueryReplies[i].ProductSku);
-                queryReply["SalePrice"] = OSD.FromInteger(QueryReplies[i].SalePrice);
+                OSDMap queryReply = new OSDMap(100)
+                {
+                    ["ActualArea"] = OSD.FromInteger(t.ActualArea),
+                    ["Auction"] = OSD.FromBoolean(t.Auction),
+                    ["ForSale"] = OSD.FromBoolean(t.ForSale),
+                    ["Name"] = OSD.FromString(t.Name),
+                    ["ParcelID"] = OSD.FromUUID(t.ParcelID),
+                    ["ProductSKU"] = OSD.FromString(t.ProductSku),
+                    ["SalePrice"] = OSD.FromInteger(t.SalePrice)
+                };
 
                 queryReplyArray.Add(queryReply);
             }
@@ -4083,18 +4182,20 @@ namespace OpenMetaverse.Messages.Linden
 
                 public OSDMap Serialize()
                 {
-                    OSDMap map = new OSDMap();
-                    map["bump"] = OSD.FromInteger((int)Bump);
-                    map["colors"] = OSD.FromColor4(Color);
-                    map["fullbright"] = OSD.FromBoolean(Fullbright);
-                    map["glow"] = OSD.FromReal(Glow);
-                    map["imageid"] = OSD.FromUUID(ImageID);
-                    map["imagerot"] = OSD.FromReal(ImageRot);
-                    map["media_flags"] = OSD.FromInteger(MediaFlags);
-                    map["offsets"] = OSD.FromReal(OffsetS);
-                    map["offsett"] = OSD.FromReal(OffsetT);
-                    map["scales"] = OSD.FromReal(ScaleS);
-                    map["scalet"] = OSD.FromReal(ScaleT);
+                    OSDMap map = new OSDMap
+                    {
+                        ["bump"] = OSD.FromInteger((int) Bump),
+                        ["colors"] = OSD.FromColor4(Color),
+                        ["fullbright"] = OSD.FromBoolean(Fullbright),
+                        ["glow"] = OSD.FromReal(Glow),
+                        ["imageid"] = OSD.FromUUID(ImageID),
+                        ["imagerot"] = OSD.FromReal(ImageRot),
+                        ["media_flags"] = OSD.FromInteger(MediaFlags),
+                        ["offsets"] = OSD.FromReal(OffsetS),
+                        ["offsett"] = OSD.FromReal(OffsetT),
+                        ["scales"] = OSD.FromReal(ScaleS),
+                        ["scalet"] = OSD.FromReal(ScaleT)
+                    };
 
                     return map;
                 }
@@ -4122,9 +4223,11 @@ namespace OpenMetaverse.Messages.Linden
 
                 public OSDMap Serialize()
                 {
-                    OSDMap map = new OSDMap();
-                    map["extra_parameter"] = OSD.FromInteger((int)Type);
-                    map["param_data"] = OSD.FromBinary(ExtraParamData);
+                    OSDMap map = new OSDMap
+                    {
+                        ["extra_parameter"] = OSD.FromInteger((int) Type),
+                        ["param_data"] = OSD.FromBinary(ExtraParamData)
+                    };
 
                     return map;
                 }
@@ -4167,21 +4270,21 @@ namespace OpenMetaverse.Messages.Linden
 
             public OSDMap Serialize()
             {
-                OSDMap map = new OSDMap();
-
-                map["group-id"] = OSD.FromUUID(GroupID);
-                map["material"] = OSD.FromInteger((int)Material);
-                map["name"] = OSD.FromString(Name);
-                map["pos"] = OSD.FromVector3(Position);
-                map["rotation"] = OSD.FromQuaternion(Rotation);
-                map["scale"] = OSD.FromVector3(Scale);
-
+                OSDMap map = new OSDMap
+                {
+                    ["group-id"] = OSD.FromUUID(GroupID),
+                    ["material"] = OSD.FromInteger((int) Material),
+                    ["name"] = OSD.FromString(Name),
+                    ["pos"] = OSD.FromVector3(Position),
+                    ["rotation"] = OSD.FromQuaternion(Rotation),
+                    ["scale"] = OSD.FromVector3(Scale)
+                };
                 // Extra params
                 OSDArray extraParams = new OSDArray();
                 if (ExtraParams != null)
                 {
-                    for (int i = 0; i < ExtraParams.Length; i++)
-                        extraParams.Add(ExtraParams[i].Serialize());
+                    foreach (ExtraParam t in ExtraParams)
+                        extraParams.Add(t.Serialize());
                 }
                 map["extra_parameters"] = extraParams;
 
@@ -4189,38 +4292,44 @@ namespace OpenMetaverse.Messages.Linden
                 OSDArray faces = new OSDArray();
                 if (Faces != null)
                 {
-                    for (int i = 0; i < Faces.Length; i++)
-                        faces.Add(Faces[i].Serialize());
+                    foreach (Face face in Faces)
+                        faces.Add(face.Serialize());
                 }
                 map["facelist"] = faces;
 
                 // Shape
                 OSDMap shape = new OSDMap();
-                OSDMap path = new OSDMap();
-                path["begin"] = OSD.FromReal(PathBegin);
-                path["curve"] = OSD.FromInteger(PathCurve);
-                path["end"] = OSD.FromReal(PathEnd);
-                path["radius_offset"] = OSD.FromReal(RadiusOffset);
-                path["revolutions"] = OSD.FromReal(Revolutions);
-                path["scale_x"] = OSD.FromReal(ScaleX);
-                path["scale_y"] = OSD.FromReal(ScaleY);
-                path["shear_x"] = OSD.FromReal(ShearX);
-                path["shear_y"] = OSD.FromReal(ShearY);
-                path["skew"] = OSD.FromReal(Skew);
-                path["taper_x"] = OSD.FromReal(TaperX);
-                path["taper_y"] = OSD.FromReal(TaperY);
-                path["twist"] = OSD.FromReal(Twist);
-                path["twist_begin"] = OSD.FromReal(TwistBegin);
+                OSDMap path = new OSDMap
+                {
+                    ["begin"] = OSD.FromReal(PathBegin),
+                    ["curve"] = OSD.FromInteger(PathCurve),
+                    ["end"] = OSD.FromReal(PathEnd),
+                    ["radius_offset"] = OSD.FromReal(RadiusOffset),
+                    ["revolutions"] = OSD.FromReal(Revolutions),
+                    ["scale_x"] = OSD.FromReal(ScaleX),
+                    ["scale_y"] = OSD.FromReal(ScaleY),
+                    ["shear_x"] = OSD.FromReal(ShearX),
+                    ["shear_y"] = OSD.FromReal(ShearY),
+                    ["skew"] = OSD.FromReal(Skew),
+                    ["taper_x"] = OSD.FromReal(TaperX),
+                    ["taper_y"] = OSD.FromReal(TaperY),
+                    ["twist"] = OSD.FromReal(Twist),
+                    ["twist_begin"] = OSD.FromReal(TwistBegin)
+                };
                 shape["path"] = path;
-                OSDMap profile = new OSDMap();
-                profile["begin"] = OSD.FromReal(ProfileBegin);
-                profile["curve"] = OSD.FromInteger(ProfileCurve);
-                profile["end"] = OSD.FromReal(ProfileEnd);
-                profile["hollow"] = OSD.FromReal(ProfileHollow);
+                OSDMap profile = new OSDMap
+                {
+                    ["begin"] = OSD.FromReal(ProfileBegin),
+                    ["curve"] = OSD.FromInteger(ProfileCurve),
+                    ["end"] = OSD.FromReal(ProfileEnd),
+                    ["hollow"] = OSD.FromReal(ProfileHollow)
+                };
                 shape["profile"] = profile;
-                OSDMap sculpt = new OSDMap();
-                sculpt["id"] = OSD.FromUUID(SculptID);
-                sculpt["type"] = OSD.FromInteger((int)SculptType);
+                OSDMap sculpt = new OSDMap
+                {
+                    ["id"] = OSD.FromUUID(SculptID),
+                    ["type"] = OSD.FromInteger((int) SculptType)
+                };
                 shape["sculpt"] = sculpt;
                 map["shape"] = shape;
 
@@ -4317,8 +4426,8 @@ namespace OpenMetaverse.Messages.Linden
 
             if (Objects != null)
             {
-                for (int i = 0; i < Objects.Length; i++)
-                    array.Add(Objects[i].Serialize());
+                foreach (Object obj in Objects)
+                    array.Add(obj.Serialize());
             }
 
             map["objects"] = array;
@@ -4369,9 +4478,9 @@ namespace OpenMetaverse.Messages.Linden
             OSDMap ret = new OSDMap();
             OSDArray array = new OSDArray();
 
-            for (int i = 0; i < ObjectPhysicsProperties.Length; i++)
+            foreach (Primitive.PhysicsProperties prop in ObjectPhysicsProperties)
             {
-                array.Add(ObjectPhysicsProperties[i].GetOSD());
+                array.Add(prop.GetOSD());
             }
 
             ret["ObjectData"] = array;
@@ -4485,9 +4594,9 @@ namespace OpenMetaverse.Messages.Linden
             OSDMap ret = new OSDMap();
             OSDArray array = new OSDArray();
 
-            for (int i = 0; i < ObjectIDs.Length; i++)
+            foreach (UUID id in ObjectIDs)
             {
-                array.Add(OSD.FromUUID(ObjectIDs[i]));
+                array.Add(OSD.FromUUID(id));
             }
 
             ret["object_ids"] = array;
@@ -4532,14 +4641,15 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>Serialized OSD</returns>
         public OSDMap Serialize()
         {
-            OSDMap values = new OSDMap(4);
-            values.Add("linked_set_resource_cost", OSD.FromReal(link_cost));
-            values.Add("resource_cost", OSD.FromReal(object_cost));
-            values.Add("physics_cost", OSD.FromReal(physics_cost));
-            values.Add("linked_set_physics_cost", OSD.FromReal(link_physics_cost));
+            OSDMap values = new OSDMap(4)
+            {
+                {"linked_set_resource_cost", OSD.FromReal(link_cost)},
+                {"resource_cost", OSD.FromReal(object_cost)},
+                {"physics_cost", OSD.FromReal(physics_cost)},
+                {"linked_set_physics_cost", OSD.FromReal(link_physics_cost)}
+            };
 
-            OSDMap map = new OSDMap(1);
-            map.Add(OSD.FromUUID(object_id), values);
+            OSDMap map = new OSDMap(1) {{OSD.FromUUID(object_id), values}};
             return map;
         }
 
@@ -4595,12 +4705,12 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(3);
-
-            map["current_url"] = OSD.FromString(URL);
-            map["object_id"] = OSD.FromUUID(PrimID);
-            map["texture_index"] = OSD.FromInteger(Face);
-
+            OSDMap map = new OSDMap(3)
+            {
+                ["current_url"] = OSD.FromString(URL),
+                ["object_id"] = OSD.FromUUID(PrimID),
+                ["texture_index"] = OSD.FromInteger(Face)
+            };
             return map;
         }
 
@@ -4646,9 +4756,11 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>Serialized object as OSDMap</returns>
         public override OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(2);
-            map["object_id"] = OSD.FromUUID(PrimID);
-            map["verb"] = OSD.FromString(Verb);
+            OSDMap map = new OSDMap(2)
+            {
+                ["object_id"] = OSD.FromUUID(PrimID),
+                ["verb"] = OSD.FromString(Verb)
+            };
             return map;
         }
 
@@ -4690,8 +4802,7 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>Serialized object as OSDMap</returns>
         public override OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(2);
-            map["object_id"] = OSD.FromUUID(PrimID);
+            OSDMap map = new OSDMap(2) {["object_id"] = OSD.FromUUID(PrimID)};
 
             if (FaceMedia == null)
             {
@@ -4701,12 +4812,9 @@ namespace OpenMetaverse.Messages.Linden
             {
                 OSDArray mediaData = new OSDArray(FaceMedia.Length);
 
-                for (int i = 0; i < FaceMedia.Length; i++)
+                foreach (MediaEntry media in FaceMedia)
                 {
-                    if (FaceMedia[i] == null)
-                        mediaData.Add(new OSD());
-                    else
-                        mediaData.Add(FaceMedia[i].GetOSD());
+                    mediaData.Add(media == null ? new OSD() : media.GetOSD());
                 }
 
                 map["object_media_data"] = mediaData;
@@ -4770,8 +4878,7 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>Serialized object as OSDMap</returns>
         public override OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(2);
-            map["object_id"] = OSD.FromUUID(PrimID);
+            OSDMap map = new OSDMap(2) {["object_id"] = OSD.FromUUID(PrimID)};
 
             if (FaceMedia == null)
             {
@@ -4781,12 +4888,9 @@ namespace OpenMetaverse.Messages.Linden
             {
                 OSDArray mediaData = new OSDArray(FaceMedia.Length);
 
-                for (int i = 0; i < FaceMedia.Length; i++)
+                foreach (MediaEntry media in FaceMedia)
                 {
-                    if (FaceMedia[i] == null)
-                        mediaData.Add(new OSD());
-                    else
-                        mediaData.Add(FaceMedia[i].GetOSD());
+                    mediaData.Add(media == null ? new OSD() : media.GetOSD());
                 }
 
                 map["object_media_data"] = mediaData;
@@ -4849,18 +4953,22 @@ namespace OpenMetaverse.Messages.Linden
         {
             if (map.ContainsKey("verb"))
             {
-                if (map["verb"].AsString() == "GET")
-                    Request = new ObjectMediaRequest();
-                else if (map["verb"].AsString() == "UPDATE")
-                    Request = new ObjectMediaUpdate();
+                switch (map["verb"].AsString())
+                {
+                    case "GET":
+                        Request = new ObjectMediaRequest();
+                        break;
+                    case "UPDATE":
+                        Request = new ObjectMediaUpdate();
+                        break;
+                }
             }
             else if (map.ContainsKey("object_media_version"))
                 Request = new ObjectMediaResponse();
             else
                 Logger.Log("Unable to deserialize ObjectMedia: No message handler exists for method: " + map.AsString(), Helpers.LogLevel.Warning);
 
-            if (Request != null)
-                Request.Deserialize(map);
+            Request?.Deserialize(map);
         }
     }
     #endregion Object Media Messages
@@ -4997,15 +5105,15 @@ namespace OpenMetaverse.Messages.Linden
             OSDArray available = (OSDArray)summary["available"];
             OSDArray used = (OSDArray)summary["used"];
 
-            for (int i = 0; i < available.Count; i++)
+            foreach (OSD av in available)
             {
-                OSDMap limit = (OSDMap)available[i];
+                OSDMap limit = (OSDMap)av;
                 SummaryAvailable.Add(limit["type"].AsString(), limit["amount"].AsInteger());
             }
 
-            for (int i = 0; i < used.Count; i++)
+            foreach (OSD t in used)
             {
-                OSDMap limit = (OSDMap)used[i];
+                OSDMap limit = (OSDMap)t;
                 SummaryUsed.Add(limit["type"].AsString(), limit["amount"].AsInteger());
             }
         }
@@ -5027,9 +5135,9 @@ namespace OpenMetaverse.Messages.Linden
             OSDArray attachments = (OSDArray)((OSDMap)osd)["attachments"];
             Attachments = new Dictionary<AttachmentPoint, ObjectResourcesDetail[]>();
 
-            for (int i = 0; i < attachments.Count; i++)
+            foreach (OSD t in attachments)
             {
-                OSDMap attachment = (OSDMap)attachments[i];
+                OSDMap attachment = (OSDMap)t;
                 AttachmentPoint pt = Utils.StringToAttachmentPoint(attachment["location"].AsString());
 
                 OSDArray objectsOSD = (OSDArray)attachment["objects"];
@@ -5063,14 +5171,7 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>Object capable of decoding this message</returns>
         public static IMessage GetMessageHandler(OSDMap map)
         {
-            if (map == null)
-            {
-                return null;
-            }
-            else
-            {
-                return new AttachmentResourcesMessage();
-            }
+            return map == null ? null : new AttachmentResourcesMessage();
         }
     }
 
@@ -5086,8 +5187,7 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns><see cref="OSDMap"/> serialized data</returns>
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(1);
-            map["parcel_id"] = OSD.FromUUID(ParcelID);
+            OSDMap map = new OSDMap(1) {["parcel_id"] = OSD.FromUUID(ParcelID)};
             return map;
         }
 
@@ -5155,7 +5255,7 @@ namespace OpenMetaverse.Messages.Linden
             {
                 return new LandResourcesRequest();
             }
-            else if (map.ContainsKey("ScriptResourceSummary"))
+            if (map.ContainsKey("ScriptResourceSummary"))
             {
                 return new LandResourcesMessage();
             }
@@ -5216,24 +5316,26 @@ namespace OpenMetaverse.Messages.Linden
 
             if (Agents != null && Agents.Length > 0)
             {
-                for (int i = 0; i < Agents.Length; i++)
+                foreach (AgentDisplayName agent in Agents)
                 {
-                    agents.Add(Agents[i].GetOSD());
+                    agents.Add(agent.GetOSD());
                 }
             }
 
             OSDArray badIDs = new OSDArray();
             if (BadIDs != null && BadIDs.Length > 0)
             {
-                for (int i = 0; i < BadIDs.Length; i++)
+                foreach (UUID bad in BadIDs)
                 {
-                    badIDs.Add(new OSDUUID(BadIDs[i]));
+                    badIDs.Add(new OSDUUID(bad));
                 }
             }
 
-            OSDMap ret = new OSDMap();
-            ret["agents"] = agents;
-            ret["bad_ids"] = badIDs;
+            OSDMap ret = new OSDMap
+            {
+                ["agents"] = agents,
+                ["bad_ids"] = badIDs
+            };
             return ret;
         }
 
@@ -5287,12 +5389,9 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>OSD containting the messaage</returns>
         public OSDMap Serialize()
         {
-            OSDArray names = new OSDArray(2);
-            names.Add(OldDisplayName);
-            names.Add(NewDisplayName);
+            OSDArray names = new OSDArray(2) {OldDisplayName, NewDisplayName};
 
-            OSDMap name = new OSDMap();
-            name["display_name"] = names;
+            OSDMap name = new OSDMap {["display_name"] = names};
             return name;
         }
 
@@ -5325,10 +5424,12 @@ namespace OpenMetaverse.Messages.Linden
         public OSDMap Serialize()
         {
             OSDMap agent = (OSDMap)DisplayName.GetOSD();
-            OSDMap ret = new OSDMap();
-            ret["content"] = agent;
-            ret["reason"] = Reason;
-            ret["status"] = Status;
+            OSDMap ret = new OSDMap
+            {
+                ["content"] = agent,
+                ["reason"] = Reason,
+                ["status"] = Status
+            };
             return ret;
         }
 
@@ -5360,8 +5461,7 @@ namespace OpenMetaverse.Messages.Linden
         {
             OSDMap agent = (OSDMap)DisplayName.GetOSD();
             agent["old_display_name"] = OldDisplayName;
-            OSDMap ret = new OSDMap();
-            ret["agent"] = agent;
+            OSDMap ret = new OSDMap {["agent"] = agent};
             return ret;
         }
 
