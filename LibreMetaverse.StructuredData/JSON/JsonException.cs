@@ -14,6 +14,7 @@ using System;
 
 namespace LitJson
 {
+    [Serializable]
     public class JsonException : ApplicationException
     {
         public JsonException () : base ()
