@@ -34,6 +34,7 @@ namespace OpenMetaverse
     /// <summary>
     /// Exception class to identify inventory exceptions
     /// </summary>
+    [Serializable]
     public class InventoryException : Exception
     {
         public InventoryException(string message)

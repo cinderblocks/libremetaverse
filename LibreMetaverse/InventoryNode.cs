@@ -29,7 +29,7 @@ using System.Runtime.Serialization;
 
 namespace OpenMetaverse
 {
-    [Serializable()]
+    [Serializable]
     public class InventoryNode : ISerializable
     {
         private InventoryBase data;

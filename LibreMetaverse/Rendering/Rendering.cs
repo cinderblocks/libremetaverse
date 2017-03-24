@@ -194,6 +194,7 @@ namespace OpenMetaverse.Rendering
 
     #region Exceptions
 
+    [Serializable]
     public class RenderingException : Exception
     {
         public RenderingException(string message)
