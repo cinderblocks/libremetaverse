@@ -551,14 +551,14 @@ namespace OpenMetaverse
             GC.SuppressFinalize(this);
         }
 
-        public virtual void Dispose(bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
             if (!disposing) return;
 
             AckTimer?.Dispose();
             PingTimer?.Dispose();
             StatsTimer?.Dispose();
-            ConnectedEvent?.Close();
+            ConnectedEvent?.Dispose();
 
             // Force all the CAPS connections closed for this simulator
             Caps?.Disconnect(true);

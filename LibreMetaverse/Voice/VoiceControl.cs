@@ -288,7 +288,16 @@ namespace OpenMetaverse.Voice
         /// </summary>
         public void Dispose()
         {
-            Stop();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                Stop();
+            }
         }
 
         internal string GetVoiceDaemonPath()
