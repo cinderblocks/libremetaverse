@@ -1122,7 +1122,7 @@ namespace OpenMetaverse
 
         #region Blocking Functions
 
-        [Obsolete("Use the async StartPeoplSearch method instead")]
+        [Obsolete("Use the async StartPeopleSearch method instead")]
         public bool PeopleSearch(DirFindFlags findFlags, string searchText, int queryStart,
             int timeoutMS, out List<AgentSearchData> results)
         {
