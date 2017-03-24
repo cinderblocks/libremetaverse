@@ -558,7 +558,7 @@ namespace OpenMetaverse
             AckTimer?.Dispose();
             PingTimer?.Dispose();
             StatsTimer?.Dispose();
-            ConnectedEvent?.Dispose();
+            ConnectedEvent?.Close();
 
             // Force all the CAPS connections closed for this simulator
             Caps?.Disconnect(true);
