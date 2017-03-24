@@ -520,7 +520,7 @@ namespace OpenMetaverse
             /// <returns></returns>
             public override string ToString()
             {
-                return String.Format("LightTexture: {0} Params; {1]", LightTexture, Params);
+                return String.Format("LightTexture: {0} Params; {1}", LightTexture, Params);
             }
         }
 

@@ -214,7 +214,7 @@ namespace OpenMetaverse
     /// <summary>
     /// An Item in Inventory
     /// </summary>
-    [Serializable()]
+    [Serializable]
     public class InventoryItem : InventoryBase
     {
         public override string ToString()
@@ -1318,7 +1318,9 @@ namespace OpenMetaverse
 
         #endregion String Arrays
 
+        [NonSerialized]
         private GridClient Client;
+        [NonSerialized]
         private Inventory _Store;
         //private Random _RandNumbers = new Random();
         private object _CallbacksLock = new object();
