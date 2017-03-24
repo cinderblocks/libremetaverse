@@ -5,6 +5,7 @@ using CommandLine.Utility;
 
 namespace OpenMetaverse.TestClient
 {
+    [Serializable]
     public class CommandLineArgumentsException : Exception
     {
     }

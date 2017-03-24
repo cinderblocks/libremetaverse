@@ -117,7 +117,7 @@ namespace WinGridProxy
             QueuedSessions = new List<ListViewItem>();
 
             // populate the listen box with the known IP Addresses of this host
-            IPHostEntry iphostentry = Dns.GetHostByName(Dns.GetHostName());
+            IPHostEntry iphostentry = Dns.GetHostEntry(Dns.GetHostName());
             foreach (IPAddress address in iphostentry.AddressList)
                 comboBoxListenAddress.Items.Add(address.ToString());
 

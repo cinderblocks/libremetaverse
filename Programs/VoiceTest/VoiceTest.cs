@@ -32,6 +32,7 @@ using OpenMetaverse.Utilities;
 
 namespace VoiceTest
 {
+    [Serializable]
     public class VoiceException: Exception
     {
         public bool LoggedIn = false;
