@@ -76,6 +76,15 @@
     <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
       <HintPath>..\..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
+    <Reference Include="OpenTK, Version=1.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Lyncee.OpenTK.1.1.1173.43181\lib\OpenTK.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenTK.Compatibility, Version=1.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Lyncee.OpenTK.Compatibility.1.1.1173.43181\lib\OpenTK.Compatibility.dll</HintPath>
+    </Reference>
+    <Reference Include="OpenTK.GLControl, Version=1.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\OpenTK.GLControl.1.1.2349.61993\lib\NET40\OpenTK.GLControl.dll</HintPath>
+    </Reference>
     <Reference Include="System">
       <Name>System</Name>
       <Private>False</Private>
@@ -94,14 +103,6 @@
     </Reference>
     <Reference Include="System.Xml">
       <Name>System.Xml</Name>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Tao.OpenGl">
-      <Name>Tao.OpenGl</Name>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Tao.Platform.Windows">
-      <Name>Tao.Platform.Windows</Name>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
@@ -167,6 +168,8 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
+    <None Include="OpenTK.dll.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />

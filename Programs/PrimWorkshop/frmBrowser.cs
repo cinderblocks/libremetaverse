@@ -2,13 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.Windows.Forms;
 using System.IO;
 using System.Runtime.InteropServices;
-using Tao.OpenGl;
-using Tao.Platform.Windows;
 using ICSharpCode.SharpZipLib.Zip;
+using OpenTK.Graphics.OpenGL;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Imaging;
@@ -50,7 +48,7 @@ namespace PrimWorkshop
         uint LastHit = 0;
 
         //warning CS0414: The private field `PrimWorkshop.frmBrowser.PivotPosition' is assigned but its value is never used
-        Vector3 PivotPosition = Vector3.Zero;
+        OpenMetaverse.Vector3 PivotPosition = OpenMetaverse.Vector3.Zero;
         private bool Pivoting;
         Point LastPivot;
 
@@ -73,7 +71,6 @@ namespace PrimWorkshop
             InitializeComponent();
 
             // Setup OpenGL
-            glControl.InitializeContexts();
             glControl.SwapBuffers();
             glControl.MouseWheel += new MouseEventHandler(glControl_MouseWheel);
 
@@ -122,7 +119,7 @@ namespace PrimWorkshop
                 foreach (TextureInfo tex in Textures.Values)
                 {
                     int id = tex.ID;
-                    Gl.glDeleteTextures(1, ref id);
+                    GL.DeleteTextures(1, ref id);
                 }
 
                 Textures.Clear();
@@ -218,13 +215,13 @@ namespace PrimWorkshop
 
         private void InitOpenGL()
         {
-            Gl.glShadeModel(Gl.GL_SMOOTH);
+            GL.ShadeModel(ShadingModel.Smooth);
 
-            Gl.glClearDepth(1.0f);
-            Gl.glEnable(Gl.GL_DEPTH_TEST);
-            Gl.glDepthMask(Gl.GL_TRUE);
-            Gl.glDepthFunc(Gl.GL_LEQUAL);
-            Gl.glHint(Gl.GL_PERSPECTIVE_CORRECTION_HINT, Gl.GL_NICEST);
+            GL.ClearDepth(1d);
+            GL.Enable(EnableCap.DepthTest);
+            GL.DepthMask(true);
+            GL.DepthFunc(DepthFunction.Lequal);
+            GL.Hint(HintTarget.PerspectiveCorrectionHint, HintMode.Nicest);
         }
 
         private void InitHeightmap()
@@ -301,14 +298,14 @@ namespace PrimWorkshop
                 Client.Self.Movement.Camera.Far = (float)Camera.Far;
             }
 
-            Gl.glPushMatrix();
-            Gl.glMatrixMode(Gl.GL_PROJECTION);
-            Gl.glLoadIdentity();
+            GL.PushMatrix();
+            GL.MatrixMode(MatrixMode.Projection);
+            GL.LoadIdentity();
 
             SetPerspective();
-
-            Gl.glMatrixMode(Gl.GL_MODELVIEW);
-            Gl.glPopMatrix();
+            
+            GL.MatrixMode(MatrixMode.Modelview);
+            GL.PopMatrix();
         }
 
         private bool ExportObject(RenderablePrim parent, string fileName, out int prims, out int textures, out string error)
@@ -824,28 +821,38 @@ namespace PrimWorkshop
 
         private void SetPerspective()
         {
-            Glu.gluPerspective(50.0d * Camera.Zoom, 1.0d, 0.1d, Camera.Far);
+            OpenTK.Matrix4 perspective = OpenTK.Matrix4.CreatePerspectiveFieldOfView(
+                50.0f * (float)Camera.Zoom, 1.0f, 0.1f, (float)Camera.Far);
+        }
+
+        private void GluPickMatrix(double x, double y, double deltax, double deltay, int[] viewport)
+        {
+            if (deltax <= 0 || deltay <= 0) return;
+
+            GL.Translate((viewport[2] - 2 * (x - viewport[0])) / deltax,
+                         (viewport[3] - 2 * (y - viewport[1])) / deltay,
+                         0);
+            GL.Scale(viewport[2] / deltax, viewport[3] / deltay, 1.0);
         }
 
         private void StartPicking(int cursorX, int cursorY)
         {
             int[] viewport = new int[4];
+            
+            GL.SelectBuffer(SELECT_BUFSIZE, SelectBuffer);
+            GL.RenderMode(RenderingMode.Select);
 
-            Gl.glSelectBuffer(SELECT_BUFSIZE, SelectBuffer);
-            Gl.glRenderMode(Gl.GL_SELECT);
+            GL.MatrixMode(MatrixMode.Projection);
+            GL.PushMatrix();
+            GL.LoadIdentity();
 
-            Gl.glMatrixMode(Gl.GL_PROJECTION);
-            Gl.glPushMatrix();
-            Gl.glLoadIdentity();
-
-            Gl.glGetIntegerv(Gl.GL_VIEWPORT, viewport);
-            Glu.gluPickMatrix(cursorX, viewport[3] - cursorY, 5, 5, viewport);
-
+            GL.GetInteger(GetPName.Viewport, viewport);
+            GluPickMatrix(cursorX, viewport[3] - cursorY, 5, 5, viewport);
+            
             SetPerspective();
 
-            Gl.glMatrixMode(Gl.GL_MODELVIEW);
-
-            Gl.glInitNames();
+            GL.MatrixMode(MatrixMode.Modelview);
+            GL.InitNames();
         }
 
         private void StopPicking()
@@ -853,13 +860,13 @@ namespace PrimWorkshop
             int hits;
 
             // Resotre the original projection matrix
-            Gl.glMatrixMode(Gl.GL_PROJECTION);
-            Gl.glPopMatrix();
-            Gl.glMatrixMode(Gl.GL_MODELVIEW);
-            Gl.glFlush();
+            GL.MatrixMode(MatrixMode.Projection);
+            GL.PopMatrix();
+            GL.MatrixMode(MatrixMode.Modelview);
+            GL.Flush();
 
             // Return to normal rendering mode
-            hits = Gl.glRenderMode(Gl.GL_RENDER);
+            hits = GL.RenderMode(RenderingMode.Render);
 
             // If there are hits process them
             if (hits != 0)
@@ -1083,34 +1090,36 @@ namespace PrimWorkshop
         {
             try
             {
-                Gl.glClear(Gl.GL_COLOR_BUFFER_BIT | Gl.GL_DEPTH_BUFFER_BIT);
-                Gl.glLoadIdentity();
-                Gl.glEnableClientState(Gl.GL_VERTEX_ARRAY);
-                Gl.glEnableClientState(Gl.GL_TEXTURE_COORD_ARRAY);
+                GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+                GL.LoadIdentity();
+                GL.EnableClientState(ArrayCap.VertexArray);
+                GL.EnableClientState(ArrayCap.TextureCoordArray);
 
                 if (Clicked)
                     StartPicking(ClickX, ClickY);
 
                 // Setup wireframe or solid fill drawing mode
-                Gl.glPolygonMode(Gl.GL_FRONT, Gl.GL_LINE);
+                GL.PolygonMode(MaterialFace.Front, PolygonMode.Line);
 
                 // Position the camera
-                Glu.gluLookAt(
+                OpenTK.Matrix4 lookAt = OpenTK.Matrix4.LookAt(
                     Camera.Position.X, Camera.Position.Y, Camera.Position.Z,
                     Camera.FocalPoint.X, Camera.FocalPoint.Y, Camera.FocalPoint.Z,
                     0f, 0f, 1f);
+                GL.MatrixMode(MatrixMode.Modelview);
+                GL.LoadMatrix(ref lookAt);
 
                 RenderSkybox();
 
                 // Push the world matrix
-                Gl.glPushMatrix();
+                GL.PushMatrix();
 
                 RenderTerrain();
                 RenderPrims();
                 RenderAvatars();
 
-                Gl.glDisableClientState(Gl.GL_TEXTURE_COORD_ARRAY);
-                Gl.glDisableClientState(Gl.GL_VERTEX_ARRAY);
+                GL.DisableClientState(ArrayCap.TextureCoordArray);
+                GL.DisableClientState(ArrayCap.VertexArray);
 
                 if (Clicked)
                 {
@@ -1119,8 +1128,8 @@ namespace PrimWorkshop
                 }
 
                 // Pop the world matrix
-                Gl.glPopMatrix();
-                Gl.glFlush();
+                GL.PopMatrix();
+                GL.Flush();
 
                 glControl.Invalidate();
             }
@@ -1175,14 +1184,14 @@ namespace PrimWorkshop
                 int i = 0;
 
                 // No texture
-                Gl.glBindTexture(Gl.GL_TEXTURE_2D, 0);
+                GL.BindTexture(TextureTarget.Texture2D, 0);
 
                 for (int hy = 0; hy < 16; hy++)
                 {
                     for (int hx = 0; hx < 16; hx++)
                     {
                         uint patchName = (uint)(TERRAIN_START + i);
-                        Gl.glPushName(patchName);
+                        GL.PushName(patchName);
                         ++i;
 
                         // Check if this patch is currently selected
@@ -1190,8 +1199,7 @@ namespace PrimWorkshop
 
                         for (int y = 0; y < 15; y++)
                         {
-                            Gl.glBegin(Gl.GL_TRIANGLE_STRIP);
-
+                            GL.Begin(BeginMode.TriangleStrip);
                             for (int x = 0; x < 15; x++)
                             {
                                 // Vertex 0
@@ -1199,42 +1207,41 @@ namespace PrimWorkshop
                                 float color = height / MaxHeight;
                                 float red = (selected) ? 1f : color;
 
-                                Gl.glColor3f(red, color, color);
-                                Gl.glTexCoord2f(0f, 0f);
-                                Gl.glVertex3f(hx * 16 + x, hy * 16 + y, height);
+                                GL.Color3(red, color, color);
+                                GL.TexCoord2(0f, 0f);
+                                GL.Vertex3(hx * 16 + x, hy * 16 + y, height);
 
                                 // Vertex 1
                                 height = Heightmap[hy, hx].Data[y * 16 + (x + 1)];
                                 color = height / MaxHeight;
                                 red = (selected) ? 1f : color;
 
-                                Gl.glColor3f(red, color, color);
-                                Gl.glTexCoord2f(1f, 0f);
-                                Gl.glVertex3f(hx * 16 + x + 1, hy * 16 + y, height);
+                                GL.Color3(red, color, color);
+                                GL.TexCoord2(1f, 0f);
+                                GL.Vertex3(hx * 16 + x + 1, hy * 16 + y, height);
 
                                 // Vertex 2
                                 height = Heightmap[hy, hx].Data[(y + 1) * 16 + x];
                                 color = height / MaxHeight;
                                 red = (selected) ? 1f : color;
 
-                                Gl.glColor3f(red, color, color);
-                                Gl.glTexCoord2f(0f, 1f);
-                                Gl.glVertex3f(hx * 16 + x, hy * 16 + y + 1, height);
+                                GL.Color3(red, color, color);
+                                GL.TexCoord2(0f, 1f);
+                                GL.Vertex3(hx * 16 + x, hy * 16 + y + 1, height);
 
                                 // Vertex 3
                                 height = Heightmap[hy, hx].Data[(y + 1) * 16 + (x + 1)];
                                 color = height / MaxHeight;
                                 red = (selected) ? 1f : color;
 
-                                Gl.glColor3f(red, color, color);
-                                Gl.glTexCoord2f(1f, 1f);
-                                Gl.glVertex3f(hx * 16 + x + 1, hy * 16 + y + 1, height);
+                                GL.Color3(red, color, color);
+                                GL.TexCoord2(1f, 1f);
+                                GL.Vertex3(hx * 16 + x + 1, hy * 16 + y + 1, height);
                             }
 
-                            Gl.glEnd();
+                            GL.End();
                         }
-
-                        Gl.glPopName();
+                        GL.PopName();
                     }
                 }
             }
@@ -1254,13 +1261,13 @@ namespace PrimWorkshop
         {
             if (RenderPrimList != null && RenderPrimList.Count > 0)
             {
-                Gl.glEnable(Gl.GL_TEXTURE_2D);
+                GL.Enable(EnableCap.Texture2D);
 
                 lock (RenderPrimList)
                 {
                     bool firstPass = true;
-                    Gl.glDisable(Gl.GL_BLEND);
-                    Gl.glEnable(Gl.GL_DEPTH_TEST);
+                    GL.Disable(EnableCap.Blend);
+                    GL.Enable(EnableCap.DepthTest);
 
                 StartRender:
 
@@ -1278,9 +1285,9 @@ namespace PrimWorkshop
                                 continue;
                             }
                         }
-
-                        Gl.glPushName(prim.LocalID);
-                        Gl.glPushMatrix();
+                        
+                        GL.PushName(prim.LocalID);
+                        GL.PushMatrix();
 
                         if (prim.ParentID != 0)
                         {
@@ -1288,23 +1295,23 @@ namespace PrimWorkshop
                             Primitive parent = parentRender.Prim;
 
                             // Apply parent translation and rotation
-                            Gl.glMultMatrixf(Math3D.CreateTranslationMatrix(parent.Position));
-                            Gl.glMultMatrixf(Math3D.CreateRotationMatrix(parent.Rotation));
+                            GL.MultMatrix(Math3D.CreateTranslationMatrix(parent.Position));
+                            GL.MultMatrix(Math3D.CreateRotationMatrix(parent.Rotation));
                         }
 
                         // Apply prim translation and rotation
-                        Gl.glMultMatrixf(Math3D.CreateTranslationMatrix(prim.Position));
-                        Gl.glMultMatrixf(Math3D.CreateRotationMatrix(prim.Rotation));
+                        GL.MultMatrix(Math3D.CreateTranslationMatrix(prim.Position));
+                        GL.MultMatrix(Math3D.CreateRotationMatrix(prim.Rotation));
 
                         // Scale the prim
-                        Gl.glScalef(prim.Scale.X, prim.Scale.Y, prim.Scale.Z);
+                        GL.Scale(prim.Scale.X, prim.Scale.Y, prim.Scale.Z);
 
                         // Draw the prim faces
                         for (int j = 0; j < render.Mesh.Faces.Count; j++)
                         {
                             Face face = render.Mesh.Faces[j];
                             FaceData data = (FaceData)face.UserData;
-                            Color4 color = face.TextureFace.RGBA;
+                            OpenMetaverse.Color4 color = face.TextureFace.RGBA;
                             bool alpha = false;
                             int textureID = 0;
 
@@ -1322,18 +1329,18 @@ namespace PrimWorkshop
                                 textureID = info.ID;
 
                                 // Enable texturing for this face
-                                Gl.glPolygonMode(Gl.GL_FRONT_AND_BACK, Gl.GL_FILL);
+                                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
                             }
                             else
                             {
                                 if (face.TextureFace.TextureID == Primitive.TextureEntry.WHITE_TEXTURE ||
                                     face.TextureFace.TextureID == UUID.Zero)
                                 {
-                                    Gl.glPolygonMode(Gl.GL_FRONT, Gl.GL_FILL);
+                                    GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill);
                                 }
                                 else
                                 {
-                                    Gl.glPolygonMode(Gl.GL_FRONT, Gl.GL_LINE);
+                                    GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
                                 }
                             }
 
@@ -1342,41 +1349,40 @@ namespace PrimWorkshop
                                 // Color this prim differently based on whether it is selected or not
                                 if (LastHit == prim.LocalID || (LastHit != 0 && LastHit == prim.ParentID))
                                 {
-                                    Gl.glColor4f(1f, color.G * 0.3f, color.B * 0.3f, color.A);
+                                    GL.Color4(1f, color.G * 0.3f, color.B * 0.3f, color.A);
                                 }
                                 else
                                 {
-                                    Gl.glColor4f(color.R, color.G, color.B, color.A);
+                                    GL.Color4(color.R, color.G, color.B, color.A);
                                 }
 
                                 // Bind the texture
-                                Gl.glBindTexture(Gl.GL_TEXTURE_2D, textureID);
-
-                                Gl.glTexCoordPointer(2, Gl.GL_FLOAT, 0, data.TexCoords);
-                                Gl.glVertexPointer(3, Gl.GL_FLOAT, 0, data.Vertices);
-                                Gl.glDrawElements(Gl.GL_TRIANGLES, data.Indices.Length, Gl.GL_UNSIGNED_SHORT, data.Indices);
+                                GL.BindTexture(TextureTarget.Texture2D, textureID);
+                                
+                                GL.TexCoordPointer(2, TexCoordPointerType.Float, 0, data.TexCoords);
+                                GL.VertexPointer(3, VertexPointerType.Float, 0, data.Vertices);
+                                GL.DrawElements(BeginMode.Triangles, data.Indices.Length, DrawElementsType.UnsignedShort, data.Indices);
                             }
 
                             #endregion Texturing
                         }
 
-                        Gl.glPopMatrix();
-                        Gl.glPopName();
+                        GL.PopMatrix();
+                        GL.PopName();
                     }
 
                     if (firstPass)
                     {
                         firstPass = false;
-                        Gl.glEnable(Gl.GL_BLEND);
-                        Gl.glBlendFunc(Gl.GL_SRC_ALPHA, Gl.GL_ONE_MINUS_SRC_ALPHA);
-                        //Gl.glDisable(Gl.GL_DEPTH_TEST);
+                        GL.Enable(EnableCap.Blend);
+                        GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
 
                         goto StartRender;
                     }
                 }
 
-                Gl.glEnable(Gl.GL_DEPTH_TEST);
-                Gl.glDisable(Gl.GL_TEXTURE_2D);
+                GL.Enable(EnableCap.DepthTest);
+                GL.Disable(EnableCap.Texture2D);
             }
         }
 
@@ -1384,23 +1390,23 @@ namespace PrimWorkshop
         {
             if (Client != null && Client.Network.CurrentSim != null)
             {
-                Gl.glColor3f(0f, 1f, 0f);
+                GL.Color3(0f, 1f, 0f);
 
                 Client.Network.CurrentSim.ObjectsAvatars.ForEach(
                     delegate(Avatar avatar)
                     {
-                        Gl.glPushMatrix();
-                        Gl.glTranslatef(avatar.Position.X, avatar.Position.Y, avatar.Position.Z);
+                        GL.PushMatrix();
+                        GL.Translate(avatar.Position.X, avatar.Position.Y, avatar.Position.Z);
 
-                        Glu.GLUquadric quad = Glu.gluNewQuadric();
-                        Glu.gluSphere(quad, 1.0d, 10, 10);
-                        Glu.gluDeleteQuadric(quad);
-
-                        Gl.glPopMatrix();
+                        var quad = OpenTK.Graphics.Glu.NewQuadric();
+                        OpenTK.Graphics.Glu.Sphere(quad, 1.0d, 10, 10);
+                        OpenTK.Graphics.Glu.DeleteQuadric(quad);
+                        
+                        GL.PopMatrix();
                     }
                 );
 
-                Gl.glColor3f(1f, 1f, 1f);
+                GL.Color3(1f, 1f, 1f);
             }
         }
 
@@ -1446,21 +1452,23 @@ namespace PrimWorkshop
 
                                try
                                {
-                                   Gl.glGenTextures(1, out textureID);
-                                   Gl.glBindTexture(Gl.GL_TEXTURE_2D, textureID);
+                                   GL.GenTextures(1, out textureID);
+                                   GL.BindTexture(TextureTarget.Texture2D, textureID);
+                                   
+                                   GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)All.LinearMipmapNearest);
+                                   GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)All.Linear);
+                                   GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)All.Repeat);
+                                   GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)All.Repeat);
+                                   GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.GenerateMipmap, 1);
 
-                                   Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MIN_FILTER, Gl.GL_LINEAR_MIPMAP_NEAREST); //Gl.GL_NEAREST);
-                                   Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MAG_FILTER, Gl.GL_LINEAR);
-                                   Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_WRAP_S, Gl.GL_REPEAT);
-                                   Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_WRAP_T, Gl.GL_REPEAT);
-                                   Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_GENERATE_MIPMAP, Gl.GL_TRUE); //Gl.GL_FALSE);
 
                                    //Gl.glTexImage2D(Gl.GL_TEXTURE_2D, 0, Gl.GL_RGBA, bitmap.Width, bitmap.Height, 0, Gl.GL_BGRA, Gl.GL_UNSIGNED_BYTE,
                                    //    bitmapData.Scan0);
                                    //int error = Gl.glGetError();
-
-                                   int error = Glu.gluBuild2DMipmaps(Gl.GL_TEXTURE_2D, Gl.GL_RGBA, imgData.Width, imgData.Height, Gl.GL_BGRA,
-                                       Gl.GL_UNSIGNED_BYTE, raw);
+                                   
+                                   int error = OpenTK.Graphics.Glu.Build2DMipmap(OpenTK.Graphics.TextureTarget.Texture2D,
+                                       (int)OpenTK.Graphics.PixelInternalFormat.Rgba, imgData.Width, imgData.Height, 
+                                       OpenTK.Graphics.PixelFormat.Bgra, OpenTK.Graphics.PixelType.UnsignedByte, raw);
 
                                    if (error == 0)
                                    {
@@ -1629,18 +1637,18 @@ namespace PrimWorkshop
 
         private void glControl_Resize(object sender, EventArgs e)
         {
-            Gl.glClearColor(0.39f, 0.58f, 0.93f, 1.0f);
+            GL.ClearColor(0.39f, 0.58f, 0.93f, 1.0f);
 
-            Gl.glViewport(0, 0, glControl.Width, glControl.Height);
+            GL.Viewport(0, 0, glControl.Width, glControl.Height);
 
-            Gl.glPushMatrix();
-            Gl.glMatrixMode(Gl.GL_PROJECTION);
-            Gl.glLoadIdentity();
+            GL.PushMatrix();
+            GL.MatrixMode(MatrixMode.Projection);
+            GL.LoadIdentity();
 
             SetPerspective();
 
-            Gl.glMatrixMode(Gl.GL_MODELVIEW);
-            Gl.glPopMatrix();
+            GL.MatrixMode(MatrixMode.Modelview);
+            GL.PopMatrix();
 
             // Set the center of the glControl as the default pivot point
             LastPivot = glControl.PointToScreen(new Point(glControl.Width / 2, glControl.Height / 2));

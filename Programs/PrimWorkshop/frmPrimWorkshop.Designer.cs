@@ -15,7 +15,7 @@ namespace PrimWorkshop
         {
             if (disposing && (components != null))
             {
-                glControl.DestroyContexts();
+                glControl.Context.Dispose();
                 components.Dispose();
             }
             base.Dispose(disposing);
@@ -48,7 +48,7 @@ namespace PrimWorkshop
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.splitContainer = new System.Windows.Forms.SplitContainer();
-            this.glControl = new Tao.Platform.Windows.SimpleOpenGlControl();
+            this.glControl = new OpenTK.GLControl();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.panel2 = new System.Windows.Forms.Panel();
             this.label2 = new System.Windows.Forms.Label();
@@ -233,19 +233,11 @@ namespace PrimWorkshop
             // 
             // glControl
             // 
-            this.glControl.AccumBits = ((byte)(0));
-            this.glControl.AutoCheckErrors = false;
-            this.glControl.AutoFinish = false;
-            this.glControl.AutoMakeCurrent = true;
-            this.glControl.AutoSwapBuffers = true;
             this.glControl.BackColor = System.Drawing.Color.Black;
-            this.glControl.ColorBits = ((byte)(32));
-            this.glControl.DepthBits = ((byte)(16));
             this.glControl.Dock = System.Windows.Forms.DockStyle.Fill;
             this.glControl.Location = new System.Drawing.Point(0, 0);
             this.glControl.Name = "glControl";
             this.glControl.Size = new System.Drawing.Size(550, 512);
-            this.glControl.StencilBits = ((byte)(0));
             this.glControl.TabIndex = 5;
             this.glControl.Paint += new System.Windows.Forms.PaintEventHandler(this.glControl_Paint);
             this.glControl.Resize += new System.EventHandler(this.glControl_Resize);
@@ -436,7 +428,7 @@ namespace PrimWorkshop
         private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
         private System.Windows.Forms.SplitContainer splitContainer;
-        private Tao.Platform.Windows.SimpleOpenGlControl glControl;
+        private OpenTK.GLControl glControl;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
         private System.Windows.Forms.HScrollBar scrollRoll;
         private System.Windows.Forms.HScrollBar scrollPitch;

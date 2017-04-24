@@ -1,13 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Windows.Forms;
-using Tao.OpenGl;
-using Tao.Platform.Windows;
 using ICSharpCode.SharpZipLib.Zip;
+using OpenTK.Graphics.OpenGL;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Imaging;
@@ -35,16 +33,15 @@ namespace PrimWorkshop
         public frmPrimWorkshop()
         {
             InitializeComponent();
-            glControl.InitializeContexts();
 
-            Gl.glShadeModel(Gl.GL_SMOOTH);
-            Gl.glClearColor(0f, 0f, 0f, 0f);
+            GL.ShadeModel(ShadingModel.Smooth);
+            GL.ClearColor(Color.Black);
 
-            Gl.glClearDepth(1.0f);
-            Gl.glEnable(Gl.GL_DEPTH_TEST);
-            Gl.glDepthMask(Gl.GL_TRUE);
-            Gl.glDepthFunc(Gl.GL_LEQUAL);
-            Gl.glHint(Gl.GL_PERSPECTIVE_CORRECTION_HINT, Gl.GL_NICEST);
+            GL.ClearDepth(1f);
+            GL.Enable(EnableCap.DepthTest);
+            GL.DepthMask(true);
+            GL.DepthFunc(DepthFunction.Lequal);
+            GL.Hint(HintTarget.PerspectiveCorrectionHint, HintMode.Nicest);
 
             TexturePointers[0] = 0;
 
@@ -81,32 +78,33 @@ namespace PrimWorkshop
 
         private void glControl_Paint(object sender, PaintEventArgs e)
         {
-            Gl.glClear(Gl.GL_COLOR_BUFFER_BIT | Gl.GL_DEPTH_BUFFER_BIT);
-            Gl.glLoadIdentity();
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            GL.LoadIdentity();
 
             // Setup wireframe or solid fill drawing mode
             if (Wireframe)
-                Gl.glPolygonMode(Gl.GL_FRONT_AND_BACK, Gl.GL_LINE);
+                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
             else
-                Gl.glPolygonMode(Gl.GL_FRONT, Gl.GL_FILL);
+                GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill);
 
             Vector3 center = Vector3.Zero;
 
-            Glu.gluLookAt(
-                    center.X, (double)scrollZoom.Value * 0.1d + center.Y, center.Z,
-                    center.X, center.Y, center.Z,
-                    0d, 0d, 1d);
+            OpenTK.Matrix4 lookAt = OpenTK.Matrix4.LookAt(
+                center.X, scrollZoom.Value * 0.1f + center.Y, center.Z,
+                center.X, center.Y, center.Z,
+                0f, 0f, 1f);
+            GL.LoadMatrix(ref lookAt);
 
             // Push the world matrix
-            Gl.glPushMatrix();
-
-            Gl.glEnableClientState(Gl.GL_VERTEX_ARRAY);
-            Gl.glEnableClientState(Gl.GL_TEXTURE_COORD_ARRAY);
+            GL.PushMatrix();
+            
+            GL.EnableClientState(ArrayCap.VertexArray);
+            GL.EnableClientState(ArrayCap.TextureCoordArray);
 
             // World rotations
-            Gl.glRotatef((float)scrollRoll.Value, 1f, 0f, 0f);
-            Gl.glRotatef((float)scrollPitch.Value, 0f, 1f, 0f);
-            Gl.glRotatef((float)scrollYaw.Value, 0f, 0f, 1f);
+            GL.Rotate((float)scrollRoll.Value, 1f, 0f, 0f);
+            GL.Rotate((float)scrollPitch.Value, 0f, 1f, 0f);
+            GL.Rotate((float)scrollYaw.Value, 0f, 0f, 1f);
 
             if (Prims != null)
             {
@@ -115,12 +113,12 @@ namespace PrimWorkshop
                     Primitive prim = Prims[i].Prim;
 
                     if (i == cboPrim.SelectedIndex)
-                        Gl.glColor3f(1f, 0f, 0f);
+                        GL.Color3(1f, 0f, 0f);
                     else
-                        Gl.glColor3f(1f, 1f, 1f);
+                        GL.Color3(1f, 1f, 1f);
 
                     // Individual prim matrix
-                    Gl.glPushMatrix();
+                    GL.PushMatrix();
 
                     // The root prim position is sim-relative, while child prim positions are
                     // parent-relative. We want to apply parent-relative translations but not
@@ -128,12 +126,12 @@ namespace PrimWorkshop
                     if (Prims[i].Prim.ParentID != 0)
                     {
                         // Apply prim translation and rotation
-                        Gl.glMultMatrixf(Math3D.CreateTranslationMatrix(prim.Position));
-                        Gl.glMultMatrixf(Math3D.CreateRotationMatrix(prim.Rotation));
+                        GL.MultMatrix(Math3D.CreateTranslationMatrix(prim.Position));
+                        GL.MultMatrix(Math3D.CreateRotationMatrix(prim.Rotation));
                     }
 
                     // Prim scaling
-                    Gl.glScalef(prim.Scale.X, prim.Scale.Y, prim.Scale.Z);
+                    GL.Scale(prim.Scale.X, prim.Scale.Y, prim.Scale.Z);
 
                     // Draw the prim faces
                     for (int j = 0; j < Prims[i].Faces.Count; j++)
@@ -142,7 +140,7 @@ namespace PrimWorkshop
                         {
                             // This prim is currently selected in the dropdown
                             //Gl.glColor3f(0f, 1f, 0f);
-                            Gl.glColor3f(1f, 1f, 1f);
+                            GL.Color3(1f, 1f, 1f);
 
                             if (j == cboFace.SelectedIndex)
                             {
@@ -156,7 +154,7 @@ namespace PrimWorkshop
                         else
                         {
                             // This prim is not currently selected in the dropdown
-                            Gl.glColor3f(1f, 1f, 1f);
+                            GL.Color3(1f, 1f, 1f);
                         }
 
                         #region Texturing
@@ -169,51 +167,52 @@ namespace PrimWorkshop
                             // Set the color to solid white so the texture is not altered
                             //Gl.glColor3f(1f, 1f, 1f);
                             // Enable texturing for this face
-                            Gl.glEnable(Gl.GL_TEXTURE_2D);
+                            GL.Enable(EnableCap.Texture2D);
                         }
                         else
                         {
-                            Gl.glDisable(Gl.GL_TEXTURE_2D);
+                            GL.Disable(EnableCap.Texture2D);
                         }
 
                         // Bind the texture
-                        Gl.glBindTexture(Gl.GL_TEXTURE_2D, data.TexturePointer);
+                        GL.BindTexture(TextureTarget.Texture2D, data.TexturePointer);
 
                         #endregion Texturing
 
-                        Gl.glTexCoordPointer(2, Gl.GL_FLOAT, 0, data.TexCoords);
-                        Gl.glVertexPointer(3, Gl.GL_FLOAT, 0, data.Vertices);
-                        Gl.glDrawElements(Gl.GL_TRIANGLES, data.Indices.Length, Gl.GL_UNSIGNED_SHORT, data.Indices);
+                        GL.TexCoordPointer(2, TexCoordPointerType.Float, 0, data.TexCoords);
+                        GL.VertexPointer(3, VertexPointerType.Float, 0, data.Vertices);
+                        GL.DrawElements(BeginMode.Triangles, data.Indices.Length, DrawElementsType.UnsignedShort, data.Indices);
                     }
 
                     // Pop the prim matrix
-                    Gl.glPopMatrix();
+                    GL.PopMatrix();
                 }
             }
 
             // Pop the world matrix
-            Gl.glPopMatrix();
+            GL.PopMatrix();
+            
+            GL.DisableClientState(ArrayCap.TextureCoordArray);
+            GL.DisableClientState(ArrayCap.VertexArray);
 
-            Gl.glDisableClientState(Gl.GL_TEXTURE_COORD_ARRAY);
-            Gl.glDisableClientState(Gl.GL_VERTEX_ARRAY);
-
-            Gl.glFlush();
+            GL.Flush();
         }
 
         private void glControl_Resize(object sender, EventArgs e)
         {
-            Gl.glClearColor(0.39f, 0.58f, 0.93f, 1.0f);
+            GL.ClearColor(0.39f, 0.58f, 0.93f, 1.0f);
 
-            Gl.glViewport(0, 0, glControl.Width, glControl.Height);
+            GL.Viewport(0, 0, glControl.Width, glControl.Height);
 
-            Gl.glPushMatrix();
-            Gl.glMatrixMode(Gl.GL_PROJECTION);
-            Gl.glLoadIdentity();
+            GL.PushMatrix();
+            GL.MatrixMode(MatrixMode.Projection);
+            GL.LoadIdentity();
 
-            Glu.gluPerspective(50.0d, 1.0d, 0.1d, 256d);
+            OpenTK.Matrix4 perspectiveMatrix = OpenTK.Matrix4.CreatePerspectiveFieldOfView(50.0f, 1.0f, 0.1f, 256f);
+            GL.LoadMatrix(ref perspectiveMatrix);
 
-            Gl.glMatrixMode(Gl.GL_MODELVIEW);
-            Gl.glPopMatrix();
+            GL.MatrixMode(MatrixMode.Modelview);
+            GL.PopMatrix();
         }
 
         #endregion GLControl Callbacks
@@ -428,18 +427,19 @@ namespace PrimWorkshop
                     Bitmap bitmap = new Bitmap(data.Texture);
                     bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);
                     Rectangle rectangle = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
-                    BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
+                    BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
 
-                    Gl.glGenTextures(1, out data.TexturePointer);
-                    Gl.glBindTexture(Gl.GL_TEXTURE_2D, data.TexturePointer);
+                    GL.GenTextures(1, out data.TexturePointer);
+                    GL.BindTexture(TextureTarget.Texture2D, data.TexturePointer);
 
-                    Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MIN_FILTER, Gl.GL_LINEAR_MIPMAP_LINEAR);
-                    Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MAG_FILTER, Gl.GL_LINEAR);
-                    Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_WRAP_S, Gl.GL_REPEAT);
-                    Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_WRAP_T, Gl.GL_REPEAT);
-                    Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_GENERATE_MIPMAP, Gl.GL_TRUE);
-
-                    Glu.gluBuild2DMipmaps(Gl.GL_TEXTURE_2D, Gl.GL_RGB8, bitmap.Width, bitmap.Height, Gl.GL_BGR, Gl.GL_UNSIGNED_BYTE, bitmapData.Scan0);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)All.LinearMipmapLinear);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)All.Linear);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)All.ClampToEdge);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)All.ClampToEdge);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.GenerateMipmap, 1);
+                    
+                    OpenTK.Graphics.Glu.Build2DMipmap(OpenTK.Graphics.TextureTarget.Texture2D, (int)OpenTK.Graphics.PixelInternalFormat.Rgb8,
+                        bitmap.Width, bitmap.Height, OpenTK.Graphics.PixelFormat.Bgr, OpenTK.Graphics.PixelType.UnsignedByte, bitmapData.Scan0);
 
                     bitmap.UnlockBits(bitmapData);
                     bitmap.Dispose();
@@ -510,19 +510,20 @@ namespace PrimWorkshop
                     bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);
 
                     // Create the GL texture space
-                    Gl.glGenTextures(1, TexturePointers);
+                    GL.GenTextures(1, TexturePointers);
                     Rectangle rectangle = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
-                    BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
+                    BitmapData bitmapData = bitmap.LockBits(rectangle, ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
 
-                    Gl.glBindTexture(Gl.GL_TEXTURE_2D, TexturePointers[0]);
+                    GL.BindTexture(TextureTarget.Texture2D, TexturePointers[0]);
 
-                    Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MIN_FILTER, Gl.GL_LINEAR_MIPMAP_LINEAR);
-                    Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_MAG_FILTER, Gl.GL_LINEAR);
-                    Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_WRAP_S, Gl.GL_CLAMP_TO_EDGE);
-                    Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_TEXTURE_WRAP_T, Gl.GL_CLAMP_TO_EDGE);
-                    Gl.glTexParameteri(Gl.GL_TEXTURE_2D, Gl.GL_GENERATE_MIPMAP, Gl.GL_TRUE);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)All.LinearMipmapLinear);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)All.Linear);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)All.ClampToEdge);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)All.ClampToEdge);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.GenerateMipmap, 1);
 
-                    Glu.gluBuild2DMipmaps(Gl.GL_TEXTURE_2D, Gl.GL_RGB8, bitmap.Width, bitmap.Height, Gl.GL_BGR, Gl.GL_UNSIGNED_BYTE, bitmapData.Scan0);
+                    OpenTK.Graphics.Glu.Build2DMipmap(OpenTK.Graphics.TextureTarget.Texture2D, (int)OpenTK.Graphics.PixelInternalFormat.Rgb8,
+                        bitmap.Width, bitmap.Height, OpenTK.Graphics.PixelFormat.Bgr, OpenTK.Graphics.PixelType.UnsignedByte, bitmapData.Scan0);
 
                     bitmap.UnlockBits(bitmapData);
                     bitmap.Dispose();

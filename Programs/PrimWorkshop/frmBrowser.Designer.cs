@@ -31,7 +31,7 @@ namespace PrimWorkshop
             GlacialComponents.Controls.GLColumn glColumn1 = new GlacialComponents.Controls.GLColumn();
             GlacialComponents.Controls.GLColumn glColumn2 = new GlacialComponents.Controls.GLColumn();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
-            this.glControl = new Tao.Platform.Windows.SimpleOpenGlControl();
+            this.glControl = new OpenTK.GLControl();
             this.panel1 = new System.Windows.Forms.Panel();
             this.txtPass = new System.Windows.Forms.TextBox();
             this.txtLast = new System.Windows.Forms.TextBox();
@@ -83,20 +83,12 @@ namespace PrimWorkshop
             // 
             // glControl
             // 
-            this.glControl.AccumBits = ((byte)(0));
-            this.glControl.AutoCheckErrors = false;
-            this.glControl.AutoFinish = false;
-            this.glControl.AutoMakeCurrent = true;
-            this.glControl.AutoSwapBuffers = true;
             this.glControl.BackColor = System.Drawing.Color.Black;
-            this.glControl.ColorBits = ((byte)(32));
             this.tableLayoutPanel1.SetColumnSpan(this.glControl, 2);
-            this.glControl.DepthBits = ((byte)(16));
             this.glControl.Dock = System.Windows.Forms.DockStyle.Fill;
             this.glControl.Location = new System.Drawing.Point(3, 3);
             this.glControl.Name = "glControl";
             this.glControl.Size = new System.Drawing.Size(618, 411);
-            this.glControl.StencilBits = ((byte)(0));
             this.glControl.TabIndex = 7;
             this.glControl.TabStop = false;
             this.glControl.MouseMove += new System.Windows.Forms.MouseEventHandler(this.glControl_MouseMove);
@@ -366,7 +358,7 @@ namespace PrimWorkshop
         #endregion
 
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
-        private Tao.Platform.Windows.SimpleOpenGlControl glControl;
+        private OpenTK.GLControl glControl;
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.TextBox txtPass;
         private System.Windows.Forms.TextBox txtLast;

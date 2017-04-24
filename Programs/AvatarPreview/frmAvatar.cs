@@ -1,19 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Text;
 using System.Windows.Forms;
 using System.IO;
 using System.Xml;
 
-using Tao.OpenGl;
-using Tao.Platform.Windows;
+using OpenTK.Graphics.OpenGL;
 
 using OpenMetaverse;
 using OpenMetaverse.Imaging;
-using OpenMetaverse.Rendering;
 using OpenMetaverse.Assets;
 
 namespace AvatarPreview
@@ -29,16 +24,13 @@ namespace AvatarPreview
         {
             InitializeComponent();
 
-            glControl.InitializeContexts();
-
-            Gl.glShadeModel(Gl.GL_SMOOTH);
-            Gl.glClearColor(0f, 0f, 0f, 0f);
-
-            Gl.glClearDepth(1.0f);
-            Gl.glEnable(Gl.GL_DEPTH_TEST);
-            Gl.glDepthMask(Gl.GL_TRUE);
-            Gl.glDepthFunc(Gl.GL_LEQUAL);
-            Gl.glHint(Gl.GL_PERSPECTIVE_CORRECTION_HINT, Gl.GL_NICEST);
+            GL.ShadeModel(ShadingModel.Smooth);
+            GL.ClearColor(Color.Black);
+            GL.ClearDepth(1.0f);
+            GL.Enable(EnableCap.DepthTest);
+            GL.DepthMask(true);
+            GL.DepthFunc(DepthFunction.Lequal);
+            GL.Hint(HintTarget.PerspectiveCorrectionHint, HintMode.Nicest);
 
             glControl_Resize(null, null);
         }
@@ -125,25 +117,20 @@ namespace AvatarPreview
 
         private void glControl_Paint(object sender, PaintEventArgs e)
         {
-            Gl.glClear(Gl.GL_COLOR_BUFFER_BIT | Gl.GL_DEPTH_BUFFER_BIT);
-            Gl.glLoadIdentity();
-
-            // Setup wireframe or solid fill drawing mode
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            GL.LoadIdentity();
             if (_wireframe)
-                Gl.glPolygonMode(Gl.GL_FRONT_AND_BACK, Gl.GL_LINE);
+                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
             else
-                Gl.glPolygonMode(Gl.GL_FRONT, Gl.GL_FILL);
-
+                GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill);
             // Push the world matrix
-            Gl.glPushMatrix();
-
-            Gl.glEnableClientState(Gl.GL_VERTEX_ARRAY);
-            Gl.glEnableClientState(Gl.GL_TEXTURE_COORD_ARRAY);
-
+            GL.PushMatrix();
+            GL.EnableClientState(ArrayCap.VertexArray);
+            GL.EnableClientState(ArrayCap.TextureCoordArray);
             // World rotations
-            Gl.glRotatef((float)scrollRoll.Value, 1f, 0f, 0f);
-            Gl.glRotatef((float)scrollPitch.Value, 0f, 1f, 0f);
-            Gl.glRotatef((float)scrollYaw.Value, 0f, 0f, 1f);
+            GL.Rotate(scrollRoll.Value, 1f, 0f, 0f);
+            GL.Rotate(scrollRoll.Value, 0f, 1f, 0f);
+            GL.Rotate(scrollRoll.Value, 0f, 0f, 1f);
 
             if (_meshes.Count > 0)
             {
@@ -151,61 +138,62 @@ namespace AvatarPreview
                 {
                     if (!_showSkirt && mesh.Name == "skirtMesh")
                         continue;
-
-                    Gl.glColor3f(1f, 1f, 1f);
+                    
+                    GL.Color3(1f, 1f, 1f);
 
                     // Individual prim matrix
-                    Gl.glPushMatrix();
+                    GL.PushMatrix();
 
                     //Gl.glTranslatef(mesh.Position.X, mesh.Position.Y, mesh.Position.Z);
 
-                    Gl.glRotatef(mesh.RotationAngles.X, 1f, 0f, 0f);
-                    Gl.glRotatef(mesh.RotationAngles.Y, 0f, 1f, 0f);
-                    Gl.glRotatef(mesh.RotationAngles.Z, 0f, 0f, 1f);
+                    GL.Rotate(mesh.RotationAngles.X, 1f, 0f, 0f);
+                    GL.Rotate(mesh.RotationAngles.Y, 0f, 1f, 0f);
+                    GL.Rotate(mesh.RotationAngles.Z, 0f, 0f, 1f);
 
-                    Gl.glScalef(mesh.Scale.X, mesh.Scale.Y, mesh.Scale.Z);
+                    GL.Scale(mesh.Scale.X, mesh.Scale.Y, mesh.Scale.Z);
 
                     // TODO: Texturing
 
-                    Gl.glTexCoordPointer(2, Gl.GL_FLOAT, 0, mesh.RenderData.TexCoords);
-                    Gl.glVertexPointer(3, Gl.GL_FLOAT, 0, mesh.RenderData.Vertices);
-                    Gl.glDrawElements(Gl.GL_TRIANGLES, mesh.RenderData.Indices.Length, Gl.GL_UNSIGNED_SHORT, mesh.RenderData.Indices);
+                    GL.TexCoordPointer(2, TexCoordPointerType.Float, 0, mesh.RenderData.TexCoords);
+                    GL.VertexPointer(3, VertexPointerType.Float, 0, mesh.RenderData.TexCoords);
+                    GL.DrawElements(BeginMode.Triangles, mesh.RenderData.Indices.Length, DrawElementsType.UnsignedShort, mesh.RenderData.Indices);
                 }
             }
 
             // Pop the world matrix
-            Gl.glPopMatrix();
+            GL.PopMatrix();
+            
+            GL.DisableClientState(ArrayCap.TextureCoordArray);
+            GL.DisableClientState(ArrayCap.VertexArray);
 
-            Gl.glDisableClientState(Gl.GL_TEXTURE_COORD_ARRAY);
-            Gl.glDisableClientState(Gl.GL_VERTEX_ARRAY);
-
-            Gl.glFlush();
+            GL.Flush();
         }
 
         private void glControl_Resize(object sender, EventArgs e)
         {
-            //Gl.glClearColor(0.39f, 0.58f, 0.93f, 1.0f); // Cornflower blue anyone?
-            Gl.glClearColor(0f, 0f, 0f, 1f);
+            //GL.ClearColor(0.39f, 0.58f, 0.93f, 1.0f); // Cornflower blue anyone?
+            GL.ClearColor(0f, 0f, 0f, 1f);
 
-            Gl.glPushMatrix();
-            Gl.glMatrixMode(Gl.GL_PROJECTION);
-            Gl.glLoadIdentity();
+            GL.PushMatrix();
+            GL.MatrixMode(MatrixMode.Projection);
+            GL.LoadIdentity();
+             
+            GL.Viewport(0, 0, glControl.Width, glControl.Height);
 
-            Gl.glViewport(0, 0, glControl.Width, glControl.Height);
-
-            Glu.gluPerspective(50.0d, 1.0d, 0.001d, 50d);
+            OpenTK.Matrix4 perspectiveMatrix = OpenTK.Matrix4.CreatePerspectiveFieldOfView(50.0f, 1.0f, 0.001f, 50f);
+            GL.LoadMatrix(ref perspectiveMatrix);
 
             Vector3 center = Vector3.Zero;
             GLMesh head, lowerBody;
             if (_meshes.TryGetValue("headMesh", out head) && _meshes.TryGetValue("lowerBodyMesh", out lowerBody))
                 center = (head.RenderData.Center + lowerBody.RenderData.Center) / 2f;
 
-            Glu.gluLookAt(
-                    center.X, (double)scrollZoom.Value * 0.1d + center.Y, center.Z,
-                    center.X, (double)scrollZoom.Value * 0.1d + center.Y + 1d, center.Z,
-                    0d, 0d, 1d);
-
-            Gl.glMatrixMode(Gl.GL_MODELVIEW);
+            OpenTK.Matrix4 lookAt = OpenTK.Matrix4.LookAt(
+                new OpenTK.Vector3(center.X, scrollZoom.Value * 0.1f + center.Y, center.Z),
+                new OpenTK.Vector3(center.X, scrollZoom.Value * 0.1f + center.Y + 1f, center.Z),
+                new OpenTK.Vector3(0f, 0f, 1f));
+            GL.LoadMatrix(ref lookAt);
+            GL.MatrixMode(MatrixMode.Modelview);
         }
 
         private void scroll_ValueChanged(object sender, EventArgs e)

@@ -110,6 +110,7 @@ namespace AvatarPreview
             }
         }
 
+        [Obsolete]
         public override void LoadLODMesh(int level, string filename)
         {
             LODMesh lod = new LODMesh();

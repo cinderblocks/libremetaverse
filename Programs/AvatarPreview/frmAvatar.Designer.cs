@@ -41,7 +41,7 @@ namespace AvatarPreview
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
-            this.glControl = new Tao.Platform.Windows.SimpleOpenGlControl();
+            this.glControl = new OpenTK.GLControl();
             this.tabControl = new System.Windows.Forms.TabControl();
             this.tavView = new System.Windows.Forms.TabPage();
             this.scrollZoom = new System.Windows.Forms.HScrollBar();
@@ -250,19 +250,11 @@ namespace AvatarPreview
             // 
             // glControl
             // 
-            this.glControl.AccumBits = ((byte)(0));
-            this.glControl.AutoCheckErrors = false;
-            this.glControl.AutoFinish = false;
-            this.glControl.AutoMakeCurrent = true;
-            this.glControl.AutoSwapBuffers = true;
             this.glControl.BackColor = System.Drawing.Color.Black;
-            this.glControl.ColorBits = ((byte)(32));
-            this.glControl.DepthBits = ((byte)(16));
             this.glControl.Dock = System.Windows.Forms.DockStyle.Fill;
             this.glControl.Location = new System.Drawing.Point(0, 0);
             this.glControl.Name = "glControl";
             this.glControl.Size = new System.Drawing.Size(558, 653);
-            this.glControl.StencilBits = ((byte)(0));
             this.glControl.TabIndex = 0;
             this.glControl.Paint += new System.Windows.Forms.PaintEventHandler(this.glControl_Paint);
             this.glControl.Resize += new System.EventHandler(this.glControl_Resize);
@@ -1101,7 +1093,7 @@ namespace AvatarPreview
         private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
         private System.Windows.Forms.SplitContainer splitContainer1;
-        private Tao.Platform.Windows.SimpleOpenGlControl glControl;
+        private OpenTK.GLControl glControl;
         private System.Windows.Forms.TabControl tabControl;
         private System.Windows.Forms.TabPage tabMorphs;
         private System.Windows.Forms.TabPage tabTextures;
