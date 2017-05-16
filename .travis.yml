@@ -6,6 +6,7 @@ matrix:
     - dotnet: 1.0.1
       mono: none
       dist: trusty
+      sudo: required
       env: DOTNETCORE=1
       script:
         - ./dotnetcore-build.sh --quiet verify
