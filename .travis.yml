@@ -7,4 +7,6 @@ matrix:
       mono: none
       dist: trusty
       env: DOTNETCORE=1
+      script:
+        - ./dotnetcore-build.sh --quiet verify
     - mono: latest
