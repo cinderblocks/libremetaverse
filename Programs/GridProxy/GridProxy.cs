@@ -1172,14 +1172,17 @@ namespace GridProxy
                 }
 
                 // forward the XML-RPC response to the client
-                StreamWriter writer = new StreamWriter(netStream);
-                writer.Write("HTTP/1.0 200 OK\r\n");
-                writer.Write("Content-type: text/xml\r\n");
-                writer.Write("\r\n");
+                using (StreamWriter writer = new StreamWriter(netStream))
+                {
+                    writer.Write("HTTP/1.0 200 OK\r\n");
+                    writer.Write("Content-type: text/xml\r\n");
+                    writer.Write("\r\n");
 
-                XmlTextWriter responseWriter = new XmlTextWriter(writer);
-                XmlRpcResponseSerializer.Singleton.Serialize(responseWriter, response);
-                responseWriter.Close(); writer.Close();
+                    using (XmlTextWriter responseWriter = new XmlTextWriter(writer))
+                    {
+                        XmlRpcResponseSerializer.Singleton.Serialize(responseWriter, response);
+                    }
+                }
 
                 lock (loginResponseDelegates)
                 {

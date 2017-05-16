@@ -56,7 +56,7 @@ namespace CSJ2K.Color.Boxes
 			}
 			catch (ColorSpaceException e)
 			{
-				SupportClass.WriteStackTrace(e, Console.Error); throw e;
+				SupportClass.WriteStackTrace(e, Console.Error); throw;
 			}
 		}
 		
@@ -96,10 +96,9 @@ namespace CSJ2K.Color.Boxes
 		[Serializable]
 		protected internal class BoxType:System.Collections.Hashtable
 		{
-			
 			private static System.Collections.Hashtable map = System.Collections.Hashtable.Synchronized(new System.Collections.Hashtable());
-			
-			private static void  put(int type, System.String desc)
+
+			private static void put(int type, System.String desc)
 			{
 				map[(System.Int32) type] = desc;
 			}
