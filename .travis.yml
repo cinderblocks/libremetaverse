@@ -1,0 +1,10 @@
+language: csharp
+solution: LibreMetaverse.sln
+
+matrix:
+  include:
+    - dotnet: 1.0.1
+      mono: none
+      dist: trusty
+      env: DOTNETCORE=1
+    - mono: latest
