@@ -7,6 +7,7 @@
 /// ***************************************************************************
 /// </summary>
 using System;
+using System.IO;
 using ColorSpace = CSJ2K.Color.ColorSpace;
 using ICCProfile = CSJ2K.Icc.ICCProfile;
 using ICCProfileHeader = CSJ2K.Icc.Types.ICCProfileHeader;
@@ -31,8 +32,7 @@ namespace CSJ2K.Icc.Tags
 	/// </version>
 	/// <author> 	Bruce A. Kern
 	/// </author>
-	[Serializable]
-	public class ICCTagTable:System.Collections.Hashtable
+	public class ICCTagTable:System.Collections.Generic.Dictionary<System.Int32, ICCTag>
 	{
 		//UPGRADE_NOTE: Final was removed from the declaration of 'eol '. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1003'"
 		private static readonly System.String eol = System.Environment.NewLine;
@@ -44,7 +44,7 @@ namespace CSJ2K.Icc.Tags
 		private static readonly int offTags;
 		
 		//UPGRADE_NOTE: Final was removed from the declaration of 'trios '. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1003'"
-		private System.Collections.ArrayList trios = System.Collections.ArrayList.Synchronized(new System.Collections.ArrayList(10));
+		private System.Collections.Generic.List<Triplet> trios = new System.Collections.Generic.List<Triplet>(10);
 		
 		private int tagCount;
 		
@@ -127,17 +127,14 @@ namespace CSJ2K.Icc.Tags
 			}
 			
 			
-			System.Collections.IEnumerator Enum = trios.GetEnumerator();
+			System.Collections.Generic.IEnumerator<Triplet> Enum = trios.GetEnumerator();
 			//UPGRADE_TODO: Method 'java.util.Enumeration.hasMoreElements' was converted to 'System.Collections.IEnumerator.MoveNext' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javautilEnumerationhasMoreElements'"
 			while (Enum.MoveNext())
 			{
 				//UPGRADE_TODO: Method 'java.util.Enumeration.nextElement' was converted to 'System.Collections.IEnumerator.Current' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javautilEnumerationnextElement'"
 				Triplet trio = (Triplet) Enum.Current;
 				ICCTag tag = ICCTag.createInstance(trio.signature, data, trio.offset, trio.count);
-				System.Object tempObject;
-				tempObject = this[(System.Int32) tag.signature];
 				this[(System.Int32) tag.signature] = tag;
-				System.Object generatedAux2 = tempObject;
 			}
 		}
 		
@@ -148,7 +145,7 @@ namespace CSJ2K.Icc.Tags
 		/// <exception cref="IOException">
 		/// </exception>
 		//UPGRADE_TODO: Class 'java.io.RandomAccessFile' was converted to 'System.IO.FileStream' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javaioRandomAccessFile'"
-		public virtual void  write(System.IO.FileStream raf)
+		public virtual void  write(System.IO.Stream raf)
 		{
 			
 			int ntags = trios.Count;

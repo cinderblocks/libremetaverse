@@ -41,6 +41,7 @@
 * Copyright (c) 1999/2000 JJ2000 Partners.
 * */
 using System;
+using System.Collections.Generic;
 using CSJ2K.j2k.codestream;
 using CSJ2K.j2k.fileformat;
 using CSJ2K.j2k.util;
@@ -113,10 +114,10 @@ namespace CSJ2K.j2k.fileformat.reader
 		private RandomAccessIO in_Renamed;
 		
 		/// <summary>The positions of the codestreams in the fileformat</summary>
-		private System.Collections.ArrayList codeStreamPos;
+		private System.Collections.Generic.List<System.Int32> codeStreamPos;
 		
 		/// <summary>The lengths of the codestreams in the fileformat</summary>
-		private System.Collections.ArrayList codeStreamLength;
+		private System.Collections.Generic.List<System.Int32> codeStreamLength;
 		
 		/// <summary>Flag indicating whether or not the JP2 file format is used </summary>
 		public bool JP2FFUsed;
@@ -174,7 +175,7 @@ namespace CSJ2K.j2k.fileformat.reader
 					marker = (short) in_Renamed.readShort();
 					if (marker != CSJ2K.j2k.codestream.Markers.SOC)
 					//Standard syntax marker found
-						throw new System.ApplicationException("File is neither valid JP2 file nor " + "valid JPEG 2000 codestream");
+						throw new System.InvalidOperationException("File is neither valid JP2 file nor " + "valid JPEG 2000 codestream");
 					JP2FFUsed = false;
 					in_Renamed.seek(0);
 					return ;
@@ -187,7 +188,7 @@ namespace CSJ2K.j2k.fileformat.reader
 				if (!readFileTypeBox())
 				{
 					// Not a valid JP2 file or codestream
-					throw new System.ApplicationException("Invalid JP2 file: File Type box missing");
+					throw new System.InvalidOperationException("Invalid JP2 file: File Type box missing");
 				}
 				
 				// Read all remaining boxes 
@@ -218,14 +219,14 @@ namespace CSJ2K.j2k.fileformat.reader
 						case CSJ2K.j2k.fileformat.FileFormatBoxes.CONTIGUOUS_CODESTREAM_BOX: 
 							if (!jp2HeaderBoxFound)
 							{
-								throw new System.ApplicationException("Invalid JP2 file: JP2Header box not " + "found before Contiguous codestream " + "box ");
+								throw new System.InvalidOperationException("Invalid JP2 file: JP2Header box not " + "found before Contiguous codestream " + "box ");
 							}
 							readContiguousCodeStreamBox(pos, length, longLength);
 							break;
 						
 						case CSJ2K.j2k.fileformat.FileFormatBoxes.JP2_HEADER_BOX: 
 							if (jp2HeaderBoxFound)
-								throw new System.ApplicationException("Invalid JP2 file: Multiple " + "JP2Header boxes found");
+								throw new System.InvalidOperationException("Invalid JP2 file: Multiple " + "JP2Header boxes found");
 							readJP2HeaderBox(pos, length, longLength);
 							jp2HeaderBoxFound = true;
 							break;
@@ -259,15 +260,15 @@ namespace CSJ2K.j2k.fileformat.reader
 						in_Renamed.seek(pos + length);
 				}
 			}
-			catch (System.IO.EndOfStreamException)
+			catch (System.IO.EndOfStreamException e)
 			{
-				throw new System.ApplicationException("EOF reached before finding Contiguous " + "Codestream Box");
+				throw new System.InvalidOperationException("EOF reached before finding Contiguous " + "Codestream Box");
 			}
 			
 			if (codeStreamPos.Count == 0)
 			{
 				// Not a valid JP2 file or codestream
-				throw new System.ApplicationException("Invalid JP2 file: Contiguous codestream box " + "missing");
+				throw new System.InvalidOperationException("Invalid JP2 file: Contiguous codestream box " + "missing");
 			}
 			
 			return ;
@@ -300,7 +301,7 @@ namespace CSJ2K.j2k.fileformat.reader
 			if (length == 0)
 			{
 				// This can not be last box
-				throw new System.ApplicationException("Zero-length of Profile Box");
+				throw new System.InvalidOperationException("Zero-length of Profile Box");
 			}
 			
 			// Check that this is a File Type box (TBox)
@@ -367,7 +368,7 @@ namespace CSJ2K.j2k.fileformat.reader
 			if (length == 0)
 			{
 				// This can not be last box
-				throw new System.ApplicationException("Zero-length of JP2Header Box");
+				throw new System.InvalidOperationException("Zero-length of JP2Header Box");
 			}
 			
 			// Here the JP2Header data (DBox) would be read if we were to use it
@@ -405,12 +406,12 @@ namespace CSJ2K.j2k.fileformat.reader
 			int ccpos = in_Renamed.Pos;
 			
 			if (codeStreamPos == null)
-				codeStreamPos = System.Collections.ArrayList.Synchronized(new System.Collections.ArrayList(10));
+				codeStreamPos = new List<int>(10);
 			codeStreamPos.Add((System.Int32) ccpos);
 			
 			// Add new codestream length to length vector
 			if (codeStreamLength == null)
-				codeStreamLength = System.Collections.ArrayList.Synchronized(new System.Collections.ArrayList(10));
+				codeStreamLength = new List<int>(10);
 			codeStreamLength.Add((System.Int32) length);
 			
 			return true;

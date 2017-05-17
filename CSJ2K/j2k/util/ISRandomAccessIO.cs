@@ -213,7 +213,7 @@ namespace CSJ2K.j2k.util
 			{
 				newbuf = new byte[buf.Length + inc];
 			}
-			catch (System.OutOfMemoryException)
+			catch (System.OutOfMemoryException e)
 			{
 				throw new System.IO.IOException("Out of memory to cache input data");
 			}
@@ -270,7 +270,7 @@ namespace CSJ2K.j2k.util
 			{
 				/* we reached EOF */
 				complete = true;
-				is_Renamed.Close();
+				is_Renamed.Dispose();
 				is_Renamed = null;
 			}
 		}
@@ -288,7 +288,7 @@ namespace CSJ2K.j2k.util
 			buf = null;
 			if (!complete)
 			{
-				is_Renamed.Close();
+				is_Renamed.Dispose();
 				is_Renamed = null;
 			}
 		}

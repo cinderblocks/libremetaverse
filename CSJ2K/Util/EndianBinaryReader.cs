@@ -55,7 +55,7 @@ namespace CSJ2K.Util
             _bigEndian = bigEndian;
         }
 
-        public EndianBinaryReader(Stream input, bool bigEndian) : base(input, bigEndian ? Encoding.BigEndianUnicode : Encoding.ASCII)
+        public EndianBinaryReader(Stream input, bool bigEndian) : base(input, bigEndian ? Encoding.BigEndianUnicode : Encoding.UTF8)
         {
             _bigEndian = bigEndian;
         }
@@ -344,6 +344,7 @@ namespace CSJ2K.Util
         //
         //   System.IO.EndOfStreamException:
         //     The end of the stream is reached.
+#if DOTNET
         public override decimal ReadDecimal()
         {
             if (_bigEndian)
@@ -361,6 +362,7 @@ namespace CSJ2K.Util
             }
             else return base.ReadDecimal();
         }
+#endif
         //
         // Summary:
         //     Reads an 8-byte floating point value from the current stream and advances

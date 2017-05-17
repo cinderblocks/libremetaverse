@@ -40,17 +40,14 @@
 * 
 * Copyright (c) 1999/2000 JJ2000 Partners.
 * */
-using System;
+#define DO_TIMING
+
 using CSJ2K.j2k.quantization.quantizer;
 using CSJ2K.j2k.wavelet.analysis;
-using CSJ2K.j2k.codestream;
 using CSJ2K.j2k.wavelet;
-using CSJ2K.j2k.encoder;
-using CSJ2K.j2k.entropy;
 using CSJ2K.j2k.image;
 using CSJ2K.j2k.util;
-using CSJ2K.j2k.io;
-using CSJ2K.j2k;
+
 namespace CSJ2K.j2k.entropy.encoder
 {
 	
@@ -113,53 +110,14 @@ namespace CSJ2K.j2k.entropy.encoder
 	/// </seealso>
 	public class StdEntropyCoder:EntropyCoder
 	{
-		
-		/// <summary>Whether to collect timing information or not: false. Used as a compile 
-		/// time directive. 
-		/// </summary>
-		private const bool DO_TIMING = false;
-		
+#if DO_TIMING		
 		/// <summary>The cumulative wall time for the entropy coding engine, for each
 		/// component. In the single-threaded implementation it is the total time,
 		/// in the multi-threaded implementation it is the time spent managing the
 		/// compressor threads only. 
 		/// </summary>
-		//private long[] time;
-		
-		/// <summary>The Java system property name for the number of threads to use:
-		/// jj2000.j2k.entropy.encoder.StdEntropyCoder.nthreads 
-		/// </summary>
-		public const System.String THREADS_PROP_NAME = "jj2000.j2k.entropy.encoder.StdEntropyCoder.nthreads";
-		
-		/// <summary>The default value for the property in THREADS_PROP_NAME: 0 </summary>
-		public const System.String DEF_THREADS_NUM = "0";
-		
-		/// <summary>The increase in priority for the compressor threads, currently 3. The
-		/// compressor threads will have a priority of THREADS_PRIORITY_INC more
-		/// than the priority of the thread calling this class constructor. Used
-		/// only in the multi-threaded implementation. 
-		/// </summary>
-		public const int THREADS_PRIORITY_INC = 0;
-		
-		/// <summary>The pool of threads, for the threaded implementation. It is null, if
-		/// non threaded implementation is used 
-		/// </summary>
-		private ThreadPool tPool;
-		
-		/// <summary>The queue of idle compressors. Used in multithreaded
-		/// implementation only 
-		/// </summary>
-		private System.Collections.ArrayList idleComps;
-		
-		/// <summary>The queue of completed compressors, for each component. Used
-		/// in multithreaded implementation only. 
-		/// </summary>
-		private System.Collections.ArrayList[] completedComps;
-		
-		/// <summary>The number of busy compressors, for each component. Used in
-		/// multithreaded implementation only. 
-		/// </summary>
-		private int[] nBusyComps;
+		private long[] time;
+#endif
 		
 		/// <summary>A flag indicating for each component if all the code-blocks of the *
 		/// current tile have been returned. Used in multithreaded implementation
@@ -555,8 +513,6 @@ namespace CSJ2K.j2k.entropy.encoder
 		/// table is indexed with one less bit. 
 		/// </summary>
 		private const int MSE_LKP_BITS = 7;
-
-        private const int MSE_LKP_BITS_M1 = 6;
 		
 		/// <summary>The number of fractional bits used to store data in the 'fm' and 'fs'
 		/// lookup tables. 
@@ -567,7 +523,7 @@ namespace CSJ2K.j2k.entropy.encoder
 		/// (SC) primative, for lossy coding (i.e. normal). 
 		/// </summary>
 		//UPGRADE_NOTE: Final was removed from the declaration of 'FS_LOSSY '. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1003'"
-        private static readonly int[] FS_LOSSY = new int[1 << MSE_LKP_BITS_M1];
+		private static readonly int[] FS_LOSSY = new int[1 << (MSE_LKP_BITS - 1)];
 		
 		/// <summary>Distortion estimation lookup table for bits coded using the
 		/// magnitude-refinement (MR) primative, for lossy coding (i.e. normal) 
@@ -581,7 +537,7 @@ namespace CSJ2K.j2k.entropy.encoder
 		/// distortion after the last bit-plane is coded is strictly 0. 
 		/// </summary>
 		//UPGRADE_NOTE: Final was removed from the declaration of 'FS_LOSSLESS '. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1003'"
-        private static readonly int[] FS_LOSSLESS = new int[1 << MSE_LKP_BITS_M1];
+		private static readonly int[] FS_LOSSLESS = new int[1 << (MSE_LKP_BITS - 1)];
 		
 		/// <summary>Distortion estimation lookup table for bits coded using the
 		/// magnitude-refinement (MR) primative, for lossless coding and last
@@ -630,120 +586,6 @@ namespace CSJ2K.j2k.entropy.encoder
 		/// each component and each tile.  
 		/// </summary>
 		private bool[][] precinctPartition;
-		
-		//UPGRADE_NOTE: Field 'EnclosingInstance' was added to class 'Compressor' to access its enclosing instance. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1019'"
-		/// <summary> Class that takes care of running the 'compressCodeBlock()' method with
-		/// thread local arguments. Used only in multithreaded implementation.
-		/// 
-		/// </summary>
-		private class Compressor : IThreadRunnable
-		{
-			private void  InitBlock(StdEntropyCoder enclosingInstance)
-			{
-				this.enclosingInstance = enclosingInstance;
-			}
-			private StdEntropyCoder enclosingInstance;
-			/// <summary> Returns the index of this compressor.
-			/// 
-			/// </summary>
-			/// <returns> The index of this compressor.
-			/// 
-			/// </returns>
-			virtual public int Idx
-			{
-				get
-				{
-					return idx;
-				}
-				
-			}
-			public StdEntropyCoder Enclosing_Instance
-			{
-				get
-				{
-					return enclosingInstance;
-				}
-				
-			}
-			/// <summary>The index of this compressor. Used to access thread local
-			/// variables 
-			/// </summary>
-			//UPGRADE_NOTE: Final was removed from the declaration of 'idx '. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1003'"
-			private int idx;
-			
-			/// <summary>The object where to store the compressed code-block </summary>
-			// Should be private, but some buggy JDK 1.1 compilers complain
-			internal CBlkRateDistStats ccb;
-			
-			/// <summary>The component on which to compress </summary>
-			// Should be private, but some buggy JDK 1.1 compilers complain
-			internal int c;
-			
-			/// <summary>The options bitmask to use in compression </summary>
-			// Should be private, but some buggy JDK 1.1 compilers complain
-			internal int options;
-			
-			/// <summary>The reversible flag to use in compression </summary>
-			// Should be private, but some buggy JDK 1.1 compilers complain
-			internal bool rev;
-			
-			/// <summary>The length calculation type to use in compression </summary>
-			// Should be private, but some buggy JDK 1.1 compilers complain
-			internal int lcType;
-			
-			/// <summary>The MQ termination type to use in compression </summary>
-			// Should be private, but some buggy JDK 1.1 compilers complain
-			internal int tType;
-			
-			/// <summary>The cumulative wall time for this compressor, for each
-			/// component. 
-			/// </summary>
-			//private long[] time;
-			
-			/// <summary> Creates a new compressor object with the given index.
-			/// 
-			/// </summary>
-			/// <param name="idx">The index of this compressor.
-			/// 
-			/// </param>
-			internal Compressor(StdEntropyCoder enclosingInstance, int idx)
-			{
-				InitBlock(enclosingInstance);
-				this.idx = idx;
-#if DO_TIMING
-				time = new long[Enclosing_Instance.src.NumComps];
-#endif
-			}
-			
-			/// <summary> Calls the 'compressCodeBlock()' method with thread local
-			/// arguments. Once completed it adds itself to the 'completedComps[c]' 
-			/// stack, where 'c' is the component for which this compressor is
-			/// running. This last step occurs even if exceptions are thrown by the 
-			/// 'compressCodeBlock()' method.
-			/// 
-			/// </summary>
-			public virtual void  Run()
-			{
-				// Start the code-block compression
-				try
-                {
-#if DO_TIMING
-					long stime = 0L;
-					stime = (System.DateTime.Now.Ticks - 621355968000000000) / 10000;
-#endif
-                    CSJ2K.j2k.entropy.encoder.StdEntropyCoder.compressCodeBlock(c, ccb, Enclosing_Instance.srcblkT[idx], Enclosing_Instance.mqT[idx], Enclosing_Instance.boutT[idx], Enclosing_Instance.outT[idx], Enclosing_Instance.stateT[idx], Enclosing_Instance.distbufT[idx], Enclosing_Instance.ratebufT[idx], Enclosing_Instance.istermbufT[idx], Enclosing_Instance.symbufT[idx], Enclosing_Instance.ctxtbufT[idx], options, rev, lcType, tType);
-#if DO_TIMING
-					time[c] += (System.DateTime.Now.Ticks - 621355968000000000) / 10000 - stime;
-#endif
-				}
-				finally
-				{
-					// Join the queue of completed compression, even if exceptions 
-					// occurred.
-					Enclosing_Instance.completedComps[c].Add(this);
-				}
-			}
-		}
 		
 		/// <summary> Instantiates a new entropy coder engine, with the specified source of
 		/// data, nominal block width and height.
@@ -798,29 +640,12 @@ namespace CSJ2K.j2k.entropy.encoder
 			this.tts = tts;
 			int maxCBlkWidth, maxCBlkHeight;
 			int i; // Counter
-			int nt; // The number of threads
 			int tsl; // Size for thread structures
 			
 			// Get the biggest width/height for the code-blocks
 			maxCBlkWidth = cblks.MaxCBlkWidth;
 			maxCBlkHeight = cblks.MaxCBlkHeight;
 			
-            nt = Environment.ProcessorCount;
-            /*
-			// Get the number of threads to use, or default to one
-			try
-			{
-				//UPGRADE_ISSUE: Method 'java.lang.System.getProperty' was not converted. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1000_javalangSystem'"
-				nt = System.Int32.Parse(System_Renamed.getProperty(THREADS_PROP_NAME, DEF_THREADS_NUM));
-				if (nt < 0)
-					throw new System.FormatException();
-			}
-			catch (System.FormatException e)
-			{
-				throw new System.ArgumentException("Invalid number of threads " + "for " + "entropy coding in property " + THREADS_PROP_NAME);
-			}
-			*/
-
 			// If we do timing create necessary structures
 #if DO_TIMING
 			time = new long[src.NumComps];
@@ -828,35 +653,10 @@ namespace CSJ2K.j2k.entropy.encoder
 			//UPGRADE_ISSUE: Method 'java.lang.System.runFinalizersOnExit' was not converted. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1000_javalangSystem'"
 			// CONVERSION PROBLEM?
             //System_Renamed.runFinalizersOnExit(true);
-#endif			
-			// If using multithreaded implementation get necessasry objects
-			if (nt > 0)
-			{
-				FacilityManager.getMsgLogger().printmsg(CSJ2K.j2k.util.MsgLogger_Fields.INFO, "Using multithreaded entropy coder " + "with " + nt + " compressor threads.");
-				tsl = nt;
-				tPool = new ThreadPool(nt, (System.Int32) SupportClass.ThreadClass.Current().Priority + THREADS_PRIORITY_INC, "StdEntropyCoder");
-				idleComps = new System.Collections.ArrayList();
-				completedComps = new System.Collections.ArrayList[src.NumComps];
-				nBusyComps = new int[src.NumComps];
-				finishedTileComponent = new bool[src.NumComps];
-				for (i = src.NumComps - 1; i >= 0; i--)
-				{
-					completedComps[i] = new System.Collections.ArrayList();
-				}
-				for (i = 0; i < nt; i++)
-				{
-					idleComps.Add(new StdEntropyCoder.Compressor(this, i));
-				}
-			}
-			else
-			{
-				tsl = 1;
-				tPool = null;
-				idleComps = null;
-				completedComps = null;
-				nBusyComps = null;
-				finishedTileComponent = null;
-			}
+#endif
+		
+			tsl = 1;
+			finishedTileComponent = null;
 			
 			// Allocate data structures
 			outT = new ByteOutputBuffer[tsl];
@@ -934,57 +734,17 @@ namespace CSJ2K.j2k.entropy.encoder
             int c;
             System.Text.StringBuilder sb;
 
-            if (tPool == null)
+            // Single threaded implementation
+            sb = new System.Text.StringBuilder("StdEntropyCoder compression wall " + "clock time:");
+            for (c = 0; c < time.Length; c++)
             {
-                // Single threaded implementation
-                sb = new System.Text.StringBuilder("StdEntropyCoder compression wall " + "clock time:");
-                for (c = 0; c < time.Length; c++)
-                {
-                    sb.Append("\n  component ");
-                    sb.Append(c);
-                    sb.Append(": ");
-                    sb.Append(time[c]);
-                    sb.Append(" ms");
-                }
-                FacilityManager.getMsgLogger().printmsg(CSJ2K.j2k.util.MsgLogger_Fields.INFO, sb.ToString());
+                sb.Append("\n  component ");
+                sb.Append(c);
+                sb.Append(": ");
+                sb.Append(time[c]);
+                sb.Append(" ms");
             }
-            else
-            {
-                // Multithreaded implementation
-                Compressor compr;
-                MsgLogger msglog = FacilityManager.getMsgLogger();
-
-                sb = new System.Text.StringBuilder("StdEntropyCoder manager thread " + "wall clock time:");
-                for (c = 0; c < time.Length; c++)
-                {
-                    sb.Append("\n  component ");
-                    sb.Append(c);
-                    sb.Append(": ");
-                    sb.Append(time[c]);
-                    sb.Append(" ms");
-                }
-                System.Collections.IEnumerator Enum = idleComps.GetEnumerator();
-                sb.Append("\nStdEntropyCoder compressor threads wall clock " + "time:");
-                //UPGRADE_TODO: Method 'java.util.Enumeration.hasMoreElements' was converted to 'System.Collections.IEnumerator.MoveNext' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javautilEnumerationhasMoreElements'"
-                while (Enum.MoveNext())
-                {
-                    //UPGRADE_TODO: Method 'java.util.Enumeration.nextElement' was converted to 'System.Collections.IEnumerator.Current' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javautilEnumerationnextElement'"
-                    compr = (Compressor)(Enum.Current);
-                    for (c = 0; c < time.Length; c++)
-                    {
-                        sb.Append("\n  compressor ");
-                        sb.Append(compr.Idx);
-                        sb.Append(", component ");
-                        sb.Append(c);
-                        sb.Append(": ");
-                        sb.Append(compr.getTiming(c));
-                        sb.Append(" ms");
-                    }
-                }
-                FacilityManager.getMsgLogger().printmsg(CSJ2K.j2k.util.MsgLogger_Fields.INFO, sb.ToString());
-            }
-
-            //UPGRADE_NOTE: Call to 'super.finalize()' was removed. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1124'"
+            FacilityManager.getMsgLogger().printmsg(CSJ2K.j2k.util.MsgLogger_Fields.INFO, sb.ToString());
         }
 #endif 
 
@@ -1061,143 +821,38 @@ namespace CSJ2K.j2k.entropy.encoder
 #if DO_TIMING
 			long stime = 0L; // Start time for timed sections
 #endif
-			if (tPool == null)
-			{
-				// Use single threaded implementation
-				// Get code-block data from source
-				srcblkT[0] = src.getNextInternCodeBlock(c, srcblkT[0]);
+			// Use single threaded implementation
+			// Get code-block data from source
+			srcblkT[0] = src.getNextInternCodeBlock(c, srcblkT[0]);
 				
 #if DO_TIMING
-			    stime = (System.DateTime.Now.Ticks - 621355968000000000) / 10000;
+			stime = (System.DateTime.Now.Ticks - 621355968000000000) / 10000;
 #endif
 
-				if (srcblkT[0] == null)
-				{
-					// We got all code-blocks
-					return null;
-				}
-				// Initialize thread local variables
-				if ((opts[tIdx][c] & CSJ2K.j2k.entropy.StdEntropyCoderOptions.OPT_BYPASS) != 0 && boutT[0] == null)
-				{
-					boutT[0] = new BitToByteOutput(outT[0]);
-				}
-				// Initialize output code-block
-				if (ccb == null)
-				{
-					ccb = new CBlkRateDistStats();
-				}
-				// Compress code-block
-				compressCodeBlock(c, ccb, srcblkT[0], mqT[0], boutT[0], outT[0], stateT[0], distbufT[0], ratebufT[0], istermbufT[0], symbufT[0], ctxtbufT[0], opts[tIdx][c], isReversible(tIdx, c), lenCalc[tIdx][c], tType[tIdx][c]);
+			if (srcblkT[0] == null)
+			{
+				// We got all code-blocks
+				return null;
+			}
+			// Initialize thread local variables
+			if ((opts[tIdx][c] & CSJ2K.j2k.entropy.StdEntropyCoderOptions.OPT_BYPASS) != 0 && boutT[0] == null)
+			{
+				boutT[0] = new BitToByteOutput(outT[0]);
+			}
+			// Initialize output code-block
+			if (ccb == null)
+			{
+				ccb = new CBlkRateDistStats();
+			}
+			// Compress code-block
+			compressCodeBlock(c, ccb, srcblkT[0], mqT[0], boutT[0], outT[0], stateT[0], distbufT[0], ratebufT[0], istermbufT[0], symbufT[0], ctxtbufT[0], opts[tIdx][c], isReversible(tIdx, c), lenCalc[tIdx][c], tType[tIdx][c]);
 				
 #if DO_TIMING
-				time[c] += (System.DateTime.Now.Ticks - 621355968000000000) / 10000 - stime;
+			time[c] += (System.DateTime.Now.Ticks - 621355968000000000) / 10000 - stime;
 #endif
 
-				// Return result
-				return ccb;
-			}
-			else
-			{
-				// Use multiple threaded implementation
-				int cIdx; // Compressor idx
-				Compressor compr; // Compressor
-				
-#if DO_TIMING
-				stime = (System.DateTime.Now.Ticks - 621355968000000000) / 10000;
-#endif
-				// Give data to all free compressors, using the current component
-				while (!finishedTileComponent[c] && !(idleComps.Count == 0))
-				{
-					// Get an idle compressor
-					compr = (Compressor) SupportClass.StackSupport.Pop(idleComps);
-					cIdx = compr.Idx;
-					// Get data for the compressor and wake it up
-#if DO_TIMING
-					time[c] += (System.DateTime.Now.Ticks - 621355968000000000) / 10000 - stime;
-#endif
-					srcblkT[cIdx] = src.getNextInternCodeBlock(c, srcblkT[cIdx]);
-#if DO_TIMING
-					stime = (System.DateTime.Now.Ticks - 621355968000000000) / 10000;
-#endif
-					if (srcblkT[cIdx] != null)
-					{
-						// Initialize thread local variables
-						if ((opts[tIdx][c] & CSJ2K.j2k.entropy.StdEntropyCoderOptions.OPT_BYPASS) != 0 && boutT[cIdx] == null)
-						{
-							boutT[cIdx] = new BitToByteOutput(outT[cIdx]);
-						}
-						// Initialize output code-block and compressor thread
-						if (ccb == null)
-							ccb = new CBlkRateDistStats();
-						compr.ccb = ccb;
-						compr.c = c;
-						compr.options = opts[tIdx][c];
-						compr.rev = isReversible(tIdx, c);
-						compr.lcType = lenCalc[tIdx][c];
-						compr.tType = tType[tIdx][c];
-						nBusyComps[c]++;
-						ccb = null;
-						// Send compressor to execution in thread pool
-						tPool.runTarget(compr, completedComps[c]);
-					}
-					else
-					{
-						// We finished with all the code-blocks in the current
-						// tile component
-						idleComps.Add(compr);
-						finishedTileComponent[c] = true;
-					}
-				}
-				// If there are threads for this component which result has not
-				// been returned yet, get it
-				if (nBusyComps[c] > 0)
-				{
-					lock (completedComps[c])
-					{
-						// If no compressor is done, wait until one is
-						if ((completedComps[c].Count == 0))
-						{
-							try
-							{
-#if DO_TIMING
-								time[c] += (System.DateTime.Now.Ticks - 621355968000000000) / 10000 - stime;
-#endif
-								System.Threading.Monitor.Wait(completedComps[c]);
-#if DO_TIMING
-								stime = (System.DateTime.Now.Ticks - 621355968000000000) / 10000;
-#endif
-							}
-							catch (System.Threading.ThreadInterruptedException)
-							{
-							}
-						}
-						// Remove the thread from the completed queue and put it
-						// on the idle queue
-						compr = (Compressor) SupportClass.StackSupport.Pop(completedComps[c]);
-						cIdx = compr.Idx;
-						nBusyComps[c]--;
-						idleComps.Add(compr);
-						// Check targets error condition
-						tPool.checkTargetErrors();
-						// Get the result of compression and return that.
-#if DO_TIMING
-						time[c] += (System.DateTime.Now.Ticks - 621355968000000000) / 10000 - stime;
-#endif
-						return compr.ccb;
-					}
-				}
-				else
-				{
-					// Check targets error condition
-					tPool.checkTargetErrors();
-					// Printing timing info if necessary
-#if DO_TIMING
-					time[c] += (System.DateTime.Now.Ticks - 621355968000000000) / 10000 - stime;
-#endif
-					// Nothing is running => no more code-blocks
-					return null;
-				}
-			}
+			// Return result
+			return ccb;
 		}
 		
 		/// <summary> Changes the current tile, given the new indexes. An
@@ -1381,7 +1036,7 @@ namespace CSJ2K.j2k.entropy.encoder
 					break;
 				
 				default: 
-					throw new System.ApplicationException("JJ2000 internal error");
+					throw new System.InvalidOperationException("JJ2000 internal error");
 				
 			}
 			
@@ -1641,7 +1296,7 @@ namespace CSJ2K.j2k.entropy.encoder
 			dist = 0;
 			// We use the MSE_LKP_BITS-1 bits below the bit just coded for
 			// distortion estimation.
-			shift = bp - MSE_LKP_BITS_M1;
+			shift = bp - (MSE_LKP_BITS - 1);
 			upshift = (shift >= 0)?0:- shift;
 			downshift = (shift <= 0)?0:shift;
 			causal = (options & CSJ2K.j2k.entropy.StdEntropyCoderOptions.OPT_VERT_STR_CAUSAL) != 0;
@@ -1722,7 +1377,7 @@ namespace CSJ2K.j2k.entropy.encoder
 								}
 								// Update distortion
 								normval = (data[k] >> downshift) << upshift;
-                                dist += fs[normval & ((1 << MSE_LKP_BITS_M1) - 1)];
+								dist += fs[normval & ((1 << (MSE_LKP_BITS - 1)) - 1)];
 							}
 							else
 							{
@@ -1771,7 +1426,7 @@ namespace CSJ2K.j2k.entropy.encoder
 								}
 								// Update distortion
 								normval = (data[k] >> downshift) << upshift;
-                                dist += fs[normval & ((1 << MSE_LKP_BITS_M1) - 1)];
+								dist += fs[normval & ((1 << (MSE_LKP_BITS - 1)) - 1)];
 							}
 							else
 							{
@@ -1827,7 +1482,7 @@ namespace CSJ2K.j2k.entropy.encoder
 								}
 								// Update distortion
 								normval = (data[k] >> downshift) << upshift;
-                                dist += fs[normval & ((1 << MSE_LKP_BITS_M1) - 1)];
+								dist += fs[normval & ((1 << (MSE_LKP_BITS - 1)) - 1)];
 							}
 							else
 							{
@@ -1876,7 +1531,7 @@ namespace CSJ2K.j2k.entropy.encoder
 								}
 								// Update distortion
 								normval = (data[k] >> downshift) << upshift;
-                                dist += fs[normval & ((1 << MSE_LKP_BITS_M1) - 1)];
+								dist += fs[normval & ((1 << (MSE_LKP_BITS - 1)) - 1)];
 							}
 							else
 							{
@@ -2008,7 +1663,7 @@ namespace CSJ2K.j2k.entropy.encoder
 			dist = 0;
 			// We use the MSE_LKP_BITS-1 bits below the bit just coded for
 			// distortion estimation.
-			shift = bp - MSE_LKP_BITS_M1;
+			shift = bp - (MSE_LKP_BITS - 1);
 			upshift = (shift >= 0)?0:- shift;
 			downshift = (shift <= 0)?0:shift;
 			causal = (options & CSJ2K.j2k.entropy.StdEntropyCoderOptions.OPT_VERT_STR_CAUSAL) != 0;
@@ -2090,7 +1745,7 @@ namespace CSJ2K.j2k.entropy.encoder
 								}
 								// Update distortion
 								normval = (data[k] >> downshift) << upshift;
-                                dist += fs[normval & ((1 << MSE_LKP_BITS_M1) - 1)];
+								dist += fs[normval & ((1 << (MSE_LKP_BITS - 1)) - 1)];
 							}
 							else
 							{
@@ -2140,7 +1795,7 @@ namespace CSJ2K.j2k.entropy.encoder
 								}
 								// Update distortion
 								normval = (data[k] >> downshift) << upshift;
-                                dist += fs[normval & ((1 << MSE_LKP_BITS_M1) - 1)];
+								dist += fs[normval & ((1 << (MSE_LKP_BITS - 1)) - 1)];
 							}
 							else
 							{
@@ -2196,7 +1851,7 @@ namespace CSJ2K.j2k.entropy.encoder
 								}
 								// Update distortion
 								normval = (data[k] >> downshift) << upshift;
-								dist += fs[normval & ((1 << MSE_LKP_BITS_M1) - 1)];
+								dist += fs[normval & ((1 << (MSE_LKP_BITS - 1)) - 1)];
 							}
 							else
 							{
@@ -2245,7 +1900,7 @@ namespace CSJ2K.j2k.entropy.encoder
 								}
 								// Update distortion
 								normval = (data[k] >> downshift) << upshift;
-                                dist += fs[normval & ((1 << MSE_LKP_BITS_M1) - 1)];
+								dist += fs[normval & ((1 << (MSE_LKP_BITS - 1)) - 1)];
 							}
 							else
 							{
@@ -2361,7 +2016,7 @@ namespace CSJ2K.j2k.entropy.encoder
 			dist = 0;
 			// We use the bit just coded plus MSE_LKP_BITS-1 bits below the bit
 			// just coded for distortion estimation.
-			shift = bp - MSE_LKP_BITS_M1;
+			shift = bp - (MSE_LKP_BITS - 1);
 			upshift = (shift >= 0)?0:- shift;
 			downshift = (shift <= 0)?0:shift;
 			
@@ -2580,7 +2235,7 @@ namespace CSJ2K.j2k.entropy.encoder
 			dist = 0;
 			// We use the bit just coded plus MSE_LKP_BITS-1 bits below the bit
 			// just coded for distortion estimation.
-			shift = bp - MSE_LKP_BITS_M1;
+			shift = bp - (MSE_LKP_BITS - 1);
 			upshift = (shift >= 0)?0:- shift;
 			downshift = (shift <= 0)?0:shift;
 			
@@ -2790,7 +2445,7 @@ namespace CSJ2K.j2k.entropy.encoder
 			dist = 0;
 			// We use the MSE_LKP_BITS-1 bits below the bit just coded for
 			// distortion estimation.
-			shift = bp - MSE_LKP_BITS_M1;
+			shift = bp - (MSE_LKP_BITS - 1);
 			upshift = (shift >= 0)?0:- shift;
 			downshift = (shift <= 0)?0:shift;
 			causal = (options & CSJ2K.j2k.entropy.StdEntropyCoderOptions.OPT_VERT_STR_CAUSAL) != 0;
@@ -2861,7 +2516,7 @@ namespace CSJ2K.j2k.entropy.encoder
 							// Code sign of sample that became significant
 							// Update distortion
 							normval = (data[k] >> downshift) << upshift;
-                            dist += fs[normval & ((1 << MSE_LKP_BITS_M1) - 1)];
+							dist += fs[normval & ((1 << (MSE_LKP_BITS - 1)) - 1)];
 							// Apply sign coding
 							sym = SupportClass.URShift(data[k], 31);
 							if ((rlclen & 0x01) == 0)
@@ -3021,7 +2676,7 @@ namespace CSJ2K.j2k.entropy.encoder
 									}
 									// Update distortion
 									normval = (data[k] >> downshift) << upshift;
-									dist += fs[normval & ((1 << MSE_LKP_BITS_M1) - 1)];
+									dist += fs[normval & ((1 << (MSE_LKP_BITS - 1)) - 1)];
 								}
 							}
 							if (sheight < 2)
@@ -3067,7 +2722,7 @@ namespace CSJ2K.j2k.entropy.encoder
 									}
 									// Update distortion
 									normval = (data[k] >> downshift) << upshift;
-									dist += fs[normval & ((1 << MSE_LKP_BITS_M1) - 1)];
+									dist += fs[normval & ((1 << (MSE_LKP_BITS - 1)) - 1)];
 								}
 							}
 						}
@@ -3125,7 +2780,7 @@ top_half_brk: ;
 								}
 								// Update distortion
 								normval = (data[k] >> downshift) << upshift;
-								dist += fs[normval & ((1 << MSE_LKP_BITS_M1) - 1)];
+								dist += fs[normval & ((1 << (MSE_LKP_BITS - 1)) - 1)];
 							}
 						}
 						if (sheight < 4)
@@ -3171,7 +2826,7 @@ top_half_brk: ;
 								}
 								// Update distortion
 								normval = (data[k] >> downshift) << upshift;
-								dist += fs[normval & ((1 << MSE_LKP_BITS_M1) - 1)];
+								dist += fs[normval & ((1 << (MSE_LKP_BITS - 1)) - 1)];
 							}
 						}
 					}
@@ -3699,10 +3354,10 @@ top_half_brk: ;
 				// Initialize the distortion estimation lookup tables
 				
 				// fs tables
-				for (i = 0; i < (1 << MSE_LKP_BITS_M1); i++)
+				for (i = 0; i < (1 << (MSE_LKP_BITS - 1)); i++)
 				{
 					// In fs we index by val-1, since val is really: 1 <= val < 2
-					val = (double) i / (1 << MSE_LKP_BITS_M1) + 1.0;
+					val = (double) i / (1 << (MSE_LKP_BITS - 1)) + 1.0;
 					deltaMSE = val * val;
 					//UPGRADE_WARNING: Data types in Visual C# might be different.  Verify the accuracy of narrowing conversions. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1042'"
 					FS_LOSSLESS[i] = (int) System.Math.Floor(deltaMSE * ((double) (1 << MSE_LKP_FRAC_BITS)) + 0.5);
@@ -3715,11 +3370,11 @@ top_half_brk: ;
 				// fm tables
 				for (i = 0; i < (1 << MSE_LKP_BITS); i++)
 				{
-					val = (double) i / (1 << MSE_LKP_BITS_M1);
+					val = (double) i / (1 << (MSE_LKP_BITS - 1));
 					deltaMSE = (val - 1.0) * (val - 1.0);
 					//UPGRADE_WARNING: Data types in Visual C# might be different.  Verify the accuracy of narrowing conversions. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1042'"
 					FM_LOSSLESS[i] = (int) System.Math.Floor(deltaMSE * ((double) (1 << MSE_LKP_FRAC_BITS)) + 0.5);
-					val -= ((i < (1 << MSE_LKP_BITS_M1))?0.5:1.5);
+					val -= ((i < (1 << (MSE_LKP_BITS - 1)))?0.5:1.5);
 					deltaMSE -= val * val;
 					//UPGRADE_WARNING: Data types in Visual C# might be different.  Verify the accuracy of narrowing conversions. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1042'"
 					FM_LOSSY[i] = (int) System.Math.Floor(deltaMSE * ((double) (1 << MSE_LKP_FRAC_BITS)) + 0.5);

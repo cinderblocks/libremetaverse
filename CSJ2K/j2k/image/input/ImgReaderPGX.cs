@@ -42,6 +42,7 @@
 * Copyright (c) 1999/2000 JJ2000 Partners.
 * */
 using System;
+using CSJ2K.Util;
 using CSJ2K.j2k.image;
 using CSJ2K.j2k.io;
 using CSJ2K.j2k;
@@ -109,7 +110,7 @@ namespace CSJ2K.j2k.image.input
 		
 		/// <summary>The RandomAccessIO where to get datas from </summary>
 		//UPGRADE_TODO: Class 'java.io.RandomAccessFile' was converted to 'System.IO.FileStream' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javaioRandomAccessFile'"
-		private System.IO.FileStream in_Renamed;
+		private System.IO.Stream in_Renamed;
 		
 		/// <summary>The bit-depth of the input file (must be between 1 and 31)</summary>
 		private int bitDepth;
@@ -145,36 +146,25 @@ namespace CSJ2K.j2k.image.input
 		/// <exception cref="IOException">If an I/O error occurs.
 		/// 
 		/// </exception>
-		public ImgReaderPGX(System.IO.FileInfo in_Renamed)
+		public ImgReaderPGX(System.IO.Stream in_Renamed)
 		{
 			System.String header;
 			
-			// Check if specified file exists
-			bool tmpBool;
-			if (System.IO.File.Exists(in_Renamed.FullName))
-				tmpBool = true;
-			else
-				tmpBool = System.IO.Directory.Exists(in_Renamed.FullName);
-			if (!tmpBool)
-			{
-				throw new System.ArgumentException("PGX file " + in_Renamed.Name + " does not exist");
-			}
-			
 			//Opens the given file
-			this.in_Renamed = SupportClass.RandomAccessFileSupport.CreateRandomAccessFile(in_Renamed, "r");
+			this.in_Renamed = in_Renamed;
 			try
 			{
                 System.IO.StreamReader in_reader = new System.IO.StreamReader(this.in_Renamed);
 				//UPGRADE_ISSUE: Method 'java.io.RandomAccessFile.readLine' was not converted. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1000_javaioRandomAccessFilereadLine'"
 				header = in_reader.ReadLine();
 			}
-			catch (System.IO.IOException)
+			catch (System.IO.IOException e)
 			{
-				throw new System.IO.IOException(in_Renamed.Name + " is not a PGX file");
+				throw new System.IO.IOException("Not a PGX file");
 			}
 			if (header == null)
 			{
-				throw new System.IO.IOException(in_Renamed.Name + " is an empty file");
+				throw new System.IO.IOException("Empty file");
 			}
 			offset = (header.Length + 1);
 			
@@ -186,7 +176,7 @@ namespace CSJ2K.j2k.image.input
 				
 				// Magic Number
 				if (!(st.NextToken()).Equals("PG"))
-					throw new System.IO.IOException(in_Renamed.Name + " is not a PGX file");
+					throw new System.IO.IOException("Not a PGX file");
 				
 				// Endianess
 				System.String tmp = st.NextToken();
@@ -195,7 +185,7 @@ namespace CSJ2K.j2k.image.input
 				else if (tmp.Equals("ML"))
 					byteOrder = CSJ2K.j2k.io.EndianType_Fields.BIG_ENDIAN;
 				else
-					throw new System.IO.IOException(in_Renamed.Name + " is not a PGX file");
+					throw new System.IO.IOException("Not a PGX file");
 				
 				// Unsigned/signed if present in the header
 				if (nTokens == 6)
@@ -206,7 +196,7 @@ namespace CSJ2K.j2k.image.input
 					else if (tmp.Equals("-"))
 						isSigned = true;
 					else
-						throw new System.IO.IOException(in_Renamed.Name + " is not a PGX file");
+						throw new System.IO.IOException("Not a PGX file");
 				}
 				
 				// bit-depth, width, height
@@ -215,19 +205,19 @@ namespace CSJ2K.j2k.image.input
 					bitDepth = (System.Int32.Parse(st.NextToken()));
 					// bitDepth must be between 1 and 31
 					if ((bitDepth <= 0) || (bitDepth > 31))
-						throw new System.IO.IOException(in_Renamed.Name + " is not a valid PGX file");
+						throw new System.IO.IOException("Not a PGX file");
 					
 					w = (System.Int32.Parse(st.NextToken()));
 					h = (System.Int32.Parse(st.NextToken()));
 				}
-				catch (System.FormatException)
+				catch (System.FormatException e)
 				{
-					throw new System.IO.IOException(in_Renamed.Name + " is not a PGX file");
+					throw new System.IO.IOException("Not a PGX file");
 				}
 			}
-			catch (System.ArgumentOutOfRangeException)
+			catch (System.ArgumentOutOfRangeException e)
 			{
-				throw new System.IO.IOException(in_Renamed.Name + " is not a PGX file");
+				throw new System.IO.IOException("Not a PGX file");
 			}
 			
 			// Number of component
@@ -242,14 +232,27 @@ namespace CSJ2K.j2k.image.input
 			else
 				packBytes = 4;
 		}
-		
+
+		/// <summary> Creates a new PGX file reader from the specified File object.
+		/// 
+		/// </summary>
+		/// <param name="in">The input file as File object.
+		/// 
+		/// </param>
+		/// <exception cref="IOException">If an I/O error occurs.
+		/// 
+		/// </exception>
+		public ImgReaderPGX(IFileInfo in_Renamed) : this(SupportClass.RandomAccessFileSupport.CreateRandomAccessFile(in_Renamed, "r"))
+		{
+		}
+
 		/// <summary> Creates a new PGX file reader from the specified file name.
 		/// 
 		/// </summary>
 		/// <param name="inName">The input file name.
 		/// 
 		/// </param>
-		public ImgReaderPGX(System.String inName):this(new System.IO.FileInfo(inName))
+		public ImgReaderPGX(System.String inName):this(FileInfoFactory.New(inName))
 		{
 		}
 		
@@ -262,7 +265,7 @@ namespace CSJ2K.j2k.image.input
 		/// </exception>
 		public override void  close()
 		{
-			in_Renamed.Close();
+			in_Renamed.Dispose();
 			in_Renamed = null;
 			buf = null;
 		}
@@ -459,7 +462,7 @@ namespace CSJ2K.j2k.image.input
 										break;
 									
 									default: 
-										throw new System.ApplicationException("Internal JJ2000 bug");
+										throw new System.InvalidOperationException("Internal JJ2000 bug");
 									
 								}
 							}
@@ -490,7 +493,7 @@ namespace CSJ2K.j2k.image.input
 										break;
 									
 									default: 
-										throw new System.ApplicationException("Internal JJ2000 bug");
+										throw new System.InvalidOperationException("Internal JJ2000 bug");
 									
 								}
 							}
@@ -526,7 +529,7 @@ namespace CSJ2K.j2k.image.input
 										break;
 									
 									default: 
-										throw new System.ApplicationException("Internal JJ2000 bug");
+										throw new System.InvalidOperationException("Internal JJ2000 bug");
 									
 								}
 							}
@@ -556,7 +559,7 @@ namespace CSJ2K.j2k.image.input
 										break;
 									
 									default: 
-										throw new System.ApplicationException("Internal JJ2000 bug");
+										throw new System.InvalidOperationException("Internal JJ2000 bug");
 									
 								}
 							}

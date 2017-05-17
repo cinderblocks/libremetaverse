@@ -48,72 +48,103 @@ using CSJ2K.j2k.decoder;
 using CSJ2K.j2k.image;
 using CSJ2K.j2k.util;
 using CSJ2K.j2k;
+
 namespace CSJ2K.j2k.wavelet.synthesis
 {
-	
-	/// <summary> This abstract class extends the WaveletTransform one with the specifics of
-	/// inverse wavelet transforms.
-	/// 
-	/// <p>The image can be reconstructed at different resolution levels. This is
-	/// controlled by the setResLevel() method. All the image, tile and component
-	/// dimensions are relative the the resolution level being used. The number of
-	/// resolution levels indicates the number of wavelet recompositions that will
-	/// be used, if it is equal as the number of decomposition levels then the full
-	/// resolution image is reconstructed.</p>
-	/// 
-	/// <p>It is assumed in this class that all tiles and components the same
-	/// reconstruction resolution level. If that where not the case the
-	/// implementing class should have additional data structures to store those
-	/// values for each tile. However, the 'recResLvl' member variable always
-	/// contain the values applicable to the current tile, since many methods
-	/// implemented here rely on them.</p>
-	/// 
-	/// </summary>
-	public abstract class InverseWT:InvWTAdapter, BlkImgDataSrc
-	{
-		
-		/// <summary> Initializes this object with the given source of wavelet
-		/// coefficients. It initializes the resolution level for full resolutioin
-		/// reconstruction (i.e. the maximum resolution available from the 'src'
-		/// source).
-		/// 
-		/// <p>It is assumed here that all tiles and components have the same
-		/// reconstruction resolution level. If that was not the case it should be
-		/// the value for the current tile of the source.</p>
-		/// 
-		/// </summary>
-		/// <param name="src">from where the wavelet coefficinets should be obtained.
-		/// 
-		/// </param>
-		/// <param name="decSpec">The decoder specifications
-		/// 
-		/// </param>
-		public InverseWT(MultiResImgData src, DecoderSpecs decSpec):base(src, decSpec)
-		{
-		}
-		
-		/// <summary> Creates an InverseWT object that works on the data type of the source,
-		/// with the special additional parameters from the parameter
-		/// list. Currently the parameter list is ignored since no special
-		/// parameters can be specified for the inverse wavelet transform yet.
-		/// 
-		/// </summary>
-		/// <param name="src">The source of data for the inverse wavelet
-		/// transform.
-		/// 
-		/// </param>
-		/// <param name="pl">The parameter list containing parameters applicable to the
-		/// inverse wavelet transform (other parameters can also be present).
-		/// 
-		/// </param>
-		public static InverseWT createInstance(CBlkWTDataSrcDec src, DecoderSpecs decSpec)
-		{
-			
-			// full page wavelet transform
-			return new InvWTFull(src, decSpec);
-		}
-		public abstract int getFixedPoint(int param1);
-		public abstract CSJ2K.j2k.image.DataBlk getInternCompData(CSJ2K.j2k.image.DataBlk param1, int param2);
-		public abstract CSJ2K.j2k.image.DataBlk getCompData(CSJ2K.j2k.image.DataBlk param1, int param2);
-	}
+
+    /// <summary> This abstract class extends the WaveletTransform one with the specifics of
+    /// inverse wavelet transforms.
+    /// 
+    /// <p>The image can be reconstructed at different resolution levels. This is
+    /// controlled by the setResLevel() method. All the image, tile and component
+    /// dimensions are relative the the resolution level being used. The number of
+    /// resolution levels indicates the number of wavelet recompositions that will
+    /// be used, if it is equal as the number of decomposition levels then the full
+    /// resolution image is reconstructed.</p>
+    /// 
+    /// <p>It is assumed in this class that all tiles and components the same
+    /// reconstruction resolution level. If that where not the case the
+    /// implementing class should have additional data structures to store those
+    /// values for each tile. However, the 'recResLvl' member variable always
+    /// contain the values applicable to the current tile, since many methods
+    /// implemented here rely on them.</p>
+    /// 
+    /// </summary>
+    public abstract class InverseWT : InvWTAdapter, BlkImgDataSrc
+    {
+
+        /// <summary> Initializes this object with the given source of wavelet
+        /// coefficients. It initializes the resolution level for full resolutioin
+        /// reconstruction (i.e. the maximum resolution available from the 'src'
+        /// source).
+        /// 
+        /// <p>It is assumed here that all tiles and components have the same
+        /// reconstruction resolution level. If that was not the case it should be
+        /// the value for the current tile of the source.</p>
+        /// 
+        /// </summary>
+        /// <param name="src">from where the wavelet coefficinets should be obtained.
+        /// 
+        /// </param>
+        /// <param name="decSpec">The decoder specifications
+        /// 
+        /// </param>
+        public InverseWT(MultiResImgData src, DecoderSpecs decSpec)
+            : base(src, decSpec)
+        {
+        }
+
+        /// <summary> Creates an InverseWT object that works on the data type of the source,
+        /// with the special additional parameters from the parameter
+        /// list. Currently the parameter list is ignored since no special
+        /// parameters can be specified for the inverse wavelet transform yet.
+        /// 
+        /// </summary>
+        /// <param name="src">The source of data for the inverse wavelet
+        /// transform.
+        /// 
+        /// </param>
+        /// <param name="pl">The parameter list containing parameters applicable to the
+        /// inverse wavelet transform (other parameters can also be present).
+        /// 
+        /// </param>
+        public static InverseWT createInstance(CBlkWTDataSrcDec src, DecoderSpecs decSpec)
+        {
+
+            // full page wavelet transform
+            return new InvWTFull(src, decSpec);
+        }
+
+        public abstract int getFixedPoint(int c);
+
+        public abstract DataBlk getInternCompData(DataBlk blk, int c);
+
+        public abstract DataBlk getCompData(DataBlk blk, int c);
+
+        /// <summary> Closes the underlying file or network connection from where the
+        /// image data is being read.
+        /// 
+        /// </summary>
+        /// <exception cref="IOException">If an I/O error occurs.
+        /// </exception>
+        public void close()
+        {
+            // Do nothing.
+        }
+
+        /// <summary> Returns true if the data read was originally signed in the specified
+        /// component, false if not.
+        /// 
+        /// </summary>
+        /// <param name="c">The index of the component, from 0 to C-1.
+        /// 
+        /// </param>
+        /// <returns> true if the data was originally signed, false if not.
+        /// 
+        /// </returns>
+        public bool isOrigSigned(int c)
+        {
+            return false;
+        }
+    }
 }

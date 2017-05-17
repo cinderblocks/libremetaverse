@@ -266,14 +266,14 @@ namespace CSJ2K.j2k.wavelet
 				case DEC_SPEC_COMP_DEF: 
 					return compMainDefDecompType[n];
 				
-				case DEC_SPEC_TILE_DEF:
-                    throw new NotImplementedException();
+				case DEC_SPEC_TILE_DEF: 
+					throw new NotImplementedException();
 				
-				case DEC_SPEC_TILE_COMP:
-                    throw new NotImplementedException();
+				case DEC_SPEC_TILE_COMP: 
+					throw new NotImplementedException();
 				
 				default: 
-					throw new System.ApplicationException("Internal JJ2000 error");
+					throw new System.InvalidOperationException("Internal JJ2000 error");
 				
 			}
 		}
@@ -306,14 +306,14 @@ namespace CSJ2K.j2k.wavelet
 				case DEC_SPEC_COMP_DEF: 
 					return compMainDefLevels[n];
 				
-				case DEC_SPEC_TILE_DEF:
-                    throw new NotImplementedException();
+				case DEC_SPEC_TILE_DEF: 
+					throw new NotImplementedException();
 				
-				case DEC_SPEC_TILE_COMP:
-                    throw new NotImplementedException();
+				case DEC_SPEC_TILE_COMP: 
+					throw new NotImplementedException();
 				
 				default: 
-					throw new System.ApplicationException("Internal JJ2000 error");
+					throw new System.InvalidOperationException("Internal JJ2000 error");
 				
 			}
 		}

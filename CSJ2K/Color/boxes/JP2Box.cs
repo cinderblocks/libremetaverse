@@ -7,6 +7,7 @@
 /// ***************************************************************************
 /// </summary>
 using System;
+using System.Collections.Generic;
 using ColorSpaceException = CSJ2K.Color.ColorSpaceException;
 using FileFormatBoxes = CSJ2K.j2k.fileformat.FileFormatBoxes;
 using ICCProfile = CSJ2K.Icc.ICCProfile;
@@ -48,18 +49,6 @@ namespace CSJ2K.Color.Boxes
 		/// <summary>offset to start of data in box </summary>
 		protected internal int dataStart;
 		
-		public JP2Box()
-		{
-			try
-			{
-				throw new ColorSpaceException("JP2Box empty ctor called!!");
-			}
-			catch (ColorSpaceException e)
-			{
-				SupportClass.WriteStackTrace(e, Console.Error); throw;
-			}
-		}
-		
 		/// <summary> Construct a JP2Box from an input image.</summary>
 		/// <param name="in">RandomAccessIO jp2 image
 		/// </param>
@@ -93,12 +82,12 @@ namespace CSJ2K.Color.Boxes
 		
 		
 		/// <summary>JP2 Box structure analysis help </summary>
-		[Serializable]
-		protected internal class BoxType:System.Collections.Hashtable
+		protected internal class BoxType:System.Collections.Generic.Dictionary<System.Int32, System.String>
 		{
-			private static System.Collections.Hashtable map = System.Collections.Hashtable.Synchronized(new System.Collections.Hashtable());
 
-			private static void put(int type, System.String desc)
+			private static System.Collections.Generic.Dictionary<System.Int32, System.String> map = new Dictionary<int, string>();
+			
+			private static void  put(int type, System.String desc)
 			{
 				map[(System.Int32) type] = desc;
 			}

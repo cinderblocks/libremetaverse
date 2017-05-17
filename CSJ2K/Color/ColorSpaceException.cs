@@ -21,7 +21,6 @@ namespace CSJ2K.Color
 	/// <author> 	Bruce A. Kern
 	/// </author>
 	
-	[Serializable]
 	public class ColorSpaceException:System.Exception
 	{
 		

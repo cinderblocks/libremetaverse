@@ -373,7 +373,7 @@ namespace CSJ2K.Icc
 				FacilityManager.getMsgLogger().printmsg(CSJ2K.j2k.util.MsgLogger_Fields.ERROR, "matrix transform problem:\n" + e.Message);
 				if (pl.getParameter("debug").Equals("on"))
 				{
-					SupportClass.WriteStackTrace(e, Console.Error);
+					SupportClass.WriteStackTrace(e);
 				}
 				else
 				{
@@ -387,7 +387,7 @@ namespace CSJ2K.Icc
 				FacilityManager.getMsgLogger().printmsg(CSJ2K.j2k.util.MsgLogger_Fields.ERROR, "monochrome transform problem:\n" + e.Message);
 				if (pl.getParameter("debug").Equals("on"))
 				{
-					SupportClass.WriteStackTrace(e, Console.Error);
+					SupportClass.WriteStackTrace(e);
 				}
 				else
 				{

@@ -321,7 +321,8 @@ namespace CSJ2K.Color
 		/// </returns>
 		public virtual bool debugging()
 		{
-			return pl.Get("colorspace_debug") != null && pl.Get("colorspace_debug").ToUpper().Equals("on".ToUpper());
+			string tmp;
+			return pl.TryGetValue("colorspace_debug", out tmp) && tmp.ToUpper().Equals("ON");
 		}
 
 

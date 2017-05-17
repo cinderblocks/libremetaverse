@@ -308,7 +308,7 @@ namespace CSJ2K.j2k.image.input
 		{
 			if (t != 0)
 			{
-				throw new System.ApplicationException("Asking a tile-component width for a tile index" + " greater than 0 whereas there is only one tile");
+				throw new System.InvalidOperationException("Asking a tile-component width for a tile index" + " greater than 0 whereas there is only one tile");
 			}
 			return w;
 		}
@@ -333,7 +333,7 @@ namespace CSJ2K.j2k.image.input
 		{
 			if (t != 0)
 			{
-				throw new System.ApplicationException("Asking a tile-component width for a tile index" + " greater than 0 whereas there is only one tile");
+				throw new System.InvalidOperationException("Asking a tile-component width for a tile index" + " greater than 0 whereas there is only one tile");
 			}
 			return h;
 		}
@@ -502,9 +502,9 @@ namespace CSJ2K.j2k.image.input
 		/// 
 		/// </returns>
 		public abstract bool isOrigSigned(int c);
-		public abstract int getFixedPoint(int param1);
-		public abstract CSJ2K.j2k.image.DataBlk getInternCompData(CSJ2K.j2k.image.DataBlk param1, int param2);
-		public abstract int getNomRangeBits(int param1);
-		public abstract CSJ2K.j2k.image.DataBlk getCompData(CSJ2K.j2k.image.DataBlk param1, int param2);
+		public abstract int getFixedPoint(int c);
+		public abstract DataBlk getInternCompData(DataBlk blk, int c);
+		public abstract int getNomRangeBits(int c);
+		public abstract DataBlk getCompData(DataBlk blk, int c);
 	}
 }

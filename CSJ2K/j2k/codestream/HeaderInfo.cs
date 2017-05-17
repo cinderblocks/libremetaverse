@@ -42,6 +42,7 @@
 * Copyright (c) 1999/2000 JJ2000 Partners.
 * */
 using System;
+using System.Collections.Generic;
 using CSJ2K.j2k.wavelet;
 namespace CSJ2K.j2k.codestream
 {
@@ -51,7 +52,7 @@ namespace CSJ2K.j2k.codestream
 	/// in these headers.
 	/// 
 	/// </summary>
-	public class HeaderInfo : FilterTypes, System.ICloneable
+	public class HeaderInfo : FilterTypes
 	{
 		/// <summary>Returns a new instance of SIZ </summary>
 		virtual public SIZ NewSIZ
@@ -155,7 +156,7 @@ namespace CSJ2K.j2k.codestream
 		
 		//UPGRADE_NOTE: Field 'EnclosingInstance' was added to class 'SIZ' to access its enclosing instance. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1019'"
 		/// <summary>Internal class holding information found in the SIZ marker segment </summary>
-		public class SIZ : System.ICloneable
+		public class SIZ
 		{
 			public SIZ(HeaderInfo enclosingInstance)
 			{
@@ -242,9 +243,9 @@ namespace CSJ2K.j2k.codestream
 						ms = (SIZ) this.Clone();
 					}
 					//UPGRADE_NOTE: Exception 'java.lang.CloneNotSupportedException' was converted to 'System.Exception' which has different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1100'"
-					catch (System.Exception)
+					catch (System.Exception e)
 					{
-						throw new System.ApplicationException("Cannot clone SIZ marker segment");
+						throw new System.InvalidOperationException("Cannot clone SIZ marker segment");
 					}
 					return ms;
 				}
@@ -421,7 +422,7 @@ namespace CSJ2K.j2k.codestream
 		
 		//UPGRADE_NOTE: Field 'EnclosingInstance' was added to class 'COD' to access its enclosing instance. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1019'"
 		/// <summary>Internal class holding information found in the COD marker segments </summary>
-		public class COD : System.ICloneable
+		public class COD
 		{
 			public COD(HeaderInfo enclosingInstance)
 			{
@@ -442,9 +443,9 @@ namespace CSJ2K.j2k.codestream
 						ms = (COD) this.Clone();
 					}
 					//UPGRADE_NOTE: Exception 'java.lang.CloneNotSupportedException' was converted to 'System.Exception' which has different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1100'"
-					catch (System.Exception)
+					catch (System.Exception e)
 					{
-						throw new System.ApplicationException("Cannot clone SIZ marker segment");
+						throw new System.InvalidOperationException("Cannot clone SIZ marker segment");
 					}
 					return ms;
 				}
@@ -1086,7 +1087,7 @@ namespace CSJ2K.j2k.codestream
 				else if (rcom == 1)
 				{
 					str += (" Registration : General use (IS 8859-15:1999 " + "(Latin) values)\n");
-					str += (" Text         : " + System.Text.ASCIIEncoding.ASCII.GetString(ccom) + "\n");
+					str += (" Text         : " + System.Text.Encoding.UTF8.GetString(ccom, 0, ccom.Length) + "\n");
 				}
 				else
 				{
@@ -1103,40 +1104,40 @@ namespace CSJ2K.j2k.codestream
 		/// <summary>Reference to the SOT marker segments found in tile-part headers. The
 		/// kwy is given by "t"+tileIdx"_tp"+tilepartIndex. 
 		/// </summary>
-		public System.Collections.Hashtable sotValue = System.Collections.Hashtable.Synchronized(new System.Collections.Hashtable());
+		public System.Collections.Generic.Dictionary<string, SOT> sotValue = new Dictionary<string, SOT>();
 		
 		/// <summary>Reference to the COD marker segments found in main and first tile-part
 		/// header. The key is either "main" or "t"+tileIdx.
 		/// </summary>
-		public System.Collections.Hashtable codValue = System.Collections.Hashtable.Synchronized(new System.Collections.Hashtable());
-		
+		public System.Collections.Generic.Dictionary<string, COD> codValue = new Dictionary<string, COD>();
+
 		/// <summary>Reference to the COC marker segments found in main and first tile-part
 		/// header. The key is either "main_c"+componentIndex or
 		/// "t"+tileIdx+"_c"+component_index. 
 		/// </summary>
-		public System.Collections.Hashtable cocValue = System.Collections.Hashtable.Synchronized(new System.Collections.Hashtable());
+		public System.Collections.Generic.Dictionary<string, COC> cocValue = new Dictionary<string, COC>();
 		
 		/// <summary>Reference to the RGN marker segments found in main and first tile-part
 		/// header. The key is either "main_c"+componentIndex or
 		/// "t"+tileIdx+"_c"+component_index. 
 		/// </summary>
-		public System.Collections.Hashtable rgnValue = System.Collections.Hashtable.Synchronized(new System.Collections.Hashtable());
+		public System.Collections.Generic.Dictionary<string, RGN> rgnValue = new Dictionary<string, RGN>();
 		
 		/// <summary>Reference to the QCD marker segments found in main and first tile-part
 		/// header. The key is either "main" or "t"+tileIdx. 
 		/// </summary>
-		public System.Collections.Hashtable qcdValue = System.Collections.Hashtable.Synchronized(new System.Collections.Hashtable());
+		public System.Collections.Generic.Dictionary<string, QCD> qcdValue = new Dictionary<string, QCD>();
 		
 		/// <summary>Reference to the QCC marker segments found in main and first tile-part
 		/// header. They key is either "main_c"+componentIndex or
 		/// "t"+tileIdx+"_c"+component_index. 
 		/// </summary>
-		public System.Collections.Hashtable qccValue = System.Collections.Hashtable.Synchronized(new System.Collections.Hashtable());
+		public System.Collections.Generic.Dictionary<string, QCC> qccValue = new Dictionary<string, QCC>();
 		
 		/// <summary>Reference to the POC marker segments found in main and first tile-part
 		/// header. They key is either "main" or "t"+tileIdx. 
 		/// </summary>
-		public System.Collections.Hashtable pocValue = System.Collections.Hashtable.Synchronized(new System.Collections.Hashtable());
+		public System.Collections.Generic.Dictionary<string, POC> pocValue = new Dictionary<string, POC>();
 		
 		/// <summary>Reference to the CRG marker segment found in main header </summary>
 		public CRG crgValue;
@@ -1144,7 +1145,7 @@ namespace CSJ2K.j2k.codestream
 		/// <summary>Reference to the COM marker segments found in main and tile-part
 		/// headers. The key is either "main_"+comIdx or "t"+tileIdx+"_"+comIdx. 
 		/// </summary>
-		public System.Collections.Hashtable comValue = System.Collections.Hashtable.Synchronized(new System.Collections.Hashtable());
+		public System.Collections.Generic.Dictionary<string, COM> comValue = new Dictionary<string, COM>();
 		
 		/// <summary>Number of found COM marker segment </summary>
 		private int ncom = 0;
@@ -1339,9 +1340,9 @@ namespace CSJ2K.j2k.codestream
 				nhi = (HeaderInfo) Clone();
 			}
 			//UPGRADE_NOTE: Exception 'java.lang.CloneNotSupportedException' was converted to 'System.Exception' which has different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1100'"
-			catch (System.Exception)
+			catch (System.Exception e)
 			{
-				throw new System.ApplicationException("Cannot clone HeaderInfo instance");
+				throw new System.InvalidOperationException("Cannot clone HeaderInfo instance");
 			}
 			nhi.sizValue = sizValue.Copy;
 			// COD

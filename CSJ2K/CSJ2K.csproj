@@ -1,749 +1,768 @@
-<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
-	<PropertyGroup>
-	  <ProjectType>Local</ProjectType>
-	  <ProductVersion>14.0.25123</ProductVersion>
-	  <SchemaVersion>2.0</SchemaVersion>
-	  <ProjectGuid>{C276743B-0000-0000-0000-000000000000}</ProjectGuid>
-	  <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-	  <ApplicationIcon></ApplicationIcon>
-	  <AssemblyKeyContainerName>
-	  </AssemblyKeyContainerName>
-	  <AssemblyName>CSJ2K</AssemblyName>
-	  <DefaultClientScript>JScript</DefaultClientScript>
-	  <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
-	  <DefaultTargetSchema>IE50</DefaultTargetSchema>
-	  <DelaySign>false</DelaySign>
-	  <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-	  <OutputType>Library</OutputType>
-	  <AppDesignerFolder></AppDesignerFolder>
-	  <RootNamespace>CSJ2K</RootNamespace>
-	  <StartupObject></StartupObject>
-	  <StartArguments></StartArguments>
-	  <FileUpgradeFlags>
-	  </FileUpgradeFlags>
-	</PropertyGroup>
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-	  <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-	  <BaseAddress>285212672</BaseAddress>
-	  <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
-	  <ConfigurationOverrideFile>
-	  </ConfigurationOverrideFile>
-	  <DefineConstants>TRACE;DEBUG</DefineConstants>
-	  <DocumentationFile></DocumentationFile>
-	  <DebugSymbols>True</DebugSymbols>
-	  <FileAlignment>4096</FileAlignment>
-	  <Optimize>False</Optimize>
-	  <OutputPath>..\bin\</OutputPath>
-	  <RegisterForComInterop>False</RegisterForComInterop>
-	  <RemoveIntegerChecks>False</RemoveIntegerChecks>
-	  <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
-	  <WarningLevel>4</WarningLevel>
-	  <NoStdLib>False</NoStdLib>
-	  <NoWarn>1591,1574,0419</NoWarn>
-	  <PlatformTarget>AnyCPU</PlatformTarget>
-	</PropertyGroup>
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-	  <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-	  <BaseAddress>285212672</BaseAddress>
-	  <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
-	  <ConfigurationOverrideFile>
-	  </ConfigurationOverrideFile>
-	  <DefineConstants>TRACE</DefineConstants>
-	  <DocumentationFile></DocumentationFile>
-	  <DebugSymbols>False</DebugSymbols>
-	  <FileAlignment>4096</FileAlignment>
-	  <Optimize>True</Optimize>
-	  <OutputPath>..\bin\</OutputPath>
-	  <RegisterForComInterop>False</RegisterForComInterop>
-	  <RemoveIntegerChecks>False</RemoveIntegerChecks>
-	  <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
-	  <WarningLevel>4</WarningLevel>
-	  <NoStdLib>False</NoStdLib>
-	  <NoWarn>1591,1574,0419</NoWarn>
-	  <PlatformTarget>AnyCPU</PlatformTarget>
-	</PropertyGroup>
-	<ItemGroup>
-	  <Reference Include="System" >
-		  <Name>System</Name>
-		<Private>False</Private>
-	  </Reference>
-	  <Reference Include="System.Drawing" >
-		  <Name>System.Drawing</Name>
-		<Private>False</Private>
-	  </Reference>
-	</ItemGroup>
-	<ItemGroup>
-	</ItemGroup>
-	<ItemGroup>
-	  <Compile Include="AssemblyInfo.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="J2KEncoder.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="J2kImage.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Color\ChannelDefinitionMapper.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Color\ColorSpace.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Color\ColorSpaceException.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Color\ColorSpaceMapper.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Color\EnumeratedColorSpaceMapper.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Color\EsRgbColorSpaceMapper.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Color\PalettizedColorSpaceMapper.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Color\Resampler.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Color\SYccColorSpaceMapper.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Color\boxes\ChannelDefinitionBox.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Color\boxes\ColorSpecificationBox.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Color\boxes\ComponentMappingBox.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Color\boxes\ImageHeaderBox.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Color\boxes\JP2Box.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Color\boxes\PaletteBox.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\ICCMatrixBasedInputProfile.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\ICCMonochromeInputProfile.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\ICCProfile.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\ICCProfileException.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\ICCProfileInvalidException.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\ICCProfileNotFoundException.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\ICCProfiler.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\MatrixBasedRestrictedProfile.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\MonochromeInputRestrictedProfile.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\RestrictedICCProfile.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\LookUpTable.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\LookUpTable16.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\LookUpTable16Gamma.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\LookUpTable16Interp.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\LookUpTable16LinearSRGBtoSRGB.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\LookUpTable32.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\LookUpTable32Gamma.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\LookUpTable32Interp.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\LookUpTable32LinearSRGBtoSRGB.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\LookUpTable8.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\LookUpTable8Gamma.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\LookUpTable8Interp.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\LookUpTableFP.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\LookUpTableFPGamma.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\LookUpTableFPInterp.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\MatrixBasedTransformException.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\MatrixBasedTransformTosRGB.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\MonochromeTransformException.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Lut\MonochromeTransformTosRGB.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Tags\ICCCurveType.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Tags\ICCCurveTypeReverse.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Tags\ICCDataType.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Tags\ICCMeasurementType.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Tags\ICCSignatureType.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Tags\ICCTag.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Tags\ICCTagTable.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Tags\ICCTextDescriptionType.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Tags\ICCTextType.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Tags\ICCViewType.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Tags\ICCXYZType.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Tags\ICCXYZTypeReverse.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Types\ICCDateTime.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Types\ICCProfileHeader.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Types\ICCProfileVersion.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Icc\Types\XYZNumber.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\IntegerSpec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\JJ2KExceptionHandler.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\JJ2KInfo.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\ModuleSpec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\NoNextElementException.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\StringSpec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\CBlkCoordInfo.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\CoordInfo.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\CorruptedCodestreamException.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\HeaderInfo.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\Markers.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\PrecCoordInfo.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\PrecInfo.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\ProgressionType.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\reader\BitstreamReaderAgent.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\reader\CBlkInfo.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\reader\FileBitstreamReaderAgent.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\reader\HeaderDecoder.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\reader\PktDecoder.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\reader\PktHeaderBitReader.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\reader\PktInfo.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\reader\TagTreeDecoder.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\writer\BitOutputBuffer.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\writer\CodestreamWriter.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\writer\FileCodestreamWriter.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\writer\HeaderEncoder.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\writer\PktEncoder.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\codestream\writer\TagTreeEncoder.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\decoder\DecoderSpecs.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\encoder\EncoderSpecs.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\CBlkSizeSpec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\CodedCBlk.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\PrecinctSizeSpec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\Progression.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\ProgressionSpec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\StdEntropyCoderOptions.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\decoder\ByteInputBuffer.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\decoder\ByteToBitInput.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\decoder\CodedCBlkDataSrcDec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\decoder\DecLyrdCBlk.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\decoder\EntropyDecoder.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\decoder\MQDecoder.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\decoder\StdEntropyDecoder.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\encoder\BitToByteOutput.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\encoder\ByteOutputBuffer.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\encoder\CBlkRateDistStats.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\encoder\CodedCBlkDataSrcEnc.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\encoder\EBCOTLayer.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\encoder\EBCOTRateAllocator.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\encoder\EntropyCoder.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\encoder\LayersInfo.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\encoder\MQCoder.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\encoder\PostCompRateAllocator.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\entropy\encoder\StdEntropyCoder.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\fileformat\FileFormatBoxes.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\fileformat\reader\FileFormatReader.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\fileformat\writer\FileFormatWriter.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\BlkImgDataSrc.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\CompTransfSpec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\Coord.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\DataBlk.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\DataBlkFloat.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\DataBlkInt.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\ImgData.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\ImgDataAdapter.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\ImgDataConverter.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\ImgDataJoiner.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\Tiler.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\forwcomptransf\ForwCompTransf.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\forwcomptransf\ForwCompTransfSpec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\input\ImgReader.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\input\ImgReaderGDI.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\input\ImgReaderPGM.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\input\ImgReaderPGX.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\input\ImgReaderPPM.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\invcomptransf\InvCompTransf.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\output\ImgWriter.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\output\ImgWriterPGM.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\output\ImgWriterPGX.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\image\output\ImgWriterPPM.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\io\BEBufferedRandomAccessFile.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\io\BinaryDataInput.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\io\BinaryDataOutput.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\io\BufferedRandomAccessFile.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\io\EndianType.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\io\RandomAccessIO.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\quantization\GuardBitsSpec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\quantization\QuantizationType.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\quantization\QuantStepSizeSpec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\quantization\QuantTypeSpec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\quantization\dequantizer\CBlkQuantDataSrcDec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\quantization\dequantizer\Dequantizer.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\quantization\dequantizer\DequantizerParams.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\quantization\dequantizer\StdDequantizer.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\quantization\dequantizer\StdDequantizerParams.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\quantization\quantizer\CBlkQuantDataSrcEnc.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\quantization\quantizer\Quantizer.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\quantization\quantizer\StdQuantizer.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\roi\MaxShiftSpec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\roi\ROIDeScaler.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\roi\encoder\ArbROIMaskGenerator.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\roi\encoder\RectROIMaskGenerator.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\roi\encoder\ROI.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\roi\encoder\ROIMaskGenerator.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\roi\encoder\ROIScaler.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\roi\encoder\SubbandRectROIMask.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\roi\encoder\SubbandROIMask.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\util\ArrayUtil.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\util\CodestreamManipulator.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\util\FacilityManager.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\util\ISRandomAccessIO.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\util\MathUtil.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\util\MsgLogger.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\util\MsgPrinter.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\util\ParameterList.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\util\ProgressWatch.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\util\StreamMsgLogger.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\util\StringFormatException.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\util\ThreadPool.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\FilterTypes.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\Subband.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\WaveletFilter.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\WaveletTransform.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\WTDecompSpec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\WTFilterSpec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\analysis\AnWTFilter.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\analysis\AnWTFilterFloat.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\analysis\AnWTFilterFloatLift9x7.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\analysis\AnWTFilterInt.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\analysis\AnWTFilterIntLift5x3.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\analysis\AnWTFilterSpec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\analysis\CBlkWTData.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\analysis\CBlkWTDataFloat.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\analysis\CBlkWTDataInt.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\analysis\CBlkWTDataSrc.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\analysis\ForwardWT.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\analysis\ForwWT.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\analysis\ForwWTDataProps.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\analysis\ForwWTFull.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\analysis\SubbandAn.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\synthesis\CBlkWTDataSrcDec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\synthesis\InverseWT.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\synthesis\InvWT.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\synthesis\InvWTAdapter.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\synthesis\InvWTData.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\synthesis\InvWTFull.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\synthesis\MultiResImgData.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\synthesis\MultiResImgDataAdapter.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\synthesis\SubbandSyn.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\synthesis\SynWTFilter.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\synthesis\SynWTFilterFloat.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\synthesis\SynWTFilterFloatLift9x7.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\synthesis\SynWTFilterInt.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\synthesis\SynWTFilterIntLift5x3.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="j2k\wavelet\synthesis\SynWTFilterSpec.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Util\EndianBinaryReader.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Util\EndianBinaryWriter.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Util\SupportClass.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	</ItemGroup>
-	<Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
-	<PropertyGroup>
-	  <PreBuildEvent>
-	  </PreBuildEvent>
-	  <PostBuildEvent>
-	  </PostBuildEvent>
-	</PropertyGroup>
+﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <ProductVersion>14.0.25123</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{C276743B-0000-0000-0000-000000000000}</ProjectGuid>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <ApplicationIcon>
+    </ApplicationIcon>
+    <AssemblyKeyContainerName>
+    </AssemblyKeyContainerName>
+    <AssemblyName>CSJ2K</AssemblyName>
+    <DefaultClientScript>JScript</DefaultClientScript>
+    <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
+    <DefaultTargetSchema>IE50</DefaultTargetSchema>
+    <DelaySign>false</DelaySign>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>
+    </AppDesignerFolder>
+    <RootNamespace>CSJ2K</RootNamespace>
+    <StartupObject>
+    </StartupObject>
+    <StartArguments>
+    </StartArguments>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <BaseAddress>285212672</BaseAddress>
+    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+    <ConfigurationOverrideFile>
+    </ConfigurationOverrideFile>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <DocumentationFile>
+    </DocumentationFile>
+    <DebugSymbols>True</DebugSymbols>
+    <FileAlignment>4096</FileAlignment>
+    <Optimize>False</Optimize>
+    <OutputPath>..\bin\</OutputPath>
+    <RegisterForComInterop>False</RegisterForComInterop>
+    <RemoveIntegerChecks>False</RemoveIntegerChecks>
+    <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+    <WarningLevel>4</WarningLevel>
+    <NoStdLib>False</NoStdLib>
+    <NoWarn>1591,1574,0419</NoWarn>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <BaseAddress>285212672</BaseAddress>
+    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+    <ConfigurationOverrideFile>
+    </ConfigurationOverrideFile>
+    <DefineConstants>TRACE</DefineConstants>
+    <DocumentationFile>
+    </DocumentationFile>
+    <DebugSymbols>False</DebugSymbols>
+    <FileAlignment>4096</FileAlignment>
+    <Optimize>True</Optimize>
+    <OutputPath>..\bin\</OutputPath>
+    <RegisterForComInterop>False</RegisterForComInterop>
+    <RemoveIntegerChecks>False</RemoveIntegerChecks>
+    <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+    <WarningLevel>4</WarningLevel>
+    <NoStdLib>False</NoStdLib>
+    <NoWarn>1591,1574,0419</NoWarn>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System">
+      <Name>System</Name>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Drawing">
+      <Name>System.Drawing</Name>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="J2KEncoder.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="J2kImage.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Color\ChannelDefinitionMapper.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Color\ColorSpace.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Color\ColorSpaceException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Color\ColorSpaceMapper.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Color\EnumeratedColorSpaceMapper.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Color\EsRgbColorSpaceMapper.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Color\PalettizedColorSpaceMapper.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Color\Resampler.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Color\SYccColorSpaceMapper.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Color\boxes\ChannelDefinitionBox.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Color\boxes\ColorSpecificationBox.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Color\boxes\ComponentMappingBox.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Color\boxes\ImageHeaderBox.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Color\boxes\JP2Box.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Color\boxes\PaletteBox.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\ICCMatrixBasedInputProfile.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\ICCMonochromeInputProfile.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\ICCProfile.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\ICCProfileException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\ICCProfileInvalidException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\ICCProfileNotFoundException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\ICCProfiler.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\MatrixBasedRestrictedProfile.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\MonochromeInputRestrictedProfile.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\RestrictedICCProfile.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\LookUpTable.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\LookUpTable16.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\LookUpTable16Gamma.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\LookUpTable16Interp.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\LookUpTable16LinearSRGBtoSRGB.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\LookUpTable32.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\LookUpTable32Gamma.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\LookUpTable32Interp.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\LookUpTable32LinearSRGBtoSRGB.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\LookUpTable8.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\LookUpTable8Gamma.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\LookUpTable8Interp.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\LookUpTableFP.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\LookUpTableFPGamma.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\LookUpTableFPInterp.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\MatrixBasedTransformException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\MatrixBasedTransformTosRGB.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\MonochromeTransformException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Lut\MonochromeTransformTosRGB.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Tags\ICCCurveType.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Tags\ICCCurveTypeReverse.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Tags\ICCDataType.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Tags\ICCMeasurementType.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Tags\ICCSignatureType.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Tags\ICCTag.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Tags\ICCTagTable.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Tags\ICCTextDescriptionType.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Tags\ICCTextType.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Tags\ICCViewType.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Tags\ICCXYZType.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Tags\ICCXYZTypeReverse.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Types\ICCDateTime.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Types\ICCProfileHeader.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Types\ICCProfileVersion.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Icc\Types\XYZNumber.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="J2kSetup.cs" />
+    <Compile Include="j2k\image\input\ImgReaderGDI.cs" />
+    <Compile Include="j2k\IntegerSpec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\JJ2KExceptionHandler.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\JJ2KInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\ModuleSpec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\NoNextElementException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\StringSpec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\CBlkCoordInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\CoordInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\CorruptedCodestreamException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\HeaderInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\Markers.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\PrecCoordInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\PrecInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\ProgressionType.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\reader\BitstreamReaderAgent.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\reader\CBlkInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\reader\FileBitstreamReaderAgent.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\reader\HeaderDecoder.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\reader\PktDecoder.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\reader\PktHeaderBitReader.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\reader\PktInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\reader\TagTreeDecoder.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\writer\BitOutputBuffer.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\writer\CodestreamWriter.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\writer\FileCodestreamWriter.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\writer\HeaderEncoder.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\writer\PktEncoder.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\codestream\writer\TagTreeEncoder.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\decoder\DecoderSpecs.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\encoder\EncoderSpecs.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\CBlkSizeSpec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\CodedCBlk.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\PrecinctSizeSpec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\Progression.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\ProgressionSpec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\StdEntropyCoderOptions.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\decoder\ByteInputBuffer.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\decoder\ByteToBitInput.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\decoder\CodedCBlkDataSrcDec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\decoder\DecLyrdCBlk.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\decoder\EntropyDecoder.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\decoder\MQDecoder.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\decoder\StdEntropyDecoder.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\encoder\BitToByteOutput.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\encoder\ByteOutputBuffer.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\encoder\CBlkRateDistStats.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\encoder\CodedCBlkDataSrcEnc.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\encoder\EBCOTLayer.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\encoder\EBCOTRateAllocator.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\encoder\EntropyCoder.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\encoder\LayersInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\encoder\MQCoder.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\encoder\PostCompRateAllocator.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\entropy\encoder\StdEntropyCoder.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\fileformat\FileFormatBoxes.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\fileformat\reader\FileFormatReader.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\fileformat\writer\FileFormatWriter.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\BlkImgDataSrc.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\CompTransfSpec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\Coord.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\DataBlk.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\DataBlkFloat.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\DataBlkInt.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\ImgData.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\ImgDataAdapter.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\ImgDataConverter.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\ImgDataJoiner.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\Tiler.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\forwcomptransf\ForwCompTransf.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\forwcomptransf\ForwCompTransfSpec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\input\ImgReader.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\input\ImgReaderPGM.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\input\ImgReaderPGX.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\input\ImgReaderPPM.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\invcomptransf\InvCompTransf.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\output\ImgWriter.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\output\ImgWriterPGM.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\output\ImgWriterPGX.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\image\output\ImgWriterPPM.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\io\BEBufferedRandomAccessFile.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\io\BinaryDataInput.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\io\BinaryDataOutput.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\io\BufferedRandomAccessFile.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\io\EndianType.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\io\RandomAccessIO.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\quantization\GuardBitsSpec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\quantization\QuantizationType.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\quantization\QuantStepSizeSpec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\quantization\QuantTypeSpec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\quantization\dequantizer\CBlkQuantDataSrcDec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\quantization\dequantizer\Dequantizer.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\quantization\dequantizer\DequantizerParams.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\quantization\dequantizer\StdDequantizer.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\quantization\dequantizer\StdDequantizerParams.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\quantization\quantizer\CBlkQuantDataSrcEnc.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\quantization\quantizer\Quantizer.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\quantization\quantizer\StdQuantizer.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\roi\MaxShiftSpec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\roi\ROIDeScaler.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\roi\encoder\ArbROIMaskGenerator.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\roi\encoder\RectROIMaskGenerator.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\roi\encoder\ROI.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\roi\encoder\ROIMaskGenerator.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\roi\encoder\ROIScaler.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\roi\encoder\SubbandRectROIMask.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\roi\encoder\SubbandROIMask.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\util\ArrayUtil.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\util\CodestreamManipulator.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\util\FacilityManager.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\util\IMsgLogger.cs" />
+    <Compile Include="j2k\util\ISRandomAccessIO.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\util\MathUtil.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\util\MsgPrinter.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\util\ParameterList.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\util\ProgressWatch.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\util\StreamMsgLogger.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\util\StringFormatException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\FilterTypes.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\Subband.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\WaveletFilter.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\WaveletTransform.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\WTDecompSpec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\WTFilterSpec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\analysis\AnWTFilter.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\analysis\AnWTFilterFloat.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\analysis\AnWTFilterFloatLift9x7.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\analysis\AnWTFilterInt.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\analysis\AnWTFilterIntLift5x3.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\analysis\AnWTFilterSpec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\analysis\CBlkWTData.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\analysis\CBlkWTDataFloat.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\analysis\CBlkWTDataInt.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\analysis\CBlkWTDataSrc.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\analysis\ForwardWT.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\analysis\ForwWT.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\analysis\ForwWTDataProps.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\analysis\ForwWTFull.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\analysis\SubbandAn.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\synthesis\CBlkWTDataSrcDec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\synthesis\InverseWT.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\synthesis\InvWT.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\synthesis\InvWTAdapter.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\synthesis\InvWTData.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\synthesis\InvWTFull.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\synthesis\MultiResImgData.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\synthesis\MultiResImgDataAdapter.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\synthesis\SubbandSyn.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\synthesis\SynWTFilter.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\synthesis\SynWTFilterFloat.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\synthesis\SynWTFilterFloatLift9x7.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\synthesis\SynWTFilterInt.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\synthesis\SynWTFilterIntLift5x3.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="j2k\wavelet\synthesis\SynWTFilterSpec.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Util\BitmapImage.cs" />
+    <Compile Include="Util\BitmapImageCreator.cs" />
+    <Compile Include="Util\BitmapImageSource.cs" />
+    <Compile Include="Util\DotnetFileInfo.cs" />
+    <Compile Include="Util\DotnetFileInfoCreator.cs" />
+    <Compile Include="Util\DotnetFileStreamCreator.cs" />
+    <Compile Include="Util\DotnetMsgLogger.cs" />
+    <Compile Include="Util\EndianBinaryReader.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Util\EndianBinaryWriter.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Util\FileInfoFactory.cs" />
+    <Compile Include="Util\FileStreamFactory.cs" />
+    <Compile Include="Util\IDefaultable.cs" />
+    <Compile Include="Util\IFileInfo.cs" />
+    <Compile Include="Util\IFileInfoCreator.cs" />
+    <Compile Include="Util\IFileStreamCreator.cs" />
+    <Compile Include="Util\IImage.cs" />
+    <Compile Include="Util\IImageCreator.cs" />
+    <Compile Include="Util\ImageBase.cs" />
+    <Compile Include="Util\ImageFactory.cs" />
+    <Compile Include="Util\PortableImage.cs" />
+    <Compile Include="Util\PortableImageSource.cs" />
+    <Compile Include="Util\SupportClass.cs">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
+  <PropertyGroup>
+    <PreBuildEvent>
+    </PreBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
 </Project>

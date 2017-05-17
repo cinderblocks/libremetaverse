@@ -51,7 +51,6 @@ namespace CSJ2K.j2k.codestream
 	/// which is illegal.
 	/// 
 	/// </summary>
-	[Serializable]
 	public class CorruptedCodestreamException:System.IO.IOException
 	{
 		

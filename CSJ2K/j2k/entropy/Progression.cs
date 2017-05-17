@@ -142,7 +142,7 @@ namespace CSJ2K.j2k.entropy
 					break;
 				
 				default: 
-					throw new System.ApplicationException("Unknown progression type");
+					throw new System.InvalidOperationException("Unknown progression type");
 				
 			}
 			str += ("comp.: " + cs + "-" + ce + ", ");

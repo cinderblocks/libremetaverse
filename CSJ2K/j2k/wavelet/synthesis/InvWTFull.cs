@@ -81,14 +81,8 @@ namespace CSJ2K.j2k.wavelet.synthesis
 	public class InvWTFull:InverseWT
 	{
 		
-		/// <summary>Reference to the ProgressWatch instance if any </summary>
-		private ProgressWatch pw = null;
-		
 		/// <summary>The total number of code-blocks to decode </summary>
 		private int cblkToDecode = 0;
-		
-		/// <summary>The number of already decoded code-blocks </summary>
-		private int nDecCblk = 0;
 		
 		/// <summary>the code-block buffer's source i.e. the quantizer </summary>
 		private CBlkWTDataSrcDec src;
@@ -128,7 +122,6 @@ namespace CSJ2K.j2k.wavelet.synthesis
 			int nc = src.NumComps;
 			reconstructedComps = new DataBlk[nc];
 			ndl = new int[nc];
-			pw = FacilityManager.ProgressWatch;
 		}
 		
 		/// <summary> Returns the reversibility of the current subband. It computes
@@ -298,10 +291,6 @@ namespace CSJ2K.j2k.wavelet.synthesis
 					}
 				//Reconstruct source image
 				waveletTreeReconstruction(reconstructedComps[c], src.getSynSubbandTree(tIdx, c), c);
-				if (pw != null && c == src.NumComps - 1)
-				{
-					pw.terminateProgressWatch();
-				}
 			}
 			
 			if (blk.DataType != dtype)
@@ -585,11 +574,7 @@ namespace CSJ2K.j2k.wavelet.synthesis
 					{
 						subbData = src.getInternCodeBlock(c, m, n, sb, subbData);
 						src_data = subbData.Data;
-						if (pw != null)
-						{
-							nDecCblk++;
-							pw.updateProgressWatch(nDecCblk, null);
-						}
+
 						// Copy the data line by line
 						for (i = subbData.h - 1; i >= 0; i--)
 						{
@@ -699,12 +684,6 @@ namespace CSJ2K.j2k.wavelet.synthesis
 					}
 				} // Loop on resolution levels
 			} // Loop on components
-			nDecCblk = 0;
-			
-			if (pw != null)
-			{
-				pw.initProgressWatch(0, cblkToDecode, "Decoding tile " + tIdx + "...");
-			}
 		}
 		
 		/// <summary> Advances to the next tile, in standard scan-line order (by rows then

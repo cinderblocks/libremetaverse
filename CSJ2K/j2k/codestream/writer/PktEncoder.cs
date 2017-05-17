@@ -1287,7 +1287,7 @@ namespace CSJ2K.j2k.codestream.writer
 			// Must never happen
 			if (hbuf.Length == 0)
 			{
-				throw new System.ApplicationException("You have found a bug in PktEncoder, method:" + " encodePacket");
+				throw new System.InvalidOperationException("You have found a bug in PktEncoder, method:" + " encodePacket");
 			}
 			
 			return hbuf;

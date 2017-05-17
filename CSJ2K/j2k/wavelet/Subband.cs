@@ -503,7 +503,7 @@ namespace CSJ2K.j2k.wavelet
 							break;
 						
 						default: 
-							throw new System.ApplicationException("You have found a bug in JJ2000");
+							throw new System.InvalidOperationException("You have found a bug in JJ2000");
 						
 					}
 					while (sb.isNode)
@@ -513,7 +513,7 @@ namespace CSJ2K.j2k.wavelet
 					return sb;
 				
 				default: 
-					throw new System.ApplicationException("You have found a bug in JJ2000");
+					throw new System.InvalidOperationException("You have found a bug in JJ2000");
 				
 			}
 		}

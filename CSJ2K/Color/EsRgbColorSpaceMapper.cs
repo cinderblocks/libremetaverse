@@ -14,7 +14,7 @@ using DataBlkInt = CSJ2K.j2k.image.DataBlkInt;
 using DataBlkFloat = CSJ2K.j2k.image.DataBlkFloat;
 using ImgDataAdapter = CSJ2K.j2k.image.ImgDataAdapter;
 using FacilityManager = CSJ2K.j2k.util.FacilityManager;
-using MsgLogger = CSJ2K.j2k.util.MsgLogger;
+
 namespace CSJ2K.Color
 {
 	

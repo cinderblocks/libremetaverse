@@ -41,6 +41,7 @@
 * Copyright (c) 1999/2000 JJ2000 Partners.
 * */
 using System;
+using System.Collections.Generic;
 using CSJ2K.j2k.quantization.dequantizer;
 using CSJ2K.j2k.wavelet.synthesis;
 using CSJ2K.j2k.entropy.decoder;
@@ -451,7 +452,7 @@ namespace CSJ2K.j2k.codestream.reader
 		//private static readonly int TILE_RESET = ~ (PLM_FOUND | SIZ_FOUND | RGN_FOUND);
 		
 		/// <summary>HashTable used to store temporary marker segment byte buffers </summary>
-		private System.Collections.Hashtable ht = null;
+		private System.Collections.Generic.Dictionary<System.String, byte[]> ht = null;
 		
 		/// <summary>The number of components in the image </summary>
 		private int nComp;
@@ -472,7 +473,7 @@ namespace CSJ2K.j2k.codestream.reader
 		public int mainHeadOff;
 		
 		/// <summary>Vector containing info as to which tile each tilepart belong </summary>
-		private System.Collections.ArrayList tileOfTileParts;
+		private System.Collections.Generic.List<System.Int32> tileOfTileParts;
 		
 		/// <summary>Array containing the Nppm and Ippm fields of the PPM marker segments</summary>
 		private byte[][] pPMMarkerData;
@@ -667,7 +668,7 @@ namespace CSJ2K.j2k.codestream.reader
 			kid = filtIdx[0] = ehs.ReadByte();
 			if (kid >= (1 << 7))
 			{
-                throw new NotImplementedException("Custom filters not supported");
+				throw new NotImplementedException("Custom filters not supported");
 			}
 			// Return filter based on ID
 			switch (kid)
@@ -736,7 +737,7 @@ namespace CSJ2K.j2k.codestream.reader
 			ms.rsiz = ehs.ReadUInt16();
 			if (ms.rsiz > 2)
 			{
-				throw new System.ApplicationException("Codestream capabiities not JPEG 2000 - Part I" + " compliant");
+				throw new System.InvalidOperationException("Codestream capabiities not JPEG 2000 - Part I" + " compliant");
 			}
 			
 			// Read image size
@@ -865,18 +866,19 @@ namespace CSJ2K.j2k.codestream.reader
 			ms.rcom = ehs.ReadUInt16();
 			switch (ms.rcom)
 			{
-				case CSJ2K.j2k.codestream.Markers.RCOM_BINARY:
-                case CSJ2K.j2k.codestream.Markers.RCOM_LATIN:
+				
+				case CSJ2K.j2k.codestream.Markers.RCOM_GEN_USE: 
 					ms.ccom = new byte[ms.lcom - 4];
 					for (int i = 0; i < ms.lcom - 4; i++)
 					{
 						ms.ccom[i] = ehs.ReadByte();
 					}
 					break;
-				default:
+				
+				default: 
 					// --- Unknown or unsupported markers ---
 					// (skip them and see if we can get way with it)
-                    FacilityManager.getMsgLogger().printmsg(CSJ2K.j2k.util.MsgLogger_Fields.WARNING, "COM marker registered as " + ms.rcom + " unknown, ignoring (this might crash the " + "decoder or decode a quality degraded or even " + "useless image)");
+					FacilityManager.getMsgLogger().printmsg(CSJ2K.j2k.util.MsgLogger_Fields.WARNING, "COM marker registered as 0x" + System.Convert.ToString(ms.rcom, 16) + " unknown, ignoring (this might crash the " + "decoder or decode a quality degraded or even " + "useless image)");
 					System.IO.BinaryReader temp_BinaryReader;
 					System.Int64 temp_Int64;
 					temp_BinaryReader = ehs;
@@ -1596,9 +1598,9 @@ namespace CSJ2K.j2k.codestream.reader
 			hvfilters[1] = vfilters;
 			
 			// Get precinct partition sizes
-			System.Collections.ArrayList[] v = new System.Collections.ArrayList[2];
-			v[0] = System.Collections.ArrayList.Synchronized(new System.Collections.ArrayList(10));
-			v[1] = System.Collections.ArrayList.Synchronized(new System.Collections.ArrayList(10));
+			System.Collections.Generic.List<System.Int32>[] v = new System.Collections.Generic.List<System.Int32>[2];
+			v[0] = new List<int>(10);
+			v[1] = new List<int>(10);
 			int val = CSJ2K.j2k.codestream.Markers.PRECINCT_PARTITION_DEF_SIZE;
 			if (!precinctPartitionIsUsed)
 			{
@@ -1774,9 +1776,9 @@ namespace CSJ2K.j2k.codestream.reader
 			hvfilters[1] = vfilters;
 			
 			// Get precinct partition sizes
-			System.Collections.ArrayList[] v = new System.Collections.ArrayList[2];
-			v[0] = System.Collections.ArrayList.Synchronized(new System.Collections.ArrayList(10));
-			v[1] = System.Collections.ArrayList.Synchronized(new System.Collections.ArrayList(10));
+			System.Collections.Generic.List<System.Int32>[] v = new System.Collections.Generic.List<System.Int32>[2];
+			v[0] = new List<int>(10);
+			v[1] = new List<int>(10);
 			int val = CSJ2K.j2k.codestream.Markers.PRECINCT_PARTITION_DEF_SIZE;
 			if (!precinctPartitionIsUsed)
 			{
@@ -2186,7 +2188,7 @@ namespace CSJ2K.j2k.codestream.reader
 			if (pPMMarkerData == null)
 			{
 				pPMMarkerData = new byte[nPPMMarkSeg][];
-				tileOfTileParts = System.Collections.ArrayList.Synchronized(new System.Collections.ArrayList(10));
+				tileOfTileParts = new List<int>(10);
 				decSpec.pphs.setDefault((System.Object) true);
 			}
 			
@@ -2292,7 +2294,7 @@ namespace CSJ2K.j2k.codestream.reader
 			System.String htKey = ""; // Name used as a key for the hash-table
 			if (ht == null)
 			{
-				ht = System.Collections.Hashtable.Synchronized(new System.Collections.Hashtable());
+				ht = new Dictionary<string, byte[]>();
 			}
 			
 			switch (marker)
@@ -2458,7 +2460,7 @@ namespace CSJ2K.j2k.codestream.reader
 			System.String htKey = ""; // Name used as a hash-table key
 			if (ht == null)
 			{
-				ht = System.Collections.Hashtable.Synchronized(new System.Collections.Hashtable());
+				ht = new Dictionary<string, byte[]>();
 			}
 			
 			switch (marker)
@@ -2594,7 +2596,6 @@ namespace CSJ2K.j2k.codestream.reader
 			{
 				bais = new System.IO.MemoryStream((byte[])ht["SIZ"]);
 				readSIZ(new CSJ2K.Util.EndianBinaryReader(bais, true));
-                bais.Dispose();
 			}
 			
 			// COM marker segments
@@ -2604,7 +2605,6 @@ namespace CSJ2K.j2k.codestream.reader
 				{
 					bais = new System.IO.MemoryStream((byte[])ht["COM" + i]);
 					readCOM(new CSJ2K.Util.EndianBinaryReader(bais, true), true, 0, i);
-                    bais.Dispose();
 				}
 			}
 			
@@ -2613,7 +2613,6 @@ namespace CSJ2K.j2k.codestream.reader
 			{
 				bais = new System.IO.MemoryStream((byte[])ht["CRG"]);
 				readCRG(new CSJ2K.Util.EndianBinaryReader(bais, true));
-                bais.Dispose();
 			}
 			
 			// COD marker segment
@@ -2621,7 +2620,6 @@ namespace CSJ2K.j2k.codestream.reader
 			{
 				bais = new System.IO.MemoryStream((byte[])ht["COD"]);
 				readCOD(new CSJ2K.Util.EndianBinaryReader(bais, true), true, 0, 0);
-                bais.Dispose();
 			}
 			
 			// COC marker segments
@@ -2631,7 +2629,6 @@ namespace CSJ2K.j2k.codestream.reader
 				{
 					bais = new System.IO.MemoryStream((byte[])ht["COC" + i]);
 					readCOC(new CSJ2K.Util.EndianBinaryReader(bais, true), true, 0, 0);
-                    bais.Dispose();
 				}
 			}
 			
@@ -2642,7 +2639,6 @@ namespace CSJ2K.j2k.codestream.reader
 				{
 					bais = new System.IO.MemoryStream((byte[])ht["RGN" + i]);
 					readRGN(new CSJ2K.Util.EndianBinaryReader(bais, true), true, 0, 0);
-                    bais.Dispose();
 				}
 			}
 			
@@ -2651,7 +2647,6 @@ namespace CSJ2K.j2k.codestream.reader
 			{
 				bais = new System.IO.MemoryStream((byte[])ht["QCD"]);
 				readQCD(new CSJ2K.Util.EndianBinaryReader(bais, true), true, 0, 0);
-                bais.Dispose();
 			}
 			
 			// QCC marker segments
@@ -2661,7 +2656,6 @@ namespace CSJ2K.j2k.codestream.reader
 				{
 					bais = new System.IO.MemoryStream((byte[])ht["QCC" + i]);
 					readQCC(new CSJ2K.Util.EndianBinaryReader(bais, true), true, 0, 0);
-                    bais.Dispose();
 				}
 			}
 			
@@ -2670,7 +2664,6 @@ namespace CSJ2K.j2k.codestream.reader
 			{
 				bais = new System.IO.MemoryStream((byte[])ht["POC"]);
 				readPOC(new CSJ2K.Util.EndianBinaryReader(bais, true), true, 0, 0);
-                bais.Dispose();
 			}
 			
 			// PPM marker segments
@@ -2680,7 +2673,6 @@ namespace CSJ2K.j2k.codestream.reader
 				{
 					bais = new System.IO.MemoryStream((byte[])ht["PPM" + i]);
 					readPPM(new CSJ2K.Util.EndianBinaryReader(bais));
-                    bais.Dispose();
 				}
 			}
 			

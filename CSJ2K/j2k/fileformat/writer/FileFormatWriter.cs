@@ -46,7 +46,8 @@ using CSJ2K.j2k.fileformat;
 using CSJ2K.j2k.io;
 namespace CSJ2K.j2k.fileformat.writer
 {
-	
+	using System.IO;
+
 	/// <summary> This class writes the file format wrapper that may or may not exist around
 	/// a valid JPEG 2000 codestream. This class writes the simple possible legal
 	/// fileformat
@@ -61,28 +62,28 @@ namespace CSJ2K.j2k.fileformat.writer
 		/// <summary>The file from which to read the codestream and write file</summary>
 		private BEBufferedRandomAccessFile fi;
 		
-		/// <summary>The name of the file from which to read the codestream and to write
+		/// <summary>The stream from which to read the codestream and to write
 		/// the JP2 file
 		/// </summary>
-		private System.String filename;
+		private Stream stream;
 		
 		/// <summary>Image height </summary>
-		private int height;
+		private readonly int height;
 		
 		/// <summary>Image width </summary>
-		private int width;
+		private readonly int width;
 		
 		/// <summary>Number of components </summary>
-		private int nc;
+		private readonly int nc;
 		
 		/// <summary>Bits per component </summary>
-		private int[] bpc;
+		private readonly int[] bpc;
 		
 		/// <summary>Flag indicating whether number of bits per component varies </summary>
-		private bool bpcVaries;
+		private readonly bool bpcVaries;
 		
 		/// <summary>Length of codestream </summary>
-		private int clength;
+		private readonly int clength;
 		
 		/// <summary>Length of Colour Specification Box </summary>
 		private const int CSB_LENGTH = 15;
@@ -102,7 +103,7 @@ namespace CSJ2K.j2k.fileformat.writer
 		/// information necessary about a codestream to generate a legal JP2 file
 		/// 
 		/// </summary>
-		/// <param name="filename">The name of the file that is to be made a JP2 file
+		/// <param name="stream">The stream that is to be made a JP2 file
 		/// 
 		/// </param>
 		/// <param name="height">The height of the image
@@ -120,13 +121,13 @@ namespace CSJ2K.j2k.fileformat.writer
 		/// <param name="clength">Length of codestream 
 		/// 
 		/// </param>
-		public FileFormatWriter(System.String filename, int height, int width, int nc, int[] bpc, int clength)
+		public FileFormatWriter(Stream stream, int height, int width, int nc, int[] bpc, int clength)
 		{
 			this.height = height;
 			this.width = width;
 			this.nc = nc;
 			this.bpc = bpc;
-			this.filename = filename;
+			this.stream = stream;
 			this.clength = clength;
 			
 			bpcVaries = false;
@@ -157,7 +158,7 @@ namespace CSJ2K.j2k.fileformat.writer
 			try
 			{
 				// Read and buffer the codestream
-				fi = new BEBufferedRandomAccessFile(filename, "rw+");
+				fi = new BEBufferedRandomAccessFile(stream, false);
 				codestream = new byte[clength];
 				fi.readFully(codestream, 0, clength);
 				
@@ -180,7 +181,7 @@ namespace CSJ2K.j2k.fileformat.writer
 			}
 			catch (System.Exception e)
 			{
-				throw new System.ApplicationException("Error while writing JP2 file format(2): " + e.Message + "\n" + e.StackTrace);
+				throw new System.InvalidOperationException("Error while writing JP2 file format(2): " + e.Message + "\n" + e.StackTrace);
 			}
 			if (bpcVaries)
 				return 12 + FTB_LENGTH + 8 + IHB_LENGTH + CSB_LENGTH + BPC_LENGTH + nc + 8;

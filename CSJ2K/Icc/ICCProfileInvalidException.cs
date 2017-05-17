@@ -21,7 +21,6 @@ namespace CSJ2K.Icc
 	/// <author> 	Bruce A. Kern
 	/// </author>
 	
-	[Serializable]
 	public class ICCProfileInvalidException:ICCProfileException
 	{
 		

@@ -209,10 +209,14 @@ namespace CSJ2K.Icc.Tags
                 return new ICCSignatureType(signature, data, offset, count);
             else if (type == kdwViewType)
                 return new ICCViewType(signature, data, offset, count);
-            else if (type == kdwDataType)
-                return new ICCDataType(signature, data, offset, count);
-            else
-                throw new System.ArgumentException("bad tag type: " + System.Text.ASCIIEncoding.ASCII.GetString(BitConverter.GetBytes(type)) + "(" + type + ")");
+			else if (type == kdwDataType)
+				return new ICCDataType(signature, data, offset, count);
+			else
+			{
+				var bytes = BitConverter.GetBytes(type);
+				throw new System.ArgumentException("bad tag type: " + System.Text.Encoding.UTF8.GetString(bytes, 0, bytes.Length) +
+				                                   "(" + type + ")");
+			}
 		}
 		
 		
@@ -269,7 +273,7 @@ namespace CSJ2K.Icc.Tags
 		}
         static int GetTagInt(string tag)
         {
-            byte[] tagBytes=ASCIIEncoding.ASCII.GetBytes(tag);
+            byte[] tagBytes=Encoding.UTF8.GetBytes(tag);
             Array.Reverse(tagBytes);
             return BitConverter.ToInt32(tagBytes, 0);
         }

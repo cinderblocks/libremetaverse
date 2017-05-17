@@ -20,7 +20,6 @@ namespace CSJ2K.Icc.Lut
 	/// <author> 	Bruce A. Kern
 	/// </author>
 	
-	[Serializable]
 	public class MonochromeTransformException:System.Exception
 	{
 		

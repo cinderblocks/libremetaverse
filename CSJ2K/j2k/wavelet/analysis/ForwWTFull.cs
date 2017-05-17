@@ -507,7 +507,7 @@ namespace CSJ2K.j2k.wavelet.analysis
 					break;
 				
 				default: 
-					throw new System.ApplicationException("Internal JJ2000 error");
+					throw new System.InvalidOperationException("Internal JJ2000 error");
 				
 			}
 			
@@ -1195,7 +1195,7 @@ namespace CSJ2K.j2k.wavelet.analysis
 							break;
 						
 						default: 
-							throw new System.ApplicationException("Internal JJ2000 error");
+							throw new System.InvalidOperationException("Internal JJ2000 error");
 						
 					}
 					if (sb.ulcx - acb0x < 0 || sb.ulcy - acb0y < 0)

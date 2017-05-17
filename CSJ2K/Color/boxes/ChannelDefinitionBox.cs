@@ -7,6 +7,7 @@
 /// ***************************************************************************
 /// </summary>
 using System;
+using System.Collections.Generic;
 using ColorSpaceException = CSJ2K.Color.ColorSpaceException;
 using ICCProfile = CSJ2K.Icc.ICCProfile;
 using ParameterList = CSJ2K.j2k.util.ParameterList;
@@ -37,7 +38,7 @@ namespace CSJ2K.Color.Boxes
 		}
 		
 		private int ndefs;
-		private System.Collections.Hashtable definitions = System.Collections.Hashtable.Synchronized(new System.Collections.Hashtable());
+		private System.Collections.Generic.Dictionary<System.Int32, int[]> definitions = new Dictionary<int, int[]>();
 		
 		/// <summary> Construct a ChannelDefinitionBox from an input image.</summary>
 		/// <param name="in">RandomAccessIO jp2 image
@@ -78,7 +79,7 @@ namespace CSJ2K.Color.Boxes
 		/* Return the channel association. */
 		public int getCn(int asoc)
 		{
-			System.Collections.IEnumerator keys = definitions.Keys.GetEnumerator();
+			System.Collections.Generic.IEnumerator<int> keys = definitions.Keys.GetEnumerator();
 			//UPGRADE_TODO: Method 'java.util.Enumeration.hasMoreElements' was converted to 'System.Collections.IEnumerator.MoveNext' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javautilEnumerationhasMoreElements'"
 			while (keys.MoveNext())
 			{
@@ -111,7 +112,7 @@ namespace CSJ2K.Color.Boxes
 			System.Text.StringBuilder rep = new System.Text.StringBuilder("[ChannelDefinitionBox ").Append(eol).Append("  ");
 			rep.Append("ndefs= ").Append(System.Convert.ToString(ndefs));
 			
-			System.Collections.IEnumerator keys = definitions.Keys.GetEnumerator();
+			System.Collections.Generic.IEnumerator<int> keys = definitions.Keys.GetEnumerator();
 			//UPGRADE_TODO: Method 'java.util.Enumeration.hasMoreElements' was converted to 'System.Collections.IEnumerator.MoveNext' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javautilEnumerationhasMoreElements'"
 			while (keys.MoveNext())
 			{

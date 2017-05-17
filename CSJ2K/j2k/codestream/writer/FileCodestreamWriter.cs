@@ -41,6 +41,7 @@
 * Copyright (c) 1999/2000 JJ2000 Partners.
 * */
 using System;
+using CSJ2K.Util;
 using CSJ2K.j2k.codestream;
 namespace CSJ2K.j2k.codestream.writer
 {
@@ -147,7 +148,8 @@ namespace CSJ2K.j2k.codestream.writer
 		
 		/// <summary>Length of last packets containing no ROI information </summary>
 		private int lenLastNoROI = 0;
-		
+
+#if DOTNET
 		/// <summary> Opens the file 'file' for writing the codestream. The magic number is
 		/// written to the bit stream. Normally, the header encoder must be empty
 		/// (i.e. no data has been written to it yet). A BufferedOutputStream is
@@ -166,41 +168,15 @@ namespace CSJ2K.j2k.codestream.writer
 		/// for writing or while writing the magic number.
 		/// 
 		/// </exception>
-		public FileCodestreamWriter(System.IO.FileInfo file, int mb):base(mb)
+		public FileCodestreamWriter(System.IO.FileInfo file, int mb)
+			: base(mb)
 		{
 			//UPGRADE_TODO: Constructor 'java.io.FileOutputStream.FileOutputStream' was converted to 'System.IO.FileStream.FileStream' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javaioFileOutputStreamFileOutputStream_javaioFile'"
 			out_Renamed = new System.IO.BufferedStream(new System.IO.FileStream(file.FullName, System.IO.FileMode.Create), DEF_BUF_LEN);
 			initSOP_EPHArrays();
-		}
-		
-		/// <summary> Opens the file named 'fname' for writing the bit stream, using the 'he'
-		/// header encoder. The magic number is written to the bit
-		/// stream. Normally, the header encoder must be empty (i.e. no data has
-		/// been written to it yet). A BufferedOutputStream is used on top of the
-		/// file to increase throughput, the length of the buffer is DEF_BUF_LEN.
-		/// 
-		/// </summary>
-		/// <param name="fname">The name of file where to write the bit stream
-		/// 
-		/// </param>
-		/// <param name="mb">The maximum number of bytes that can be written to the bit
-		/// stream.
-		/// 
-		/// </param>
-		/// <param name="encSpec">The encoder's specifications
-		/// 
-		/// </param>
-		/// <exception cref="IOException">If an error occurs while trying to open the file
-		/// for writing or while writing the magic number.
-		/// 
-		/// </exception>
-		public FileCodestreamWriter(System.String fname, int mb):base(mb)
-		{
-			//UPGRADE_TODO: Constructor 'java.io.FileOutputStream.FileOutputStream' was converted to 'System.IO.FileStream.FileStream' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javaioFileOutputStreamFileOutputStream_javalangString'"
-			out_Renamed = new System.IO.BufferedStream(new System.IO.FileStream(fname, System.IO.FileMode.Create), DEF_BUF_LEN);
-			initSOP_EPHArrays();
-		}
-		
+		}		
+#endif
+	
 		/// <summary> Uses the output stream 'os' for writing the bit stream, using the 'he'
 		/// header encoder. The magic number is written to the bit
 		/// stream. Normally, the header encoder must be empty (i.e. no data has
@@ -395,7 +371,7 @@ namespace CSJ2K.j2k.codestream.writer
 			return len;
 		}
 		
-		/// <summary> Writes the EOC marker and closes the underlying stream.
+		/// <summary> Writes the EOC marker.
 		/// 
 		/// </summary>
 		/// <exception cref="IOException">If an error occurs while closing the underlying
@@ -411,8 +387,6 @@ namespace CSJ2K.j2k.codestream.writer
 			out_Renamed.WriteByte((byte) (CSJ2K.j2k.codestream.Markers.EOC & 0x00FF));
 			
 			ndata += 2; // Add two to length of codestream for EOC marker
-			
-			out_Renamed.Close();
 		}
 		
 		/// <summary> Writes the header data in the codestream and actualize ndata with the

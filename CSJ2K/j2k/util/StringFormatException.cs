@@ -52,7 +52,6 @@ namespace CSJ2K.j2k.util
 	/// badly formatted string.
 	/// 
 	/// </summary>
-	[Serializable]
 	public class StringFormatException:System.ArgumentException
 	{
 		

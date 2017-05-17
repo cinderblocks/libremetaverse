@@ -114,7 +114,7 @@ namespace CSJ2K.j2k.util
 					return i * max;
 				}
 			}
-			throw new System.ApplicationException("Cannot find the least common multiple of numbers " + x1 + " and " + x2);
+			throw new System.InvalidOperationException("Cannot find the least common multiple of numbers " + x1 + " and " + x2);
 		}
 		
 		/// <summary> Method that calculates the Least Common Multiple (LCM) of several
@@ -128,7 +128,7 @@ namespace CSJ2K.j2k.util
 		{
 			if (x.Length < 2)
 			{
-				throw new System.ApplicationException("Do not use this method if there are less than" + " two numbers.");
+				throw new System.InvalidOperationException("Do not use this method if there are less than" + " two numbers.");
 			}
 			int tmp = lcm(x[x.Length - 1], x[x.Length - 2]);
 			for (int i = x.Length - 3; i >= 0; i--)
@@ -190,7 +190,7 @@ namespace CSJ2K.j2k.util
 		{
 			if (x.Length < 2)
 			{
-				throw new System.ApplicationException("Do not use this method if there are less than" + " two numbers.");
+				throw new System.InvalidOperationException("Do not use this method if there are less than" + " two numbers.");
 			}
 			int tmp = gcd(x[x.Length - 1], x[x.Length - 2]);
 			for (int i = x.Length - 3; i >= 0; i--)

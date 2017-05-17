@@ -7,6 +7,7 @@
 /// ***************************************************************************
 /// </summary>
 using System;
+using System.Collections.Generic;
 using ColorSpaceException = CSJ2K.Color.ColorSpaceException;
 using ICCProfile = CSJ2K.Icc.ICCProfile;
 using ParameterList = CSJ2K.j2k.util.ParameterList;
@@ -37,7 +38,7 @@ namespace CSJ2K.Color.Boxes
 		}
 		
 		private int nChannels;
-		private System.Collections.ArrayList map = System.Collections.ArrayList.Synchronized(new System.Collections.ArrayList(10));
+		private System.Collections.Generic.List<byte[]> map = new List<byte[]>(10);
 		
 		/// <summary> Construct a ComponentMappingBox from an input image.</summary>
 		/// <param name="in">RandomAccessIO jp2 image

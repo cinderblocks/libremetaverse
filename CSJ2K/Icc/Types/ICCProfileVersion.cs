@@ -48,7 +48,7 @@ namespace CSJ2K.Icc.Types
 		
 		/// <summary>Construct from file content. </summary>
 		//UPGRADE_TODO: Class 'java.io.RandomAccessFile' was converted to 'System.IO.FileStream' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javaioRandomAccessFile'"
-		public virtual void  write(System.IO.FileStream raf)
+		public virtual void  write(System.IO.Stream raf)
 		{
 			raf.WriteByte(uMajor); raf.WriteByte(uMinor); raf.WriteByte(reserved1); raf.WriteByte(reserved2);
 		}

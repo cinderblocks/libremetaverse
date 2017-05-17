@@ -39,6 +39,7 @@
 * Copyright (c) 1999/2000 JJ2000 Partners.
 * */
 using System;
+using CSJ2K.Util;
 using CSJ2K.j2k.image;
 using CSJ2K.j2k.io;
 using CSJ2K.j2k;
@@ -71,7 +72,7 @@ namespace CSJ2K.j2k.image.input
 		
 		/// <summary>Where to read the data from </summary>
 		//UPGRADE_TODO: Class 'java.io.RandomAccessFile' was converted to 'System.IO.FileStream' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javaioRandomAccessFile'"
-		private System.IO.FileStream in_Renamed;
+		private System.IO.Stream in_Renamed;
 		
 		/// <summary>The offset of the raw pixel data in the PPM file </summary>
 		private int offset;
@@ -94,7 +95,7 @@ namespace CSJ2K.j2k.image.input
 		/// filters). This avoid allocating new DataBlk at each time 
 		/// </summary>
 		private DataBlkInt intBlk;
-		
+
 		/// <summary> Creates a new PPM file reader from the specified file.
 		/// 
 		/// </summary>
@@ -104,9 +105,10 @@ namespace CSJ2K.j2k.image.input
 		/// <param name="IOException">If an error occurs while opening the file.
 		/// 
 		/// </param>
-		public ImgReaderPPM(System.IO.FileInfo file):this(SupportClass.RandomAccessFileSupport.CreateRandomAccessFile(file, "r"))
+		public ImgReaderPPM(IFileInfo file)
+			: this(SupportClass.RandomAccessFileSupport.CreateRandomAccessFile(file, "r"))
 		{
-		}
+		} 
 		
 		/// <summary> Creates a new PPM file reader from the specified file name.
 		/// 
@@ -134,7 +136,7 @@ namespace CSJ2K.j2k.image.input
 		/// 
 		/// </exception>
 		//UPGRADE_TODO: Class 'java.io.RandomAccessFile' was converted to 'System.IO.FileStream' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javaioRandomAccessFile'"
-		private ImgReaderPPM(System.IO.FileStream in_Renamed)
+		public ImgReaderPPM(System.IO.Stream in_Renamed)
 		{
 			this.in_Renamed = in_Renamed;
 			
@@ -159,7 +161,7 @@ namespace CSJ2K.j2k.image.input
 		/// </exception>
 		public override void  close()
 		{
-			in_Renamed.Close();
+			in_Renamed.Dispose();
 			in_Renamed = null;
 			// Free memory
 			barr[0] = null;

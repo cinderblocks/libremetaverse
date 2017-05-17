@@ -42,6 +42,7 @@
 * Copyright (c) 1999/2000 JJ2000 Partners.
 * */
 using System;
+using CSJ2K.Util;
 using CSJ2K.j2k.image;
 using CSJ2K.j2k.util;
 namespace CSJ2K.j2k.image.output
@@ -115,7 +116,7 @@ namespace CSJ2K.j2k.image.output
 		
 		/// <summary>Where to write the data </summary>
 		//UPGRADE_TODO: Class 'java.io.RandomAccessFile' was converted to 'System.IO.FileStream' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javaioRandomAccessFile'"
-		private System.IO.FileStream out_Renamed;
+		private System.IO.Stream out_Renamed;
 		
 		/// <summary>The offset of the raw pixel data in the PGX file </summary>
 		private int offset;
@@ -170,29 +171,11 @@ namespace CSJ2K.j2k.image.output
 		/// <seealso cref="DataBlk">
 		/// 
 		/// </seealso>
-		public ImgWriterPGX(System.IO.FileInfo out_Renamed, BlkImgDataSrc imgSrc, int c, bool isSigned)
+		public ImgWriterPGX(IFileInfo out_Renamed, BlkImgDataSrc imgSrc, int c, bool isSigned)
 		{
 			//Initialize
 			this.c = c;
-			bool tmpBool;
-			if (System.IO.File.Exists(out_Renamed.FullName))
-				tmpBool = true;
-			else
-				tmpBool = System.IO.Directory.Exists(out_Renamed.FullName);
-			bool tmpBool2;
-			if (System.IO.File.Exists(out_Renamed.FullName))
-			{
-				System.IO.File.Delete(out_Renamed.FullName);
-				tmpBool2 = true;
-			}
-			else if (System.IO.Directory.Exists(out_Renamed.FullName))
-			{
-				System.IO.Directory.Delete(out_Renamed.FullName);
-				tmpBool2 = true;
-			}
-			else
-				tmpBool2 = false;
-			if (tmpBool && !tmpBool2)
+			if (out_Renamed.Exists && !out_Renamed.Delete())
 			{
 				throw new System.IO.IOException("Could not reset file");
 			}
@@ -225,7 +208,7 @@ namespace CSJ2K.j2k.image.output
 			// Writes PGX header
 			System.String tmpString = "PG " + "ML " + ((this.isSigned)?"- ":"+ ") + bitDepth + " " + w + " " + h + "\n"; // component height
 			
-			byte[] tmpByte = System.Text.ASCIIEncoding.ASCII.GetBytes(tmpString);
+			byte[] tmpByte = System.Text.Encoding.UTF8.GetBytes(tmpString);
 			for (int i = 0; i < tmpByte.Length; i++)
 			{
 				this.out_Renamed.WriteByte((byte) tmpByte[i]);
@@ -267,7 +250,7 @@ namespace CSJ2K.j2k.image.output
 		/// <seealso cref="DataBlk">
 		/// 
 		/// </seealso>
-		public ImgWriterPGX(System.String fname, BlkImgDataSrc imgSrc, int c, bool isSigned):this(new System.IO.FileInfo(fname), imgSrc, c, isSigned)
+		public ImgWriterPGX(System.String fname, BlkImgDataSrc imgSrc, int c, bool isSigned):this(FileInfoFactory.New(fname), imgSrc, c, isSigned)
 		{
 		}
 		
@@ -294,7 +277,7 @@ namespace CSJ2K.j2k.image.output
 					out_Renamed.WriteByte((System.Byte) 0);
 				}
 			}
-			out_Renamed.Close();
+			out_Renamed.Dispose();
 			src = null;
 			out_Renamed = null;
 			db = null;

@@ -56,7 +56,7 @@ namespace CSJ2K.Icc.Tags
 		/// <summary>Return the string rep of this tag. </summary>
 		public override System.String ToString()
 		{
-			return "[" + base.ToString() + " \"" + System.Text.ASCIIEncoding.ASCII.GetString(ascii, 0, ascii.Length) + "\"]";
+			return "[" + base.ToString() + " \"" + System.Text.Encoding.UTF8.GetString(ascii, 0, ascii.Length) + "\"]";
 		}
 		
 		/* end class ICCTextType */

@@ -40,12 +40,13 @@
 * 
 * Copyright (c) 1999/2000 JJ2000 Partners.
 * */
-using System;
-using CSJ2K.j2k.codestream;
-using CSJ2K.j2k.io;
 namespace CSJ2K.j2k.util
 {
-	
+	using System.Collections.Generic;
+	using System.IO;
+
+	using CSJ2K.j2k.io;
+
 	/// <summary> This class takes a legal JPEG 2000 codestream and performs some
 	/// manipulation on it. Currently the manipulations supported are: Tile-parts
 	/// 
@@ -60,35 +61,35 @@ namespace CSJ2K.j2k.util
 		/// <summary>Flag indicating whether packed packet headers in main header is used
 		/// 
 		/// </summary>
-		private bool ppmUsed;
+		private readonly bool ppmUsed;
 		
 		/// <summary>Flag indicating whether packed packet headers in tile headers is used
 		/// 
 		/// </summary>
-		private bool pptUsed;
+		private readonly bool pptUsed;
 		
 		/// <summary>Flag indicating whether SOP marker was only intended for parsing in
 		/// This class and should be removed 
 		/// </summary>
-		private bool tempSop;
+		private readonly bool tempSop;
 		
 		/// <summary>Flag indicating whether EPH marker was only intended for parsing in
 		/// This class and should be removed 
 		/// </summary>
-		private bool tempEph;
+		private readonly bool tempEph;
 		
 		/// <summary>The number of tiles in the image </summary>
-		private int nt;
+		private readonly int nt;
 		
 		/// <summary>The number of packets per tile-part </summary>
 		private int pptp;
 		
 		/// <summary>The name of the outfile </summary>
-		private System.String outname;
-		
+		private readonly Stream stream;
+
 		/// <summary>The length of a SOT plus a SOD marker </summary>
-		private static int TP_HEAD_LEN = 14;
-		
+		private const int TP_HEAD_LEN = 14;
+
 		/// <summary>The maximum number of a tile part index (TPsot) </summary>
 		//private static int MAX_TPSOT = 16;
 		
@@ -123,7 +124,7 @@ namespace CSJ2K.j2k.util
 		/// <summary> Instantiates a codestream manipulator..
 		/// 
 		/// </summary>
-		/// <param name="outname">The name of the original outfile
+		/// <param name="stream">The output stream
 		/// 
 		/// </param>
 		/// <param name="nt">The number of tiles in the image
@@ -145,10 +146,10 @@ namespace CSJ2K.j2k.util
 		/// <param name="tempEph">Flag indicating whether EPH merker should be removed
 		/// 
 		/// </param>
-		public CodestreamManipulator(System.String outname, int nt, int pptp, bool ppm, bool ppt, bool tempSop, bool tempEph)
+		public CodestreamManipulator(Stream stream, int nt, int pptp, bool ppm, bool ppt, bool tempSop, bool tempEph)
 		{
 			InitBlock();
-			this.outname = outname;
+			this.stream = stream;
 			this.nt = nt;
 			this.pptp = pptp;
 			this.ppmUsed = ppm;
@@ -164,7 +165,7 @@ namespace CSJ2K.j2k.util
 		/// <returns> The number of bytes that the file has increased by
 		/// 
 		/// </returns>
-		/// <exception cref="java.io.IOException">If an I/O error ocurred.
+		/// <exception cref="IOException">If an I/O error ocurred.
 		/// 
 		/// </exception>
 		public virtual int doCodestreamManipulation()
@@ -183,7 +184,7 @@ namespace CSJ2K.j2k.util
 				return 0;
 			
 			// Open file for reading and writing
-			fi = new BEBufferedRandomAccessFile(outname, "rw+");
+			fi = new BEBufferedRandomAccessFile(stream, false);
 			addedHeaderBytes -= fi.length();
 			
 			// Parse the codestream for SOT, SOP and EPH markers
@@ -192,9 +193,8 @@ namespace CSJ2K.j2k.util
 			// Read and buffer the tile headers, packet headers and packet data
 			readAndBuffer(fi);
 			
-			// Close file and overwrite with new file
-			fi.close();
-			fi = new BEBufferedRandomAccessFile(outname, "rw");
+			// Rewind and overwrite with new contents
+			fi.seek(0);
 			
 			// Create tile-parts
 			createTileParts();
@@ -218,7 +218,7 @@ namespace CSJ2K.j2k.util
 		/// <param name="fi">The file to parse the markers from
 		/// 
 		/// </param>
-		/// <exception cref="java.io.IOException">If an I/O error ocurred.
+		/// <exception cref="IOException">If an I/O error ocurred.
 		/// 
 		/// </exception>
 		private void  parseAndFind(BufferedRandomAccessFile fi)
@@ -227,7 +227,7 @@ namespace CSJ2K.j2k.util
 			short marker;
 			int halfMarker;
 			int tileEnd;
-			System.Collections.ArrayList markPos = System.Collections.ArrayList.Synchronized(new System.Collections.ArrayList(10));
+			System.Collections.Generic.List<System.Int32> markPos = new List<int>(10);
 			
 			// Find position of first SOT marker
 			marker = (short) fi.readUnsignedShort(); // read SOC marker
@@ -333,7 +333,7 @@ namespace CSJ2K.j2k.util
 		/// <param name="fi">The file to read the headers and data from
 		/// 
 		/// </param>
-		/// <exception cref="java.io.IOException">If an I/O error ocurred.
+		/// <exception cref="IOException">If an I/O error ocurred.
 		/// 
 		/// </exception>
 		private void  readAndBuffer(BufferedRandomAccessFile fi)
@@ -410,13 +410,13 @@ namespace CSJ2K.j2k.util
 		/// packet headers and packet data
 		/// 
 		/// </summary>
-		/// <exception cref="java.io.IOException">If an I/O error ocurred.
+		/// <exception cref="IOException">If an I/O error ocurred.
 		/// 
 		/// </exception>
 		private void  createTileParts()
 		{
 			int i, prem, t, length;
-            int pIndex; // phIndex removed
+			int pIndex; // phIndex removed
 			int tppStart;
 			int tilePart;
 			int p, np, nomnp;
@@ -569,11 +569,11 @@ namespace CSJ2K.j2k.util
 					}
 					//UPGRADE_ISSUE: Method 'java.io.ByteArrayOutputStream.reset' was not converted. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1000_javaioByteArrayOutputStreamreset'"
 					//temp.reset();
-                    temp.SetLength(0);
+					temp.SetLength(0);
 					prem -= np;
 				}
 			}
-			temp.Close();
+			temp.Dispose();
 		}
 		
 		/// <summary> This method writes the new codestream to the file. 
@@ -582,7 +582,7 @@ namespace CSJ2K.j2k.util
 		/// <param name="fi">The file to write the new codestream to
 		/// 
 		/// </param>
-		/// <exception cref="java.io.IOException">If an I/O error ocurred.
+		/// <exception cref="IOException">If an I/O error ocurred.
 		/// 
 		/// </exception>
 		private void  writeNewCodestream(BufferedRandomAccessFile fi)
@@ -684,7 +684,7 @@ namespace CSJ2K.j2k.util
 								// Start new PPM marker segment
 								//UPGRADE_ISSUE: Method 'java.io.ByteArrayOutputStream.reset' was not converted. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1000_javaioByteArrayOutputStreamreset'"
 								//ppmMarkerSegment.reset();
-                                ppmMarkerSegment.SetLength(0);
+								ppmMarkerSegment.SetLength(0);
 								ppmMarkerSegment.WriteByte((System.Byte) SupportClass.URShift(CSJ2K.j2k.codestream.Markers.PPM, 8));
 								ppmMarkerSegment.WriteByte((System.Byte) (CSJ2K.j2k.codestream.Markers.PPM & 0x00FF));
 								ppmMarkerSegment.WriteByte((System.Byte) 0); // Temporary Lppm value
@@ -721,7 +721,7 @@ namespace CSJ2K.j2k.util
 									// Start new PPM marker segment
 									//UPGRADE_ISSUE: Method 'java.io.ByteArrayOutputStream.reset' was not converted. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1000_javaioByteArrayOutputStreamreset'"
 									//ppmMarkerSegment.reset();
-                                    ppmMarkerSegment.SetLength(0);
+									ppmMarkerSegment.SetLength(0);
 									ppmMarkerSegment.WriteByte((System.Byte) SupportClass.URShift(CSJ2K.j2k.codestream.Markers.PPM, 8));
 									ppmMarkerSegment.WriteByte((System.Byte) (CSJ2K.j2k.codestream.Markers.PPM & 0x00FF));
 									ppmMarkerSegment.WriteByte((System.Byte) 0); // Temp Lppm value

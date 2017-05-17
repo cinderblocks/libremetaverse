@@ -42,6 +42,7 @@
 * Copyright (c) 1999/2000 JJ2000 Partners.
 * */
 using System;
+using CSJ2K.Util;
 using CSJ2K.j2k.image;
 using CSJ2K.j2k.util;
 namespace CSJ2K.j2k.image.output
@@ -73,7 +74,7 @@ namespace CSJ2K.j2k.image.output
 		
 		/// <summary>Where to write the data </summary>
 		//UPGRADE_TODO: Class 'java.io.RandomAccessFile' was converted to 'System.IO.FileStream' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javaioRandomAccessFile'"
-		private System.IO.FileStream out_Renamed;
+		private System.IO.Stream out_Renamed;
 		
 		/// <summary>The index of the component from where to get the data </summary>
 		private int c;
@@ -111,7 +112,7 @@ namespace CSJ2K.j2k.image.output
 		/// <param name="c">The index of the component from where to get the data.
 		/// 
 		/// </param>
-		public ImgWriterPGM(System.IO.FileInfo out_Renamed, BlkImgDataSrc imgSrc, int c)
+		public ImgWriterPGM(IFileInfo out_Renamed, BlkImgDataSrc imgSrc, int c)
 		{
 			// Check that imgSrc is of the correct type
 			// Check that the component index is valid
@@ -127,25 +128,7 @@ namespace CSJ2K.j2k.image.output
 			}
 			
 			// Initialize
-			bool tmpBool;
-			if (System.IO.File.Exists(out_Renamed.FullName))
-				tmpBool = true;
-			else
-				tmpBool = System.IO.Directory.Exists(out_Renamed.FullName);
-			bool tmpBool2;
-			if (System.IO.File.Exists(out_Renamed.FullName))
-			{
-				System.IO.File.Delete(out_Renamed.FullName);
-				tmpBool2 = true;
-			}
-			else if (System.IO.Directory.Exists(out_Renamed.FullName))
-			{
-				System.IO.Directory.Delete(out_Renamed.FullName);
-				tmpBool2 = true;
-			}
-			else
-				tmpBool2 = false;
-			if (tmpBool && !tmpBool2)
+			if (out_Renamed.Exists && !out_Renamed.Delete())
 			{
 				throw new System.IO.IOException("Could not reset file");
 			}
@@ -177,7 +160,7 @@ namespace CSJ2K.j2k.image.output
 		/// <param name="c">The index of the component from where to get the data.
 		/// 
 		/// </param>
-		public ImgWriterPGM(System.String fname, BlkImgDataSrc imgSrc, int c):this(new System.IO.FileInfo(fname), imgSrc, c)
+		public ImgWriterPGM(System.String fname, BlkImgDataSrc imgSrc, int c):this(FileInfoFactory.New(fname), imgSrc, c)
 		{
 		}
 		
@@ -204,7 +187,7 @@ namespace CSJ2K.j2k.image.output
 					out_Renamed.WriteByte((System.Byte) 0);
 				}
 			}
-			out_Renamed.Close();
+			out_Renamed.Dispose();
 			src = null;
 			out_Renamed = null;
 			db = null;
@@ -375,7 +358,7 @@ namespace CSJ2K.j2k.image.output
 			offset = 3;
 			// Write width in ASCII
 			val = System.Convert.ToString(w);
-			byteVals = System.Text.ASCIIEncoding.ASCII.GetBytes(val);
+			byteVals = System.Text.Encoding.UTF8.GetBytes(val);
 			for (i = 0; i < byteVals.Length; i++)
 			{
 				out_Renamed.WriteByte((byte) byteVals[i]);
@@ -385,7 +368,7 @@ namespace CSJ2K.j2k.image.output
 			offset++;
 			// Write height in ASCII
 			val = System.Convert.ToString(h);
-			byteVals = System.Text.ASCIIEncoding.ASCII.GetBytes(val);
+			byteVals = System.Text.Encoding.UTF8.GetBytes(val);
 			for (i = 0; i < byteVals.Length; i++)
 			{
 				out_Renamed.WriteByte((byte) byteVals[i]);

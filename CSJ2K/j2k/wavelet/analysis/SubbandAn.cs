@@ -386,7 +386,7 @@ namespace CSJ2K.j2k.wavelet.analysis
 					{
 						// There is an error! If all childs have non-negative
 						// l2norm, then this node should have non-negative l2norm
-						throw new System.ApplicationException("You have found a bug in JJ2000!");
+						throw new System.InvalidOperationException("You have found a bug in JJ2000!");
 					}
 				}
 				else
@@ -403,7 +403,7 @@ namespace CSJ2K.j2k.wavelet.analysis
 			{
 				// This is an error! The calcBasisWaveForms() method is never
 				// called on an element with non-negative l2norm
-				throw new System.ApplicationException("You have found a bug in JJ2000!");
+				throw new System.InvalidOperationException("You have found a bug in JJ2000!");
 			}
 		}
 		
@@ -453,7 +453,7 @@ namespace CSJ2K.j2k.wavelet.analysis
 					{
 						// There is an error! If all childs have non-negative
 						// l2norm, then this node should have non-negative l2norm
-						throw new System.ApplicationException("You have found a bug in JJ2000!");
+						throw new System.InvalidOperationException("You have found a bug in JJ2000!");
 					}
 				}
 				else
@@ -466,7 +466,7 @@ namespace CSJ2K.j2k.wavelet.analysis
 			{
 				// This is an error! The assignL2Norm() method is never called on
 				// an element with non-negative l2norm
-				throw new System.ApplicationException("You have found a bug in JJ2000!");
+				throw new System.InvalidOperationException("You have found a bug in JJ2000!");
 			}
 		}
 		

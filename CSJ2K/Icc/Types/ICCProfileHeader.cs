@@ -40,10 +40,10 @@ namespace CSJ2K.Icc.Types
 		* those codes required for Restricted ICC use are defined here.
 		*/
 		/// <summary>Profile header signature </summary>
-        private static int kdwProfileSignature = ICCProfile.getInt(System.Text.ASCIIEncoding.ASCII.GetBytes("acsp"), 0);
+        private static int kdwProfileSignature = ICCProfile.getInt(System.Text.Encoding.UTF8.GetBytes("acsp"), 0);
 		
 		/// <summary>Profile header signature </summary>
-		public static int kdwProfileSigReverse = ICCProfile.getInt(System.Text.ASCIIEncoding.ASCII.GetBytes("psca"),0);
+		public static int kdwProfileSigReverse = ICCProfile.getInt(System.Text.Encoding.UTF8.GetBytes("psca"),0);
 
 		private const System.String kdwInputProfile = "scnr";
 		private const System.String kdwDisplayProfile = "mntr";
@@ -177,7 +177,7 @@ namespace CSJ2K.Icc.Types
 		/// <exception cref="IOException">
 		/// </exception>
 		//UPGRADE_TODO: Class 'java.io.RandomAccessFile' was converted to 'System.IO.FileStream' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javaioRandomAccessFile'"
-		public virtual void  write(System.IO.FileStream raf)
+		public virtual void  write(System.IO.Stream raf)
 		{
 			
 			raf.Seek(offProfileSize, System.IO.SeekOrigin.Begin); raf.WriteByte((System.Byte) dwProfileSize);

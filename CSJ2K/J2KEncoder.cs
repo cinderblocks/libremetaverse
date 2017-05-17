@@ -118,13 +118,13 @@ namespace CSJ2K
             for (int i = 0; i < parameters.Length; i++)
             {
                 string[] param = parameters[i];
-                pl.Set(param[0], param[3]);
+                pl.Add(param[0], param[3]);
             }
 
             // Custom parameters
-            pl.Set("Aptype", "layer");
-            pl.Set("Qguard_bits", "1");
-            pl.Set("Alayers", "sl");
+            pl.Add("Aptype", "layer");
+            pl.Add("Qguard_bits", "1");
+            pl.Add("Alayers", "sl");
             //pl.Set("lossless", "on");
         }
 

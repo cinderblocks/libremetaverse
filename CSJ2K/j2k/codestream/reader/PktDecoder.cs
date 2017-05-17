@@ -42,6 +42,7 @@
 /// 
 /// </summary>
 using System;
+using System.Collections.Generic;
 using CSJ2K.j2k.wavelet.synthesis;
 using CSJ2K.j2k.codestream;
 using CSJ2K.j2k.entropy;
@@ -168,7 +169,7 @@ namespace CSJ2K.j2k.codestream.reader
 		/// <summary>List of code-blocks found in last read packet head (one list
 		/// per subband) 
 		/// </summary>
-		private System.Collections.ArrayList[] cblks;
+		private System.Collections.Generic.List<CBlkCoordInfo>[] cblks;
 		
 		/// <summary>Number of codeblocks encountered. used for ncb quit condition</summary>
 		private int ncb;
@@ -991,10 +992,10 @@ namespace CSJ2K.j2k.codestream.reader
 			if (bin.readBit() == 0)
 			{
 				// No code-block is included
-				cblks = new System.Collections.ArrayList[maxs + 1];
+				cblks = new List<CBlkCoordInfo>[maxs + 1];
 				for (int s = mins; s < maxs; s++)
 				{
-					cblks[s] = System.Collections.ArrayList.Synchronized(new System.Collections.ArrayList(10));
+					cblks[s] = new List<CBlkCoordInfo>(10);
 				}
 				pktIdx++;
 				
@@ -1027,14 +1028,14 @@ namespace CSJ2K.j2k.codestream.reader
 			// Loop on each subband in this resolution level
 			if (cblks == null || cblks.Length < maxs + 1)
 			{
-				cblks = new System.Collections.ArrayList[maxs + 1];
+				cblks = new List<CBlkCoordInfo>[maxs + 1];
 			}
 			
 			for (int s = mins; s < maxs; s++)
 			{
 				if (cblks[s] == null)
 				{
-					cblks[s] = System.Collections.ArrayList.Synchronized(new System.Collections.ArrayList(10));
+					cblks[s] = new List<CBlkCoordInfo>(10);
 				}
 				else
 				{
@@ -1310,7 +1311,7 @@ namespace CSJ2K.j2k.codestream.reader
 								}
 							}
 						}
-						catch (System.IO.EndOfStreamException)
+						catch (System.IO.EndOfStreamException e)
 						{
 							// Remove found information in this code-block
 							if (l == 0)
@@ -1420,7 +1421,7 @@ namespace CSJ2K.j2k.codestream.reader
 					{
 						ehs.seek(curOff);
 					}
-					catch (System.IO.EndOfStreamException)
+					catch (System.IO.EndOfStreamException e)
 					{
 						if (l == 0)
 						{
@@ -1433,13 +1434,7 @@ namespace CSJ2K.j2k.codestream.reader
 							ccb.ntp[l] = 0;
 							ccb.pktIdx[l] = - 1;
 						}
-
-                        // JH: If we try and seek past the end of the stream just stop the decoding
-                        curOff = ehs.length() - 1;
-                        ehs.seek(curOff);
-                        stopRead = true;
-                        return true;
-						//throw new System.IO.EndOfStreamException();
+						throw new System.IO.EndOfStreamException();
 					}
 					
 					// If truncation mode
@@ -1601,7 +1596,7 @@ namespace CSJ2K.j2k.codestream.reader
 			val |= sopArray[1];
 			if (val != CSJ2K.j2k.codestream.Markers.SOP)
 			{
-				throw new System.ApplicationException("Corrupted Bitstream: Could not parse SOP " + "marker !");
+				throw new System.InvalidOperationException("Corrupted Bitstream: Could not parse SOP " + "marker !");
 			}
 			
 			// Check if length is correct
@@ -1610,7 +1605,7 @@ namespace CSJ2K.j2k.codestream.reader
 			val |= (sopArray[3] & 0xff);
 			if (val != 4)
 			{
-				throw new System.ApplicationException("Corrupted Bitstream: Corrupted SOP marker !");
+				throw new System.InvalidOperationException("Corrupted Bitstream: Corrupted SOP marker !");
 			}
 			
 			// Check if sequence number if ok
@@ -1620,13 +1615,13 @@ namespace CSJ2K.j2k.codestream.reader
 			
 			if (!pph && val != pktIdx)
 			{
-				throw new System.ApplicationException("Corrupted Bitstream: SOP marker out of " + "sequence !");
+				throw new System.InvalidOperationException("Corrupted Bitstream: SOP marker out of " + "sequence !");
 			}
 			if (pph && val != pktIdx - 1)
 			{
 				// if packed packet headers are used, packet header was read
 				// before SOP marker segment
-				throw new System.ApplicationException("Corrupted Bitstream: SOP marker out of " + "sequence !");
+				throw new System.InvalidOperationException("Corrupted Bitstream: SOP marker out of " + "sequence !");
 			}
 			return false;
 		}
@@ -1658,7 +1653,7 @@ namespace CSJ2K.j2k.codestream.reader
 			val |= ephArray[1];
 			if (val != CSJ2K.j2k.codestream.Markers.EPH)
 			{
-				throw new System.ApplicationException("Corrupted Bitstream: Could not parse EPH " + "marker ! ");
+				throw new System.InvalidOperationException("Corrupted Bitstream: Could not parse EPH " + "marker ! ");
 			}
 		}
 		

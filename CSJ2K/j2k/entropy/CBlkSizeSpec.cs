@@ -208,7 +208,7 @@ namespace CSJ2K.j2k.entropy
 								throw new System.ArgumentException(errMsg);
 							}
 						}
-						catch (System.FormatException)
+						catch (System.FormatException e)
 						{
 							errMsg = "'" + optName + "' option : the code-block's " + "width could not be parsed.";
 							throw new System.ArgumentException(errMsg);
@@ -218,7 +218,7 @@ namespace CSJ2K.j2k.entropy
 						{
 							word = stk.NextToken();
 						}
-						catch (System.ArgumentOutOfRangeException)
+						catch (System.ArgumentOutOfRangeException e)
 						{
 							errMsg = "'" + optName + "' option : could not parse the " + "code-block's height";
 							throw new System.ArgumentException(errMsg);
@@ -255,7 +255,7 @@ namespace CSJ2K.j2k.entropy
 								throw new System.ArgumentException(errMsg);
 							}
 						}
-						catch (System.FormatException)
+						catch (System.FormatException e)
 						{
 							errMsg = "'" + optName + "' option : the code-block's height " + "could not be parsed.";
 							throw new System.ArgumentException(errMsg);

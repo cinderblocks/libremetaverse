@@ -52,8 +52,7 @@ namespace CSJ2K.j2k
 	/// there is no next element to return.
 	/// 
 	/// </summary>
-	[Serializable]
-	public class NoNextElementException:System.SystemException
+	public class NoNextElementException:System.InvalidOperationException
 	{
 		
 		/// <summary> Constructs a new <tt>NoNextElementException</tt> exception with no

@@ -681,7 +681,7 @@ namespace CSJ2K.j2k.entropy.decoder
 					break;
 				
 				default: 
-					throw new System.ApplicationException("JJ2000 internal error");
+					throw new System.InvalidOperationException("JJ2000 internal error");
 				
 			}
 			

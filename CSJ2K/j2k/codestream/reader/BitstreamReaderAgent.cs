@@ -760,7 +760,7 @@ namespace CSJ2K.j2k.codestream.reader
 			int tIdx = TileIdx;
 			if (t != tIdx)
 			{
-				throw new System.ApplicationException("Asking the tile-component width of a tile " + "different  from the current one.");
+				throw new System.InvalidOperationException("Asking the tile-component width of a tile " + "different  from the current one.");
 			}
 			int ntulx;
 			int dl = mdl[c] - rl;
@@ -795,7 +795,7 @@ namespace CSJ2K.j2k.codestream.reader
 			int tIdx = TileIdx;
 			if (t != tIdx)
 			{
-				throw new System.ApplicationException("Asking the tile-component width of a tile " + "different  from the current one.");
+				throw new System.InvalidOperationException("Asking the tile-component width of a tile " + "different  from the current one.");
 			}
 			int ntuly;
 			int dl = mdl[c] - rl; // Revert level indexation (0 is hi-res)
@@ -1232,7 +1232,7 @@ namespace CSJ2K.j2k.codestream.reader
 							break;
 						
 						default: 
-							throw new System.ApplicationException("Internal JJ2000 error");
+							throw new System.InvalidOperationException("Internal JJ2000 error");
 						
 					}
 					if (sb.ulcx - acb0x < 0 || sb.ulcy - acb0y < 0)

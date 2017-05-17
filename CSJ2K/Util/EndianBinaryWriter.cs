@@ -55,7 +55,7 @@ namespace CSJ2K.Util
             _bigEndian = bigEndian;
         }
 
-        public EndianBinaryWriter(Stream input, bool bigEndian) : base(input, bigEndian ? Encoding.BigEndianUnicode : Encoding.ASCII)
+        public EndianBinaryWriter(Stream input, bool bigEndian) : base(input, bigEndian ? Encoding.BigEndianUnicode : Encoding.UTF8)
         {
             _bigEndian = bigEndian;
         }
@@ -212,6 +212,7 @@ namespace CSJ2K.Util
         //
         //   System.IO.IOException:
         //     An I/O error occurs.
+#if DOTNET
         public override void Write(decimal value)
         {
             if (_bigEndian)
@@ -234,6 +235,7 @@ namespace CSJ2K.Util
             }
             else base.Write(value);
         }
+#endif
         //
         // Summary:
         //     Writes an eight-byte floating-point value to the current stream and advances

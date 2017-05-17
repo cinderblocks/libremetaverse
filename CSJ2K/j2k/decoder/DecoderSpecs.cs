@@ -62,7 +62,7 @@ namespace CSJ2K.j2k.decoder
 	/// <seealso cref="ModuleSpec">
 	/// 
 	/// </seealso>
-	public class DecoderSpecs : System.ICloneable
+	public class DecoderSpecs
 	{
 		/// <summary> Returns a copy of the current object.
 		/// 
@@ -77,9 +77,9 @@ namespace CSJ2K.j2k.decoder
 					decSpec2 = (DecoderSpecs) this.Clone();
 				}
 				//UPGRADE_NOTE: Exception 'java.lang.CloneNotSupportedException' was converted to 'System.Exception' which has different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1100'"
-				catch (System.Exception)
+				catch (System.Exception e)
 				{
-					throw new System.ApplicationException("Cannot clone the DecoderSpecs instance");
+					throw new System.InvalidOperationException("Cannot clone the DecoderSpecs instance");
 				}
 				// Quantization
 				decSpec2.qts = (QuantTypeSpec) qts.Copy;

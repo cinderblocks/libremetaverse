@@ -666,14 +666,14 @@ namespace CSJ2K.j2k.codestream.writer
 			{
 				// Write the precinct size for each resolution level + 1
 				// (resolution 0) if precinct partition is used.
-				System.Collections.ArrayList[] v = null;
+				System.Collections.Generic.List<System.Int32>[] v = null;
 				if (mh)
 				{
-					v = (System.Collections.ArrayList[]) encSpec.pss.getDefault();
+					v = (System.Collections.Generic.List<System.Int32>[])encSpec.pss.getDefault();
 				}
 				else
 				{
-					v = (System.Collections.ArrayList[]) encSpec.pss.getTileDef(tileIdx);
+					v = (System.Collections.Generic.List<System.Int32>[])encSpec.pss.getTileDef(tileIdx);
 				}
 				for (int r = mrl; r >= 0; r--)
 				{
@@ -903,14 +903,14 @@ namespace CSJ2K.j2k.codestream.writer
 			{
 				// Write the precinct size for each resolution level + 1
 				// (resolution 0) if precinct partition is used.
-				System.Collections.ArrayList[] v = null;
+				System.Collections.Generic.List<System.Int32>[] v = null;
 				if (mh)
 				{
-					v = (System.Collections.ArrayList[]) encSpec.pss.getCompDef(compIdx);
+					v = (System.Collections.Generic.List<System.Int32>[])encSpec.pss.getCompDef(compIdx);
 				}
 				else
 				{
-					v = (System.Collections.ArrayList[]) encSpec.pss.getTileCompVal(tileIdx, compIdx);
+					v = (System.Collections.Generic.List<System.Int32>[])encSpec.pss.getTileCompVal(tileIdx, compIdx);
 				}
 				for (int r = mrl; r >= 0; r--)
 				{
@@ -983,7 +983,7 @@ namespace CSJ2K.j2k.codestream.writer
 			}
 			if (notFound)
 			{
-				throw new System.ApplicationException("Default representative for quantization type " + " and number of decomposition levels not found " + " in main QCD marker segment. " + "You have found a JJ2000 bug.");
+				throw new System.InvalidOperationException("Default representative for quantization type " + " and number of decomposition levels not found " + " in main QCD marker segment. " + "You have found a JJ2000 bug.");
 			}
 			SubbandAn sb, csb, sbRoot = dwt.getAnSubbandTree(tcIdx[0], tcIdx[1]);
 			defimgn = dwt.getNomRangeBits(tcIdx[1]);
@@ -1029,7 +1029,7 @@ namespace CSJ2K.j2k.codestream.writer
 					break;
 				
 				default: 
-					throw new System.ApplicationException("Internal JJ2000 error");
+					throw new System.InvalidOperationException("Internal JJ2000 error");
 				
 			}
 			
@@ -1104,7 +1104,7 @@ namespace CSJ2K.j2k.codestream.writer
 					break;
 				
 				default: 
-					throw new System.ApplicationException("Internal JJ2000 error");
+					throw new System.InvalidOperationException("Internal JJ2000 error");
 				
 			}
 		}
@@ -1160,7 +1160,7 @@ namespace CSJ2K.j2k.codestream.writer
 			}
 			if (notFound)
 			{
-				throw new System.ApplicationException("Default representative for quantization type " + " and number of decomposition levels not found " + " in main QCC (c=" + compIdx + ") marker segment. " + "You have found a JJ2000 bug.");
+				throw new System.InvalidOperationException("Default representative for quantization type " + " and number of decomposition levels not found " + " in main QCC (c=" + compIdx + ") marker segment. " + "You have found a JJ2000 bug.");
 			}
 			sbRoot = dwt.getAnSubbandTree(tIdx, compIdx);
 			
@@ -1223,7 +1223,7 @@ namespace CSJ2K.j2k.codestream.writer
 					break;
 				
 				default: 
-					throw new System.ApplicationException("Internal JJ2000 error");
+					throw new System.InvalidOperationException("Internal JJ2000 error");
 				
 			}
 			
@@ -1309,7 +1309,7 @@ namespace CSJ2K.j2k.codestream.writer
 					break;
 				
 				default: 
-					throw new System.ApplicationException("Internal JJ2000 error");
+					throw new System.InvalidOperationException("Internal JJ2000 error");
 				
 			}
 		}
@@ -1354,7 +1354,7 @@ namespace CSJ2K.j2k.codestream.writer
 			}
 			if (notFound)
 			{
-				throw new System.ApplicationException("Default representative for quantization type " + " and number of decomposition levels not found " + " in tile QCD (t=" + tIdx + ") marker segment. " + "You have found a JJ2000 bug.");
+				throw new System.InvalidOperationException("Default representative for quantization type " + " and number of decomposition levels not found " + " in tile QCD (t=" + tIdx + ") marker segment. " + "You have found a JJ2000 bug.");
 			}
 			
 			sbRoot = dwt.getAnSubbandTree(tIdx, compIdx);
@@ -1405,7 +1405,7 @@ namespace CSJ2K.j2k.codestream.writer
 					break;
 				
 				default: 
-					throw new System.ApplicationException("Internal JJ2000 error");
+					throw new System.InvalidOperationException("Internal JJ2000 error");
 				
 			}
 			
@@ -1480,7 +1480,7 @@ namespace CSJ2K.j2k.codestream.writer
 					break;
 				
 				default: 
-					throw new System.ApplicationException("Internal JJ2000 error");
+					throw new System.InvalidOperationException("Internal JJ2000 error");
 				
 			}
 		}
@@ -1576,7 +1576,7 @@ namespace CSJ2K.j2k.codestream.writer
 					break;
 				
 				default: 
-					throw new System.ApplicationException("Internal JJ2000 error");
+					throw new System.InvalidOperationException("Internal JJ2000 error");
 				
 			}
 			
@@ -1662,7 +1662,7 @@ namespace CSJ2K.j2k.codestream.writer
 					break;
 				
 				default: 
-					throw new System.ApplicationException("Internal JJ2000 error");
+					throw new System.InvalidOperationException("Internal JJ2000 error");
 				
 			}
 		}
@@ -1845,7 +1845,7 @@ namespace CSJ2K.j2k.codestream.writer
 				// Rcom 
 				hbuf.Write((System.Int16) 1); // General use (IS 8859-15:1999(Latin) values)
 				
-				byte[] chars = System.Text.ASCIIEncoding.ASCII.GetBytes(str);
+				byte[] chars = System.Text.Encoding.UTF8.GetBytes(str);
 				for (int i = 0; i < chars.Length; i++)
 				{
 					hbuf.Write((byte) chars[i]);
@@ -1871,7 +1871,7 @@ namespace CSJ2K.j2k.codestream.writer
 					hbuf.Write((System.Int16) 1); // General use (IS 8859-15:1999(Latin)
 					// values)
 					
-					byte[] chars = System.Text.ASCIIEncoding.ASCII.GetBytes(str);
+					byte[] chars = System.Text.Encoding.UTF8.GetBytes(str);
 					for (int i = 0; i < chars.Length; i++)
 					{
 						hbuf.Write((byte) chars[i]);

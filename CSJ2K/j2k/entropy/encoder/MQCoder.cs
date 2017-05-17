@@ -295,7 +295,7 @@ namespace CSJ2K.j2k.entropy.encoder
 						return nrOfWrittenBytes;
 					
 					default: 
-						throw new System.ApplicationException("Illegal length calculation type code");
+						throw new System.InvalidOperationException("Illegal length calculation type code");
 					
 				}
 			}
@@ -1285,7 +1285,7 @@ namespace CSJ2K.j2k.entropy.encoder
 					break;
 				
 				default: 
-					throw new System.ApplicationException("Illegal termination type code");
+					throw new System.InvalidOperationException("Illegal termination type code");
 				
 			}
 			

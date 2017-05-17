@@ -41,6 +41,7 @@
 * Copyright (c) 1999/2000 JJ2000 Partners.
 * */
 using System;
+using System.Collections.Generic;
 using CSJ2K.j2k.image;
 namespace CSJ2K.j2k
 {
@@ -62,7 +63,7 @@ namespace CSJ2K.j2k
 	/// </ul></p>
 	/// 
 	/// </summary>
-	public class ModuleSpec : System.ICloneable
+	public class ModuleSpec
 	{
 		virtual public ModuleSpec Copy
 		{
@@ -129,7 +130,7 @@ namespace CSJ2K.j2k
 		/// 3 is accessible through the hash value "t16c3". Null if no
 		/// tile-component specific value is defined 
 		/// </summary>
-		protected internal System.Collections.Hashtable tileCompVal;
+		protected internal System.Collections.Generic.Dictionary<System.String, System.Object> tileCompVal;
 		
 		public virtual System.Object Clone()
 		{
@@ -139,9 +140,9 @@ namespace CSJ2K.j2k
 				ms = (ModuleSpec) base.MemberwiseClone();
 			}
 			//UPGRADE_NOTE: Exception 'java.lang.CloneNotSupportedException' was converted to 'System.Exception' which has different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1100'"
-			catch (System.Exception)
+			catch (System.Exception e)
 			{
-				throw new System.ApplicationException("Error when cloning ModuleSpec instance");
+				throw new System.InvalidOperationException("Error when cloning ModuleSpec instance");
 			}
 			// Create a copy of the specValType array
 			ms.specValType = new byte[nTiles][];
@@ -168,16 +169,12 @@ namespace CSJ2K.j2k
 			// Create a copy of tileCompVal
 			if (tileCompVal != null)
 			{
-				ms.tileCompVal = System.Collections.Hashtable.Synchronized(new System.Collections.Hashtable());
-				System.String tmpKey;
-				System.Object tmpVal;
+				ms.tileCompVal = new Dictionary<string, object>();
 				//UPGRADE_TODO: Method 'java.util.Enumeration.hasMoreElements' was converted to 'System.Collections.IEnumerator.MoveNext' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javautilEnumerationhasMoreElements'"
-				for (System.Collections.IEnumerator e = tileCompVal.Keys.GetEnumerator(); e.MoveNext(); )
+				for (System.Collections.Generic.IEnumerator<System.String> e = tileCompVal.Keys.GetEnumerator(); e.MoveNext(); )
 				{
 					//UPGRADE_TODO: Method 'java.util.Enumeration.nextElement' was converted to 'System.Collections.IEnumerator.Current' which has a different behavior. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1073_javautilEnumerationnextElement'"
-					tmpKey = ((System.String) e.Current);
-					tmpVal = tileCompVal[tmpKey];
-					ms.tileCompVal[tmpKey] = tmpVal;
+					ms.tileCompVal[e.Current] = tileCompVal[e.Current];
 				}
 			}
 			return ms;
@@ -227,7 +224,7 @@ namespace CSJ2K.j2k
 			// Rotate tileCompVal
 			if (tileCompVal != null && tileCompVal.Count > 0)
 			{
-				System.Collections.Hashtable tmptcv = System.Collections.Hashtable.Synchronized(new System.Collections.Hashtable());
+				System.Collections.Generic.Dictionary<System.String, System.Object> tmptcv = new Dictionary<string, object>();
 				System.String tmpKey;
 				System.Object tmpVal;
 				int btIdx, atIdx;
@@ -326,7 +323,7 @@ namespace CSJ2K.j2k
 			{
 				//UPGRADE_TODO: The equivalent in .NET for method 'java.lang.Object.toString' may return a different value. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1043'"
 				System.String errMsg = "Option whose value is '" + value_Renamed + "' cannot be " + "specified for components as it is a 'tile only' specific " + "option";
-				throw new System.ApplicationException(errMsg);
+				throw new System.InvalidOperationException(errMsg);
 			}
 			if (compDef == null)
 			{
@@ -360,7 +357,7 @@ namespace CSJ2K.j2k
 		{
 			if (specType == SPEC_TYPE_TILE)
 			{
-				throw new System.ApplicationException("Illegal use of ModuleSpec class");
+				throw new System.InvalidOperationException("Illegal use of ModuleSpec class");
 			}
 			if (compDef == null || compDef[c] == null)
 			{
@@ -385,7 +382,7 @@ namespace CSJ2K.j2k
 			{
 				//UPGRADE_TODO: The equivalent in .NET for method 'java.lang.Object.toString' may return a different value. "ms-help://MS.VSCC.v80/dv_commoner/local/redirect.htm?index='!DefaultContextWindowIndex'&keyword='jlca1043'"
 				System.String errMsg = "Option whose value is '" + value_Renamed + "' cannot be " + "specified for tiles as it is a 'component only' specific " + "option";
-				throw new System.ApplicationException(errMsg);
+				throw new System.InvalidOperationException(errMsg);
 			}
 			if (tileDef == null)
 			{
@@ -418,7 +415,7 @@ namespace CSJ2K.j2k
 		{
 			if (specType == SPEC_TYPE_COMP)
 			{
-				throw new System.ApplicationException("Illegal use of ModuleSpec class");
+				throw new System.InvalidOperationException("Illegal use of ModuleSpec class");
 			}
 			if (tileDef == null || tileDef[t] == null)
 			{
@@ -456,10 +453,10 @@ namespace CSJ2K.j2k
 						errMsg += "tiles as it is a 'component only' specific option";
 						break;
 					}
-				throw new System.ApplicationException(errMsg);
+				throw new System.InvalidOperationException(errMsg);
 			}
 			if (tileCompVal == null)
-				tileCompVal = System.Collections.Hashtable.Synchronized(new System.Collections.Hashtable());
+				tileCompVal = new Dictionary<string, object>();
 			specValType[t][c] = SPEC_TILE_COMP;
 			tileCompVal["t" + t + "c" + c] = value_Renamed;
 		}
@@ -487,7 +484,7 @@ namespace CSJ2K.j2k
 		{
 			if (specType != SPEC_TYPE_TILE_COMP)
 			{
-				throw new System.ApplicationException("Illegal use of ModuleSpec class");
+				throw new System.InvalidOperationException("Illegal use of ModuleSpec class");
 			}
 			return getSpec(t, c);
 		}

@@ -157,7 +157,7 @@ namespace CSJ2K.j2k.wavelet.analysis
 			System.String str = "";
 			if (pl.getParameter("Wcboff") == null)
 			{
-				throw new System.ApplicationException("You must specify an argument to the '-Wcboff' " + "option. See usage with the '-u' option");
+				throw new System.InvalidOperationException("You must specify an argument to the '-Wcboff' " + "option. See usage with the '-u' option");
 			}
 			SupportClass.Tokenizer stk = new SupportClass.Tokenizer(pl.getParameter("Wcboff"));
 			if (stk.Count != 2)
@@ -170,7 +170,7 @@ namespace CSJ2K.j2k.wavelet.analysis
 			{
 				cb0x = (System.Int32.Parse(str));
 			}
-			catch (System.FormatException)
+			catch (System.FormatException e)
 			{
 				throw new System.ArgumentException("Bad first parameter for the " + "'-Wcboff' option: " + str);
 			}
@@ -184,7 +184,7 @@ namespace CSJ2K.j2k.wavelet.analysis
 			{
 				cb0y = (System.Int32.Parse(str));
 			}
-			catch (System.FormatException)
+			catch (System.FormatException e)
 			{
 				throw new System.ArgumentException("Bad second parameter for the " + "'-Wcboff' option: " + str);
 			}

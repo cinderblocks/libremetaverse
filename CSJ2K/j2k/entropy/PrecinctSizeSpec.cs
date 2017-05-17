@@ -41,6 +41,7 @@
 * Copyright (c) 1999/2000 JJ2000 Partners.
 * */
 using System;
+using System.Collections.Generic;
 using CSJ2K.j2k.codestream;
 using CSJ2K.j2k.wavelet;
 using CSJ2K.j2k.image;
@@ -137,10 +138,10 @@ namespace CSJ2K.j2k.entropy
 			
 			// Set precinct sizes to default i.e. 2^15 =
 			// Markers.PRECINCT_PARTITION_DEF_SIZE
-			System.Collections.ArrayList[] tmpv = new System.Collections.ArrayList[2];
-			tmpv[0] = System.Collections.ArrayList.Synchronized(new System.Collections.ArrayList(10)); // ppx
+			System.Collections.Generic.List<System.Int32>[] tmpv = new List<int>[2];
+			tmpv[0] = new List<int>(10); // ppx
 			tmpv[0].Add((System.Int32) CSJ2K.j2k.codestream.Markers.PRECINCT_PARTITION_DEF_SIZE);
-			tmpv[1] = System.Collections.ArrayList.Synchronized(new System.Collections.ArrayList(10)); // ppy
+			tmpv[1] = new List<int>(10); // ppy
 			tmpv[1].Add((System.Int32) CSJ2K.j2k.codestream.Markers.PRECINCT_PARTITION_DEF_SIZE);
 			setDefault(tmpv);
 			
@@ -167,7 +168,7 @@ namespace CSJ2K.j2k.entropy
 			while ((stk.HasMoreTokens() || wasReadingPrecinctSize) && !endOfParamList)
 			{
 				
-				System.Collections.ArrayList[] v = new System.Collections.ArrayList[2]; // v[0] : ppx, v[1] : ppy
+				System.Collections.Generic.List<System.Int32>[] v = new List<int>[2]; // v[0] : ppx, v[1] : ppy
 				
 				// We do not read the next token if we were reading a precinct's
 				// size argument as we have already read the next token into word.
@@ -216,8 +217,8 @@ namespace CSJ2K.j2k.entropy
 						}
 						
 						// Initialises Vector objects
-						v[0] = System.Collections.ArrayList.Synchronized(new System.Collections.ArrayList(10)); // ppx
-						v[1] = System.Collections.ArrayList.Synchronized(new System.Collections.ArrayList(10)); // ppy
+						v[0] = new List<int>(10); // ppx
+						v[1] = new List<int>(10); // ppy
 						
 						while (true)
 						{
@@ -233,7 +234,7 @@ namespace CSJ2K.j2k.entropy
 								{
 									word = stk.NextToken();
 								}
-								catch (System.ArgumentOutOfRangeException)
+								catch (System.ArgumentOutOfRangeException e)
 								{
 									errMsg = "'" + optName + "' option : could not " + "parse the precinct's width";
 									throw new System.ArgumentException(errMsg);
@@ -246,7 +247,7 @@ namespace CSJ2K.j2k.entropy
 									throw new System.ArgumentException(errMsg);
 								}
 							}
-							catch (System.FormatException)
+							catch (System.FormatException e)
 							{
 								errMsg = "'" + optName + "' option : the argument '" + word + "' could not be parsed.";
 								throw new System.ArgumentException(errMsg);
@@ -393,7 +394,7 @@ namespace CSJ2K.j2k.entropy
 		public virtual int getPPX(int t, int c, int rl)
 		{
 			int mrl, idx;
-			System.Collections.ArrayList[] v = null;
+			System.Collections.Generic.List<System.Int32>[] v = null;
 			bool tileSpecified = (t != - 1?true:false);
 			bool compSpecified = (c != - 1?true:false);
 			
@@ -403,22 +404,22 @@ namespace CSJ2K.j2k.entropy
 			if (tileSpecified && compSpecified)
 			{
 				mrl = ((System.Int32) dls.getTileCompVal(t, c));
-				v = (System.Collections.ArrayList[]) getTileCompVal(t, c);
+				v = (System.Collections.Generic.List<System.Int32>[])getTileCompVal(t, c);
 			}
 			else if (tileSpecified && !compSpecified)
 			{
 				mrl = ((System.Int32) dls.getTileDef(t));
-				v = (System.Collections.ArrayList[]) getTileDef(t);
+				v = (System.Collections.Generic.List<System.Int32>[])getTileDef(t);
 			}
 			else if (!tileSpecified && compSpecified)
 			{
 				mrl = ((System.Int32) dls.getCompDef(c));
-				v = (System.Collections.ArrayList[]) getCompDef(c);
+				v = (System.Collections.Generic.List<System.Int32>[])getCompDef(c);
 			}
 			else
 			{
 				mrl = ((System.Int32) dls.getDefault());
-				v = (System.Collections.ArrayList[]) getDefault();
+				v = (System.Collections.Generic.List<System.Int32>[])getDefault();
 			}
 			idx = mrl - rl;
 			if (v[0].Count > idx)
@@ -455,7 +456,7 @@ namespace CSJ2K.j2k.entropy
 		public virtual int getPPY(int t, int c, int rl)
 		{
 			int mrl, idx;
-			System.Collections.ArrayList[] v = null;
+			System.Collections.Generic.List<System.Int32>[] v = null;
 			bool tileSpecified = (t != - 1?true:false);
 			bool compSpecified = (c != - 1?true:false);
 			
@@ -465,22 +466,22 @@ namespace CSJ2K.j2k.entropy
 			if (tileSpecified && compSpecified)
 			{
 				mrl = ((System.Int32) dls.getTileCompVal(t, c));
-				v = (System.Collections.ArrayList[]) getTileCompVal(t, c);
+				v = (System.Collections.Generic.List<System.Int32>[]) getTileCompVal(t, c);
 			}
 			else if (tileSpecified && !compSpecified)
 			{
 				mrl = ((System.Int32) dls.getTileDef(t));
-				v = (System.Collections.ArrayList[]) getTileDef(t);
+				v = (System.Collections.Generic.List<System.Int32>[]) getTileDef(t);
 			}
 			else if (!tileSpecified && compSpecified)
 			{
 				mrl = ((System.Int32) dls.getCompDef(c));
-				v = (System.Collections.ArrayList[]) getCompDef(c);
+				v = (System.Collections.Generic.List<System.Int32>[]) getCompDef(c);
 			}
 			else
 			{
 				mrl = ((System.Int32) dls.getDefault());
-				v = (System.Collections.ArrayList[]) getDefault();
+				v = (System.Collections.Generic.List<System.Int32>[]) getDefault();
 			}
 			idx = mrl - rl;
 			if (v[1].Count > idx)

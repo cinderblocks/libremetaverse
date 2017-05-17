@@ -42,6 +42,7 @@
 * Copyright (c) 1999/2000 JJ2000 Partners.
 * */
 using System;
+using System.Collections.Generic;
 using CSJ2K.j2k.quantization.quantizer;
 using CSJ2K.j2k.codestream.writer;
 using CSJ2K.j2k.wavelet.analysis;
@@ -284,7 +285,7 @@ namespace CSJ2K.j2k.roi.encoder
 		/// </exception>
 		public static ROIScaler createInstance(Quantizer src, ParameterList pl, EncoderSpecs encSpec)
 		{
-			System.Collections.ArrayList roiVector = System.Collections.ArrayList.Synchronized(new System.Collections.ArrayList(10));
+			System.Collections.Generic.List<ROI> roiVector = new List<ROI>(10);
 			ROIMaskGenerator maskGen = null;
 			
 			// Check parameters
@@ -364,7 +365,7 @@ namespace CSJ2K.j2k.roi.encoder
 		/// <returns> The ROIs specified in roiopt
 		/// 
 		/// </returns>
-		protected internal static System.Collections.ArrayList parseROIs(System.String roiopt, int nc, System.Collections.ArrayList roiVector)
+		protected internal static System.Collections.Generic.List<ROI> parseROIs(System.String roiopt, int nc, System.Collections.Generic.List<ROI> roiVector)
 		{
 			//ROI[] ROIs;
 			ROI roi;
@@ -402,11 +403,11 @@ namespace CSJ2K.j2k.roi.encoder
 							word = stok.NextToken();
 							h = (System.Int32.Parse(word));
 						}
-						catch (System.FormatException)
+						catch (System.FormatException e)
 						{
 							throw new System.ArgumentException("Bad parameter for " + "'-Rroi R' option : " + word);
 						}
-						catch (System.ArgumentOutOfRangeException)
+						catch (System.ArgumentOutOfRangeException f)
 						{
 							throw new System.ArgumentException("Wrong number of " + "parameters for  " + "h'-Rroi R' option.");
 						}
@@ -444,11 +445,11 @@ namespace CSJ2K.j2k.roi.encoder
 							word = stok.NextToken();
 							rad = (System.Int32.Parse(word));
 						}
-						catch (System.FormatException)
+						catch (System.FormatException e)
 						{
 							throw new System.ArgumentException("Bad parameter for " + "'-Rroi C' option : " + word);
 						}
-						catch (System.ArgumentOutOfRangeException)
+						catch (System.ArgumentOutOfRangeException f)
 						{
 							throw new System.ArgumentException("Wrong number of " + "parameters for " + "'-Rroi C' option.");
 						}
@@ -484,7 +485,7 @@ namespace CSJ2K.j2k.roi.encoder
 						{
 							filename = stok.NextToken();
 						}
-						catch (System.ArgumentOutOfRangeException)
+						catch (System.ArgumentOutOfRangeException e)
 						{
 							throw new System.ArgumentException("Wrong number of " + "parameters for " + "'-Rroi A' option.");
 						}
@@ -492,9 +493,9 @@ namespace CSJ2K.j2k.roi.encoder
 						{
 							maskPGM = new ImgReaderPGM(filename);
 						}
-						catch (System.IO.IOException)
+						catch (System.IO.IOException e)
 						{
-							throw new System.ApplicationException("Cannot read PGM file with ROI");
+							throw new System.InvalidOperationException("Cannot read PGM file with ROI");
 						}
 						
 						// If the ROI is component-specific, check which comps.
@@ -519,7 +520,7 @@ namespace CSJ2K.j2k.roi.encoder
 						break;
 					
 					default: 
-						throw new System.ApplicationException("Bad parameters for ROI nr " + roiVector.Count);
+						throw new System.InvalidOperationException("Bad parameters for ROI nr " + roiVector.Count);
 					
 				}
 			}
