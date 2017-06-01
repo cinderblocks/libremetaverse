@@ -53,10 +53,9 @@ namespace OpenMetaverse
         ResetHomeOnTeleport = 1 << 3,
         /// <summary>Sun does not move</summary>
         SunFixed = 1 << 4,
-        /// <summary>No object, land, etc. taxes</summary>
-        TaxFree = 1 << 5,
-        /// <summary>Disable heightmap alterations (agents can still plant
-        /// foliage)</summary>
+        /// <summary>Allows private parcels (ie. banlines)</summary>
+        AllowAccessOverride = 1 << 5,
+        /// <summary>Disable heightmap alterations (agents can still plant foliage)</summary>
         BlockTerraform = 1 << 6,
         /// <summary>Land cannot be released, sold, or purchased</summary>
         BlockLandResell = 1 << 7,
