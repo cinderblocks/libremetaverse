@@ -29,6 +29,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Collections.Generic;
+using System.Linq;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Http;
 using OpenMetaverse.Assets;
@@ -3842,12 +3843,7 @@ namespace OpenMetaverse
             Packet packet = e.Packet;
 
             ScriptDialogPacket dialog = (ScriptDialogPacket)packet;
-            List<string> buttons = new List<string>();
-
-            foreach (ScriptDialogPacket.ButtonsBlock button in dialog.Buttons)
-            {
-                buttons.Add(Utils.BytesToString(button.ButtonLabel));
-            }
+            List<string> buttons = dialog.Buttons.Select(button => Utils.BytesToString(button.ButtonLabel)).ToList();
 
             UUID ownerID = UUID.Zero;
 
@@ -3899,11 +3895,11 @@ namespace OpenMetaverse
             Packet packet = e.Packet;
 
             ScriptControlChangePacket change = (ScriptControlChangePacket)packet;
-            for (int i = 0; i < change.Data.Length; i++)
+            foreach (ScriptControlChangePacket.DataBlock data in change.Data)
             {
-                OnScriptControlChange(new ScriptControlEventArgs((ScriptControlChange)change.Data[i].Controls,
-                    change.Data[i].PassToAgent,
-                    change.Data[i].TakeControls));
+                OnScriptControlChange(new ScriptControlEventArgs((ScriptControlChange)data.Controls,
+                    data.PassToAgent,
+                    data.TakeControls));
             }
         }
 
