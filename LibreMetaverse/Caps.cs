@@ -217,6 +217,9 @@ namespace OpenMetaverse
             req.Add("ViewerMetrics");
             req.Add("ViewerStartAuction");
             req.Add("ViewerStats");
+            // AIS3
+            req.Add("InventoryAPIv3");
+            req.Add("LibraryAPIv3");
 
             _SeedRequest = new CapsClient(new Uri(_SeedCapsURI));
             _SeedRequest.OnComplete += new CapsClient.CompleteCallback(SeedRequestCompleteHandler);
