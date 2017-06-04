@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
@@ -51,7 +52,7 @@ namespace OpenMetaverse
         /// <summary> Last name (legacy) </summary>
         public string LegacyLastName;
         /// <summary> Full name (legacy) </summary>
-        public string LegacyFullName { get { return string.Format("{0} {1}", LegacyFirstName, LegacyLastName); } }
+        public string LegacyFullName => $"{LegacyFirstName} {LegacyLastName}";
         /// <summary> Is display name default display name </summary>
         public bool IsDefaultDisplayName;
         /// <summary> Cache display name until </summary>
@@ -87,17 +88,17 @@ namespace OpenMetaverse
         /// <returns>OSD containing agent's display name data</returns>
         public OSD GetOSD()
         {
-            OSDMap map = new OSDMap();
-
-            map["id"] = ID;
-            map["username"] = UserName;
-            map["display_name"] = DisplayName;
-            map["legacy_first_name"] = LegacyFirstName;
-            map["legacy_last_name"] = LegacyLastName;
-            map["is_display_name_default"] = IsDefaultDisplayName;
-            map["display_name_next_update"] = NextUpdate;
-            map["last_updated"] = Updated;
-
+            OSDMap map = new OSDMap
+            {
+                ["id"] = ID,
+                ["username"] = UserName,
+                ["display_name"] = DisplayName,
+                ["legacy_first_name"] = LegacyFirstName,
+                ["legacy_last_name"] = LegacyLastName,
+                ["is_display_name_default"] = IsDefaultDisplayName,
+                ["display_name_next_update"] = NextUpdate,
+                ["last_updated"] = Updated
+            };
             return map;
         }
 
@@ -195,8 +196,7 @@ namespace OpenMetaverse
         protected virtual void OnAvatarAnimation(AvatarAnimationEventArgs e)
         {
             EventHandler<AvatarAnimationEventArgs> handler = m_AvatarAnimation;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -219,8 +219,7 @@ namespace OpenMetaverse
         protected virtual void OnAvatarAppearance(AvatarAppearanceEventArgs e)
         {
             EventHandler<AvatarAppearanceEventArgs> handler = m_AvatarAppearance;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -243,8 +242,7 @@ namespace OpenMetaverse
         protected virtual void OnUUIDNameReply(UUIDNameReplyEventArgs e)
         {
             EventHandler<UUIDNameReplyEventArgs> handler = m_UUIDNameReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -267,8 +265,7 @@ namespace OpenMetaverse
         protected virtual void OnAvatarInterestsReply(AvatarInterestsReplyEventArgs e)
         {
             EventHandler<AvatarInterestsReplyEventArgs> handler = m_AvatarInterestsReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -291,8 +288,7 @@ namespace OpenMetaverse
         protected virtual void OnAvatarPropertiesReply(AvatarPropertiesReplyEventArgs e)
         {
             EventHandler<AvatarPropertiesReplyEventArgs> handler = m_AvatarPropertiesReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -315,8 +311,7 @@ namespace OpenMetaverse
         protected virtual void OnAvatarGroupsReply(AvatarGroupsReplyEventArgs e)
         {
             EventHandler<AvatarGroupsReplyEventArgs> handler = m_AvatarGroupsReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -339,8 +334,7 @@ namespace OpenMetaverse
         protected virtual void OnAvatarPickerReply(AvatarPickerReplyEventArgs e)
         {
             EventHandler<AvatarPickerReplyEventArgs> handler = m_AvatarPickerReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -363,8 +357,7 @@ namespace OpenMetaverse
         protected virtual void OnViewerEffectPointAt(ViewerEffectPointAtEventArgs e)
         {
             EventHandler<ViewerEffectPointAtEventArgs> handler = m_ViewerEffectPointAt;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -387,8 +380,7 @@ namespace OpenMetaverse
         protected virtual void OnViewerEffectLookAt(ViewerEffectLookAtEventArgs e)
         {
             EventHandler<ViewerEffectLookAtEventArgs> handler = m_ViewerEffectLookAt;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -411,8 +403,7 @@ namespace OpenMetaverse
         protected virtual void OnViewerEffect(ViewerEffectEventArgs e)
         {
             EventHandler<ViewerEffectEventArgs> handler = m_ViewerEffect;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -435,8 +426,7 @@ namespace OpenMetaverse
         protected virtual void OnAvatarPicksReply(AvatarPicksReplyEventArgs e)
         {
             EventHandler<AvatarPicksReplyEventArgs> handler = m_AvatarPicksReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -459,8 +449,7 @@ namespace OpenMetaverse
         protected virtual void OnPickInfoReply(PickInfoReplyEventArgs e)
         {
             EventHandler<PickInfoReplyEventArgs> handler = m_PickInfoReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -483,8 +472,7 @@ namespace OpenMetaverse
         protected virtual void OnAvatarClassifiedReply(AvatarClassifiedReplyEventArgs e)
         {
             EventHandler<AvatarClassifiedReplyEventArgs> handler = m_AvatarClassifiedReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -507,8 +495,7 @@ namespace OpenMetaverse
         protected virtual void OnClassifiedInfoReply(ClassifiedInfoReplyEventArgs e)
         {
             EventHandler<ClassifiedInfoReplyEventArgs> handler = m_ClassifiedInfoReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -531,8 +518,7 @@ namespace OpenMetaverse
         protected virtual void OnDisplayNameUpdate(DisplayNameUpdateEventArgs e)
         {
             EventHandler<DisplayNameUpdateEventArgs> handler = m_DisplayNameUpdate;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -604,10 +590,15 @@ namespace OpenMetaverse
         /// <param name="preyID">Avatar ID to track</param>
         public void RequestTrackAgent(UUID preyID)
         {
-            TrackAgentPacket p = new TrackAgentPacket();
-            p.AgentData.AgentID = Client.Self.AgentID;
-            p.AgentData.SessionID = Client.Self.SessionID;
-            p.TargetData.PreyID = preyID;
+            TrackAgentPacket p = new TrackAgentPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                TargetData = {PreyID = preyID}
+            };
             Client.Network.SendPacket(p);
         }
 
@@ -617,10 +608,9 @@ namespace OpenMetaverse
         /// <param name="id">The avatar key to retrieve a name for</param>
         public void RequestAvatarName(UUID id)
         {
-            UUIDNameRequestPacket request = new UUIDNameRequestPacket();
-            request.UUIDNameBlock = new UUIDNameRequestPacket.UUIDNameBlockBlock[1];
-            request.UUIDNameBlock[0] = new UUIDNameRequestPacket.UUIDNameBlockBlock();
-            request.UUIDNameBlock[0].ID = id;
+            UUIDNameRequestPacket request =
+                new UUIDNameRequestPacket {UUIDNameBlock = new UUIDNameRequestPacket.UUIDNameBlockBlock[1]};
+            request.UUIDNameBlock[0] = new UUIDNameRequestPacket.UUIDNameBlockBlock {ID = id};
 
             Client.Network.SendPacket(request);
         }
@@ -639,13 +629,11 @@ namespace OpenMetaverse
 
             for (int j = 0; j < n; j++)
             {
-                request = new UUIDNameRequestPacket();
-                request.UUIDNameBlock = new UUIDNameRequestPacket.UUIDNameBlockBlock[m];
+                request = new UUIDNameRequestPacket {UUIDNameBlock = new UUIDNameRequestPacket.UUIDNameBlockBlock[m]};
 
                 for (; i < (j + 1) * m; i++)
                 {
-                    request.UUIDNameBlock[i % m] = new UUIDNameRequestPacket.UUIDNameBlockBlock();
-                    request.UUIDNameBlock[i % m].ID = ids[i];
+                    request.UUIDNameBlock[i % m] = new UUIDNameRequestPacket.UUIDNameBlockBlock {ID = ids[i]};
                 }
 
                 Client.Network.SendPacket(request);
@@ -654,13 +642,14 @@ namespace OpenMetaverse
             // Get any remaining names after left after the full requests
             if (ids.Count > n * m)
             {
-                request = new UUIDNameRequestPacket();
-                request.UUIDNameBlock = new UUIDNameRequestPacket.UUIDNameBlockBlock[ids.Count - n * m];
+                request = new UUIDNameRequestPacket
+                {
+                    UUIDNameBlock = new UUIDNameRequestPacket.UUIDNameBlockBlock[ids.Count - n * m]
+                };
 
                 for (; i < ids.Count; i++)
                 {
-                    request.UUIDNameBlock[i % m] = new UUIDNameRequestPacket.UUIDNameBlockBlock();
-                    request.UUIDNameBlock[i % m].ID = ids[i];
+                    request.UUIDNameBlock[i % m] = new UUIDNameRequestPacket.UUIDNameBlockBlock {ID = ids[i]};
                 }
 
                 Client.Network.SendPacket(request);
@@ -718,7 +707,7 @@ namespace OpenMetaverse
                                           callback(false, null, null);
                                       }
                                   };
-            cap.BeginGetResponse(null, String.Empty, Client.Settings.CAPS_TIMEOUT);
+            cap.BeginGetResponse(null, string.Empty, Client.Settings.CAPS_TIMEOUT);
         }
 
         /// <summary>
@@ -727,12 +716,16 @@ namespace OpenMetaverse
         /// <param name="avatarid"></param>
         public void RequestAvatarProperties(UUID avatarid)
         {
-            AvatarPropertiesRequestPacket aprp = new AvatarPropertiesRequestPacket();
-
-            aprp.AgentData.AgentID = Client.Self.AgentID;
-            aprp.AgentData.SessionID = Client.Self.SessionID;
-            aprp.AgentData.AvatarID = avatarid;
-
+            AvatarPropertiesRequestPacket aprp =
+                new AvatarPropertiesRequestPacket
+                {
+                    AgentData =
+                    {
+                        AgentID = Client.Self.AgentID,
+                        SessionID = Client.Self.SessionID,
+                        AvatarID = avatarid
+                    }
+                };
             Client.Network.SendPacket(aprp);
         }
 
@@ -743,13 +736,17 @@ namespace OpenMetaverse
         /// <param name="queryID">An ID to associate with this query</param>
         public void RequestAvatarNameSearch(string name, UUID queryID)
         {
-            AvatarPickerRequestPacket aprp = new AvatarPickerRequestPacket();
-
-            aprp.AgentData.AgentID = Client.Self.AgentID;
-            aprp.AgentData.SessionID = Client.Self.SessionID;
-            aprp.AgentData.QueryID = queryID;
-            aprp.Data.Name = Utils.StringToBytes(name);
-
+            AvatarPickerRequestPacket aprp =
+                new AvatarPickerRequestPacket
+                {
+                    AgentData =
+                    {
+                        AgentID = Client.Self.AgentID,
+                        SessionID = Client.Self.SessionID,
+                        QueryID = queryID
+                    },
+                    Data = {Name = Utils.StringToBytes(name)}
+                };
             Client.Network.SendPacket(aprp);
         }
 
@@ -759,17 +756,24 @@ namespace OpenMetaverse
         /// <param name="avatarid">UUID of the avatar</param>
         public void RequestAvatarPicks(UUID avatarid)
         {
-            GenericMessagePacket gmp = new GenericMessagePacket();
+            GenericMessagePacket gmp = new GenericMessagePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    TransactionID = UUID.Zero
+                },
+                MethodData =
+                {
+                    Method = Utils.StringToBytes("avatarpicksrequest"),
+                    Invoice = UUID.Zero
+                },
+                ParamList = new GenericMessagePacket.ParamListBlock[1]
+            };
 
-            gmp.AgentData.AgentID = Client.Self.AgentID;
-            gmp.AgentData.SessionID = Client.Self.SessionID;
-            gmp.AgentData.TransactionID = UUID.Zero;
-
-            gmp.MethodData.Method = Utils.StringToBytes("avatarpicksrequest");
-            gmp.MethodData.Invoice = UUID.Zero;
-            gmp.ParamList = new GenericMessagePacket.ParamListBlock[1];
-            gmp.ParamList[0] = new GenericMessagePacket.ParamListBlock();
-            gmp.ParamList[0].Parameter = Utils.StringToBytes(avatarid.ToString());
+            gmp.ParamList[0] =
+                new GenericMessagePacket.ParamListBlock {Parameter = Utils.StringToBytes(avatarid.ToString())};
 
             Client.Network.SendPacket(gmp);
         }
@@ -780,17 +784,23 @@ namespace OpenMetaverse
         /// <param name="avatarid">UUID of the avatar</param>
         public void RequestAvatarClassified(UUID avatarid)
         {
-            GenericMessagePacket gmp = new GenericMessagePacket();
-
-            gmp.AgentData.AgentID = Client.Self.AgentID;
-            gmp.AgentData.SessionID = Client.Self.SessionID;
-            gmp.AgentData.TransactionID = UUID.Zero;
-
-            gmp.MethodData.Method = Utils.StringToBytes("avatarclassifiedsrequest");
-            gmp.MethodData.Invoice = UUID.Zero;
-            gmp.ParamList = new GenericMessagePacket.ParamListBlock[1];
-            gmp.ParamList[0] = new GenericMessagePacket.ParamListBlock();
-            gmp.ParamList[0].Parameter = Utils.StringToBytes(avatarid.ToString());
+            GenericMessagePacket gmp = new GenericMessagePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    TransactionID = UUID.Zero
+                },
+                MethodData =
+                {
+                    Method = Utils.StringToBytes("avatarclassifiedsrequest"),
+                    Invoice = UUID.Zero
+                },
+                ParamList = new GenericMessagePacket.ParamListBlock[1]
+            };
+            gmp.ParamList[0] =
+                new GenericMessagePacket.ParamListBlock {Parameter = Utils.StringToBytes(avatarid.ToString())};
 
             Client.Network.SendPacket(gmp);
         }
@@ -802,19 +812,25 @@ namespace OpenMetaverse
         /// <param name="pickid">UUID of the profile pick</param>
         public void RequestPickInfo(UUID avatarid, UUID pickid)
         {
-            GenericMessagePacket gmp = new GenericMessagePacket();
-
-            gmp.AgentData.AgentID = Client.Self.AgentID;
-            gmp.AgentData.SessionID = Client.Self.SessionID;
-            gmp.AgentData.TransactionID = UUID.Zero;
-
-            gmp.MethodData.Method = Utils.StringToBytes("pickinforequest");
-            gmp.MethodData.Invoice = UUID.Zero;
-            gmp.ParamList = new GenericMessagePacket.ParamListBlock[2];
-            gmp.ParamList[0] = new GenericMessagePacket.ParamListBlock();
-            gmp.ParamList[0].Parameter = Utils.StringToBytes(avatarid.ToString());
-            gmp.ParamList[1] = new GenericMessagePacket.ParamListBlock();
-            gmp.ParamList[1].Parameter = Utils.StringToBytes(pickid.ToString());
+            GenericMessagePacket gmp = new GenericMessagePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    TransactionID = UUID.Zero
+                },
+                MethodData =
+                {
+                    Method = Utils.StringToBytes("pickinforequest"),
+                    Invoice = UUID.Zero
+                },
+                ParamList = new GenericMessagePacket.ParamListBlock[2]
+            };
+            gmp.ParamList[0] =
+                new GenericMessagePacket.ParamListBlock {Parameter = Utils.StringToBytes(avatarid.ToString())};
+            gmp.ParamList[1] =
+                new GenericMessagePacket.ParamListBlock {Parameter = Utils.StringToBytes(pickid.ToString())};
 
             Client.Network.SendPacket(gmp);
         }
@@ -826,19 +842,25 @@ namespace OpenMetaverse
         /// <param name="classifiedid">UUID of the profile classified</param>
         public void RequestClassifiedInfo(UUID avatarid, UUID classifiedid)
         {
-            GenericMessagePacket gmp = new GenericMessagePacket();
-
-            gmp.AgentData.AgentID = Client.Self.AgentID;
-            gmp.AgentData.SessionID = Client.Self.SessionID;
-            gmp.AgentData.TransactionID = UUID.Zero;
-
-            gmp.MethodData.Method = Utils.StringToBytes("classifiedinforequest");
-            gmp.MethodData.Invoice = UUID.Zero;
-            gmp.ParamList = new GenericMessagePacket.ParamListBlock[2];
-            gmp.ParamList[0] = new GenericMessagePacket.ParamListBlock();
-            gmp.ParamList[0].Parameter = Utils.StringToBytes(avatarid.ToString());
-            gmp.ParamList[1] = new GenericMessagePacket.ParamListBlock();
-            gmp.ParamList[1].Parameter = Utils.StringToBytes(classifiedid.ToString());
+            GenericMessagePacket gmp = new GenericMessagePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    TransactionID = UUID.Zero
+                },
+                MethodData =
+                {
+                    Method = Utils.StringToBytes("classifiedinforequest"),
+                    Invoice = UUID.Zero
+                },
+                ParamList = new GenericMessagePacket.ParamListBlock[2]
+            };
+            gmp.ParamList[0] =
+                new GenericMessagePacket.ParamListBlock {Parameter = Utils.StringToBytes(avatarid.ToString())};
+            gmp.ParamList[1] =
+                new GenericMessagePacket.ParamListBlock {Parameter = Utils.StringToBytes(classifiedid.ToString())};
 
             Client.Network.SendPacket(gmp);
         }
@@ -853,10 +875,10 @@ namespace OpenMetaverse
             if (m_UUIDNameReply != null)
             {
                 Packet packet = e.Packet;
-                Dictionary<UUID, string> names = new Dictionary<UUID, string>();
+                var names = new Dictionary<UUID, string>();
                 UUIDNameReplyPacket reply = (UUIDNameReplyPacket)packet;
 
-                foreach (UUIDNameReplyPacket.UUIDNameBlockBlock block in reply.UUIDNameBlock)
+                foreach (var block in reply.UUIDNameBlock)
                 {
                     names[block.ID] = Utils.BytesToString(block.FirstName) +
                         " " + Utils.BytesToString(block.LastName);
@@ -879,9 +901,11 @@ namespace OpenMetaverse
 
             for (int i = 0; i < data.AnimationList.Length; i++)
             {
-                Animation animation = new Animation();
-                animation.AnimationID = data.AnimationList[i].AnimID;
-                animation.AnimationSequence = data.AnimationList[i].AnimSequenceID;
+                Animation animation = new Animation
+                {
+                    AnimationID = data.AnimationList[i].AnimID,
+                    AnimationSequence = data.AnimationList[i].AnimSequenceID
+                };
                 if (i < data.AnimationSourceList.Length)
                 {
                     animation.AnimationSourceObjectID = data.AnimationSourceList[i].ObjectID;
@@ -911,17 +935,13 @@ namespace OpenMetaverse
 
                 AvatarAppearancePacket appearance = (AvatarAppearancePacket)packet;
 
-                List<byte> visualParams = new List<byte>();
-                foreach (AvatarAppearancePacket.VisualParamBlock block in appearance.VisualParam)
-                {
-                    visualParams.Add(block.ParamValue);
-                }
+                var visualParams = appearance.VisualParam.Select(block => block.ParamValue).ToList();
 
-                Primitive.TextureEntry textureEntry = new Primitive.TextureEntry(appearance.ObjectData.TextureEntry, 0,
+                var textureEntry = new Primitive.TextureEntry(appearance.ObjectData.TextureEntry, 0,
                         appearance.ObjectData.TextureEntry.Length);
 
-                Primitive.TextureEntryFace defaultTexture = textureEntry.DefaultTexture;
-                Primitive.TextureEntryFace[] faceTextures = textureEntry.FaceTextures;
+                var defaultTexture = textureEntry.DefaultTexture;
+                var faceTextures = textureEntry.FaceTextures;
 
                 byte appearanceVersion = 0;
                 int COFVersion = 0;
@@ -934,7 +954,7 @@ namespace OpenMetaverse
                     appearanceFlags = (AppearanceFlags)appearance.AppearanceData[0].Flags;
                 }
 
-                Avatar av = simulator.ObjectsAvatars.Find((Avatar a) => { return a.ID == appearance.Sender.ID; });
+                Avatar av = simulator.ObjectsAvatars.Find((Avatar a) => a.ID == appearance.Sender.ID);
                 if (av != null)
                 {
                     av.Textures = textureEntry;
@@ -958,14 +978,17 @@ namespace OpenMetaverse
             {
                 Packet packet = e.Packet;
                 AvatarPropertiesReplyPacket reply = (AvatarPropertiesReplyPacket)packet;
-                Avatar.AvatarProperties properties = new Avatar.AvatarProperties();
+                Avatar.AvatarProperties properties =
+                    new Avatar.AvatarProperties
+                    {
+                        ProfileImage = reply.PropertiesData.ImageID,
+                        FirstLifeImage = reply.PropertiesData.FLImageID,
+                        Partner = reply.PropertiesData.PartnerID,
+                        AboutText = Utils.BytesToString(reply.PropertiesData.AboutText),
+                        FirstLifeText = Utils.BytesToString(reply.PropertiesData.FLAboutText),
+                        BornOn = Utils.BytesToString(reply.PropertiesData.BornOn)
+                    };
 
-                properties.ProfileImage = reply.PropertiesData.ImageID;
-                properties.FirstLifeImage = reply.PropertiesData.FLImageID;
-                properties.Partner = reply.PropertiesData.PartnerID;
-                properties.AboutText = Utils.BytesToString(reply.PropertiesData.AboutText);
-                properties.FirstLifeText = Utils.BytesToString(reply.PropertiesData.FLAboutText);
-                properties.BornOn = Utils.BytesToString(reply.PropertiesData.BornOn);
                 //properties.CharterMember = Utils.BytesToString(reply.PropertiesData.CharterMember);
                 uint charter = Utils.BytesToUInt(reply.PropertiesData.CharterMember);
                 if (charter == 0)
@@ -1001,14 +1024,14 @@ namespace OpenMetaverse
                 Packet packet = e.Packet;
 
                 AvatarInterestsReplyPacket airp = (AvatarInterestsReplyPacket)packet;
-                Avatar.Interests interests = new Avatar.Interests();
-
-                interests.WantToMask = airp.PropertiesData.WantToMask;
-                interests.WantToText = Utils.BytesToString(airp.PropertiesData.WantToText);
-                interests.SkillsMask = airp.PropertiesData.SkillsMask;
-                interests.SkillsText = Utils.BytesToString(airp.PropertiesData.SkillsText);
-                interests.LanguagesText = Utils.BytesToString(airp.PropertiesData.LanguagesText);
-
+                Avatar.Interests interests = new Avatar.Interests
+                {
+                    WantToMask = airp.PropertiesData.WantToMask,
+                    WantToText = Utils.BytesToString(airp.PropertiesData.WantToText),
+                    SkillsMask = airp.PropertiesData.SkillsMask,
+                    SkillsText = Utils.BytesToString(airp.PropertiesData.SkillsText),
+                    LanguagesText = Utils.BytesToString(airp.PropertiesData.LanguagesText)
+                };
                 OnAvatarInterestsReply(new AvatarInterestsReplyEventArgs(airp.AgentData.AvatarID, interests));
             }
         }
@@ -1041,13 +1064,15 @@ namespace OpenMetaverse
             List<AvatarGroup> avatarGroups = new List<AvatarGroup>(msg.GroupDataBlock.Length);
             for (int i = 0; i < msg.GroupDataBlock.Length; i++)
             {
-                AvatarGroup avatarGroup = new AvatarGroup();
-                avatarGroup.AcceptNotices = msg.GroupDataBlock[i].AcceptNotices;
-                avatarGroup.GroupID = msg.GroupDataBlock[i].GroupID;
-                avatarGroup.GroupInsigniaID = msg.GroupDataBlock[i].GroupInsigniaID;
-                avatarGroup.GroupName = msg.GroupDataBlock[i].GroupName;
-                avatarGroup.GroupPowers = msg.GroupDataBlock[i].GroupPowers;
-                avatarGroup.ListInProfile = msg.NewGroupDataBlock[i].ListInProfile;
+                AvatarGroup avatarGroup = new AvatarGroup
+                {
+                    AcceptNotices = msg.GroupDataBlock[i].AcceptNotices,
+                    GroupID = msg.GroupDataBlock[i].GroupID,
+                    GroupInsigniaID = msg.GroupDataBlock[i].GroupInsigniaID,
+                    GroupName = msg.GroupDataBlock[i].GroupName,
+                    GroupPowers = msg.GroupDataBlock[i].GroupPowers,
+                    ListInProfile = msg.NewGroupDataBlock[i].ListInProfile
+                };
 
                 avatarGroups.Add(avatarGroup);
             }
@@ -1066,18 +1091,18 @@ namespace OpenMetaverse
                 AvatarGroupsReplyPacket groups = (AvatarGroupsReplyPacket)packet;
                 List<AvatarGroup> avatarGroups = new List<AvatarGroup>(groups.GroupData.Length);
 
-                for (int i = 0; i < groups.GroupData.Length; i++)
+                foreach (AvatarGroupsReplyPacket.GroupDataBlock groupData in groups.GroupData)
                 {
-                    AvatarGroup avatarGroup = new AvatarGroup();
-
-                    avatarGroup.AcceptNotices = groups.GroupData[i].AcceptNotices;
-                    avatarGroup.GroupID = groups.GroupData[i].GroupID;
-                    avatarGroup.GroupInsigniaID = groups.GroupData[i].GroupInsigniaID;
-                    avatarGroup.GroupName = Utils.BytesToString(groups.GroupData[i].GroupName);
-                    avatarGroup.GroupPowers = (GroupPowers)groups.GroupData[i].GroupPowers;
-                    avatarGroup.GroupTitle = Utils.BytesToString(groups.GroupData[i].GroupTitle);
-                    avatarGroup.ListInProfile = groups.NewGroupData.ListInProfile;
-
+                    AvatarGroup avatarGroup = new AvatarGroup
+                    {
+                        AcceptNotices = groupData.AcceptNotices,
+                        GroupID = groupData.GroupID,
+                        GroupInsigniaID = groupData.GroupInsigniaID,
+                        GroupName = Utils.BytesToString(groupData.GroupName),
+                        GroupPowers = (GroupPowers) groupData.GroupPowers,
+                        GroupTitle = Utils.BytesToString(groupData.GroupTitle),
+                        ListInProfile = groups.NewGroupData.ListInProfile
+                    };
                     avatarGroups.Add(avatarGroup);
                 }
 
@@ -1234,12 +1259,7 @@ namespace OpenMetaverse
             Packet packet = e.Packet;
 
             AvatarPicksReplyPacket p = (AvatarPicksReplyPacket)packet;
-            Dictionary<UUID, string> picks = new Dictionary<UUID, string>();
-
-            foreach (AvatarPicksReplyPacket.DataBlock b in p.Data)
-            {
-                picks.Add(b.PickID, Utils.BytesToString(b.PickName));
-            }
+            var picks = p.Data.ToDictionary(b => b.PickID, b => Utils.BytesToString(b.PickName));
 
             OnAvatarPicksReply(new AvatarPicksReplyEventArgs(p.AgentData.TargetID, picks));
         }
@@ -1253,20 +1273,22 @@ namespace OpenMetaverse
             {
                 Packet packet = e.Packet;
                 PickInfoReplyPacket p = (PickInfoReplyPacket)packet;
-                ProfilePick ret = new ProfilePick();
-                ret.CreatorID = p.Data.CreatorID;
-                ret.Desc = Utils.BytesToString(p.Data.Desc);
-                ret.Enabled = p.Data.Enabled;
-                ret.Name = Utils.BytesToString(p.Data.Name);
-                ret.OriginalName = Utils.BytesToString(p.Data.OriginalName);
-                ret.ParcelID = p.Data.ParcelID;
-                ret.PickID = p.Data.PickID;
-                ret.PosGlobal = p.Data.PosGlobal;
-                ret.SimName = Utils.BytesToString(p.Data.SimName);
-                ret.SnapshotID = p.Data.SnapshotID;
-                ret.SortOrder = p.Data.SortOrder;
-                ret.TopPick = p.Data.TopPick;
-                ret.User = Utils.BytesToString(p.Data.User);
+                ProfilePick ret = new ProfilePick
+                {
+                    CreatorID = p.Data.CreatorID,
+                    Desc = Utils.BytesToString(p.Data.Desc),
+                    Enabled = p.Data.Enabled,
+                    Name = Utils.BytesToString(p.Data.Name),
+                    OriginalName = Utils.BytesToString(p.Data.OriginalName),
+                    ParcelID = p.Data.ParcelID,
+                    PickID = p.Data.PickID,
+                    PosGlobal = p.Data.PosGlobal,
+                    SimName = Utils.BytesToString(p.Data.SimName),
+                    SnapshotID = p.Data.SnapshotID,
+                    SortOrder = p.Data.SortOrder,
+                    TopPick = p.Data.TopPick,
+                    User = Utils.BytesToString(p.Data.User)
+                };
 
                 OnPickInfoReply(new PickInfoReplyEventArgs(ret.PickID, ret));
             }
@@ -1281,12 +1303,7 @@ namespace OpenMetaverse
             {
                 Packet packet = e.Packet;
                 AvatarClassifiedReplyPacket p = (AvatarClassifiedReplyPacket)packet;
-                Dictionary<UUID, string> classifieds = new Dictionary<UUID, string>();
-
-                foreach (AvatarClassifiedReplyPacket.DataBlock b in p.Data)
-                {
-                    classifieds.Add(b.ClassifiedID, Utils.BytesToString(b.Name));
-                }
+                var classifieds = p.Data.ToDictionary(b => b.ClassifiedID, b => Utils.BytesToString(b.Name));
 
                 OnAvatarClassifiedReply(new AvatarClassifiedReplyEventArgs(p.AgentData.TargetID, classifieds));
             }
@@ -1301,17 +1318,19 @@ namespace OpenMetaverse
             {
                 Packet packet = e.Packet;
                 ClassifiedInfoReplyPacket p = (ClassifiedInfoReplyPacket)packet;
-                ClassifiedAd ret = new ClassifiedAd();
-                ret.Desc = Utils.BytesToString(p.Data.Desc);
-                ret.Name = Utils.BytesToString(p.Data.Name);
-                ret.ParcelID = p.Data.ParcelID;
-                ret.ClassifiedID = p.Data.ClassifiedID;
-                ret.Position = p.Data.PosGlobal;
-                ret.SnapShotID = p.Data.SnapshotID;
-                ret.Price = p.Data.PriceForListing;
-                ret.ParentEstate = p.Data.ParentEstate;
-                ret.ClassifiedFlags = p.Data.ClassifiedFlags;
-                ret.Catagory = p.Data.Category;
+                ClassifiedAd ret = new ClassifiedAd
+                {
+                    Desc = Utils.BytesToString(p.Data.Desc),
+                    Name = Utils.BytesToString(p.Data.Name),
+                    ParcelID = p.Data.ParcelID,
+                    ClassifiedID = p.Data.ClassifiedID,
+                    Position = p.Data.PosGlobal,
+                    SnapShotID = p.Data.SnapshotID,
+                    Price = p.Data.PriceForListing,
+                    ParentEstate = p.Data.ParentEstate,
+                    ClassifiedFlags = p.Data.ClassifiedFlags,
+                    Catagory = p.Data.Category
+                };
 
                 OnClassifiedInfoReply(new ClassifiedInfoReplyEventArgs(ret.ClassifiedID, ret));
             }
@@ -1362,13 +1381,11 @@ namespace OpenMetaverse
     /// </example>
     public class AvatarAnimationEventArgs : EventArgs
     {
-        private readonly UUID m_AvatarID;
-        private readonly List<Animation> m_Animations;
-
         /// <summary>Get the ID of the agent</summary>
-        public UUID AvatarID { get { return m_AvatarID; } }
+        public UUID AvatarID { get; }
+
         /// <summary>Get the list of animations to start</summary>
-        public List<Animation> Animations { get { return m_Animations; } }
+        public List<Animation> Animations { get; }
 
         /// <summary>
         /// Construct a new instance of the AvatarAnimationEventArgs class
@@ -1377,8 +1394,8 @@ namespace OpenMetaverse
         /// <param name="anims">The list of animations to start</param>
         public AvatarAnimationEventArgs(UUID avatarID, List<Animation> anims)
         {
-            this.m_AvatarID = avatarID;
-            this.m_Animations = anims;
+            this.AvatarID = avatarID;
+            this.Animations = anims;
         }
     }
 
@@ -1401,36 +1418,33 @@ namespace OpenMetaverse
     /// </example>
     public class AvatarAppearanceEventArgs : EventArgs
     {
-
-        private readonly Simulator m_Simulator;
-        private readonly UUID m_AvatarID;
-        private readonly bool m_IsTrial;
-        private readonly Primitive.TextureEntryFace m_DefaultTexture;
-        private readonly Primitive.TextureEntryFace[] m_FaceTextures;
-        private readonly List<byte> m_VisualParams;
-        private readonly byte m_AppearanceVersion;
-        private readonly int m_COFVersion;
-        private readonly AppearanceFlags m_AppearanceFlags;
-
         /// <summary>Get the Simulator this request is from of the agent</summary>
-        public Simulator Simulator { get { return m_Simulator; } }
+        public Simulator Simulator { get; }
+
         /// <summary>Get the ID of the agent</summary>
-        public UUID AvatarID { get { return m_AvatarID; } }
+        public UUID AvatarID { get; }
+
         /// <summary>true if the agent is a trial account</summary>
-        public bool IsTrial { get { return m_IsTrial; } }
+        public bool IsTrial { get; }
+
         /// <summary>Get the default agent texture</summary>
-        public Primitive.TextureEntryFace DefaultTexture { get { return m_DefaultTexture; } }
+        public Primitive.TextureEntryFace DefaultTexture { get; }
+
         /// <summary>Get the agents appearance layer textures</summary>
-        public Primitive.TextureEntryFace[] FaceTextures { get { return m_FaceTextures; } }
+        public Primitive.TextureEntryFace[] FaceTextures { get; }
+
         /// <summary>Get the <see cref="VisualParams"/> for the agent</summary>
-        public List<byte> VisualParams { get { return m_VisualParams; } }
+        public List<byte> VisualParams { get; }
+
         /// <summary>Version of the appearance system used.
         /// Value greater than 0 indicates that server side baking is used</summary>
-        public byte AppearanceVersion { get { return m_AppearanceVersion; } }
+        public byte AppearanceVersion { get; }
+
         /// <summary>Version of the Current Outfit Folder the appearance is based on</summary>
-        public int COFVersion { get { return m_COFVersion; } }
+        public int COFVersion { get; }
+
         /// <summary>Appearance flags, introduced with server side baking, currently unused</summary>
-        public AppearanceFlags AppearanceFlags { get { return m_AppearanceFlags; } }
+        public AppearanceFlags AppearanceFlags { get; }
 
         /// <summary>
         /// Construct a new instance of the AvatarAppearanceEventArgs class
@@ -1448,242 +1462,197 @@ namespace OpenMetaverse
             Primitive.TextureEntryFace[] faceTextures, List<byte> visualParams,
             byte appearanceVersion, int COFVersion, AppearanceFlags appearanceFlags)
         {
-            this.m_Simulator = sim;
-            this.m_AvatarID = avatarID;
-            this.m_IsTrial = isTrial;
-            this.m_DefaultTexture = defaultTexture;
-            this.m_FaceTextures = faceTextures;
-            this.m_VisualParams = visualParams;
-            this.m_AppearanceVersion = appearanceVersion;
-            this.m_COFVersion = COFVersion;
-            this.m_AppearanceFlags = appearanceFlags;
+            this.Simulator = sim;
+            this.AvatarID = avatarID;
+            this.IsTrial = isTrial;
+            this.DefaultTexture = defaultTexture;
+            this.FaceTextures = faceTextures;
+            this.VisualParams = visualParams;
+            this.AppearanceVersion = appearanceVersion;
+            this.COFVersion = COFVersion;
+            this.AppearanceFlags = appearanceFlags;
         }
     }
 
     /// <summary>Represents the interests from the profile of an agent</summary>
     public class AvatarInterestsReplyEventArgs : EventArgs
     {
-        private readonly UUID m_AvatarID;
-        private readonly Avatar.Interests m_Interests;
-
         /// <summary>Get the ID of the agent</summary>
-        public UUID AvatarID { get { return m_AvatarID; } }
-        public Avatar.Interests Interests { get { return m_Interests; } }
+        public UUID AvatarID { get; }
+
+        /// <summary>Get the interests of the agent</summary>
+        public Avatar.Interests Interests { get; }
 
         public AvatarInterestsReplyEventArgs(UUID avatarID, Avatar.Interests interests)
         {
-            this.m_AvatarID = avatarID;
-            this.m_Interests = interests;
+            this.AvatarID = avatarID;
+            this.Interests = interests;
         }
     }
 
     /// <summary>The properties of an agent</summary>
     public class AvatarPropertiesReplyEventArgs : EventArgs
     {
-        private readonly UUID m_AvatarID;
-        private readonly Avatar.AvatarProperties m_Properties;
-
         /// <summary>Get the ID of the agent</summary>
-        public UUID AvatarID { get { return m_AvatarID; } }
-        public Avatar.AvatarProperties Properties { get { return m_Properties; } }
+        public UUID AvatarID { get; }
+
+        public Avatar.AvatarProperties Properties { get; }
 
         public AvatarPropertiesReplyEventArgs(UUID avatarID, Avatar.AvatarProperties properties)
         {
-            this.m_AvatarID = avatarID;
-            this.m_Properties = properties;
+            this.AvatarID = avatarID;
+            this.Properties = properties;
         }
     }
 
 
     public class AvatarGroupsReplyEventArgs : EventArgs
     {
-        private readonly UUID m_AvatarID;
-        private readonly List<AvatarGroup> m_Groups;
-
         /// <summary>Get the ID of the agent</summary>
-        public UUID AvatarID { get { return m_AvatarID; } }
-        public List<AvatarGroup> Groups { get { return m_Groups; } }
+        public UUID AvatarID { get; }
+
+        public List<AvatarGroup> Groups { get; }
 
         public AvatarGroupsReplyEventArgs(UUID avatarID, List<AvatarGroup> avatarGroups)
         {
-            this.m_AvatarID = avatarID;
-            this.m_Groups = avatarGroups;
+            this.AvatarID = avatarID;
+            this.Groups = avatarGroups;
         }
     }
 
     public class AvatarPicksReplyEventArgs : EventArgs
     {
-        private readonly UUID m_AvatarID;
-        private readonly Dictionary<UUID, string> m_Picks;
-
         /// <summary>Get the ID of the agent</summary>
-        public UUID AvatarID { get { return m_AvatarID; } }
-        public Dictionary<UUID, string> Picks { get { return m_Picks; } }
+        public UUID AvatarID { get; }
+
+        public Dictionary<UUID, string> Picks { get; }
 
         public AvatarPicksReplyEventArgs(UUID avatarid, Dictionary<UUID, string> picks)
         {
-            this.m_AvatarID = avatarid;
-            this.m_Picks = picks;
+            this.AvatarID = avatarid;
+            this.Picks = picks;
         }
     }
 
     public class PickInfoReplyEventArgs : EventArgs
     {
-        private readonly UUID m_PickID;
-        private readonly ProfilePick m_Pick;
-
-        public UUID PickID { get { return m_PickID; } }
-        public ProfilePick Pick { get { return m_Pick; } }
+        public UUID PickID { get; }
+        public ProfilePick Pick { get; }
 
 
         public PickInfoReplyEventArgs(UUID pickid, ProfilePick pick)
         {
-            this.m_PickID = pickid;
-            this.m_Pick = pick;
+            this.PickID = pickid;
+            this.Pick = pick;
         }
     }
 
     public class AvatarClassifiedReplyEventArgs : EventArgs
     {
-        private readonly UUID m_AvatarID;
-        private readonly Dictionary<UUID, string> m_Classifieds;
-
         /// <summary>Get the ID of the avatar</summary>
-        public UUID AvatarID { get { return m_AvatarID; } }
-        public Dictionary<UUID, string> Classifieds { get { return m_Classifieds; } }
+        public UUID AvatarID { get; }
+        public Dictionary<UUID, string> Classifieds { get; }
 
         public AvatarClassifiedReplyEventArgs(UUID avatarid, Dictionary<UUID, string> classifieds)
         {
-            this.m_AvatarID = avatarid;
-            this.m_Classifieds = classifieds;
+            this.AvatarID = avatarid;
+            this.Classifieds = classifieds;
         }
     }
 
     public class ClassifiedInfoReplyEventArgs : EventArgs
     {
-        private readonly UUID m_ClassifiedID;
-        private readonly ClassifiedAd m_Classified;
-
-        public UUID ClassifiedID { get { return m_ClassifiedID; } }
-        public ClassifiedAd Classified { get { return m_Classified; } }
-
+        public UUID ClassifiedID { get; }
+        public ClassifiedAd Classified { get; }
 
         public ClassifiedInfoReplyEventArgs(UUID classifiedID, ClassifiedAd Classified)
         {
-            this.m_ClassifiedID = classifiedID;
-            this.m_Classified = Classified;
+            this.ClassifiedID = classifiedID;
+            this.Classified = Classified;
         }
     }
 
     public class UUIDNameReplyEventArgs : EventArgs
     {
-        private readonly Dictionary<UUID, string> m_Names;
-
-        public Dictionary<UUID, string> Names { get { return m_Names; } }
+        public Dictionary<UUID, string> Names { get; }
 
         public UUIDNameReplyEventArgs(Dictionary<UUID, string> names)
         {
-            this.m_Names = names;
+            this.Names = names;
         }
     }
 
     public class AvatarPickerReplyEventArgs : EventArgs
     {
-        private readonly UUID m_QueryID;
-        private readonly Dictionary<UUID, string> m_Avatars;
-
-        public UUID QueryID { get { return m_QueryID; } }
-        public Dictionary<UUID, string> Avatars { get { return m_Avatars; } }
+        public UUID QueryID { get; }
+        public Dictionary<UUID, string> Avatars { get; }
 
         public AvatarPickerReplyEventArgs(UUID queryID, Dictionary<UUID, string> avatars)
         {
-            this.m_QueryID = queryID;
-            this.m_Avatars = avatars;
+            this.QueryID = queryID;
+            this.Avatars = avatars;
         }
     }
 
     public class ViewerEffectEventArgs : EventArgs
     {
-        private readonly EffectType m_Type;
-        private readonly UUID m_SourceID;
-        private readonly UUID m_TargetID;
-        private readonly Vector3d m_TargetPosition;
-        private readonly float m_Duration;
-        private readonly UUID m_EffectID;
-
-        public EffectType Type { get { return m_Type; } }
-        public UUID SourceID { get { return m_SourceID; } }
-        public UUID TargetID { get { return m_TargetID; } }
-        public Vector3d TargetPosition { get { return m_TargetPosition; } }
-        public float Duration { get { return m_Duration; } }
-        public UUID EffectID { get { return m_EffectID; } }
+        public EffectType Type { get; }
+        public UUID SourceID { get; }
+        public UUID TargetID { get; }
+        public Vector3d TargetPosition { get; }
+        public float Duration { get; }
+        public UUID EffectID { get; }
 
         public ViewerEffectEventArgs(EffectType type, UUID sourceID, UUID targetID, Vector3d targetPos, float duration, UUID id)
         {
-            this.m_Type = type;
-            this.m_SourceID = sourceID;
-            this.m_TargetID = targetID;
-            this.m_TargetPosition = targetPos;
-            this.m_Duration = duration;
-            this.m_EffectID = id;
+            this.Type = type;
+            this.SourceID = sourceID;
+            this.TargetID = targetID;
+            this.TargetPosition = targetPos;
+            this.Duration = duration;
+            this.EffectID = id;
         }
     }
 
     public class ViewerEffectPointAtEventArgs : EventArgs
     {
-        private readonly Simulator m_Simulator;
-        private readonly UUID m_SourceID;
-        private readonly UUID m_TargetID;
-        private readonly Vector3d m_TargetPosition;
-        private readonly PointAtType m_PointType;
-        private readonly float m_Duration;
-        private readonly UUID m_EffectID;
-
-        public Simulator Simulator { get { return m_Simulator; } }
-        public UUID SourceID { get { return m_SourceID; } }
-        public UUID TargetID { get { return m_TargetID; } }
-        public Vector3d TargetPosition { get { return m_TargetPosition; } }
-        public PointAtType PointType { get { return m_PointType; } }
-        public float Duration { get { return m_Duration; } }
-        public UUID EffectID { get { return m_EffectID; } }
+        public Simulator Simulator { get; }
+        public UUID SourceID { get; }
+        public UUID TargetID { get; }
+        public Vector3d TargetPosition { get; }
+        public PointAtType PointType { get; }
+        public float Duration { get; }
+        public UUID EffectID { get; }
 
         public ViewerEffectPointAtEventArgs(Simulator simulator, UUID sourceID, UUID targetID, Vector3d targetPos, PointAtType pointType, float duration, UUID id)
         {
-            this.m_Simulator = simulator;
-            this.m_SourceID = sourceID;
-            this.m_TargetID = targetID;
-            this.m_TargetPosition = targetPos;
-            this.m_PointType = pointType;
-            this.m_Duration = duration;
-            this.m_EffectID = id;
+            this.Simulator = simulator;
+            this.SourceID = sourceID;
+            this.TargetID = targetID;
+            this.TargetPosition = targetPos;
+            this.PointType = pointType;
+            this.Duration = duration;
+            this.EffectID = id;
         }
     }
 
     public class ViewerEffectLookAtEventArgs : EventArgs
     {
-        private readonly UUID m_SourceID;
-        private readonly UUID m_TargetID;
-        private readonly Vector3d m_TargetPosition;
-        private readonly LookAtType m_LookType;
-        private readonly float m_Duration;
-        private readonly UUID m_EffectID;
-
-
-        public UUID SourceID { get { return m_SourceID; } }
-        public UUID TargetID { get { return m_TargetID; } }
-        public Vector3d TargetPosition { get { return m_TargetPosition; } }
-        public LookAtType LookType { get { return m_LookType; } }
-        public float Duration { get { return m_Duration; } }
-        public UUID EffectID { get { return m_EffectID; } }
+        public UUID SourceID { get; }
+        public UUID TargetID { get; }
+        public Vector3d TargetPosition { get; }
+        public LookAtType LookType { get; }
+        public float Duration { get; }
+        public UUID EffectID { get; }
 
         public ViewerEffectLookAtEventArgs(UUID sourceID, UUID targetID, Vector3d targetPos, LookAtType lookType, float duration, UUID id)
         {
-            this.m_SourceID = sourceID;
-            this.m_TargetID = targetID;
-            this.m_TargetPosition = targetPos;
-            this.m_LookType = lookType;
-            this.m_Duration = duration;
-            this.m_EffectID = id;
+            this.SourceID = sourceID;
+            this.TargetID = targetID;
+            this.TargetPosition = targetPos;
+            this.LookType = lookType;
+            this.Duration = duration;
+            this.EffectID = id;
         }
     }
 
@@ -1692,16 +1661,13 @@ namespace OpenMetaverse
     /// </summary>
     public class DisplayNameUpdateEventArgs : EventArgs
     {
-        private string oldDisplayName;
-        private AgentDisplayName displayName;
-
-        public string OldDisplayName { get { return oldDisplayName; } }
-        public AgentDisplayName DisplayName { get { return displayName; } }
+        public string OldDisplayName { get; }
+        public AgentDisplayName DisplayName { get; }
 
         public DisplayNameUpdateEventArgs(string oldDisplayName, AgentDisplayName displayName)
         {
-            this.oldDisplayName = oldDisplayName;
-            this.displayName = displayName;
+            this.OldDisplayName = oldDisplayName;
+            this.DisplayName = displayName;
         }
     }
     #endregion
