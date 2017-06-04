@@ -609,8 +609,8 @@ namespace OpenMetaverse
         /// </summary>
         public InventoryItemFlags ItemFlags
         {
-            get => (InventoryItemFlags)(Flags & ~0xFF);
-            set => Flags = (uint)value | (Flags & 0xFF);
+            get { return (InventoryItemFlags)(Flags & ~0xFF); }
+            set { Flags = (uint)value | (Flags & 0xFF); }
         }
 
         /// <summary>
@@ -618,8 +618,8 @@ namespace OpenMetaverse
         /// </summary>
         public AttachmentPoint AttachPoint
         {
-            get => (AttachmentPoint)(Flags & 0xFF);
-            set => Flags = (uint)value | (Flags & 0xFFFFFF00);
+            get { return (AttachmentPoint)(Flags & 0xFF); }
+            set { Flags = (uint)value | (Flags & 0xFFFFFF00); }
         }
     }
 
