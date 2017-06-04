@@ -569,7 +569,7 @@ namespace OpenMetaverse
         /// </summary>
         public bool LandmarkVisited
         {
-            get => (Flags & 1) != 0;
+            get { return (Flags & 1) != 0; }
             set
             {
                 if (value) Flags |= 1;
