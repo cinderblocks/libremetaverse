@@ -763,8 +763,8 @@ namespace OpenMetaverse
         /// </summary>
         public AttachmentPoint AttachmentPoint
         {
-            get => (AttachmentPoint)Flags;
-            set => Flags = (uint)value;
+            get { return (AttachmentPoint)Flags; }
+            set { Flags = (uint)value; }
         }
     }
 
@@ -795,8 +795,8 @@ namespace OpenMetaverse
         /// </summary>
         public WearableType WearableType
         {
-            get => (WearableType)Flags;
-            set => Flags = (uint)value;
+            get { return (WearableType)Flags; }
+            set { Flags = (uint)value; }
         }
     }
 
