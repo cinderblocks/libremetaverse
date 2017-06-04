@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -4088,19 +4089,28 @@ namespace OpenMetaverse
                 // Fire the callback
                 try
                 {
-                    ImprovedInstantMessagePacket imp = new ImprovedInstantMessagePacket();
-                    imp.AgentData.AgentID = Client.Self.AgentID;
-                    imp.AgentData.SessionID = Client.Self.SessionID;
-                    imp.MessageBlock.FromGroup = false;
-                    imp.MessageBlock.ToAgentID = e.IM.FromAgentID;
-                    imp.MessageBlock.Offline = 0;
-                    imp.MessageBlock.ID = e.IM.IMSessionID;
-                    imp.MessageBlock.Timestamp = 0;
-                    imp.MessageBlock.FromAgentName = Utils.StringToBytes(Client.Self.Name);
-                    imp.MessageBlock.Message = Utils.EmptyBytes;
-                    imp.MessageBlock.ParentEstateID = 0;
-                    imp.MessageBlock.RegionID = UUID.Zero;
-                    imp.MessageBlock.Position = Client.Self.SimPosition;
+                    ImprovedInstantMessagePacket imp =
+                        new ImprovedInstantMessagePacket
+                        {
+                            AgentData =
+                            {
+                                AgentID = Client.Self.AgentID,
+                                SessionID = Client.Self.SessionID
+                            },
+                            MessageBlock =
+                            {
+                                FromGroup = false,
+                                ToAgentID = e.IM.FromAgentID,
+                                Offline = 0,
+                                ID = e.IM.IMSessionID,
+                                Timestamp = 0,
+                                FromAgentName = Utils.StringToBytes(Client.Self.Name),
+                                Message = Utils.EmptyBytes,
+                                ParentEstateID = 0,
+                                RegionID = UUID.Zero,
+                                Position = Client.Self.SimPosition
+                            }
+                        };
 
                     InventoryObjectOfferedEventArgs args = new InventoryObjectOfferedEventArgs(e.IM, type, objectID, fromTask, destinationFolderID);
 
@@ -4229,21 +4239,25 @@ namespace OpenMetaverse
                 // Initialize the store here so we know who owns it:
                 _Store = new Inventory(Client, this, Client.Self.AgentID);
                 Logger.DebugLog("Setting InventoryRoot to " + replyData.InventoryRoot.ToString(), Client);
-                InventoryFolder rootFolder = new InventoryFolder(replyData.InventoryRoot);
-                rootFolder.Name = String.Empty;
-                rootFolder.ParentUUID = UUID.Zero;
+                InventoryFolder rootFolder = new InventoryFolder(replyData.InventoryRoot)
+                {
+                    Name = String.Empty,
+                    ParentUUID = UUID.Zero
+                };
                 _Store.RootFolder = rootFolder;
 
-                for (int i = 0; i < replyData.InventorySkeleton.Length; i++)
-                    _Store.UpdateNodeFor(replyData.InventorySkeleton[i]);
+                foreach (InventoryFolder folder in replyData.InventorySkeleton)
+                    _Store.UpdateNodeFor(folder);
 
-                InventoryFolder libraryRootFolder = new InventoryFolder(replyData.LibraryRoot);
-                libraryRootFolder.Name = String.Empty;
-                libraryRootFolder.ParentUUID = UUID.Zero;
+                InventoryFolder libraryRootFolder = new InventoryFolder(replyData.LibraryRoot)
+                {
+                    Name = string.Empty,
+                    ParentUUID = UUID.Zero
+                };
                 _Store.LibraryFolder = libraryRootFolder;
 
-                for (int i = 0; i < replyData.LibrarySkeleton.Length; i++)
-                    _Store.UpdateNodeFor(replyData.LibrarySkeleton[i]);
+                foreach (InventoryFolder folder in replyData.LibrarySkeleton)
+                    _Store.UpdateNodeFor(folder);
             }
         }
 
@@ -4358,11 +4372,7 @@ namespace OpenMetaverse
                         {
                             OSDArray errors = (OSDArray)contents["errors"];
                             compileErrors = new List<string>(errors.Count);
-
-                            for (int i = 0; i < errors.Count; i++)
-                            {
-                                compileErrors.Add(errors[i].AsString());
-                            }
+                            compileErrors.AddRange(errors.Select(t => t.AsString()));
                         }
 
                         callback(true,
@@ -4690,7 +4700,7 @@ namespace OpenMetaverse
                 // FIXME: Do something here
                 string newName = Utils.BytesToString(data.NewName);
 
-                Logger.Log(String.Format(
+                Logger.Log(string.Format(
                     "MoveInventoryItemHandler: Item {0} is moving to Folder {1} with new name \"{2}\". Someone write this function!",
                     data.ItemID.ToString(), data.FolderID.ToString(),
                     newName), Helpers.LogLevel.Warning, Client);
