@@ -5,11 +5,11 @@ matrix:
   include:
     - dotnet: 1.0.1
       mono: none
-	  group: stable
+      group: stable
       dist: trusty
       env: DOTNETCORE=1
-	  install:
-	  - dotnet restore
-	  script:
-	  - dotnet build
+      install:
+      - dotnet restore
+      script:
+      - dotnet build
     - mono: latest
