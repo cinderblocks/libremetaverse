@@ -5,7 +5,7 @@ matrix:
   include:
     - dotnet: 1.0.3
       mono:
-	  - beta
+      - beta
       group: stable
       dist: trusty
       env: DOTNETCORE=1
