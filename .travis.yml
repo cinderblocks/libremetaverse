@@ -3,12 +3,5 @@ solution: LibreMetaverse.sln
 
 matrix:
   include:
-    - dotnet: 1.0.4
-      mono: none
-      dist: trusty
-      env: DOTNETCORE=1
-      install:
-      - dotnet restore
-      script:
-      - dotnet build
     - mono: latest
+	- mono: 3.10.0
