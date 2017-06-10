@@ -5,9 +5,11 @@ matrix:
   include:
     - dotnet: 1.0.1
       mono: none
+	  group: stable
       dist: trusty
-      sudo: required
       env: DOTNETCORE=1
-      script:
-        - ./dotnetcore-build.sh --quiet verify
+	  install:
+	  - dotnet restore
+	  script:
+	  - dotnet build
     - mono: latest
