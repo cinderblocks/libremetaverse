@@ -4,4 +4,3 @@ solution: LibreMetaverse.sln
 matrix:
   include:
     - mono: latest
-    - mono: 3.10.0
