@@ -1101,8 +1101,7 @@ namespace OpenMetaverse
         protected virtual void OnCameraConstraint(CameraConstraintEventArgs e)
         {
             EventHandler<CameraConstraintEventArgs> handler = m_CameraConstraint;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>

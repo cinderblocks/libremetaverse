@@ -168,219 +168,218 @@ namespace OpenMetaverse
             /// <summary>Move agent positive along the X axis</summary>
             public bool AtPos
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_AT_POS); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_AT_POS, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_AT_POS);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_AT_POS, value);
             }
             /// <summary>Move agent negative along the X axis</summary>
             public bool AtNeg
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_AT_NEG); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_AT_NEG, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_AT_NEG);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_AT_NEG, value);
             }
             /// <summary>Move agent positive along the Y axis</summary>
             public bool LeftPos
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_LEFT_POS); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_LEFT_POS, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_LEFT_POS);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_LEFT_POS, value);
             }
             /// <summary>Move agent negative along the Y axis</summary>
             public bool LeftNeg
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_LEFT_NEG); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_LEFT_NEG, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_LEFT_NEG);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_LEFT_NEG, value);
             }
             /// <summary>Move agent positive along the Z axis</summary>
             public bool UpPos
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_UP_POS); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_UP_POS, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_UP_POS);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_UP_POS, value);
             }
             /// <summary>Move agent negative along the Z axis</summary>
             public bool UpNeg
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_UP_NEG); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_UP_NEG, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_UP_NEG);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_UP_NEG, value);
             }
             /// <summary></summary>
             public bool PitchPos
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_PITCH_POS); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_PITCH_POS, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_PITCH_POS);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_PITCH_POS, value);
             }
             /// <summary></summary>
             public bool PitchNeg
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_PITCH_NEG); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_PITCH_NEG, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_PITCH_NEG);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_PITCH_NEG, value);
             }
             /// <summary></summary>
             public bool YawPos
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_YAW_POS); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_YAW_POS, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_YAW_POS);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_YAW_POS, value);
             }
             /// <summary></summary>
             public bool YawNeg
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_YAW_NEG); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_YAW_NEG, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_YAW_NEG);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_YAW_NEG, value);
             }
             /// <summary></summary>
             public bool FastAt
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FAST_AT); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FAST_AT, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FAST_AT);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FAST_AT, value);
             }
             /// <summary></summary>
             public bool FastLeft
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FAST_LEFT); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FAST_LEFT, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FAST_LEFT);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FAST_LEFT, value);
             }
             /// <summary></summary>
             public bool FastUp
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FAST_UP); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FAST_UP, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FAST_UP);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FAST_UP, value);
             }
             /// <summary>Causes simulator to make agent fly</summary>
             public bool Fly
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FLY); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FLY, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FLY);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FLY, value);
             }
             /// <summary>Stop movement</summary>
             public bool Stop
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_STOP); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_STOP, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_STOP);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_STOP, value);
             }
             /// <summary>Finish animation</summary>
             public bool FinishAnim
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FINISH_ANIM); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FINISH_ANIM, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FINISH_ANIM);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_FINISH_ANIM, value);
             }
             /// <summary>Stand up from a sit</summary>
             public bool StandUp
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_STAND_UP); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_STAND_UP, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_STAND_UP);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_STAND_UP, value);
             }
             /// <summary>Tells simulator to sit agent on ground</summary>
             public bool SitOnGround
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_SIT_ON_GROUND); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_SIT_ON_GROUND, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_SIT_ON_GROUND);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_SIT_ON_GROUND, value);
             }
             /// <summary>Place agent into mouselook mode</summary>
             public bool Mouselook
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_MOUSELOOK); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_MOUSELOOK, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_MOUSELOOK);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_MOUSELOOK, value);
             }
             /// <summary>Nudge agent positive along the X axis</summary>
             public bool NudgeAtPos
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_AT_POS); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_AT_POS, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_AT_POS);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_AT_POS, value);
             }
             /// <summary>Nudge agent negative along the X axis</summary>
             public bool NudgeAtNeg
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_AT_NEG); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_AT_NEG, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_AT_NEG);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_AT_NEG, value);
             }
             /// <summary>Nudge agent positive along the Y axis</summary>
             public bool NudgeLeftPos
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_LEFT_POS); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_LEFT_POS, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_LEFT_POS);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_LEFT_POS, value);
             }
             /// <summary>Nudge agent negative along the Y axis</summary>
             public bool NudgeLeftNeg
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_LEFT_NEG); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_LEFT_NEG, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_LEFT_NEG);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_LEFT_NEG, value);
             }
             /// <summary>Nudge agent positive along the Z axis</summary>
             public bool NudgeUpPos
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_UP_POS); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_UP_POS, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_UP_POS);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_UP_POS, value);
             }
             /// <summary>Nudge agent negative along the Z axis</summary>
             public bool NudgeUpNeg
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_UP_NEG); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_UP_NEG, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_UP_NEG);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_NUDGE_UP_NEG, value);
             }
             /// <summary></summary>
             public bool TurnLeft
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_TURN_LEFT); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_TURN_LEFT, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_TURN_LEFT);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_TURN_LEFT, value);
             }
             /// <summary></summary>
             public bool TurnRight
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_TURN_RIGHT); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_TURN_RIGHT, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_TURN_RIGHT);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_TURN_RIGHT, value);
             }
             /// <summary>Tell simulator to mark agent as away</summary>
             public bool Away
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_AWAY); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_AWAY, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_AWAY);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_AWAY, value);
             }
             /// <summary></summary>
             public bool LButtonDown
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_LBUTTON_DOWN); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_LBUTTON_DOWN, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_LBUTTON_DOWN);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_LBUTTON_DOWN, value);
             }
             /// <summary></summary>
             public bool LButtonUp
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_LBUTTON_UP); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_LBUTTON_UP, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_LBUTTON_UP);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_LBUTTON_UP, value);
             }
             /// <summary></summary>
             public bool MLButtonDown
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_ML_LBUTTON_DOWN); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_ML_LBUTTON_DOWN, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_ML_LBUTTON_DOWN);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_ML_LBUTTON_DOWN, value);
             }
             /// <summary></summary>
             public bool MLButtonUp
             {
-                get { return GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_ML_LBUTTON_UP); }
-                set { SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_ML_LBUTTON_UP, value); }
+                get => GetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_ML_LBUTTON_UP);
+                set => SetControlFlag(AgentManager.ControlFlags.AGENT_CONTROL_ML_LBUTTON_UP, value);
             }
             /// <summary>
             /// Returns "always run" value, or changes it by sending a SetAlwaysRunPacket
             /// </summary>
             public bool AlwaysRun
             {
-                get
-                {
-                    return alwaysRun;
-                }
+                get => alwaysRun;
                 set
                 {
                     alwaysRun = value;
-                    SetAlwaysRunPacket run = new SetAlwaysRunPacket();
-                    run.AgentData.AgentID = Client.Self.AgentID;
-                    run.AgentData.SessionID = Client.Self.SessionID;
-                    run.AgentData.AlwaysRun = alwaysRun;
+                    SetAlwaysRunPacket run = new SetAlwaysRunPacket
+                    {
+                        AgentData =
+                        {
+                            AgentID = Client.Self.AgentID,
+                            SessionID = Client.Self.SessionID,
+                            AlwaysRun = alwaysRun
+                        }
+                    };
                     Client.Network.SendPacket(run);
                 }
             }
             /// <summary>The current value of the agent control flags</summary>
-            public uint AgentControls
-            {
-                get { return agentControls; }
-            }
+            public uint AgentControls => agentControls;
 
             /// <summary>Gets or sets the interval in milliseconds at which
             /// AgentUpdate packets are sent to the current simulator. Setting
@@ -388,43 +387,27 @@ namespace OpenMetaverse
             /// it was previously off, and setting it to zero will disable</summary>
             public int UpdateInterval
             {
-                get
-                {
-                    return updateInterval;
-                }
+                get => updateInterval;
                 set
                 {
                     if (value > 0)
                     {
-                        if (updateTimer != null)
-                        {
-                            updateTimer.Change(value, value);
-                        }
+                        updateTimer?.Change(value, value);
                         updateInterval = value;
                     }
                     else
                     {
-                        if (updateTimer != null)
-                        {
-                            updateTimer.Change(Timeout.Infinite, Timeout.Infinite);
-                        }
+                        updateTimer?.Change(Timeout.Infinite, Timeout.Infinite);
                         updateInterval = 0;
                     }
                 }
             }
             /// <summary>Gets or sets whether AgentUpdate packets are sent to
             /// the current simulator</summary>
-            public bool UpdateEnabled
-            {
-                get { return (updateInterval != 0); }
-            }
+            public bool UpdateEnabled => (updateInterval != 0);
 
             /// <summary>Reset movement controls every time we send an update</summary>
-            public bool AutoResetControls
-            {
-                get { return autoResetControls; }
-                set { autoResetControls = value; }
-            }
+            public bool AutoResetControls { get; set; }
 
             #endregion Properties
 
@@ -465,7 +448,6 @@ namespace OpenMetaverse
             /// <summary>Timer for sending AgentUpdate packets</summary>
             private Timer updateTimer;
             private int updateInterval;
-            private bool autoResetControls;
 
             /// <summary>Default constructor</summary>
             public AgentMovement(GridClient client)
@@ -548,7 +530,7 @@ namespace OpenMetaverse
                             Logger.Log("Attempted TurnToward but parent prim is not in dictionary", Helpers.LogLevel.Warning, Client);
                             return false;
                         }
-                        else parentRot = Client.Network.CurrentSim.ObjectsPrimitives[Client.Self.SittingOn].Rotation;
+                        parentRot = Client.Network.CurrentSim.ObjectsPrimitives[Client.Self.SittingOn].Rotation;
                     }
 
                     Quaternion between = Vector3.RotationBetween(Vector3.UnitX, Vector3.Normalize(target - Client.Self.SimPosition));
@@ -639,25 +621,30 @@ namespace OpenMetaverse
                     lastState = State;
 
                     // Build the AgentUpdate packet and send it
-                    AgentUpdatePacket update = new AgentUpdatePacket();
-                    update.Header.Reliable = reliable;
+                    AgentUpdatePacket update = new AgentUpdatePacket
+                    {
+                        Header = {Reliable = reliable},
+                        AgentData =
+                        {
+                            AgentID = Client.Self.AgentID,
+                            SessionID = Client.Self.SessionID,
+                            HeadRotation = HeadRotation,
+                            BodyRotation = BodyRotation,
+                            CameraAtAxis = xAxis,
+                            CameraCenter = origin,
+                            CameraLeftAxis = yAxis,
+                            CameraUpAxis = zAxis,
+                            Far = Camera.Far,
+                            State = (byte) State,
+                            ControlFlags = agentControls,
+                            Flags = (byte) Flags
+                        }
+                    };
 
-                    update.AgentData.AgentID = Client.Self.AgentID;
-                    update.AgentData.SessionID = Client.Self.SessionID;
-                    update.AgentData.HeadRotation = HeadRotation;
-                    update.AgentData.BodyRotation = BodyRotation;
-                    update.AgentData.CameraAtAxis = xAxis;
-                    update.AgentData.CameraCenter = origin;
-                    update.AgentData.CameraLeftAxis = yAxis;
-                    update.AgentData.CameraUpAxis = zAxis;
-                    update.AgentData.Far = Camera.Far;
-                    update.AgentData.State = (byte)State;
-                    update.AgentData.ControlFlags = agentControls;
-                    update.AgentData.Flags = (byte)Flags;
 
                     Client.Network.SendPacket(update, simulator);
 
-                    if (autoResetControls) {
+                    if (AutoResetControls) {
                         ResetControlFlags();
                     }
                 }
@@ -688,22 +675,27 @@ namespace OpenMetaverse
                 if (Client.Network.CurrentSim != null && (!Client.Network.CurrentSim.HandshakeComplete))
                     return;
 
-                AgentUpdatePacket update = new AgentUpdatePacket();
+                AgentUpdatePacket update = new AgentUpdatePacket
+                {
+                    AgentData =
+                    {
+                        AgentID = Client.Self.AgentID,
+                        SessionID = Client.Self.SessionID,
+                        BodyRotation = bodyRotation,
+                        HeadRotation = headRotation,
+                        CameraCenter = position,
+                        CameraAtAxis = forwardAxis,
+                        CameraLeftAxis = leftAxis,
+                        CameraUpAxis = upAxis,
+                        Far = farClip,
+                        ControlFlags = (uint) controlFlags,
+                        Flags = (byte) flags,
+                        State = (byte) state
+                    },
+                    Header = {Reliable = reliable}
+                };
 
-                update.AgentData.AgentID = Client.Self.AgentID;
-                update.AgentData.SessionID = Client.Self.SessionID;
-                update.AgentData.BodyRotation = bodyRotation;
-                update.AgentData.HeadRotation = headRotation;
-                update.AgentData.CameraCenter = position;
-                update.AgentData.CameraAtAxis = forwardAxis;
-                update.AgentData.CameraLeftAxis = leftAxis;
-                update.AgentData.CameraUpAxis = upAxis;
-                update.AgentData.Far = farClip;
-                update.AgentData.ControlFlags = (uint)controlFlags;
-                update.AgentData.Flags = (byte)flags;
-                update.AgentData.State = (byte)state;
 
-                update.Header.Reliable = reliable;
 
                 Client.Network.SendPacket(update);
             }
@@ -737,12 +729,21 @@ namespace OpenMetaverse
             /// <param name="angle">Angle in radians</param>
             public void SetFOVVerticalAngle(float angle)
             {
-                OpenMetaverse.Packets.AgentFOVPacket msg = new OpenMetaverse.Packets.AgentFOVPacket();
-                msg.AgentData.AgentID = Client.Self.AgentID;
-                msg.AgentData.SessionID = Client.Self.SessionID;
-                msg.AgentData.CircuitCode = Client.Network.CircuitCode;
-                msg.FOVBlock.GenCounter = 0;
-                msg.FOVBlock.VerticalAngle = angle;
+                OpenMetaverse.Packets.AgentFOVPacket msg =
+                    new OpenMetaverse.Packets.AgentFOVPacket
+                    {
+                        AgentData =
+                        {
+                            AgentID = Client.Self.AgentID,
+                            SessionID = Client.Self.SessionID,
+                            CircuitCode = Client.Network.CircuitCode
+                        },
+                        FOVBlock =
+                        {
+                            GenCounter = 0,
+                            VerticalAngle = angle
+                        }
+                    };
                 Client.Network.SendPacket(msg);
             }
 
