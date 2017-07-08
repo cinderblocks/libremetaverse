@@ -292,6 +292,7 @@ namespace OpenMetaverse
         public uint COFVersion;
         public string InitialOutfit;
         public bool FirstLogin;
+        public Dictionary<UUID, UUID> Gestures;
 
         /// <summary>
         /// Parse LLSD Login Reply Data
@@ -540,6 +541,34 @@ namespace OpenMetaverse
 
                     Hashtable map = (Hashtable)t;
                     InitialOutfit = ParseString("folder_name", map);
+                }
+            }
+
+            Gestures = new Dictionary<UUID, UUID>();
+            if (reply.ContainsKey("gestures") && reply["gestures"] is ArrayList)
+            {
+                var gestureMaps = (ArrayList)reply["gestures"];
+                foreach (var item in gestureMaps)
+                {
+                    var gestureMap = item as Hashtable;
+                    if (gestureMap == null || !gestureMap.ContainsKey("item_id") || !gestureMap.ContainsKey("asset_id"))
+                    {
+                        continue;
+                    }
+
+                    UUID itemId;
+                    if (!UUID.TryParse(gestureMap["item_id"].ToString(), out itemId))
+                    {
+                        continue;
+                    }
+
+                    UUID assetId;
+                    if (!UUID.TryParse(gestureMap["asset_id"].ToString(), out assetId))
+                    {
+                        continue;
+                    }
+
+                    Gestures.Add(itemId, assetId);
                 }
             }
 
