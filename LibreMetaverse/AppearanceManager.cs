@@ -895,17 +895,20 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Returns a copy of the agents currently worn wearables
+        /// Returns a collection of the agents currently worn wearables
         /// </summary>
         /// <returns>A copy of the agents currently worn wearables</returns>
         /// <remarks>Avoid calling this function multiple times as it will make
         /// a copy of all of the wearable data each time</remarks>
-        public MultiValueDictionary<WearableType, WearableData> GetWearables()
+        public IEnumerable<WearableData> GetWearables()
         {
             lock (Wearables)
             {
-                var wearables = new MultiValueDictionary<WearableType, WearableData>();
-                wearables.Merge(Wearables);
+                var wearables = new List<WearableData>();
+                foreach (var layer in Wearables)
+                {
+                    wearables.AddRange(layer.Value);
+                }
                 return wearables;
             }
         }
