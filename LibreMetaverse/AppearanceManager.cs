@@ -1334,7 +1334,7 @@ namespace OpenMetaverse
         bool GetAgentWearables()
         {
             AutoResetEvent wearablesEvent = new AutoResetEvent(false);
-            void WearablesCallback(object s, AgentWearablesReplyEventArgs e) => wearablesEvent.Set();
+            EventHandler<AgentWearablesReplyEventArgs> WearablesCallback = ((s, e) => wearablesEvent.Set());
 
             AgentWearablesReply += WearablesCallback;
 
@@ -1354,7 +1354,7 @@ namespace OpenMetaverse
         bool GetCachedBakes()
         {
             AutoResetEvent cacheCheckEvent = new AutoResetEvent(false);
-            void CacheCallback(object sender, AgentCachedBakesReplyEventArgs e) => cacheCheckEvent.Set();
+            EventHandler<AgentCachedBakesReplyEventArgs> CacheCallback = (sender, e) => cacheCheckEvent.Set();
 
             CachedBakesReply += CacheCallback;
 
@@ -1905,7 +1905,7 @@ namespace OpenMetaverse
             List<InventoryBase> root = null;
             var folderReceived = new AutoResetEvent(false);
 
-            void UpdatedCallback(object sender, FolderUpdatedEventArgs e)
+            EventHandler<FolderUpdatedEventArgs> UpdatedCallback = (sender, e) =>
             {
                 if (e.FolderID != Client.Inventory.Store.RootFolder.UUID) return;
                 if (e.Success)
@@ -1913,7 +1913,7 @@ namespace OpenMetaverse
                     root = Client.Inventory.Store.GetContents(Client.Inventory.Store.RootFolder.UUID);
                 }
                 folderReceived.Set();
-            }
+            };
 
             Client.Inventory.FolderUpdated += UpdatedCallback;
             Client.Inventory.RequestFolderContentsCap(Client.Inventory.Store.RootFolder.UUID, Client.Self.AgentID, true, true, InventorySortOrder.ByDate);
