@@ -921,6 +921,16 @@ namespace OpenMetaverse
             }
         }
 
+        public MultiValueDictionary<WearableType, WearableData> GetWearablesByType()
+        {
+            lock (Wearables)
+            {
+                var wearables = new MultiValueDictionary<WearableType, WearableData>();
+                wearables.Merge(Wearables);
+                return wearables;
+            }
+        }
+
         /// <summary>
         /// Calls either <seealso cref="ReplaceOutfit"/> or
         /// <seealso cref="AddToOutfit"/> depending on the value of
