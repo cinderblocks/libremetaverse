@@ -786,13 +786,11 @@ namespace OpenMetaverse
                         && Wearables.ContainsKey(wearableItem.WearableType)) // And we have that wearable type
                     {
                         var worn = Wearables.GetValues(wearableItem.WearableType, true);
-                        foreach (var item in worn)
+                        WearableData wearable = worn.FirstOrDefault(item => item.ItemID == wearableItem.UUID);
+                        if (wearable != null)
                         {
-                            if (item.ItemID == wearableItem.UUID)
-                            {
-                                Wearables.Remove(wearableItem.WearableType, item);
-                                needSetAppearance = true;
-                            }
+                            Wearables.Remove(wearableItem.WearableType, wearable);
+                            needSetAppearance = true;
                         }
                     }
                 }
