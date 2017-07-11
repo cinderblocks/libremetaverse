@@ -655,7 +655,8 @@ namespace OpenMetaverse
         [Obsolete]
         public UUID GetWearableAsset(WearableType type)
         {
-            return Wearables.TryGetValue(type, out IList<WearableData> wearableList) 
+            IList<WearableData> wearableList;
+            return Wearables.TryGetValue(type, out wearableList) 
                 ? wearableList.First().AssetID 
                 : UUID.Zero;
         }

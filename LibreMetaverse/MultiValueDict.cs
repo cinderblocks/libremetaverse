@@ -56,7 +56,8 @@ namespace LibreMetaverse
         public void Add(TKey key, TValue value)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
-            if (!TryGetValue(key, out IList<TValue> container))
+            IList<TValue> container;
+            if (!TryGetValue(key, out container))
             {
                 container = new List<TValue>();
                 base.Add(key, container);
@@ -75,7 +76,8 @@ namespace LibreMetaverse
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
             bool toReturn = false;
-            if (TryGetValue(key, out IList<TValue> values))
+            IList<TValue> values;
+            if (TryGetValue(key, out values))
             {
                 toReturn = values.Contains(value);
             }
@@ -91,8 +93,8 @@ namespace LibreMetaverse
         public void Remove(TKey key, TValue value)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
-
-            if (TryGetValue(key, out IList<TValue> container))
+            IList<TValue> container;
+            if (TryGetValue(key, out container))
             {
                 container.Remove(value);
                 if (container.Count <= 0)
@@ -136,7 +138,8 @@ namespace LibreMetaverse
         /// </returns>
         public IList<TValue> GetValues(TKey key, bool returnEmptySet)
         {
-            if (!TryGetValue(key, out IList<TValue> toReturn) && returnEmptySet)
+            IList<TValue> toReturn;
+            if (!TryGetValue(key, out toReturn) && returnEmptySet)
             {
                 toReturn = new List<TValue>();
             }
