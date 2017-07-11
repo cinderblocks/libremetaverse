@@ -785,15 +785,15 @@ namespace OpenMetaverse
                     if (t.AssetType != AssetType.Bodypart        // Remove if it's not a body part
                         && Wearables.ContainsKey(wearableItem.WearableType)) // And we have that wearable type
                     {
-                        WearableData wd = new WearableData
+                        var worn = Wearables.GetValues(wearableItem.WearableType, true);
+                        foreach (var item in worn)
                         {
-                            AssetID = wearableItem.AssetUUID,
-                            AssetType = wearableItem.AssetType,
-                            ItemID = wearableItem.UUID,
-                            WearableType = wearableItem.WearableType
-                        };
-                        Wearables.Remove(wearableItem.WearableType, wd); // And we are wearing it)
-                        needSetAppearance = true;
+                            if (item.ItemID == wearableItem.UUID)
+                            {
+                                Wearables.Remove(wearableItem.WearableType, item);
+                                needSetAppearance = true;
+                            }
+                        }
                     }
                 }
             }
