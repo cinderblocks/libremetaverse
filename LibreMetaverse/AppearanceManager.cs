@@ -730,7 +730,7 @@ namespace OpenMetaverse
                         WearableType = wearableItem.WearableType
                     };
 
-                    Wearables[wearableItem.WearableType].Add(wd);
+                    Wearables.Add(wearableItem.WearableType, wd);
                 }
             }
 
@@ -1209,7 +1209,7 @@ namespace OpenMetaverse
                     {
                         if (entry.AssetType == AssetType.Bodypart)
                         {
-                            newWearables[wearableType.Key].Add(entry);
+                            newWearables.Add(wearableType.Key, entry);
                         }
                     }
                 }
@@ -1225,7 +1225,7 @@ namespace OpenMetaverse
                         WearableType = wearableItem.WearableType
                     };
 
-                    newWearables[wearableItem.WearableType].Add(wd);
+                    newWearables.Add(wearableItem.WearableType, wd);
                 }
 
                 // Replace the Wearables collection
@@ -2294,7 +2294,7 @@ namespace OpenMetaverse
                         };
 
                         // Add this wearable to our collection
-                        Wearables[type].Add(data);
+                        Wearables.Add(type, data);
                     }
                 }
                 else
