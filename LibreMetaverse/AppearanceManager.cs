@@ -29,7 +29,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Linq;
 using LibreMetaverse;
-using OpenMetaverse;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Imaging;
 using OpenMetaverse.Assets;
@@ -1831,6 +1830,7 @@ namespace OpenMetaverse
                                 break;
                             }
                         }
+                        if (found) break;
                     }
 
                     // Use a default value if we don't have one set for it
@@ -1924,8 +1924,14 @@ namespace OpenMetaverse
 
             // COF should be in the root folder. Request update to get the latest versio number
             if (root == null) return COF;
-
-            return root.Where(baseItem => baseItem is InventoryFolder && ((InventoryFolder) baseItem).PreferredType == FolderType.CurrentOutfit).Cast<InventoryFolder>().FirstOrDefault();
+            foreach (var baseItem in root)
+            {
+                if (baseItem is InventoryFolder && ((InventoryFolder)baseItem).PreferredType == FolderType.CurrentOutfit)
+                {
+                    COF = (InventoryFolder)baseItem;
+                    break;
+                }
+            }
         }
 
         /// <summary>
