@@ -1932,6 +1932,7 @@ namespace OpenMetaverse
                     break;
                 }
             }
+            return COF;
         }
 
         /// <summary>
