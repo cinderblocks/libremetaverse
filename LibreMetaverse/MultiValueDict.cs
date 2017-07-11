@@ -28,8 +28,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace LibreMetaverse
 {
@@ -40,7 +38,7 @@ namespace LibreMetaverse
     /// </summary>
     /// <typeparam name="TKey">The type of the key.</typeparam>
     /// <typeparam name="TValue">The type of the value.</typeparam>
-    public class MultiValueDictionary<TKey, TValue> : Dictionary<TKey, List<TValue>>
+    public class MultiValueDictionary<TKey, TValue> : Dictionary<TKey, IList<TValue>>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="MultiValueDictionary&lt;TKey, TValue&gt;"/> class.
@@ -58,8 +56,7 @@ namespace LibreMetaverse
         public void Add(TKey key, TValue value)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
-            List<TValue> container = null;
-            if (!this.TryGetValue(key, out container))
+            if (!TryGetValue(key, out IList<TValue> container))
             {
                 container = new List<TValue>();
                 base.Add(key, container);
@@ -78,8 +75,7 @@ namespace LibreMetaverse
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
             bool toReturn = false;
-            List<TValue> values = null;
-            if (this.TryGetValue(key, out values))
+            if (TryGetValue(key, out IList<TValue> values))
             {
                 toReturn = values.Contains(value);
             }
@@ -96,13 +92,12 @@ namespace LibreMetaverse
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
-            List<TValue> container = null;
-            if (this.TryGetValue(key, out container))
+            if (TryGetValue(key, out IList<TValue> container))
             {
                 container.Remove(value);
                 if (container.Count <= 0)
                 {
-                    this.Remove(key);
+                    Remove(key);
                 }
             }
         }
@@ -119,11 +114,11 @@ namespace LibreMetaverse
                 return;
             }
 
-            foreach (KeyValuePair<TKey, List<TValue>> pair in toMergeWith)
+            foreach (var pair in toMergeWith)
             {
                 foreach (TValue value in pair.Value)
                 {
-                    this.Add(pair.Key, value);
+                    Add(pair.Key, value);
                 }
             }
         }
@@ -139,10 +134,9 @@ namespace LibreMetaverse
         /// This method will return null (or an empty set if returnEmptySet is true) if the key wasn't found, or
         /// the values if key was found.
         /// </returns>
-        public List<TValue> GetValues(TKey key, bool returnEmptySet)
+        public IList<TValue> GetValues(TKey key, bool returnEmptySet)
         {
-            List<TValue> toReturn = null;
-            if (!base.TryGetValue(key, out toReturn) && returnEmptySet)
+            if (!TryGetValue(key, out IList<TValue> toReturn) && returnEmptySet)
             {
                 toReturn = new List<TValue>();
             }

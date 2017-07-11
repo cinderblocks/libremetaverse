@@ -655,8 +655,15 @@ namespace OpenMetaverse
         [Obsolete]
         public UUID GetWearableAsset(WearableType type)
         {
-            List<WearableData> wearableList;
-            return Wearables.TryGetValue(type, out wearableList) ? wearableList.First().AssetID : UUID.Zero;
+            return Wearables.TryGetValue(type, out IList<WearableData> wearableList) 
+                ? wearableList.First().AssetID 
+                : UUID.Zero;
+        }
+
+        public IEnumerable<UUID> GetWearableAssets(WearableType type)
+        {
+            IList<WearableData> wearables = Wearables.GetValues(type, true);
+            return wearables.Select(wearable => wearable.AssetID).ToList();
         }
 
         /// <summary>
@@ -905,9 +912,9 @@ namespace OpenMetaverse
             lock (Wearables)
             {
                 var wearables = new List<WearableData>();
-                foreach (var layer in Wearables)
+                foreach (var wearableType in Wearables.Values)
                 {
-                    wearables.AddRange(layer.Value);
+                    wearables.AddRange(wearableType);
                 }
                 return wearables;
             }
@@ -1497,11 +1504,7 @@ namespace OpenMetaverse
         {
             bool success = true;
             // Make a copy of the wearables dictionary to enumerate over
-            var wearables = new List<WearableData>();
-            lock (Wearables)
-            {
-                wearables.AddRange(Wearables.SelectMany(type => type.Value));
-            }
+            var wearables = new List<WearableData>(GetWearables());
 
             // We will refresh the textures (zero out all non bake textures)
             for (int i = 0; i < Textures.Length; i++)
