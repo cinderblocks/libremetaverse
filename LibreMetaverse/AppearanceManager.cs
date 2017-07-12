@@ -2071,18 +2071,9 @@ namespace OpenMetaverse
 
                 for (uint i = 0; i < Textures.Length; i++)
                 {
-                    if ((i == 0 || i == 5 || i == 6) && Client.Settings.CLIENT_IDENTIFICATION_TAG != UUID.Zero)
-                    {
-                        Primitive.TextureEntryFace face = te.CreateFace(i);
-                        face.TextureID = Client.Settings.CLIENT_IDENTIFICATION_TAG;
-                        Logger.DebugLog("Sending client identification tag: " + Client.Settings.CLIENT_IDENTIFICATION_TAG, Client);
-                    }
-                    else if (Textures[i].TextureID != UUID.Zero)
-                    {
-                        Primitive.TextureEntryFace face = te.CreateFace(i);
-                        face.TextureID = Textures[i].TextureID;
-                        Logger.DebugLog("Sending texture entry for " + (AvatarTextureIndex)i + " to " + Textures[i].TextureID, Client);
-                    }
+                    Primitive.TextureEntryFace face = te.CreateFace(i);
+                    face.TextureID = Textures[i].TextureID;
+                    Logger.DebugLog("Sending texture entry for " + (AvatarTextureIndex)i + " to " + Textures[i].TextureID, Client);
                 }
 
                 set.ObjectData.TextureEntry = te.GetBytes();
