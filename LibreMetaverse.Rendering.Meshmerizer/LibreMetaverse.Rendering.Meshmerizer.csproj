@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
@@ -84,6 +84,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj">
+      <Project>{89D7A3E5-0000-0000-0000-000000000000}</Project>
+      <Name>LibreMetaverse.StructuredData</Name>
+    </ProjectReference>
     <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj">
       <Name>LibreMetaverse</Name>
       <Project>{27C70F3A-0000-0000-0000-000000000000}</Project>

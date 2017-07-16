@@ -116,7 +116,7 @@ namespace OpenMetaverse.Rendering
 
         public override bool Equals(object obj)
         {
-            return (obj is Vertex) ? this == (Vertex)obj : false;
+            return (obj is Vertex) && this == (Vertex)obj;
         }
 
         public bool Equals(Vertex other)
@@ -220,14 +220,9 @@ namespace OpenMetaverse.Rendering
 
         public override string ToString()
         {
-            if (Prim.Properties != null && !String.IsNullOrEmpty(Prim.Properties.Name))
-            {
-                return Prim.Properties.Name;
-            }
-            else
-            {
-                return String.Format("{0} ({1})", Prim.LocalID, Prim.PrimData);
-            }
+            return !string.IsNullOrEmpty(Prim.Properties?.Name) 
+                ? Prim.Properties.Name 
+                : $"{Prim.LocalID} ({Prim.PrimData})";
         }
     }
 
@@ -260,14 +255,18 @@ namespace OpenMetaverse.Rendering
 
                 OSDMap MeshData = meshAsset.MeshData;
 
-                mesh = new FacetedMesh();
-
-                mesh.Faces = new List<Face>();
-                mesh.Prim = prim;
-                mesh.Profile.Faces = new List<ProfileFace>();
-                mesh.Profile.Positions = new List<Vector3>();
-                mesh.Path.Points = new List<PathPoint>();
-
+                mesh = new FacetedMesh
+                {
+                    Faces = new List<Face>(),
+                    Prim = prim,
+                    Profile =
+                    {
+                        Faces = new List<ProfileFace>(),
+                        Positions = new List<Vector3>()
+                    },
+                    Path = {Points = new List<PathPoint>()}
+                };
+                
                 OSD facesOSD = null;
 
                 switch (LOD)
@@ -290,7 +289,7 @@ namespace OpenMetaverse.Rendering
                         break;
                 }
 
-                if (facesOSD == null || !(facesOSD is OSDArray))
+                if (!(facesOSD is OSDArray))
                 {
                     return false;
                 }
@@ -304,13 +303,21 @@ namespace OpenMetaverse.Rendering
                     // Decode each individual face
                     if (subMeshOsd is OSDMap)
                     {
-                        Face oface = new Face();
-                        oface.ID = faceNr;
-                        oface.Vertices = new List<Vertex>();
-                        oface.Indices = new List<ushort>();
-                        oface.TextureFace = prim.Textures.GetFace((uint)faceNr);
-
                         OSDMap subMeshMap = (OSDMap)subMeshOsd;
+
+                    // As per http://wiki.secondlife.com/wiki/Mesh/Mesh_Asset_Format, some Mesh Level
+                    // of Detail Blocks (maps) contain just a NoGeometry key to signal there is no
+                    // geometry for this submesh.
+                    if (subMeshMap.ContainsKey("NoGeometry") && ((OSDBoolean)subMeshMap["NoGeometry"]))
+                        continue;
+
+                        Face oface = new Face
+                        {
+                            ID = faceNr,
+                            Vertices = new List<Vertex>(),
+                            Indices = new List<ushort>(),
+                            TextureFace = prim.Textures.GetFace((uint) faceNr)
+                        };
 
                         Vector3 posMax;
                         Vector3 posMin;
@@ -356,13 +363,14 @@ namespace OpenMetaverse.Rendering
                             ushort uY = Utils.BytesToUInt16(posBytes, i + 2);
                             ushort uZ = Utils.BytesToUInt16(posBytes, i + 4);
 
-                            Vertex vx = new Vertex();
-
-                            vx.Position = new Vector3(
-                                Utils.UInt16ToFloat(uX, posMin.X, posMax.X),
-                                Utils.UInt16ToFloat(uY, posMin.Y, posMax.Y),
-                                Utils.UInt16ToFloat(uZ, posMin.Z, posMax.Z));
-
+                            Vertex vx = new Vertex
+                            {
+                                Position = new Vector3(
+                                    Utils.UInt16ToFloat(uX, posMin.X, posMax.X),
+                                    Utils.UInt16ToFloat(uY, posMin.Y, posMax.Y),
+                                    Utils.UInt16ToFloat(uZ, posMin.Z, posMax.Z))
+                            };
+                            
                             if (norBytes != null && norBytes.Length >= i + 4)
                             {
                                 ushort nX = Utils.BytesToUInt16(norBytes, i);
@@ -479,7 +487,7 @@ namespace OpenMetaverse.Rendering
                 }
                 catch (Exception e)
                 {
-                    Logger.Log(String.Format("Unrecognized rendering plugin {0}: {1}", f, e.Message),
+                    Logger.Log($"Unrecognized rendering plugin {f}: {e.Message}",
                         Helpers.LogLevel.Warning, e);
                 }
             }

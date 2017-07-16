@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
+using System.IO.Compression;
 using System.Reflection;
 using OpenMetaverse.StructuredData;
 using zlib;
@@ -201,8 +202,8 @@ namespace OpenMetaverse
             for (int i = 0; i < bytes.Length; ++i)
             {
                 // Check if there are any unprintable characters in the array
-                if ((bytes[i] < 0x20 || bytes[i] > 0x7E) && bytes[i] != 0x09
-                    && bytes[i] != 0x0D && bytes[i] != 0x0A && bytes[i] != 0x00)
+                if ((i < 0x20 || i > 0x7E) && i != 0x09
+                    && i != 0x0D && i != 0x0A && i != 0x00)
                 {
                     printable = false;
                     break;
@@ -217,10 +218,9 @@ namespace OpenMetaverse
                     output.Append(": ");
                 }
 
-                if (bytes[bytes.Length - 1] == 0x00)
-                    output.Append(UTF8Encoding.UTF8.GetString(bytes, 0, bytes.Length - 1));
-                else
-                    output.Append(UTF8Encoding.UTF8.GetString(bytes, 0, bytes.Length));
+                output.Append(bytes[bytes.Length - 1] == 0x00
+                    ? Encoding.UTF8.GetString(bytes, 0, bytes.Length - 1)
+                    : Encoding.UTF8.GetString(bytes, 0, bytes.Length));
             }
             else
             {
@@ -236,10 +236,7 @@ namespace OpenMetaverse
 
                     for (int j = 0; j < 16; j++)
                     {
-                        if ((i + j) < bytes.Length)
-                            output.Append(String.Format("{0:X2} ", bytes[i + j]));
-                        else
-                            output.Append("   ");
+                        output.Append((i + j) < bytes.Length ? $"{bytes[i + j]:X2} " : "   ");
                     }
                 }
             }
@@ -463,7 +460,7 @@ namespace OpenMetaverse
                 Assembly gea = Assembly.GetEntryAssembly();
                 if (gea == null) gea = typeof(Helpers).Assembly;
                 string dirname = ".";
-                if (gea != null && gea.Location != null)
+                if (gea.Location != null)
                 {
                     dirname = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(gea.Location), searchPath);
                 }
@@ -477,7 +474,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(string.Format("Failed opening resource from file {0}: {1}", filename, ex.Message), LogLevel.Error);
+                    Logger.Log($"Failed opening resource from file {filename}: {ex.Message}", LogLevel.Error);
                 }
             }
             else
@@ -490,7 +487,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(string.Format("Failed opening resource stream: {0}", ex.Message), LogLevel.Error);
+                    Logger.Log($"Failed opening resource stream: {ex.Message}", LogLevel.Error);
                 }
             }
 
@@ -506,8 +503,8 @@ namespace OpenMetaverse
         {
             StructuredData.OSDMap map = new OpenMetaverse.StructuredData.OSDMap(prims.Count);
 
-            for (int i = 0; i < prims.Count; i++)
-                map.Add(prims[i].LocalID.ToString(), prims[i].GetOSD());
+            foreach (Primitive prim in prims)
+                map.Add(prim.LocalID.ToString(), prim.GetOSD());
 
             return map;
         }
@@ -610,5 +607,36 @@ namespace OpenMetaverse
 
             return ret;
         }
+
+        /// <summary>
+        /// decompresses a gzipped OSD object
+        /// </summary>
+        /// <param name="meshBytes"></param>
+        /// <returns>the OSD object</returns>
+        public static OSD DecompressOSD(byte[] meshBytes) {
+            OSD decodedOsd = null;
+
+            using (MemoryStream inMs = new MemoryStream(meshBytes))
+            using (MemoryStream outMs = new MemoryStream())
+            using (DeflateStream decompressionStream = new DeflateStream(inMs, CompressionMode.Decompress))
+            {
+                byte[] readBuffer = new byte[2048];
+                inMs.Read(readBuffer, 0, 2); // skip first 2 bytes in header
+                int readLen = 0;
+
+                while ((readLen = decompressionStream.Read(readBuffer, 0, readBuffer.Length)) > 0)
+                    outMs.Write(readBuffer, 0, readLen);
+
+                outMs.Flush();
+
+                outMs.Seek(0, SeekOrigin.Begin);
+
+                byte[] decompressedBuf = outMs.GetBuffer();
+
+                decodedOsd = OSDParser.DeserializeLLSDBinary(decompressedBuf);
+            }
+            return decodedOsd;
+        }
+
     }
 }
