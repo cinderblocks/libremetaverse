@@ -3800,7 +3800,7 @@ namespace OpenMetaverse
                 }
                 else if (resultMap == null)
                 {
-                    Logger.Log($"Failed to set hover height: Expected OSDMap response, but got {result.Type}", Helpers.LogLevel.Info, Client);
+                    Logger.Log($"Failed to set hover height: Expected {nameof(OSDMap)} response, but got {result.Type}", Helpers.LogLevel.Warning, Client);
                 }
                 else
                 {
