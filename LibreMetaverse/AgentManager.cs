@@ -3771,6 +3771,50 @@ namespace OpenMetaverse
 
             request.BeginGetResponse(req, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
         }
+
+        /// <summary>
+        /// Sets agents hover height.
+        /// </summary>
+        /// <param name="hoverHeight">Hover height [-2.0, 2.0]</param>
+        public void SetHoverHeight(double hoverHeight)
+        {
+            if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim.Caps == null)
+            {
+                return;
+            }
+
+            var url = Client.Network.CurrentSim.Caps.CapabilityURI("AgentPreferences");
+            if (url == null)
+            {
+                return;
+            }
+
+            var request = new CapsClient(url);
+            request.OnComplete += (client, result, error) =>
+            {
+                var resultMap = result as OSDMap;
+
+                if(error != null)
+                {
+                    Logger.Log($"Failed to set hover height: {error}.", Helpers.LogLevel.Warning, Client);
+                }
+                else if (resultMap == null)
+                {
+                    Logger.Log($"Failed to set hover height: Expected {nameof(OSDMap)} response, but got {result.Type}", Helpers.LogLevel.Warning, Client);
+                }
+                else
+                {
+                    var confirmedHeight = resultMap["hover_height"];
+                    Logger.Log($"Hover height set to {confirmedHeight}", Helpers.LogLevel.Info, Client);
+                }
+            };
+
+            var postData = new OSDMap {
+                ["hover_height"] = hoverHeight
+            };
+            request.BeginGetResponse(postData, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+        }
+
         #endregion Misc
 
         #region Packet Handlers
