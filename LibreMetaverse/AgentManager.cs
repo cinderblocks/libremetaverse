@@ -3772,7 +3772,11 @@ namespace OpenMetaverse
             request.BeginGetResponse(req, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
         }
 
-        public void SetHoverHeight(double height)
+        /// <summary>
+        /// Sets agents hover height.
+        /// </summary>
+        /// <param name="hoverHeight">Hover height [-2.0, 2.0]</param>
+        public void SetHoverHeight(double hoverHeight)
         {
             if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim.Caps == null)
             {
@@ -3792,7 +3796,7 @@ namespace OpenMetaverse
 
                 if(error != null)
                 {
-                    Logger.Log($"Failed to set hover height hover height: {error}.", Helpers.LogLevel.Warning, Client);
+                    Logger.Log($"Failed to set hover height: {error}.", Helpers.LogLevel.Warning, Client);
                 }
                 else if (resultMap == null)
                 {
@@ -3806,7 +3810,7 @@ namespace OpenMetaverse
             };
 
             var postData = new OSDMap {
-                ["hover_height"] = height
+                ["hover_height"] = hoverHeight
             };
             request.BeginGetResponse(postData, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
         }
