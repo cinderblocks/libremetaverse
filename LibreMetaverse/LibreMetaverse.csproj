@@ -194,6 +194,7 @@
     <Compile Include="Inventory.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="InventoryAISClient.cs" />
     <Compile Include="InventoryManager.cs">
       <SubType>Code</SubType>
     </Compile>
