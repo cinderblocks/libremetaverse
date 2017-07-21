@@ -246,6 +246,8 @@ namespace OpenMetaverse
                     _EventQueueCap.OnEvent += EventQueueEventHandler;
                     _EventQueueCap.Start();
                 }
+
+                OnCapabilitiesReceived(Simulator);
             }
             else if (
                 error != null &&
@@ -313,6 +315,33 @@ namespace OpenMetaverse
                     }
                 }
             }
-        }        
+        }
+
+        /// <summary>Raised whenever the capabilities have been received from a simulator</summary>
+        public event EventHandler<CapabilitiesReceivedEventArgs> CapabilitiesReceived;
+
+        /// <summary>
+        /// Raises the CapabilitiesReceived event
+        /// </summary>
+        /// <param name="simulator">Simulator we received the capabilities from</param>
+        private void OnCapabilitiesReceived(Simulator simulator)
+        {
+            CapabilitiesReceived?.Invoke(this, new CapabilitiesReceivedEventArgs(simulator));
+        }
     }
+
+    #region EventArgs
+
+    public class CapabilitiesReceivedEventArgs : EventArgs
+    {
+        /// <summary>The simulator that received a capabilities</summary>
+        public Simulator Simulator { get; }
+
+        public CapabilitiesReceivedEventArgs(Simulator simulator)
+        {
+            Simulator = simulator;
+        }
+    }
+
+    #endregion
 }
