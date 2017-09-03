@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("WinGridProxy")]
 [assembly: AssemblyDescription("Proxy server and packet analyzer")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("OpenMetaverse")]
+[assembly: AssemblyCompany("LibreMetaverse")]
 [assembly: AssemblyProduct("WinGridProxy")]
 [assembly: AssemblyCopyright("Copyright ©  2015 OpenMetaverse Ninjas")]
 [assembly: AssemblyTrademark("")]

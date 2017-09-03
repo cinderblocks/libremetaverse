@@ -63,33 +63,28 @@
 	  <PlatformTarget>AnyCPU</PlatformTarget>
 	</PropertyGroup>
 	<ItemGroup>
-	  <Reference Include="System" >
+	  <Reference Include="System">
 		  <Name>System</Name>
 		<Private>False</Private>
 	  </Reference>
-	  <Reference Include="System.Data" >
+	  <Reference Include="System.Data">
 		  <Name>System.Data</Name>
 		<Private>False</Private>
 	  </Reference>
-	  <Reference Include="System.Drawing" >
+	  <Reference Include="System.Drawing">
 		  <Name>System.Drawing</Name>
 		<Private>False</Private>
 	  </Reference>
-	  <Reference Include="System.Windows.Forms" >
+	  <Reference Include="System.Windows.Forms">
 		  <Name>System.Windows.Forms</Name>
 		<Private>False</Private>
 	  </Reference>
 	</ItemGroup>
 	<ItemGroup>
+	  <ProjectReference Include="..\..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
 	  <ProjectReference Include="..\..\LibreMetaverse\LibreMetaverse.csproj">
 		<Name>LibreMetaverse</Name>
 		<Project>{27C70F3A-0000-0000-0000-000000000000}</Project>
-		<Package>{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</Package>
-		<Private>False</Private>
-	  </ProjectReference>
-	  <ProjectReference Include="..\..\LibreMetaverseTypes\LibreMetaverseTypes.csproj">
-		<Name>LibreMetaverseTypes</Name>
-		<Project>{B37B02AD-0000-0000-0000-000000000000}</Project>
 		<Package>{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</Package>
 		<Private>False</Private>
 	  </ProjectReference>

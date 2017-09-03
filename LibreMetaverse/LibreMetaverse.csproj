@@ -105,12 +105,7 @@
       <Package>{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</Package>
       <Private>False</Private>
     </ProjectReference>
-    <ProjectReference Include="..\LibreMetaverseTypes\LibreMetaverseTypes.csproj">
-      <Name>LibreMetaverseTypes</Name>
-      <Project>{B37B02AD-0000-0000-0000-000000000000}</Project>
-      <Package>{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</Package>
-      <Private>False</Private>
-    </ProjectReference>
+    <ProjectReference Include="..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
