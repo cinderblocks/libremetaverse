@@ -5,9 +5,6 @@
 	  <SchemaVersion>2.0</SchemaVersion>
 	  <ProjectGuid>{9F71FDB3-0000-0000-0000-000000000000}</ProjectGuid>
 	  <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-	  <ApplicationIcon></ApplicationIcon>
-	  <AssemblyKeyContainerName>
-	  </AssemblyKeyContainerName>
 	  <AssemblyName>TestClient</AssemblyName>
 	  <DefaultClientScript>JScript</DefaultClientScript>
 	  <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
@@ -15,21 +12,14 @@
 	  <DelaySign>false</DelaySign>
 	  <TargetFramework>net40</TargetFramework>
 	  <OutputType>Exe</OutputType>
-	  <AppDesignerFolder></AppDesignerFolder>
 	  <RootNamespace>TestClient</RootNamespace>
-	  <StartupObject></StartupObject>
-	  <StartArguments></StartArguments>
-	  <FileUpgradeFlags>
-	  </FileUpgradeFlags>
+	  <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 	</PropertyGroup>
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
 	  <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 	  <BaseAddress>285212672</BaseAddress>
 	  <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
-	  <ConfigurationOverrideFile>
-	  </ConfigurationOverrideFile>
 	  <DefineConstants>TRACE;DEBUG</DefineConstants>
-	  <DocumentationFile></DocumentationFile>
 	  <DebugSymbols>True</DebugSymbols>
 	  <FileAlignment>4096</FileAlignment>
 	  <Optimize>False</Optimize>
@@ -46,10 +36,7 @@
 	  <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 	  <BaseAddress>285212672</BaseAddress>
 	  <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
-	  <ConfigurationOverrideFile>
-	  </ConfigurationOverrideFile>
 	  <DefineConstants>TRACE</DefineConstants>
-	  <DocumentationFile></DocumentationFile>
 	  <DebugSymbols>False</DebugSymbols>
 	  <FileAlignment>4096</FileAlignment>
 	  <Optimize>True</Optimize>
