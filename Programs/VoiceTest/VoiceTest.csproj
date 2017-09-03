@@ -12,7 +12,7 @@
 	  <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
 	  <DefaultTargetSchema>IE50</DefaultTargetSchema>
 	  <DelaySign>false</DelaySign>
-	  <TargetFrameworks>netstandard2.0;net45;net46</TargetFrameworks>
+	  <TargetFrameworks>netstandard2.0;net45</TargetFrameworks>
 	  <OutputType>Exe</OutputType>
 	  <RootNamespace>VoiceTest</RootNamespace>
 	  <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
