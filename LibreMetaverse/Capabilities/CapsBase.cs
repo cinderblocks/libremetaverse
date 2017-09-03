@@ -33,19 +33,6 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace OpenMetaverse.Http
 {
-    public class TrustAllCertificatePolicy : ICertificatePolicy
-    {
-        public bool CheckValidationResult(ServicePoint sp, X509Certificate cert, WebRequest req, int problem)
-        {
-            return true;
-        }
-
-        public static bool TrustAllCertificateHandler(Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
-        {
-            return true;
-        }
-    }
-
     public static class CapsBase
     {
         public delegate void OpenWriteEventHandler(HttpWebRequest request);
