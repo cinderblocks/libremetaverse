@@ -260,7 +260,7 @@ namespace CSJ2K.j2k.fileformat.reader
 						in_Renamed.seek(pos + length);
 				}
 			}
-			catch (System.IO.EndOfStreamException e)
+			catch (System.IO.EndOfStreamException)
 			{
 				throw new System.InvalidOperationException("EOF reached before finding Contiguous " + "Codestream Box");
 			}

@@ -460,7 +460,7 @@ namespace CSJ2K
                     rate = float.MaxValue;
                 }
             }
-            catch (FormatException e)
+            catch (FormatException)
             {
                 error("Invalid value in 'rate' option: " + pl.getParameter("rate"), 2);
                 return null;
@@ -483,7 +483,7 @@ namespace CSJ2K
                     }
                 }
             }
-            catch (FormatException e)
+            catch (FormatException)
             {
                 error("Invalid value in 'tile_parts' option: " + pl.getParameter("tile_parts"), 2);
                 return null;
@@ -523,11 +523,11 @@ namespace CSJ2K
                 refx = Int32.Parse(refs[0]);
                 refy = Int32.Parse(refs[1]);
             }
-            catch (IndexOutOfRangeException e)
+            catch (IndexOutOfRangeException)
             {
                 throw new ArgumentException("Error while parsing 'ref' " + "option");
             }
-            catch (FormatException e)
+            catch (FormatException)
             {
                 throw new ArgumentException("Invalid number type in " + "'ref' option");
             }
@@ -545,11 +545,11 @@ namespace CSJ2K
                 trefx = Int32.Parse(trefs[0]);
                 trefy = Int32.Parse(trefs[1]);
             }
-            catch (IndexOutOfRangeException e)
+            catch (IndexOutOfRangeException)
             {
                 throw new ArgumentException("Error while parsing 'tref' " + "option");
             }
-            catch (FormatException e)
+            catch (FormatException)
             {
                 throw new ArgumentException("Invalid number type in " + "'tref' option");
             }

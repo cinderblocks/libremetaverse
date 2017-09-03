@@ -26,7 +26,6 @@
 
 using System;
 using System.Net;
-using System.Net.Security;
 using System.IO;
 using System.Threading;
 using System.Security.Cryptography.X509Certificates;

@@ -30,7 +30,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.IO;
 using System.Xml;
-using System.Drawing;
+using System.DrawingCore;
 using System.Linq;
 using System.Xml.Serialization;
 using OpenMetaverse.ImportExport.Collada14;
@@ -154,9 +154,9 @@ namespace OpenMetaverse.ImportExport
                     Bitmap resized = new Bitmap(width, height, bitmap.PixelFormat);
                     Graphics graphics = Graphics.FromImage(resized);
 
-                    graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                    graphics.SmoothingMode = System.DrawingCore.Drawing2D.SmoothingMode.HighQuality;
                     graphics.InterpolationMode =
-                       System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                       System.DrawingCore.Drawing2D.InterpolationMode.HighQualityBicubic;
                     graphics.DrawImage(bitmap, 0, 0, width, height);
 
                     bitmap.Dispose();
