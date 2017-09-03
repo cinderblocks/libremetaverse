@@ -10,7 +10,7 @@
     <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
     <DefaultTargetSchema>IE50</DefaultTargetSchema>
     <DelaySign>false</DelaySign>
-    <TargetFramework>net45</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <OutputType>WinExe</OutputType>
     <RootNamespace>WinGridProxy</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
@@ -78,7 +78,7 @@
   <ItemGroup>
     <PackageReference Include="Be.Windows.Forms.HexBox" Version="1.6.1" />
     <PackageReference Include="log4net" Version="2.0.8" />
-    <PackageReference Include="XmlRpcCS" Version="2.1.1" />
+    <PackageReference Include="XmlRpcCS" Version="2.1.1.2" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
