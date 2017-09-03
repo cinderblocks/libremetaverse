@@ -51,17 +51,6 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System">
-      <Name>System</Name>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Core">
-      <Name>System.Core</Name>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="protobuf-net" Version="2.3.2" />
   </ItemGroup>
   <PropertyGroup>

@@ -31,7 +31,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Reflection;
 using OpenMetaverse.StructuredData;
-using zlib;
+using ComponentAce.Compression.Libs.zlib;
 
 namespace OpenMetaverse
 {

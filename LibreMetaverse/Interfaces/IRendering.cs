@@ -26,7 +26,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
+using System.DrawingCore;
 
 namespace OpenMetaverse.Rendering
 {
@@ -91,7 +91,7 @@ namespace OpenMetaverse.Rendering
 
         /// <summary>
         /// Apply texture coordinate modifications from a
-        /// <seealso cref="TextureEntryFace"/> to a list of vertices
+        /// <seealso cref="Primitive.TextureEntryFace"/> to a list of vertices
         /// </summary>
         /// <param name="vertices">Vertex list to modify texture coordinates for</param>
         /// <param name="center">Center-point of the face</param>

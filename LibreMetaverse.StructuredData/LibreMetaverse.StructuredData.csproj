@@ -55,16 +55,6 @@
   <ItemGroup>
     <ProjectReference Include="..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Reference Include="System">
-      <Name>System</Name>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Xml">
-      <Name>System.Xml</Name>
-      <Private>False</Private>
-    </Reference>
-  </ItemGroup>
   <PropertyGroup>
     <PreBuildEvent>
     </PreBuildEvent>

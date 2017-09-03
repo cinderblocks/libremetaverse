@@ -51,31 +51,10 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System">
-      <Name>System</Name>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Core">
-      <Name>System.Core</Name>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Data">
-      <Name>System.Data</Name>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Drawing">
-      <Name>System.Drawing</Name>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Xml">
-      <Name>System.Xml</Name>
-      <Private>False</Private>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="ComponentAce.Compression.Libs.zlib" Version="1.0.4" />
     <PackageReference Include="log4net" Version="2.0.8" />
     <PackageReference Include="XmlRpcCS" Version="2.1.1" />
+    <PackageReference Include="ZKWeb.System.Drawing" Version="4.0.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
