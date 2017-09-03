@@ -17,6 +17,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse.GUI", "LibreMetaverse.GUI\LibreMetaverse.GUI.csproj", "{09C292AF-0000-0000-0000-000000000000}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse.Rendering.Meshmerizer", "LibreMetaverse.Rendering.Meshmerizer\LibreMetaverse.Rendering.Meshmerizer.csproj", "{95479B1D-0000-0000-0000-000000000000}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2E2B643F-F18B-4791-BA4B-6E82D0E794B6} = {2E2B643F-F18B-4791-BA4B-6E82D0E794B6}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse.Rendering.Simple", "LibreMetaverse.Rendering.Simple\LibreMetaverse.Rendering.Simple.csproj", "{29E206AC-0000-0000-0000-000000000000}"
 EndProject
@@ -35,6 +38,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VoiceTest", "Programs\VoiceTest\VoiceTest.csproj", "{EE4EA934-0000-0000-0000-000000000000}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WinGridProxy", "Programs\WinGridProxy\WinGridProxy.csproj", "{455B06F4-0000-0000-0000-000000000000}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PrimMesher", "PrimMesher\PrimMesher.csproj", "{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -110,6 +115,10 @@ Global
 		{455B06F4-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{455B06F4-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{455B06F4-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
