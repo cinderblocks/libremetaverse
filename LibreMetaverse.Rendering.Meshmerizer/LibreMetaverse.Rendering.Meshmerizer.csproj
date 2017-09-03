@@ -54,26 +54,13 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="PrimMesher">
-      <Name>PrimMesher</Name>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System">
-      <Name>System</Name>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Drawing">
-      <Name>System.Drawing</Name>
-      <Private>False</Private>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj">
       <Project>{89D7A3E5-0000-0000-0000-000000000000}</Project>
       <Name>LibreMetaverse.StructuredData</Name>
     </ProjectReference>
     <ProjectReference Include="..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
     <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
+    <ProjectReference Include="..\PrimMesher\PrimMesher.csproj" />
   </ItemGroup>
   <PropertyGroup>
     <PreBuildEvent>

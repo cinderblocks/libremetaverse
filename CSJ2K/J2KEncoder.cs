@@ -1,24 +1,18 @@
 ﻿#region Using Statements
 using System;
 using System.Collections.Generic;
-using System.Drawing;
+using System.DrawingCore;
 using System.IO;
 using CSJ2K.j2k.quantization.quantizer;
 using CSJ2K.j2k.image.forwcomptransf;
 using CSJ2K.j2k.codestream.writer;
-using CSJ2K.j2k.fileformat.writer;
 using CSJ2K.j2k.wavelet.analysis;
 using CSJ2K.j2k.entropy.encoder;
-using CSJ2K.j2k.entropy;
-using CSJ2K.j2k.quantization;
 using CSJ2K.j2k.image.input;
 using CSJ2K.j2k.roi.encoder;
-using CSJ2K.j2k.roi;
-using CSJ2K.j2k.codestream;
 using CSJ2K.j2k.image;
 using CSJ2K.j2k.util;
 using CSJ2K.j2k.encoder;
-using CSJ2K.j2k;
 #endregion
 
 namespace CSJ2K

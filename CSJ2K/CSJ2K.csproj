@@ -62,16 +62,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System">
-      <Name>System</Name>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Drawing">
-      <Name>System.Drawing</Name>
-      <Private>False</Private>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
+    <PackageReference Include="ZKWeb.System.Drawing" Version="4.0.0" />
   </ItemGroup>
   <PropertyGroup>
     <PreBuildEvent>

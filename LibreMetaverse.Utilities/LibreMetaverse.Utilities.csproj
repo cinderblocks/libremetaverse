@@ -53,20 +53,6 @@
 	  <PlatformTarget>AnyCPU</PlatformTarget>
 	</PropertyGroup>
 	<ItemGroup>
-	  <Reference Include="System">
-		  <Name>System</Name>
-		<Private>False</Private>
-	  </Reference>
-	  <Reference Include="System.Data">
-		  <Name>System.Data</Name>
-		<Private>False</Private>
-	  </Reference>
-	  <Reference Include="System.Xml">
-		  <Name>System.Xml</Name>
-		<Private>False</Private>
-	  </Reference>
-	</ItemGroup>
-	<ItemGroup>
 	  <ProjectReference Include="..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
 	  <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
 	  <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />

@@ -3,8 +3,8 @@
 
 namespace CSJ2K.Util
 {
-    using System.Drawing;
-    using System.Drawing.Imaging;
+    using System.DrawingCore;
+    using System.DrawingCore.Imaging;
 
     internal class BitmapImage : ImageBase<Image>
     {

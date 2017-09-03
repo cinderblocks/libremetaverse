@@ -532,7 +532,7 @@ namespace CSJ2K.j2k.codestream.reader
 							throw new System.ArgumentException("Specified negative " + "resolution level " + "index: " + targetRes);
 						}
 					}
-					catch (System.FormatException f)
+					catch (System.FormatException)
 					{
 						throw new System.ArgumentException("Invalid resolution level " + "index ('-res' option) " + pl.getParameter("res"));
 					}
