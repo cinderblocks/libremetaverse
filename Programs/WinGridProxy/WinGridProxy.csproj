@@ -130,65 +130,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AboutBox1.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="FireEventAppender.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="FormPluginManager.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="FormSessionSearch.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="FormWinGridProxy.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="ListViewNoFlicker.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="Program.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="ProxyManager.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="SessionTypes.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="SettingsStore.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Properties\AssemblyInfo.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <EmbeddedResource Include="AboutBox1.resx">
-      <DependentUpon>AboutBox1.cs</DependentUpon>
-    </EmbeddedResource>
-    <Compile Include="AboutBox1.Designer.cs">
-      <DependentUpon>AboutBox1.cs</DependentUpon>
-    </Compile>
-    <EmbeddedResource Include="FormPluginManager.resx">
-      <DependentUpon>FormPluginManager.cs</DependentUpon>
-    </EmbeddedResource>
-    <Compile Include="FormPluginManager.Designer.cs">
-      <DependentUpon>FormPluginManager.cs</DependentUpon>
-    </Compile>
-    <EmbeddedResource Include="FormSessionSearch.resx">
-      <DependentUpon>FormSessionSearch.cs</DependentUpon>
-    </EmbeddedResource>
-    <Compile Include="FormSessionSearch.Designer.cs">
-      <DependentUpon>FormSessionSearch.cs</DependentUpon>
-    </Compile>
-    <EmbeddedResource Include="FormWinGridProxy.resx">
-      <DependentUpon>FormWinGridProxy.cs</DependentUpon>
-    </EmbeddedResource>
-    <Compile Include="FormWinGridProxy.Designer.cs">
-      <DependentUpon>FormWinGridProxy.cs</DependentUpon>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <PropertyGroup>

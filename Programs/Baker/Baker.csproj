@@ -94,23 +94,6 @@
 		<Private>False</Private>
 	  </ProjectReference>
 	</ItemGroup>
-	<ItemGroup>
-	  <Compile Include="Baker.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="frmBaker.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <Compile Include="Oven.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	  <EmbeddedResource Include="frmBaker.resx">
-		<DependentUpon>frmBaker.cs</DependentUpon>
-	  </EmbeddedResource>
-	  <Compile Include="frmBaker.Designer.cs">
-		<DependentUpon>frmBaker.cs</DependentUpon>
-	  </Compile>
-	</ItemGroup>
 	<PropertyGroup>
 	  <PreBuildEvent>
 	  </PreBuildEvent>

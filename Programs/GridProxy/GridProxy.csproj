@@ -104,23 +104,6 @@
       <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="GridProxy.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="GridProxyLoader.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Plugins\Analyst.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Plugins\ClientAO.cs">
-      <SubType>Code</SubType>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
   <PropertyGroup>
     <PreBuildEvent>
     </PreBuildEvent>

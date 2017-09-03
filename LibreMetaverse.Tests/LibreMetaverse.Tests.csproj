@@ -106,32 +106,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BinaryLLSDTests.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="MessageTests.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="NetworkTests.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="NotationLLSDTests.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="PacketTests.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="PrimObjectTests.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="TypeTests.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="XmlLLSDTests.cs">
-      <SubType>Code</SubType>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <ItemGroup>

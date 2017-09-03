@@ -99,39 +99,6 @@
       <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="AvatarList.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="FriendList.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="GroupList.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="InventoryTree.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="ListColumnSorter.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="LocalChat.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="LoginPanel.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="MessageBar.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="MiniMap.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="StatusOutput.cs">
-      <SubType>Code</SubType>
-    </Compile>
-  </ItemGroup>
   <PropertyGroup>
     <PreBuildEvent>
     </PreBuildEvent>

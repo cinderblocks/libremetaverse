@@ -86,12 +86,6 @@
 		<Private>False</Private>
 	  </ProjectReference>
 	</ItemGroup>
-	<ItemGroup>
-	  <Compile Include="GridProxyMain.cs">
-		<SubType>Code</SubType>
-	  </Compile>
-	</ItemGroup>
-	<Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
 	<PropertyGroup>
 	  <PreBuildEvent>
 	  </PreBuildEvent>
