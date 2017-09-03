@@ -5,7 +5,6 @@
 	  <SchemaVersion>2.0</SchemaVersion>
 	  <ProjectGuid>{95F42663-0000-0000-0000-000000000000}</ProjectGuid>
 	  <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-	  <ApplicationIcon></ApplicationIcon>
 	  <AssemblyKeyContainerName>
 	  </AssemblyKeyContainerName>
 	  <AssemblyName>Baker</AssemblyName>
@@ -13,7 +12,7 @@
 	  <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
 	  <DefaultTargetSchema>IE50</DefaultTargetSchema>
 	  <DelaySign>false</DelaySign>
-	  <TargetFramework>netstandard2.0</TargetFramework>
+	  <TargetFrameworks>netstandard2.0;net40</TargetFrameworks>
 	  <OutputType>WinExe</OutputType>
 	  <AppDesignerFolder></AppDesignerFolder>
 	  <RootNamespace>Baker</RootNamespace>
