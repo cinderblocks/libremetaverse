@@ -69,12 +69,6 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Be.Windows.Forms.HexBox, Version=1.6.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Be.Windows.Forms.HexBox.1.6.1\lib\net40\Be.Windows.Forms.HexBox.dll</HintPath>
-    </Reference>
-    <Reference Include="log4net, Version=2.0.8.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\log4net.2.0.8\lib\net40-full\log4net.dll</HintPath>
-    </Reference>
     <Reference Include="System">
       <Name>System</Name>
       <Private>False</Private>
@@ -99,18 +93,17 @@
       <Name>System.Xml</Name>
       <Private>False</Private>
     </Reference>
-    <Reference Include="XmlRpcCs, Version=2.0.1.8, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\XmlRpcCS.2.0.1.8\lib\net40\XmlRpcCs.dll</HintPath>
-    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Be.Windows.Forms.HexBox" Version="1.6.1" />
+    <PackageReference Include="log4net" Version="2.0.8" />
+    <PackageReference Include="XmlRpcCS" Version="2.0.1.8" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
     <ProjectReference Include="..\GridProxy\GridProxy.csproj" />
     <ProjectReference Include="..\..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
   <PropertyGroup>
     <PreBuildEvent>

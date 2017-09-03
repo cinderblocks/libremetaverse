@@ -69,9 +69,6 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="nunit.framework, Version=3.8.1.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
-      <HintPath>..\packages\NUnit.3.8.1\lib\net40\nunit.framework.dll</HintPath>
-    </Reference>
     <Reference Include="System">
       <Name>System</Name>
       <Private>False</Private>
@@ -86,15 +83,16 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="NUnit" Version="3.8.1" />
+    <PackageReference Include="NUnit.ConsoleRunner" Version="3.7.0" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
     <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
   <PropertyGroup>
     <PreBuildEvent>
