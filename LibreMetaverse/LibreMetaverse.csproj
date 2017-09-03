@@ -73,9 +73,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="ComponentAce.Compression.Libs.zlib" Version="1.0.4" />
     <PackageReference Include="log4net" Version="2.0.8" />
-    <PackageReference Include="XmlRpcCS" Version="2.0.1.8" />
-    <PackageReference Include="zlib.net" Version="1.0.4.0" />
+    <PackageReference Include="XmlRpcCS" Version="2.1.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
