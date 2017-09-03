@@ -56,12 +56,6 @@
 	  <PlatformTarget>AnyCPU</PlatformTarget>
 	</PropertyGroup>
 	<ItemGroup>
-	  <Reference Include="System">
-		  <Name>System</Name>
-		<Private>False</Private>
-	  </Reference>
-	</ItemGroup>
-	<ItemGroup>
 	  <ProjectReference Include="..\..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
 	  <ProjectReference Include="..\..\LibreMetaverse\LibreMetaverse.csproj" />
 	  <ProjectReference Include="..\..\LibreMetaverse.Utilities\LibreMetaverse.Utilities.csproj" />
