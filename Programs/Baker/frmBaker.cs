@@ -1,5 +1,5 @@
 using System;
-using System.Drawing;
+using System.DrawingCore;
 using System.Windows.Forms;
 using System.IO;
 using OpenMetaverse.Imaging;

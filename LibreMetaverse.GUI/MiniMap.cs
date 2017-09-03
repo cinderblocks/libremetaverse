@@ -26,7 +26,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
+using System.DrawingCore;
 using System.Windows.Forms;
 using OpenMetaverse.Imaging;
 using OpenMetaverse.Assets;
