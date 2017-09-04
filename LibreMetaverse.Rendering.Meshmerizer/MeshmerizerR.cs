@@ -36,7 +36,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using OpenMetaverse.StructuredData;
-using PrimMesher;
+using LibreMetaverse.PrimMesher;
 using OMV = OpenMetaverse;
 using OMVR = OpenMetaverse.Rendering;
 
@@ -57,7 +57,7 @@ namespace OpenMetaverse.Rendering
         /// <returns>The generated mesh or null on failure</returns>
         public OMVR.SimpleMesh GenerateSimpleMesh(OMV.Primitive prim, OMVR.DetailLevel lod)
         {
-            PrimMesher.PrimMesh newPrim = GeneratePrimMesh(prim, lod, false);
+            LibreMetaverse.PrimMesher.PrimMesh newPrim = GeneratePrimMesh(prim, lod, false);
             if (newPrim == null)
                 return null;
 
@@ -74,7 +74,7 @@ namespace OpenMetaverse.Rendering
             }
 
             mesh.Indices = new List<ushort>(newPrim.faces.Count * 3);
-            foreach (PrimMesher.Face face in newPrim.faces)
+            foreach (LibreMetaverse.PrimMesher.Face face in newPrim.faces)
             {
                 mesh.Indices.Add((ushort)face.v1);
                 mesh.Indices.Add((ushort)face.v2);
@@ -129,7 +129,7 @@ namespace OpenMetaverse.Rendering
         public FacetedMesh GenerateFacetedMesh(Primitive prim, DetailLevel lod)
         {
             bool isSphere = ((OMV.ProfileCurve)(prim.PrimData.profileCurve & 0x07) == OMV.ProfileCurve.HalfCircle);
-            PrimMesher.PrimMesh newPrim = GeneratePrimMesh(prim, lod, true);
+            LibreMetaverse.PrimMesher.PrimMesh newPrim = GeneratePrimMesh(prim, lod, true);
             if (newPrim == null)
                 return null;
 
@@ -189,23 +189,23 @@ namespace OpenMetaverse.Rendering
         /// <returns>The faceted mesh or null if can't do it</returns>
         public OMVR.FacetedMesh GenerateFacetedSculptMesh(Primitive prim, Bitmap scupltTexture, DetailLevel lod)
         {
-            PrimMesher.SculptMesh.SculptType smSculptType;
+            LibreMetaverse.PrimMesher.SculptMesh.SculptType smSculptType;
             switch (prim.Sculpt.Type)
             {
                 case SculptType.Cylinder:
-                    smSculptType = PrimMesher.SculptMesh.SculptType.cylinder;
+                    smSculptType = LibreMetaverse.PrimMesher.SculptMesh.SculptType.cylinder;
                     break;
                 case SculptType.Plane:
-                    smSculptType = PrimMesher.SculptMesh.SculptType.plane;
+                    smSculptType = LibreMetaverse.PrimMesher.SculptMesh.SculptType.plane;
                     break;
                 case SculptType.Sphere:
-                    smSculptType = PrimMesher.SculptMesh.SculptType.sphere;
+                    smSculptType = LibreMetaverse.PrimMesher.SculptMesh.SculptType.sphere;
                     break;
                 case SculptType.Torus:
-                    smSculptType = PrimMesher.SculptMesh.SculptType.torus;
+                    smSculptType = LibreMetaverse.PrimMesher.SculptMesh.SculptType.torus;
                     break;
                 default:
-                    smSculptType = PrimMesher.SculptMesh.SculptType.plane;
+                    smSculptType = LibreMetaverse.PrimMesher.SculptMesh.SculptType.plane;
                     break;
             }
             // The lod for sculpties is the resolution of the texture passed.
@@ -225,8 +225,8 @@ namespace OpenMetaverse.Rendering
                     mesherLod /= 4;
                     break;
             }
-            PrimMesher.SculptMesh newMesh =
-                new PrimMesher.SculptMesh(scupltTexture, smSculptType, mesherLod, true, prim.Sculpt.Mirror, prim.Sculpt.Invert);
+            LibreMetaverse.PrimMesher.SculptMesh newMesh =
+                new LibreMetaverse.PrimMesher.SculptMesh(scupltTexture, smSculptType, mesherLod, true, prim.Sculpt.Mirror, prim.Sculpt.Invert);
 
             int numPrimFaces = 1;       // a scuplty has only one face
 
@@ -726,7 +726,7 @@ namespace OpenMetaverse.Rendering
 
         // Local routine to create a mesh from prim parameters.
         // Collects parameters and calls PrimMesher to create all the faces of the prim.
-        private PrimMesher.PrimMesh GeneratePrimMesh(Primitive prim, DetailLevel lod, bool viewerMode)
+        private LibreMetaverse.PrimMesher.PrimMesh GeneratePrimMesh(Primitive prim, DetailLevel lod, bool viewerMode)
         {
             Primitive.ConstructionData primData = prim.PrimData;
             int sides = 4;

@@ -30,7 +30,7 @@ using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
 
-namespace PrimMesher
+namespace LibreMetaverse.PrimMesher
 {
     public class ObjMesh
     {

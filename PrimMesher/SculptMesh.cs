@@ -30,7 +30,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 
-namespace PrimMesher
+namespace LibreMetaverse.PrimMesher
 {
     public class SculptMesh
     {

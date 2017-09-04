@@ -28,7 +28,7 @@
 
 using System.Collections.Generic;
 
-namespace PrimMesher
+namespace LibreMetaverse.PrimMesher
 {
     public struct ViewerVertex
     {
