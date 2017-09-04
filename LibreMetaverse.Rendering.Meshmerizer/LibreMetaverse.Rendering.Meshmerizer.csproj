@@ -10,7 +10,7 @@
     <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
     <DefaultTargetSchema>IE50</DefaultTargetSchema>
     <DelaySign>false</DelaySign>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>
     </AppDesignerFolder>
@@ -60,7 +60,7 @@
     </ProjectReference>
     <ProjectReference Include="..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
     <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
-    <ProjectReference Include="..\PrimMesher\PrimMesher.csproj" />
+    <ProjectReference Include="..\PrimMesher\LibreMetaverse.PrimMesher.csproj" />
   </ItemGroup>
   <PropertyGroup>
     <PreBuildEvent>
