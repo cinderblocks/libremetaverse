@@ -34,11 +34,11 @@ namespace PrimMesher
 {
     public class SculptMap
     {
-        public int width;
+        public byte[] blueBytes;
+        public byte[] greenBytes;
         public int height;
         public byte[] redBytes;
-        public byte[] greenBytes;
-        public byte[] blueBytes;
+        public int width;
 
         public SculptMap()
         {
@@ -46,17 +46,17 @@ namespace PrimMesher
 
         public SculptMap(Bitmap bm, int lod)
         {
-            int bmW = bm.Width;
-            int bmH = bm.Height;
+            var bmW = bm.Width;
+            var bmH = bm.Height;
 
             if (bmW == 0 || bmH == 0)
                 throw new Exception("SculptMap: bitmap has no data");
 
-            int numLodPixels = lod * 2 * lod * 2; // (32 * 2)^2  = 64^2 pixels for default sculpt map image
+            var numLodPixels = lod * 2 * lod * 2; // (32 * 2)^2  = 64^2 pixels for default sculpt map image
 
-            bool needsScaling = false;
+            var needsScaling = false;
 
-            bool smallMap = bmW * bmH <= lod * lod;
+            var smallMap = bmW * bmH <= lod * lod;
 
             width = bmW;
             height = bmH;
@@ -68,7 +68,6 @@ namespace PrimMesher
             }
 
 
-
             try
             {
                 if (needsScaling)
@@ -78,7 +77,7 @@ namespace PrimMesher
 
             catch (Exception e)
             {
-                throw new Exception("Exception in ScaleImage(): e: " + e.ToString());
+                throw new Exception("Exception in ScaleImage(): e: " + e);
             }
 
             if (width * height > lod * lod)
@@ -87,48 +86,44 @@ namespace PrimMesher
                 height >>= 1;
             }
 
-            int numBytes = smallMap ? width * height : (width + 1) * (height + 1);
+            var numBytes = smallMap ? width * height : (width + 1) * (height + 1);
             redBytes = new byte[numBytes];
             greenBytes = new byte[numBytes];
             blueBytes = new byte[numBytes];
 
-            int byteNdx = 0;
+            var byteNdx = 0;
 
             try
             {
                 if (smallMap)
-                    for (int y = 0; y < height; y++)
+                    for (var y = 0; y < height; y++)
+                    for (var x = 0; x < width; x++)
                     {
-                        for (int x = 0; x < width; x++)
-                        {
-                            var c = bm.GetPixel(x, y);
+                        var c = bm.GetPixel(x, y);
 
-                            redBytes[byteNdx] = c.R;
-                            greenBytes[byteNdx] = c.G;
-                            blueBytes[byteNdx] = c.B;
+                        redBytes[byteNdx] = c.R;
+                        greenBytes[byteNdx] = c.G;
+                        blueBytes[byteNdx] = c.B;
 
-                            ++byteNdx;
-                        }
+                        ++byteNdx;
                     }
                 else
-                    for (int y = 0; y <= height; y++)
+                    for (var y = 0; y <= height; y++)
+                    for (var x = 0; x <= width; x++)
                     {
-                        for (int x = 0; x <= width; x++)
-                        {
-                            var c = bm.GetPixel(x < width ? x * 2 : x * 2 - 1,
-                                y < height ? y * 2 : y * 2 - 1);
+                        var c = bm.GetPixel(x < width ? x * 2 : x * 2 - 1,
+                            y < height ? y * 2 : y * 2 - 1);
 
-                            redBytes[byteNdx] = c.R;
-                            greenBytes[byteNdx] = c.G;
-                            blueBytes[byteNdx] = c.B;
+                        redBytes[byteNdx] = c.R;
+                        greenBytes[byteNdx] = c.G;
+                        blueBytes[byteNdx] = c.B;
 
-                            ++byteNdx;
-                        }
+                        ++byteNdx;
                     }
             }
             catch (Exception e)
             {
-                throw new Exception("Caught exception processing byte arrays in SculptMap(): e: " + e.ToString());
+                throw new Exception("Caught exception processing byte arrays in SculptMap(): e: " + e);
             }
 
             if (!smallMap)
@@ -140,23 +135,23 @@ namespace PrimMesher
 
         public List<List<Coord>> ToRows(bool mirror)
         {
-            int numRows = height;
-            int numCols = width;
+            var numRows = height;
+            var numCols = width;
 
-            List<List<Coord>> rows = new List<List<Coord>>(numRows);
+            var rows = new List<List<Coord>>(numRows);
 
-            float pixScale = 1.0f / 255;
+            var pixScale = 1.0f / 255;
 
             int rowNdx, colNdx;
-            int smNdx = 0;
+            var smNdx = 0;
 
             for (rowNdx = 0; rowNdx < numRows; rowNdx++)
             {
-                List<Coord> row = new List<Coord>(numCols);
+                var row = new List<Coord>(numCols);
                 for (colNdx = 0; colNdx < numCols; colNdx++)
                 {
                     if (mirror)
-                        row.Add(new Coord(-(redBytes[smNdx] * pixScale - 0.5f), (greenBytes[smNdx] * pixScale - 0.5f),
+                        row.Add(new Coord(-(redBytes[smNdx] * pixScale - 0.5f), greenBytes[smNdx] * pixScale - 0.5f,
                             blueBytes[smNdx] * pixScale - 0.5f));
                     else
                         row.Add(new Coord(redBytes[smNdx] * pixScale - 0.5f, greenBytes[smNdx] * pixScale - 0.5f,
@@ -172,10 +167,10 @@ namespace PrimMesher
         private Bitmap ScaleImage(Bitmap srcImage, int destWidth, int destHeight,
             InterpolationMode interpMode)
         {
-            Bitmap scaledImage = new Bitmap(srcImage, destWidth, destHeight);
+            var scaledImage = new Bitmap(srcImage, destWidth, destHeight);
             scaledImage.SetResolution(96.0f, 96.0f);
 
-            Graphics grPhoto = Graphics.FromImage(scaledImage);
+            var grPhoto = Graphics.FromImage(scaledImage);
             grPhoto.InterpolationMode = interpMode;
 
             grPhoto.DrawImage(srcImage,

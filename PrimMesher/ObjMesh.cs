@@ -25,7 +25,6 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -35,19 +34,19 @@ namespace PrimMesher
 {
     public class ObjMesh
     {
-        List<Coord> coords = new List<Coord>();
-        List<Coord> normals = new List<Coord>();
-        List<UVCoord> uvs = new List<UVCoord>();
+        private readonly List<Coord> coords = new List<Coord>();
+        private List<ViewerPolygon> facePolygons = new List<ViewerPolygon>();
+
+        private List<ViewerVertex> faceVertices = new List<ViewerVertex>();
 
         public string meshName = string.Empty;
-        public List<List<ViewerVertex>> viewerVertices = new List<List<ViewerVertex>>();
+        private readonly List<Coord> normals = new List<Coord>();
+        public int numPrimFaces;
+        private readonly List<UVCoord> uvs = new List<UVCoord>();
         public List<List<ViewerPolygon>> viewerPolygons = new List<List<ViewerPolygon>>();
 
-        List<ViewerVertex> faceVertices = new List<ViewerVertex>();
-        List<ViewerPolygon> facePolygons = new List<ViewerPolygon>();
-        public int numPrimFaces;
-
-        Dictionary<int, int> viewerVertexLookup = new Dictionary<int, int>();
+        private Dictionary<int, int> viewerVertexLookup = new Dictionary<int, int>();
+        public List<List<ViewerVertex>> viewerVertices = new List<List<ViewerVertex>>();
 
         public ObjMesh(string path)
         {
@@ -67,11 +66,11 @@ namespace PrimMesher
 
             while (!s.EndOfStream)
             {
-                string line = s.ReadLine().Trim();
-                string[] tokens = Regex.Split(line, @"\s+");
+                var line = s.ReadLine().Trim();
+                var tokens = Regex.Split(line, @"\s+");
 
                 // Skip blank lines and comments
-                if (tokens.Length > 0 && tokens[0] != String.Empty && !tokens[0].StartsWith("#"))
+                if (tokens.Length > 0 && tokens[0] != string.Empty && !tokens[0].StartsWith("#"))
                     ProcessTokens(tokens);
             }
             MakePrimFace();
@@ -79,10 +78,10 @@ namespace PrimMesher
 
         public VertexIndexer GetVertexIndexer()
         {
-            VertexIndexer vi = new VertexIndexer();
-            vi.numPrimFaces = this.numPrimFaces;
-            vi.viewerPolygons = this.viewerPolygons;
-            vi.viewerVertices = this.viewerVertices;
+            var vi = new VertexIndexer();
+            vi.numPrimFaces = numPrimFaces;
+            vi.viewerPolygons = viewerPolygons;
+            vi.viewerVertices = viewerVertices;
 
             return vi;
         }
@@ -101,10 +100,10 @@ namespace PrimMesher
                     break;
 
                 case "vt":
-                    {
-                        uvs.Add(ParseUVCoord(tokens));
-                        break;
-                    }
+                {
+                    uvs.Add(ParseUVCoord(tokens));
+                    break;
+                }
 
                 case "vn":
                     normals.Add(ParseCoord(tokens));
@@ -121,42 +120,39 @@ namespace PrimMesher
 
                 case "f":
 
-                    int[] vertIndices = new int[3];
+                    var vertIndices = new int[3];
 
-                    for (int vertexIndex = 1; vertexIndex <= 3; vertexIndex++)
+                    for (var vertexIndex = 1; vertexIndex <= 3; vertexIndex++)
                     {
-                        string[] indices = tokens[vertexIndex].Split('/');
+                        var indices = tokens[vertexIndex].Split('/');
 
-                        int positionIndex = int.Parse(indices[0],
-                            CultureInfo.InvariantCulture) - 1;
+                        var positionIndex = int.Parse(indices[0],
+                                                CultureInfo.InvariantCulture) - 1;
 
-                        int texCoordIndex = -1;
-                        int normalIndex = -1;
+                        var texCoordIndex = -1;
+                        var normalIndex = -1;
 
                         if (indices.Length > 1)
-                        {
-
-                            if (int.TryParse(indices[1], System.Globalization.NumberStyles.Integer, CultureInfo.InvariantCulture, out texCoordIndex))
+                            if (int.TryParse(indices[1], NumberStyles.Integer, CultureInfo.InvariantCulture,
+                                out texCoordIndex))
                                 texCoordIndex--;
                             else texCoordIndex = -1;
 
-                        }
-
                         if (indices.Length > 2)
-                        {
-                            if (int.TryParse(indices[1], System.Globalization.NumberStyles.Integer, CultureInfo.InvariantCulture, out normalIndex))
+                            if (int.TryParse(indices[1], NumberStyles.Integer, CultureInfo.InvariantCulture,
+                                out normalIndex))
                                 normalIndex--;
                             else normalIndex = -1;
-                        }
 
-                        int hash = hashInts(positionIndex, texCoordIndex, normalIndex);
+                        var hash = hashInts(positionIndex, texCoordIndex, normalIndex);
 
                         if (viewerVertexLookup.ContainsKey(hash))
+                        {
                             vertIndices[vertexIndex - 1] = viewerVertexLookup[hash];
+                        }
                         else
                         {
-                            ViewerVertex vv = new ViewerVertex();
-                            vv.v = coords[positionIndex];
+                            var vv = new ViewerVertex {v = coords[positionIndex]};
                             if (normalIndex > -1)
                                 vv.n = normals[normalIndex];
                             if (texCoordIndex > -1)
@@ -173,9 +169,6 @@ namespace PrimMesher
                     break;
 
                 case "usemtl":
-                    break;
-
-                default:
                     break;
             }
         }
@@ -214,7 +207,7 @@ namespace PrimMesher
 
         private int hashInts(int i1, int i2, int i3)
         {
-            return (i1.ToString() + " " + i2.ToString() + " " + i3.ToString()).GetHashCode();
+            return (i1 + " " + i2 + " " + i3).GetHashCode();
         }
     }
 }
