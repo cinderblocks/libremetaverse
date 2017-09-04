@@ -51,10 +51,10 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ComponentAce.Compression.Libs.zlib" Version="1.0.4" />
     <PackageReference Include="CoreCompat.System.Drawing.v2" Version="5.2.0-preview1-r131" Condition="'$(TargetFramework)' == 'netstandard2.0'" />
     <PackageReference Include="log4net" Version="2.0.8" />
     <PackageReference Include="XmlRpcCS" Version="2.1.1.2" />
+    <PackageReference Include="zlib.net-mutliplatform" Version="1.0.4" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
