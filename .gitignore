@@ -8,3 +8,4 @@ compile.bat
 [Bb]in/
 packages/
 .idea/
+.vs/
