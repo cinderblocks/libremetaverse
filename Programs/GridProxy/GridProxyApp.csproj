@@ -12,7 +12,7 @@
 	  <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
 	  <DefaultTargetSchema>IE50</DefaultTargetSchema>
 	  <DelaySign>false</DelaySign>
-	  <TargetFramework>net461</TargetFramework>
+	  <TargetFramework>netstandard2.0</TargetFramework>
 	  <OutputType>Exe</OutputType>
 	  <RootNamespace>GridProxyApp</RootNamespace>
 	  <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
@@ -54,7 +54,9 @@
 	  <PlatformTarget>AnyCPU</PlatformTarget>
 	</PropertyGroup>
 	<ItemGroup>
+	  <ProjectReference Include="..\..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
 	  <ProjectReference Include="..\..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
+	  <ProjectReference Include="..\..\LibreMetaverse\LibreMetaverse.csproj" />
 	  <ProjectReference Include="..\GridProxy\GridProxy.csproj" />
 	</ItemGroup>
 	<PropertyGroup>

@@ -25,11 +25,10 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.DrawingCore;
-using System.DrawingCore.Imaging;
+using Color = System.DrawingCore.Color;
 
 namespace PrimMesher
 {
@@ -47,7 +46,7 @@ namespace PrimMesher
 
         public SculptMesh SculptMeshFromFile(string fileName, SculptType sculptType, int lod, bool viewerMode)
         {
-            Bitmap bitmap = (Bitmap)Bitmap.FromFile(fileName);
+            Bitmap bitmap = (Bitmap)Image.FromFile(fileName);
             SculptMesh sculptMesh = new SculptMesh(bitmap, sculptType, lod, viewerMode);
             bitmap.Dispose();
             return sculptMesh;
@@ -56,7 +55,7 @@ namespace PrimMesher
 
         public SculptMesh(string fileName, int sculptType, int lod, int viewerMode, int mirror, int invert)
         {
-            Bitmap bitmap = (Bitmap)Bitmap.FromFile(fileName);
+            Bitmap bitmap = (Bitmap)Image.FromFile(fileName);
             _SculptMesh(bitmap, (SculptType)sculptType, lod, viewerMode != 0, mirror != 0, invert != 0);
             bitmap.Dispose();
         }
@@ -87,7 +86,7 @@ namespace PrimMesher
                 uStep = 1.0f / (numXElements - 1);
                 vStep = 1.0f / (numYElements - 1);
             }
-            catch (DivideByZeroException)
+            catch (System.DivideByZeroException)
             {
                 return;
             }
@@ -125,11 +124,11 @@ namespace PrimMesher
                     p1 = p3 - numXElements;
 
                     Coord c = new Coord(xBegin + x * xStep, yBegin + y * yStep, zMap[y, x]);
-                    this.coords.Add(c);
+                    coords.Add(c);
                     if (viewerMode)
                     {
-                        this.normals.Add(new Coord());
-                        this.uvs.Add(new UVCoord(uStep * x, 1.0f - vStep * y));
+                        normals.Add(new Coord());
+                        uvs.Add(new UVCoord(uStep * x, 1.0f - vStep * y));
                     }
 
                     if (y > 0 && x > 0)
@@ -154,8 +153,8 @@ namespace PrimMesher
                             f2 = new Face(p1, p2, p4);
                         }
 
-                        this.faces.Add(f1);
-                        this.faces.Add(f2);
+                        faces.Add(f1);
+                        faces.Add(f2);
                     }
                 }
             }
@@ -218,7 +217,7 @@ namespace PrimMesher
                     {
                         for (imageY = imageYStart; imageY < imageYEnd; imageY++)
                         {
-                            Color c = bitmap.GetPixel(imageX, imageY);
+                            var c = bitmap.GetPixel(imageX, imageY);
                             if (c.A != 255)
                             {
                                 bitmap.SetPixel(imageX, imageY, Color.FromArgb(255, c.R, c.G, c.B));
@@ -262,7 +261,7 @@ namespace PrimMesher
                     imageX = colNdx * scale;
                     if (colNdx == numCols) imageX--;
 
-                    Color c = bitmap.GetPixel(imageX, imageY);
+                    var c = bitmap.GetPixel(imageX, imageY);
                     if (c.A != 255)
                     {
                         bitmap.SetPixel(imageX, imageY, Color.FromArgb(255, c.R, c.G, c.B));
@@ -386,11 +385,11 @@ namespace PrimMesher
                     p2 = p4 - coordsAcross;
                     p1 = p3 - coordsAcross;
 
-                    this.coords.Add(rows[imageY][imageX]);
+                    coords.Add(rows[imageY][imageX]);
                     if (viewerMode)
                     {
-                        this.normals.Add(new Coord());
-                        this.uvs.Add(new UVCoord(widthUnit * imageX, heightUnit * imageY));
+                        normals.Add(new Coord());
+                        uvs.Add(new UVCoord(widthUnit * imageX, heightUnit * imageY));
                     }
 
                     if (imageY > 0 && imageX > 0)
@@ -438,8 +437,8 @@ namespace PrimMesher
                             }
                         }
 
-                        this.faces.Add(f1);
-                        this.faces.Add(f2);
+                        faces.Add(f1);
+                        faces.Add(f2);
                     }
                 }
             }
@@ -469,19 +468,19 @@ namespace PrimMesher
         private void calcVertexNormals(SculptType sculptType, int xSize, int ySize)
         {  // compute vertex normals by summing all the surface normals of all the triangles sharing
             // each vertex and then normalizing
-            int numFaces = this.faces.Count;
+            int numFaces = faces.Count;
             for (int i = 0; i < numFaces; i++)
             {
-                Face face = this.faces[i];
-                Coord surfaceNormal = face.SurfaceNormal(this.coords);
-                this.normals[face.n1] += surfaceNormal;
-                this.normals[face.n2] += surfaceNormal;
-                this.normals[face.n3] += surfaceNormal;
+                Face face = faces[i];
+                Coord surfaceNormal = face.SurfaceNormal(coords);
+                normals[face.n1] += surfaceNormal;
+                normals[face.n2] += surfaceNormal;
+                normals[face.n3] += surfaceNormal;
             }
 
-            int numNormals = this.normals.Count;
+            int numNormals = normals.Count;
             for (int i = 0; i < numNormals; i++)
-                this.normals[i] = this.normals[i].Normalize();
+                normals[i] = normals[i].Normalize();
 
             if (sculptType != SculptType.plane)
             { // blend the vertex normals at the cylinder seam
@@ -489,30 +488,30 @@ namespace PrimMesher
                 {
                     int rowOffset = y * xSize;
 
-                    this.normals[rowOffset] = this.normals[rowOffset + xSize - 1] = (this.normals[rowOffset] + this.normals[rowOffset + xSize - 1]).Normalize();
+                    normals[rowOffset] = normals[rowOffset + xSize - 1] = (normals[rowOffset] + normals[rowOffset + xSize - 1]).Normalize();
                 }
             }
 
-            foreach (Face face in this.faces)
+            foreach (Face face in faces)
             {
                 ViewerFace vf = new ViewerFace(0);
-                vf.v1 = this.coords[face.v1];
-                vf.v2 = this.coords[face.v2];
-                vf.v3 = this.coords[face.v3];
+                vf.v1 = coords[face.v1];
+                vf.v2 = coords[face.v2];
+                vf.v3 = coords[face.v3];
 
                 vf.coordIndex1 = face.v1;
                 vf.coordIndex2 = face.v2;
                 vf.coordIndex3 = face.v3;
 
-                vf.n1 = this.normals[face.n1];
-                vf.n2 = this.normals[face.n2];
-                vf.n3 = this.normals[face.n3];
+                vf.n1 = normals[face.n1];
+                vf.n2 = normals[face.n2];
+                vf.n3 = normals[face.n3];
 
-                vf.uv1 = this.uvs[face.uv1];
-                vf.uv2 = this.uvs[face.uv2];
-                vf.uv3 = this.uvs[face.uv3];
+                vf.uv1 = uvs[face.uv1];
+                vf.uv2 = uvs[face.uv2];
+                vf.uv3 = uvs[face.uv3];
 
-                this.viewerFaces.Add(vf);
+                viewerFaces.Add(vf);
             }
         }
 
@@ -525,27 +524,27 @@ namespace PrimMesher
         public void AddPos(float x, float y, float z)
         {
             int i;
-            int numVerts = this.coords.Count;
+            int numVerts = coords.Count;
             Coord vert;
 
             for (i = 0; i < numVerts; i++)
             {
-                vert = this.coords[i];
+                vert = coords[i];
                 vert.X += x;
                 vert.Y += y;
                 vert.Z += z;
-                this.coords[i] = vert;
+                coords[i] = vert;
             }
 
-            if (this.viewerFaces != null)
+            if (viewerFaces != null)
             {
-                int numViewerFaces = this.viewerFaces.Count;
+                int numViewerFaces = viewerFaces.Count;
 
                 for (i = 0; i < numViewerFaces; i++)
                 {
-                    ViewerFace v = this.viewerFaces[i];
+                    ViewerFace v = viewerFaces[i];
                     v.AddPos(x, y, z);
-                    this.viewerFaces[i] = v;
+                    viewerFaces[i] = v;
                 }
             }
         }
@@ -557,22 +556,22 @@ namespace PrimMesher
         public void AddRot(Quat q)
         {
             int i;
-            int numVerts = this.coords.Count;
+            int numVerts = coords.Count;
 
             for (i = 0; i < numVerts; i++)
-                this.coords[i] *= q;
+                coords[i] *= q;
 
-            int numNormals = this.normals.Count;
+            int numNormals = normals.Count;
             for (i = 0; i < numNormals; i++)
-                this.normals[i] *= q;
+                normals[i] *= q;
 
-            if (this.viewerFaces != null)
+            if (viewerFaces != null)
             {
-                int numViewerFaces = this.viewerFaces.Count;
+                int numViewerFaces = viewerFaces.Count;
 
                 for (i = 0; i < numViewerFaces; i++)
                 {
-                    ViewerFace v = this.viewerFaces[i];
+                    ViewerFace v = viewerFaces[i];
                     v.v1 *= q;
                     v.v2 *= q;
                     v.v3 *= q;
@@ -581,7 +580,7 @@ namespace PrimMesher
                     v.n2 *= q;
                     v.n3 *= q;
 
-                    this.viewerFaces[i] = v;
+                    viewerFaces[i] = v;
                 }
             }
         }
@@ -589,39 +588,39 @@ namespace PrimMesher
         public void Scale(float x, float y, float z)
         {
             int i;
-            int numVerts = this.coords.Count;
+            int numVerts = coords.Count;
 
             Coord m = new Coord(x, y, z);
             for (i = 0; i < numVerts; i++)
-                this.coords[i] *= m;
+                coords[i] *= m;
 
-            if (this.viewerFaces != null)
+            if (viewerFaces != null)
             {
-                int numViewerFaces = this.viewerFaces.Count;
+                int numViewerFaces = viewerFaces.Count;
                 for (i = 0; i < numViewerFaces; i++)
                 {
-                    ViewerFace v = this.viewerFaces[i];
+                    ViewerFace v = viewerFaces[i];
                     v.v1 *= m;
                     v.v2 *= m;
                     v.v3 *= m;
-                    this.viewerFaces[i] = v;
+                    viewerFaces[i] = v;
                 }
             }
         }
 
-        public void DumpRaw(String path, String name, String title)
+        public void DumpRaw(System.String path, System.String name, System.String title)
         {
             if (path == null)
                 return;
-            String fileName = name + "_" + title + ".raw";
-            String completePath = System.IO.Path.Combine(path, fileName);
+            System.String fileName = name + "_" + title + ".raw";
+            System.String completePath = System.IO.Path.Combine(path, fileName);
             StreamWriter sw = new StreamWriter(completePath);
 
-            for (int i = 0; i < this.faces.Count; i++)
+            for (int i = 0; i < faces.Count; i++)
             {
-                string s = this.coords[this.faces[i].v1].ToString();
-                s += " " + this.coords[this.faces[i].v2].ToString();
-                s += " " + this.coords[this.faces[i].v3].ToString();
+                string s = coords[faces[i].v1].ToString();
+                s += " " + coords[faces[i].v2].ToString();
+                s += " " + coords[faces[i].v3].ToString();
 
                 sw.WriteLine(s);
             }

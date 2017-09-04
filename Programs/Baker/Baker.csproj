@@ -60,6 +60,9 @@
 	  <PlatformTarget>AnyCPU</PlatformTarget>
 	</PropertyGroup>
 	<ItemGroup>
+	  <PackageReference Include="ZKWeb.System.Drawing" Version="4.0.0" />
+	</ItemGroup>
+	<ItemGroup>
 	  <Reference Include="System">
 		  <Name>System</Name>
 		<Private>False</Private>

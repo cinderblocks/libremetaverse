@@ -9,11 +9,6 @@
     <RootNamespace>PrimMesher</RootNamespace>
     <AssemblyName>PrimMesher</AssemblyName>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <FileAlignment>512</FileAlignment>
-    <FileUpgradeFlags>
-    </FileUpgradeFlags>
-    <UpgradeBackupLocation>
-    </UpgradeBackupLocation>
     <Authors>Dhalia Trimble</Authors>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>

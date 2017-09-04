@@ -4,10 +4,10 @@
 namespace CSJ2K.Util
 {
     using System;
+
+    using System.Linq;
     using System.DrawingCore;
     using System.DrawingCore.Imaging;
-    using System.Linq;
-
     using CSJ2K.j2k.image;
 
     internal class BitmapImageSource : PortableImageSource

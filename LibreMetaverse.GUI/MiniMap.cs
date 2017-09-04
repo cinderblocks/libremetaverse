@@ -91,7 +91,7 @@ namespace OpenMetaverse.GUI
                 {
                     Bitmap bmp = new Bitmap(256, 256);
                     Graphics g = Graphics.FromImage(bmp);
-                    g.Clear(this.BackColor);
+                    g.Clear((System.DrawingCore.Color)(object)this.BackColor); // *HACK:
                     g.FillRectangle(BG_COLOR, 0f, 0f, 256f, 256f);
                     g.DrawImage(bmp, 0, 0);
 
@@ -183,7 +183,7 @@ namespace OpenMetaverse.GUI
                 );
 
                 g.DrawImage(bmp, 0, 0);
-                this.Image = bmp;
+                this.Image = (System.Drawing.Image)(object)bmp; // *HACK:
             }
         }
 

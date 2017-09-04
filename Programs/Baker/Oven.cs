@@ -1,6 +1,5 @@
 using System;
-using System.Drawing;
-using System.Drawing.Imaging;
+using System.DrawingCore;
 using System.Runtime.InteropServices;
 
 namespace Baker

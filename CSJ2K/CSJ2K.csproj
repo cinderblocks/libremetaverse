@@ -61,13 +61,13 @@
     <NoWarn>1591,1574,0419</NoWarn>
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="ZKWeb.System.Drawing" Version="4.0.0" />
-  </ItemGroup>
   <PropertyGroup>
     <PreBuildEvent>
     </PreBuildEvent>
     <PostBuildEvent>
     </PostBuildEvent>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ZKWeb.System.Drawing" Version="4.0.0" />
+  </ItemGroup>
 </Project>

@@ -33,7 +33,7 @@ namespace Baker
                 //ManagedImage managedImage = new ManagedImage(AlphaMask);
 
                 // FIXME: Operate on ManagedImage instead of Bitmap
-                pic1.Image = Oven.ModifyAlphaMask(_alphaMask, (byte)scrollWeight.Value, 0.0f);
+                pic1.Image = (System.Drawing.Bitmap)(object)Oven.ModifyAlphaMask(_alphaMask, (byte)scrollWeight.Value, 0.0f); // *HACK:
             }
             else
             {
@@ -44,7 +44,7 @@ namespace Baker
 
         private void scrollWeight_Scroll(object sender, ScrollEventArgs e)
         {
-            pic1.Image = Oven.ModifyAlphaMask(_alphaMask, (byte)scrollWeight.Value, 0.0f);
+            pic1.Image = (System.Drawing.Bitmap)(object)Oven.ModifyAlphaMask(_alphaMask, (byte)scrollWeight.Value, 0.0f); // *HACK:
         }
 
         private void frmBaker_FormClosing(object sender, FormClosingEventArgs e)

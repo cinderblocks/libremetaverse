@@ -8,8 +8,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CSJ2K", "CSJ2K\CSJ2K.csproj
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GridProxy", "Programs\GridProxy\GridProxy.csproj", "{79B51DAA-0000-0000-0000-000000000000}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GridProxyApp", "Programs\GridProxy\GridProxyApp.csproj", "{CF6ECF45-0000-0000-0000-000000000000}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IRCGateway", "Programs\examples\IRCGateway\IRCGateway.csproj", "{89049BBC-0000-0000-0000-000000000000}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse", "LibreMetaverse\LibreMetaverse.csproj", "{27C70F3A-0000-0000-0000-000000000000}"
@@ -37,8 +35,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestClient", "Programs\exam
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VoiceTest", "Programs\VoiceTest\VoiceTest.csproj", "{EE4EA934-0000-0000-0000-000000000000}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WinGridProxy", "Programs\WinGridProxy\WinGridProxy.csproj", "{455B06F4-0000-0000-0000-000000000000}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PrimMesher", "PrimMesher\PrimMesher.csproj", "{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}"
 EndProject
 Global
@@ -59,10 +55,6 @@ Global
 		{79B51DAA-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{79B51DAA-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{79B51DAA-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
-		{CF6ECF45-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CF6ECF45-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CF6ECF45-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CF6ECF45-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
 		{89049BBC-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{89049BBC-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{89049BBC-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -111,10 +103,6 @@ Global
 		{EE4EA934-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EE4EA934-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EE4EA934-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
-		{455B06F4-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{455B06F4-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{455B06F4-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{455B06F4-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
 		{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}.Release|Any CPU.ActiveCfg = Release|Any CPU

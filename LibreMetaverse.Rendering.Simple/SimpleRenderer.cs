@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.DrawingCore;
 using System.Collections.Generic;
 
 namespace OpenMetaverse.Rendering
@@ -47,7 +48,7 @@ namespace OpenMetaverse.Rendering
             return mesh;
         }
 
-        public SimpleMesh GenerateSimpleSculptMesh(Primitive prim, System.DrawingCore.Bitmap sculptTexture, DetailLevel lod)
+        public SimpleMesh GenerateSimpleSculptMesh(Primitive prim, Bitmap sculptTexture, DetailLevel lod)
         {
             return GenerateSimpleMesh(prim, lod);
         }
@@ -66,7 +67,7 @@ namespace OpenMetaverse.Rendering
             return mesh;
         }
 
-        public FacetedMesh GenerateFacetedSculptMesh(Primitive prim, System.DrawingCore.Bitmap sculptTexture, DetailLevel lod)
+        public FacetedMesh GenerateFacetedSculptMesh(Primitive prim, Bitmap sculptTexture, DetailLevel lod)
         {
             return GenerateFacetedMesh(prim, lod);
         }
