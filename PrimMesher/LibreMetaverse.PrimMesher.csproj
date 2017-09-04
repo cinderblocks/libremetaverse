@@ -7,13 +7,14 @@
     <ProjectGuid>{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>PrimMesher</RootNamespace>
-    <AssemblyName>PrimMesher</AssemblyName>
+    <AssemblyName>LibreMetaverse.PrimMesher</AssemblyName>
     <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
     <Authors>Dhalia Trimble, OpenSim Contributors, Cinder Roxley</Authors>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <Version>1.2.0</Version>
     <Product>LibreMetaverse.PrimMesher</Product>
     <Copyright>Copyright © OpenMetaverse Developers 2008, 2017 All rights reserved</Copyright>
+    <PackageId>LibreMetaverse.PrimMesher</PackageId>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
