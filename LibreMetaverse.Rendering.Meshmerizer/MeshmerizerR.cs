@@ -33,7 +33,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.DrawingCore;
+using System.Drawing;
 using System.IO;
 using OpenMetaverse.StructuredData;
 using PrimMesher;

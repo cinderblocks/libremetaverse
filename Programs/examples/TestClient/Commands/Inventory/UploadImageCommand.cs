@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
-using System.DrawingCore;
-using System.DrawingCore.Drawing2D;
+using System.Drawing;
+using System.Drawing.Drawing2D;
 using OpenMetaverse.Imaging;
 
 namespace OpenMetaverse.TestClient

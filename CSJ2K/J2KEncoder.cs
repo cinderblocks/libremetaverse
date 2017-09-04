@@ -1,7 +1,7 @@
 ﻿#region Using Statements
 using System;
 using System.Collections.Generic;
-using System.DrawingCore;
+using System.Drawing;
 using System.IO;
 using CSJ2K.j2k.quantization.quantizer;
 using CSJ2K.j2k.image.forwcomptransf;

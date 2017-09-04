@@ -10,7 +10,7 @@
     <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
     <DefaultTargetSchema>IE50</DefaultTargetSchema>
     <DelaySign>false</DelaySign>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
@@ -52,9 +52,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="ComponentAce.Compression.Libs.zlib" Version="1.0.4" />
+    <PackageReference Include="CoreCompat.System.Drawing.v2" Version="5.2.0-preview1-r131" Condition="'$(TargetFrameworkVersion)' == 'netstandard2.0'" />
     <PackageReference Include="log4net" Version="2.0.8" />
     <PackageReference Include="XmlRpcCS" Version="2.1.1.2" />
-    <PackageReference Include="ZKWeb.System.Drawing" Version="4.0.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />

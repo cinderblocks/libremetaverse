@@ -7,8 +7,8 @@
 * */
 
 using System;
-using System.DrawingCore;
-using System.DrawingCore.Imaging;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using CSJ2K.j2k.image;
 using CSJ2K.j2k.io;

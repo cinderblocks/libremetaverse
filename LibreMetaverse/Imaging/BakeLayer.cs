@@ -28,7 +28,7 @@ using System;
 using System.Reflection;
 using System.Collections.Generic;
 using System.IO;
-using System.DrawingCore;
+using System.Drawing;
 using OpenMetaverse.Assets;
 using log4net;
 

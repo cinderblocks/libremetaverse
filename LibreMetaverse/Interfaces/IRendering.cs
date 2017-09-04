@@ -26,7 +26,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.DrawingCore;
+using System.Drawing;
 
 namespace OpenMetaverse.Rendering
 {

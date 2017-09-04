@@ -25,10 +25,10 @@
  */
 
 using System;
-using System.DrawingCore;
-using System.DrawingCore.Imaging;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
-using Rectangle = System.DrawingCore.Rectangle;
+using Rectangle = System.Drawing.Rectangle;
 
 namespace OpenMetaverse.Imaging
 {

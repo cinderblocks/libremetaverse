@@ -25,8 +25,8 @@
  */
 
 using System;
-using System.DrawingCore;
-using System.DrawingCore.Imaging;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace OpenMetaverse.Imaging
 {

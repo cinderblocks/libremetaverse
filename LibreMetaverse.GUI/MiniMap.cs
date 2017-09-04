@@ -26,7 +26,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.DrawingCore;
+using System.Drawing;
 using System.Windows.Forms;
 using OpenMetaverse.Imaging;
 using OpenMetaverse.Assets;
@@ -91,7 +91,7 @@ namespace OpenMetaverse.GUI
                 {
                     Bitmap bmp = new Bitmap(256, 256);
                     Graphics g = Graphics.FromImage(bmp);
-                    g.Clear((System.DrawingCore.Color)(object)this.BackColor); // *HACK:
+                    g.Clear((System.Drawing.Color)(object)this.BackColor); // *HACK:
                     g.FillRectangle(BG_COLOR, 0f, 0f, 256f, 256f);
                     g.DrawImage(bmp, 0, 0);
 

@@ -27,8 +27,8 @@
 
 using System.Collections.Generic;
 using System.IO;
-using System.DrawingCore;
-using Color = System.DrawingCore.Color;
+using System.Drawing;
+using Color = System.Drawing.Color;
 
 namespace PrimMesher
 {
