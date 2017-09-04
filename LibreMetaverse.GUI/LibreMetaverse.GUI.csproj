@@ -13,7 +13,7 @@
     <TargetFramework>net461</TargetFramework>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse.GUI</RootNamespace>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -74,10 +74,17 @@
     <ProjectReference Include="..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
     <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
   <PropertyGroup>
     <PreBuildEvent>
     </PreBuildEvent>
     <PostBuildEvent>
     </PostBuildEvent>
+    <Version>1.2.0</Version>
+    <Authors>OpenMetaverse Developers</Authors>
+    <Product>LibreMetaverse.GUI</Product>
+    <Copyright>Copyright © OpenMetaverse Developers 2008, 2017 All rights reserved</Copyright>
   </PropertyGroup>
 </Project>

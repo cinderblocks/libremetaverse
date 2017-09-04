@@ -13,7 +13,7 @@
 	  <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
 	  <OutputType>Exe</OutputType>
 	  <RootNamespace>TestClient</RootNamespace>
-	  <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+	  <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	</PropertyGroup>
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
 	  <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -55,10 +55,17 @@
 	  <ProjectReference Include="..\..\..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
 	  <ProjectReference Include="..\..\..\LibreMetaverse.Utilities\LibreMetaverse.Utilities.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Properties\" />
+	</ItemGroup>
 	<PropertyGroup>
 	  <PreBuildEvent>
 	  </PreBuildEvent>
 	  <PostBuildEvent>
 	  </PostBuildEvent>
+	  <Version>1.2.0</Version>
+	  <Authors>OpenMetaverse Developers</Authors>
+	  <Product>LibreMetaverse</Product>
+	  <Copyright>Copyright © OpenMetaverse Developers 2008, 2017 All rights reserved</Copyright>
 	</PropertyGroup>
 </Project>

@@ -15,7 +15,7 @@
     <AppDesignerFolder>
     </AppDesignerFolder>
     <RootNamespace>LibreMetaverse.Rendering.Meshmerizer</RootNamespace>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -62,10 +62,17 @@
     <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\PrimMesher\LibreMetaverse.PrimMesher.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
   <PropertyGroup>
     <PreBuildEvent>
     </PreBuildEvent>
     <PostBuildEvent>
     </PostBuildEvent>
+    <Version>1.2.0</Version>
+    <Authors>OpenMetaverse Developers</Authors>
+    <Product>LibreMetaverse.Rendering.Meshmerizer</Product>
+    <Copyright>Copyright © OpenMetaverse Developers 2008, 2017 All rights reserved</Copyright>
   </PropertyGroup>
 </Project>

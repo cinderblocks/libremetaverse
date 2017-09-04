@@ -14,7 +14,7 @@
 	  <OutputType>WinExe</OutputType>
 	  <AppDesignerFolder></AppDesignerFolder>
 	  <RootNamespace>Baker</RootNamespace>
-	  <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+	  <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	</PropertyGroup>
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
 	  <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -83,5 +83,9 @@
 	  </PreBuildEvent>
 	  <PostBuildEvent>
 	  </PostBuildEvent>
+	  <Authors>OpenMetaverse Developers</Authors>
+	  <Version>1.2.0</Version>
+	  <Copyright>Copyright © OpenMetaverse Developers 2008, 2017 All rights reserved</Copyright>
+	  <Product>LibreMetaverse</Product>
 	</PropertyGroup>
 </Project>

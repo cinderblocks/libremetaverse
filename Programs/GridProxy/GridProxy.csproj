@@ -13,7 +13,7 @@
     <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
     <OutputType>Library</OutputType>
     <RootNamespace>GridProxy</RootNamespace>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -63,5 +63,9 @@
     </PreBuildEvent>
     <PostBuildEvent>
     </PostBuildEvent>
+    <Version>1.2.0</Version>
+    <Copyright>Copyright © OpenMetaverse Developers 2008, 2017 All rights reserved</Copyright>
+    <Product>LibreMetaverse</Product>
+    <Authors>OpenMetaverse Developers</Authors>
   </PropertyGroup>
 </Project>

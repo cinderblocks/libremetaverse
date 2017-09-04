@@ -30,14 +30,17 @@ cache:
   - packages -> **\packages.config
   - '%LocalAppData%\NuGet\Cache'
 
-assembly_info:
+
+dotnet_csproj:
   patch: true
-  assembly_version: '{version}'
-  assembly_file_version: '{version}'
-  assembly_informational_version: '{version}'
+  file:'**\*.csproj'
+  version: '{version}'
+  package_version: '{version}'
 
 before_build:
   - nuget restore LibreMetaverse.sln
+
+
 
 deploy:
   - provider: NuGet
