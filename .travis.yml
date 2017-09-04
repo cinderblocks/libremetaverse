@@ -3,4 +3,6 @@ solution: LibreMetaverse.sln
 
 matrix:
   include:
-    - mono: latest
+    - dotnet: 2.0
+      mono: none
+      dist: trusty
