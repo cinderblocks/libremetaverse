@@ -47,6 +47,6 @@ deploy:
     api_key:
       secure: gKV6ye5OrfO434yGWbMxqbFHBt5w0Rfzao4Ixowol6DoOS8ksIY8p+/1+VM5CI1l
     skip_symbols: true
-    artifact: /.LibreMetaverse.*\.nupkg/
+    artifact: /.*\LibreMetaverse.*.nupkg/
     on:
       appveyor_repo_tag: true
