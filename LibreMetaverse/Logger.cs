@@ -69,7 +69,7 @@ namespace OpenMetaverse
                 {
                     Layout = new log4net.Layout.PatternLayout("%timestamp [%thread] %-5level - %message%newline")
                 };
-                BasicConfigurator.Configure(null, appender);
+                BasicConfigurator.Configure(LogManager.GetRepository(Assembly.GetCallingAssembly()), appender);
 
                 if(Settings.LOG_LEVEL != Helpers.LogLevel.None)
                     LogInstance.Info("No log configuration found, defaulting to console logging");
