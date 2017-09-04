@@ -7,9 +7,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("PrimMesher")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Cinderblocks Design")]
 [assembly: AssemblyProduct("PrimMesher")]
-[assembly: AssemblyCopyright("Copyright © OpenSimulator 2008")]
+[assembly: AssemblyCopyright("Copyright © OpenSimulator 2008, 2017 All rights reserved")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
