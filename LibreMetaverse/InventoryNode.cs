@@ -43,53 +43,43 @@ namespace OpenMetaverse
         /// <summary></summary>
         public InventoryBase Data
         {
-            get { return data; }
-            set { data = value; }
+            get => data;
+            set => data = value;
         }
 
         /// <summary>User data</summary>
         public object Tag
         {
-            get { return tag; }
-            set { tag = value; }
+            get => tag;
+            set => tag = value;
         }
 
         /// <summary></summary>
         public InventoryNode Parent
         {
-            get { return parent; }
-            set { parent = value; }
+            get => parent;
+            set => parent = value;
         }
 
         /// <summary></summary>
-        public UUID ParentID
-        {
-            get { return parentID; }
-        }
+        public UUID ParentID => parentID;
 
         /// <summary></summary>
         public InventoryNodeDictionary Nodes
         {
-            get
-            {
-                if (nodes == null)
-                    nodes = new InventoryNodeDictionary(this);
-
-                return nodes;
-            }
-            set { nodes = value; }
+            get { return nodes ?? (nodes = new InventoryNodeDictionary(this)); }
+            set => nodes = value;
         }
-
 
         public System.DateTime ModifyTime
         {
             get
             {
-                if (Data is InventoryItem)
+                if (Data is InventoryItem item)
                 {
-                    return ((InventoryItem)Data).CreationDate;
+                    return item.CreationDate;
                 }
-                DateTime newest = default(DateTime);//.MinValue;
+                DateTime newest = default(DateTime); //.MinValue;
                 if (Data is InventoryFolder)
                 {
                     foreach (var node in Nodes.Values)
@@ -101,6 +91,7 @@ namespace OpenMetaverse
                 return newest;
             }
         }
+
         public void Sort()
         {
             Nodes.Sort();
@@ -116,16 +107,10 @@ namespace OpenMetaverse
             set { needsUpdate = value; }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
         public InventoryNode()
         {
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
         /// <param name="data"></param>
         public InventoryNode(InventoryBase data)
         {
@@ -152,14 +137,9 @@ namespace OpenMetaverse
         /// </summary>
         public void GetObjectData(SerializationInfo info, StreamingContext ctxt)
         {
-            if(parent!=null)
-                info.AddValue("Parent", parent.Data.UUID, typeof(UUID)); //We need to track the parent UUID for de-serialization
-            else
-                info.AddValue("Parent", UUID.Zero, typeof(UUID));
-
+            info.AddValue("Parent", parent?.Data.UUID ?? UUID.Zero, typeof(UUID));
             info.AddValue("Type", data.GetType(), typeof(Type));
-
-            data.GetObjectData(info, ctxt);  
+            data.GetObjectData(info, ctxt);
         }
 
         /// <summary>
@@ -175,14 +155,9 @@ namespace OpenMetaverse
             data = (InventoryBase) ctr.Invoke(new Object[] { info, ctxt });
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
         public override string ToString()
         {
-            if (this.Data == null) return "[Empty Node]";
-            return this.Data.ToString();
+            return this.Data == null ? "[Empty Node]" : this.Data.ToString();
         }
     }
 }

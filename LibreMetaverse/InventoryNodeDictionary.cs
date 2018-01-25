@@ -35,13 +35,13 @@ namespace OpenMetaverse
         protected Dictionary<UUID, InventoryNode> Dictionary = new Dictionary<UUID, InventoryNode>();
         protected InventoryNode parent;
         protected object syncRoot = new object();
-        public int Compare(UUID id1, UUID id2)
+        public int Compare(UUID x, UUID y)
         {
-            InventoryNode n1 = Get(id1);
-            InventoryNode n2 = Get(id2);
+            InventoryNode n1 = Get(x);
+            InventoryNode n2 = Get(y);
             int diff = NullCompare(n1, n2);
             if (diff != 0) return diff;
-            if (n1 == null) return id1.CompareTo(id2);
+            if (n1 == null) return x.CompareTo(y);
             DateTime t1 = n1.ModifyTime;
             DateTime t2 = n2.ModifyTime;
             diff = t1.CompareTo(t2);
@@ -56,12 +56,12 @@ namespace OpenMetaverse
                 if (diff != 0) return diff;
                 if (d1.Name != null)
                 {
-                    // both are not null.. due to NullCoimpare code
-                    diff = d1.Name.CompareTo(d2.Name);
+                    // both are not null.. due to NullCompare code
+                    diff = String.Compare(d1.Name, d2.Name, StringComparison.Ordinal);
                     if (diff != 0) return diff;
                 }
             }
-            return id1.CompareTo(id2);
+            return x.CompareTo(y);
         }
 
         private InventoryNode Get(UUID uuid)
@@ -81,13 +81,13 @@ namespace OpenMetaverse
 
         public InventoryNode Parent
         {
-            get { return parent; }
-            set { parent = value; }
+            get => parent;
+            set => parent = value;
         }
 
-        public object SyncRoot { get { return syncRoot; } }
+        public object SyncRoot => syncRoot;
 
-        public int Count { get { return Dictionary.Count; } }
+        public int Count => Dictionary.Count;
 
         public InventoryNodeDictionary(InventoryNode parentNode)
         {
@@ -97,7 +97,7 @@ namespace OpenMetaverse
 
         public InventoryNode this[UUID key]
         {
-            get { return (InventoryNode)this.Dictionary[key]; }
+            get => (InventoryNode)this.Dictionary[key];
             set
             {
                 value.Parent = parent;

@@ -31,14 +31,17 @@ using System.Runtime.Serialization.Formatters.Binary;
 
 namespace OpenMetaverse
 {
+    /// <inheritdoc />
     /// <summary>
     /// Exception class to identify inventory exceptions
     /// </summary>
     [Serializable]
     public class InventoryException : Exception
     {
-        public InventoryException(string message)
-            : base(message) { }
+        public InventoryException() : base() { }
+        public InventoryException(string message) : base(message) { }
+        protected InventoryException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
+        public InventoryException(string message, Exception innerException) : base(message, innerException) { }
     }
 
     /// <summary>
@@ -51,7 +54,6 @@ namespace OpenMetaverse
     /// </summary>
     public class Inventory
     {
-      
         /// <summary>The event subscribers, null of no subscribers</summary>
         private EventHandler<InventoryObjectUpdatedEventArgs> m_InventoryObjectUpdated;
 
@@ -61,8 +63,7 @@ namespace OpenMetaverse
         protected virtual void OnInventoryObjectUpdated(InventoryObjectUpdatedEventArgs e)
         {
             EventHandler<InventoryObjectUpdatedEventArgs> handler = m_InventoryObjectUpdated;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -85,8 +86,7 @@ namespace OpenMetaverse
         protected virtual void OnInventoryObjectRemoved(InventoryObjectRemovedEventArgs e)
         {
             EventHandler<InventoryObjectRemovedEventArgs> handler = m_InventoryObjectRemoved;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -109,8 +109,7 @@ namespace OpenMetaverse
         protected virtual void OnInventoryObjectAdded(InventoryObjectAddedEventArgs e)
         {
             EventHandler<InventoryObjectAddedEventArgs> handler = m_InventoryObjectAdded;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -129,7 +128,7 @@ namespace OpenMetaverse
         /// </summary>
         public InventoryFolder RootFolder
         {
-            get { return RootNode.Data as InventoryFolder; }
+            get => RootNode.Data as InventoryFolder;
             set 
             {
                 UpdateNodeFor(value);
@@ -142,7 +141,7 @@ namespace OpenMetaverse
         /// </summary>
         public InventoryFolder LibraryFolder
         {
-            get { return LibraryRootNode.Data as InventoryFolder; }
+            get => LibraryRootNode.Data as InventoryFolder;
             set
             {
                 UpdateNodeFor(value);
@@ -156,24 +155,14 @@ namespace OpenMetaverse
         /// <summary>
         /// The root node of the avatars inventory
         /// </summary>
-        public InventoryNode RootNode
-        {
-            get { return _RootNode; }
-        }
+        public InventoryNode RootNode => _RootNode;
 
         /// <summary>
         /// The root node of the default shared library
         /// </summary>
-        public InventoryNode LibraryRootNode
-        {
-            get { return _LibraryRootNode; }
-        }
+        public InventoryNode LibraryRootNode => _LibraryRootNode;
 
-        public UUID Owner {
-            get { return _Owner; }
-        }
-
-        private UUID _Owner;
+        public UUID Owner { get; }
 
         private GridClient Client;
         //private InventoryManager Manager;
@@ -186,7 +175,7 @@ namespace OpenMetaverse
         {
             Client = client;
             //Manager = manager;
-            _Owner = owner;
+            Owner = owner;
             if (owner == UUID.Zero)
                 Logger.Log("Inventory owned by nobody!", Helpers.LogLevel.Warning, Client);
             Items = new Dictionary<UUID, InventoryNode>();
@@ -250,8 +239,8 @@ namespace OpenMetaverse
                     if (Client.Settings.FETCH_MISSING_INVENTORY)
                     {
                         // Fetch the parent
-                        List<UUID> fetchreq = new List<UUID>(1);
-                        fetchreq.Add(item.ParentUUID);                        
+                        List<UUID> fetchreq = new List<UUID>(1) {item.ParentUUID};
+
                     }
                 }
 
@@ -433,14 +422,13 @@ namespace OpenMetaverse
                     else if(Items.TryGetValue(node.Data.UUID,out pnode))
                     {
                         //We already have this it must be a folder
-                        if (node.Data is InventoryFolder)
+                        if (node.Data is InventoryFolder cacheFolder)
                         {
-                            InventoryFolder cache_folder = (InventoryFolder)node.Data;
                             InventoryFolder server_folder = (InventoryFolder)pnode.Data;
 
-                            if (cache_folder.Version != server_folder.Version)
+                            if (cacheFolder.Version != server_folder.Version)
                             {
-                                Logger.DebugLog("Inventory Cache/Server version mismatch on " + node.Data.Name + " " + cache_folder.Version.ToString() + " vs " + server_folder.Version.ToString());
+                                Logger.DebugLog("Inventory Cache/Server version mismatch on " + node.Data.Name + " " + cacheFolder.Version.ToString() + " vs " + server_folder.Version.ToString());
                                 pnode.NeedsUpdate = true;
                                 dirty_folders.Add(node.Data.UUID);
                             }
@@ -479,7 +467,7 @@ namespace OpenMetaverse
                 }
 
                 if (del_nodes.Count == 0)
-                    stuck++;
+                    ++stuck;
                 else
                     stuck = 0;
 
@@ -541,39 +529,33 @@ namespace OpenMetaverse
     
     public class InventoryObjectUpdatedEventArgs : EventArgs
     {
-        private readonly InventoryBase m_OldObject;
-        private readonly InventoryBase m_NewObject;
-
-        public InventoryBase OldObject { get { return m_OldObject; } }        
-        public InventoryBase NewObject { get { return m_NewObject; } } 
+        public InventoryBase OldObject { get; }
+        public InventoryBase NewObject { get; }
 
         public InventoryObjectUpdatedEventArgs(InventoryBase oldObject, InventoryBase newObject)
         {
-            this.m_OldObject = oldObject;
-            this.m_NewObject = newObject;
+            this.OldObject = oldObject;
+            this.NewObject = newObject;
         }
     }
 
     public class InventoryObjectRemovedEventArgs : EventArgs
     {
-        private readonly InventoryBase m_Obj;
+        public InventoryBase Obj { get; }
 
-        public InventoryBase Obj { get { return m_Obj; } }
         public InventoryObjectRemovedEventArgs(InventoryBase obj)
         {
-            this.m_Obj = obj;
+            this.Obj = obj;
         }
     }
 
     public class InventoryObjectAddedEventArgs : EventArgs
     {
-        private readonly InventoryBase m_Obj;
-
-        public InventoryBase Obj { get { return m_Obj; } }
+        public InventoryBase Obj { get; }
 
         public InventoryObjectAddedEventArgs(InventoryBase obj)
         {
-            this.m_Obj = obj;
+            this.Obj = obj;
         }
     }
     #endregion EventArgs
