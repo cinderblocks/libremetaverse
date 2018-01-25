@@ -28,37 +28,24 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
 namespace OpenMetaverse.StructuredData
 {
-    /// <summary>
-    /// 
-    /// </summary>
     public enum OSDType
     {
-        /// <summary></summary>
         Unknown,
-        /// <summary></summary>
         Boolean,
-        /// <summary></summary>
         Integer,
-        /// <summary></summary>
         Real,
-        /// <summary></summary>
         String,
-        /// <summary></summary>
         UUID,
-        /// <summary></summary>
         Date,
-        /// <summary></summary>
         URI,
-        /// <summary></summary>
         Binary,
-        /// <summary></summary>
         Map,
-        /// <summary></summary>
         Array
     }
 
@@ -69,17 +56,21 @@ namespace OpenMetaverse.StructuredData
         Binary
     }
 
+    /// <inheritdoc />
     /// <summary>
-    /// 
+    /// OSD Exception
     /// </summary>
     [Serializable]
     public class OSDException : Exception
     {
         public OSDException(string message) : base(message) { }
+        public OSDException() : base() { }
+        public OSDException(string message, Exception innerException) : base(message, innerException) { }
+        protected OSDException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) : base(info, context) { }     
     }
 
     /// <summary>
-    /// 
+    /// OSD element base class
     /// </summary>
     public partial class OSD
     {
@@ -194,29 +185,55 @@ namespace OpenMetaverse.StructuredData
 
         public static OSD FromObject(object value)
         {
-            if (value == null) { return new OSD(); }
-            if (value is bool) { return new OSDBoolean((bool)value); }
-            if (value is int) { return new OSDInteger((int)value); }
-            if (value is uint) { return new OSDBinary((uint)value); }
-            if (value is short) { return new OSDInteger((short)value); }
-            if (value is ushort) { return new OSDInteger((ushort)value); }
-            if (value is sbyte) { return new OSDInteger((sbyte)value); }
-            if (value is byte) { return new OSDInteger((byte)value); }
-            if (value is double) { return new OSDReal((double)value); }
-            if (value is float) { return new OSDReal((float)value); }
-            if (value is string) { return new OSDString((string)value); }
-            if (value is UUID) { return new OSDUUID((UUID)value); }
-            if (value is DateTime) { return new OSDDate((DateTime)value); }
-            if (value is Uri) { return new OSDUri((Uri)value); }
-            if (value is byte[]) { return new OSDBinary((byte[])value); }
-            if (value is long) { return new OSDBinary((long)value); }
-            if (value is ulong) { return new OSDBinary((ulong)value); }
-            if (value is Vector2) { return FromVector2((Vector2)value); }
-            if (value is Vector3) { return FromVector3((Vector3)value); }
-            if (value is Vector3d) { return FromVector3d((Vector3d)value); }
-            if (value is Vector4) { return FromVector4((Vector4)value); }
-            if (value is Quaternion) { return FromQuaternion((Quaternion)value); }
-            if (value is Color4) { return FromColor4((Color4)value); }
+            switch (value)
+            {
+                case null:
+                    return new OSD();
+                case bool b:
+                    return new OSDBoolean(b);
+                case int i:
+                    return new OSDInteger(i);
+                case uint u:
+                    return new OSDBinary(u);
+                case short s:
+                    return new OSDInteger(s);
+                case ushort us:
+                    return new OSDInteger(us);
+                case sbyte sb:
+                    return new OSDInteger(sb);
+                case byte by:
+                    return new OSDInteger(by);
+                case double d:
+                    return new OSDReal(d);
+                case float f:
+                    return new OSDReal(f);
+                case string str:
+                    return new OSDString(str);
+                case UUID uuid:
+                    return new OSDUUID(uuid);
+                case DateTime time:
+                    return new OSDDate(time);
+                case Uri uri:
+                    return new OSDUri(uri);
+                case byte[] bytes:
+                    return new OSDBinary(bytes);
+                case long l:
+                    return new OSDBinary(l);
+                case ulong ul:
+                    return new OSDBinary(ul);
+                case Vector2 vector2:
+                    return FromVector2(vector2);
+                case Vector3 vector3:
+                    return FromVector3(vector3);
+                case Vector3d vector3D:
+                    return FromVector3d(vector3D);
+                case Vector4 vector4:
+                    return FromVector4(vector4);
+                case Quaternion quaternion:
+                    return FromQuaternion(quaternion);
+                case Color4 color4:
+                    return FromColor4(color4);
+            }
             return new OSD();
         }
 
@@ -415,7 +432,7 @@ namespace OpenMetaverse.StructuredData
     }
 
     /// <summary>
-    ///
+    /// OSD Boolean Element
     /// </summary>
     public sealed class OSDBoolean : OSD
     {
@@ -442,7 +459,7 @@ namespace OpenMetaverse.StructuredData
     }
 
     /// <summary>
-    ///
+    /// OSD Integer Element
     /// </summary>
     public sealed class OSDInteger : OSD
     {
@@ -469,7 +486,7 @@ namespace OpenMetaverse.StructuredData
     }
 
     /// <summary>
-    ///
+    /// OSD Floating point Element
     /// </summary>
     public sealed class OSDReal : OSD
     {
@@ -537,7 +554,7 @@ namespace OpenMetaverse.StructuredData
     }
 
     /// <summary>
-    ///
+    /// OSD String Element
     /// </summary>
     public sealed class OSDString : OSD
     {
@@ -558,7 +575,7 @@ namespace OpenMetaverse.StructuredData
             if (string.IsNullOrEmpty(_mString))
                 return false;
 
-            return _mString != "0" && _mString.ToLower() != "false";
+            return _mString != "0" && !string.Equals(_mString, "false", StringComparison.OrdinalIgnoreCase);
         }
 
         public override int AsInteger()
@@ -621,7 +638,7 @@ namespace OpenMetaverse.StructuredData
     }
 
     /// <summary>
-    ///
+    /// OSD UUID Element
     /// </summary>
     public sealed class OSDUUID : OSD
     {
@@ -643,7 +660,7 @@ namespace OpenMetaverse.StructuredData
     }
 
     /// <summary>
-    ///
+    /// OSD DateTime Element
     /// </summary>
     public sealed class OSDDate : OSD
     {
@@ -694,7 +711,7 @@ namespace OpenMetaverse.StructuredData
     }
 
     /// <summary>
-    ///
+    /// OSD Uri Element
     /// </summary>
     public sealed class OSDUri : OSD
     {
@@ -720,7 +737,7 @@ namespace OpenMetaverse.StructuredData
     }
 
     /// <summary>
-    ///
+    /// OSD Binary Element
     /// </summary>
     public sealed class OSDBinary : OSD
     {
@@ -818,7 +835,7 @@ namespace OpenMetaverse.StructuredData
     }
 
     /// <summary>
-    ///
+    /// OSD Map Element
     /// </summary>
     public sealed class OSDMap : OSD, IDictionary<string, OSD>
     {
@@ -936,7 +953,7 @@ namespace OpenMetaverse.StructuredData
     }
 
     /// <summary>
-    ///
+    /// OSD Array Element
     /// </summary>
     public sealed class OSDArray : OSD, IList<OSD>
     {
@@ -1092,18 +1109,18 @@ namespace OpenMetaverse.StructuredData
 
         public OSD this[int index]
         {
-            get { return _mArray[index]; }
-            set { _mArray[index] = value; }
+            get => _mArray[index];
+            set => _mArray[index] = value;
         }
 
-        public int IndexOf(OSD llsd)
+        public int IndexOf(OSD item)
         {
-            return _mArray.IndexOf(llsd);
+            return _mArray.IndexOf(item);
         }
 
-        public void Insert(int index, OSD llsd)
+        public void Insert(int index, OSD item)
         {
-            _mArray.Insert(index, llsd);
+            _mArray.Insert(index, item);
         }
 
         public void RemoveAt(int index)
@@ -1128,11 +1145,7 @@ namespace OpenMetaverse.StructuredData
 
         public bool Contains(string element)
         {
-            foreach (var t in _mArray)
-            {
-                if (t.Type == OSDType.String && t.AsString() == element) return true;
-            }
-            return false;
+            return _mArray.Any(t => t.Type == OSDType.String && t.AsString() == element);
         }
 
         public void CopyTo(OSD[] array, int index)
@@ -1160,10 +1173,10 @@ namespace OpenMetaverse.StructuredData
 
     public partial class OSDParser
     {
-        const string LLSD_BINARY_HEADER = "<? llsd/binary ?>";
-        const string LLSD_XML_HEADER = "<llsd>";
-        const string LLSD_XML_ALT_HEADER = "<?xml";
-        const string LLSD_XML_ALT2_HEADER = "<? llsd/xml ?>";
+        private const string LLSD_BINARY_HEADER = "<? llsd/binary ?>";
+        private const string LLSD_XML_HEADER = "<llsd>";
+        private const string LLSD_XML_ALT_HEADER = "<?xml";
+        private const string LLSD_XML_ALT2_HEADER = "<? llsd/xml ?>";
 
         public static OSD Deserialize(byte[] data)
         {
