@@ -42,6 +42,8 @@ namespace LibreMetaverse
             var content = new StringContent(newInventory.ToString()); // Total guess for now!
             var req = httpClient.PostAsync(url, content);
             var reply = await req;
+
+            callback();
         }
 
         public async Task SlamFolder(UUID folderUuid, OSD newInventory, Action callback)
@@ -60,6 +62,8 @@ namespace LibreMetaverse
             var content = new StringContent(newInventory.ToString()); // Total guess for now!
             var req = httpClient.PutAsync(url, content);
             var reply = await req;
+
+            callback();
         }
 
         public async Task RemoveCategory(UUID categoryUuid, Action callback)
@@ -77,6 +81,8 @@ namespace LibreMetaverse
 
             var op = httpClient.DeleteAsync(url);
             var reply = await op;
+
+            callback();
         }
 
         public async Task RemoveItem(UUID itemUuid, Action callback)
@@ -93,6 +99,8 @@ namespace LibreMetaverse
 
             var op = httpClient.DeleteAsync(url);
             var reply = await op;
+
+            callback();
         }
 
         public async Task CopyLibraryCategory(UUID sourceUuid, UUID destUuid, bool copySubfolders, Action callback)
@@ -114,6 +122,8 @@ namespace LibreMetaverse
             message.Method = new HttpMethod("COPY");
             var req = httpClient.SendAsync(message);
             var reply = await req;
+
+            callback();
         }
 
         public async Task PurgeDescendents(UUID categoryUuid, Action callback)
@@ -130,6 +140,8 @@ namespace LibreMetaverse
 
             var op = httpClient.DeleteAsync(url);
             var reply = await op;
+
+            callback();
         }
 
         public async Task UpdateCategory(UUID categoryUuid, OSD updates, Action callback)
@@ -148,6 +160,8 @@ namespace LibreMetaverse
             message.Method = new HttpMethod("PATCH");
             var req = httpClient.SendAsync(message);
             var reply = await req;
+
+            callback();
         }
 
         public async Task UpdateItem(UUID itemUuid, OSD updates, Action callback)
@@ -166,6 +180,8 @@ namespace LibreMetaverse
             message.Method = new HttpMethod("PATCH");
             var req = httpClient.SendAsync(message);
             var reply = await req;
+
+            callback();
         }
 
         private Uri getInventoryCap()
