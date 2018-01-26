@@ -28,12 +28,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Text.RegularExpressions;
 using System.Threading;
-using System.Text;
 using System.Runtime.Serialization;
 using OpenMetaverse.Http;
-using OpenMetaverse.Imaging;
 using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Packets;
@@ -1374,7 +1371,7 @@ namespace OpenMetaverse
 
             // Register extra parameters with login and parse the inventory data that comes back
             Client.Network.RegisterLoginResponseCallback(
-                new NetworkManager.LoginResponseCallback(Network_OnLoginResponse),
+                Network_OnLoginResponse,
                 new string[] {
                     "inventory-root", "inventory-skeleton", "inventory-lib-root",
                     "inventory-lib-owner", "inventory-skel-lib"});
@@ -1474,7 +1471,7 @@ namespace OpenMetaverse
         /// <param name="itemIDs">Inventory items to request</param>
         /// <param name="ownerIDs">Owners of the inventory items</param>
         /// <seealso cref="InventoryManager.OnItemReceived"/>
-        private void RequestFetchInventoryCap(List<UUID> itemIDs, List<UUID> ownerIDs)
+        private void RequestFetchInventoryCap(IReadOnlyList<UUID> itemIDs, IReadOnlyList<UUID> ownerIDs)
         {
             if (itemIDs.Count != ownerIDs.Count)
                 throw new ArgumentException("itemIDs and ownerIDs must contain the same number of entries");
@@ -1997,15 +1994,22 @@ namespace OpenMetaverse
                 }
             }
 
-            UpdateInventoryFolderPacket invFolder = new UpdateInventoryFolderPacket();
-            invFolder.AgentData.AgentID = Client.Self.AgentID;
-            invFolder.AgentData.SessionID = Client.Self.SessionID;
-            invFolder.FolderData = new UpdateInventoryFolderPacket.FolderDataBlock[1];
-            invFolder.FolderData[0] = new UpdateInventoryFolderPacket.FolderDataBlock();
-            invFolder.FolderData[0].FolderID = folderID;
-            invFolder.FolderData[0].ParentID = parentID;
-            invFolder.FolderData[0].Name = Utils.StringToBytes(name);
-            invFolder.FolderData[0].Type = (sbyte)type;
+            var invFolder = new UpdateInventoryFolderPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                FolderData = new UpdateInventoryFolderPacket.FolderDataBlock[1]
+            };
+            invFolder.FolderData[0] = new UpdateInventoryFolderPacket.FolderDataBlock
+            {
+                FolderID = folderID,
+                ParentID = parentID,
+                Name = Utils.StringToBytes(name),
+                Type = (sbyte) type
+            };
 
             Client.Network.SendPacket(invFolder);
         }
@@ -2027,15 +2031,21 @@ namespace OpenMetaverse
                 }
             }
 
-            MoveInventoryFolderPacket move = new MoveInventoryFolderPacket();
-            move.AgentData.AgentID = Client.Self.AgentID;
-            move.AgentData.SessionID = Client.Self.SessionID;
-            move.AgentData.Stamp = false; //FIXME: ??
-
-            move.InventoryData = new MoveInventoryFolderPacket.InventoryDataBlock[1];
-            move.InventoryData[0] = new MoveInventoryFolderPacket.InventoryDataBlock();
-            move.InventoryData[0].FolderID = folderID;
-            move.InventoryData[0].ParentID = newParentID;
+            var move = new MoveInventoryFolderPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    Stamp = false //FIXME: ??
+                },
+                InventoryData = new MoveInventoryFolderPacket.InventoryDataBlock[1]
+            };
+            move.InventoryData[0] = new MoveInventoryFolderPacket.InventoryDataBlock
+            {
+                FolderID = folderID,
+                ParentID = newParentID
+            };
 
             Client.Network.SendPacket(move);
         }
@@ -2065,19 +2075,26 @@ namespace OpenMetaverse
             }
 
             //TODO: Test if this truly supports multiple-folder move
-            MoveInventoryFolderPacket move = new MoveInventoryFolderPacket();
-            move.AgentData.AgentID = Client.Self.AgentID;
-            move.AgentData.SessionID = Client.Self.SessionID;
-            move.AgentData.Stamp = false; //FIXME: ??
+            var move = new MoveInventoryFolderPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    Stamp = false //FIXME: ??
+                },
+                InventoryData = new MoveInventoryFolderPacket.InventoryDataBlock[foldersNewParents.Count]
+            };
 
-            move.InventoryData = new MoveInventoryFolderPacket.InventoryDataBlock[foldersNewParents.Count];
 
             int index = 0;
             foreach (KeyValuePair<UUID, UUID> folder in foldersNewParents)
             {
-                MoveInventoryFolderPacket.InventoryDataBlock block = new MoveInventoryFolderPacket.InventoryDataBlock();
-                block.FolderID = folder.Key;
-                block.ParentID = folder.Value;
+                var block = new MoveInventoryFolderPacket.InventoryDataBlock
+                {
+                    FolderID = folder.Key,
+                    ParentID = folder.Value
+                };
                 move.InventoryData[index++] = block;
             }
 
@@ -2117,16 +2134,22 @@ namespace OpenMetaverse
                 }
             }
 
-            MoveInventoryItemPacket move = new MoveInventoryItemPacket();
-            move.AgentData.AgentID = Client.Self.AgentID;
-            move.AgentData.SessionID = Client.Self.SessionID;
-            move.AgentData.Stamp = false; //FIXME: ??
-
-            move.InventoryData = new MoveInventoryItemPacket.InventoryDataBlock[1];
-            move.InventoryData[0] = new MoveInventoryItemPacket.InventoryDataBlock();
-            move.InventoryData[0].ItemID = itemID;
-            move.InventoryData[0].FolderID = folderID;
-            move.InventoryData[0].NewName = Utils.StringToBytes(newName);
+            var move = new MoveInventoryItemPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    Stamp = false //FIXME: ??
+                },
+                InventoryData = new MoveInventoryItemPacket.InventoryDataBlock[1]
+            };
+            move.InventoryData[0] = new MoveInventoryItemPacket.InventoryDataBlock
+            {
+                ItemID = itemID,
+                FolderID = folderID,
+                NewName = Utils.StringToBytes(newName)
+            };
 
             Client.Network.SendPacket(move);
         }
@@ -2152,20 +2175,26 @@ namespace OpenMetaverse
                 }
             }
 
-            MoveInventoryItemPacket move = new MoveInventoryItemPacket();
-            move.AgentData.AgentID = Client.Self.AgentID;
-            move.AgentData.SessionID = Client.Self.SessionID;
-            move.AgentData.Stamp = false; //FIXME: ??
-
-            move.InventoryData = new MoveInventoryItemPacket.InventoryDataBlock[itemsNewParents.Count];
-
+            var move = new MoveInventoryItemPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    Stamp = false //FIXME: ??
+                },
+                InventoryData = new MoveInventoryItemPacket.InventoryDataBlock[itemsNewParents.Count]
+            };
+            
             int index = 0;
             foreach (KeyValuePair<UUID, UUID> entry in itemsNewParents)
             {
-                MoveInventoryItemPacket.InventoryDataBlock block = new MoveInventoryItemPacket.InventoryDataBlock();
-                block.ItemID = entry.Key;
-                block.FolderID = entry.Value;
-                block.NewName = Utils.EmptyBytes;
+                var block = new MoveInventoryItemPacket.InventoryDataBlock
+                {
+                    ItemID = entry.Key,
+                    FolderID = entry.Value,
+                    NewName = Utils.EmptyBytes
+                };
                 move.InventoryData[index++] = block;
             }
 
