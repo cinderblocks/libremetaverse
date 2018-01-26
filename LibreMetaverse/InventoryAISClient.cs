@@ -6,7 +6,7 @@ using OpenMetaverse.StructuredData;
 
 namespace LibreMetaverse
 {
-    class InventoryAISClient
+    public class InventoryAISClient
     {
         public const string INVENTORY_CAP_NAME = "InventoryAPIv3";
         public const string LIBRARY_CAP_NAME = "LibraryAPIv3";
