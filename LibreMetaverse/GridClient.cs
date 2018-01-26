@@ -25,6 +25,7 @@
  */
 
 using System;
+using LibreMetaverse;
 
 namespace OpenMetaverse
 {
@@ -87,12 +88,13 @@ namespace OpenMetaverse
         public GroupManager Groups;
         /// <summary>Asset subsystem</summary>
         public AssetManager Assets;
+        /// <summary>Inventory AIS client</summary>
+        public InventoryAISClient AisClient;
         /// <summary>Appearance subsystem</summary>
         public AppearanceManager Appearance;
         /// <summary>Inventory subsystem</summary>
         public InventoryManager Inventory;
-        /// <summary>Directory searches including classifieds, people, land 
-        /// sales, etc</summary>
+        /// <summary>Directory searches including classifieds, people, land sales, etc</summary>
         public DirectoryManager Directory;
         /// <summary>Handles land, wind, and cloud heightmaps</summary>
         public TerrainManager Terrain;
@@ -126,13 +128,14 @@ namespace OpenMetaverse
             Objects = new ObjectManager(this);
             Groups = new GroupManager(this);
             Assets = new AssetManager(this);
+            AisClient = new InventoryAISClient(this);
             Appearance = new AppearanceManager(this);
             Inventory = new InventoryManager(this);
             Directory = new DirectoryManager(this);
             Terrain = new TerrainManager(this);
             Sound = new SoundManager(this);
             Throttle = new AgentThrottle(this);
-            Stats = new OpenMetaverse.Stats.UtilizationStatistics();            
+            Stats = new OpenMetaverse.Stats.UtilizationStatistics();
         }
 
         /// <summary>
