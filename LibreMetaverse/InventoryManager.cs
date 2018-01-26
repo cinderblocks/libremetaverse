@@ -978,20 +978,17 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Convert InventoryItem to OSD
+        /// Convert InventoryFolder to OSD
         /// </summary>
-        /// <returns>OSD representation of InventoryItem</returns>
+        /// <returns>OSD representation of InventoryFolder</returns>
         public override OSD GetOSD()
         {
             OSDMap res = new OSDMap(4)
             {
-                ["name"] = Name,
-                ["type_default"] = (int) PreferredType,
-                ["folder_id"] = UUID,
-                ["descendents"] = DescendentCount,
-                ["version"] = Version,
-                ["owner_id"] = OwnerID,
-                ["parent_id"] = ParentUUID
+                ["item_id"] = UUID,
+                ["parent_id"] = ParentUUID,
+                ["type"] = (sbyte) PreferredType,
+                ["name"] = Name
             };
             return res;
         }
