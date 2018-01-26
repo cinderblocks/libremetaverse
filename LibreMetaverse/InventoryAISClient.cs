@@ -75,7 +75,6 @@ namespace LibreMetaverse
                 return;
             }
 
-            UUID tid = new UUID();
             string url = $"{cap}/category/{categoryUuid}";
             Logger.Log("url: " + url, Helpers.LogLevel.Debug, Client);
 
@@ -126,7 +125,7 @@ namespace LibreMetaverse
             callback();
         }
 
-        public async Task PurgeDescendents(UUID categoryUuid, Action callback)
+        public async Task PurgeDescendents(UUID categoryUuid, Action<UUID> callback)
         {
             var cap = getInventoryCap();
             if (cap == null)
@@ -141,7 +140,7 @@ namespace LibreMetaverse
             var op = httpClient.DeleteAsync(url);
             var reply = await op;
 
-            callback();
+            callback(categoryUuid);
         }
 
         public async Task UpdateCategory(UUID categoryUuid, OSD updates, Action callback)
@@ -156,8 +155,11 @@ namespace LibreMetaverse
             string url = $"{cap}/category/{categoryUuid}";
             Logger.Log("url: " + url, Helpers.LogLevel.Debug, Client);
 
-            HttpRequestMessage message = new HttpRequestMessage();
-            message.Method = new HttpMethod("PATCH");
+            HttpRequestMessage message = new HttpRequestMessage
+            {
+                Method = new HttpMethod("PATCH"),
+                Content = new StringContent(updates.ToString())
+            };
             var req = httpClient.SendAsync(message);
             var reply = await req;
 
@@ -176,8 +178,11 @@ namespace LibreMetaverse
             string url = $"{cap}/item/{itemUuid}";
             Logger.Log("url: " + url, Helpers.LogLevel.Debug, Client);
 
-            HttpRequestMessage message = new HttpRequestMessage();
-            message.Method = new HttpMethod("PATCH");
+            HttpRequestMessage message = new HttpRequestMessage
+            {
+                Method = new HttpMethod("PATCH"),
+                Content = new StringContent(updates.ToString())
+            };
             var req = httpClient.SendAsync(message);
             var reply = await req;
 

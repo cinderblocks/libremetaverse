@@ -30,6 +30,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Runtime.Serialization;
+using System.Threading.Tasks;
 using OpenMetaverse.Http;
 using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.StructuredData;
@@ -1982,11 +1983,12 @@ namespace OpenMetaverse
         /// <param name="type">Folder type</param>
         public void UpdateFolderProperties(UUID folderID, UUID parentID, string name, FolderType type)
         {
+            InventoryFolder inv = null;
             lock (Store)
             {
                 if (_Store.Contains(folderID))
                 {
-                    InventoryFolder inv = (InventoryFolder)Store[folderID];
+                    inv = (InventoryFolder)Store[folderID];
                     inv.Name = name;
                     inv.ParentUUID = parentID;
                     inv.PreferredType = type;
@@ -1994,24 +1996,34 @@ namespace OpenMetaverse
                 }
             }
 
-            var invFolder = new UpdateInventoryFolderPacket
+            if (Client.AisClient.IsAvailable)
             {
-                AgentData =
+                if (inv != null)
                 {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                FolderData = new UpdateInventoryFolderPacket.FolderDataBlock[1]
-            };
-            invFolder.FolderData[0] = new UpdateInventoryFolderPacket.FolderDataBlock
+                    Client.AisClient.UpdateCategory(folderID, inv.GetOSD(), null).ConfigureAwait(false);
+                }
+            }
+            else
             {
-                FolderID = folderID,
-                ParentID = parentID,
-                Name = Utils.StringToBytes(name),
-                Type = (sbyte) type
-            };
+                var invFolder = new UpdateInventoryFolderPacket
+                {
+                    AgentData =
+                    {
+                        AgentID = Client.Self.AgentID,
+                        SessionID = Client.Self.SessionID
+                    },
+                    FolderData = new UpdateInventoryFolderPacket.FolderDataBlock[1]
+                };
+                invFolder.FolderData[0] = new UpdateInventoryFolderPacket.FolderDataBlock
+                {
+                    FolderID = folderID,
+                    ParentID = parentID,
+                    Name = Utils.StringToBytes(name),
+                    Type = (sbyte) type
+                };
 
-            Client.Network.SendPacket(invFolder);
+                Client.Network.SendPacket(invFolder);
+            }
         }
 
         /// <summary>
@@ -2211,6 +2223,24 @@ namespace OpenMetaverse
         /// <param name="folder">The <seealso cref="UUID"/> of the folder</param>
         public void RemoveDescendants(UUID folder)
         {
+            void UpdateUi(UUID f)
+            {
+                lock (_Store)
+                {
+                    if (!_Store.Contains(f)) return;
+                    foreach (InventoryBase obj in _Store.GetContents(f))
+                    {
+                        _Store.RemoveNodeFor(obj);
+                    }
+                }
+            }
+
+            if (Client.AisClient.IsAvailable)
+            {
+                Client.AisClient.PurgeDescendents(folder, UpdateUi).ConfigureAwait(false);
+            }
+            else
+            {
                 var purge = new PurgeInventoryDescendentsPacket
                 {
                     AgentData =
@@ -2218,21 +2248,10 @@ namespace OpenMetaverse
                         AgentID = Client.Self.AgentID,
                         SessionID = Client.Self.SessionID
                     },
-                    InventoryData = { FolderID = folder }
+                    InventoryData = {FolderID = folder}
                 };
                 Client.Network.SendPacket(purge);
-
-            // Update our local copy
-            lock (_Store)
-            {
-                if (_Store.Contains(folder))
-                {
-                    List<InventoryBase> contents = _Store.GetContents(folder);
-                    foreach (InventoryBase obj in contents)
-                    {
-                        _Store.RemoveNodeFor(obj);
-                    }
-                }
+                UpdateUi(folder);
             }
         }
 
@@ -2636,29 +2655,48 @@ namespace OpenMetaverse
         /// <param name="callback">Method to call upon creation of the link</param>
         public void CreateLink(UUID folderID, UUID itemID, string name, string description, AssetType assetType, InventoryType invType, UUID transactionID, ItemCreatedCallback callback)
         {
-            LinkInventoryItemPacket create = new LinkInventoryItemPacket
+            if (Client.AisClient.IsAvailable)
             {
-                AgentData =
+                OSDArray links = new OSDArray();
+                OSDMap link = new OSDMap
                 {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                InventoryBlock = {CallbackID = RegisterItemCreatedCallback(callback)}
-            };
+                    ["linked_id"] = OSD.FromUUID(itemID),
+                    ["type"] = OSD.FromString(Utils.AssetTypeToString(assetType)),
+                    ["inv_type"] = OSD.FromString(Utils.InventoryTypeToString(invType)),
+                    ["name"] = OSD.FromString(name),
+                    ["desc"] = OSD.FromString(description)
+                };
+                links.Add(link);
 
-            lock (_ItemInventoryTypeRequest)
-            {
-                _ItemInventoryTypeRequest[create.InventoryBlock.CallbackID] = invType;
+                OSDMap newInventory = new OSDMap {{"links", links}};
+                Client.AisClient.CreateInventory(folderID, newInventory, null).ConfigureAwait(false);
             }
-            create.InventoryBlock.FolderID = folderID;
-            create.InventoryBlock.TransactionID = transactionID;
-            create.InventoryBlock.OldItemID = itemID;
-            create.InventoryBlock.Type = (sbyte)assetType;
-            create.InventoryBlock.InvType = (sbyte)invType;
-            create.InventoryBlock.Name = Utils.StringToBytes(name);
-            create.InventoryBlock.Description = Utils.StringToBytes(description);
+            else
+            {
+                LinkInventoryItemPacket create = new LinkInventoryItemPacket
+                {
+                    AgentData =
+                    {
+                        AgentID = Client.Self.AgentID,
+                        SessionID = Client.Self.SessionID
+                    },
+                    InventoryBlock = {CallbackID = RegisterItemCreatedCallback(callback)}
+                };
 
-            Client.Network.SendPacket(create);
+                lock (_ItemInventoryTypeRequest)
+                {
+                    _ItemInventoryTypeRequest[create.InventoryBlock.CallbackID] = invType;
+                }
+                create.InventoryBlock.FolderID = folderID;
+                create.InventoryBlock.TransactionID = transactionID;
+                create.InventoryBlock.OldItemID = itemID;
+                create.InventoryBlock.Type = (sbyte) assetType;
+                create.InventoryBlock.InvType = (sbyte) invType;
+                create.InventoryBlock.Name = Utils.StringToBytes(name);
+                create.InventoryBlock.Description = Utils.StringToBytes(description);
+
+                Client.Network.SendPacket(create);
+            }
         }
 
         #endregion Create
@@ -2827,8 +2865,33 @@ namespace OpenMetaverse
         /// <param name="transactionID"></param>
         public void RequestUpdateItems(List<InventoryItem> items, UUID transactionID)
         {
-            UpdateInventoryItemPacket update =
-                new UpdateInventoryItemPacket
+            if (Client.AisClient.IsAvailable)
+            {
+                foreach (var item in items)
+                {
+                    OSDMap update = (OSDMap)item.GetOSD();
+                    if (update.ContainsKey("asset_id"))
+                    {
+                        update.Remove("asset_id");
+                        if (item.TransactionID != UUID.Zero)
+                        {
+                            update["hash_id"] = item.TransactionID;
+                        }
+                    }
+                    if (update.ContainsKey("shadow_id"))
+                    {
+                        update.Remove("shadow_id");
+                        if (item.TransactionID != UUID.Zero)
+                        {
+                            update["hash_id"] = item.TransactionID;
+                        }
+                    }
+                    Client.AisClient.UpdateItem(item.UUID, update, null).ConfigureAwait(false);
+                }
+            }
+            else
+            {
+                var update = new UpdateInventoryItemPacket
                 {
                     AgentData =
                     {
@@ -2839,39 +2902,40 @@ namespace OpenMetaverse
                     InventoryData = new UpdateInventoryItemPacket.InventoryDataBlock[items.Count]
                 };
 
-            for (int i = 0; i < items.Count; i++)
-            {
-                InventoryItem item = items[i];
-
-                var block = new UpdateInventoryItemPacket.InventoryDataBlock
+                for (int i = 0; i < items.Count; i++)
                 {
-                    BaseMask = (uint) item.Permissions.BaseMask,
-                    CRC = ItemCRC(item),
-                    CreationDate = (int) Utils.DateTimeToUnixTime(item.CreationDate),
-                    CreatorID = item.CreatorID,
-                    Description = Utils.StringToBytes(item.Description),
-                    EveryoneMask = (uint) item.Permissions.EveryoneMask,
-                    Flags = (uint) item.Flags,
-                    FolderID = item.ParentUUID,
-                    GroupID = item.GroupID,
-                    GroupMask = (uint) item.Permissions.GroupMask,
-                    GroupOwned = item.GroupOwned,
-                    InvType = (sbyte) item.InventoryType,
-                    ItemID = item.UUID,
-                    Name = Utils.StringToBytes(item.Name),
-                    NextOwnerMask = (uint) item.Permissions.NextOwnerMask,
-                    OwnerID = item.OwnerID,
-                    OwnerMask = (uint) item.Permissions.OwnerMask,
-                    SalePrice = item.SalePrice,
-                    SaleType = (byte) item.SaleType,
-                    TransactionID = item.TransactionID,
-                    Type = (sbyte) item.AssetType
-                };
+                    InventoryItem item = items[i];
 
-                update.InventoryData[i] = block;
+                    var block = new UpdateInventoryItemPacket.InventoryDataBlock
+                    {
+                        BaseMask = (uint) item.Permissions.BaseMask,
+                        CRC = ItemCRC(item),
+                        CreationDate = (int) Utils.DateTimeToUnixTime(item.CreationDate),
+                        CreatorID = item.CreatorID,
+                        Description = Utils.StringToBytes(item.Description),
+                        EveryoneMask = (uint) item.Permissions.EveryoneMask,
+                        Flags = (uint) item.Flags,
+                        FolderID = item.ParentUUID,
+                        GroupID = item.GroupID,
+                        GroupMask = (uint) item.Permissions.GroupMask,
+                        GroupOwned = item.GroupOwned,
+                        InvType = (sbyte) item.InventoryType,
+                        ItemID = item.UUID,
+                        Name = Utils.StringToBytes(item.Name),
+                        NextOwnerMask = (uint) item.Permissions.NextOwnerMask,
+                        OwnerID = item.OwnerID,
+                        OwnerMask = (uint) item.Permissions.OwnerMask,
+                        SalePrice = item.SalePrice,
+                        SaleType = (byte) item.SaleType,
+                        TransactionID = item.TransactionID,
+                        Type = (sbyte) item.AssetType
+                    };
+
+                    update.InventoryData[i] = block;
+                }
+
+                Client.Network.SendPacket(update);
             }
-
-            Client.Network.SendPacket(update);
         }
 
         /// <summary>
