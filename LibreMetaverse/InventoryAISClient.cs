@@ -120,9 +120,12 @@ namespace LibreMetaverse
                 url += ",depth=0";
             Logger.Log("url: " + url, Helpers.LogLevel.Debug, Client);
 
-            HttpRequestMessage message = new HttpRequestMessage();
-            message.RequestUri = new Uri(url);
-            message.Method = new HttpMethod("COPY");
+            HttpRequestMessage message = new HttpRequestMessage
+            {
+                RequestUri = new Uri(url),
+                Method = new HttpMethod("COPY")
+            };
+            message.Headers.Add("Destination", destUuid.ToString());
             var req = httpClient.SendAsync(message);
             var reply = await req;
 
