@@ -111,9 +111,7 @@ namespace OpenMetaverse.Http
             {
                 _errorCount = 0;
                 // Got a response
-                OSDMap result = OSDParser.DeserializeLLSDXml(responseData) as OSDMap;
-
-                if (result != null)
+                if (OSDParser.DeserializeLLSDXml(responseData) is OSDMap result)
                 {
                     events = result["events"] as OSDArray;
                     ack = result["id"].AsInteger();
@@ -130,54 +128,54 @@ namespace OpenMetaverse.Http
 
                 HttpStatusCode code = HttpStatusCode.OK;
 
-                if (error is WebException)
+                if (error is WebException webException)
                 {
-                    WebException webException = (WebException)error;
-
                     if (webException.Response != null)
                         code = ((HttpWebResponse)webException.Response).StatusCode;
                     else if (webException.Status == WebExceptionStatus.RequestCanceled)
                         goto HandlingDone;
                 }
 
-                if (error is WebException && ((WebException)error).Response != null)
+                if ((error as WebException)?.Response != null)
                     code = ((HttpWebResponse)((WebException)error).Response).StatusCode;
 
-                if (code == HttpStatusCode.NotFound || code == HttpStatusCode.Gone)
+                switch (code)
                 {
-                    Logger.Log(String.Format("Closing event queue at {0} due to missing caps URI", _Address), Helpers.LogLevel.Info);
+                    case HttpStatusCode.NotFound:
+                    case HttpStatusCode.Gone:
+                        Logger.Log($"Closing event queue at {_Address} due to missing caps URI", Helpers.LogLevel.Info);
 
-                    _Running = false;
-                    _Dead = true;
-                }
-                else if (code == HttpStatusCode.BadGateway)
-                {
-                    // This is not good (server) protocol design, but it's normal.
-                    // The EventQueue server is a proxy that connects to a Squid
-                    // cache which will time out periodically. The EventQueue server
-                    // interprets this as a generic error and returns a 502 to us
-                    // that we ignore
-                }
-                else
-                {
-                    ++_errorCount;
+                        _Running = false;
+                        _Dead = true;
+                        break;
+                    case HttpStatusCode.BadGateway:
+                        // This is not good (server) protocol design, but it's normal.
+                        // The EventQueue server is a proxy that connects to a Squid
+                        // cache which will time out periodically. The EventQueue server
+                        // interprets this as a generic error and returns a 502 to us
+                        // that we ignore
+                        break;
+                    default:
+                        ++_errorCount;
 
-                    // Try to log a meaningful error message
-                    if (code != HttpStatusCode.OK)
-                    {
-                        Logger.Log(String.Format("Unrecognized caps connection problem from {0}: {1}",
-                            _Address, code), Helpers.LogLevel.Warning);
-                    }
-                    else if (error.InnerException != null)
-                    {
-                        Logger.Log(String.Format("Unrecognized internal caps exception from {0}: {1}",
-                            _Address, error.InnerException.Message), Helpers.LogLevel.Warning);
-                    }
-                    else
-                    {
-                        Logger.Log(String.Format("Unrecognized caps exception from {0}: {1}",
-                            _Address, error.Message), Helpers.LogLevel.Warning);
-                    }
+                        // Try to log a meaningful error message
+                        if (code != HttpStatusCode.OK)
+                        {
+                            Logger.Log($"Unrecognized caps connection problem from {_Address}: {code}", 
+                                Helpers.LogLevel.Warning);
+                        }
+                        else if (error.InnerException != null)
+                        {
+                            Logger.Log(
+                                $"Unrecognized internal caps exception from {_Address}: {error.InnerException.Message}",
+                                Helpers.LogLevel.Warning);
+                        }
+                        else
+                        {
+                            Logger.Log($"Unrecognized caps exception from {_Address}: {error.Message}",
+                                Helpers.LogLevel.Warning);
+                        }
+                        break;
                 }
 
                 #endregion Error handling
