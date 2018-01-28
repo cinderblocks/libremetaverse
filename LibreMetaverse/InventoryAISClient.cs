@@ -40,7 +40,7 @@ namespace LibreMetaverse
             {
                 UUID tid = new UUID();
                 string url = $"{cap}/category/{parentUuid}?tid={tid}";
-                var content = new StringContent(newInventory.ToString());
+                var content = new ByteArrayContent(OSDParser.SerializeLLSDXmlBytes(newInventory));
                 content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
                 var req = httpClient.PostAsync(url, content);
                 var reply = await req;
@@ -69,7 +69,7 @@ namespace LibreMetaverse
             {
                 UUID tid = new UUID();
                 string url = $"{cap}/category/{folderUuid}/links?tid={tid}";
-                var content = new StringContent(newInventory.ToString());
+                var content = new ByteArrayContent(OSDParser.SerializeLLSDXmlBytes(newInventory));
                 content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
                 var req = httpClient.PutAsync(url, content);
                 var reply = await req;
