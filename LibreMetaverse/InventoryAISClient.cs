@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
@@ -53,8 +54,7 @@ namespace LibreMetaverse
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
             }
-
-            callback();
+            callback?.Invoke();
         }
 
         public async Task SlamFolder(UUID folderUuid, OSD newInventory, Action callback)
@@ -83,8 +83,7 @@ namespace LibreMetaverse
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
             }
-
-            callback();
+            callback?.Invoke();
         }
 
         public async Task RemoveCategory(UUID categoryUuid, Action callback)
@@ -110,7 +109,7 @@ namespace LibreMetaverse
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
             }
-            callback();
+            callback?.Invoke();
         }
 
         public async Task RemoveItem(UUID itemUuid, Action callback)
@@ -136,7 +135,7 @@ namespace LibreMetaverse
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
             }
-            callback();
+            callback?.Invoke();
         }
 
         public async Task CopyLibraryCategory(UUID sourceUuid, UUID destUuid, bool copySubfolders, Action callback)
@@ -172,7 +171,7 @@ namespace LibreMetaverse
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
             }
-            callback();
+            callback?.Invoke();
         }
 
         public async Task PurgeDescendents(UUID categoryUuid, Action<UUID> callback)
@@ -198,7 +197,7 @@ namespace LibreMetaverse
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
             }
-            callback(categoryUuid);
+            callback?.Invoke(categoryUuid);
         }
 
         public async Task UpdateCategory(UUID categoryUuid, OSD updates, Action callback)
@@ -231,7 +230,7 @@ namespace LibreMetaverse
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
             }
-            callback();
+            callback?.Invoke();
         }
 
         public async Task UpdateItem(UUID itemUuid, OSD updates, Action callback)
@@ -264,7 +263,7 @@ namespace LibreMetaverse
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
             }
-            callback();
+            callback?.Invoke();
         }
 
         private Uri getInventoryCap()
