@@ -46,11 +46,11 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Inventory base ctor
         /// </summary>
         /// <param name="info"></param>
         /// <param name="ctxt"></param>
-        public InventoryBase(SerializationInfo info, StreamingContext ctxt)
+        protected InventoryBase(SerializationInfo info, StreamingContext ctxt)
         {
             UUID = (UUID)info.GetValue("UUID", typeof(UUID));
             ParentUUID = (UUID)info.GetValue("ParentUUID", typeof(UUID));
@@ -186,7 +186,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Inventory item ctor
         /// </summary>
         /// <param name="info"></param>
         /// <param name="ctxt"></param>
@@ -225,11 +225,11 @@ namespace OpenMetaverse
         /// <summary>
         /// Compares an object
         /// </summary>
-        /// <param name="o">The object to compare</param>
+        /// <param name="obj">The object to compare</param>
         /// <returns>true if comparison object matches</returns>
-        public override bool Equals(object o)
+        public override bool Equals(object obj)
         {
-            return o is InventoryItem item && Equals(item);
+            return obj is InventoryItem item && Equals(item);
         }
 
         /// <inheritdoc />
