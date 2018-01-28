@@ -1651,10 +1651,10 @@ namespace OpenMetaverse
                         if (resultMap.ContainsKey("folders"))
                         {
                             OSDArray fetchedFolders = (OSDArray)resultMap["folders"];
-                            foreach (OSD fetchedFolderNr in fetchedFolders)
+                            foreach (var fetchedFolderNr in fetchedFolders)
                             {
                                 OSDMap res = (OSDMap)fetchedFolderNr;
-                                InventoryFolder fetchedFolder = null;
+                                InventoryFolder fetchedFolder;
 
                                 if (_Store.Contains(res["folder_id"])
                                     && _Store[res["folder_id"]] is InventoryFolder)
@@ -1675,9 +1675,8 @@ namespace OpenMetaverse
                                 if (fetchedFolder.DescendentCount > 0)
                                 {
                                     // Fetch descendent folders
-                                    if (res["categories"] is OSDArray)
+                                    if (res["categories"] is OSDArray folders)
                                     {
-                                        OSDArray folders = (OSDArray)res["categories"];
                                         foreach (OSD cat in folders)
                                         {
                                             OSDMap descFolder = (OSDMap)cat;
@@ -1719,13 +1718,13 @@ namespace OpenMetaverse
                     }
                     catch (Exception exc)
                     {
-                        Logger.Log(string.Format("Failed to fetch inventory descendants: {0}\n{1}", 
-                            exc.Message, exc.StackTrace.ToString()), Helpers.LogLevel.Warning, Client);
+                        Logger.Log($"Failed to fetch inventory descendants: {exc.Message}\n" +
+                                   $"{exc.StackTrace.ToString()}", 
+                                   Helpers.LogLevel.Warning, Client);
                         foreach (var f in batch)
                         {
                             OnFolderUpdated(new FolderUpdatedEventArgs(f.UUID, false));
                         }
-                        return;
                     }
 
                 };
@@ -1751,8 +1750,9 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log(string.Format("Failed to fetch inventory descendants: {0}\n{1}", 
-                    ex.Message, ex.StackTrace.ToString()), Helpers.LogLevel.Warning, Client);
+                Logger.Log($"Failed to fetch inventory descendants: {ex.Message}\n" +
+                           $"{ex.StackTrace.ToString()}",
+                           Helpers.LogLevel.Warning, Client);
                 foreach (var f in batch)
                 {
                     OnFolderUpdated(new FolderUpdatedEventArgs(f.UUID, false));
@@ -1901,7 +1901,7 @@ namespace OpenMetaverse
 
             foreach (InventoryBase inv in contents)
             {
-                if (inv.Name.CompareTo(path[level]) == 0)
+                if (String.Compare(inv.Name, path[level], StringComparison.Ordinal) == 0)
                 {
                     if (level == path.Length - 1)
                     {
@@ -1909,7 +1909,9 @@ namespace OpenMetaverse
                         if (firstOnly) return objects;
                     }
                     else if (inv is InventoryFolder)
+                    {
                         objects.AddRange(LocalFind(inv.UUID, path, level + 1, firstOnly));
+                    }
                 }
             }
 
@@ -2657,7 +2659,7 @@ namespace OpenMetaverse
             }
             else
             {
-                LinkInventoryItemPacket create = new LinkInventoryItemPacket
+                var create = new LinkInventoryItemPacket
                 {
                     AgentData =
                     {
@@ -2733,7 +2735,7 @@ namespace OpenMetaverse
 
             uint callbackID = RegisterItemsCopiedCallback(callback);
 
-            CopyInventoryItemPacket copy = new CopyInventoryItemPacket
+            var copy = new CopyInventoryItemPacket
             {
                 AgentData =
                 {
@@ -2750,13 +2752,12 @@ namespace OpenMetaverse
                     CallbackID = callbackID,
                     NewFolderID = targetFolders[i],
                     OldAgentID = oldOwnerID,
-                    OldItemID = items[i]
+                    OldItemID = items[i],
+                    NewName = !String.IsNullOrEmpty(newNames?[i])
+                        ? Utils.StringToBytes(newNames[i])
+                        : Utils.EmptyBytes
                 };
 
-                if (newNames != null && !String.IsNullOrEmpty(newNames[i]))
-                    copy.InventoryData[i].NewName = Utils.StringToBytes(newNames[i]);
-                else
-                    copy.InventoryData[i].NewName = Utils.EmptyBytes;
             }
 
             Client.Network.SendPacket(copy);
@@ -3312,10 +3313,7 @@ namespace OpenMetaverse
         public void GiveItem(UUID itemID, string itemName, AssetType assetType, UUID recipient,
             bool doEffect)
         {
-            byte[] bucket;
-
-
-            bucket = new byte[17];
+            var bucket = new byte[17];
             bucket[0] = (byte)assetType;
             Buffer.BlockCopy(itemID.GetBytes(), 0, bucket, 1, 16);
 
@@ -3358,8 +3356,6 @@ namespace OpenMetaverse
         public void GiveFolder(UUID folderID, string folderName, AssetType assetType, UUID recipient,
             bool doEffect)
         {
-            byte[] bucket;
-
             List<InventoryItem> folderContents = new List<InventoryItem>();
 
             Client.Inventory.FolderContents(folderID, Client.Self.AgentID, false, true, InventorySortOrder.ByDate, 1000 * 15).ForEach(
@@ -3367,7 +3363,7 @@ namespace OpenMetaverse
                 {
                     folderContents.Add(Client.Inventory.FetchItem(ib.UUID, Client.Self.AgentID, 1000 * 10));
                 });
-            bucket = new byte[17 * (folderContents.Count + 1)];
+            var bucket = new byte[17 * (folderContents.Count + 1)];
 
             //Add parent folder (first item in bucket)
             bucket[0] = (byte)assetType;
@@ -3573,10 +3569,15 @@ namespace OpenMetaverse
         /// <seealso cref="TaskInventoryReply"/>
         public void RequestTaskInventory(uint objectLocalID, Simulator simulator)
         {
-            RequestTaskInventoryPacket request = new RequestTaskInventoryPacket();
-            request.AgentData.AgentID = Client.Self.AgentID;
-            request.AgentData.SessionID = Client.Self.SessionID;
-            request.InventoryData.LocalID = objectLocalID;
+            var request = new RequestTaskInventoryPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                InventoryData = {LocalID = objectLocalID}
+            };
 
             Client.Network.SendPacket(request, simulator);
         }
@@ -4424,31 +4425,30 @@ namespace OpenMetaverse
 
         private void Network_OnLoginResponse(bool loginSuccess, bool redirect, string message, string reason, LoginResponseData replyData)
         {
-            if (loginSuccess)
+            if (!loginSuccess) return;
+
+            // Initialize the store here so we know who owns it:
+            _Store = new Inventory(Client, this, Client.Self.AgentID);
+            Logger.DebugLog("Setting InventoryRoot to " + replyData.InventoryRoot.ToString(), Client);
+            InventoryFolder rootFolder = new InventoryFolder(replyData.InventoryRoot)
             {
-                // Initialize the store here so we know who owns it:
-                _Store = new Inventory(Client, this, Client.Self.AgentID);
-                Logger.DebugLog("Setting InventoryRoot to " + replyData.InventoryRoot.ToString(), Client);
-                InventoryFolder rootFolder = new InventoryFolder(replyData.InventoryRoot)
-                {
-                    Name = String.Empty,
-                    ParentUUID = UUID.Zero
-                };
-                _Store.RootFolder = rootFolder;
+                Name = String.Empty,
+                ParentUUID = UUID.Zero
+            };
+            _Store.RootFolder = rootFolder;
 
-                foreach (InventoryFolder folder in replyData.InventorySkeleton)
-                    _Store.UpdateNodeFor(folder);
+            foreach (InventoryFolder folder in replyData.InventorySkeleton)
+                _Store.UpdateNodeFor(folder);
 
-                InventoryFolder libraryRootFolder = new InventoryFolder(replyData.LibraryRoot)
-                {
-                    Name = string.Empty,
-                    ParentUUID = UUID.Zero
-                };
-                _Store.LibraryFolder = libraryRootFolder;
+            InventoryFolder libraryRootFolder = new InventoryFolder(replyData.LibraryRoot)
+            {
+                Name = string.Empty,
+                ParentUUID = UUID.Zero
+            };
+            _Store.LibraryFolder = libraryRootFolder;
 
-                foreach (InventoryFolder folder in replyData.LibrarySkeleton)
-                    _Store.UpdateNodeFor(folder);
-            }
+            foreach (InventoryFolder folder in replyData.LibrarySkeleton)
+                _Store.UpdateNodeFor(folder);
         }
 
         private void UploadInventoryAssetResponse(CapsClient client, OSD result, Exception error)
@@ -4723,12 +4723,11 @@ namespace OpenMetaverse
 
             #region FindObjectsByPath Handling
 
-            if (_Searches.Count > 0)
+            lock (_Searches)
             {
-                lock (_Searches)
+                if (_Searches.Count > 0)
                 {
-                StartSearch:
-
+                    StartSearch:
                     // Iterate over all of the outstanding searches
                     for (int i = 0; i < _Searches.Count; i++)
                     {
@@ -4759,8 +4758,8 @@ namespace OpenMetaverse
                                 else
                                 {
                                     // We found a match but it is not the end of the path, request the next level
-                                    Logger.DebugLog(String.Format("Matched level {0}/{1} in a path search of {2}",
-                                        search.Level, search.Path.Length - 1, String.Join("/", search.Path)), Client);
+                                    Logger.DebugLog(
+                                        $"Matched level {search.Level}/{search.Path.Length - 1} in a path search of {String.Join("/", search.Path)}", Client);
 
                                     search.Folder = folderContents[j].UUID;
                                     search.Level++;
@@ -4792,20 +4791,20 @@ namespace OpenMetaverse
         protected void UpdateCreateInventoryItemHandler(object sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
-
-            UpdateCreateInventoryItemPacket reply = packet as UpdateCreateInventoryItemPacket;
+            if (!(packet is UpdateCreateInventoryItemPacket reply)) return;
 
             foreach (UpdateCreateInventoryItemPacket.InventoryDataBlock dataBlock in reply.InventoryData)
             {
-                if (dataBlock.InvType == (sbyte)InventoryType.Folder)
+                if (dataBlock.InvType == (sbyte) InventoryType.Folder)
                 {
-                    Logger.Log("Received InventoryFolder in an UpdateCreateInventoryItem packet, this should not happen!",
+                    Logger.Log(
+                        "Received InventoryFolder in an UpdateCreateInventoryItem packet, this should not happen!",
                         Helpers.LogLevel.Error, Client);
                     continue;
                 }
 
-                InventoryItem item = CreateInventoryItem((InventoryType)dataBlock.InvType, dataBlock.ItemID);
-                item.AssetType = (AssetType)dataBlock.Type;
+                InventoryItem item = CreateInventoryItem((InventoryType) dataBlock.InvType, dataBlock.ItemID);
+                item.AssetType = (AssetType) dataBlock.Type;
                 item.AssetUUID = dataBlock.AssetID;
                 item.CreationDate = Utils.UnixTimeToDateTime(dataBlock.CreationDate);
                 item.CreatorID = dataBlock.CreatorID;
@@ -4817,26 +4816,27 @@ namespace OpenMetaverse
                 item.OwnerID = dataBlock.OwnerID;
                 item.ParentUUID = dataBlock.FolderID;
                 item.Permissions = new Permissions(
-                        dataBlock.BaseMask,
-                        dataBlock.EveryoneMask,
-                        dataBlock.GroupMask,
-                        dataBlock.NextOwnerMask,
-                        dataBlock.OwnerMask);
+                    dataBlock.BaseMask,
+                    dataBlock.EveryoneMask,
+                    dataBlock.GroupMask,
+                    dataBlock.NextOwnerMask,
+                    dataBlock.OwnerMask);
                 item.SalePrice = dataBlock.SalePrice;
-                item.SaleType = (SaleType)dataBlock.SaleType;
+                item.SaleType = (SaleType) dataBlock.SaleType;
 
                 /* 
-                 * When attaching new objects, an UpdateCreateInventoryItem packet will be
-                 * returned by the server that has a FolderID/ParentUUID of zero. It is up
-                 * to the client to make sure that the item gets a good folder, otherwise
-                 * it will end up inaccesible in inventory.
-                 */
+                     * When attaching new objects, an UpdateCreateInventoryItem packet will be
+                     * returned by the server that has a FolderID/ParentUUID of zero. It is up
+                     * to the client to make sure that the item gets a good folder, otherwise
+                     * it will end up inaccesible in inventory.
+                     */
                 if (item.ParentUUID == UUID.Zero)
                 {
                     // assign default folder for type
                     item.ParentUUID = FindFolderForType(item.AssetType);
 
-                    Logger.Log("Received an item through UpdateCreateInventoryItem with no parent folder, assigning to folder " +
+                    Logger.Log(
+                        "Received an item through UpdateCreateInventoryItem with no parent folder, assigning to folder " +
                         item.ParentUUID, Helpers.LogLevel.Info);
 
                     // send update to the sim
@@ -4852,8 +4852,14 @@ namespace OpenMetaverse
                 {
                     _ItemCreatedCallbacks.Remove(dataBlock.CallbackID);
 
-                    try { createdCallback(true, item); }
-                    catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                    try
+                    {
+                        createdCallback(true, item);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                    }
                 }
 
                 // TODO: Is this callback even triggered when items are copied?
@@ -4863,8 +4869,14 @@ namespace OpenMetaverse
                 {
                     _ItemCopiedCallbacks.Remove(dataBlock.CallbackID);
 
-                    try { copyCallback(item); }
-                    catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                    try
+                    {
+                        copyCallback(item);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                    }
                 }
 
                 //This is triggered when an item is received from a task
@@ -4883,23 +4895,23 @@ namespace OpenMetaverse
         {
             Packet packet = e.Packet;
 
-            MoveInventoryItemPacket move = (MoveInventoryItemPacket)packet;
+            var move = (MoveInventoryItemPacket)packet;
 
             foreach (MoveInventoryItemPacket.InventoryDataBlock data in move.InventoryData)
             {
                 // FIXME: Do something here
                 string newName = Utils.BytesToString(data.NewName);
 
-                Logger.Log(string.Format(
-                    "MoveInventoryItemHandler: Item {0} is moving to Folder {1} with new name \"{2}\". Someone write this function!",
-                    data.ItemID.ToString(), data.FolderID.ToString(),
-                    newName), Helpers.LogLevel.Warning, Client);
+                Logger.Log(
+                    $"MoveInventoryItemHandler: Item {data.ItemID.ToString()} is moving to Folder {data.FolderID.ToString()} with new name \"{newName}\"." +
+                    $" Someone write this function!", 
+                    Helpers.LogLevel.Warning, Client);
             }
         }
 
         protected void BulkUpdateInventoryCapHandler(string capsKey, Interfaces.IMessage message, Simulator simulator)
         {
-            BulkUpdateInventoryMessage msg = (BulkUpdateInventoryMessage)message;
+            var msg = (BulkUpdateInventoryMessage)message;
 
             foreach (BulkUpdateInventoryMessage.FolderDataInfo newFolder in msg.FolderData)
             {
@@ -4989,9 +5001,9 @@ namespace OpenMetaverse
         {
             Packet packet = e.Packet;
 
-            BulkUpdateInventoryPacket update = packet as BulkUpdateInventoryPacket;
+            var update = packet as BulkUpdateInventoryPacket;
 
-            if (update.FolderData.Length > 0 && update.FolderData[0].FolderID != UUID.Zero)
+            if (update != null && (update.FolderData.Length > 0 && update.FolderData[0].FolderID != UUID.Zero))
             {
                 foreach (BulkUpdateInventoryPacket.FolderDataBlock dataBlock in update.FolderData)
                 {
@@ -5072,20 +5084,19 @@ namespace OpenMetaverse
         protected void FetchInventoryReplyHandler(object sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
-
-            FetchInventoryReplyPacket reply = packet as FetchInventoryReplyPacket;
+if (!(packet is FetchInventoryReplyPacket reply)) return;
 
             foreach (FetchInventoryReplyPacket.InventoryDataBlock dataBlock in reply.InventoryData)
             {
-                if (dataBlock.InvType == (sbyte)InventoryType.Folder)
+                if (dataBlock.InvType == (sbyte) InventoryType.Folder)
                 {
                     Logger.Log("Received FetchInventoryReply for an inventory folder, this should not happen!",
                         Helpers.LogLevel.Error, Client);
                     continue;
                 }
 
-                InventoryItem item = CreateInventoryItem((InventoryType)dataBlock.InvType, dataBlock.ItemID);
-                item.AssetType = (AssetType)dataBlock.Type;
+                InventoryItem item = CreateInventoryItem((InventoryType) dataBlock.InvType, dataBlock.ItemID);
+                item.AssetType = (AssetType) dataBlock.Type;
                 item.AssetUUID = dataBlock.AssetID;
                 item.CreationDate = Utils.UnixTimeToDateTime(dataBlock.CreationDate);
                 item.CreatorID = dataBlock.CreatorID;
@@ -5093,7 +5104,7 @@ namespace OpenMetaverse
                 item.Flags = dataBlock.Flags;
                 item.GroupID = dataBlock.GroupID;
                 item.GroupOwned = dataBlock.GroupOwned;
-                item.InventoryType = (InventoryType)dataBlock.InvType;
+                item.InventoryType = (InventoryType) dataBlock.InvType;
                 item.Name = Utils.BytesToString(dataBlock.Name);
                 item.OwnerID = dataBlock.OwnerID;
                 item.ParentUUID = dataBlock.FolderID;
@@ -5104,7 +5115,7 @@ namespace OpenMetaverse
                     dataBlock.NextOwnerMask,
                     dataBlock.OwnerMask);
                 item.SalePrice = dataBlock.SalePrice;
-                item.SaleType = (SaleType)dataBlock.SaleType;
+                item.SaleType = (SaleType) dataBlock.SaleType;
                 item.UUID = dataBlock.ItemID;
 
                 _Store[item.UUID] = item;
