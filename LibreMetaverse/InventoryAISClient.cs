@@ -35,15 +35,24 @@ namespace LibreMetaverse
                 Logger.Log("No AIS3 Capability!", Helpers.LogLevel.Warning, Client);
                 return;
             }
-
-            UUID tid = new UUID();
-            string url = $"{cap}/category/{parentUuid}?tid={tid}";
-            Logger.Log("url: " + url, Helpers.LogLevel.Debug, Client);
-
-            var content = new StringContent(newInventory.ToString());
-            content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
-            var req = httpClient.PostAsync(url, content);
-            var reply = await req;
+            try
+            {
+                UUID tid = new UUID();
+                string url = $"{cap}/category/{parentUuid}?tid={tid}";
+                var content = new StringContent(newInventory.ToString());
+                content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
+                var req = httpClient.PostAsync(url, content);
+                var reply = await req;
+            }
+            catch (System.ArgumentException)
+            {
+                // supress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
+                // whatever reason, it's throwing here.
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+            }
 
             callback();
         }
@@ -56,15 +65,24 @@ namespace LibreMetaverse
                 Logger.Log("No AIS3 Capability!", Helpers.LogLevel.Warning, Client);
                 return;
             }
-
-            UUID tid = new UUID();
-            string url = $"{cap}/category/{folderUuid}/links?tid={tid}";
-            Logger.Log("url: " + url, Helpers.LogLevel.Debug, Client);
-
-            var content = new StringContent(newInventory.ToString());
-            content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
-            var req = httpClient.PutAsync(url, content);
-            var reply = await req;
+            try
+            {
+                UUID tid = new UUID();
+                string url = $"{cap}/category/{folderUuid}/links?tid={tid}";
+                var content = new StringContent(newInventory.ToString());
+                content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
+                var req = httpClient.PutAsync(url, content);
+                var reply = await req;
+            }
+            catch (System.ArgumentException)
+            {
+                // supress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
+                // whatever reason, it's throwing here.
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+            }
 
             callback();
         }
@@ -77,13 +95,21 @@ namespace LibreMetaverse
                 Logger.Log("No AIS3 Capability!", Helpers.LogLevel.Warning, Client);
                 return;
             }
-
-            string url = $"{cap}/category/{categoryUuid}";
-            Logger.Log("url: " + url, Helpers.LogLevel.Debug, Client);
-
-            var op = httpClient.DeleteAsync(url);
-            var reply = await op;
-
+            try
+            {
+                string url = $"{cap}/category/{categoryUuid}";
+                var op = httpClient.DeleteAsync(url);
+                var reply = await op;
+            }
+            catch (System.ArgumentException)
+            {
+                // supress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
+                // whatever reason, it's throwing here.
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+            }
             callback();
         }
 
@@ -95,13 +121,21 @@ namespace LibreMetaverse
                 Logger.Log("No AIS3 Capability!", Helpers.LogLevel.Warning, Client);
                 return;
             }
-
-            string url = $"{cap}/item/{itemUuid}";
-            Logger.Log("url: " + url, Helpers.LogLevel.Debug, Client);
-
-            var op = httpClient.DeleteAsync(url);
-            var reply = await op;
-
+            try
+            {
+                string url = $"{cap}/item/{itemUuid}";
+                var op = httpClient.DeleteAsync(url);
+                var reply = await op;
+            }
+            catch (System.ArgumentException)
+            {
+                // supress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
+                // whatever reason, it's throwing here.
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+            }
             callback();
         }
 
@@ -113,22 +147,31 @@ namespace LibreMetaverse
                 Logger.Log("No AIS3 Capability!", Helpers.LogLevel.Warning, Client);
                 return;
             }
-
-            UUID tid = new UUID();
-            string url = $"{cap}/category/{sourceUuid}?tid={tid}";
-            if (copySubfolders)
-                url += ",depth=0";
-            Logger.Log("url: " + url, Helpers.LogLevel.Debug, Client);
-
-            HttpRequestMessage message = new HttpRequestMessage
+            try
             {
-                RequestUri = new Uri(url),
-                Method = new HttpMethod("COPY")
-            };
-            message.Headers.Add("Destination", destUuid.ToString());
-            var req = httpClient.SendAsync(message);
-            var reply = await req;
+                UUID tid = new UUID();
+                string url = $"{cap}/category/{sourceUuid}?tid={tid}";
+                if (copySubfolders)
+                    url += ",depth=0";
 
+                HttpRequestMessage message = new HttpRequestMessage
+                {
+                    RequestUri = new Uri(url),
+                    Method = new HttpMethod("COPY")
+                };
+                message.Headers.Add("Destination", destUuid.ToString());
+                var req = httpClient.SendAsync(message);
+                var reply = await req;
+            }
+            catch (System.ArgumentException)
+            {
+                // supress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
+                // whatever reason, it's throwing here.
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+            }
             callback();
         }
 
@@ -140,13 +183,21 @@ namespace LibreMetaverse
                 Logger.Log("No AIS3 Capability!", Helpers.LogLevel.Warning, Client);
                 return;
             }
-
-            string url = $"{cap}/category/{categoryUuid}/children";
-            Logger.Log("url: " + url, Helpers.LogLevel.Debug, Client);
-
-            var op = httpClient.DeleteAsync(url);
-            var reply = await op;
-
+            try
+            {
+                string url = $"{cap}/category/{categoryUuid}/children";
+                var op = httpClient.DeleteAsync(url);
+                var reply = await op;
+            }
+            catch (System.ArgumentException)
+            {
+                // supress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
+                // whatever reason, it's throwing here.
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+            }
             callback(categoryUuid);
         }
 
@@ -158,20 +209,28 @@ namespace LibreMetaverse
                 Logger.Log("No AIS3 Capability!", Helpers.LogLevel.Warning, Client);
                 return;
             }
-
-            string url = $"{cap}/category/{categoryUuid}";
-            Logger.Log("url: " + url, Helpers.LogLevel.Debug, Client);
-
-            HttpRequestMessage message = new HttpRequestMessage
+            try
             {
-                RequestUri = new Uri(url),
-                Method = new HttpMethod("PATCH"),
-                Content = new ByteArrayContent(OSDParser.SerializeLLSDXmlBytes(updates))
-            };
-            message.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
-            var req = httpClient.SendAsync(message);
-            var reply = await req;
-
+                string url = $"{cap}/category/{categoryUuid}";
+                HttpRequestMessage message = new HttpRequestMessage
+                {
+                    RequestUri = new Uri(url),
+                    Method = new HttpMethod("PATCH"),
+                    Content = new ByteArrayContent(OSDParser.SerializeLLSDXmlBytes(updates))
+                };
+                message.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
+                var req = httpClient.SendAsync(message);
+                var reply = await req;
+            }
+            catch (System.ArgumentException)
+            {
+                // supress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
+                // whatever reason, it's throwing here.
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+            }
             callback();
         }
 
@@ -183,20 +242,28 @@ namespace LibreMetaverse
                 Logger.Log("No AIS3 Capability!", Helpers.LogLevel.Warning, Client);
                 return;
             }
-
-            string url = $"{cap}/item/{itemUuid}";
-            Logger.Log("url: " + url, Helpers.LogLevel.Debug, Client);
-
-            HttpRequestMessage message = new HttpRequestMessage
+            try
             {
-                RequestUri = new Uri(url),
-                Method = new HttpMethod("PATCH"),
-                Content = new ByteArrayContent(OSDParser.SerializeLLSDXmlBytes(updates))
-            };
-            message.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
-            var req = httpClient.SendAsync(message);
-            var reply = await req;
-
+                string url = $"{cap}/item/{itemUuid}";
+                var message = new HttpRequestMessage
+                {
+                    RequestUri = new Uri(url),
+                    Method = new HttpMethod("PATCH"),
+                    Content = new ByteArrayContent(OSDParser.SerializeLLSDXmlBytes(updates))
+                };
+                message.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
+                var req = httpClient.SendAsync(message);
+                var reply = await req;
+            }
+            catch (System.ArgumentException)
+            {
+                // supress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
+                // whatever reason, it's throwing here.
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+            }
             callback();
         }
 
