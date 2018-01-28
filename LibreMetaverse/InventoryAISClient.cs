@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
@@ -39,7 +40,8 @@ namespace LibreMetaverse
             string url = $"{cap}/category/{parentUuid}?tid={tid}";
             Logger.Log("url: " + url, Helpers.LogLevel.Debug, Client);
 
-            var content = new StringContent(newInventory.ToString()); // Total guess for now!
+            var content = new StringContent(newInventory.ToString());
+            content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
             var req = httpClient.PostAsync(url, content);
             var reply = await req;
 
@@ -59,7 +61,8 @@ namespace LibreMetaverse
             string url = $"{cap}/category/{folderUuid}/links?tid={tid}";
             Logger.Log("url: " + url, Helpers.LogLevel.Debug, Client);
 
-            var content = new StringContent(newInventory.ToString()); // Total guess for now!
+            var content = new StringContent(newInventory.ToString());
+            content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
             var req = httpClient.PutAsync(url, content);
             var reply = await req;
 
@@ -118,6 +121,7 @@ namespace LibreMetaverse
             Logger.Log("url: " + url, Helpers.LogLevel.Debug, Client);
 
             HttpRequestMessage message = new HttpRequestMessage();
+            message.RequestUri = new Uri(url);
             message.Method = new HttpMethod("COPY");
             var req = httpClient.SendAsync(message);
             var reply = await req;
@@ -157,9 +161,11 @@ namespace LibreMetaverse
 
             HttpRequestMessage message = new HttpRequestMessage
             {
+                RequestUri = new Uri(url),
                 Method = new HttpMethod("PATCH"),
-                Content = new StringContent(updates.ToString())
+                Content = new ByteArrayContent(OSDParser.SerializeLLSDXmlBytes(updates))
             };
+            message.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
             var req = httpClient.SendAsync(message);
             var reply = await req;
 
@@ -180,9 +186,11 @@ namespace LibreMetaverse
 
             HttpRequestMessage message = new HttpRequestMessage
             {
+                RequestUri = new Uri(url),
                 Method = new HttpMethod("PATCH"),
-                Content = new StringContent(updates.ToString())
+                Content = new ByteArrayContent(OSDParser.SerializeLLSDXmlBytes(updates))
             };
+            message.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
             var req = httpClient.SendAsync(message);
             var reply = await req;
 
