@@ -427,16 +427,15 @@ namespace OpenMetaverse
         {
             OSDMap map = new OSDMap
             {
-                ["inv_type"] = (int) InventoryType,
+                ["item_id"] = UUID,
                 ["parent_id"] = ParentUUID,
+                ["type"] = (sbyte)AssetType,
+                ["inv_type"] = (sbyte) InventoryType,
+                ["flags"] = Flags,
                 ["name"] = Name,
                 ["desc"] = Description,
-                ["agent_id"] = OwnerID,
-                ["parent_id"] = ParentUUID,
                 ["asset_id"] = AssetUUID,
-                ["type"] = (int) AssetType,
-                ["created_at"] = CreationDate,
-                ["flags"] = Flags
+                ["created_at"] = CreationDate
             };
 
             OSDMap perms = (OSDMap)Permissions.GetOSD();
@@ -449,7 +448,7 @@ namespace OpenMetaverse
             OSDMap sale = new OSDMap
             {
                 ["sale_price"] = SalePrice,
-                ["sale_type"] = (int) SaleType
+                ["sale_type"] = (sbyte)SaleType
             };
             map["sale_info"] = sale;
             
@@ -964,15 +963,12 @@ namespace OpenMetaverse
         public static InventoryFolder FromOSD(OSD data)
         {
             OSDMap res = (OSDMap)data;
-            UUID folderID = res.ContainsKey("category_id") ? res["category_id"] : res["folder_id"];
-            InventoryFolder folder = new InventoryFolder(folderID)
+            InventoryFolder folder = new InventoryFolder(res["item_id"].AsUUID())
             {
-                Name = res["name"],
-                DescendentCount = res["descendents"],
-                Version = res["version"],
-                OwnerID = res.ContainsKey("agent_id") ? res["agent_id"] : res["owner_id"],
-                ParentUUID = res["parent_id"],
-                PreferredType = (FolderType) (int) res["type_default"]
+                UUID = res["item_id"].AsUUID(),
+                ParentUUID = res["parent_id"].AsUUID(),
+                PreferredType = (FolderType)(sbyte)res["type"].AsUInteger(),
+                Name = res["name"]
             };
             return folder;
         }
@@ -987,7 +983,7 @@ namespace OpenMetaverse
             {
                 ["item_id"] = UUID,
                 ["parent_id"] = ParentUUID,
-                ["type"] = (sbyte) PreferredType,
+                ["type"] = (sbyte)PreferredType,
                 ["name"] = Name
             };
             return res;
@@ -1049,8 +1045,7 @@ namespace OpenMetaverse
         protected virtual void OnItemReceived(ItemReceivedEventArgs e)
         {
             EventHandler<ItemReceivedEventArgs> handler = m_ItemReceived;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1074,8 +1069,7 @@ namespace OpenMetaverse
         protected virtual void OnFolderUpdated(FolderUpdatedEventArgs e)
         {
             EventHandler<FolderUpdatedEventArgs> handler = m_FolderUpdated;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1099,8 +1093,7 @@ namespace OpenMetaverse
         protected virtual void OnInventoryObjectOffered(InventoryObjectOfferedEventArgs e)
         {
             EventHandler<InventoryObjectOfferedEventArgs> handler = m_InventoryObjectOffered;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1123,8 +1116,7 @@ namespace OpenMetaverse
         protected virtual void OnTaskItemReceived(TaskItemReceivedEventArgs e)
         {
             EventHandler<TaskItemReceivedEventArgs> handler = m_TaskItemReceived;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1148,8 +1140,7 @@ namespace OpenMetaverse
         protected virtual void OnFindObjectByPathReply(FindObjectByPathReplyEventArgs e)
         {
             EventHandler<FindObjectByPathReplyEventArgs> handler = m_FindObjectByPathReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1173,8 +1164,7 @@ namespace OpenMetaverse
         protected virtual void OnTaskInventoryReply(TaskInventoryReplyEventArgs e)
         {
             EventHandler<TaskInventoryReplyEventArgs> handler = m_TaskInventoryReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1207,8 +1197,7 @@ namespace OpenMetaverse
         protected virtual void OnSaveAssetToInventory(SaveAssetToInventoryEventArgs e)
         {
             EventHandler<SaveAssetToInventoryEventArgs> handler = m_SaveAssetToInventory;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1242,8 +1231,7 @@ namespace OpenMetaverse
         protected virtual void OnScriptRunningReply(ScriptRunningReplyEventArgs e)
         {
             EventHandler<ScriptRunningReplyEventArgs> handler = m_ScriptRunningReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1483,24 +1471,23 @@ namespace OpenMetaverse
                 
                 request.OnComplete += (client, result, error) =>
                 {
-                    if (error == null)
-                    {
-                        try
-                        {
-                            OSDMap res = (OSDMap)result;
-                            OSDArray itemsOSD = (OSDArray)res["items"];
+                    if (error != null) return;
 
-                            foreach (OSD it in itemsOSD)
-                            {
-                                InventoryItem item = InventoryItem.FromOSD(it);
-                                _Store[item.UUID] = item;
-                                OnItemReceived(new ItemReceivedEventArgs(item));
-                            }
-                        }
-                        catch (Exception ex)
+                    try
+                    {
+                        OSDMap res = (OSDMap)result;
+                        OSDArray itemsOSD = (OSDArray)res["items"];
+
+                        foreach (var it in itemsOSD)
                         {
-                            Logger.Log("Failed getting data from FetchInventory2 capability.", Helpers.LogLevel.Error, Client, ex);
+                            InventoryItem item = InventoryItem.FromOSD(it);
+                            _Store[item.UUID] = item;
+                            OnItemReceived(new ItemReceivedEventArgs(item));
                         }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log("Failed getting data from FetchInventory2 capability.", Helpers.LogLevel.Error, Client, ex);
                     }
                 };
 
