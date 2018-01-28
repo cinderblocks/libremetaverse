@@ -5001,9 +5001,9 @@ namespace OpenMetaverse
         {
             Packet packet = e.Packet;
 
-            var update = packet as BulkUpdateInventoryPacket;
+            if (!(packet is BulkUpdateInventoryPacket update)) return;
 
-            if (update != null && (update.FolderData.Length > 0 && update.FolderData[0].FolderID != UUID.Zero))
+            if (update.FolderData.Length > 0 && update.FolderData[0].FolderID != UUID.Zero)
             {
                 foreach (BulkUpdateInventoryPacket.FolderDataBlock dataBlock in update.FolderData)
                 {
@@ -5014,7 +5014,7 @@ namespace OpenMetaverse
                     }
                     else
                     {
-                        folder = (InventoryFolder)_Store[dataBlock.FolderID];
+                        folder = (InventoryFolder) _Store[dataBlock.FolderID];
                     }
 
                     if (dataBlock.Name != null)
@@ -5031,9 +5031,10 @@ namespace OpenMetaverse
             {
                 foreach (BulkUpdateInventoryPacket.ItemDataBlock dataBlock in update.ItemData)
                 {
-                    InventoryItem item = SafeCreateInventoryItem((InventoryType)dataBlock.InvType, dataBlock.ItemID);
+                    InventoryItem item =
+                        SafeCreateInventoryItem((InventoryType) dataBlock.InvType, dataBlock.ItemID);
 
-                    item.AssetType = (AssetType)dataBlock.Type;
+                    item.AssetType = (AssetType) dataBlock.Type;
                     if (dataBlock.AssetID != UUID.Zero) item.AssetUUID = dataBlock.AssetID;
                     item.CreationDate = Utils.UnixTimeToDateTime(dataBlock.CreationDate);
                     item.CreatorID = dataBlock.CreatorID;
@@ -5051,7 +5052,7 @@ namespace OpenMetaverse
                         dataBlock.NextOwnerMask,
                         dataBlock.OwnerMask);
                     item.SalePrice = dataBlock.SalePrice;
-                    item.SaleType = (SaleType)dataBlock.SaleType;
+                    item.SaleType = (SaleType) dataBlock.SaleType;
 
                     _Store[item.UUID] = item;
 
@@ -5061,8 +5062,14 @@ namespace OpenMetaverse
                     {
                         _ItemCreatedCallbacks.Remove(dataBlock.CallbackID);
 
-                        try { callback(true, item); }
-                        catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                        try
+                        {
+                            callback(true, item);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                        }
                     }
 
                     // Look for an "item copied" callback
@@ -5071,8 +5078,14 @@ namespace OpenMetaverse
                     {
                         _ItemCopiedCallbacks.Remove(dataBlock.CallbackID);
 
-                        try { copyCallback(item); }
-                        catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                        try
+                        {
+                            copyCallback(item);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                        }
                     }
                 }
             }
@@ -5084,7 +5097,7 @@ namespace OpenMetaverse
         protected void FetchInventoryReplyHandler(object sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
-if (!(packet is FetchInventoryReplyPacket reply)) return;
+            if (!(packet is FetchInventoryReplyPacket reply)) return;
 
             foreach (FetchInventoryReplyPacket.InventoryDataBlock dataBlock in reply.InventoryData)
             {
