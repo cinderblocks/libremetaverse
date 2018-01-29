@@ -44,6 +44,15 @@ namespace LibreMetaverse
                 content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
                 var req = httpClient.PostAsync(url, content);
                 var reply = await req;
+
+                if (reply.IsSuccessStatusCode)
+                {
+                    callback?.Invoke();
+                }
+                else
+                {
+                    Logger.Log("Could not create inventory: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                }
             }
             catch (System.ArgumentException)
             {
@@ -54,7 +63,6 @@ namespace LibreMetaverse
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
             }
-            callback?.Invoke();
         }
 
         public async Task SlamFolder(UUID folderUuid, OSD newInventory, Action callback)
@@ -73,6 +81,14 @@ namespace LibreMetaverse
                 content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
                 var req = httpClient.PutAsync(url, content);
                 var reply = await req;
+                if (reply.IsSuccessStatusCode)
+                {
+                    callback?.Invoke();
+                }
+                else
+                {
+                    Logger.Log("Could not slam folder: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                }
             }
             catch (System.ArgumentException)
             {
@@ -83,7 +99,6 @@ namespace LibreMetaverse
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
             }
-            callback?.Invoke();
         }
 
         public async Task RemoveCategory(UUID categoryUuid, Action callback)
@@ -99,6 +114,14 @@ namespace LibreMetaverse
                 string url = $"{cap}/category/{categoryUuid}";
                 var op = httpClient.DeleteAsync(url);
                 var reply = await op;
+                if (reply.IsSuccessStatusCode)
+                {
+                    callback?.Invoke();
+                }
+                else
+                {
+                    Logger.Log("Could not remove folder: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                }
             }
             catch (System.ArgumentException)
             {
@@ -109,7 +132,6 @@ namespace LibreMetaverse
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
             }
-            callback?.Invoke();
         }
 
         public async Task RemoveItem(UUID itemUuid, Action callback)
@@ -125,6 +147,14 @@ namespace LibreMetaverse
                 string url = $"{cap}/item/{itemUuid}";
                 var op = httpClient.DeleteAsync(url);
                 var reply = await op;
+                if (reply.IsSuccessStatusCode)
+                {
+                    callback?.Invoke();
+                }
+                else
+                {
+                    Logger.Log("Could not remove item: " + itemUuid + " " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                }
             }
             catch (System.ArgumentException)
             {
@@ -135,7 +165,6 @@ namespace LibreMetaverse
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
             }
-            callback?.Invoke();
         }
 
         public async Task CopyLibraryCategory(UUID sourceUuid, UUID destUuid, bool copySubfolders, Action callback)
@@ -161,6 +190,14 @@ namespace LibreMetaverse
                 message.Headers.Add("Destination", destUuid.ToString());
                 var req = httpClient.SendAsync(message);
                 var reply = await req;
+                if (reply.IsSuccessStatusCode)
+                {
+                    callback?.Invoke();
+                }
+                else
+                {
+                    Logger.Log("Could not copy library folder: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                }
             }
             catch (System.ArgumentException)
             {
@@ -171,7 +208,6 @@ namespace LibreMetaverse
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
             }
-            callback?.Invoke();
         }
 
         public async Task PurgeDescendents(UUID categoryUuid, Action<UUID> callback)
@@ -187,6 +223,14 @@ namespace LibreMetaverse
                 string url = $"{cap}/category/{categoryUuid}/children";
                 var op = httpClient.DeleteAsync(url);
                 var reply = await op;
+                if (reply.IsSuccessStatusCode)
+                {
+                    callback?.Invoke(categoryUuid);
+                }
+                else
+                {
+                    Logger.Log("Could not purge descendents: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                }
             }
             catch (System.ArgumentException)
             {
@@ -197,7 +241,6 @@ namespace LibreMetaverse
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
             }
-            callback?.Invoke(categoryUuid);
         }
 
         public async Task UpdateCategory(UUID categoryUuid, OSD updates, Action callback)
@@ -220,6 +263,14 @@ namespace LibreMetaverse
                 message.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
                 var req = httpClient.SendAsync(message);
                 var reply = await req;
+                if (reply.IsSuccessStatusCode)
+                {
+                    callback?.Invoke();
+                }
+                else
+                {
+                    Logger.Log("Could not update folder: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                }
             }
             catch (System.ArgumentException)
             {
@@ -230,7 +281,6 @@ namespace LibreMetaverse
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
             }
-            callback?.Invoke();
         }
 
         public async Task UpdateItem(UUID itemUuid, OSD updates, Action callback)
@@ -253,6 +303,14 @@ namespace LibreMetaverse
                 message.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
                 var req = httpClient.SendAsync(message);
                 var reply = await req;
+                if (reply.IsSuccessStatusCode)
+                {
+                    callback?.Invoke();
+                }
+                else
+                {
+                    Logger.Log("Could not update item: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                }
             }
             catch (System.ArgumentException)
             {
@@ -263,7 +321,6 @@ namespace LibreMetaverse
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
             }
-            callback?.Invoke();
         }
 
         private Uri getInventoryCap()

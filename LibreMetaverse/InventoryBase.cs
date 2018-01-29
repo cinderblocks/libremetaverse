@@ -149,8 +149,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct a new InventoryItem object of a specific Type
         /// </summary>
-        /// <param name="type">The type of item from <seealso cref="OpenMetaverse.InventoryType"/></param>
-        /// <param name="itemID"><seealso cref="OpenMetaverse.UUID"/> of the item</param>
+        /// <param name="type">The type of item from <seealso cref="T:OpenMetaverse.InventoryType" /></param>
+        /// <param name="itemID"><seealso cref="T:OpenMetaverse.UUID" /> of the item</param>
         public InventoryItem(InventoryType type, UUID itemID) : base(itemID) { InventoryType = type; }
 
         /// <summary>
@@ -162,6 +162,7 @@ namespace OpenMetaverse
             return AssetType == AssetType.Link || AssetType == AssetType.LinkFolder;
         }
 
+        /// <inheritdoc />
         /// <summary>
         /// Get object data
         /// </summary>
@@ -250,7 +251,7 @@ namespace OpenMetaverse
         /// <returns>true if objects are the same</returns>
         public bool Equals(InventoryItem o)
         {
-            return base.Equals(o as InventoryBase)
+            return base.Equals(o)
                 && o.AssetType == AssetType
                 && o.AssetUUID == AssetUUID
                 && o.CreationDate == CreationDate

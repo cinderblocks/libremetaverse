@@ -1782,6 +1782,8 @@ namespace OpenMetaverse
                 links.Add(link);
 
                 OSDMap newInventory = new OSDMap {{"links", links}};
+                // FIXME: THis callback doesn't work anymore. Needs fixed.
+                RegisterItemCreatedCallback(callback);
                 Client.AisClient.CreateInventory(folderID, newInventory, null).ConfigureAwait(false);
             }
             else
