@@ -1774,8 +1774,8 @@ namespace OpenMetaverse
                 OSDMap link = new OSDMap
                 {
                     ["linked_id"] = OSD.FromUUID(itemID),
-                    ["type"] = OSD.FromString(Utils.AssetTypeToString(assetType)),
-                    ["inv_type"] = OSD.FromString(Utils.InventoryTypeToString(invType)),
+                    ["type"] = OSD.FromInteger((int)assetType),
+                    ["inv_type"] = OSD.FromInteger((int)invType),
                     ["name"] = OSD.FromString(name),
                     ["desc"] = OSD.FromString(description)
                 };
