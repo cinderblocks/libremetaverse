@@ -11,7 +11,6 @@ matrix:
         - dotnet --info
         - dotnet restore
         - dotnet build --runtime linux-x64
-        - dotnet test
     - os: osx # OSX 10.12
       osx_image: xcode9.2
       dotnet: 2.0.0
@@ -19,5 +18,4 @@ matrix:
         - dotnet --info
         - dotnet restore
         - dotnet build --runtime osx10.12-x64
-        - dotnet test
  
