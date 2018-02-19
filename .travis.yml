@@ -6,16 +6,18 @@ matrix:
     - os: linux # ubuntu 14.04
       dist: trusty
       sudo: required
-      dotnet: 2.0
+      dotnet: 2.0.0
       script:
         - dotnet --info
         - dotnet restore
         - dotnet build --runtime linux-x64
+        - dotnet test
     - os: osx # OSX 10.12
       osx_image: xcode9.2
-      dotnet: 2.0
+      dotnet: 2.0.0
       script:
         - dotnet --info
         - dotnet restore
         - dotnet build --runtime osx10.12-x64
+        - dotnet test
  
