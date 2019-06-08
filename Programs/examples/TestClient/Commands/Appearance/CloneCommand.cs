@@ -29,8 +29,10 @@ namespace OpenMetaverse.TestClient
             if (targetName.Length == 0)
                 return "Usage: clone [name]";
 
+#pragma warning disable CS0618 // Type or member is obsolete
             if (Client.Directory.PeopleSearch(DirectoryManager.DirFindFlags.People, targetName, 0, 1000 * 10,
                 out matches) && matches.Count > 0)
+#pragma warning restore CS0618 // Type or member is obsolete
             {
                 UUID target = matches[0].AgentID;
                 targetName += String.Format(" ({0})", target);
