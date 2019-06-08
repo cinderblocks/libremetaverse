@@ -56,6 +56,9 @@
 	  <PlatformTarget>AnyCPU</PlatformTarget>
 	</PropertyGroup>
 	<ItemGroup>
+	  <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
+	</ItemGroup>
+	<ItemGroup>
 	  <ProjectReference Include="..\..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
 	  <ProjectReference Include="..\..\LibreMetaverse\LibreMetaverse.csproj" />
 	  <ProjectReference Include="..\..\LibreMetaverse.Utilities\LibreMetaverse.Utilities.csproj" />
