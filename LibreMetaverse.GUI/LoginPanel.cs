@@ -196,7 +196,7 @@ namespace OpenMetaverse.GUI
                 LoginThread.Abort();
                 LoginThread = null;
             }
-            LoginThread = new Thread(new ThreadStart(delegate { _Client.Network.Login(_LoginParams); }));
+            LoginThread = new Thread(new ThreadStart(delegate() { _Client.Network.Login(_LoginParams); }));
             LoginThread.Start();
         }
 
@@ -204,7 +204,7 @@ namespace OpenMetaverse.GUI
         private void SetText(object control, string text)
         {
             if (this.InvokeRequired)
-                this.BeginInvoke(new MethodInvoker(delegate { SetText(control, text); }));
+                this.BeginInvoke(new MethodInvoker(delegate() { SetText(control, text); }));
             else
             {
                 if (control is Button) ((Button)control).Text = text;

@@ -156,7 +156,7 @@ namespace OpenMetaverse.Tests
             bool Success = false;
             // make sure caps event queue is running
             System.Threading.AutoResetEvent waitforCAPS = new System.Threading.AutoResetEvent(false);
-            EventHandler<EventQueueRunningEventArgs> capsRunning = delegate
+            EventHandler<EventQueueRunningEventArgs> capsRunning = delegate(object sender, EventQueueRunningEventArgs e)
             {
                 waitforCAPS.Set();
             };            

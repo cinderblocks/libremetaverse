@@ -73,7 +73,7 @@ namespace OpenMetaverse.Voice
             StopDaemon();
             daemonLoopSignal.Set();
 
-            Thread thread = new Thread(new ThreadStart(delegate
+            Thread thread = new Thread(new ThreadStart(delegate()
             {
                 while (daemonLoopSignal.WaitOne(500, false))
                 {
@@ -184,11 +184,13 @@ namespace OpenMetaverse.Voice
 
             daemonPipe = new TCPPipe();
             daemonPipe.OnDisconnected +=
-                delegate
+                delegate(SocketException e)
                 {
-                    if (OnDaemonDisconnected == null) return;
-                    try { OnDaemonDisconnected(); }
-                    catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, null, ex); }
+                    if (OnDaemonDisconnected != null)
+                    {
+                        try { OnDaemonDisconnected(); }
+                        catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, null, ex); }
+                    }
                 };
             daemonPipe.OnReceiveLine += new TCPPipe.OnReceiveLineCallback(daemonPipe_OnReceiveLine);
 
