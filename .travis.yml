@@ -6,7 +6,7 @@ matrix:
     - os: linux # ubuntu 14.04
       dist: trusty
       sudo: required
-      dotnet: 2.2.300
+      dotnet: 2.2
       mono: none
       script:
         - dotnet --info
@@ -14,7 +14,7 @@ matrix:
         - dotnet build --runtime linux-x64
     - os: osx # OSX 10.12
       osx_image: xcode9.2
-      dotnet: 2.2.300
+      dotnet: 2.2
       mono: none
       script:
         - dotnet --info
