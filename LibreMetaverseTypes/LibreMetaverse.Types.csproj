@@ -51,7 +51,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="protobuf-net" Version="2.3.5" />
+    <PackageReference Include="protobuf-net" Version="2.4.0" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
