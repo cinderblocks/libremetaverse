@@ -18,15 +18,15 @@ namespace OpenMetaverse.TestClient
 		{
             System.Threading.AutoResetEvent waitBalance = new System.Threading.AutoResetEvent(false);
             
-            EventHandler<BalanceEventArgs> del = delegate(object sender, BalanceEventArgs e) { waitBalance.Set(); };
-            Client.Self.MoneyBalance += del;            
+            EventHandler<BalanceEventArgs> del = delegate { waitBalance.Set(); };
+            Client.Self.MoneyBalance += e;            
             Client.Self.RequestBalance();
             String result = "Timeout waiting for balance reply";
             if (waitBalance.WaitOne(10000, false))
             {
                 result = Client.ToString() + " has L$: " + Client.Self.Balance;
             }
-            Client.Self.MoneyBalance -= del;
+            Client.Self.MoneyBalance -= e;
             return result;            
 		}
     }

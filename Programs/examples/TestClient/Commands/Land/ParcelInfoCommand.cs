@@ -23,7 +23,7 @@ namespace OpenMetaverse.TestClient
         {
             StringBuilder sb = new StringBuilder();
             string result;
-            EventHandler<SimParcelsDownloadedEventArgs> del = delegate(object sender, SimParcelsDownloadedEventArgs e)
+            EventHandler<SimParcelsDownloadedEventArgs> del = delegate
             {
                 ParcelsDownloaded.Set();
             };

@@ -121,7 +121,7 @@ namespace OpenMetaverse
             for (int i = 0; i < threadCount; i++)
             {
                 WorkPool.QueueUserWorkItem(
-                    delegate(object o)
+                    delegate
                     {
                         while (exception == null)
                         {

@@ -97,7 +97,7 @@ namespace OpenMetaverse
                 }
             };
 
-            Client.Network.Disconnected += delegate(object sender, DisconnectedEventArgs e) { DestroyTimer(); };
+            Client.Network.Disconnected += delegate { DestroyTimer(); };
         }
 
 
