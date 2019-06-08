@@ -174,9 +174,11 @@ namespace OpenMetaverse.Assets
 
         public static PrimObject LoadPrim(XmlTextReader reader)
         {
-            PrimObject obj = new PrimObject();
-            obj.Shape = new PrimObject.ShapeBlock();
-            obj.Inventory = new PrimObject.InventoryBlock();
+            PrimObject obj = new PrimObject
+            {
+                Shape = new PrimObject.ShapeBlock(),
+                Inventory = new PrimObject.InventoryBlock()
+            };
 
             reader.ReadStartElement("SceneObjectPart");
 
@@ -320,9 +322,11 @@ namespace OpenMetaverse.Assets
             SculptType sculptType = (SculptType)reader.ReadElementContentAsInt("SculptType", String.Empty);
             if (sculptTexture != UUID.Zero)
             {
-                obj.Sculpt = new PrimObject.SculptBlock();
-                obj.Sculpt.Texture = sculptTexture;
-                obj.Sculpt.Type = (int)sculptType;
+                obj.Sculpt = new PrimObject.SculptBlock
+                {
+                    Texture = sculptTexture,
+                    Type = (int)sculptType
+                };
             }
 
             PrimObject.FlexibleBlock flexible = new PrimObject.FlexibleBlock();
@@ -697,25 +701,27 @@ namespace OpenMetaverse.Assets
 
                 public OSDMap Serialize()
                 {
-                    OSDMap map = new OSDMap();
-                    map["id"] = OSD.FromUUID(ID);
-                    map["name"] = OSD.FromString(Name);
-                    map["owner_id"] = OSD.FromUUID(OwnerID);
-                    map["creator_id"] = OSD.FromUUID(CreatorID);
-                    map["group_id"] = OSD.FromUUID(GroupID);
-                    map["last_owner_id"] = OSD.FromUUID(LastOwnerID);
-                    map["perms_granter_id"] = OSD.FromUUID(PermsGranterID);
-                    map["asset_id"] = OSD.FromUUID(AssetID);
-                    map["asset_type"] = OSD.FromInteger((int)Type);
-                    map["inv_type"] = OSD.FromInteger((int)InvType);
-                    map["description"] = OSD.FromString(Description);
-                    map["perms_base"] = OSD.FromInteger(PermsBase);
-                    map["perms_owner"] = OSD.FromInteger(PermsOwner);
-                    map["perms_group"] = OSD.FromInteger(PermsGroup);
-                    map["perms_everyone"] = OSD.FromInteger(PermsEveryone);
-                    map["perms_next_owner"] = OSD.FromInteger(PermsNextOwner);
-                    map["flags"] = OSD.FromInteger(Flags);
-                    map["creation_date"] = OSD.FromDate(CreationDate);
+                    OSDMap map = new OSDMap
+                    {
+                        ["id"] = OSD.FromUUID(ID),
+                        ["name"] = OSD.FromString(Name),
+                        ["owner_id"] = OSD.FromUUID(OwnerID),
+                        ["creator_id"] = OSD.FromUUID(CreatorID),
+                        ["group_id"] = OSD.FromUUID(GroupID),
+                        ["last_owner_id"] = OSD.FromUUID(LastOwnerID),
+                        ["perms_granter_id"] = OSD.FromUUID(PermsGranterID),
+                        ["asset_id"] = OSD.FromUUID(AssetID),
+                        ["asset_type"] = OSD.FromInteger((int)Type),
+                        ["inv_type"] = OSD.FromInteger((int)InvType),
+                        ["description"] = OSD.FromString(Description),
+                        ["perms_base"] = OSD.FromInteger(PermsBase),
+                        ["perms_owner"] = OSD.FromInteger(PermsOwner),
+                        ["perms_group"] = OSD.FromInteger(PermsGroup),
+                        ["perms_everyone"] = OSD.FromInteger(PermsEveryone),
+                        ["perms_next_owner"] = OSD.FromInteger(PermsNextOwner),
+                        ["flags"] = OSD.FromInteger(Flags),
+                        ["creation_date"] = OSD.FromDate(CreationDate)
+                    };
                     return map;
                 }
 
@@ -743,15 +749,17 @@ namespace OpenMetaverse.Assets
 
                 public static ItemBlock FromInventoryBase(InventoryItem item)
                 {
-                    ItemBlock block = new ItemBlock();
-                    block.AssetID = item.AssetUUID;
-                    block.CreationDate = item.CreationDate;
-                    block.CreatorID = item.CreatorID;
-                    block.Description = item.Description;
-                    block.Flags = (int)item.Flags;
-                    block.GroupID = item.GroupID;
-                    block.ID = item.UUID;
-                    block.InvType = item.InventoryType == InventoryType.Unknown && item.AssetType == AssetType.LSLText ? InventoryType.LSL : item.InventoryType; ;
+                    ItemBlock block = new ItemBlock
+                    {
+                        AssetID = item.AssetUUID,
+                        CreationDate = item.CreationDate,
+                        CreatorID = item.CreatorID,
+                        Description = item.Description,
+                        Flags = (int)item.Flags,
+                        GroupID = item.GroupID,
+                        ID = item.UUID,
+                        InvType = item.InventoryType == InventoryType.Unknown && item.AssetType == AssetType.LSLText ? InventoryType.LSL : item.InventoryType
+                    };
                     block.LastOwnerID = item.LastOwnerID;
                     block.Name = item.Name;
                     block.OwnerID = item.OwnerID;
@@ -880,65 +888,67 @@ namespace OpenMetaverse.Assets
 
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap();
-            map["id"] = OSD.FromUUID(ID);
-            map["attachment_position"] = OSD.FromVector3(AttachmentPosition);
-            map["attachment_rotation"] = OSD.FromQuaternion(AttachmentRotation);
-            map["before_attachment_rotation"] = OSD.FromQuaternion(BeforeAttachmentRotation);
-            map["name"] = OSD.FromString(Name);
-            map["description"] = OSD.FromString(Description);
-            map["perms_base"] = OSD.FromInteger(PermsBase);
-            map["perms_owner"] = OSD.FromInteger(PermsOwner);
-            map["perms_group"] = OSD.FromInteger(PermsGroup);
-            map["perms_everyone"] = OSD.FromInteger(PermsEveryone);
-            map["perms_next_owner"] = OSD.FromInteger(PermsNextOwner);
-            map["creator_identity"] = OSD.FromUUID(CreatorID);
-            map["owner_identity"] = OSD.FromUUID(OwnerID);
-            map["last_owner_identity"] = OSD.FromUUID(LastOwnerID);
-            map["group_identity"] = OSD.FromUUID(GroupID);
-            map["folder_id"] = OSD.FromUUID(FolderID);
-            map["region_handle"] = OSD.FromULong(RegionHandle);
-            map["click_action"] = OSD.FromInteger(ClickAction);
-            map["last_attachment_point"] = OSD.FromInteger(LastAttachmentPoint);
-            map["link_number"] = OSD.FromInteger(LinkNumber);
-            map["local_id"] = OSD.FromInteger(LocalID);
-            map["parent_id"] = OSD.FromInteger(ParentID);
-            map["position"] = OSD.FromVector3(Position);
-            map["rotation"] = OSD.FromQuaternion(Rotation);
-            map["velocity"] = OSD.FromVector3(Velocity);
-            map["angular_velocity"] = OSD.FromVector3(AngularVelocity);
-            map["acceleration"] = OSD.FromVector3(Acceleration);
-            map["scale"] = OSD.FromVector3(Scale);
-            map["sit_offset"] = OSD.FromVector3(SitOffset);
-            map["sit_rotation"] = OSD.FromQuaternion(SitRotation);
-            map["camera_eye_offset"] = OSD.FromVector3(CameraEyeOffset);
-            map["camera_at_offset"] = OSD.FromVector3(CameraAtOffset);
-            map["state"] = OSD.FromInteger(State);
-            map["prim_code"] = OSD.FromInteger(PCode);
-            map["material"] = OSD.FromInteger(Material);
-            map["pass_touches"] = OSD.FromBoolean(PassTouches);
-            map["sound_id"] = OSD.FromUUID(SoundID);
-            map["sound_gain"] = OSD.FromReal(SoundGain);
-            map["sound_radius"] = OSD.FromReal(SoundRadius);
-            map["sound_flags"] = OSD.FromInteger(SoundFlags);
-            map["text_color"] = OSD.FromColor4(TextColor);
-            map["text"] = OSD.FromString(Text);
-            map["sit_name"] = OSD.FromString(SitName);
-            map["touch_name"] = OSD.FromString(TouchName);
-            map["selected"] = OSD.FromBoolean(Selected);
-            map["selector_id"] = OSD.FromUUID(SelectorID);
-            map["use_physics"] = OSD.FromBoolean(UsePhysics);
-            map["phantom"] = OSD.FromBoolean(Phantom);
-            map["remote_script_access_pin"] = OSD.FromInteger(RemoteScriptAccessPIN);
-            map["volume_detect"] = OSD.FromBoolean(VolumeDetect);
-            map["die_at_edge"] = OSD.FromBoolean(DieAtEdge);
-            map["return_at_edge"] = OSD.FromBoolean(ReturnAtEdge);
-            map["temporary"] = OSD.FromBoolean(Temporary);
-            map["sandbox"] = OSD.FromBoolean(Sandbox);
-            map["creation_date"] = OSD.FromDate(CreationDate);
-            map["rez_date"] = OSD.FromDate(RezDate);
-            map["sale_price"] = OSD.FromInteger(SalePrice);
-            map["sale_type"] = OSD.FromInteger(SaleType);
+            OSDMap map = new OSDMap
+            {
+                ["id"] = OSD.FromUUID(ID),
+                ["attachment_position"] = OSD.FromVector3(AttachmentPosition),
+                ["attachment_rotation"] = OSD.FromQuaternion(AttachmentRotation),
+                ["before_attachment_rotation"] = OSD.FromQuaternion(BeforeAttachmentRotation),
+                ["name"] = OSD.FromString(Name),
+                ["description"] = OSD.FromString(Description),
+                ["perms_base"] = OSD.FromInteger(PermsBase),
+                ["perms_owner"] = OSD.FromInteger(PermsOwner),
+                ["perms_group"] = OSD.FromInteger(PermsGroup),
+                ["perms_everyone"] = OSD.FromInteger(PermsEveryone),
+                ["perms_next_owner"] = OSD.FromInteger(PermsNextOwner),
+                ["creator_identity"] = OSD.FromUUID(CreatorID),
+                ["owner_identity"] = OSD.FromUUID(OwnerID),
+                ["last_owner_identity"] = OSD.FromUUID(LastOwnerID),
+                ["group_identity"] = OSD.FromUUID(GroupID),
+                ["folder_id"] = OSD.FromUUID(FolderID),
+                ["region_handle"] = OSD.FromULong(RegionHandle),
+                ["click_action"] = OSD.FromInteger(ClickAction),
+                ["last_attachment_point"] = OSD.FromInteger(LastAttachmentPoint),
+                ["link_number"] = OSD.FromInteger(LinkNumber),
+                ["local_id"] = OSD.FromInteger(LocalID),
+                ["parent_id"] = OSD.FromInteger(ParentID),
+                ["position"] = OSD.FromVector3(Position),
+                ["rotation"] = OSD.FromQuaternion(Rotation),
+                ["velocity"] = OSD.FromVector3(Velocity),
+                ["angular_velocity"] = OSD.FromVector3(AngularVelocity),
+                ["acceleration"] = OSD.FromVector3(Acceleration),
+                ["scale"] = OSD.FromVector3(Scale),
+                ["sit_offset"] = OSD.FromVector3(SitOffset),
+                ["sit_rotation"] = OSD.FromQuaternion(SitRotation),
+                ["camera_eye_offset"] = OSD.FromVector3(CameraEyeOffset),
+                ["camera_at_offset"] = OSD.FromVector3(CameraAtOffset),
+                ["state"] = OSD.FromInteger(State),
+                ["prim_code"] = OSD.FromInteger(PCode),
+                ["material"] = OSD.FromInteger(Material),
+                ["pass_touches"] = OSD.FromBoolean(PassTouches),
+                ["sound_id"] = OSD.FromUUID(SoundID),
+                ["sound_gain"] = OSD.FromReal(SoundGain),
+                ["sound_radius"] = OSD.FromReal(SoundRadius),
+                ["sound_flags"] = OSD.FromInteger(SoundFlags),
+                ["text_color"] = OSD.FromColor4(TextColor),
+                ["text"] = OSD.FromString(Text),
+                ["sit_name"] = OSD.FromString(SitName),
+                ["touch_name"] = OSD.FromString(TouchName),
+                ["selected"] = OSD.FromBoolean(Selected),
+                ["selector_id"] = OSD.FromUUID(SelectorID),
+                ["use_physics"] = OSD.FromBoolean(UsePhysics),
+                ["phantom"] = OSD.FromBoolean(Phantom),
+                ["remote_script_access_pin"] = OSD.FromInteger(RemoteScriptAccessPIN),
+                ["volume_detect"] = OSD.FromBoolean(VolumeDetect),
+                ["die_at_edge"] = OSD.FromBoolean(DieAtEdge),
+                ["return_at_edge"] = OSD.FromBoolean(ReturnAtEdge),
+                ["temporary"] = OSD.FromBoolean(Temporary),
+                ["sandbox"] = OSD.FromBoolean(Sandbox),
+                ["creation_date"] = OSD.FromDate(CreationDate),
+                ["rez_date"] = OSD.FromDate(RezDate),
+                ["sale_price"] = OSD.FromInteger(SalePrice),
+                ["sale_type"] = OSD.FromInteger(SaleType)
+            };
 
             if (Flexible != null)
                 map["flexible"] = Flexible.Serialize();
@@ -1022,22 +1032,24 @@ namespace OpenMetaverse.Assets
 
         public static PrimObject FromPrimitive(Primitive obj)
         {
-            PrimObject prim = new PrimObject();
-            prim.Acceleration = obj.Acceleration;
-            prim.AllowedDrop = (obj.Flags & PrimFlags.AllowInventoryDrop) == PrimFlags.AllowInventoryDrop;
-            prim.AngularVelocity = obj.AngularVelocity;
-            //prim.AttachmentPosition
-            //prim.AttachmentRotation
-            //prim.BeforeAttachmentRotation
-            //prim.CameraAtOffset
-            //prim.CameraEyeOffset
-            prim.ClickAction = (int)obj.ClickAction;
-            //prim.CollisionSound
-            //prim.CollisionSoundVolume;
-            prim.CreationDate = obj.Properties.CreationDate;
-            prim.CreatorID = obj.Properties.CreatorID;
-            prim.Description = obj.Properties.Description;
-            prim.DieAtEdge = (obj.Flags & PrimFlags.DieAtEdge) == PrimFlags.AllowInventoryDrop;
+            PrimObject prim = new PrimObject
+            {
+                Acceleration = obj.Acceleration,
+                AllowedDrop = (obj.Flags & PrimFlags.AllowInventoryDrop) == PrimFlags.AllowInventoryDrop,
+                AngularVelocity = obj.AngularVelocity,
+                //prim.AttachmentPosition
+                //prim.AttachmentRotation
+                //prim.BeforeAttachmentRotation
+                //prim.CameraAtOffset
+                //prim.CameraEyeOffset
+                ClickAction = (int)obj.ClickAction,
+                //prim.CollisionSound
+                //prim.CollisionSoundVolume;
+                CreationDate = obj.Properties.CreationDate,
+                CreatorID = obj.Properties.CreatorID,
+                Description = obj.Properties.Description,
+                DieAtEdge = (obj.Flags & PrimFlags.DieAtEdge) == PrimFlags.AllowInventoryDrop
+            };
             if (obj.Flexible != null)
             {
                 prim.Flexible = new FlexibleBlock();
@@ -1119,26 +1131,28 @@ namespace OpenMetaverse.Assets
                 prim.Sculpt.Texture = obj.Sculpt.SculptTexture;
                 prim.Sculpt.Type = (int)obj.Sculpt.Type;
             }
-            prim.Shape = new ShapeBlock();
-            prim.Shape.PathBegin = obj.PrimData.PathBegin;
-            prim.Shape.PathCurve = (int)obj.PrimData.PathCurve;
-            prim.Shape.PathEnd = obj.PrimData.PathEnd;
-            prim.Shape.PathRadiusOffset = obj.PrimData.PathRadiusOffset;
-            prim.Shape.PathRevolutions = obj.PrimData.PathRevolutions;
-            prim.Shape.PathScaleX = obj.PrimData.PathScaleX;
-            prim.Shape.PathScaleY = obj.PrimData.PathScaleY;
-            prim.Shape.PathShearX = obj.PrimData.PathShearX;
-            prim.Shape.PathShearY = obj.PrimData.PathShearY;
-            prim.Shape.PathSkew = obj.PrimData.PathSkew;
-            prim.Shape.PathTaperX = obj.PrimData.PathTaperX;
-            prim.Shape.PathTaperY = obj.PrimData.PathTaperY;
+            prim.Shape = new ShapeBlock
+            {
+                PathBegin = obj.PrimData.PathBegin,
+                PathCurve = (int)obj.PrimData.PathCurve,
+                PathEnd = obj.PrimData.PathEnd,
+                PathRadiusOffset = obj.PrimData.PathRadiusOffset,
+                PathRevolutions = obj.PrimData.PathRevolutions,
+                PathScaleX = obj.PrimData.PathScaleX,
+                PathScaleY = obj.PrimData.PathScaleY,
+                PathShearX = obj.PrimData.PathShearX,
+                PathShearY = obj.PrimData.PathShearY,
+                PathSkew = obj.PrimData.PathSkew,
+                PathTaperX = obj.PrimData.PathTaperX,
+                PathTaperY = obj.PrimData.PathTaperY,
 
-            prim.Shape.PathTwist = obj.PrimData.PathTwist;
-            prim.Shape.PathTwistBegin = obj.PrimData.PathTwistBegin;
-            prim.Shape.ProfileBegin = obj.PrimData.ProfileBegin;
-            prim.Shape.ProfileCurve = obj.PrimData.profileCurve;
-            prim.Shape.ProfileEnd = obj.PrimData.ProfileEnd;
-            prim.Shape.ProfileHollow = obj.PrimData.ProfileHollow;
+                PathTwist = obj.PrimData.PathTwist,
+                PathTwistBegin = obj.PrimData.PathTwistBegin,
+                ProfileBegin = obj.PrimData.ProfileBegin,
+                ProfileCurve = obj.PrimData.profileCurve,
+                ProfileEnd = obj.PrimData.ProfileEnd,
+                ProfileHollow = obj.PrimData.ProfileHollow
+            };
 
             prim.SitName = obj.Properties.SitName;
             //prim.SitOffset;
@@ -1161,12 +1175,14 @@ namespace OpenMetaverse.Assets
 
         public Primitive ToPrimitive()
         {
-            Primitive prim = new Primitive();
-            prim.Properties = new Primitive.ObjectProperties();
-            
-            prim.Acceleration = this.Acceleration;
-            prim.AngularVelocity = this.AngularVelocity;
-            prim.ClickAction = (ClickAction)this.ClickAction;
+            Primitive prim = new Primitive
+            {
+                Properties = new Primitive.ObjectProperties(),
+
+                Acceleration = this.Acceleration,
+                AngularVelocity = this.AngularVelocity,
+                ClickAction = (ClickAction)this.ClickAction
+            };
             prim.Properties.CreationDate = this.CreationDate;
             prim.Properties.CreatorID = this.CreatorID;
             prim.Properties.Description = this.Description;
@@ -1223,32 +1239,38 @@ namespace OpenMetaverse.Assets
 
             if (this.Flexible != null)
             {
-                prim.Flexible = new Primitive.FlexibleData();
-                prim.Flexible.Drag = this.Flexible.Drag;
-                prim.Flexible.Force = this.Flexible.Force;
-                prim.Flexible.Gravity = this.Flexible.Gravity;
-                prim.Flexible.Softness = this.Flexible.Softness;
-                prim.Flexible.Tension = this.Flexible.Tension;
-                prim.Flexible.Wind = this.Flexible.Wind;
+                prim.Flexible = new Primitive.FlexibleData
+                {
+                    Drag = this.Flexible.Drag,
+                    Force = this.Flexible.Force,
+                    Gravity = this.Flexible.Gravity,
+                    Softness = this.Flexible.Softness,
+                    Tension = this.Flexible.Tension,
+                    Wind = this.Flexible.Wind
+                };
             }
 
             if (this.Light != null)
             {
-                prim.Light = new Primitive.LightData();
-                prim.Light.Color = this.Light.Color;
-                prim.Light.Cutoff = this.Light.Cutoff;
-                prim.Light.Falloff = this.Light.Falloff;
-                prim.Light.Intensity = this.Light.Intensity;
-                prim.Light.Radius = this.Light.Radius;
+                prim.Light = new Primitive.LightData
+                {
+                    Color = this.Light.Color,
+                    Cutoff = this.Light.Cutoff,
+                    Falloff = this.Light.Falloff,
+                    Intensity = this.Light.Intensity,
+                    Radius = this.Light.Radius
+                };
             }
 
             if (this.Particles != null)
             {
-                prim.ParticleSys = new Primitive.ParticleSystem();
-                prim.ParticleSys.AngularVelocity = this.Particles.AngularVelocity;
-                prim.ParticleSys.PartAcceleration = this.Particles.Acceleration;
-                prim.ParticleSys.BurstPartCount = (byte)this.Particles.BurstParticleCount;
-                prim.ParticleSys.BurstRate = this.Particles.BurstRadius;
+                prim.ParticleSys = new Primitive.ParticleSystem
+                {
+                    AngularVelocity = this.Particles.AngularVelocity,
+                    PartAcceleration = this.Particles.Acceleration,
+                    BurstPartCount = (byte)this.Particles.BurstParticleCount,
+                    BurstRate = this.Particles.BurstRadius
+                };
                 prim.ParticleSys.BurstRate = this.Particles.BurstRate;
                 prim.ParticleSys.BurstSpeedMax = this.Particles.BurstSpeedMax;
                 prim.ParticleSys.BurstSpeedMin = this.Particles.BurstSpeedMin;
@@ -1272,9 +1294,11 @@ namespace OpenMetaverse.Assets
 
             if (this.Sculpt != null)
             {
-                prim.Sculpt = new Primitive.SculptData();
-                prim.Sculpt.SculptTexture = this.Sculpt.Texture;
-                prim.Sculpt.Type = (SculptType)this.Sculpt.Type;
+                prim.Sculpt = new Primitive.SculptData
+                {
+                    SculptTexture = this.Sculpt.Texture,
+                    Type = (SculptType)this.Sculpt.Type
+                };
             }
 
             return prim;
