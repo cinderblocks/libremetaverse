@@ -3,8 +3,8 @@ solution: LibreMetaverse.sln
 
 matrix:
   include:
-    - os: linux # ubuntu 14.04
-      dist: trusty
+    - os: linux
+      dist: xenial
       sudo: required
       dotnet: 2.2
       mono: none
