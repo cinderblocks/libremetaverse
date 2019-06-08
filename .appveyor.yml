@@ -45,7 +45,7 @@ deploy:
   - provider: NuGet
     name: nuget_release
     api_key:
-      secure: gKV6ye5OrfO434yGWbMxqbFHBt5w0Rfzao4Ixowol6DoOS8ksIY8p+/1+VM5CI1l
+      secure: WAEp9wQu4tWKiMdcfog7FWpzk7rPou8flMCYlmYy3mZ+thKwmG1ht4o4mmEE6ZLs
     skip_symbols: true
     artifact: /.*LibreMetaverse.*\.nupkg/
     on:
