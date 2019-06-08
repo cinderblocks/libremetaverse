@@ -555,15 +555,5 @@ namespace OpenMetaverse
 
         #endregion Properties
 
-        #region Constructors
-
-        /// <summary>
-        /// Default constructor
-        /// </summary>
-        public Avatar()
-        {
-        }
-
-        #endregion Constructors
     }
 }

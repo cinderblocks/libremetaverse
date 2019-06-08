@@ -42,9 +42,8 @@ namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
                 return "Error: Client not logged in.";
 
             // Traverse the path, looking for the 
-            for (int i = 0; i < path.Length; ++i)
+            foreach (var nextName in path)
             {
-                string nextName = path[i];
                 if (string.IsNullOrEmpty(nextName) || nextName == ".")
                     continue; // Ignore '.' and blanks, stay in the current directory.
                 if (nextName == ".." && currentFolder != Inventory.RootFolder)

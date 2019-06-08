@@ -56,7 +56,7 @@ namespace OpenMetaverse.TestClient
                     }
                     else
                     {
-                        result.AppendFormat("The {0} Asset Animation is being played, sequence is {0}", kvp.Key, kvp.Value);
+                        result.AppendFormat("The {0} Asset Animation is being played, sequence is {1}", kvp.Key, kvp.Value);
                     }
                 });                                
             }

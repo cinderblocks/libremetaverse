@@ -41,14 +41,6 @@ namespace LibreMetaverse
     public class MultiValueDictionary<TKey, TValue> : Dictionary<TKey, IList<TValue>>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="MultiValueDictionary&lt;TKey, TValue&gt;"/> class.
-        /// </summary>
-        public MultiValueDictionary() : base()
-        {
-        }
-
-
-        /// <summary>
         /// Adds the specified value under the specified key
         /// </summary>
         /// <param name="key">The key.</param>

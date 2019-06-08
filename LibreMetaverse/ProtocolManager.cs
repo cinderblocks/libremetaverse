@@ -642,7 +642,7 @@ namespace OpenMetaverse
             }
             catch (Exception e)
             {
-                throw new Exception("Map file parsing error", e); ;
+                throw new Exception("Map file parsing error", e);
             }
 		}
 

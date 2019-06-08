@@ -221,17 +221,16 @@ namespace OpenMetaverse.Http
 
             #region Handle incoming events
 
-            if (OnEvent != null && events != null && events.Count > 0)
+            if (OnEvent == null || events == null || events.Count <= 0) return;
+            // Fire callbacks for each event received
+            foreach (var osd in events)
             {
-                // Fire callbacks for each event received
-                foreach (OSDMap evt in events)
-                {
-                    string msg = evt["message"].AsString();
-                    OSDMap body = (OSDMap)evt["body"];
+                var evt = (OSDMap) osd;
+                string msg = evt["message"].AsString();
+                OSDMap body = (OSDMap)evt["body"];
 
-                    try { OnEvent(msg, body); }
-                    catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, ex); }
-                }
+                try { OnEvent(msg, body); }
+                catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, ex); }
             }
 
             #endregion Handle incoming events

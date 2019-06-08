@@ -87,10 +87,7 @@ namespace LitJson
 
         public JsonWriter (TextWriter writer)
         {
-            if (writer == null)
-                throw new ArgumentNullException (nameof(writer));
-
-            this.TextWriter = writer;
+            this.TextWriter = writer ?? throw new ArgumentNullException (nameof(writer));
 
             Init ();
         }

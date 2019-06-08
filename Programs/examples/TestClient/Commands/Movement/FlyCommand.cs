@@ -14,10 +14,7 @@ namespace OpenMetaverse.TestClient
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            bool start = true;
-
-            if (args.Length == 1 && args[0].ToLower() == "stop")
-                start = false;
+            bool start = !(args.Length == 1 && args[0].ToLower() == "stop");
 
             if (start)
             {

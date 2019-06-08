@@ -275,7 +275,7 @@ public class ClientAO : ProxyPlugin
     //start requesting an item by its path
     public void RequestFindObjectByPath(UUID baseFolder, string path)
     {
-        if (path == null || path.Length == 0)
+        if (string.IsNullOrEmpty(path))
             throw new ArgumentException("Empty path is not supported");
         currentFolder = baseFolder;
         //split path by '/'
@@ -343,7 +343,7 @@ public class ClientAO : ProxyPlugin
                             searchLevel++;
                             RequestFolderContents(currentFolder,
                                 true,
-                                (searchLevel < searchPath.Length - 1) ? false : true, 
+                                (searchLevel >= searchPath.Length - 1), 
                                 InventorySortOrder.ByName);
                             //Jump to end
                             goto End;

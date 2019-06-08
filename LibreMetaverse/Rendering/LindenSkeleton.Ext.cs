@@ -100,9 +100,9 @@ namespace OpenMetaverse.Rendering
 
             // not really sure about this algorithm, but it seems to fit the bill:
             // and the mesh doesn't seem to be overly distorted
-            if(bone.bone != null)
-                foreach (Joint child in bone.bone)
-                    ExpandJoint(bone, child, expandedJointList, jointsFilter);
+            if (bone.bone == null) return expandedJointList;
+            foreach (Joint child in bone.bone)
+                ExpandJoint(bone, child, expandedJointList, jointsFilter);
 
             return expandedJointList;
         }
@@ -117,26 +117,24 @@ namespace OpenMetaverse.Rendering
         private void ExpandJoint(Joint parentJoint, Joint currentJoint, List<string> expandedJointList, IEnumerable<string> jointsFilter)
         {
             // does the mesh reference this joint
-            if (jointsFilter.Contains(currentJoint.name))
+            var enumerable = jointsFilter as string[] ?? jointsFilter.ToArray();
+            if (enumerable.Contains(currentJoint.name))
             {
                 if (expandedJointList.Count > 0 && parentJoint != null &&
                     parentJoint.name == expandedJointList[expandedJointList.Count - 1])
                     expandedJointList.Add(currentJoint.name);
                 else
                 {
-                    if (parentJoint != null)
-                        expandedJointList.Add(parentJoint.name);
-                    else
-                        expandedJointList.Add(currentJoint.name);        // only happens on the root joint
+                    expandedJointList.Add(parentJoint != null ? parentJoint.name : currentJoint.name);
 
                     expandedJointList.Add(currentJoint.name);
                 }
             }
 
             // recurse the joint hierarchy
-            if(currentJoint.bone != null)
-                foreach (Joint child in currentJoint.bone)
-                    ExpandJoint(currentJoint, child, expandedJointList, jointsFilter);
+            if (currentJoint.bone == null) return;
+            foreach (Joint child in currentJoint.bone)
+                ExpandJoint(currentJoint, child, expandedJointList, enumerable);
         }
     }
 }

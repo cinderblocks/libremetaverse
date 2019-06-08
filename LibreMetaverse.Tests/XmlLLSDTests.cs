@@ -483,7 +483,7 @@ namespace OpenMetaverse.Tests
             byte[] bytes = Encoding.UTF8.GetBytes(testSD);
             theSD = OSDParser.DeserializeLLSDXml(bytes);
 
-            Assert.IsTrue(theSD is OSD);
+            Assert.IsTrue(theSD != null);
         }
 
         /// <summary>

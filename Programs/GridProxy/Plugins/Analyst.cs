@@ -739,7 +739,7 @@ public class Analyst : ProxyPlugin
                 }
             }
 
-            Console.WriteLine(String.Format("Logging {0} packet types loaded from whitelist", count));
+            Console.WriteLine($"Logging {count} packet types loaded from whitelist");
         }
         catch (Exception)
         {
@@ -775,7 +775,7 @@ public class Analyst : ProxyPlugin
                 }
             }
 
-            Console.WriteLine(String.Format("Not logging {0} packet types loaded from blacklist", count));
+            Console.WriteLine($"Not logging {count} packet types loaded from blacklist");
         }
         catch (Exception)
         {
@@ -792,7 +792,7 @@ public class Analyst : ProxyPlugin
         }
         catch (Exception)
         {
-            Console.WriteLine(String.Format("Failed to open {0} for logging", outputFile));
+            Console.WriteLine($"Failed to open {outputFile} for logging");
         }
     }
 

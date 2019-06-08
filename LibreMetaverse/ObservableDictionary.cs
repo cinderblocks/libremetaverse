@@ -207,7 +207,7 @@ namespace OpenMetaverse
                     if (match(value))
                         return value;
                 }
-            return default(TValue);
+                return default(TValue);
         }
 
         /// <summary>Find All items in an <seealso cref="T:ObservableDictionary"/></summary>
@@ -234,7 +234,7 @@ namespace OpenMetaverse
                     if (match(kvp.Value))
                         found.Add(kvp.Value);
                 }
-                     return found;
+                return found;
         }
 
         /// <summary>Find All items in an <seealso cref="T:ObservableDictionary"/></summary>

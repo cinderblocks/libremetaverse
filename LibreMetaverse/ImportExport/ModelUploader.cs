@@ -243,7 +243,7 @@ namespace OpenMetaverse.ImportExport
             req["texture_folder_id"] = Client.Inventory.FindFolderForType(AssetType.Texture);
 
             req["everyone_mask"] = (int)PermissionMask.All;
-            req["group_mask"] = (int)PermissionMask.All; ;
+            req["group_mask"] = (int) PermissionMask.All;
             req["next_owner_mask"] = (int)PermissionMask.All;
 
             CapsClient request = new CapsClient(url);

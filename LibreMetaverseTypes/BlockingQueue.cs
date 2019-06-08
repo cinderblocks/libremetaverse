@@ -146,7 +146,7 @@ namespace OpenMetaverse
         {
             lock (_syncRoot)
             {
-                while (_open && (base.Count == 0))
+                while (_open && (Count == 0))
                 {
                     if (!Monitor.Wait(_syncRoot, timeout))
                         return false;

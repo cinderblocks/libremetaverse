@@ -49,15 +49,13 @@ namespace OpenMetaverse.TestClient
             {
                 string name = p.Properties != null ? p.Properties.Name : null;
                 if (String.IsNullOrEmpty(searchString) || ((name != null) && (name.Contains(searchString))))
-                    Console.WriteLine(String.Format("Object '{0}': {1}", name, p.ID.ToString()));
+                    Console.WriteLine("Object '{0}': {1}", name, p.ID.ToString());
             }
 
-            if (!complete)
-            {
-                Console.WriteLine("Warning: Unable to retrieve full properties for:");
-                foreach (UUID uuid in PrimsWaiting.Keys)
-                    Console.WriteLine(uuid);
-            }
+            if (complete) return "Done searching";
+            Console.WriteLine("Warning: Unable to retrieve full properties for:");
+            foreach (UUID uuid in PrimsWaiting.Keys)
+                Console.WriteLine(uuid);
 
             return "Done searching";
         }

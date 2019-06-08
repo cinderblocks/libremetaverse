@@ -184,7 +184,7 @@ namespace OpenMetaverse.Voice
             sb.Append(VoiceGateway.MakeXML("AccountHandle", AccountHandle));
             sb.Append(VoiceGateway.MakeXML("URI", URI));
             sb.Append(VoiceGateway.MakeXML("Name", Name));
-            if (Password != null && Password != "")
+            if (!string.IsNullOrEmpty(Password))
             {
                 sb.Append(VoiceGateway.MakeXML("Password", Password));
                 sb.Append(VoiceGateway.MakeXML("PasswordHashAlgorithm", PasswordHashAlgorithm));

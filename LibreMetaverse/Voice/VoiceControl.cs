@@ -422,7 +422,7 @@ namespace OpenMetaverse.Voice
             string result = null;
 
             if (id == UUID.Zero)
-                return result;
+                return null;
 
             // Prepending this apparently prevents conflicts with reserved names inside the vivox and diamondware code.
             result = "x";
@@ -926,7 +926,7 @@ namespace OpenMetaverse.Voice
                     spatialCredentials = cred["channel_credentials"].AsString();
             }
 
-            if (spatialUri == null || spatialUri == "")
+            if (string.IsNullOrEmpty(spatialUri))
             {
                 // "No voice chat allowed here");
                 return;

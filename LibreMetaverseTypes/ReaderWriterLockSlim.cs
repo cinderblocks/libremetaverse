@@ -122,11 +122,6 @@ namespace OpenMetaverse
             smp = Environment.ProcessorCount > 1;
         }
 
-        public ReaderWriterLockSlim()
-        {
-            // NoRecursion (0) is the default value
-        }
-
         public void EnterReadLock()
         {
             TryEnterReadLock(-1);
@@ -135,7 +130,7 @@ namespace OpenMetaverse
         public bool TryEnterReadLock(int millisecondsTimeout)
         {
             if (millisecondsTimeout < Timeout.Infinite)
-                throw new ArgumentOutOfRangeException("millisecondsTimeout");
+                throw new ArgumentOutOfRangeException(nameof(millisecondsTimeout));
 
             if (read_locks == null)
                 throw new ObjectDisposedException(null);
@@ -149,7 +144,7 @@ namespace OpenMetaverse
             if (ld.ReadLocks != 0)
             {
                 ExitMyLock();
-                throw new LockRecursionException("Recursive read lock can only be aquired in SupportsRecursion mode");
+                throw new LockRecursionException("Recursive read lock can only be acquired in SupportsRecursion mode");
             }
             ++ld.ReadLocks;
 
@@ -218,7 +213,7 @@ namespace OpenMetaverse
         public bool TryEnterWriteLock(int millisecondsTimeout)
         {
             if (millisecondsTimeout < Timeout.Infinite)
-                throw new ArgumentOutOfRangeException("millisecondsTimeout");
+                throw new ArgumentOutOfRangeException(nameof(millisecondsTimeout));
 
             if (read_locks == null)
                 throw new ObjectDisposedException(null);
@@ -336,7 +331,7 @@ namespace OpenMetaverse
         public bool TryEnterUpgradeableReadLock(int millisecondsTimeout)
         {
             if (millisecondsTimeout < Timeout.Infinite)
-                throw new ArgumentOutOfRangeException("millisecondsTimeout");
+                throw new ArgumentOutOfRangeException(nameof(millisecondsTimeout));
 
             if (read_locks == null)
                 throw new ObjectDisposedException(null);
@@ -583,7 +578,7 @@ namespace OpenMetaverse
             }
             catch (System.OverflowException)
             {
-                throw new ArgumentOutOfRangeException("timeout");
+                throw new ArgumentOutOfRangeException(nameof(timeout));
             }
         }
 

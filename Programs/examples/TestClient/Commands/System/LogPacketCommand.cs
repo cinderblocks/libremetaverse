@@ -76,7 +76,7 @@ namespace OpenMetaverse.TestClient
                 if (!m_isLogging)
                     return;               
 
-                m_logStreamWriter.WriteLine("Received: {0}", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss.fff"));
+                m_logStreamWriter.WriteLine("Received: {0:yyyy-MM-dd hh:mm:ss.fff}", DateTime.Now);
 
                 try
                 {

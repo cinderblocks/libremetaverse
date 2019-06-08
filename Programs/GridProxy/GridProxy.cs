@@ -2024,7 +2024,7 @@ namespace GridProxy
             simPort = (ushort)fakeSim.Port;
             byte[] bytes = fakeSim.Address.GetAddressBytes();
             simIP = Utils.BytesToUInt(bytes);
-            if (simCaps != null && simCaps.Length > 0)
+            if (!string.IsNullOrEmpty(simCaps))
             {
                 CapInfo info = new CapInfo(simCaps, realSim, "SeedCapability");
                 info.AddDelegate(new CapsDelegate(FixupSeedCapsResponse));

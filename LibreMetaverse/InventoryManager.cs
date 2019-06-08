@@ -3827,7 +3827,7 @@ namespace OpenMetaverse
             if (_Store.Contains(reply.AgentData.FolderID) &&
                 _Store[reply.AgentData.FolderID] is InventoryFolder)
             {
-                parentFolder = _Store[reply.AgentData.FolderID] as InventoryFolder;
+                parentFolder = (InventoryFolder) _Store[reply.AgentData.FolderID];
             }
             else
             {

@@ -86,8 +86,7 @@ namespace OpenMetaverse.TestClient
                 {
                     GotPermissions = false;
                     if (Properties.OwnerID != Client.Self.AgentID && 
-                        Properties.OwnerID != Client.MasterKey && 
-                        Client.Self.AgentID != Client.Self.AgentID)
+                        Properties.OwnerID != Client.MasterKey)
                     {
                         return "That object is owned by " + Properties.OwnerID + ", we don't have permission " +
                             "to export it";
@@ -95,10 +94,7 @@ namespace OpenMetaverse.TestClient
                 }
 
                 List<Primitive> prims = Client.Network.CurrentSim.ObjectsPrimitives.FindAll(
-                    delegate(Primitive prim)
-                    {
-                        return (prim.LocalID == localid || prim.ParentID == localid);
-                    }
+                    prim => (prim.LocalID == localid || prim.ParentID == localid)
                 );
 
                 bool complete = RequestObjectProperties(prims, 250);

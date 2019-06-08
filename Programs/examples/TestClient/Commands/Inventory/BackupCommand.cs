@@ -255,38 +255,32 @@ namespace OpenMetaverse.TestClient
             // first scan this folder for text
             foreach (InventoryNode iNode in folder.Nodes.Values)
             {
-                if (BackupWorker.CancellationPending)
-                    return;
-                if (iNode.Data is OpenMetaverse.InventoryItem)
+                if (BackupWorker.CancellationPending) return;
+                if (!(iNode.Data is InventoryItem ii)) continue;
+                if (ii.AssetType != AssetType.LSLText && ii.AssetType != AssetType.Notecard) continue;
+                // check permissions on scripts
+                if (ii.AssetType == AssetType.LSLText)
                 {
-                    InventoryItem ii = iNode.Data as InventoryItem;
-                    if (ii.AssetType == AssetType.LSLText || ii.AssetType == AssetType.Notecard)
+                    if ((ii.Permissions.OwnerMask & PermissionMask.Modify) == PermissionMask.None)
                     {
-                        // check permissions on scripts
-                        if (ii.AssetType == AssetType.LSLText)
-                        {
-                            if ((ii.Permissions.OwnerMask & PermissionMask.Modify) == PermissionMask.None)
-                            {
-                                // skip this one
-                                continue;
-                            }
-                        }
-
-                        string sExtension = (ii.AssetType == AssetType.LSLText) ? ".lsl" : ".txt";
-                        // make the output file
-                        string sPath = sPathSoFar + @"\" + MakeValid(ii.Name.Trim()) + sExtension;
-
-                        // create the new qdi
-                        QueuedDownloadInfo qdi = new QueuedDownloadInfo(sPath, ii.AssetUUID, iNode.Data.UUID, UUID.Zero,
-                            Client.Self.AgentID, ii.AssetType);
-
-                        // add it to the queue
-                        lock (PendingDownloads)
-                        {
-                            TextItemsFound++;
-                            PendingDownloads.Enqueue(qdi);
-                        }
+                        // skip this one
+                        continue;
                     }
+                }
+
+                string sExtension = (ii.AssetType == AssetType.LSLText) ? ".lsl" : ".txt";
+                // make the output file
+                string sPath = sPathSoFar + @"\" + MakeValid(ii.Name.Trim()) + sExtension;
+
+                // create the new qdi
+                QueuedDownloadInfo qdi = new QueuedDownloadInfo(sPath, ii.AssetUUID, ii.UUID, UUID.Zero,
+                    Client.Self.AgentID, ii.AssetType);
+
+                // add it to the queue
+                lock (PendingDownloads)
+                {
+                    TextItemsFound++;
+                    PendingDownloads.Enqueue(qdi);
                 }
             }
 

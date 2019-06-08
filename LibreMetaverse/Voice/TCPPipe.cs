@@ -51,17 +51,7 @@ namespace OpenMetaverse.Voice
 
         public bool Connected
         {
-            get
-            {
-                if (_TCPSocket != null && _TCPSocket.Connected)
-                    return true;
-                else
-                    return false;
-            }
-        }
-
-        public TCPPipe()
-        {
+            get { return _TCPSocket != null && _TCPSocket.Connected; }
         }
 
         public SocketException Connect(string address, int port)

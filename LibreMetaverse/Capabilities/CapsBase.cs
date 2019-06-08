@@ -113,10 +113,10 @@ namespace OpenMetaverse.Http
         static HttpWebRequest SetupRequest(Uri address, X509Certificate2 clientCert)
         {
             if (address == null)
-                throw new ArgumentNullException("address");
+                throw new ArgumentNullException(nameof(address));
 
             // Create the request
-            HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(address);
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(address);
 
             // Add the client certificate to the request if one was given
             if (clientCert != null)

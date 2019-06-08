@@ -63,12 +63,12 @@ namespace OpenMetaverse.TestClient
                     AssetType.Texture, InventoryType.Texture, Client.Inventory.FindFolderForType(AssetType.Texture),
                     delegate(bool success, string status, UUID itemID, UUID assetID)
                     {
-                        Console.WriteLine(String.Format(
-                            "RequestCreateItemFromAsset() returned: Success={0}, Status={1}, ItemID={2}, AssetID={3}",
-                            success, status, itemID, assetID));
+                        Console.WriteLine(
+                            "RequestCreateItemFromAsset() returned: Success={0}, Status={1}, ItemID={2}, AssetID={3}", 
+                            success, status, itemID, assetID);
 
                         TextureID = assetID;
-                        Console.WriteLine(String.Format("Upload took {0}", DateTime.Now.Subtract(start)));
+                        Console.WriteLine("Upload took {0}", DateTime.Now.Subtract(start));
                         UploadCompleteEvent.Set();
                     }
                 );

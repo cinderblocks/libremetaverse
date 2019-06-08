@@ -220,11 +220,6 @@ namespace OpenMetaverse
         public uint PacketNum;
         public string Filename = String.Empty;
         public TransferError Error = TransferError.None;
-
-        public XferDownload()
-            : base()
-        {
-        }
     }
 
     /// <summary>
@@ -241,11 +236,6 @@ namespace OpenMetaverse
         public float Priority;
         internal int InitialDataSize;
         internal ManualResetEvent HeaderReceivedEvent = new ManualResetEvent(false);
-
-        public ImageDownload()
-            : base()
-        {
-        }
     }
 
     /// <summary>
@@ -257,11 +247,6 @@ namespace OpenMetaverse
         public AssetType Type;
         public ulong XferID;
         public uint PacketNum;
-
-        public AssetUpload()
-            : base()
-        {
-        }
     }
 
     /// <summary>

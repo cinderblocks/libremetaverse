@@ -717,7 +717,7 @@ namespace OpenMetaverse.Tests
         {
             if (arrays == null)
             {
-                throw new ArgumentNullException("arrays");
+                throw new ArgumentNullException(nameof(arrays));
             }
             if (arrays.Length == 0)
             {

@@ -81,7 +81,7 @@ namespace OpenMetaverse
 
         public Simulator Simulator
         {
-            get { return Client is Simulator ? Client as Simulator : null; }
+            get { return Client is Simulator ? (Simulator) Client : null; }
         }
 
         /// <summary>
@@ -89,7 +89,7 @@ namespace OpenMetaverse
         /// </summary>
         public IPEndPoint Destination
         {
-            get { return Buffer.RemoteEndPoint is IPEndPoint ? Buffer.RemoteEndPoint as IPEndPoint : null; }
+            get { return Buffer.RemoteEndPoint is IPEndPoint ? (IPEndPoint) Buffer.RemoteEndPoint : null; }
         }
 
         /// <summary>

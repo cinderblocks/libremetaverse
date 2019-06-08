@@ -98,14 +98,14 @@ namespace VoiceTest
 
                 Console.WriteLine("Capture Devices:");
                 for (int i = 0; i < captureDevices.Count; i++)
-                    Console.WriteLine(String.Format("{0}. \"{1}\"", i, captureDevices[i]));
+                    Console.WriteLine("{0}. \"{1}\"", i, captureDevices[i]);
                 Console.WriteLine();
 
                 List<string> renderDevices = voice.RenderDevices();
 
                 Console.WriteLine("Render Devices:");
                 for (int i = 0; i < renderDevices.Count; i++)
-                    Console.WriteLine(String.Format("{0}. \"{1}\"", i, renderDevices[i]));
+                    Console.WriteLine("{0}. \"{1}\"", i, renderDevices[i]);
                 Console.WriteLine();
 
 
@@ -163,7 +163,7 @@ namespace VoiceTest
             catch(Exception e) 
             {
                 Console.WriteLine(e.Message);
-                if (e is VoiceException && (e as VoiceException).LoggedIn) 
+                if (e is VoiceException && ((VoiceException) e).LoggedIn) 
                 {
                     client.Network.Logout();
                 }
