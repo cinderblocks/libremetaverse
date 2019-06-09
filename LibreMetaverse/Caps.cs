@@ -62,20 +62,11 @@ namespace OpenMetaverse
         private EventQueueClient _EventQueueCap = null;
 
         /// <summary>Capabilities URI this system was initialized with</summary>
-        public string SeedCapsURI { get { return _SeedCapsURI; } }
+        public string SeedCapsURI => _SeedCapsURI;
 
         /// <summary>Whether the capabilities event queue is connected and
         /// listening for incoming events</summary>
-        public bool IsEventQueueRunning
-        {
-            get
-            {
-                if (_EventQueueCap != null)
-                    return _EventQueueCap.Running;
-                else
-                    return false;
-            }
-        }
+        public bool IsEventQueueRunning => _EventQueueCap != null && _EventQueueCap.Running;
 
         /// <summary>
         /// Default constructor
@@ -92,14 +83,12 @@ namespace OpenMetaverse
 
         public void Disconnect(bool immediate)
         {
-            Logger.Log(String.Format("Caps system for {0} is {1}", Simulator,
-                (immediate ? "aborting" : "disconnecting")), Helpers.LogLevel.Info, Simulator.Client);
+            Logger.Log($"Caps system for {Simulator} is {(immediate ? "aborting" : "disconnecting")}", 
+                Helpers.LogLevel.Info, Simulator.Client);
 
-            if (_SeedRequest != null)
-                _SeedRequest.Cancel();
+            _SeedRequest?.Cancel();
 
-            if (_EventQueueCap != null)
-                _EventQueueCap.Stop(immediate);
+            _EventQueueCap?.Stop(immediate);
         }
 
         /// <summary>
@@ -112,10 +101,7 @@ namespace OpenMetaverse
         {
             Uri cap;
 
-            if (_Caps.TryGetValue(capability, out cap))
-                return cap;
-            else
-                return null;
+            return _Caps.TryGetValue(capability, out cap) ? cap : null;
         }
 
         private void MakeSeedRequest()
@@ -189,6 +175,7 @@ namespace OpenMetaverse
             req.Add("RemoteParcelRequest");
             req.Add("RenderMaterials");
             req.Add("RequestTextureDownload");
+            req.Add("RequiredVoiceVersion");
             req.Add("ResourceCostSelected");
             req.Add("RetrieveNavMeshSrc");
             req.Add("SearchStatRequest");
@@ -251,9 +238,9 @@ namespace OpenMetaverse
             }
             else if (
                 error != null &&
-                error is WebException &&
-                ((WebException)error).Response != null &&
-                ((HttpWebResponse)((WebException)error).Response).StatusCode == HttpStatusCode.NotFound)
+                error is WebException exception &&
+                exception.Response != null &&
+                ((HttpWebResponse)exception.Response).StatusCode == HttpStatusCode.NotFound)
             {
                 // 404 error
                 Logger.Log("Seed capability returned a 404, capability system is aborting", Helpers.LogLevel.Error);
