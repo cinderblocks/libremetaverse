@@ -782,25 +782,24 @@ namespace OpenMetaverse
             lock (Wearables)
             {
                 // Remove the given wearables from the wearables collection
-                foreach (InventoryWearable t in wearables)
+                foreach (InventoryWearable wearable in wearables)
                 {
-                    InventoryWearable wearableItem = t;
-                    if (t.AssetType != AssetType.Bodypart        // Remove if it's not a body part
-                        && Wearables.ContainsKey(wearableItem.WearableType)) // And we have that wearable type
+                    if (wearable.AssetType != AssetType.Bodypart        // Remove if it's not a body part
+                        && Wearables.ContainsKey(wearable.WearableType)) // And we have that wearable type
                     {
-                        var worn = Wearables.GetValues(wearableItem.WearableType, true);
-                        WearableData wearable = worn.FirstOrDefault(item => item.ItemID == wearableItem.UUID);
-                        if (wearable == null) continue;
+                        var worn = Wearables.GetValues(wearable.WearableType, true);
+                        WearableData wearableData = worn.FirstOrDefault(item => item.ItemID == wearable.UUID);
+                        if (wearableData == null) continue;
 
-                        Wearables.Remove(wearableItem.WearableType, wearable);
+                        Wearables.Remove(wearable.WearableType, wearableData);
                         needSetAppearance = true;
                     }
                 }
             }
 
-            foreach (var t in attachments)
+            foreach (var attachment in attachments)
             {
-                Detach(t.UUID);
+                Detach(attachment.UUID);
             }
 
             if (needSetAppearance)
@@ -1242,8 +1241,20 @@ namespace OpenMetaverse
                     newWearables.Add(bodypart.Key, bodypart.Value);
                 }
 
-                // Replace the Wearables collection
-                Wearables = newWearables;
+                // heavy handed body part sanity check
+                if (newWearables.ContainsKey(WearableType.Shape) && 
+                    newWearables.ContainsKey(WearableType.Skin) &&
+                    newWearables.ContainsKey(WearableType.Eyes) &&
+                    newWearables.ContainsKey(WearableType.Hair))
+                {
+                    // Replace the Wearables collection
+                    Wearables = newWearables;
+                }
+                else
+                {
+                    Logger.Log("Wearables collection does not contain all required body parts; appearance cannot be set",
+                        Helpers.LogLevel.Error, Client);
+                }
             }
         }
 
