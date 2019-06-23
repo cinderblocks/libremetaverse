@@ -729,11 +729,10 @@ namespace OpenMetaverse
                         ItemID = wearableItem.UUID,
                         WearableType = wearableItem.WearableType
                     };
-                    if (replace) {
+                    if (replace || wearableItem.AssetType == AssetType.Bodypart) {
                         // Dump everything from the key
                         Wearables.Remove(wearableItem.WearableType);
                     }
-
                     Wearables.Add(wearableItem.WearableType, wd);
                 }
             }
