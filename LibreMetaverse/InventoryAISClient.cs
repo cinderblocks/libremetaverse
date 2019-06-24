@@ -28,7 +28,7 @@ namespace LibreMetaverse
         public bool IsAvailable => (Client.Network.CurrentSim.Caps != null &&
                                     Client.Network.CurrentSim.Caps.CapabilityURI(INVENTORY_CAP_NAME) != null);
 
-        public async Task CreateInventory(UUID parentUuid, OSD newInventory, Action callback)
+        public async Task CreateInventory(UUID parentUuid, OSD newInventory, Action<bool> callback)
         {
             var cap = getInventoryCap();
             if (cap == null)
@@ -47,11 +47,12 @@ namespace LibreMetaverse
 
                 if (reply.IsSuccessStatusCode)
                 {
-                    callback?.Invoke();
+                    callback?.Invoke(true);
                 }
                 else
                 {
                     Logger.Log("Could not create inventory: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                    callback?.Invoke(false);
                 }
             }
             catch (System.ArgumentException)
@@ -65,7 +66,7 @@ namespace LibreMetaverse
             }
         }
 
-        public async Task SlamFolder(UUID folderUuid, OSD newInventory, Action callback)
+        public async Task SlamFolder(UUID folderUuid, OSD newInventory, Action<bool> callback)
         {
             var cap = getInventoryCap();
             if (cap == null)
@@ -83,11 +84,12 @@ namespace LibreMetaverse
                 var reply = await req;
                 if (reply.IsSuccessStatusCode)
                 {
-                    callback?.Invoke();
+                    callback?.Invoke(true);
                 }
                 else
                 {
                     Logger.Log("Could not slam folder: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                    callback?.Invoke(false);
                 }
             }
             catch (System.ArgumentException)
@@ -101,7 +103,7 @@ namespace LibreMetaverse
             }
         }
 
-        public async Task RemoveCategory(UUID categoryUuid, Action callback)
+        public async Task RemoveCategory(UUID categoryUuid, Action<bool> callback)
         {
             var cap = getInventoryCap();
             if (cap == null)
@@ -116,11 +118,12 @@ namespace LibreMetaverse
                 var reply = await op;
                 if (reply.IsSuccessStatusCode)
                 {
-                    callback?.Invoke();
+                    callback?.Invoke(true);
                 }
                 else
                 {
                     Logger.Log("Could not remove folder: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                    callback?.Invoke(false);
                 }
             }
             catch (System.ArgumentException)
@@ -134,7 +137,7 @@ namespace LibreMetaverse
             }
         }
 
-        public async Task RemoveItem(UUID itemUuid, Action callback)
+        public async Task RemoveItem(UUID itemUuid, Action<bool> callback)
         {
             var cap = getInventoryCap();
             if (cap == null)
@@ -149,16 +152,17 @@ namespace LibreMetaverse
                 var reply = await op;
                 if (reply.IsSuccessStatusCode)
                 {
-                    callback?.Invoke();
+                    callback?.Invoke(true);
                 }
                 else
                 {
                     Logger.Log("Could not remove item: " + itemUuid + " " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                    callback?.Invoke(false);
                 }
             }
             catch (System.ArgumentException)
             {
-                // supress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
+                // suppress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
                 // whatever reason, it's throwing here.
             }
             catch (Exception ex)
@@ -167,7 +171,7 @@ namespace LibreMetaverse
             }
         }
 
-        public async Task CopyLibraryCategory(UUID sourceUuid, UUID destUuid, bool copySubfolders, Action callback)
+        public async Task CopyLibraryCategory(UUID sourceUuid, UUID destUuid, bool copySubfolders, Action<bool> callback)
         {
             var cap = getLibraryCap();
             if (cap == null)
@@ -192,11 +196,12 @@ namespace LibreMetaverse
                 var reply = await req;
                 if (reply.IsSuccessStatusCode)
                 {
-                    callback?.Invoke();
+                    callback?.Invoke(true);
                 }
                 else
                 {
                     Logger.Log("Could not copy library folder: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                    callback?.Invoke(false);
                 }
             }
             catch (System.ArgumentException)
@@ -210,7 +215,7 @@ namespace LibreMetaverse
             }
         }
 
-        public async Task PurgeDescendents(UUID categoryUuid, Action<UUID> callback)
+        public async Task PurgeDescendents(UUID categoryUuid, Action<bool, UUID> callback)
         {
             var cap = getInventoryCap();
             if (cap == null)
@@ -225,11 +230,12 @@ namespace LibreMetaverse
                 var reply = await op;
                 if (reply.IsSuccessStatusCode)
                 {
-                    callback?.Invoke(categoryUuid);
+                    callback?.Invoke(true, categoryUuid);
                 }
                 else
                 {
                     Logger.Log("Could not purge descendents: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                    callback?.Invoke(false, categoryUuid);
                 }
             }
             catch (System.ArgumentException)
@@ -243,7 +249,7 @@ namespace LibreMetaverse
             }
         }
 
-        public async Task UpdateCategory(UUID categoryUuid, OSD updates, Action callback)
+        public async Task UpdateCategory(UUID categoryUuid, OSD updates, Action<bool> callback)
         {
             var cap = getInventoryCap();
             if (cap == null)
@@ -265,11 +271,12 @@ namespace LibreMetaverse
                 var reply = await req;
                 if (reply.IsSuccessStatusCode)
                 {
-                    callback?.Invoke();
+                    callback?.Invoke(true);
                 }
                 else
                 {
                     Logger.Log("Could not update folder: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                    callback?.Invoke(false);
                 }
             }
             catch (System.ArgumentException)
@@ -283,7 +290,7 @@ namespace LibreMetaverse
             }
         }
 
-        public async Task UpdateItem(UUID itemUuid, OSD updates, Action callback)
+        public async Task UpdateItem(UUID itemUuid, OSD updates, Action<bool> callback)
         {
             var cap = getInventoryCap();
             if (cap == null)
@@ -305,11 +312,12 @@ namespace LibreMetaverse
                 var reply = await req;
                 if (reply.IsSuccessStatusCode)
                 {
-                    callback?.Invoke();
+                    callback?.Invoke(true);
                 }
                 else
                 {
                     Logger.Log("Could not update item: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                    callback?.Invoke(false);
                 }
             }
             catch (System.ArgumentException)
