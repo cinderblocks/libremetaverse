@@ -103,6 +103,15 @@ namespace OpenMetaverse
 
     #endregion Enums
 
+    [Serializable]
+    public class AppearanceManagerException : Exception
+    {
+        public AppearanceManagerException() { }
+
+        public AppearanceManagerException(string message)
+        : base(message) { }
+    }
+
     public class AppearanceManager
     {
         #region Constants
@@ -486,7 +495,7 @@ namespace OpenMetaverse
                                     Logger.Log(
                                         "Failed to retrieve a list of current agent wearables, appearance cannot be set",
                                         Helpers.LogLevel.Error, Client);
-                                    throw new Exception(
+                                    throw new AppearanceManagerException(
                                         "Failed to retrieve a list of current agent wearables, appearance cannot be set");
                                 }
                                 GotWearables = true;
@@ -874,10 +883,18 @@ namespace OpenMetaverse
             {
                 SetAppearanceSerialNum++;
             }
-            ReplaceOutfit(wearables);
-            AddAttachments(attachments, true, false);
-            SendAgentIsNowWearing();
-            DelayedRequestSetAppearance();
+
+            try
+            {
+                ReplaceOutfit(wearables);
+                AddAttachments(attachments, true, false);
+                SendAgentIsNowWearing();
+                DelayedRequestSetAppearance();
+            }
+            catch (AppearanceManagerException e)
+            {
+                Logger.Log(e.Message, Helpers.LogLevel.Error, Client);
+            }
         }
 
         /// <summary>
@@ -1252,8 +1269,8 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    Logger.Log("Wearables collection does not contain all required body parts; appearance cannot be set",
-                        Helpers.LogLevel.Error, Client);
+                    throw new AppearanceManagerException(
+                        "Wearables collection does not contain all required body parts; appearance cannot be set");
                 }
             }
         }
