@@ -22,7 +22,7 @@ namespace LibreMetaverse
         {
             Client = client;
             httpClient.DefaultRequestHeaders.Accept.Clear();
-            httpClient.DefaultRequestHeaders.Add("User-Agent", "Libremetaverse AIS Client");
+            httpClient.DefaultRequestHeaders.Add("User-Agent", "LibreMetaverse AIS Client");
         }
 
         public bool IsAvailable => (Client.Network.CurrentSim.Caps != null &&
