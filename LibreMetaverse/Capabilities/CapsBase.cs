@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2019, Cinderblocks Design Co.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -69,14 +70,14 @@ namespace OpenMetaverse.Http
             RequestCompletedEventHandler completedCallback)
         {
             // Create the request
-            HttpWebRequest request = SetupRequest(address, clientCert);
+            var request = SetupRequest(address, clientCert);
             request.ContentLength = data.Length;
-            if (!String.IsNullOrEmpty(contentType))
+            if (!string.IsNullOrEmpty(contentType))
                 request.ContentType = contentType;
             request.Method = "POST";
 
             // Create an object to hold all of the state for this request
-            RequestState state = new RequestState(request, data, millisecondsTimeout, openWriteCallback,
+            var state = new RequestState(request, data, millisecondsTimeout, openWriteCallback,
                 downloadProgressCallback, completedCallback);
 
             // Start the request for a stream to upload to
@@ -110,13 +111,13 @@ namespace OpenMetaverse.Http
             ThreadPool.RegisterWaitForSingleObject(result.AsyncWaitHandle, TimeoutCallback, state, millisecondsTimeout, true);
         }
 
-        static HttpWebRequest SetupRequest(Uri address, X509Certificate2 clientCert)
+        private static HttpWebRequest SetupRequest(Uri address, X509Certificate2 clientCert)
         {
             if (address == null)
                 throw new ArgumentNullException(nameof(address));
 
             // Create the request
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(address);
+            var request = (HttpWebRequest)WebRequest.Create(address);
 
             // Add the client certificate to the request if one was given
             if (clientCert != null)
@@ -144,7 +145,7 @@ namespace OpenMetaverse.Http
             return request;
         }
 
-        static void OpenWrite(IAsyncResult ar)
+        private static void OpenWrite(IAsyncResult ar)
         {
             RequestState state = (RequestState)ar.AsyncState;
 
@@ -154,8 +155,7 @@ namespace OpenMetaverse.Http
                 using (Stream uploadStream = state.Request.EndGetRequestStream(ar))
                 {
                     // Fire the callback for successfully opening the stream
-                    if (state.OpenWriteCallback != null)
-                        state.OpenWriteCallback(state.Request);
+                    state.OpenWriteCallback?.Invoke(state.Request);
 
                     // Write our data to the upload stream
                     uploadStream.Write(state.UploadData, 0, state.UploadData.Length);
@@ -170,14 +170,13 @@ namespace OpenMetaverse.Http
             catch (Exception ex)
             {
                 //Logger.Log.Debug("CapsBase.OpenWrite(): " + ex.Message);
-                if (state.CompletedCallback != null)
-                    state.CompletedCallback(state.Request, null, null, ex);
+                state.CompletedCallback?.Invoke(state.Request, null, null, ex);
             }
         }
 
-        static void GetResponse(IAsyncResult ar)
+        private static void GetResponse(IAsyncResult ar)
         {
-            RequestState state = (RequestState)ar.AsyncState;
+            var state = (RequestState)ar.AsyncState;
             HttpWebResponse response = null;
             byte[] responseData = null;
             Exception error = null;
@@ -187,7 +186,7 @@ namespace OpenMetaverse.Http
                 using (response = (HttpWebResponse)state.Request.EndGetResponse(ar))
                 {
                     // Get the stream for downloading the response
-                    using (Stream responseStream = response.GetResponseStream())
+                    using (var responseStream = response.GetResponseStream())
                     {
                         #region Read the response
 
@@ -244,20 +243,17 @@ namespace OpenMetaverse.Http
                 error = ex;
             }
 
-            if (state.CompletedCallback != null)
-                state.CompletedCallback(state.Request, response, responseData, error);
+            state.CompletedCallback?.Invoke(state.Request, response, responseData, error);
         }
 
-        static void TimeoutCallback(object state, bool timedOut)
+        private static void TimeoutCallback(object state, bool timedOut)
         {
-            if (timedOut)
-            {
-                RequestState requestState = state as RequestState;
-                //Logger.Log.Debug("CapsBase.TimeoutCallback(): Request to " + requestState.Request.RequestUri +
-                //    " timed out after " + requestState.MillisecondsTimeout + " milliseconds");
-                if (requestState != null && requestState.Request != null)
-                    requestState.Request.Abort();
-            }
+            if (!timedOut) return;
+
+            RequestState requestState = state as RequestState;
+            //Logger.Log.Debug("CapsBase.TimeoutCallback(): Request to " + requestState.Request.RequestUri +
+            //    " timed out after " + requestState.MillisecondsTimeout + " milliseconds");
+            requestState?.Request?.Abort();
         }
     }
 }
