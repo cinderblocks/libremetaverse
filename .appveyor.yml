@@ -48,5 +48,3 @@ deploy:
       secure: WAEp9wQu4tWKiMdcfog7FWpzk7rPou8flMCYlmYy3mZ+thKwmG1ht4o4mmEE6ZLs
     skip_symbols: true
     artifact: /.*LibreMetaverse.*\.nupkg/
-    on:
-      branch: master
