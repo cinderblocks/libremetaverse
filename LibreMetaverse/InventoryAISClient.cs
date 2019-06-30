@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
@@ -28,7 +30,7 @@ namespace LibreMetaverse
         public bool IsAvailable => (Client.Network.CurrentSim.Caps != null &&
                                     Client.Network.CurrentSim.Caps.CapabilityURI(INVENTORY_CAP_NAME) != null);
 
-        public async Task CreateInventory(UUID parentUuid, OSD newInventory, Action<bool> callback)
+        public async Task CreateInventory(UUID parentUuid, OSD newInventory, bool createLink, InventoryManager.ItemCreatedCallback callback)
         {
             var cap = getInventoryCap();
             if (cap == null)
@@ -45,20 +47,20 @@ namespace LibreMetaverse
                 var req = httpClient.PostAsync(url, content);
                 var reply = await req;
 
-                if (reply.IsSuccessStatusCode)
+                if (reply.IsSuccessStatusCode 
+                    && OSDParser.Deserialize(reply.Content.ReadAsStringAsync().Result) is OSDMap map
+                    && map["_embedded"] is OSDMap embedded)
                 {
-                    callback?.Invoke(true);
+                    List<InventoryItem> items = !createLink 
+                        ? parseItemsFromResponse((OSDMap)embedded["items"]) 
+                        : parseLinksFromResponse((OSDMap)embedded["links"]);
+                    callback(true, items.First());
                 }
                 else
                 {
                     Logger.Log("Could not create inventory: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
-                    callback?.Invoke(false);
+                    callback(false, null);
                 }
-            }
-            catch (System.ArgumentException)
-            {
-                // supress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
-                // whatever reason, it's throwing here.
             }
             catch (Exception ex)
             {
@@ -92,11 +94,6 @@ namespace LibreMetaverse
                     callback?.Invoke(false);
                 }
             }
-            catch (System.ArgumentException)
-            {
-                // supress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
-                // whatever reason, it's throwing here.
-            }
             catch (Exception ex)
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
@@ -126,11 +123,6 @@ namespace LibreMetaverse
                     callback?.Invoke(false);
                 }
             }
-            catch (System.ArgumentException)
-            {
-                // supress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
-                // whatever reason, it's throwing here.
-            }
             catch (Exception ex)
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
@@ -159,11 +151,6 @@ namespace LibreMetaverse
                     Logger.Log("Could not remove item: " + itemUuid + " " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
                     callback?.Invoke(false);
                 }
-            }
-            catch (System.ArgumentException)
-            {
-                // suppress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
-                // whatever reason, it's throwing here.
             }
             catch (Exception ex)
             {
@@ -204,11 +191,6 @@ namespace LibreMetaverse
                     callback?.Invoke(false);
                 }
             }
-            catch (System.ArgumentException)
-            {
-                // supress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
-                // whatever reason, it's throwing here.
-            }
             catch (Exception ex)
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
@@ -237,11 +219,6 @@ namespace LibreMetaverse
                     Logger.Log("Could not purge descendents: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
                     callback?.Invoke(false, categoryUuid);
                 }
-            }
-            catch (System.ArgumentException)
-            {
-                // supress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
-                // whatever reason, it's throwing here.
             }
             catch (Exception ex)
             {
@@ -279,11 +256,6 @@ namespace LibreMetaverse
                     callback?.Invoke(false);
                 }
             }
-            catch (System.ArgumentException)
-            {
-                // supress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
-                // whatever reason, it's throwing here.
-            }
             catch (Exception ex)
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
@@ -320,15 +292,60 @@ namespace LibreMetaverse
                     callback?.Invoke(false);
                 }
             }
-            catch (System.ArgumentException)
-            {
-                // supress "Only 'http' and 'https' schemes are allowed." https IS the scheme, but for 
-                // whatever reason, it's throwing here.
-            }
             catch (Exception ex)
             {
                 Logger.Log(ex.Message, Helpers.LogLevel.Warning);
             }
+        }
+
+        private List<InventoryItem> parseItemsFromResponse(OSDMap itemsOsd)
+        {
+            List<InventoryItem> ret = new List<InventoryItem>();
+
+            foreach (KeyValuePair<string, OSD> o in itemsOsd)
+            {
+                var item = (OSDMap)o.Value;
+                ret.Add(InventoryItem.FromOSD(item));
+            }
+            return ret;
+        }
+
+        private List<InventoryItem> parseLinksFromResponse(OSDMap linksOsd)
+        {
+            List<InventoryItem> ret = new List<InventoryItem>();
+
+            foreach (KeyValuePair<string, OSD> o in linksOsd)
+            {
+                var link = (OSDMap)o.Value;
+                InventoryType type = (InventoryType)link["inv_type"].AsInteger();
+                if (type == InventoryType.Texture && (AssetType)link["type"].AsInteger() == AssetType.Object)
+                {
+                    type = InventoryType.Attachment;
+                }
+                InventoryItem item = InventoryManager.CreateInventoryItem(type, link["item_id"]);
+
+                item.ParentUUID = link["parent_id"];
+                item.Name = link["name"];
+                item.Description = link["desc"];
+                item.OwnerID = link["agent_id"];
+                item.ParentUUID = link["parent_id"];
+                item.AssetUUID = link["linked_id"];
+                item.AssetType = AssetType.Link;
+                item.CreationDate = Utils.UnixTimeToDateTime(link["created_at"]);
+
+                item.CreatorID = link["agent_id"]; // hack
+                item.LastOwnerID = link["agent_id"]; // hack
+                item.Permissions = Permissions.NoPermissions;
+                item.GroupOwned = false;
+                item.GroupID = UUID.Zero;
+
+                item.SalePrice = 0;
+                item.SaleType = SaleType.Not;
+
+                ret.Add(item);
+            }
+
+            return ret;
         }
 
         private Uri getInventoryCap()
