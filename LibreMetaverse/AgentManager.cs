@@ -4367,9 +4367,12 @@ namespace OpenMetaverse
             homeLookAt = reply.HomeLookAt;
             lookAt = reply.LookAt;
 
-            foreach (var gesture in reply.Gestures)
+            if (reply.Gestures != null)
             {
-                ActiveGestures.Add(gesture.Key, gesture.Value);
+                foreach (var gesture in reply.Gestures)
+                {
+                    ActiveGestures.Add(gesture.Key, gesture.Value);
+                }
             }
         }
 
