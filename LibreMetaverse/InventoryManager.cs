@@ -917,10 +917,8 @@ namespace OpenMetaverse
             List<InventoryBase> contents = _Store.GetContents(_Store.RootFolder.UUID);
             foreach (InventoryBase inv in contents)
             {
-                if (inv is InventoryFolder)
+                if (inv is InventoryFolder folder)
                 {
-                    InventoryFolder folder = inv as InventoryFolder;
-
                     if (folder.PreferredType == (FolderType)type)
                         return folder.UUID;
                 }
@@ -966,22 +964,21 @@ namespace OpenMetaverse
             AutoResetEvent findEvent = new AutoResetEvent(false);
             UUID foundItem = UUID.Zero;
 
-            EventHandler<FindObjectByPathReplyEventArgs> callback =
-                delegate(object sender, FindObjectByPathReplyEventArgs e)
+            void Callback(object sender, FindObjectByPathReplyEventArgs e)
+            {
+                if (e.Path == path)
                 {
-                    if (e.Path == path)
-                    {
-                        foundItem = e.InventoryObjectID;
-                        findEvent.Set();
-                    }
-                };
+                    foundItem = e.InventoryObjectID;
+                    findEvent.Set();
+                }
+            }
 
-            FindObjectByPathReply += callback;
+            FindObjectByPathReply += Callback;
 
             RequestFindObjectByPath(baseFolder, inventoryOwner, path);
             findEvent.WaitOne(timeoutMS, false);
 
-            FindObjectByPathReply -= callback;
+            FindObjectByPathReply -= Callback;
 
             return foundItem;
         }
@@ -1026,7 +1023,7 @@ namespace OpenMetaverse
 
             foreach (InventoryBase inv in contents)
             {
-                if (String.Compare(inv.Name, path[level], StringComparison.Ordinal) == 0)
+                if (string.Compare(inv.Name, path[level], StringComparison.Ordinal) == 0)
                 {
                     if (level == path.Length - 1)
                     {
@@ -1330,29 +1327,30 @@ namespace OpenMetaverse
 
         #region Remove
 
+        private void RemoveLocalUi(bool success, UUID folder)
+        {
+            if (success)
+            {
+                lock (_Store)
+                {
+                    if (!_Store.Contains(folder)) return;
+                    foreach (InventoryBase obj in _Store.GetContents(folder))
+                    {
+                        _Store.RemoveNodeFor(obj);
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Remove descendants of a folder
         /// </summary>
         /// <param name="folder">The <seealso cref="UUID"/> of the folder</param>
         public void RemoveDescendants(UUID folder)
         {
-            void UpdateUi(bool success, UUID f)
-            {
-                if (!success) { return; }
-
-                lock (_Store)
-                {
-                    if (!_Store.Contains(f)) return;
-                    foreach (InventoryBase obj in _Store.GetContents(f))
-                    {
-                        _Store.RemoveNodeFor(obj);
-                    }
-                }
-            }
-
             if (Client.AisClient.IsAvailable)
             {
-                Client.AisClient.PurgeDescendents(folder, UpdateUi).ConfigureAwait(false);
+                Client.AisClient.PurgeDescendents(folder, RemoveLocalUi).ConfigureAwait(false);
             }
             else
             {
@@ -1366,7 +1364,7 @@ namespace OpenMetaverse
                     InventoryData = {FolderID = folder}
                 };
                 Client.Network.SendPacket(purge);
-                UpdateUi(true, folder);
+                RemoveLocalUi(true, folder);
             }
         }
 
@@ -1473,10 +1471,10 @@ namespace OpenMetaverse
 
         private void EmptySystemFolder(FolderType folderType)
         {
-            List<InventoryBase> items = _Store.GetContents(_Store.RootFolder);
-
             UUID folderKey = UUID.Zero;
-            foreach (InventoryBase item in items)
+
+            var items = _Store.GetContents(_Store.RootFolder);
+            foreach (var item in items)
             {
                 InventoryFolder folder = item as InventoryFolder;
                 if (folder?.PreferredType == folderType)
@@ -1485,21 +1483,33 @@ namespace OpenMetaverse
                     break;
                 }
             }
-            items = _Store.GetContents(folderKey);
-            List<UUID> remItems = new List<UUID>();
-            List<UUID> remFolders = new List<UUID>();
-            foreach (InventoryBase item in items)
+
+            if (Client.AisClient.IsAvailable)
             {
-                if (item is InventoryFolder)
+                if (folderKey != UUID.Zero)
                 {
-                    remFolders.Add(item.UUID);
-                }
-                else
-                {
-                    remItems.Add(item.UUID);
+                    Client.AisClient.PurgeDescendents(folderKey, RemoveLocalUi).ConfigureAwait(false);
                 }
             }
-            Remove(remItems, remFolders);
+            else
+            {
+                items = _Store.GetContents(folderKey);
+                List<UUID> remItems = new List<UUID>();
+                List<UUID> remFolders = new List<UUID>();
+                foreach (InventoryBase item in items)
+                {
+                    if (item is InventoryFolder)
+                    {
+                        remFolders.Add(item.UUID);
+                    }
+                    else
+                    {
+                        remItems.Add(item.UUID);
+                    }
+                }
+
+                Remove(remItems, remFolders);
+            }
         }
         #endregion Remove
 
