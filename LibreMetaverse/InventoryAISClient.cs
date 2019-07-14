@@ -40,7 +40,8 @@ namespace LibreMetaverse
             }
             try
             {
-                UUID tid = new UUID();
+                UUID tid = UUID.Random();
+                
                 string url = $"{cap}/category/{parentUuid}?tid={tid}";
                 var content = new ByteArrayContent(OSDParser.SerializeLLSDXmlBytes(newInventory));
                 content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
@@ -78,7 +79,7 @@ namespace LibreMetaverse
             }
             try
             {
-                UUID tid = new UUID();
+                UUID tid = UUID.Random();
                 string url = $"{cap}/category/{folderUuid}/links?tid={tid}";
                 var content = new ByteArrayContent(OSDParser.SerializeLLSDXmlBytes(newInventory));
                 content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/llsd+xml");
@@ -168,7 +169,7 @@ namespace LibreMetaverse
             }
             try
             {
-                UUID tid = new UUID();
+                UUID tid = UUID.Random();
                 string url = $"{cap}/category/{sourceUuid}?tid={tid}";
                 if (copySubfolders)
                     url += ",depth=0";
