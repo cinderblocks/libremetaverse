@@ -1102,7 +1102,6 @@ namespace OpenMetaverse
                     inv.Name = name;
                     inv.ParentUUID = parentID;
                     inv.PreferredType = type;
-                    _Store.UpdateNodeFor(inv);
                 }
             }
 
@@ -1110,11 +1109,26 @@ namespace OpenMetaverse
             {
                 if (inv != null)
                 {
-                    Client.AisClient.UpdateCategory(folderID, inv.GetOSD(), null).ConfigureAwait(false);
+                    Client.AisClient.UpdateCategory(folderID, inv.GetOSD(), (success) =>
+                        {
+                            if (success)
+                            {
+                                lock (_Store)
+                                {
+                                    _Store.UpdateNodeFor(inv);
+                                }
+                            }
+                        }
+                        ).ConfigureAwait(false);
                 }
             }
             else
             {
+                lock (_Store)
+                {
+                    _Store.UpdateNodeFor(inv);
+                }
+
                 var invFolder = new UpdateInventoryFolderPacket
                 {
                     AgentData =
