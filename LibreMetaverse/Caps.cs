@@ -95,18 +95,33 @@ namespace OpenMetaverse
         /// Request the URI of a named capability
         /// </summary>
         /// <param name="capability">Name of the capability to request</param>
-        /// <returns>The URI of the requested capability, or String.Empty if
-        /// the capability does not exist</returns>
+        /// <returns>The URI of the requested capability, or null if not found</returns>
         public Uri CapabilityURI(string capability)
         {
             return _Caps.TryGetValue(capability, out var cap) ? cap : null;
         }
 
+        /// <summary>
+        /// Request preferred URI for texture fetch capability
+        /// </summary>
+        /// <returns>URI of preferred capability or null, or null if not found</returns>
         public Uri GetTextureCapURI()
         {
             Uri cap;
             if (_Caps.TryGetValue("ViewerAsset", out cap)) { return cap; }
             return _Caps.TryGetValue("GetTexture", out cap) ? cap : null;
+        }
+
+        /// <summary>
+        /// Request preferred URI for object mesh fetch capability
+        /// </summary>
+        /// <returns>URI of preferred capability or null, or null if not found</returns>
+        public Uri GetMeshCapURI()
+        {
+            Uri cap;
+            if (_Caps.TryGetValue("ViewerAsset", out cap)) { return cap; }
+            if (_Caps.TryGetValue("GetMesh2", out cap)) { return cap; }
+            return _Caps.TryGetValue("GetMesh", out cap) ? cap : null;
         }
 
         private void MakeSeedRequest()

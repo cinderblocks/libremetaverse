@@ -1097,7 +1097,7 @@ namespace OpenMetaverse
                 return;
 
             if (Client.Network.CurrentSim.Caps != null &&
-                Client.Network.CurrentSim.Caps.CapabilityURI("GetMesh") != null)
+                Client.Network.CurrentSim.Caps.GetMeshCapURI() != null)
             {
                 // Do we have this mesh asset in the cache?
                 if (Client.Assets.Cache.HasAsset(meshID))
@@ -1106,7 +1106,7 @@ namespace OpenMetaverse
                     return;
                 }
 
-                Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("GetMesh");
+                Uri url = Client.Network.CurrentSim.Caps.GetMeshCapURI();
 
                 DownloadRequest req = new DownloadRequest(
                     new Uri($"{url.ToString()}/?mesh_id={meshID.ToString()}"),
@@ -1133,7 +1133,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("GetMesh capability not available", Helpers.LogLevel.Error, Client);
+                Logger.Log("Mesh fetch capabilities not available", Helpers.LogLevel.Error, Client);
                 callback(false, null);
             }
         }
