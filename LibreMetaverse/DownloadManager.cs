@@ -1,5 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2019, Cinderblocks Design Co.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -32,7 +33,7 @@ using OpenMetaverse.Http;
 namespace OpenMetaverse
 {
     /// <summary>
-    /// Represends individual HTTP Download request
+    /// Represents individual HTTP Download request
     /// </summary>
     public class DownloadRequest
     {
@@ -72,7 +73,7 @@ namespace OpenMetaverse
 
     internal class ActiveDownload
     {
-        public List<CapsBase.DownloadProgressEventHandler> ProgresHadlers = new List<CapsBase.DownloadProgressEventHandler>();
+        public List<CapsBase.DownloadProgressEventHandler> ProgresHandlers = new List<CapsBase.DownloadProgressEventHandler>();
         public List<CapsBase.RequestCompletedEventHandler> CompletedHandlers = new List<CapsBase.RequestCompletedEventHandler>();
         public HttpWebRequest Request;
     }
@@ -86,17 +87,11 @@ namespace OpenMetaverse
         Queue<DownloadRequest> queue = new Queue<DownloadRequest>();
         Dictionary<string, ActiveDownload> activeDownloads = new Dictionary<string, ActiveDownload>();
 
-        X509Certificate2 m_ClientCert;
-
         /// <summary>Maximum number of parallel downloads from a single endpoint</summary>
         public int ParallelDownloads { get; set; }
 
         /// <summary>Client certificate</summary>
-        public X509Certificate2 ClientCert
-        {
-            get { return m_ClientCert; }
-            set { m_ClientCert = value; }
-        }
+        public X509Certificate2 ClientCert { get; set; }
 
         /// <summary>Default constructor</summary>
         public DownloadManager()
@@ -113,10 +108,7 @@ namespace OpenMetaverse
                 {
                     try
                     {
-                        if (download.Request != null)
-                        {
-                            download.Request.Abort();
-                        }
+                        download.Request?.Abort();
                     }
                     catch { }
                 }
@@ -134,8 +126,8 @@ namespace OpenMetaverse
                 request.Accept = acceptHeader;
 
             // Add the client certificate to the request if one was given
-            if (m_ClientCert != null)
-                request.ClientCertificates.Add(m_ClientCert);
+            if (ClientCert != null)
+                request.ClientCertificates.Add(ClientCert);
 
             // Leave idle connections to this endpoint open for up to 60 seconds
             request.ServicePoint.MaxIdleTime = 0;
@@ -144,7 +136,9 @@ namespace OpenMetaverse
             // Crank up the max number of connections per endpoint
             if (request.ServicePoint.ConnectionLimit < Settings.MAX_HTTP_CONNECTIONS)
             {
-                Logger.Log(string.Format("In DownloadManager.SetupRequest() setting conn limit for {0}:{1} to {2}", address.Host, address.Port, Settings.MAX_HTTP_CONNECTIONS), Helpers.LogLevel.Debug);
+                Logger.Log(
+                    $"In DownloadManager.SetupRequest() setting conn limit for " +
+                    $"{address.Host}:{address.Port} to {Settings.MAX_HTTP_CONNECTIONS}", Helpers.LogLevel.Debug);
                 request.ServicePoint.ConnectionLimit = Settings.MAX_HTTP_CONNECTIONS;
             }
 
@@ -156,75 +150,74 @@ namespace OpenMetaverse
         {
             lock (queue)
             {
-                if (queue.Count > 0)
+                if (queue.Count <= 0) return;
+
+                int nr = 0;
+                lock (activeDownloads)
                 {
-                    int nr = 0;
+                    nr = activeDownloads.Count;
+                }
+
+                // Logger.DebugLog(nr.ToString() + " active downloads. Queued textures: " + queue.Count.ToString());
+
+                for (int i = nr; i < ParallelDownloads && queue.Count > 0; i++)
+                {
+                    DownloadRequest item = queue.Dequeue();
                     lock (activeDownloads)
                     {
-                        nr = activeDownloads.Count;
-                    }
-
-                    // Logger.DebugLog(nr.ToString() + " active downloads. Queued textures: " + queue.Count.ToString());
-
-                    for (int i = nr; i < ParallelDownloads && queue.Count > 0; i++)
-                    {
-                        DownloadRequest item = queue.Dequeue();
-                        lock (activeDownloads)
+                        string addr = item.Address.ToString();
+                        if (activeDownloads.ContainsKey(addr))
                         {
-                            string addr = item.Address.ToString();
-                            if (activeDownloads.ContainsKey(addr))
+                            activeDownloads[addr].CompletedHandlers.Add(item.CompletedCallback);
+                            if (item.DownloadProgressCallback != null)
                             {
-                                activeDownloads[addr].CompletedHandlers.Add(item.CompletedCallback);
-                                if (item.DownloadProgressCallback != null)
-                                {
-                                    activeDownloads[addr].ProgresHadlers.Add(item.DownloadProgressCallback);
-                                }
+                                activeDownloads[addr].ProgresHandlers.Add(item.DownloadProgressCallback);
                             }
-                            else
+                        }
+                        else
+                        {
+                            ActiveDownload activeDownload = new ActiveDownload();
+                            activeDownload.CompletedHandlers.Add(item.CompletedCallback);
+                            if (item.DownloadProgressCallback != null)
                             {
-                                ActiveDownload activeDownload = new ActiveDownload();
-                                activeDownload.CompletedHandlers.Add(item.CompletedCallback);
-                                if (item.DownloadProgressCallback != null)
+                                activeDownload.ProgresHandlers.Add(item.DownloadProgressCallback);
+                            }
+
+                            Logger.DebugLog("Requesting " + item.Address.ToString());
+                            activeDownload.Request = SetupRequest(item.Address, item.ContentType);
+                            CapsBase.DownloadDataAsync(
+                                activeDownload.Request,
+                                item.MillisecondsTimeout,
+                                (request, response, bytesReceived, totalBytesToReceive) =>
                                 {
-                                    activeDownload.ProgresHadlers.Add(item.DownloadProgressCallback);
-                                }
-
-                                Logger.DebugLog("Requesting " + item.Address.ToString());
-                                activeDownload.Request = SetupRequest(item.Address, item.ContentType);
-                                CapsBase.DownloadDataAsync(
-                                    activeDownload.Request,
-                                    item.MillisecondsTimeout,
-                                    (HttpWebRequest request, HttpWebResponse response, int bytesReceived, int totalBytesToReceive) =>
+                                    foreach (CapsBase.DownloadProgressEventHandler handler in activeDownload.ProgresHandlers)
                                     {
-                                        foreach (CapsBase.DownloadProgressEventHandler handler in activeDownload.ProgresHadlers)
-                                        {
-                                            handler(request, response, bytesReceived, totalBytesToReceive);
-                                        }
-                                    },
-                                    (HttpWebRequest request, HttpWebResponse response, byte[] responseData, Exception error) =>
-                                    {
-                                        lock (activeDownloads) activeDownloads.Remove(addr);
-                                        if (error == null || item.Attempt >= item.Retries || (error != null && error.Message.Contains("404")))
-                                        {
-                                            foreach (CapsBase.RequestCompletedEventHandler handler in activeDownload.CompletedHandlers)
-                                            {
-                                                handler(request, response, responseData, error);
-                                            }
-                                        }
-                                        else
-                                        {
-                                            item.Attempt++;
-                                            Logger.Log(string.Format("Texture {0} HTTP download failed, trying again retry {1}/{2}",
-                                                item.Address, item.Attempt, item.Retries), Helpers.LogLevel.Warning);
-                                            lock (queue) queue.Enqueue(item);
-                                        }
-
-                                        EnqueuePending();
+                                        handler(request, response, bytesReceived, totalBytesToReceive);
                                     }
-                                );
+                                },
+                                (request, response, responseData, error) =>
+                                {
+                                    lock (activeDownloads) activeDownloads.Remove(addr);
+                                    if (error == null || item.Attempt >= item.Retries || error.Message.Contains("404"))
+                                    {
+                                        foreach (CapsBase.RequestCompletedEventHandler handler in activeDownload.CompletedHandlers)
+                                        {
+                                            handler(request, response, responseData, error);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        item.Attempt++;
+                                        Logger.Log($"{item.Address} HTTP download failed, trying again retry {item.Attempt}/{item.Retries}", 
+                                            Helpers.LogLevel.Warning);
+                                        lock (queue) queue.Enqueue(item);
+                                    }
 
-                                activeDownloads[addr] = activeDownload;
-                            }
+                                    EnqueuePending();
+                                }
+                            );
+
+                            activeDownloads[addr] = activeDownload;
                         }
                     }
                 }
@@ -242,7 +235,7 @@ namespace OpenMetaverse
                     activeDownloads[addr].CompletedHandlers.Add(req.CompletedCallback);
                     if (req.DownloadProgressCallback != null)
                     {
-                        activeDownloads[addr].ProgresHadlers.Add(req.DownloadProgressCallback);
+                        activeDownloads[addr].ProgresHandlers.Add(req.DownloadProgressCallback);
                     }
                     return;
                 }

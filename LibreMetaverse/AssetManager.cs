@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2019, Cinderblocks Design Co.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -518,8 +519,21 @@ namespace OpenMetaverse
             RequestAsset(assetID, UUID.Zero, UUID.Zero, type, priority, sourceType, transactionID, callback);
         }
 
+        public void RequestAsset(UUID assetID, UUID itemID, UUID taskID, AssetType type, bool priority,
+            SourceType sourceType, UUID transactionID, AssetReceivedCallback callback)
+        {
+            // If no ViewerAsset capability, fallback to UDP fetch, which will probably fail in Second Life now
+            if (Client.Network.CurrentSim.Caps == null
+                || Client.Network.CurrentSim.Caps.CapabilityURI("ViewerAsset") == null)
+            {
+                RequestAssetUDP(assetID, itemID, taskID, type, priority, sourceType, transactionID, callback);
+                return;
+            }
+
+        }
+
         /// <summary>
-        /// Request an asset download
+        /// Request an asset download via LLUDP
         /// </summary>
         /// <param name="assetID">Asset UUID</param>
         /// <param name="taskID">task ID</param>
@@ -529,17 +543,20 @@ namespace OpenMetaverse
         /// <param name="transactionID">UUID of the transaction</param>
         /// <param name="callback">The callback to fire when the simulator responds with the asset data</param>
         /// <param name="itemID">Item ID</param>
-        public void RequestAsset(UUID assetID, UUID itemID, UUID taskID, AssetType type, bool priority, SourceType sourceType, UUID transactionID, AssetReceivedCallback callback)
+        public void RequestAssetUDP(UUID assetID, UUID itemID, UUID taskID, AssetType type, bool priority, 
+            SourceType sourceType, UUID transactionID, AssetReceivedCallback callback)
         {
-            AssetDownload transfer = new AssetDownload();
-            transfer.ID = transactionID;
-            transfer.AssetID = assetID;
+            AssetDownload transfer = new AssetDownload
+            {
+                ID = transactionID,
+                AssetID = assetID,
+                Priority = 100.0f + (priority ? 1.0f : 0.0f),
+                Channel = ChannelType.Asset,
+                Source = sourceType,
+                Simulator = Client.Network.CurrentSim,
+                Callback = callback
+            };
             //transfer.AssetType = type; // Set in TransferInfoHandler.
-            transfer.Priority = 100.0f + (priority ? 1.0f : 0.0f);
-            transfer.Channel = ChannelType.Asset;
-            transfer.Source = sourceType;
-            transfer.Simulator = Client.Network.CurrentSim;
-            transfer.Callback = callback;
 
             // Check asset cache first
             if (callback != null && Cache.HasAsset(assetID))
@@ -563,11 +580,16 @@ namespace OpenMetaverse
             lock (Transfers) Transfers[transfer.ID] = transfer;
 
             // Build the request packet and send it
-            TransferRequestPacket request = new TransferRequestPacket();
-            request.TransferInfo.ChannelType = (int)transfer.Channel;
-            request.TransferInfo.Priority = transfer.Priority;
-            request.TransferInfo.SourceType = (int)transfer.Source;
-            request.TransferInfo.TransferID = transfer.ID;
+            TransferRequestPacket request = new TransferRequestPacket
+            {
+                TransferInfo =
+                {
+                    ChannelType = (int) transfer.Channel,
+                    Priority = transfer.Priority,
+                    SourceType = (int) transfer.Source,
+                    TransferID = transfer.ID
+                }
+            };
 
             byte[] paramField = taskID == UUID.Zero ? new byte[20] : new byte[96];
             Buffer.BlockCopy(assetID.GetBytes(), 0, paramField, 0, 16);
@@ -604,32 +626,54 @@ namespace OpenMetaverse
             UUID uuid = UUID.Random();
             ulong id = uuid.GetULong();
 
-            XferDownload transfer = new XferDownload();
-            transfer.XferID = id;
-            transfer.ID = new UUID(id); // Our dictionary tracks transfers with UUIDs, so convert the ulong back
-            transfer.Filename = filename;
-            transfer.VFileID = vFileID;
-            transfer.AssetType = vFileType;
+            XferDownload transfer = new XferDownload
+            {
+                XferID = id,
+                ID = new UUID(id),
+                Filename = filename,
+                VFileID = vFileID,
+                AssetType = vFileType
+            };
+            // Our dictionary tracks transfers with UUIDs, so convert the ulong back
 
             // Add this transfer to the dictionary
             lock (Transfers) Transfers[transfer.ID] = transfer;
 
-            RequestXferPacket request = new RequestXferPacket();
-            request.XferID.ID = id;
-            request.XferID.Filename = Utils.StringToBytes(filename);
-            request.XferID.FilePath = fromCache ? (byte)4 : (byte)0;
-            request.XferID.DeleteOnCompletion = deleteOnCompletion;
-            request.XferID.UseBigPackets = useBigPackets;
-            request.XferID.VFileID = vFileID;
-            request.XferID.VFileType = (short)vFileType;
+            RequestXferPacket request = new RequestXferPacket
+            {
+                XferID =
+                {
+                    ID = id,
+                    Filename = Utils.StringToBytes(filename),
+                    FilePath = fromCache ? (byte) 4 : (byte) 0,
+                    DeleteOnCompletion = deleteOnCompletion,
+                    UseBigPackets = useBigPackets,
+                    VFileID = vFileID,
+                    VFileType = (short) vFileType
+                }
+            };
 
             Client.Network.SendPacket(request);
 
             return id;
         }
 
+        public void RequestInventoryAsset(UUID assetID, UUID itemID, UUID taskID, UUID ownerID, AssetType type,
+            bool priority, AssetReceivedCallback callback)
+        {
+            // If no ViewerAsset capability, fallback to UDP fetch, which will probably fail in Second Life now
+            if (Client.Network.CurrentSim.Caps == null
+                || Client.Network.CurrentSim.Caps.CapabilityURI("ViewerAsset") == null)
+            {
+                RequestInventoryAssetUDP(assetID, itemID, taskID, ownerID, type, priority, callback);
+                return;
+            }
+
+
+        }
+
         /// <summary>
-        /// 
+        /// Request Inventory Asset from UDP
         /// </summary>
         /// <param name="assetID">Use UUID.Zero if you do not have the 
         /// asset ID but have all the necessary permissions</param>
@@ -640,17 +684,19 @@ namespace OpenMetaverse
         /// <param name="type">Asset type</param>
         /// <param name="priority">Whether to prioritize this asset download or not</param>
         /// <param name="callback"></param>
-        public void RequestInventoryAsset(UUID assetID, UUID itemID, UUID taskID, UUID ownerID, AssetType type, bool priority, AssetReceivedCallback callback)
+        public void RequestInventoryAssetUDP(UUID assetID, UUID itemID, UUID taskID, UUID ownerID, AssetType type, bool priority, AssetReceivedCallback callback)
         {
-            AssetDownload transfer = new AssetDownload();
-            transfer.ID = UUID.Random();
-            transfer.AssetID = assetID;
+            AssetDownload transfer = new AssetDownload
+            {
+                ID = UUID.Random(),
+                AssetID = assetID,
+                Priority = 100.0f + (priority ? 1.0f : 0.0f),
+                Channel = ChannelType.Asset,
+                Source = SourceType.SimInventoryItem,
+                Simulator = Client.Network.CurrentSim,
+                Callback = callback
+            };
             //transfer.AssetType = type; // Set in TransferInfoHandler.
-            transfer.Priority = 100.0f + (priority ? 1.0f : 0.0f);
-            transfer.Channel = ChannelType.Asset;
-            transfer.Source = SourceType.SimInventoryItem;
-            transfer.Simulator = Client.Network.CurrentSim;
-            transfer.Callback = callback;
 
             // Check asset cache first
             if (callback != null && Cache.HasAsset(assetID))
@@ -674,11 +720,16 @@ namespace OpenMetaverse
             lock (Transfers) Transfers[transfer.ID] = transfer;
 
             // Build the request packet and send it
-            TransferRequestPacket request = new TransferRequestPacket();
-            request.TransferInfo.ChannelType = (int)transfer.Channel;
-            request.TransferInfo.Priority = transfer.Priority;
-            request.TransferInfo.SourceType = (int)transfer.Source;
-            request.TransferInfo.TransferID = transfer.ID;
+            TransferRequestPacket request = new TransferRequestPacket
+            {
+                TransferInfo =
+                {
+                    ChannelType = (int) transfer.Channel,
+                    Priority = transfer.Priority,
+                    SourceType = (int) transfer.Source,
+                    TransferID = transfer.ID
+                }
+            };
 
             byte[] paramField = new byte[100];
             Buffer.BlockCopy(Client.Self.AgentID.GetBytes(), 0, paramField, 0, 16);
@@ -1845,71 +1896,60 @@ namespace OpenMetaverse
     // <summary>Provides data for XferReceived event</summary>
     public class XferReceivedEventArgs : EventArgs
     {
-        private readonly XferDownload m_Xfer;
-
         /// <summary>Xfer data</summary>
-        public XferDownload Xfer { get { return m_Xfer; } }
+        public XferDownload Xfer { get; }
 
         public XferReceivedEventArgs(XferDownload xfer)
         {
-            this.m_Xfer = xfer;
+            this.Xfer = xfer;
         }
     }
 
     // <summary>Provides data for AssetUploaded event</summary>
     public class AssetUploadEventArgs : EventArgs
     {
-        private readonly AssetUpload m_Upload;
-
         /// <summary>Upload data</summary>
-        public AssetUpload Upload { get { return m_Upload; } }
+        public AssetUpload Upload { get; }
 
         public AssetUploadEventArgs(AssetUpload upload)
         {
-            this.m_Upload = upload;
+            this.Upload = upload;
         }
     }
 
     // <summary>Provides data for InitiateDownloaded event</summary>
     public class InitiateDownloadEventArgs : EventArgs
     {
-        private readonly string m_SimFileName;
-        private readonly string m_ViewerFileName;
-
         /// <summary>Filename used on the simulator</summary>
-        public string SimFileName { get { return m_SimFileName; } }
+        public string SimFileName { get; }
 
         /// <summary>Filename used by the client</summary>
-        public string ViewerFileName { get { return m_ViewerFileName; } }
+        public string ViewerFileName { get; }
 
         public InitiateDownloadEventArgs(string simFilename, string viewerFilename)
         {
-            this.m_SimFileName = simFilename;
-            this.m_ViewerFileName = viewerFilename;
+            this.SimFileName = simFilename;
+            this.ViewerFileName = viewerFilename;
         }
     }
 
     // <summary>Provides data for ImageReceiveProgress event</summary>
     public class ImageReceiveProgressEventArgs : EventArgs
     {
-        private readonly UUID m_ImageID;
-        private readonly int m_Received;
-        private readonly int m_Total;
-
         /// <summary>UUID of the image that is in progress</summary>
-        public UUID ImageID { get { return m_ImageID; } }
+        public UUID ImageID { get; }
 
         /// <summary>Number of bytes received so far</summary>
-        public int Received { get { return m_Received; } }
+        public int Received { get; }
 
         /// <summary>Image size in bytes</summary>
-        public int Total { get { return m_Total; } }
+        public int Total { get; }
 
         public ImageReceiveProgressEventArgs(UUID imageID, int received, int total)
         {
-            this.m_ImageID = imageID;
-            this.m_Received = received;
-            this.m_Total = total;
+            this.ImageID = imageID;
+            this.Received = received;
+            this.Total = total;
         }
     }
     #endregion
