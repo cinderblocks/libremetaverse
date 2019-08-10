@@ -113,6 +113,9 @@ namespace OpenMetaverse
             OSDArray req = new OSDArray();
             // This list can be updated by using the following command to obtain a current list of capabilities the official linden viewer supports:
             // wget -q -O - https://bitbucket.org/lindenlab/viewer-release/raw/default/indra/newview/llviewerregion.cpp | grep 'capabilityNames.append'  | sed 's/^[ \t]*//;s/capabilityNames.append("/req.Add("/'
+            req.Add("AbuseCategories");
+            req.Add("AcceptFriendship");
+            req.Add("AcceptGroupInvite");
             req.Add("AgentPreferences");
             req.Add("AgentState");
             req.Add("AttachmentResources");
@@ -122,6 +125,8 @@ namespace OpenMetaverse
             req.Add("ChatSessionRequest");
             req.Add("CopyInventoryFromNotecard");
             req.Add("CreateInventoryCategory");
+            req.Add("DeclineFriendship");
+            req.Add("DeclineGroupInvite");
             req.Add("DispatchRegionInfo");
             req.Add("DirectDelivery");
             req.Add("EnvironmentSettings");
@@ -172,6 +177,7 @@ namespace OpenMetaverse
             req.Add("ParcelVoiceInfoRequest");
             req.Add("ProductInfoRequest");
             req.Add("ProvisionVoiceAccountRequest");
+            req.Add("ReadOfflineMsgs");
             req.Add("RemoteParcelRequest");
             req.Add("RenderMaterials");
             req.Add("RequestTextureDownload");
@@ -201,6 +207,8 @@ namespace OpenMetaverse
             req.Add("UpdateScriptAgent");
             req.Add("UpdateScriptTask");
             req.Add("UploadBakedTexture");
+            req.Add("UserInfo");
+            req.Add("ViewerAsset");
             req.Add("ViewerMetrics");
             req.Add("ViewerStartAuction");
             req.Add("ViewerStats");
