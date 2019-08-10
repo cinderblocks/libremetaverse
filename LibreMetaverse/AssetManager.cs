@@ -703,6 +703,7 @@ namespace OpenMetaverse
             throw new Exception("This function is not implemented yet!");
         }
 
+        #region Uploads
         /// <summary>
         /// Used to force asset data into the PendingUpload property, ie: for raw terrain uploads
         /// </summary>
@@ -946,6 +947,8 @@ namespace OpenMetaverse
                 );
             }
         }
+
+        #endregion Uploads
 
         /// <summary>
         /// Requests download of a mesh asset
