@@ -99,15 +99,19 @@ namespace OpenMetaverse
         /// the capability does not exist</returns>
         public Uri CapabilityURI(string capability)
         {
-            Uri cap;
+            return _Caps.TryGetValue(capability, out var cap) ? cap : null;
+        }
 
-            return _Caps.TryGetValue(capability, out cap) ? cap : null;
+        public Uri GetTextureCapURI()
+        {
+            Uri cap;
+            if (_Caps.TryGetValue("ViewerAsset", out cap)) { return cap; }
+            return _Caps.TryGetValue("GetTexture", out cap) ? cap : null;
         }
 
         private void MakeSeedRequest()
         {
-            if (Simulator == null || !Simulator.Client.Network.Connected)
-                return;
+            if (Simulator == null || !Simulator.Client.Network.Connected) { return; }
 
             // Create a request list
             OSDArray req = new OSDArray();

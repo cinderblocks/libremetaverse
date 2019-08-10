@@ -1022,9 +1022,9 @@ namespace OpenMetaverse
         public void RequestImage(UUID textureID, ImageType imageType, float priority, int discardLevel,
             uint packetStart, TextureDownloadCallback callback, bool progress)
         {
-            if (Client.Settings.USE_HTTP_TEXTURES &&
-                Client.Network.CurrentSim.Caps != null &&
-                Client.Network.CurrentSim.Caps.CapabilityURI("GetTexture") != null)
+            if (Client.Settings.USE_HTTP_TEXTURES
+                && Client.Network.CurrentSim.Caps != null
+                && Client.Network.CurrentSim.Caps.GetTextureCapURI() != null)
             {
                 HttpRequestTexture(textureID, imageType, priority, discardLevel, packetStart, callback, progress);
             }
@@ -1109,7 +1109,7 @@ namespace OpenMetaverse
                 Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("GetMesh");
 
                 DownloadRequest req = new DownloadRequest(
-                    new Uri(string.Format("{0}/?mesh_id={1}", url.ToString(), meshID.ToString())),
+                    new Uri($"{url.ToString()}/?mesh_id={meshID.ToString()}"),
                     Client.Settings.CAPS_TIMEOUT,
                     null,
                     null,
@@ -1123,10 +1123,7 @@ namespace OpenMetaverse
                         else // download failed
                         {
                             Logger.Log(
-                                string.Format("Failed to fetch mesh asset {0}: {1}",
-                                    meshID,
-                                    (error == null) ? "" : error.Message
-                                ),
+                                $"Failed to fetch mesh asset {meshID}: {((error == null) ? "" : error.Message)}",
                                 Helpers.LogLevel.Warning, Client);
                         }
                     }
@@ -1180,20 +1177,18 @@ namespace OpenMetaverse
 
             CapsBase.DownloadProgressEventHandler progressHandler = null;
 
-            Uri url = new Uri(string.Format("{0}texture/{1}/{2}/{3}", Client.Network.AgentAppearanceServiceURL, avatarID, bakeName, textureID));
+            Uri url = new Uri($"{Client.Network.AgentAppearanceServiceURL}texture/{avatarID}/{bakeName}/{textureID}");
 
             DownloadRequest req = new DownloadRequest(
                 url,
                 Client.Settings.CAPS_TIMEOUT,
                 "image/x-j2c",
                 progressHandler,
-                (HttpWebRequest request, HttpWebResponse response, byte[] responseData, Exception error) =>
+                (request, response, responseData, error) =>
                 {
                     if (error == null && responseData != null) // success
                     {
-                        ImageDownload image = new ImageDownload();
-                        image.ID = textureID;
-                        image.AssetData = responseData;
+                        ImageDownload image = new ImageDownload {ID = textureID, AssetData = responseData};
                         image.Size = image.AssetData.Length;
                         image.Transferred = image.AssetData.Length;
                         image.ImageType = ImageType.ServerBaked;
@@ -1207,10 +1202,7 @@ namespace OpenMetaverse
                     else // download failed
                     {
                         Logger.Log(
-                            string.Format("Failed to fetch server bake {0}: {1}",
-                                textureID,
-                                (error == null) ? "" : error.Message
-                            ),
+                            $"Failed to fetch server bake {textureID}: {((error == null) ? "" : error.Message)}",
                             Helpers.LogLevel.Warning, Client);
 
                         callback(TextureRequestState.Timeout, null);
@@ -1225,12 +1217,12 @@ namespace OpenMetaverse
         /// <summary>
         /// Lets TexturePipeline class fire the progress event
         /// </summary>
-        /// <param name="texureID">The texture ID currently being downloaded</param>
+        /// <param name="textureID">The texture ID currently being downloaded</param>
         /// <param name="transferredBytes">the number of bytes transferred</param>
         /// <param name="totalBytes">the total number of bytes expected</param>
-        internal void FireImageProgressEvent(UUID texureID, int transferredBytes, int totalBytes)
+        internal void FireImageProgressEvent(UUID textureID, int transferredBytes, int totalBytes)
         {
-            try { OnImageReceiveProgress(new ImageReceiveProgressEventArgs(texureID, transferredBytes, totalBytes)); }
+            try { OnImageReceiveProgress(new ImageReceiveProgressEventArgs(textureID, transferredBytes, totalBytes)); }
             catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
         }
 
@@ -1249,9 +1241,7 @@ namespace OpenMetaverse
             if (Client.Assets.Cache.HasAsset(textureID)
                 && (assetData = Client.Assets.Cache.GetCachedAssetBytes(textureID)) != null)
             {
-                ImageDownload image = new ImageDownload();
-                image.ID = textureID;
-                image.AssetData = assetData;
+                ImageDownload image = new ImageDownload {ID = textureID, AssetData = assetData};
                 image.Size = image.AssetData.Length;
                 image.Transferred = image.AssetData.Length;
                 image.ImageType = imageType;
@@ -1267,26 +1257,24 @@ namespace OpenMetaverse
 
             if (progress)
             {
-                progressHandler = (HttpWebRequest request, HttpWebResponse response, int bytesReceived, int totalBytesToReceive) =>
+                progressHandler = (request, response, bytesReceived, totalBytesToReceive) =>
                     {
                         FireImageProgressEvent(textureID, bytesReceived, totalBytesToReceive);
                     };
             }
 
-            Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("GetTexture");
+            Uri url = Client.Network.CurrentSim.Caps.GetTextureCapURI();
 
             DownloadRequest req = new DownloadRequest(
-                new Uri(string.Format("{0}/?texture_id={1}", url.ToString(), textureID.ToString())),
+                new Uri($"{url.ToString()}/?texture_id={textureID.ToString()}"),
                 Client.Settings.CAPS_TIMEOUT,
                 "image/x-j2c",
                 progressHandler,
-                (HttpWebRequest request, HttpWebResponse response, byte[] responseData, Exception error) =>
+                (request, response, responseData, error) =>
                 {
                     if (error == null && responseData != null) // success
                     {
-                        ImageDownload image = new ImageDownload();
-                        image.ID = textureID;
-                        image.AssetData = responseData;
+                        ImageDownload image = new ImageDownload {ID = textureID, AssetData = responseData};
                         image.Size = image.AssetData.Length;
                         image.Transferred = image.AssetData.Length;
                         image.ImageType = imageType;
@@ -1301,10 +1289,8 @@ namespace OpenMetaverse
                     else // download failed
                     {
                         Logger.Log(
-                            string.Format("Failed to fetch texture {0} over HTTP, falling back to UDP: {1}",
-                                textureID,
-                                (error == null) ? "" : error.Message
-                            ),
+                            $"Failed to fetch texture {textureID} over HTTP, falling back to UDP: " +
+                            $"{((error == null) ? "" : error.Message)}",
                             Helpers.LogLevel.Warning, Client);
 
                         Texture.RequestTexture(textureID, imageType, priority, discardLevel, packetStart, callback, progress);
