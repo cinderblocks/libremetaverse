@@ -299,9 +299,9 @@ namespace OpenMetaverse
         /// <param name="newAssetID">Asset UUID of the newly uploaded baked texture</param>
         public delegate void BakedTextureUploadedCallback(UUID newAssetID);
         /// <summary>
-        /// A callback that fires upon the completition of the RequestMesh call
+        /// A callback that fires upon the completion of the RequestMesh call
         /// </summary>
-        /// <param name="success">Was the download successfull</param>
+        /// <param name="success">Was the download successful</param>
         /// <param name="assetMesh">Resulting mesh or null on problems</param>
         public delegate void MeshDownloadCallback(bool success, AssetMesh assetMesh);
 
@@ -480,6 +480,80 @@ namespace OpenMetaverse
 
         }
 
+        // TODO: Probably somewhere else is a more useful place to keep this.
+        /// <summary>
+        /// Returns type name as string for a given AssetType
+        /// </summary>
+        /// <param name="assetType"></param>
+        /// <returns>Type name</returns>
+        public string AssetTypeToString(AssetType assetType)
+        {
+            switch(assetType) {
+                case AssetType.Texture:
+                    return "texture";
+                case AssetType.Sound:
+                    return "sound";
+                case AssetType.CallingCard:
+                    return "callcard";
+                case AssetType.Landmark:
+                    return "landmark";
+                case AssetType.Script:
+                    return "script";
+                case AssetType.Clothing:
+                    return "clothing";
+                case AssetType.Object:
+                    return "object";
+                case AssetType.Notecard:
+                    return "notecard";
+                case AssetType.Folder:
+                    return "category";
+                case AssetType.LSLText:
+                    return "lsltext";
+                case AssetType.LSLBytecode:
+                    return "lslbyte";
+                case AssetType.TextureTGA:
+                    return "txtr_tga";
+                case AssetType.Bodypart:
+                    return "bodypart";
+                case AssetType.SoundWAV:
+                    return "snd_wav";
+                case AssetType.ImageTGA:
+                    return "img_tga";
+                case AssetType.ImageJPEG:
+                    return "jpeg";
+                case AssetType.Animation:
+                    return "animatn";
+                case AssetType.Gesture:
+                    return "gesture";
+                case AssetType.Simstate:
+                    return "simstate";
+                case AssetType.Link:
+                    return "link";
+                case AssetType.LinkFolder:
+                    return "link_f";
+                case AssetType.Mesh:
+                    return "mesh";
+                case AssetType.Widget:
+                    return "widget";
+                case AssetType.Person:
+                    return "person";
+                case AssetType.Unknown:
+                default:
+                    return "invalid";
+            }
+        }
+
+        /// <summary>
+        /// Build uri for requesting an asset from ViewerAsset capability
+        /// </summary>
+        /// <param name="assetType"></param>
+        /// <param name="assetId"></param>
+        /// <returns>Request URI for an asset</returns>
+        private Uri BuildFetchRequestUri(AssetType assetType, UUID assetId)
+        {
+            return new Uri($"{Client.Network.CurrentSim.Caps.CapabilityURI("ViewerAsset")}?{AssetTypeToString(assetType)}_id={assetId}");
+        }
+
         /// <summary>
         /// Request an asset download
         /// </summary>
@@ -519,44 +593,31 @@ namespace OpenMetaverse
             RequestAsset(assetID, UUID.Zero, UUID.Zero, type, priority, sourceType, transactionID, callback);
         }
 
-        public void RequestAsset(UUID assetID, UUID itemID, UUID taskID, AssetType type, bool priority,
-            SourceType sourceType, UUID transactionID, AssetReceivedCallback callback)
-        {
-            // If no ViewerAsset capability, fallback to UDP fetch, which will probably fail in Second Life now
-            if (Client.Network.CurrentSim.Caps == null
-                || Client.Network.CurrentSim.Caps.CapabilityURI("ViewerAsset") == null)
-            {
-                RequestAssetUDP(assetID, itemID, taskID, type, priority, sourceType, transactionID, callback);
-                return;
-            }
-
-        }
-
         /// <summary>
-        /// Request an asset download via LLUDP
+        /// 
         /// </summary>
-        /// <param name="assetID">Asset UUID</param>
-        /// <param name="taskID">task ID</param>
-        /// <param name="type">Asset type, must be correct for the transfer to succeed</param>
-        /// <param name="priority">Whether to give this transfer an elevated priority</param>
-        /// <param name="sourceType">Source location of the requested asset</param>
-        /// <param name="transactionID">UUID of the transaction</param>
-        /// <param name="callback">The callback to fire when the simulator responds with the asset data</param>
-        /// <param name="itemID">Item ID</param>
-        public void RequestAssetUDP(UUID assetID, UUID itemID, UUID taskID, AssetType type, bool priority, 
+        /// <param name="assetID"></param>
+        /// <param name="itemID"></param>
+        /// <param name="taskID"></param>
+        /// <param name="assetType"></param>
+        /// <param name="priority"></param>
+        /// <param name="sourceType"></param>
+        /// <param name="transactionID"></param>
+        /// <param name="callback"></param>
+        public void RequestAsset(UUID assetID, UUID itemID, UUID taskID, AssetType assetType, bool priority,
             SourceType sourceType, UUID transactionID, AssetReceivedCallback callback)
         {
             AssetDownload transfer = new AssetDownload
             {
                 ID = transactionID,
                 AssetID = assetID,
+                AssetType = assetType,
                 Priority = 100.0f + (priority ? 1.0f : 0.0f),
                 Channel = ChannelType.Asset,
                 Source = sourceType,
                 Simulator = Client.Network.CurrentSim,
                 Callback = callback
             };
-            //transfer.AssetType = type; // Set in TransferInfoHandler.
 
             // Check asset cache first
             if (callback != null && Cache.HasAsset(assetID))
@@ -566,7 +627,7 @@ namespace OpenMetaverse
                 transfer.Success = true;
                 transfer.Status = StatusCode.OK;
 
-                Asset asset = CreateAssetWrapper(type);
+                Asset asset = CreateAssetWrapper(assetType);
                 asset.AssetData = data;
                 asset.AssetID = assetID;
 
@@ -575,6 +636,78 @@ namespace OpenMetaverse
 
                 return;
             }
+
+            // If ViewerAsset capability exists, use that, if not, fallback to UDP (which is obsoleted on Second Life.)
+            if (Client.Network.CurrentSim.Caps != null
+                && Client.Network.CurrentSim.Caps.CapabilityURI("ViewerAsset") != null)
+            {
+                RequestAssetHTTP(assetID, transfer, callback);
+            }
+            else
+            {
+                RequestAssetUDP(assetID, itemID, taskID, transfer, callback);
+            }
+
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="assetID"></param>
+        /// <param name="transfer"></param>
+        /// <param name="callback"></param>
+        private void RequestAssetHTTP(UUID assetID, AssetDownload transfer, AssetReceivedCallback callback)
+        {
+            DownloadRequest req = new DownloadRequest(
+                BuildFetchRequestUri(transfer.AssetType, assetID),
+                Client.Settings.CAPS_TIMEOUT,
+                null,
+                null,
+                (request, response, responseData, error) =>
+                {
+                    if (error == null && responseData != null) // success
+                    {
+                        Client.Assets.Cache.SaveAssetToCache(assetID, responseData);
+
+                        if (callback != null)
+                        {
+                            transfer.AssetData = responseData;
+                            transfer.Success = true;
+                            transfer.Status = StatusCode.OK;
+
+                            Asset asset = CreateAssetWrapper(transfer.AssetType);
+                            asset.AssetData = responseData;
+                            asset.AssetID = assetID;
+                            callback(transfer, asset);
+                        }
+                    }
+                    else // download failed
+                    {
+                        Logger.Log($"Failed to fetch asset {assetID}: {((error == null) ? "" : error.Message)}",
+                            Helpers.LogLevel.Warning, Client);
+                        if (callback != null)
+                        {
+                            transfer.Success = false;
+                            transfer.Status = StatusCode.Error;
+                        }
+
+                    }
+                }
+            );
+            HttpDownloads.QueueDownload(req);
+        }
+
+        /// <summary>
+        /// Request an asset download via LLUDP
+        /// </summary>
+        /// <param name="assetID">Asset UUID</param>
+        /// <param name="taskID">task ID</param>
+        /// <param name="transfer"></param>
+        /// <param name="callback">The callback to fire when the simulator responds with the asset data</param>
+        /// <param name="itemID">Item ID</param>
+        private void RequestAssetUDP(UUID assetID, UUID itemID, UUID taskID, 
+            AssetDownload transfer, AssetReceivedCallback callback)
+        {
 
             // Add this transfer to the dictionary
             lock (Transfers) Transfers[transfer.ID] = transfer;
@@ -593,7 +726,7 @@ namespace OpenMetaverse
 
             byte[] paramField = taskID == UUID.Zero ? new byte[20] : new byte[96];
             Buffer.BlockCopy(assetID.GetBytes(), 0, paramField, 0, 16);
-            Buffer.BlockCopy(Utils.IntToBytes((int)type), 0, paramField, 16, 4);
+            Buffer.BlockCopy(Utils.IntToBytes((int)transfer.AssetType), 0, paramField, 16, 4);
 
             if (taskID != UUID.Zero)
             {
@@ -658,18 +791,102 @@ namespace OpenMetaverse
             return id;
         }
 
-        public void RequestInventoryAsset(UUID assetID, UUID itemID, UUID taskID, UUID ownerID, AssetType type,
+        public void RequestInventoryAsset(UUID assetID, UUID itemID, UUID taskID, UUID ownerID, AssetType assetType,
             bool priority, AssetReceivedCallback callback)
         {
-            // If no ViewerAsset capability, fallback to UDP fetch, which will probably fail in Second Life now
-            if (Client.Network.CurrentSim.Caps == null
-                || Client.Network.CurrentSim.Caps.CapabilityURI("ViewerAsset") == null)
+            AssetDownload transfer = new AssetDownload
             {
-                RequestInventoryAssetUDP(assetID, itemID, taskID, ownerID, type, priority, callback);
+                ID = UUID.Random(),
+                AssetID = assetID,
+                AssetType = assetType,
+                Priority = 100.0f + (priority ? 1.0f : 0.0f),
+                Channel = ChannelType.Asset,
+                Source = SourceType.SimInventoryItem,
+                Simulator = Client.Network.CurrentSim,
+                Callback = callback
+            };
+
+            // Check asset cache first
+            if (callback != null && Cache.HasAsset(assetID))
+            {
+                byte[] data = Cache.GetCachedAssetBytes(assetID);
+                transfer.AssetData = data;
+                transfer.Success = true;
+                transfer.Status = StatusCode.OK;
+
+                Asset asset = CreateAssetWrapper(assetType);
+                asset.AssetData = data;
+                asset.AssetID = assetID;
+
+                try { callback(transfer, asset); }
+                catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
+
                 return;
             }
 
+            // *FIXME: These don't work!
+            // If ViewerAsset capability exists, use that, if not, fallback to UDP
+            /*if (Client.Network.CurrentSim.Caps != null
+                && Client.Network.CurrentSim.Caps.CapabilityURI("ViewerAsset") != null)
+            {
+                RequestInventoryAssetHTTP(assetID, transfer, callback);
+            }
+            else*/
+            {
+                RequestInventoryAssetUDP(assetID, itemID, taskID, ownerID, transfer, callback);
+            }
 
+            
+        }
+
+        /// <summary>
+        /// Request Inventory Asset from UDP
+        /// </summary>
+        /// <param name="assetID">Use UUID.Zero if you do not have the 
+        /// asset ID but have all the necessary permissions</param>
+        /// <param name="assetType"></param>
+        /// <param name="priority">Whether to prioritize this asset download or not</param>
+        /// <param name="transfer"></param>
+        /// <param name="callback"></param>
+        private void RequestInventoryAssetHTTP(UUID assetID, AssetDownload transfer, AssetReceivedCallback callback)
+        {
+            DownloadRequest req = new DownloadRequest(
+                BuildFetchRequestUri(transfer.AssetType, assetID),
+                Client.Settings.CAPS_TIMEOUT,
+                null,
+                null,
+                (request, response, responseData, error) =>
+                {
+                    if (error == null && responseData != null) // success
+                    {
+                        Client.Assets.Cache.SaveAssetToCache(assetID, responseData);
+
+                        if (callback != null)
+                        {
+                            transfer.AssetData = responseData;
+                            transfer.Success = true;
+                            transfer.Status = StatusCode.OK;
+
+                            Asset asset = CreateAssetWrapper(transfer.AssetType);
+                            asset.AssetData = responseData;
+                            asset.AssetID = assetID;
+                            callback(transfer, asset);
+                        }
+                    }
+                    else // download failed
+                    {
+                        Logger.Log($"Failed to fetch asset {assetID}: {((error == null) ? "" : error.Message)}",
+                            Helpers.LogLevel.Warning, Client);
+                        if (callback != null)
+                        {
+                            transfer.Success = false;
+                            transfer.Status = StatusCode.Error;
+                        }
+
+                    }
+                }
+            );
+            HttpDownloads.QueueDownload(req);
         }
 
         /// <summary>
@@ -681,41 +898,10 @@ namespace OpenMetaverse
         /// <param name="taskID">Use UUID.Zero if you are not requesting an 
         /// asset from an object inventory</param>
         /// <param name="ownerID">The owner of this asset</param>
-        /// <param name="type">Asset type</param>
-        /// <param name="priority">Whether to prioritize this asset download or not</param>
+        /// <param name="transfer"></param>
         /// <param name="callback"></param>
-        public void RequestInventoryAssetUDP(UUID assetID, UUID itemID, UUID taskID, UUID ownerID, AssetType type, bool priority, AssetReceivedCallback callback)
+        private void RequestInventoryAssetUDP(UUID assetID, UUID itemID, UUID taskID, UUID ownerID, AssetDownload transfer, AssetReceivedCallback callback)
         {
-            AssetDownload transfer = new AssetDownload
-            {
-                ID = UUID.Random(),
-                AssetID = assetID,
-                Priority = 100.0f + (priority ? 1.0f : 0.0f),
-                Channel = ChannelType.Asset,
-                Source = SourceType.SimInventoryItem,
-                Simulator = Client.Network.CurrentSim,
-                Callback = callback
-            };
-            //transfer.AssetType = type; // Set in TransferInfoHandler.
-
-            // Check asset cache first
-            if (callback != null && Cache.HasAsset(assetID))
-            {
-                byte[] data = Cache.GetCachedAssetBytes(assetID);
-                transfer.AssetData = data;
-                transfer.Success = true;
-                transfer.Status = StatusCode.OK;
-
-                Asset asset = CreateAssetWrapper(type);
-                asset.AssetData = data;
-                asset.AssetID = assetID;
-
-                try { callback(transfer, asset); }
-                catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
-
-                return;
-            }
-
             // Add this transfer to the dictionary
             lock (Transfers) Transfers[transfer.ID] = transfer;
 
@@ -738,7 +924,7 @@ namespace OpenMetaverse
             Buffer.BlockCopy(taskID.GetBytes(), 0, paramField, 48, 16);
             Buffer.BlockCopy(itemID.GetBytes(), 0, paramField, 64, 16);
             Buffer.BlockCopy(assetID.GetBytes(), 0, paramField, 80, 16);
-            Buffer.BlockCopy(Utils.IntToBytes((int)type), 0, paramField, 96, 4);
+            Buffer.BlockCopy(Utils.IntToBytes((int)transfer.AssetType), 0, paramField, 96, 4);
             request.TransferInfo.Params = paramField;
 
             Client.Network.SendPacket(request, transfer.Simulator);
@@ -754,7 +940,7 @@ namespace OpenMetaverse
             throw new Exception("This function is not implemented yet!");
         }
 
-        #region Uploads
+#region Uploads
         /// <summary>
         /// Used to force asset data into the PendingUpload property, ie: for raw terrain uploads
         /// </summary>
@@ -999,7 +1185,7 @@ namespace OpenMetaverse
             }
         }
 
-        #endregion Uploads
+#endregion Uploads
 
         /// <summary>
         /// Requests download of a mesh asset
@@ -1021,10 +1207,9 @@ namespace OpenMetaverse
                     return;
                 }
 
-                Uri url = Client.Network.CurrentSim.Caps.GetMeshCapURI();
-
                 DownloadRequest req = new DownloadRequest(
-                    new Uri($"{url.ToString()}/?mesh_id={meshID.ToString()}"),
+                    new Uri($"{Client.Network.CurrentSim.Caps.GetMeshCapURI()}" +
+                            $"?mesh_id={meshID.ToString()}"),
                     Client.Settings.CAPS_TIMEOUT,
                     null,
                     null,
@@ -1053,7 +1238,7 @@ namespace OpenMetaverse
             }
         }
 
-        #region Texture Downloads
+#region Texture Downloads
 
         /// <summary>
         /// Request a texture asset from the simulator using the <see cref="TexturePipeline"/> system to 
@@ -1215,9 +1400,7 @@ namespace OpenMetaverse
             if (Client.Assets.Cache.HasAsset(textureID)
                 && (assetData = Client.Assets.Cache.GetCachedAssetBytes(textureID)) != null)
             {
-                ImageDownload image = new ImageDownload();
-                image.ID = textureID;
-                image.AssetData = assetData;
+                ImageDownload image = new ImageDownload {ID = textureID, AssetData = assetData};
                 image.Size = image.AssetData.Length;
                 image.Transferred = image.AssetData.Length;
                 image.ImageType = ImageType.ServerBaked;
@@ -1317,10 +1500,8 @@ namespace OpenMetaverse
                     };
             }
 
-            Uri url = Client.Network.CurrentSim.Caps.GetTextureCapURI();
-
             DownloadRequest req = new DownloadRequest(
-                new Uri($"{url.ToString()}/?texture_id={textureID.ToString()}"),
+                new Uri($"{Client.Network.CurrentSim.Caps.GetTextureCapURI()}?texture_id={textureID.ToString()}"),
                 Client.Settings.CAPS_TIMEOUT,
                 "image/x-j2c",
                 progressHandler,
@@ -1355,9 +1536,9 @@ namespace OpenMetaverse
             HttpDownloads.QueueDownload(req);
         }
 
-        #endregion Texture Downloads
+#endregion Texture Downloads
 
-        #region Helpers
+#region Helpers
 
         public Asset CreateAssetWrapper(AssetType type)
         {
@@ -1477,9 +1658,9 @@ namespace OpenMetaverse
             Client.Network.SendPacket(confirm);
         }
 
-        #endregion Helpers
+#endregion Helpers
 
-        #region Transfer Callbacks
+#region Transfer Callbacks
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
@@ -1654,9 +1835,9 @@ namespace OpenMetaverse
             }
         }
 
-        #endregion Transfer Callbacks
+#endregion Transfer Callbacks
 
-        #region Xfer Callbacks
+#region Xfer Callbacks
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
@@ -1890,9 +2071,9 @@ namespace OpenMetaverse
             }
         }
 
-        #endregion Xfer Callbacks
+#endregion Xfer Callbacks
     }
-    #region EventArg classes
+#region EventArg classes
     // <summary>Provides data for XferReceived event</summary>
     public class XferReceivedEventArgs : EventArgs
     {
@@ -1952,5 +2133,5 @@ namespace OpenMetaverse
             this.Total = total;
         }
     }
-    #endregion
+#endregion
 }
