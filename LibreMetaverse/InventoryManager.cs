@@ -591,8 +591,7 @@ namespace OpenMetaverse
                 Client.Network.CurrentSim.Caps != null &&
                 Client.Network.CurrentSim.Caps.CapabilityURI("FetchInventory2") != null)
             {
-                Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("FetchInventory2");
-                CapsClient request = new CapsClient(url);
+                CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("FetchInventory2");
                 
                 request.OnComplete += (client, result, error) =>
                 {
@@ -762,7 +761,7 @@ namespace OpenMetaverse
 
             try
             {
-                CapsClient request = new CapsClient(url);
+                CapsClient request = new CapsClient(url, "ReqFolderContents");
                 request.OnComplete += (client, result, error) =>
                 {
                     try
@@ -1710,9 +1709,9 @@ namespace OpenMetaverse
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
                 throw new Exception("NewFileAgentInventory capability is not currently available");
 
-            Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("NewFileAgentInventory");
+            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("NewFileAgentInventory");
 
-            if (url != null)
+            if (request != null)
             {
                 OSDMap query = new OSDMap
                 {
@@ -1728,7 +1727,6 @@ namespace OpenMetaverse
                 };
 
                 // Make the request
-                CapsClient request = new CapsClient(url);
                 request.OnComplete += CreateItemFromAssetResponse;
                 request.UserData = new object[] { callback, data, Client.Settings.CAPS_TIMEOUT, query };
 
@@ -1931,9 +1929,9 @@ namespace OpenMetaverse
         {
             _ItemCopiedCallbacks[0] = callback; //Notecards always use callback ID 0
 
-            Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("CopyInventoryFromNotecard");
+            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("CopyInventoryFromNotecard");
 
-            if (url != null)
+            if (request != null)
             {
                 var message = new CopyInventoryFromNotecardMessage
                 {
@@ -1944,7 +1942,6 @@ namespace OpenMetaverse
                     ObjectID = objectID
                 };
 
-                CapsClient request = new CapsClient(url);
                 request.BeginGetResponse(message.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             else
@@ -2090,14 +2087,13 @@ namespace OpenMetaverse
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
                 throw new Exception("UpdateNotecardAgentInventory capability is not currently available");
 
-            Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateNotecardAgentInventory");
+            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("UpdateNotecardAgentInventory");
 
-            if (url != null)
+            if (request != null)
             {
                 OSDMap query = new OSDMap {{"item_id", OSD.FromUUID(notecardID)}};
 
                 // Make the request
-                CapsClient request = new CapsClient(url);
                 request.OnComplete += UploadInventoryAssetResponse;
                 request.UserData = new object[] { new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), notecardID };
                 request.BeginGetResponse(query, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
@@ -2120,9 +2116,9 @@ namespace OpenMetaverse
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
                 throw new Exception("UpdateNotecardTaskInventory capability is not currently available");
 
-            Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateNotecardTaskInventory");
+            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("UpdateNotecardTaskInventory");
 
-            if (url != null)
+            if (request != null)
             {
                 OSDMap query = new OSDMap
                 {
@@ -2131,7 +2127,6 @@ namespace OpenMetaverse
                 };
 
                 // Make the request
-                CapsClient request = new CapsClient(url);
                 request.OnComplete += UploadInventoryAssetResponse;
                 request.UserData = new object[] { new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), notecardID };
                 request.BeginGetResponse(query, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
@@ -2153,14 +2148,13 @@ namespace OpenMetaverse
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
                 throw new Exception("UpdateGestureAgentInventory capability is not currently available");
 
-            Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateGestureAgentInventory");
+            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("UpdateGestureAgentInventory");
 
-            if (url != null)
+            if (request != null)
             {
                 OSDMap query = new OSDMap {{"item_id", OSD.FromUUID(gestureID)}};
 
                 // Make the request
-                CapsClient request = new CapsClient(url);
                 request.OnComplete += UploadInventoryAssetResponse;
                 request.UserData = new object[] { new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), gestureID };
                 request.BeginGetResponse(query, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
@@ -2180,9 +2174,9 @@ namespace OpenMetaverse
         /// <param name="callback"></param>
         public void RequestUpdateScriptAgentInventory(byte[] data, UUID itemID, bool mono, ScriptUpdatedCallback callback)
         {
-            Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateScriptAgent");
+            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("UpdateScriptAgent");
 
-            if (url != null)
+            if (request != null)
             {
                 var msg = new UpdateScriptAgentRequestMessage
                 {
@@ -2190,7 +2184,6 @@ namespace OpenMetaverse
                     Target = mono ? "mono" : "lsl2"
                 };
 
-                CapsClient request = new CapsClient(url);
                 request.OnComplete += new CapsClient.CompleteCallback(UpdateScriptAgentInventoryResponse);
                 request.UserData = new object[2] { new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), itemID };
                 request.BeginGetResponse(msg.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
@@ -2212,9 +2205,9 @@ namespace OpenMetaverse
         /// <param name="callback"></param>
         public void RequestUpdateScriptTask(byte[] data, UUID itemID, UUID taskID, bool mono, bool running, ScriptUpdatedCallback callback)
         {
-            Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateScriptTask");
+            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("UpdateScriptTask");
 
-            if (url != null)
+            if (request != null)
             {
                 var msg = new UpdateScriptTaskUpdateMessage
                 {
@@ -2224,7 +2217,6 @@ namespace OpenMetaverse
                     Target = mono ? "mono" : "lsl2"
                 };
 
-                CapsClient request = new CapsClient(url);
                 request.OnComplete += new CapsClient.CompleteCallback(UpdateScriptAgentInventoryResponse);
                 request.UserData = new object[2] { new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), itemID };
                 request.BeginGetResponse(msg.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
@@ -3547,7 +3539,7 @@ namespace OpenMetaverse
 
                 // This makes the assumption that all uploads go to CurrentSim, to avoid
                 // the problem of HttpRequestState not knowing anything about simulators
-                CapsClient upload = new CapsClient(new Uri(uploadURL));
+                CapsClient upload = new CapsClient(new Uri(uploadURL), "CreateItemFromAsset");
                 upload.OnComplete += CreateItemFromAssetResponse;
                 upload.UserData = new object[] { callback, itemData, millisecondsTimeout, request };
                 upload.BeginGetResponse(itemData, "application/octet-stream", millisecondsTimeout);
@@ -3626,7 +3618,7 @@ namespace OpenMetaverse
                     {
                         // This makes the assumption that all uploads go to CurrentSim, to avoid
                         // the problem of HttpRequestState not knowing anything about simulators
-                        CapsClient upload = new CapsClient(uploadURL);
+                        CapsClient upload = new CapsClient(uploadURL, "UploadItemResponse");
                         upload.OnComplete += UploadInventoryAssetResponse;
                         upload.UserData = new object[2] { kvp, (UUID)(((object[])client.UserData)[1]) };
                         upload.BeginGetResponse(itemData, "application/octet-stream", Client.Settings.CAPS_TIMEOUT);
@@ -3697,8 +3689,8 @@ namespace OpenMetaverse
             {
                 string uploadURL = contents["uploader"].AsString();
 
-                CapsClient upload = new CapsClient(new Uri(uploadURL));
-                upload.OnComplete += new CapsClient.CompleteCallback(UpdateScriptAgentInventoryResponse);
+                CapsClient upload = new CapsClient(new Uri(uploadURL), "ScriptAgentInventoryResponse");
+                upload.OnComplete += UpdateScriptAgentInventoryResponse;
                 upload.UserData = new object[2] { kvp, (UUID)(((object[])client.UserData)[1]) };
                 upload.BeginGetResponse(itemData, "application/octet-stream", Client.Settings.CAPS_TIMEOUT);
             }

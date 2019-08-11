@@ -662,7 +662,9 @@ namespace OpenMetaverse
         /// <returns>True if Display name functionality is available</returns>
         public bool DisplayNamesAvailable()
         {
-            return (Client.Network.CurrentSim != null && Client.Network.CurrentSim.Caps != null) && Client.Network.CurrentSim.Caps.CapabilityURI("GetDisplayNames") != null;
+            return (Client.Network.CurrentSim != null 
+                    && Client.Network.CurrentSim.Caps != null) 
+                    && Client.Network.CurrentSim.Caps.CapabilityURI("GetDisplayNames") != null;
         }
 
         /// <summary>
@@ -689,7 +691,7 @@ namespace OpenMetaverse
 
             Uri uri = new Uri(Client.Network.CurrentSim.Caps.CapabilityURI("GetDisplayNames").AbsoluteUri + "/?" + query);
 
-            CapsClient cap = new CapsClient(uri);
+            CapsClient cap = new CapsClient(uri, "GetDisplayNames");
             cap.OnComplete += (CapsClient client, OSD result, Exception error) =>
                                   {
                                       try

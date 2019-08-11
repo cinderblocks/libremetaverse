@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2019, Cinderblocks Design Co.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -26,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
@@ -102,6 +104,26 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Create a new CapsClient for specified capability
+        /// </summary>
+        /// <param name="capability">Capability name</param>
+        /// <returns>Newly created CapsClient or null of capability does not exist</returns>
+        public CapsClient CreateCapsClient(string capability)
+        {
+            return _Caps.TryGetValue(capability, out var uri) ? new CapsClient(uri, capability) : null;
+        }
+
+        /// <summary>
+        /// Useful for debugging, but not particularly a good idea
+        /// </summary>
+        /// <param name="cap">Capability address</param>
+        /// <returns>Name of capability if it exists</returns>
+        public string CapabilityNameFromURI(Uri cap)
+        {
+            return _Caps.First(x => x.Value == cap).Key;
+        }
+
+        /// <summary>
         /// Request preferred URI for texture fetch capability
         /// </summary>
         /// <returns>URI of preferred capability or null, or null if not found</returns>
@@ -129,114 +151,114 @@ namespace OpenMetaverse
             if (Simulator == null || !Simulator.Client.Network.Connected) { return; }
 
             // Create a request list
-            OSDArray req = new OSDArray();
-            // This list can be updated by using the following command to obtain a current list of capabilities the official linden viewer supports:
-            // wget -q -O - https://bitbucket.org/lindenlab/viewer-release/raw/default/indra/newview/llviewerregion.cpp | grep 'capabilityNames.append'  | sed 's/^[ \t]*//;s/capabilityNames.append("/req.Add("/'
-            req.Add("AbuseCategories");
-            req.Add("AcceptFriendship");
-            req.Add("AcceptGroupInvite");
-            req.Add("AgentPreferences");
-            req.Add("AgentState");
-            req.Add("AttachmentResources");
-            req.Add("AvatarPickerSearch");
-            req.Add("AvatarRenderInfo");
-            req.Add("CharacterProperties");
-            req.Add("ChatSessionRequest");
-            req.Add("CopyInventoryFromNotecard");
-            req.Add("CreateInventoryCategory");
-            req.Add("DeclineFriendship");
-            req.Add("DeclineGroupInvite");
-            req.Add("DispatchRegionInfo");
-            req.Add("DirectDelivery");
-            req.Add("EnvironmentSettings");
-            req.Add("EstateChangeInfo");
-            req.Add("EventQueueGet");
-            req.Add("FacebookConnect");
-            req.Add("FlickrConnect");
-            req.Add("TwitterConnect");
-            req.Add("FetchLib2");
-            req.Add("FetchLibDescendents2");
-            req.Add("FetchInventory2");
-            req.Add("FetchInventoryDescendents2");
-            req.Add("IncrementCOFVersion");
-            req.Add("GetDisplayNames");
-            req.Add("GetExperiences");
-            req.Add("AgentExperiences");
-            req.Add("FindExperienceByName");
-            req.Add("GetExperienceInfo");
-            req.Add("GetAdminExperiences");
-            req.Add("GetCreatorExperiences");
-            req.Add("ExperiencePreferences");
-            req.Add("GroupExperiences");
-            req.Add("UpdateExperience");
-            req.Add("IsExperienceAdmin");
-            req.Add("IsExperienceContributor");
-            req.Add("RegionExperiences");
-            req.Add("GetMesh");
-            req.Add("GetMesh2");
-            req.Add("GetMetadata");
-            req.Add("GetObjectCost");
-            req.Add("GetObjectPhysicsData");
-            req.Add("GetTexture");
-            req.Add("GroupAPIv1");
-            req.Add("GroupMemberData");
-            req.Add("GroupProposalBallot");
-            req.Add("HomeLocation");
-            req.Add("LandResources");
-            req.Add("LSLSyntax");
-            req.Add("MapLayer");
-            req.Add("MapLayerGod");
-            req.Add("MeshUploadFlag");
-            req.Add("NavMeshGenerationStatus");
-            req.Add("NewFileAgentInventory");
-            req.Add("ObjectMedia");
-            req.Add("ObjectMediaNavigate");
-            req.Add("ObjectNavMeshProperties");
-            req.Add("ParcelPropertiesUpdate");
-            req.Add("ParcelVoiceInfoRequest");
-            req.Add("ProductInfoRequest");
-            req.Add("ProvisionVoiceAccountRequest");
-            req.Add("ReadOfflineMsgs");
-            req.Add("RemoteParcelRequest");
-            req.Add("RenderMaterials");
-            req.Add("RequestTextureDownload");
-            req.Add("RequiredVoiceVersion");
-            req.Add("ResourceCostSelected");
-            req.Add("RetrieveNavMeshSrc");
-            req.Add("SearchStatRequest");
-            req.Add("SearchStatTracking");
-            req.Add("SendPostcard");
-            req.Add("SendUserReport");
-            req.Add("SendUserReportWithScreenshot");
-            req.Add("ServerReleaseNotes");
-            req.Add("SetDisplayName");
-            req.Add("SimConsoleAsync");
-            req.Add("SimulatorFeatures");
-            req.Add("StartGroupProposal");
-            req.Add("TerrainNavMeshProperties");
-            req.Add("TextureStats");
-            req.Add("UntrustedSimulatorMessage");
-            req.Add("UpdateAgentInformation");
-            req.Add("UpdateAgentLanguage");
-            req.Add("UpdateAvatarAppearance");
-            req.Add("UpdateGestureAgentInventory");
-            req.Add("UpdateGestureTaskInventory");
-            req.Add("UpdateNotecardAgentInventory");
-            req.Add("UpdateNotecardTaskInventory");
-            req.Add("UpdateScriptAgent");
-            req.Add("UpdateScriptTask");
-            req.Add("UploadBakedTexture");
-            req.Add("UserInfo");
-            req.Add("ViewerAsset");
-            req.Add("ViewerMetrics");
-            req.Add("ViewerStartAuction");
-            req.Add("ViewerStats");
-            // AIS3
-            req.Add("InventoryAPIv3");
-            req.Add("LibraryAPIv3");
+            OSDArray req = new OSDArray
+            {
+                "AbuseCategories",
+                "AcceptFriendship",
+                "AcceptGroupInvite",
+                "AgentPreferences",
+                "AgentState",
+                "AttachmentResources",
+                "AvatarPickerSearch",
+                "AvatarRenderInfo",
+                "CharacterProperties",
+                "ChatSessionRequest",
+                "CopyInventoryFromNotecard",
+                "CreateInventoryCategory",
+                "DeclineFriendship",
+                "DeclineGroupInvite",
+                "DispatchRegionInfo",
+                "DirectDelivery",
+                "EnvironmentSettings",
+                "EstateChangeInfo",
+                "EventQueueGet",
+                "FacebookConnect",
+                "FlickrConnect",
+                "TwitterConnect",
+                "FetchLib2",
+                "FetchLibDescendents2",
+                "FetchInventory2",
+                "FetchInventoryDescendents2",
+                "IncrementCOFVersion",
+                "GetDisplayNames",
+                "GetExperiences",
+                "AgentExperiences",
+                "FindExperienceByName",
+                "GetExperienceInfo",
+                "GetAdminExperiences",
+                "GetCreatorExperiences",
+                "ExperiencePreferences",
+                "GroupExperiences",
+                "UpdateExperience",
+                "IsExperienceAdmin",
+                "IsExperienceContributor",
+                "RegionExperiences",
+                "GetMesh",
+                "GetMesh2",
+                "GetMetadata",
+                "GetObjectCost",
+                "GetObjectPhysicsData",
+                "GetTexture",
+                "GroupAPIv1",
+                "GroupMemberData",
+                "GroupProposalBallot",
+                "HomeLocation",
+                "LandResources",
+                "LSLSyntax",
+                "MapLayer",
+                "MapLayerGod",
+                "MeshUploadFlag",
+                "NavMeshGenerationStatus",
+                "NewFileAgentInventory",
+                "ObjectMedia",
+                "ObjectMediaNavigate",
+                "ObjectNavMeshProperties",
+                "ParcelPropertiesUpdate",
+                "ParcelVoiceInfoRequest",
+                "ProductInfoRequest",
+                "ProvisionVoiceAccountRequest",
+                "ReadOfflineMsgs",
+                "RemoteParcelRequest",
+                "RenderMaterials",
+                "RequestTextureDownload",
+                "RequiredVoiceVersion",
+                "ResourceCostSelected",
+                "RetrieveNavMeshSrc",
+                "SearchStatRequest",
+                "SearchStatTracking",
+                "SendPostcard",
+                "SendUserReport",
+                "SendUserReportWithScreenshot",
+                "ServerReleaseNotes",
+                "SetDisplayName",
+                "SimConsoleAsync",
+                "SimulatorFeatures",
+                "StartGroupProposal",
+                "TerrainNavMeshProperties",
+                "TextureStats",
+                "UntrustedSimulatorMessage",
+                "UpdateAgentInformation",
+                "UpdateAgentLanguage",
+                "UpdateAvatarAppearance",
+                "UpdateGestureAgentInventory",
+                "UpdateGestureTaskInventory",
+                "UpdateNotecardAgentInventory",
+                "UpdateNotecardTaskInventory",
+                "UpdateScriptAgent",
+                "UpdateScriptTask",
+                "UploadBakedTexture",
+                "UserInfo",
+                "ViewerAsset",
+                "ViewerMetrics",
+                "ViewerStartAuction",
+                "ViewerStats",
+                // AIS3
+                "InventoryAPIv3",
+                "LibraryAPIv3"
+            };
 
-            _SeedRequest = new CapsClient(new Uri(_SeedCapsURI));
-            _SeedRequest.OnComplete += new CapsClient.CompleteCallback(SeedRequestCompleteHandler);
+            _SeedRequest = new CapsClient(new Uri(_SeedCapsURI), "SeedCaps");
+            _SeedRequest.OnComplete += SeedRequestCompleteHandler;
             _SeedRequest.BeginGetResponse(req, OSDFormat.Xml, Simulator.Client.Settings.CAPS_TIMEOUT);
         }
 
@@ -253,7 +275,7 @@ namespace OpenMetaverse
 
                 if (_Caps.ContainsKey("EventQueueGet"))
                 {
-                    Logger.DebugLog("Starting event queue for " + Simulator.ToString(), Simulator.Client);
+                    Logger.DebugLog("Starting event queue for " + Simulator, Simulator.Client);
 
                     _EventQueueCap = new EventQueueClient(_Caps["EventQueueGet"]);
                     _EventQueueCap.OnConnected += EventQueueConnectedHandler;
@@ -270,7 +292,8 @@ namespace OpenMetaverse
                 ((HttpWebResponse)exception.Response).StatusCode == HttpStatusCode.NotFound)
             {
                 // 404 error
-                Logger.Log("Seed capability returned a 404, capability system is aborting", Helpers.LogLevel.Error);
+                Logger.Log("Seed capability returned a 404, capability system is aborting",
+                    Helpers.LogLevel.Error);
             }
             else
             {
@@ -305,8 +328,10 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("No Message handler exists for event " + eventName + ". Unable to decode. Will try Generic Handler next", Helpers.LogLevel.Warning);
-                Logger.Log("Please report this information to http://jira.openmetaverse.co/: \n" + body, Helpers.LogLevel.Debug);
+                Logger.Log("No Message handler exists for event " + eventName + ". Unable to decode. Will try Generic Handler next", 
+                    Helpers.LogLevel.Warning);
+                Logger.Log("Please report this information at https://radegast.life/bugs/issue-entry/: \n" + body, 
+                    Helpers.LogLevel.Debug);
 
                 // try generic decoder next which takes a caps event and tries to match it to an existing packet
                 if (body.Type == OSDType.Map)
@@ -319,13 +344,15 @@ namespace OpenMetaverse
                         incomingPacket.Simulator = Simulator;
                         incomingPacket.Packet = packet;
 
-                        Logger.DebugLog("Serializing " + packet.Type.ToString() + " capability with generic handler", Simulator.Client);
+                        Logger.DebugLog($"Serializing " + packet.Type + " capability with generic handler", 
+                            Simulator.Client);
 
                         Simulator.Client.Network.PacketInbox.Enqueue(incomingPacket);
                     }
                     else
                     {
-                        Logger.Log("No Packet or Message handler exists for " + eventName, Helpers.LogLevel.Warning);
+                        Logger.Log("No Packet or Message handler exists for " + eventName, 
+                            Helpers.LogLevel.Warning);
                     }
                 }
             }

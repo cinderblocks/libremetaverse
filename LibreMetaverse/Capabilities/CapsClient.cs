@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2019, Cinderblocks Design Co.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -43,6 +44,7 @@ namespace OpenMetaverse.Http
         public object UserData;
 
         protected Uri _Address;
+        protected string _CapName;
         protected byte[] _PostData;
         protected X509Certificate2 _ClientCert;
         protected string _ContentType;
@@ -51,13 +53,19 @@ namespace OpenMetaverse.Http
         protected AutoResetEvent _ResponseEvent = new AutoResetEvent(false);
 
         public CapsClient(Uri capability)
-            : this(capability, null)
+            : this(capability, null, null)
         {
         }
 
-        public CapsClient(Uri capability, X509Certificate2 clientCert)
+        public CapsClient(Uri capability, string cap_name)
+            : this(capability, cap_name, null)
+        {
+        }
+
+        public CapsClient(Uri capability, string cap_name, X509Certificate2 clientCert)
         {
             _Address = capability;
+            _CapName = cap_name;
             _ClientCert = clientCert;
         }
 
@@ -141,8 +149,7 @@ namespace OpenMetaverse.Http
 
         public void Cancel()
         {
-            if (_Request != null)
-                _Request.Abort();
+            _Request?.Abort();
         }
 
         void DownloadProgressHandler(HttpWebRequest request, HttpWebResponse response, int bytesReceived, int totalBytesToReceive)
@@ -176,8 +183,15 @@ namespace OpenMetaverse.Http
             CompleteCallback callback = OnComplete;
             if (callback != null)
             {
-                try { callback(this, result, error); }
-                catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, ex); }
+                try
+                {
+                    callback(this, result, error);
+                }
+                catch (Exception ex)
+                {
+                    Logger.DebugLog($"CapsBase.GetResponse() {_CapName} : {ex.Message}");
+                    Logger.Log(ex.Message, Helpers.LogLevel.Error, ex);
+                }
             }
 
             _Response = result;

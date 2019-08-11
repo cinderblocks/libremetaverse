@@ -1912,8 +1912,8 @@ namespace OpenMetaverse
                 return false;
             }
 
-            Uri url = caps.CapabilityURI("UpdateAvatarAppearance");
-            if (url == null)
+            CapsClient capsRequest = Client.Network.CurrentSim.Caps.CreateCapsClient("UpdateAvatarAppearance");
+            if (capsRequest == null)
             {
                 return false;
             }
@@ -1928,16 +1928,14 @@ namespace OpenMetaverse
                 // TODO: create Current Outfit Folder
             }
 
-            CapsClient capsRequest = new CapsClient(url);
             OSDMap request = new OSDMap(1) {["cof_version"] = COF.Version};
 
             string msg = "Setting server side baking failed";
 
             OSD res = capsRequest.GetResponse(request, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT * 2);
 
-            if (res is OSDMap)
+            if (res is OSDMap result)
             {
-                OSDMap result = (OSDMap)res;
                 if (result["success"])
                 {
                     Logger.Log("Successfully set appearance", Helpers.LogLevel.Info, Client);

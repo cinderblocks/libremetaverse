@@ -345,10 +345,8 @@ namespace OpenMetaverse.Voice
 
         void RequestVoiceProvision(System.Uri cap)
         {
-            OpenMetaverse.Http.CapsClient capClient =
-                new OpenMetaverse.Http.CapsClient(cap);
-            capClient.OnComplete +=
-                new OpenMetaverse.Http.CapsClient.CompleteCallback(cClient_OnComplete);
+            Http.CapsClient capClient = new Http.CapsClient(cap, "ReqVoiceProvision");
+            capClient.OnComplete += cClient_OnComplete;
             OSD postData = new OSD();
 
             // STEP 0
@@ -881,9 +879,9 @@ namespace OpenMetaverse.Voice
         {
             Logger.Log("Requesting region voice info", Helpers.LogLevel.Info);
 
-            parcelCap = new OpenMetaverse.Http.CapsClient(cap);
+            parcelCap = new OpenMetaverse.Http.CapsClient(cap, "RequestParcelInfo");
             parcelCap.OnComplete +=
-                new OpenMetaverse.Http.CapsClient.CompleteCallback(pCap_OnComplete);
+                pCap_OnComplete;
             OSD postData = new OSD();
 
             currentParcelCap = cap;

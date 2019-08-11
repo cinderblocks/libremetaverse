@@ -1043,12 +1043,12 @@ namespace OpenMetaverse
         public UUID RequestGroupMembers(UUID group)
         {
             UUID requestID = UUID.Random();
-            Uri url = null;
+            CapsClient req = null;
 
-            if (Client.Network.CurrentSim != null && Client.Network.CurrentSim.Caps != null &&
-                null != (url = Client.Network.CurrentSim.Caps.CapabilityURI("GroupMemberData")))
+            if (Client.Network.CurrentSim != null 
+                && Client.Network.CurrentSim.Caps != null
+                && (req = Client.Network.CurrentSim.Caps.CreateCapsClient("GroupMemberData")) != null)
             {
-                CapsClient req = new CapsClient(url);
                 req.OnComplete += (client, result, error) =>
                 {
                     if (error == null)
@@ -1635,7 +1635,7 @@ namespace OpenMetaverse
                 ret = Client.Network.CurrentSim.Caps.CapabilityURI("GroupAPIv1");
                 if (ret != null)
                 {
-                    ret = new Uri(string.Format("{0}?group_id={1}", ret.ToString(), groupID.ToString()));
+                    ret = new Uri($"{ret.ToString()}?group_id={groupID.ToString()}");
                 }
             }
 
@@ -1661,7 +1661,7 @@ namespace OpenMetaverse
             Uri uri = GetGroupAPIUri(groupID);
             if (uri == null) return;
 
-            CapsClient req = new CapsClient(uri);
+            CapsClient req = new CapsClient(uri, "GroupReqBanned");
             req.OnComplete += (client, result, error) =>
             {
                 try
@@ -1722,7 +1722,7 @@ namespace OpenMetaverse
             Uri uri = GetGroupAPIUri(groupID);
             if (uri == null) return;
 
-            CapsClient req = new CapsClient(uri);
+            CapsClient req = new CapsClient(uri, "GroupBanAction");
             req.OnComplete += (client, result, error) =>
             {
                 if (callback != null) try { callback(this, EventArgs.Empty); }

@@ -218,41 +218,39 @@ namespace OpenMetaverse.ImportExport
         /// <param name="callback">Callback that will be invoke upon completion of the upload. Null is sent on request failure</param>
         public void PrepareUpload(ModelUploadCallback callback)
         {
-            Uri url = null;
+            CapsClient request = null;
             if (Client.Network.CurrentSim == null ||
                 Client.Network.CurrentSim.Caps == null ||
-                null == (url = Client.Network.CurrentSim.Caps.CapabilityURI("NewFileAgentInventory")))
+                (request = Client.Network.CurrentSim.Caps.CreateCapsClient("NewFileAgentInventory")) == null)
             {
                 Logger.Log("Cannot upload mesh, no connection or NewFileAgentInventory not available", Helpers.LogLevel.Warning);
-                if (callback != null) callback(null);
+                callback?.Invoke(null);
                 return;
             }
 
             Images = new List<byte[]>();
             ImgIndex = new Dictionary<string, int>();
 
-            OSDMap req = new OSDMap();
-            req["name"] = InvName;
-            req["description"] = InvDescription;
+            OSDMap req = new OSDMap
+            {
+                ["name"] = InvName,
+                ["description"] = InvDescription,
+                ["asset_resources"] = AssetResources(false),
+                ["asset_type"] = "mesh",
+                ["inventory_type"] = "object",
+                ["folder_id"] = Client.Inventory.FindFolderForType(AssetType.Object),
+                ["texture_folder_id"] = Client.Inventory.FindFolderForType(AssetType.Texture),
+                ["everyone_mask"] = (int) PermissionMask.All,
+                ["group_mask"] = (int) PermissionMask.All,
+                ["next_owner_mask"] = (int) PermissionMask.All
+            };
 
-            req["asset_resources"] = AssetResources(false);
-            req["asset_type"] = "mesh";
-            req["inventory_type"] = "object";
-
-            req["folder_id"] = Client.Inventory.FindFolderForType(AssetType.Object);
-            req["texture_folder_id"] = Client.Inventory.FindFolderForType(AssetType.Texture);
-
-            req["everyone_mask"] = (int)PermissionMask.All;
-            req["group_mask"] = (int) PermissionMask.All;
-            req["next_owner_mask"] = (int)PermissionMask.All;
-
-            CapsClient request = new CapsClient(url);
             request.OnComplete += (client, result, error) =>
             {
                 if (error != null || result == null || result.Type != OSDType.Map)
                 {
                     Logger.Log("Mesh upload request failure", Helpers.LogLevel.Error);
-                    if (callback != null) callback(null);
+                    callback?.Invoke(null);
                     return;
                 }
                 OSDMap res = (OSDMap)result;
@@ -260,12 +258,12 @@ namespace OpenMetaverse.ImportExport
                 if (res["state"] != "upload")
                 {
                     Logger.Log("Mesh upload failure: " + res["message"], Helpers.LogLevel.Error);
-                    if (callback != null) callback(null);
+                    callback?.Invoke(null);
                     return;
                 }
 
                 Logger.Log("Response from mesh upload prepare:\n" + OSDParser.SerializeLLSDNotationFormatted(result), Helpers.LogLevel.Debug);
-                if (callback != null) callback(result);
+                callback?.Invoke(result);
             };
 
             request.BeginGetResponse(req, OSDFormat.Xml, 3 * 60 * 1000);
@@ -279,18 +277,18 @@ namespace OpenMetaverse.ImportExport
         /// <param name="callback">Callback that will be invoke upon completion of the upload. Null is sent on request failure</param>
         public void PerformUpload(Uri uploader, ModelUploadCallback callback)
         {
-            CapsClient request = new CapsClient(uploader);
+            CapsClient request = new CapsClient(uploader, "MeshUploader");
             request.OnComplete += (client, result, error) =>
             {
                 if (error != null || result == null || result.Type != OSDType.Map)
                 {
                     Logger.Log("Mesh upload request failure", Helpers.LogLevel.Error);
-                    if (callback != null) callback(null);
+                    callback?.Invoke(null);
                     return;
                 }
                 OSDMap res = (OSDMap)result;
                 Logger.Log("Response from mesh upload perform:\n" + OSDParser.SerializeLLSDNotationFormatted(result), Helpers.LogLevel.Debug);
-                if (callback != null) callback(res);
+                callback?.Invoke(res);
             };
 
             request.BeginGetResponse(AssetResources(true), OSDFormat.Xml, 60 * 1000);

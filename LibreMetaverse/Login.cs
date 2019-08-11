@@ -1174,8 +1174,8 @@ namespace OpenMetaverse
                     return;
                 }
 
-                CapsClient loginRequest = new CapsClient(loginUri);
-                loginRequest.OnComplete += new CapsClient.CompleteCallback(LoginReplyLLSDHandler);
+                CapsClient loginRequest = new CapsClient(loginUri, "LoginRequest");
+                loginRequest.OnComplete += LoginReplyLLSDHandler;
                 loginRequest.UserData = CurrentContext;
                 UpdateLoginStatus(LoginStatus.ConnectingToLogin,
                     $"Logging in as {loginParams.FirstName} {loginParams.LastName}...");

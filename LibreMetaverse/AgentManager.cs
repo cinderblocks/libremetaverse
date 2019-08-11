@@ -1870,16 +1870,14 @@ namespace OpenMetaverse
         public void ChatterBoxAcceptInvite(UUID session_id)
         {
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
-                throw new Exception("ChatSessionRequest capability is not currently available");
-
-            Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("ChatSessionRequest");
-
-            if (url != null)
             {
-                ChatSessionAcceptInvitation acceptInvite = new ChatSessionAcceptInvitation();
-                acceptInvite.SessionID = session_id;
+                throw new Exception("ChatSessionRequest capability is not currently available");
+            }
 
-                CapsClient request = new CapsClient(url);
+            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("ChatSessionRequest");
+            if (request != null)
+            {
+                ChatSessionAcceptInvitation acceptInvite = new ChatSessionAcceptInvitation {SessionID = session_id};
                 request.BeginGetResponse(acceptInvite.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
 
                 lock (GroupChatSessions.Dictionary)
@@ -1901,11 +1899,11 @@ namespace OpenMetaverse
         public void StartIMConference(List<UUID> participants, UUID tmp_session_id)
         {
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
+            {
                 throw new Exception("ChatSessionRequest capability is not currently available");
-
-            Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("ChatSessionRequest");
-
-            if (url != null)
+            }
+            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("ChatSessionRequest");
+            if (request != null)
             {
                 ChatSessionRequestStartConference startConference = new ChatSessionRequestStartConference
                 {
@@ -1913,11 +1911,12 @@ namespace OpenMetaverse
                 };
 
                 for (int i = 0; i < participants.Count; i++)
+                {
                     startConference.AgentsBlock[i] = participants[i];
+                }
 
                 startConference.SessionID = tmp_session_id;
 
-                CapsClient request = new CapsClient(url);
                 request.BeginGetResponse(startConference.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             else
@@ -3619,15 +3618,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Fetches resource usage by agents attachmetns
+        /// Fetches resource usage by agents attachments
         /// </summary>
         /// <param name="callback">Called when the requested information is collected</param>
         public void GetAttachmentResources(AttachmentResourcesCallback callback)
         {
             try
             {
-                Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("AttachmentResources");
-                CapsClient request = new CapsClient(url);
+                CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("AttachmentResources");
 
                 request.OnComplete += delegate(CapsClient client, OSD result, Exception error)
                 {
@@ -3664,13 +3662,19 @@ namespace OpenMetaverse
         /// <param name="newName">Desired new display name</param>
         public void SetDisplayName(string oldName, string newName)
         {
-            Uri uri;
-
-            if (Client.Network.CurrentSim == null ||
-                Client.Network.CurrentSim.Caps == null ||
-                (uri = Client.Network.CurrentSim.Caps.CapabilityURI("SetDisplayName")) == null)
+            if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
             {
-                Logger.Log("Unable to invoke SetDisplyName capability at this time", Helpers.LogLevel.Warning, Client);
+                Logger.Log("Not connected to simulator. " +
+                           "Unable to set display name.",
+                    Helpers.LogLevel.Warning, Client);
+                return;
+            }
+
+            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("SetDisplayName");
+            if (request == null)
+            {
+                Logger.Log("Unable to obtain capability. Unable to set display name.", 
+                    Helpers.LogLevel.Warning, Client);
                 return;
             }
 
@@ -3680,8 +3684,7 @@ namespace OpenMetaverse
                 NewDisplayName = newName
             };
 
-            CapsClient cap = new CapsClient(uri);
-            cap.BeginGetResponse(msg.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+            request.BeginGetResponse(msg.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
         }
 
         /// <summary>
@@ -3699,16 +3702,12 @@ namespace OpenMetaverse
                     LanguagePublic = isPublic
                 };
 
-                Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentLanguage");
-                if (url != null)
-                {
-                    CapsClient request = new CapsClient(url);
-                    request.BeginGetResponse(msg.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
-                }
+                CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("UpdateAgentLanguage");
+                request?.BeginGetResponse(msg.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             catch (Exception ex)
             {
-                Logger.Log("Failes to update agent language", Helpers.LogLevel.Error, Client, ex);
+                Logger.Log("Failed to update agent language", Helpers.LogLevel.Error, Client, ex);
             }
         }
 
@@ -3732,11 +3731,8 @@ namespace OpenMetaverse
         {
             if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim.Caps == null) return;
 
-            Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentInformation");
-
-            if (url == null) return;
-
-            CapsClient request = new CapsClient(url);
+            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("UpdateAgentInformation");
+            if (request == null) return;
 
             request.OnComplete += (client, result, error) =>
             {
@@ -3783,13 +3779,9 @@ namespace OpenMetaverse
                 return;
             }
 
-            var url = Client.Network.CurrentSim.Caps.CapabilityURI("AgentPreferences");
-            if (url == null)
-            {
-                return;
-            }
+            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("AgentPreferences");
+            if (request == null) { return; }
 
-            var request = new CapsClient(url);
             request.OnComplete += (client, result, error) =>
             {
                 var resultMap = result as OSDMap;
@@ -4620,9 +4612,9 @@ namespace OpenMetaverse
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
                 throw new Exception("ChatSessionRequest capability is not currently available");
 
-            Uri url = Client.Network.CurrentSim.Caps.CapabilityURI("ChatSessionRequest");
+            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("ChatSessionRequest");
 
-            if (url != null)
+            if (request != null)
             {
                 ChatSessionRequestMuteUpdate req = new ChatSessionRequestMuteUpdate
                 {
@@ -4632,7 +4624,6 @@ namespace OpenMetaverse
                     AgentID = memberID
                 };
 
-                CapsClient request = new CapsClient(url);
                 request.BeginGetResponse(req.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             else

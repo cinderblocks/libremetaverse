@@ -42,7 +42,7 @@ namespace OpenMetaverse.Http
         public ConnectedCallback OnConnected;
         public EventCallback OnEvent;
 
-        public bool Running { get { return _Running; } }
+        public bool Running => _Running;
 
         protected Uri _Address;
         protected bool _Dead;
@@ -64,9 +64,7 @@ namespace OpenMetaverse.Http
             _Dead = false;
 
             // Create an EventQueueGet request
-            OSDMap request = new OSDMap();
-            request["ack"] = new OSD();
-            request["done"] = OSD.FromBoolean(false);
+            OSDMap request = new OSDMap {["ack"] = new OSD(), ["done"] = OSD.FromBoolean(false)};
 
             byte[] postData = OSDParser.SerializeLLSDXmlBytes(request);
 
@@ -80,8 +78,7 @@ namespace OpenMetaverse.Http
             if (immediate)
                 _Running = false;
 
-            if (_Request != null)
-                _Request.Abort();
+            _Request?.Abort();
         }
 
         void OpenWriteHandler(HttpWebRequest request)

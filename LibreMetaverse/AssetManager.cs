@@ -1086,23 +1086,19 @@ namespace OpenMetaverse
 
         public void RequestUploadBakedTexture(byte[] textureData, BakedTextureUploadedCallback callback)
         {
-            Uri url = null;
-
-            Caps caps = Client.Network.CurrentSim.Caps;
-            if (caps != null)
-                url = caps.CapabilityURI("UploadBakedTexture");
-
-            if (url != null)
+            CapsClient request = null;
+            if(Client.Network.CurrentSim.Caps != null) {
+                request = Client.Network.CurrentSim.Caps.CreateCapsClient("UploadBakedTexture");
+            }
+            if (request != null)
             {
-                // Fetch the uploader capability
-                CapsClient request = new CapsClient(url);
                 request.OnComplete +=
                     delegate(CapsClient client, OSD result, Exception error)
                     {
-                        if (error == null && result is OSDMap)
+                        if (error == null && result is OSDMap map)
                         {
                             UploadBakedTextureMessage message = new UploadBakedTextureMessage();
-                            message.Deserialize((OSDMap)result);
+                            message.Deserialize(map);
 
                             if (message.Request.State == "upload")
                             {
@@ -1111,14 +1107,14 @@ namespace OpenMetaverse
                                 if (uploadUrl != null)
                                 {
                                     // POST the asset data
-                                    CapsClient upload = new CapsClient(uploadUrl);
+                                    CapsClient upload = new CapsClient(uploadUrl, "UploadBakedTexture");
                                     upload.OnComplete +=
                                         delegate(CapsClient client2, OSD result2, Exception error2)
                                         {
-                                            if (error2 == null && result2 is OSDMap)
+                                            if (error2 == null && result2 is OSDMap osdMap)
                                             {
                                                 UploadBakedTextureMessage message2 = new UploadBakedTextureMessage();
-                                                message2.Deserialize((OSDMap)result2);
+                                                message2.Deserialize(osdMap);
 
                                                 if (message2.Request.State == "complete")
                                                 {
