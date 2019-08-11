@@ -52,57 +52,81 @@ namespace OpenMetaverse
     public enum AssetType : sbyte
     {
         /// <summary>Unknown asset type</summary>
+        [EnumInfo(Text = "invalid")]
         Unknown = -1,
         /// <summary>Texture asset, stores in JPEG2000 J2C stream format</summary>
+        [EnumInfo (Text = "texture")]
         Texture = 0,
         /// <summary>Sound asset</summary>
+        [EnumInfo(Text = "sound")]
         Sound = 1,
         /// <summary>Calling card for another avatar</summary>
+        [EnumInfo(Text = "callcard")]
         CallingCard = 2,
         /// <summary>Link to a location in world</summary>
+        [EnumInfo(Text = "landmark")]
         Landmark = 3,
         // <summary>Legacy script asset, you should never see one of these</summary>
-        //[Obsolete]
-        //Script = 4,
+        [Obsolete("No longer used")]
+        [EnumInfo(Text = "script")]
+        Script = 4,
         /// <summary>Collection of textures and parameters that can be worn by an avatar</summary>
+        [EnumInfo(Text = "clothing")]
         Clothing = 5,
-        /// <summary>Primitive that can contain textures, sounds, 
-        /// scripts and more</summary>
+        /// <summary>Primitive that can contain textures, sounds, scripts and more</summary>
+        [EnumInfo(Text = "object")]
         Object = 6,
         /// <summary>Notecard asset</summary>
+        [EnumInfo(Text = "notecard")]
         Notecard = 7,
         /// <summary>Holds a collection of inventory items. "Category" in the Linden viewer</summary>
+        [EnumInfo(Text = "category")]
         Folder = 8,
         /// <summary>Linden scripting language script</summary>
+        [EnumInfo(Text = "lsltext")]
         LSLText = 10,
         /// <summary>LSO bytecode for a script</summary>
+        [EnumInfo(Text = "lslbyte")]
         LSLBytecode = 11,
         /// <summary>Uncompressed TGA texture</summary>
+        [EnumInfo(Text = "txtr_tga")]
         TextureTGA = 12,
         /// <summary>Collection of textures and shape parameters that can be worn</summary>
+        [EnumInfo(Text = "bodypart")]
         Bodypart = 13,
         /// <summary>Uncompressed sound</summary>
+        [EnumInfo(Text = "snd_wav")]
         SoundWAV = 17,
-        /// <summary>Uncompressed TGA non-square image, not to be used as a
-        /// texture</summary>
+        /// <summary>Uncompressed TGA non-square image, not to be used as a texture</summary>
+        [EnumInfo(Text = "img_tga")]
         ImageTGA = 18,
-        /// <summary>Compressed JPEG non-square image, not to be used as a
-        /// texture</summary>
+        /// <summary>Compressed JPEG non-square image, not to be used as a texture</summary>
+        [EnumInfo(Text = "jpeg")]
         ImageJPEG = 19,
         /// <summary>Animation</summary>
+        [EnumInfo(Text = "animatn")]
         Animation = 20,
         /// <summary>Sequence of animations, sounds, chat, and pauses</summary>
+        [EnumInfo(Text = "gesture")]
         Gesture = 21,
         /// <summary>Simstate file</summary>
+        [EnumInfo(Text = "simstate")]
         Simstate = 22,
         /// <summary>Asset is a link to another inventory item</summary>
+        [EnumInfo(Text = "link")]
         Link = 24,
         /// <summary>Asset is a link to another inventory folder</summary>
+        [EnumInfo(Text = "link_f")]
         LinkFolder = 25,
-        /// <summary>Marketplace Folder. Same as an Category but different display methods.</summary>
-        MarketplaceFolder = 26,
         /// <summary>Linden mesh format</summary>
+        [EnumInfo(Text = "mesh")]
         Mesh = 49,
+        /// <summary>widget?</summary>
+        [EnumInfo(Text = "widget")]
+        Widget = 40,
+        /// <summary>Person?</summary>
+        [EnumInfo(Text = "person")]
+        Person = 45
     }
 
     /// <summary>
@@ -169,6 +193,8 @@ namespace OpenMetaverse
         MarketplaceListings = 53,
         /// <summary>Marketplace stock folder</summary>
         MarkplaceStock = 54,
+        /// <summary>Marketplace version. We *never* actually create folder of this type</summary>
+        MarketplaceVersion = 55,
         /// <summary>Hypergrid Suitcase folder</summary>
         Suitcase = 100
     }
