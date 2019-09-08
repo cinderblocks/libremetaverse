@@ -43,17 +43,23 @@ namespace OpenMetaverse.Imaging
         private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         #region Properties
         /// <summary>Final baked texture</summary>
-        public AssetTexture BakedTexture { get { return bakedTexture; } }
+        public AssetTexture BakedTexture => bakedTexture;
+
         /// <summary>Component layers</summary>
-        public List<AppearanceManager.TextureData> Textures { get { return textures; } }
+        public List<AppearanceManager.TextureData> Textures => textures;
+
         /// <summary>Width of the final baked image and scratchpad</summary>
-        public int BakeWidth { get { return bakeWidth; } }
+        public int BakeWidth => bakeWidth;
+
         /// <summary>Height of the final baked image and scratchpad</summary>
-        public int BakeHeight { get { return bakeHeight; } }
+        public int BakeHeight => bakeHeight;
+
         /// <summary>Bake type</summary>
-        public BakeType BakeType { get { return bakeType; } }
+        public BakeType BakeType => bakeType;
+
         /// <summary>Is this one of the 3 skin bakes</summary>
-        private bool IsSkin { get { return bakeType == BakeType.Head || bakeType == BakeType.LowerBody || bakeType == BakeType.UpperBody; } }
+        private bool IsSkin => bakeType == BakeType.Head || bakeType == BakeType.LowerBody || bakeType == BakeType.UpperBody;
+
         #endregion
 
         #region Private fields
@@ -85,8 +91,8 @@ namespace OpenMetaverse.Imaging
             }
             else
             {
-                bakeWidth = 512;
-                bakeHeight = 512;
+                bakeWidth = 1024;
+                bakeHeight = 1024;
             }
         }
         #endregion
@@ -130,21 +136,27 @@ namespace OpenMetaverse.Imaging
                 if (tex.Texture == null)
                     continue;
 
-                if (tex.TextureIndex == AvatarTextureIndex.HeadBodypaint ||
-                        tex.TextureIndex == AvatarTextureIndex.UpperBodypaint ||
-                        tex.TextureIndex == AvatarTextureIndex.LowerBodypaint)
-                    skinTexture = tex;
-
-                if (tex.TextureIndex == AvatarTextureIndex.HeadTattoo ||
-                        tex.TextureIndex == AvatarTextureIndex.UpperTattoo ||
-                        tex.TextureIndex == AvatarTextureIndex.LowerTattoo)
-                    tattooTextures.Add(tex);
+                switch (tex.TextureIndex)
+                {
+                    case AvatarTextureIndex.HeadBodypaint:
+                    case AvatarTextureIndex.UpperBodypaint:
+                    case AvatarTextureIndex.LowerBodypaint:
+                        skinTexture = tex;
+                        break;
+                    case AvatarTextureIndex.HeadTattoo:
+                    case AvatarTextureIndex.UpperTattoo:
+                    case AvatarTextureIndex.LowerTattoo:
+                        tattooTextures.Add(tex);
+                        break;
+                }
 
                 if (tex.TextureIndex >= AvatarTextureIndex.LowerAlpha &&
                     tex.TextureIndex <= AvatarTextureIndex.HairAlpha)
                 {
                     if (tex.Texture.Image.Alpha != null)
+                    {
                         alphaWearableTextures.Add(tex.Texture.Image.Clone());
+                    }
                 }
             }
 
@@ -408,16 +420,9 @@ namespace OpenMetaverse.Imaging
 
         private bool MaskBelongsToBake(string mask)
         {
-            if ((bakeType == BakeType.LowerBody && mask.Contains("upper"))
-                || (bakeType == BakeType.LowerBody && mask.Contains("shirt"))
-                || (bakeType == BakeType.UpperBody && mask.Contains("lower")))
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
+            return (bakeType != BakeType.LowerBody || !mask.Contains("upper")) 
+                   && (bakeType != BakeType.LowerBody || !mask.Contains("shirt")) 
+                   && (bakeType != BakeType.UpperBody || !mask.Contains("lower"));
         }
 
         private bool DrawLayer(ManagedImage source, bool addSourceAlpha)
@@ -610,21 +615,19 @@ namespace OpenMetaverse.Imaging
             byte gByte = Utils.FloatToByte(g, 0f, 1f);
             byte bByte = Utils.FloatToByte(b, 0f, 1f);
 
-            byte rAlt, gAlt, bAlt;
+            var rAlt = rByte;
+            var gAlt = gByte;
+            var bAlt = bByte;
 
-            rAlt = rByte;
-            gAlt = gByte;
-            bAlt = bByte;
-
-            if (rByte < Byte.MaxValue)
+            if (rByte < byte.MaxValue)
                 rAlt++;
             else rAlt--;
 
-            if (gByte < Byte.MaxValue)
+            if (gByte < byte.MaxValue)
                 gAlt++;
             else gAlt--;
 
-            if (bByte < Byte.MaxValue)
+            if (bByte < byte.MaxValue)
                 bAlt++;
             else bAlt--;
 
@@ -645,7 +648,7 @@ namespace OpenMetaverse.Imaging
                         red[i] = rAlt;
                         green[i] = gByte;
                         blue[i] = bByte;
-                        alpha[i] = Byte.MaxValue;
+                        alpha[i] = byte.MaxValue;
                         bump[i] = 0;
                     }
                     else
@@ -653,7 +656,7 @@ namespace OpenMetaverse.Imaging
                         red[i] = rByte;
                         green[i] = gAlt;
                         blue[i] = bAlt;
-                        alpha[i] = Byte.MaxValue;
+                        alpha[i] = byte.MaxValue;
                         bump[i] = 0;
                     }
 
