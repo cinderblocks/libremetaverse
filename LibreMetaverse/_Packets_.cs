@@ -644,6 +644,7 @@ namespace OpenMetaverse.Packets
         ChildAgentAlive = 196634,
         ChildAgentPositionUpdate = 196635,
         SoundTrigger = 196637,
+        ObjectAnimation = 196638,
     }
 
     public abstract partial class Packet
@@ -1081,6 +1082,7 @@ namespace OpenMetaverse.Packets
                         case 26: return PacketType.ChildAgentAlive;
                         case 27: return PacketType.ChildAgentPositionUpdate;
                         case 29: return PacketType.SoundTrigger;
+                        case 30: return PacketType.ObjectAnimation;
                     }
                     break;
             }
@@ -1116,6 +1118,7 @@ namespace OpenMetaverse.Packets
             if(type == PacketType.ChildAgentAlive) return new ChildAgentAlivePacket();
             if(type == PacketType.ChildAgentPositionUpdate) return new ChildAgentPositionUpdatePacket();
             if(type == PacketType.SoundTrigger) return new SoundTriggerPacket();
+            if(type == PacketType.ObjectAnimation) return new ObjectAnimationPacket();
             if(type == PacketType.ObjectAdd) return new ObjectAddPacket();
             if(type == PacketType.MultipleObjectUpdate) return new MultipleObjectUpdatePacket();
             if(type == PacketType.RequestMultipleObjects) return new RequestMultipleObjectsPacket();
@@ -1901,6 +1904,7 @@ namespace OpenMetaverse.Packets
                         case 26: return new ChildAgentAlivePacket(header, bytes, ref i);
                         case 27: return new ChildAgentPositionUpdatePacket(header, bytes, ref i);
                         case 29: return new SoundTriggerPacket(header, bytes, ref i);
+                        case 30: return new ObjectAnimationPacket(header, bytes, ref i);
 
                     }
                     break;
@@ -81767,6 +81771,235 @@ namespace OpenMetaverse.Packets
         {
             sizes = new int[1];
             return new byte[][] { this.ToBytes(pool, ref sizes[0]) };
+        }
+    }
+
+    /// <exclude/>
+    public sealed class ObjectAnimationPacket : Packet
+    {
+        /// <exclude/>
+        public sealed class SenderBlock : PacketBlock
+        {
+            public UUID ID;
+
+            public override int Length
+            {
+                get
+                {
+                    return 16;
+                }
+            }
+
+            public SenderBlock() { }
+            public SenderBlock(byte[] bytes, ref int i)
+            {
+                FromBytes(bytes, ref i);
+            }
+
+            public override void FromBytes(byte[] bytes, ref int i)
+            {
+                try
+                {
+                    ID.FromBytes(bytes, i); i += 16;
+                }
+                catch (Exception)
+                {
+                    throw new MalformedDataException();
+                }
+            }
+
+            public override void ToBytes(byte[] bytes, ref int i)
+            {
+                ID.ToBytes(bytes, i); i += 16;
+            }
+
+        }
+
+        /// <exclude/>
+        public sealed class AnimationListBlock : PacketBlock
+        {
+            public UUID AnimID;
+            public int AnimSequenceID;
+
+            public override int Length
+            {
+                get
+                {
+                    return 20;
+                }
+            }
+
+            public AnimationListBlock() { }
+            public AnimationListBlock(byte[] bytes, ref int i)
+            {
+                FromBytes(bytes, ref i);
+            }
+
+            public override void FromBytes(byte[] bytes, ref int i)
+            {
+                try
+                {
+                    AnimID.FromBytes(bytes, i); i += 16;
+                    AnimSequenceID = (int)(bytes[i++] + (bytes[i++] << 8) + (bytes[i++] << 16) + (bytes[i++] << 24));
+                }
+                catch (Exception)
+                {
+                    throw new MalformedDataException();
+                }
+            }
+
+            public override void ToBytes(byte[] bytes, ref int i)
+            {
+                AnimID.ToBytes(bytes, i); i += 16;
+                Utils.IntToBytes(AnimSequenceID, bytes, i); i += 4;
+            }
+
+        }
+
+        public override int Length
+        {
+            get
+            {
+                int length = 8;
+                length += Sender.Length;
+                for (int j = 0; j < AnimationList.Length; j++)
+                    length += AnimationList[j].Length;
+                return length;
+            }
+        }
+        public SenderBlock Sender;
+        public AnimationListBlock[] AnimationList;
+
+        public ObjectAnimationPacket()
+        {
+            HasVariableBlocks = true;
+            Type = PacketType.ObjectAnimation;
+            Header = new Header();
+            Header.Frequency = PacketFrequency.High;
+            Header.ID = 30;
+            Header.Reliable = true;
+            Sender = new SenderBlock();
+            AnimationList = null;
+        }
+
+        public ObjectAnimationPacket(byte[] bytes, ref int i) : this()
+        {
+            int packetEnd = bytes.Length - 1;
+            FromBytes(bytes, ref i, ref packetEnd, null);
+        }
+
+        override public void FromBytes(byte[] bytes, ref int i, ref int packetEnd, byte[] zeroBuffer)
+        {
+            Header.FromBytes(bytes, ref i, ref packetEnd);
+            if (Header.Zerocoded && zeroBuffer != null)
+            {
+                packetEnd = Helpers.ZeroDecode(bytes, packetEnd + 1, zeroBuffer) - 1;
+                bytes = zeroBuffer;
+            }
+            Sender.FromBytes(bytes, ref i);
+            int count = (int)bytes[i++];
+            if(AnimationList == null || AnimationList.Length != -1) {
+                AnimationList = new AnimationListBlock[count];
+                for(int j = 0; j < count; j++)
+                { AnimationList[j] = new AnimationListBlock(); }
+            }
+            for (int j = 0; j < count; j++)
+            { AnimationList[j].FromBytes(bytes, ref i); }
+        }
+
+        public ObjectAnimationPacket(Header head, byte[] bytes, ref int i): this()
+        {
+            int packetEnd = bytes.Length - 1;
+            FromBytes(head, bytes, ref i, ref packetEnd);
+        }
+
+        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)
+        {
+            Header = header;
+            Sender.FromBytes(bytes, ref i);
+            int count = (int)bytes[i++];
+            if(AnimationList == null || AnimationList.Length != count) {
+                AnimationList = new AnimationListBlock[count];
+                for(int j = 0; j < count; j++)
+                { AnimationList[j] = new AnimationListBlock(); }
+            }
+            for (int j = 0; j < count; j++)
+            { AnimationList[j].FromBytes(bytes, ref i); }
+        }
+
+        public override byte[] ToBytes()
+        {
+            int length = 7;
+            length += Sender.Length;
+            length++;
+            for (int j = 0; j < AnimationList.Length; j++) { length += AnimationList[j].Length; }
+            if (Header.AckList != null && Header.AckList.Length > 0) { length += Header.AckList.Length * 4 + 1; }
+            byte[] bytes = new byte[length];
+            int i = 0;
+            Header.ToBytes(bytes, ref i);
+            Sender.ToBytes(bytes, ref i);
+            bytes[i++] = (byte)AnimationList.Length;
+            for (int j = 0; j < AnimationList.Length; j++) { AnimationList[j].ToBytes(bytes, ref i); }
+            if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
+            return bytes;
+        }
+
+        public override byte[][] ToBytesMultiple()
+        {
+            System.Collections.Generic.List<byte[]> packets = new System.Collections.Generic.List<byte[]>();
+            int i = 0;
+            int fixedLength = 7;
+
+            byte[] ackBytes = null;
+            int acksLength = 0;
+            if (Header.AckList != null && Header.AckList.Length > 0) {
+                Header.AppendedAcks = true;
+                ackBytes = new byte[Header.AckList.Length * 4 + 1];
+                Header.AcksToBytes(ackBytes, ref acksLength);
+            }
+
+            fixedLength += Sender.Length;
+            byte[] fixedBytes = new byte[fixedLength];
+            Header.ToBytes(fixedBytes, ref i);
+            Sender.ToBytes(fixedBytes, ref i);
+            fixedLength += 1;
+
+            int AnimationListStart = 0;
+            do
+            {
+                int variableLength = 0;
+                int AnimationListCount = 0;
+
+                i = AnimationListStart;
+                while (fixedLength + variableLength + acksLength < Packet.MTU && i < AnimationList.Length) {
+                    int blockLength = AnimationList[i].Length;
+                    if (fixedLength + variableLength + blockLength + acksLength <= MTU || i == AnimationListStart) {
+                        variableLength += blockLength;
+                        ++AnimationListCount;
+                    }
+                    else { break; }
+                    ++i;
+                }
+
+                byte[] packet = new byte[fixedLength + variableLength + acksLength];
+                int length = fixedBytes.Length;
+                Buffer.BlockCopy(fixedBytes, 0, packet, 0, length);
+                if (packets.Count > 0) { packet[0] = (byte)(packet[0] & ~0x10); }
+
+                packet[length++] = (byte)AnimationListCount;
+                for (i = AnimationListStart; i < AnimationListStart + AnimationListCount; i++) { AnimationList[i].ToBytes(packet, ref length); }
+                AnimationListStart += AnimationListCount;
+
+                if (acksLength > 0) {
+                    Buffer.BlockCopy(ackBytes, 0, packet, length, acksLength);
+                    acksLength = 0;
+                }
+
+                packets.Add(packet);
+            } while (
+                AnimationListStart < AnimationList.Length);
+
+            return packets.ToArray();
         }
     }
 
