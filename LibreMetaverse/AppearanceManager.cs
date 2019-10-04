@@ -53,10 +53,10 @@ namespace OpenMetaverse
         UpperBodypaint,
         LowerBodypaint,
         LowerShoes,
-        HeadBaked,
-        UpperBaked,
-        LowerBaked,
-        EyesBaked,
+        HeadBaked,  // pre-composited
+        UpperBaked, // pre-composited
+        LowerBaked, // pre-composited
+        EyesBaked,  // pre-composited
         LowerSocks,
         UpperJacket,
         LowerJacket,
@@ -64,8 +64,8 @@ namespace OpenMetaverse
         UpperUndershirt,
         LowerUnderpants,
         Skirt,
-        SkirtBaked,
-        HairBaked,
+        SkirtBaked, // pre-composited
+        HairBaked,  // pre-composited
         LowerAlpha,
         UpperAlpha,
         HeadAlpha,
@@ -74,6 +74,22 @@ namespace OpenMetaverse
         HeadTattoo,
         UpperTattoo,
         LowerTattoo,
+        HeadUniversalTattoo,
+        UpperUniversalTattoo,
+        LowerUniversalTattoo,
+        SkirtTattoo,
+        HairTattoo,
+        EyesTattoo,
+        LeftArmTattoo,
+        LeftLegTattoo,
+        Aux1Tattoo,
+        Aux2Tattoo,
+        Aux3Tattoo,
+        LeftArmBaked,   // pre-composited
+        LegLegBaked,    // pre-composited
+        Aux1Baked,  // pre-composited
+        Aux2Baked,  // pre-composited
+        Aux3Baked,  // pre-composited
         NumberOfEntries
     }
 
@@ -88,7 +104,12 @@ namespace OpenMetaverse
         LowerBody = 2,
         Eyes = 3,
         Skirt = 4,
-        Hair = 5
+        Hair = 5,
+        BakedLeftArm,
+        BakedLeftLeg,
+        BakedAux1,
+        BakedAux2,
+        BakedAux3
     }
 
     /// <summary>
@@ -106,8 +127,6 @@ namespace OpenMetaverse
     [Serializable]
     public class AppearanceManagerException : Exception
     {
-        public AppearanceManagerException() { }
-
         public AppearanceManagerException(string message)
         : base(message) { }
     }
@@ -1983,9 +2002,9 @@ namespace OpenMetaverse
             if (root == null) return COF;
             foreach (var baseItem in root)
             {
-                if (baseItem is InventoryFolder && ((InventoryFolder)baseItem).PreferredType == FolderType.CurrentOutfit)
+                if (baseItem is InventoryFolder folder && folder.PreferredType == FolderType.CurrentOutfit)
                 {
-                    COF = (InventoryFolder)baseItem;
+                    COF = folder;
                     break;
                 }
             }
@@ -2469,6 +2488,16 @@ namespace OpenMetaverse
                     return AvatarTextureIndex.SkirtBaked;
                 case BakeType.Hair:
                     return AvatarTextureIndex.HairBaked;
+                case BakeType.BakedLeftArm:
+                    return AvatarTextureIndex.LeftArmBaked;
+                case BakeType.BakedLeftLeg:
+                    return AvatarTextureIndex.LegLegBaked;
+                case BakeType.BakedAux1:
+                    return AvatarTextureIndex.Aux1Baked;
+                case BakeType.BakedAux2:
+                    return AvatarTextureIndex.Aux2Baked;
+                case BakeType.BakedAux3:
+                    return AvatarTextureIndex.Aux3Baked;
                 default:
                     return AvatarTextureIndex.Unknown;
             }
@@ -2500,6 +2529,16 @@ namespace OpenMetaverse
                     return AvatarTextureIndex.Skirt; // skirt
                 case BakeType.Hair:
                     return AvatarTextureIndex.Hair; // hair
+                case BakeType.BakedLeftArm:
+                    return AvatarTextureIndex.LeftArmTattoo;
+                case BakeType.BakedLeftLeg:
+                    return AvatarTextureIndex.LeftLegTattoo;
+                case BakeType.BakedAux1:
+                    return AvatarTextureIndex.Aux1Tattoo;
+                case BakeType.BakedAux2:
+                    return AvatarTextureIndex.Aux2Tattoo;
+                case BakeType.BakedAux3:
+                    return AvatarTextureIndex.Aux3Tattoo;
                 default:
                     return AvatarTextureIndex.Unknown;
             }

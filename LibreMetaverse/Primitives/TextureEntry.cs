@@ -632,7 +632,7 @@ namespace OpenMetaverse
         /// of nine faces</remarks>
         public class TextureEntry
         {
-            public const int MAX_FACES = 32;
+            public const int MAX_FACES = 45;
             public static readonly UUID WHITE_TEXTURE = new UUID("5748decc-f629-461c-9a36-a35a221fe21f");
 
             /// <summary></summary>

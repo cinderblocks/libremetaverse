@@ -329,6 +329,9 @@ namespace OpenMetaverse
         /// <summary>Physics</summary>
         [EnumInfo(Text = "Physics")]
         Physics,
+        /// <summary>Universal</summary>
+	[EnumInfo(Text = "Universal")]
+        Universal,
         /// <summary>Invalid wearable asset</summary>
         [EnumInfo(Text = "Invalid")]
         Invalid = 255
