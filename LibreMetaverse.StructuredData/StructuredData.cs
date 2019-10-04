@@ -34,7 +34,7 @@ using System.Text;
 
 namespace OpenMetaverse.StructuredData
 {
-    public enum OSDType
+    public enum OSDType : byte
     {
         Unknown,
         Boolean,
@@ -46,7 +46,8 @@ namespace OpenMetaverse.StructuredData
         URI,
         Binary,
         Map,
-        Array
+        Array,
+        LlsdXml
     }
 
     public enum OSDFormat
@@ -550,6 +551,27 @@ namespace OpenMetaverse.StructuredData
         // "r" ensures the dt will correctly round-trip back through Double.TryParse
         public override string AsString() { return _mReal.ToString("r", Utils.EnUsCulture); }
         public override byte[] AsBinary() { return Utils.DoubleToBytesBig(_mReal); }
+        public override string ToString() { return AsString(); }
+    }
+
+    /// <summary>
+    /// OSD LLSD-XML Element
+    /// </summary>
+    public sealed class OSDLlsdXml : OSD
+    {
+        public readonly string value;
+        public override OSDType Type => OSDType.LlsdXml;
+
+        public override OSD Copy() { return new OSDLlsdXml(value); }
+
+        public OSDLlsdXml(string value)
+        {
+            // Refuse to hold null pointers
+            this.value = value ?? string.Empty;
+        }
+
+        public override string AsString() { return value; }
+        public override byte[] AsBinary() { return Encoding.UTF8.GetBytes(value); }
         public override string ToString() { return AsString(); }
     }
 

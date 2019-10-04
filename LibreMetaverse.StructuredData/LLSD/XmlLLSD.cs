@@ -50,12 +50,14 @@ namespace OpenMetaverse.StructuredData
         /// <returns></returns>
         public static OSD DeserializeLLSDXml(byte[] xmlData)
         {
-            return DeserializeLLSDXml(new XmlTextReader(new MemoryStream(xmlData, false)));
+            using(XmlTextReader xrd =  new XmlTextReader(new MemoryStream(xmlData, false)))
+                return DeserializeLLSDXml(xrd);
         }
 
         public static OSD DeserializeLLSDXml(Stream xmlStream)
         {
-            return DeserializeLLSDXml(new XmlTextReader(xmlStream));
+            using(XmlTextReader xrd = new XmlTextReader(xmlStream))
+                return DeserializeLLSDXml(xrd);
         }
 
         /// <summary>
@@ -66,7 +68,8 @@ namespace OpenMetaverse.StructuredData
         public static OSD DeserializeLLSDXml(string xmlData)
         {
             byte[] bytes = Utils.StringToBytes(xmlData);
-            return DeserializeLLSDXml(new XmlTextReader(new MemoryStream(bytes, false)));
+            using(XmlTextReader xrd = new XmlTextReader(new MemoryStream(bytes, false)))
+                return DeserializeLLSDXml(xrd);
         }
 
         /// <summary>
@@ -110,16 +113,29 @@ namespace OpenMetaverse.StructuredData
         public static string SerializeLLSDXmlString(OSD data)
         {
             StringWriter sw = new StringWriter();
-            XmlTextWriter writer = new XmlTextWriter(sw);
-            writer.Formatting = Formatting.None;
+            using(XmlTextWriter writer = new XmlTextWriter(sw))
+            {
+                writer.Formatting = Formatting.None;
 
-            writer.WriteStartElement(String.Empty, "llsd", String.Empty);
-            SerializeLLSDXmlElement(writer, data);
-            writer.WriteEndElement();
+                writer.WriteStartElement(String.Empty, "llsd", String.Empty);
+                SerializeLLSDXmlElement(writer, data);
+                writer.WriteEndElement();
 
-            writer.Close();
+                return sw.ToString();
+            }
+        }
 
-            return sw.ToString();
+        public static string SerializeLLSDInnerXmlString(OSD data)
+        {
+            StringWriter sw = new StringWriter();
+            using (XmlTextWriter writer = new XmlTextWriter(sw))
+            {
+                writer.Formatting = Formatting.None;
+
+                SerializeLLSDXmlElement(writer, data);
+
+                return sw.ToString();
+            }
         }
 
         /// <summary>
@@ -194,11 +210,16 @@ namespace OpenMetaverse.StructuredData
                 case OSDType.Array:
                     OSDArray array = (OSDArray)data;
                     writer.WriteStartElement(String.Empty, "array", String.Empty);
-                    for (int i = 0; i < array.Count; i++)
+                    foreach (var element in array)
                     {
-                        SerializeLLSDXmlElement(writer, array[i]);
+                        SerializeLLSDXmlElement(writer, element);
                     }
                     writer.WriteEndElement();
+                    break;
+                case OSDType.LlsdXml:
+                    writer.WriteRaw(data.AsString());
+                    break;
+                default:
                     break;
             }
         }
@@ -223,27 +244,29 @@ namespace OpenMetaverse.StructuredData
                 readerSettings.Schemas.Add(XmlSchema);
                 readerSettings.ValidationEventHandler += new ValidationEventHandler(LLSDXmlSchemaValidationHandler);
 
-                XmlReader reader = XmlReader.Create(xmlData, readerSettings);
+                using(XmlReader reader = XmlReader.Create(xmlData, readerSettings))
+                {
 
-                try
-                {
-                    while (reader.Read()) { }
-                }
-                catch (XmlException)
-                {
-                    error = LastXmlErrors;
-                    return false;
-                }
+                    try
+                    {
+                        while (reader.Read()) { }
+                    }
+                    catch (XmlException)
+                    {
+                        error = LastXmlErrors;
+                        return false;
+                    }
 
-                if (LastXmlErrors == String.Empty)
-                {
-                    error = null;
-                    return true;
-                }
-                else
-                {
-                    error = LastXmlErrors;
-                    return false;
+                    if (LastXmlErrors == String.Empty)
+                    {
+                        error = null;
+                        return true;
+                    }
+                    else
+                    {
+                        error = LastXmlErrors;
+                        return false;
+                    }
                 }
             }
         }
