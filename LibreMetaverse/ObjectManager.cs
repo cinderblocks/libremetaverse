@@ -81,7 +81,9 @@ namespace OpenMetaverse
         /// <summary>Whether the object has a name value pairs string</summary>
         HasNameValues = 0x100,
         /// <summary>Whether the object has a Media URL set</summary>
-        MediaURL = 0x200
+        MediaURL = 0x200,
+        /// <summary>Whether the object has, you guessed it, new particles</summary>
+        HasParticlesNew = 0x400
     }
 
     /// <summary>
