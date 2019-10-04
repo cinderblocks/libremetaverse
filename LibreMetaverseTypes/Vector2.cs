@@ -284,17 +284,16 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="val">A string representation of a 2D vector, enclosed 
         /// in arrow brackets and separated by commas</param>
-        public static Vector3 Parse(string val)
+        public static Vector2 Parse(string val)
         {
             char[] splitChar = { ',' };
             string[] split = val.Replace("<", String.Empty).Replace(">", String.Empty).Split(splitChar);
-            return new Vector3(
+            return new Vector2(
                 float.Parse(split[0].Trim(), Utils.EnUsCulture),
-                float.Parse(split[1].Trim(), Utils.EnUsCulture),
-                float.Parse(split[2].Trim(), Utils.EnUsCulture));
+                float.Parse(split[1].Trim(), Utils.EnUsCulture));
         }
 
-        public static bool TryParse(string val, out Vector3 result)
+        public static bool TryParse(string val, out Vector2 result)
         {
             try
             {
@@ -303,7 +302,7 @@ namespace OpenMetaverse
             }
             catch (Exception)
             {
-                result = Vector3.Zero;
+                result = Vector2.Zero;
                 return false;
             }
         }
