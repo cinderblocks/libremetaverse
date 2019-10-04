@@ -1349,7 +1349,7 @@ namespace OpenMetaverse
 
                 Utils.FloatToBytes(Start).CopyTo(data, pos);
                 Utils.FloatToBytes(Length).CopyTo(data, pos + 4);
-                Utils.FloatToBytes(Rate).CopyTo(data, pos + 4);
+                Utils.FloatToBytes(Rate).CopyTo(data, pos + 8);
 
                 return data;
             }
