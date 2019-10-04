@@ -374,9 +374,9 @@ namespace OpenMetaverse
                 Color4 tmpColor = Color;
                 tmpColor.A = Intensity;
                 tmpColor.GetBytes().CopyTo(data, 0);
-                Utils.FloatToBytes(Radius).CopyTo(data, 4);
-                Utils.FloatToBytes(Cutoff).CopyTo(data, 8);
-                Utils.FloatToBytes(Falloff).CopyTo(data, 12);
+                Utils.FloatToBytes(Radius, data, 4);
+                Utils.FloatToBytes(Cutoff, data, 8);
+                Utils.FloatToBytes(Falloff, data, 12);
 
                 return data;
             }
