@@ -26,6 +26,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse
@@ -513,10 +514,7 @@ namespace OpenMetaverse
                 repeatV = 1.0f;
 
                 DefaultTexture = defaultTexture;
-                if (DefaultTexture == null)
-                    hasAttribute = TextureAttributes.All;
-                else
-                    hasAttribute = TextureAttributes.None;
+                hasAttribute = DefaultTexture == null ? TextureAttributes.All : TextureAttributes.None;
             }
 
             public OSD GetOSD(int faceNumber)
@@ -552,8 +550,7 @@ namespace OpenMetaverse
 
                 TextureEntryFace face = new TextureEntryFace(defaultFace);
                 faceNumber = (map.ContainsKey("face_number")) ? map["face_number"].AsInteger() : -1;
-                Color4 rgba = face.RGBA;
-                rgba = ((OSDArray)map["colors"]).AsColor4();
+                var rgba = ((OSDArray)map["colors"]).AsColor4();
                 face.RGBA = rgba;
                 face.RepeatU = (float)map["scales"].AsReal();
                 face.RepeatV = (float)map["scalet"].AsReal();
@@ -573,19 +570,21 @@ namespace OpenMetaverse
 
             public object Clone()
             {
-                TextureEntryFace ret = new TextureEntryFace(this.DefaultTexture == null ? null : (TextureEntryFace)this.DefaultTexture.Clone());
-                ret.rgba = rgba;
-                ret.repeatU = repeatU;
-                ret.repeatV = repeatV;
-                ret.offsetU = offsetU;
-                ret.offsetV = offsetV;
-                ret.rotation = rotation;
-                ret.glow = glow;
-                ret.materialb = materialb;
-                ret.mediab = mediab;
-                ret.hasAttribute = hasAttribute;
-                ret.textureID = textureID;
-                ret.materialID = materialID;
+                TextureEntryFace ret = new TextureEntryFace((TextureEntryFace) DefaultTexture?.Clone())
+                {
+                    rgba = rgba,
+                    repeatU = repeatU,
+                    repeatV = repeatV,
+                    offsetU = offsetU,
+                    offsetV = offsetV,
+                    rotation = rotation,
+                    glow = glow,
+                    materialb = materialb,
+                    mediab = mediab,
+                    hasAttribute = hasAttribute,
+                    textureID = textureID,
+                    materialID = materialID
+                };
                 return ret;
             }
 
@@ -646,8 +645,7 @@ namespace OpenMetaverse
             /// <param name="defaultTextureID">Texture UUID to use as the default texture</param>
             public TextureEntry(UUID defaultTextureID)
             {
-                DefaultTexture = new TextureEntryFace(null);
-                DefaultTexture.TextureID = defaultTextureID;
+                DefaultTexture = new TextureEntryFace(null) {TextureID = defaultTextureID};
             }
 
             /// <summary>
@@ -657,21 +655,23 @@ namespace OpenMetaverse
             /// <param name="defaultFace">Face to use as the default face</param>
             public TextureEntry(TextureEntryFace defaultFace)
             {
-                DefaultTexture = new TextureEntryFace(null);
-                DefaultTexture.Bump = defaultFace.Bump;
-                DefaultTexture.Fullbright = defaultFace.Fullbright;
-                DefaultTexture.MediaFlags = defaultFace.MediaFlags;
-                DefaultTexture.OffsetU = defaultFace.OffsetU;
-                DefaultTexture.OffsetV = defaultFace.OffsetV;
-                DefaultTexture.RepeatU = defaultFace.RepeatU;
-                DefaultTexture.RepeatV = defaultFace.RepeatV;
-                DefaultTexture.RGBA = defaultFace.RGBA;
-                DefaultTexture.Rotation = defaultFace.Rotation;
-                DefaultTexture.Glow = defaultFace.Glow;
-                DefaultTexture.Shiny = defaultFace.Shiny;
-                DefaultTexture.TexMapType = defaultFace.TexMapType;
-                DefaultTexture.TextureID = defaultFace.TextureID;
-                DefaultTexture.MaterialID = defaultFace.MaterialID;
+                DefaultTexture = new TextureEntryFace(null)
+                {
+                    Bump = defaultFace.Bump,
+                    Fullbright = defaultFace.Fullbright,
+                    MediaFlags = defaultFace.MediaFlags,
+                    OffsetU = defaultFace.OffsetU,
+                    OffsetV = defaultFace.OffsetV,
+                    RepeatU = defaultFace.RepeatU,
+                    RepeatV = defaultFace.RepeatV,
+                    RGBA = defaultFace.RGBA,
+                    Rotation = defaultFace.Rotation,
+                    Glow = defaultFace.Glow,
+                    Shiny = defaultFace.Shiny,
+                    TexMapType = defaultFace.TexMapType,
+                    TextureID = defaultFace.TextureID,
+                    MaterialID = defaultFace.MaterialID
+                };
             }
 
             /// <summary>
@@ -699,10 +699,7 @@ namespace OpenMetaverse
             {
                 if (index >= MAX_FACES) throw new Exception(index + " is outside the range of MAX_FACES");
 
-                if (FaceTextures[index] == null)
-                    FaceTextures[index] = new TextureEntryFace(this.DefaultTexture);
-
-                return FaceTextures[index];
+                return FaceTextures[index] ?? (FaceTextures[index] = new TextureEntryFace(this.DefaultTexture));
             }
 
             /// <summary>
@@ -714,10 +711,7 @@ namespace OpenMetaverse
             {
                 if (index >= MAX_FACES) throw new Exception(index + " is outside the range of MAX_FACES");
 
-                if (FaceTextures[index] != null)
-                    return FaceTextures[index];
-                else
-                    return DefaultTexture;
+                return FaceTextures[index] ?? DefaultTexture;
             }
 
             /// <summary>
@@ -964,8 +958,7 @@ namespace OpenMetaverse
             /// <returns></returns>
             public byte[] GetBytes()
             {
-                if (DefaultTexture == null)
-                    return Utils.EmptyBytes;
+                if (DefaultTexture == null) { return Utils.EmptyBytes; }
 
                 using (MemoryStream memStream = new MemoryStream())
                 {
@@ -1211,12 +1204,8 @@ namespace OpenMetaverse
             public override int GetHashCode()
             {
                 int hashCode = DefaultTexture != null ? DefaultTexture.GetHashCode() : 0;
-                for (int i = 0; i < FaceTextures.Length; i++)
-                {
-                    if (FaceTextures[i] != null)
-                        hashCode ^= FaceTextures[i].GetHashCode();
-                }
-                return hashCode;
+                return FaceTextures.Where(texture => texture != null)
+                        .Aggregate(hashCode, (current, texture) => current ^ texture.GetHashCode());
             }
 
             /// <summary>
@@ -1225,14 +1214,14 @@ namespace OpenMetaverse
             /// <returns></returns>
             public override string ToString()
             {
-                string output = String.Empty;
+                string output = string.Empty;
 
-                output += "Default Face: " + DefaultTexture.ToString() + Environment.NewLine;
+                output += "Default Face: " + DefaultTexture + Environment.NewLine;
 
                 for (int i = 0; i < FaceTextures.Length; i++)
                 {
                     if (FaceTextures[i] != null)
-                        output += "Face " + i + ": " + FaceTextures[i].ToString() + Environment.NewLine;
+                        output += "Face " + i + ": " + FaceTextures[i] + Environment.NewLine;
                 }
 
                 return output;
@@ -1243,7 +1232,7 @@ namespace OpenMetaverse
             private void InitializeArray(ref uint[] array)
             {
                 for (int i = 0; i < array.Length; i++)
-                    array[i] = UInt32.MaxValue;
+                    array[i] = uint.MaxValue;
             }
 
             private bool ReadFaceBitfield(byte[] data, ref int pos, ref uint faceBits, ref uint bitfieldSize)
@@ -1383,9 +1372,8 @@ namespace OpenMetaverse
             public static TextureAnimation FromOSD(OSD osd)
             {
                 TextureAnimation anim = new TextureAnimation();
-                OSDMap map = osd as OSDMap;
 
-                if (map != null)
+                if (osd is OSDMap map)
                 {
                     anim.Face = map["face"].AsUInteger();
                     anim.Flags = (TextureAnimMode)map["flags"].AsUInteger();
