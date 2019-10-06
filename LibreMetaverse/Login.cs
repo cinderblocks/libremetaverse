@@ -27,9 +27,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing.Text;
 using System.Threading;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Security.Cryptography;
+using System.Text;
+using LinkDotNet.NUniqueHardwareID;
 using Nwc.XmlRpc;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Http;
@@ -175,9 +179,9 @@ namespace OpenMetaverse
             Start = "last";
             Platform = NetworkManager.GetPlatform();
             PlatformVersion = NetworkManager.GetPlatformVersion();
-            MAC = NetworkManager.GetMAC();
-            ViewerDigest = String.Empty;
-            ID0 = NetworkManager.GetMAC();
+            MAC = NetworkManager.GetHashedMAC();
+            ViewerDigest = string.Empty;
+            ID0 = NetworkManager.GetUniqueId();
             AgreeToTos = true;
             ReadCritical = true;
             LastExecEvent = LastExecStatus.Normal;
@@ -190,7 +194,7 @@ namespace OpenMetaverse
         /// <param name="firstName">Login first name</param>
         /// <param name="lastName">Login last name</param>
         /// <param name="password">Password</param>
-        /// <param name="channel">Login channnel (application name)</param>
+        /// <param name="channel">Login channel (application name)</param>
         /// <param name="version">Client version, should be application name + version number</param>
         public LoginParams(GridClient client, string firstName, string lastName, string password, string channel, string version)
             : this()
@@ -1607,9 +1611,10 @@ namespace OpenMetaverse
 
             try
             {
-                System.Net.NetworkInformation.NetworkInterface[] nics = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces();
+                System.Net.NetworkInformation.NetworkInterface[] nics =
+                    System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces();
 
-                if (nics != null && nics.Length > 0)
+                if (nics.Length > 0)
                 {
                     foreach (NetworkInterface t in nics)
                     {
@@ -1617,7 +1622,7 @@ namespace OpenMetaverse
                         if (adapterMac.Length == 12 && adapterMac != "000000000000")
                         {
                             mac = adapterMac;
-                            continue;
+                            break;
                         }
                     }
                 }
@@ -1634,6 +1639,57 @@ namespace OpenMetaverse
                 mac.Substring(6, 2),
                 mac.Substring(8, 2),
                 mac.Substring(10, 2));
+        }
+
+        /// <summary>
+        /// MD5 hash of string
+        /// </summary>
+        /// <param name="str">String to hash</param>
+        /// <returns>Hashed string</returns>
+        private static string HashString(string str)
+        {
+            MD5 sec = new MD5CryptoServiceProvider();
+            ASCIIEncoding enc = new ASCIIEncoding();
+            byte[] buf = enc.GetBytes(str);
+            return GetHexString(sec.ComputeHash(buf));
+        }
+
+        private static string GetHexString(byte[] buf)
+        {
+            string str = string.Empty;
+
+            foreach (var b in buf)
+            {
+                var n = (int) b;
+                var n1 = n & 15;
+                var n2 = (n >> 4) & 15;
+                if (n2 > 9)
+                    str += ((char) (n2 - 10 + 'A')).ToString();
+                else
+                    str += ((char) (n1 - 10 + 'A')).ToString();
+                if (n1 > 9)
+                    str += ((char) (n1 - 10 + 'A')).ToString();
+                else
+                    str += n1.ToString();
+            }
+
+            return str;
+        }
+
+        public static string GetHashedMAC()
+        {
+            return HashString(GetMAC());
+        }
+
+        public static string GetUniqueId()
+        {
+            var hardwareIdGenerator = new UniqueHardwareId
+            {
+                UseCPUInformation = true,
+                UseMACAddress = true,
+                UseVolumeInformation = true
+            };
+            return hardwareIdGenerator.CalculateHardwareId();
         }
 
         #endregion
