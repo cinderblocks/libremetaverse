@@ -2347,6 +2347,8 @@ namespace OpenMetaverse
 
         #region Touch and grab
 
+        public static readonly Vector3 TOUCH_INVALID_TEXCOORD = new Vector3(-1.0f, -1.0f, 1.0f);
+
         /// <summary>
         /// Grabs an object
         /// </summary>
@@ -2354,7 +2356,8 @@ namespace OpenMetaverse
         /// <seealso cref="Simulator.ObjectsPrimitives"/>
         public void Grab(uint objectLocalID)
         {
-            Grab(objectLocalID, Vector3.Zero, Vector3.Zero, Vector3.Zero, 0, Vector3.Zero, Vector3.Zero, Vector3.Zero);
+            Grab(objectLocalID, Vector3.Zero, TOUCH_INVALID_TEXCOORD, TOUCH_INVALID_TEXCOORD, 
+                0, Vector3.Zero, Vector3.Zero, Vector3.Zero);
         }
 
         /// <summary>
@@ -2366,11 +2369,11 @@ namespace OpenMetaverse
         /// <param name="stCoord">The surface coordinates to grab</param>
         /// <param name="faceIndex">The face of the position to grab</param>
         /// <param name="position">The region coordinates of the position to grab</param>
-        /// <param name="normal">The surface normal of the position to grab (A normal is a vector perpindicular to the surface)</param>
-        /// <param name="binormal">The surface binormal of the position to grab (A binormal is a vector tangen to the surface
+        /// <param name="normal">The surface normal of the position to grab (A normal is a vector perpendicular to the surface)</param>
+        /// <param name="binormal">The surface bi-normal of the position to grab (A bi-normal is a vector tangent to the surface
         /// pointing along the U direction of the tangent space</param>
-        public void Grab(uint objectLocalID, Vector3 grabOffset, Vector3 uvCoord, Vector3 stCoord, int faceIndex, Vector3 position,
-            Vector3 normal, Vector3 binormal)
+        public void Grab(uint objectLocalID, Vector3 grabOffset, Vector3 uvCoord, Vector3 stCoord, 
+            int faceIndex, Vector3 position, Vector3 normal, Vector3 binormal)
         {
             ObjectGrabPacket grab = new ObjectGrabPacket
             {
@@ -2407,7 +2410,8 @@ namespace OpenMetaverse
         /// <param name="grabPosition">Drag target in region coordinates</param>
         public void GrabUpdate(UUID objectID, Vector3 grabPosition)
         {
-            GrabUpdate(objectID, grabPosition, Vector3.Zero, Vector3.Zero, Vector3.Zero, 0, Vector3.Zero, Vector3.Zero, Vector3.Zero);
+            GrabUpdate(objectID, grabPosition, Vector3.Zero, Vector3.Zero, Vector3.Zero, 
+                0, Vector3.Zero, Vector3.Zero, Vector3.Zero);
         }
 
         /// <summary>
@@ -2420,11 +2424,11 @@ namespace OpenMetaverse
         /// <param name="stCoord">The surface coordinates to grab</param>
         /// <param name="faceIndex">The face of the position to grab</param>
         /// <param name="position">The region coordinates of the position to grab</param>
-        /// <param name="normal">The surface normal of the position to grab (A normal is a vector perpindicular to the surface)</param>
-        /// <param name="binormal">The surface binormal of the position to grab (A binormal is a vector tangen to the surface
+        /// <param name="normal">The surface normal of the position to grab (A normal is a vector perpendicular to the surface)</param>
+        /// <param name="binormal">The surface bi-normal of the position to grab (A bi-normal is a vector tangent to the surface
         /// pointing along the U direction of the tangent space</param>
-        public void GrabUpdate(UUID objectID, Vector3 grabPosition, Vector3 grabOffset, Vector3 uvCoord, Vector3 stCoord, int faceIndex, Vector3 position,
-            Vector3 normal, Vector3 binormal)
+        public void GrabUpdate(UUID objectID, Vector3 grabPosition, Vector3 grabOffset, Vector3 uvCoord, Vector3 stCoord, 
+            int faceIndex, Vector3 position, Vector3 normal, Vector3 binormal)
         {
             ObjectGrabUpdatePacket grab = new ObjectGrabUpdatePacket
             {
@@ -2465,7 +2469,8 @@ namespace OpenMetaverse
         /// <seealso cref="GrabUpdate"/>
         public void DeGrab(uint objectLocalID)
         {
-            DeGrab(objectLocalID, Vector3.Zero, Vector3.Zero, 0, Vector3.Zero, Vector3.Zero, Vector3.Zero);
+            DeGrab(objectLocalID, TOUCH_INVALID_TEXCOORD, TOUCH_INVALID_TEXCOORD, 
+                0, Vector3.Zero, Vector3.Zero, Vector3.Zero);
         }
 
         /// <summary>
@@ -2476,11 +2481,11 @@ namespace OpenMetaverse
         /// <param name="stCoord">The surface coordinates to grab</param>
         /// <param name="faceIndex">The face of the position to grab</param>
         /// <param name="position">The region coordinates of the position to grab</param>
-        /// <param name="normal">The surface normal of the position to grab (A normal is a vector perpindicular to the surface)</param>
-        /// <param name="binormal">The surface binormal of the position to grab (A binormal is a vector tangen to the surface
+        /// <param name="normal">The surface normal of the position to grab (A normal is a vector perpendicular to the surface)</param>
+        /// <param name="binormal">The surface bi-normal of the position to grab (A bi-normal is a vector tangent to the surface
         /// pointing along the U direction of the tangent space</param>
-        public void DeGrab(uint objectLocalID, Vector3 uvCoord, Vector3 stCoord, int faceIndex, Vector3 position,
-            Vector3 normal, Vector3 binormal)
+        public void DeGrab(uint objectLocalID, Vector3 uvCoord, Vector3 stCoord, 
+            int faceIndex, Vector3 position, Vector3 normal, Vector3 binormal)
         {
             ObjectDeGrabPacket degrab = new ObjectDeGrabPacket
             {
@@ -3548,7 +3553,7 @@ namespace OpenMetaverse
         /// Create or update profile Classified
         /// </summary>
         /// <param name="classifiedID">UUID of the classified to update, or random UUID to create a new classified</param>
-        /// <param name="category">Defines what catagory the classified is in</param>
+        /// <param name="category">Defines what category the classified is in</param>
         /// <param name="snapshotID">UUID of the image displayed with the classified</param>
         /// <param name="price">Price that the classified will cost to place for a week</param>
         /// <param name="position">Global position of the classified landmark</param>
@@ -3587,7 +3592,7 @@ namespace OpenMetaverse
         /// Create or update profile Classified
         /// </summary>
         /// <param name="classifiedID">UUID of the classified to update, or random UUID to create a new classified</param>
-        /// <param name="category">Defines what catagory the classified is in</param>
+        /// <param name="category">Defines what category the classified is in</param>
         /// <param name="snapshotID">UUID of the image displayed with the classified</param>
         /// <param name="price">Price that the classified will cost to place for a week</param>
         /// <param name="name">Name of the classified</param>
@@ -3656,7 +3661,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Initates request to set a new display name
+        /// Initiates request to set a new display name
         /// </summary>
         /// <param name="oldName">Previous display name</param>
         /// <param name="newName">Desired new display name</param>
@@ -4079,9 +4084,9 @@ namespace OpenMetaverse
 
         protected void AgentStateUpdateEventHandler(string capsKey, IMessage message, Simulator simulator)
         {
-            if (message is AgentStateUpdateMessage)
+            if (message is AgentStateUpdateMessage updateMessage)
             {
-                AgentStateStatus = (AgentStateUpdateMessage)message;
+                AgentStateStatus = updateMessage;
             }
         }
 
