@@ -204,7 +204,6 @@ namespace OpenMetaverse
         internal ManualResetEvent HeaderReceivedEvent = new ManualResetEvent(false);
 
         public AssetDownload()
-            : base()
         {
             nextPacket = 0;
             outOfOrderPackets = new InternalDictionary<int, byte[]>();

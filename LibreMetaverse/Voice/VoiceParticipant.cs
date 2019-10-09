@@ -65,11 +65,9 @@ namespace OpenMetaverse.Voice
         {
             // The "name" may actually be a SIP URI such as: "sip:xFnPP04IpREWNkuw1cOXlhw==@bhr.vivox.com"
             // If it is, convert to a bare name before doing the transform.
-            string name = nameFromsipURI(inName);
+            string name = nameFromsipURI(inName) ?? inName;
 
             // Doesn't look like a SIP URI, assume it's an actual name.
-            if (name == null)
-                name = inName;
 
             // This will only work if the name is of the proper form.
             // As an example, the account name for Monroe Linden (UUID 1673cfd3-8229-4445-8d92-ec3570e5e587) is:

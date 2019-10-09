@@ -875,7 +875,7 @@ namespace OpenMetaverse
             catch (Exception ex)
             {
                 Logger.Log($"Failed to fetch inventory descendants: {ex.Message}\n" +
-                           $"{ex.StackTrace.ToString()}",
+                           $"{ex.StackTrace}",
                            Helpers.LogLevel.Warning, Client);
                 foreach (var f in batch)
                 {
@@ -4052,7 +4052,7 @@ namespace OpenMetaverse
 
                 Logger.Log(
                     $"MoveInventoryItemHandler: Item {data.ItemID.ToString()} is moving to Folder {data.FolderID.ToString()} with new name \"{newName}\"." +
-                    $" Someone write this function!", 
+                    " Someone write this function!", 
                     Helpers.LogLevel.Warning, Client);
             }
         }

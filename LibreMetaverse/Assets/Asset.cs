@@ -58,14 +58,14 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Construct a new Asset object
         /// </summary>
-        public Asset() { }
+        protected Asset() { }
 
         /// <summary>
         /// Construct a new Asset object
         /// </summary>
         /// <param name="assetID">A unique <see cref="UUID"/> specific to this asset</param>
         /// <param name="assetData">A byte array containing the raw asset data</param>
-        public Asset(UUID assetID, byte[] assetData)
+        protected Asset(UUID assetID, byte[] assetData)
         {
             _AssetID = assetID;
             AssetData = assetData;

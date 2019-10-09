@@ -25,7 +25,7 @@ namespace OpenMetaverse
         /// Constructor, takes an itemID as a parameter
         /// </summary>
         /// <param name="itemID">The <seealso cref="OpenMetaverse.UUID"/> of the item</param>
-        public InventoryBase(UUID itemID)
+        protected InventoryBase(UUID itemID)
         {
             if (itemID == UUID.Zero)
                 Logger.Log("Initializing an InventoryBase with UUID.Zero", Helpers.LogLevel.Warning);

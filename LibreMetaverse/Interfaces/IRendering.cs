@@ -36,7 +36,6 @@ namespace OpenMetaverse.Rendering
         private string _name;
 
         public RendererNameAttribute(string name)
-            : base()
         {
             _name = name;
         }

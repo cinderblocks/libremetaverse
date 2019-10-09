@@ -149,7 +149,7 @@ namespace OpenMetaverse
                     try { callback.Callback(this, new PacketReceivedEventArgs(packet, simulator)); }
                     catch (Exception ex)
                     {
-                        Logger.Log("Default packet event handler: " + ex.ToString(), Helpers.LogLevel.Error, Client);
+                        Logger.Log("Default packet event handler: " + ex, Helpers.LogLevel.Error, Client);
                     }
                 }
             }
@@ -169,7 +169,7 @@ namespace OpenMetaverse
                     try { callback.Callback(this, new PacketReceivedEventArgs(packet, simulator)); }
                     catch (Exception ex)
                     {
-                        Logger.Log("Packet event handler: " + ex.ToString(), Helpers.LogLevel.Error, Client);
+                        Logger.Log("Packet event handler: " + ex, Helpers.LogLevel.Error, Client);
                     }
                 }
 
@@ -192,7 +192,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log("Async Packet Event Handler: " + ex.ToString(), Helpers.LogLevel.Error, Client);
+                Logger.Log("Async Packet Event Handler: " + ex, Helpers.LogLevel.Error, Client);
             }
         }
     }
@@ -288,7 +288,7 @@ namespace OpenMetaverse
                 if (callback != null)
                 {
                     try { callback(capsEvent, message, simulator); }
-                    catch (Exception ex) { Logger.Log("CAPS Event Handler: " + ex.ToString(), Helpers.LogLevel.Error, Client); }
+                    catch (Exception ex) { Logger.Log("CAPS Event Handler: " + ex, Helpers.LogLevel.Error, Client); }
                 }
             }
 
@@ -296,7 +296,7 @@ namespace OpenMetaverse
             if (_EventTable.TryGetValue(capsEvent, out callback) && callback != null)
             {
                 try { callback(capsEvent, message, simulator); }
-                catch (Exception ex) { Logger.Log("CAPS Event Handler: " + ex.ToString(), Helpers.LogLevel.Error, Client); }
+                catch (Exception ex) { Logger.Log("CAPS Event Handler: " + ex, Helpers.LogLevel.Error, Client); }
 
                 specialHandler = true;
             }
@@ -361,7 +361,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log("Async CAPS Event Handler: " + ex.ToString(), Helpers.LogLevel.Error, Client);
+                Logger.Log("Async CAPS Event Handler: " + ex, Helpers.LogLevel.Error, Client);
             }
         }
     }

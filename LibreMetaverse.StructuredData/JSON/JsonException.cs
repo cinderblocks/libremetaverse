@@ -17,7 +17,7 @@ namespace LitJson
     [Serializable]
     public class JsonException : ApplicationException
     {
-        public JsonException () : base ()
+        public JsonException ()
         {
         }
 

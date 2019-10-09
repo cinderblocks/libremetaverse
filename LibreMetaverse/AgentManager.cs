@@ -4108,7 +4108,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("Got EstablishAgentCommunication for " + sim.ToString(),
+                Logger.Log("Got EstablishAgentCommunication for " + sim,
                     Helpers.LogLevel.Info, Client);
 
                 sim.SetSeedCaps(msg.SeedCapability.ToString());

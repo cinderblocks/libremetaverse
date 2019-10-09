@@ -366,7 +366,7 @@ namespace OpenMetaverse
             foreach (byte b in hash)
                 digest.AppendFormat(Utils.EnUsCulture, "{0:x2}", b);
 
-            return "$1$" + digest.ToString();
+            return "$1$" + digest;
         }
 
         /// <summary>

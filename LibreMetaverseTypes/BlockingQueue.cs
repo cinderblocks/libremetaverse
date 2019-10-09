@@ -65,7 +65,6 @@ namespace OpenMetaverse
         /// Create new BlockingQueue.
         /// </summary>
         public BlockingQueue()
-            : base()
         {
             _syncRoot = new object();
             _open = true;

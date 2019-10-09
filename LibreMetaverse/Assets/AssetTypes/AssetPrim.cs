@@ -75,10 +75,7 @@ namespace OpenMetaverse.Assets
         public AssetPrim(PrimObject parent, List<PrimObject> children)
         {
             Parent = parent;
-            if (children != null)
-                Children = children;
-            else
-                Children = new List<PrimObject>(0);
+            Children = children ?? new List<PrimObject>(0);
         }
 
         /// <summary>

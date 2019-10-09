@@ -344,7 +344,7 @@ namespace OpenMetaverse
                         incomingPacket.Simulator = Simulator;
                         incomingPacket.Packet = packet;
 
-                        Logger.DebugLog($"Serializing " + packet.Type + " capability with generic handler", 
+                        Logger.DebugLog("Serializing " + packet.Type + " capability with generic handler", 
                             Simulator.Client);
 
                         Simulator.Client.Network.PacketInbox.Enqueue(incomingPacket);

@@ -1635,7 +1635,7 @@ namespace OpenMetaverse
                 ret = Client.Network.CurrentSim.Caps.CapabilityURI("GroupAPIv1");
                 if (ret != null)
                 {
-                    ret = new Uri($"{ret.ToString()}?group_id={groupID.ToString()}");
+                    ret = new Uri($"{ret}?group_id={groupID.ToString()}");
                 }
             }
 

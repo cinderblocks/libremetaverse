@@ -4442,7 +4442,7 @@ namespace OpenMetaverse.Messages.Linden
             {
                 Objects = new Object[array.Count];
 
-                for (int i = 0; i < array.Count; i++)
+                for (int i = 0; i < array.Count; ++i)
                 {
                     Object obj = new Object();
                     OSDMap objMap = array[i] as OSDMap;

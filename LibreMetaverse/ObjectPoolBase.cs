@@ -194,7 +194,7 @@ namespace OpenMetaverse
                     for (int i = _activeSegment; i > 0; i--)
                     {
                         ObjectPoolSegment<T> segment;
-                        if (_segments.TryGetValue(i, out segment) == true)
+                        if (_segments.TryGetValue(i, out segment))
                         {
                             // For the "old" segments that were allocated at startup, this will
                             // always be false, as their expiration dates are set at infinity. 
@@ -287,7 +287,7 @@ namespace OpenMetaverse
                 for (int i = 0; i < _activeSegment; i++)
                 {
                     ObjectPoolSegment<T> segment;
-                    if (_segments.TryGetValue(i, out segment) == true)
+                    if (_segments.TryGetValue(i, out segment))
                     {
                         if (segment.AvailableItems > 0)
                         {

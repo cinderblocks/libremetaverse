@@ -125,6 +125,7 @@ namespace OpenMetaverse
     /// <summary>
     /// Access level for a simulator
     /// </summary>
+    [Flags]
     public enum SimAccess : byte
     {
         /// <summary>Unknown or invalid access level</summary>

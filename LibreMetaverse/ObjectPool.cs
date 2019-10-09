@@ -107,7 +107,6 @@ namespace OpenMetaverse
         /// <param name="itemsPerSegment"></param>
         /// <param name="minSegments"></param>
         public PacketBufferPool(IPEndPoint endPoint, int itemsPerSegment, int minSegments)
-            : base()
         {
             _endPoint = endPoint;
             Initialize(itemsPerSegment, minSegments, true, 1000 * 60 * 5);

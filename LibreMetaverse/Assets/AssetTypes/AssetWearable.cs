@@ -64,12 +64,12 @@ namespace OpenMetaverse.Assets
         public Dictionary<AvatarTextureIndex, UUID> Textures = new Dictionary<AvatarTextureIndex, UUID>();
 
         /// <summary>Initializes a new instance of an AssetWearable object</summary>
-        public AssetWearable() { }
+        protected AssetWearable() { }
 
         /// <summary>Initializes a new instance of an AssetWearable object with parameters</summary>
         /// <param name="assetID">A unique <see cref="UUID"/> specific to this asset</param>
         /// <param name="assetData">A byte array containing the raw asset data</param>
-        public AssetWearable(UUID assetID, byte[] assetData) : base(assetID, assetData) { }
+        protected AssetWearable(UUID assetID, byte[] assetData) : base(assetID, assetData) { }
 
         /// <summary>
         /// Decode an assets byte encoded data to a string

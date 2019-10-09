@@ -827,7 +827,7 @@ namespace OpenMetaverse.Packets
 
                     for (int i = 0; i < lines.Length; i++)
                     {
-                        if (!String.IsNullOrEmpty(lines[i]))
+                        if (!string.IsNullOrEmpty(lines[i]))
                         {
                             NameValue nv = new NameValue(lines[i]);
                             nameValues[i] = nv;

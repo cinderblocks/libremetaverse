@@ -1743,7 +1743,7 @@ namespace OpenMetaverse
         /// <remarks>Raises the <see cref="ParcelDwellReply"/> event</remarks>
         protected void ParcelDwellReplyHandler(object sender, PacketReceivedEventArgs e)
         {            
-            if (m_DwellReply != null || Client.Settings.ALWAYS_REQUEST_PARCEL_DWELL == true)
+            if (m_DwellReply != null || Client.Settings.ALWAYS_REQUEST_PARCEL_DWELL)
             {
                 Packet packet = e.Packet;
                 Simulator simulator = e.Simulator;
@@ -1789,7 +1789,7 @@ namespace OpenMetaverse
                 GlobalY = info.Data.GlobalY,
                 GlobalZ = info.Data.GlobalZ,
                 ID = info.Data.ParcelID,
-                Mature = ((info.Data.Flags & 1) != 0) ? true : false,
+                Mature = ((info.Data.Flags & 1) != 0),
                 Name = Utils.BytesToString(info.Data.Name),
                 OwnerID = info.Data.OwnerID,
                 SalePrice = info.Data.SalePrice,
@@ -1929,7 +1929,7 @@ namespace OpenMetaverse
         /// <remarks>Raises the <see cref="ParcelAccessListReply"/> event</remarks>
         protected void ParcelAccessListReplyHandler(object sender, PacketReceivedEventArgs e)
         {
-            if (m_ParcelACL != null || Client.Settings.ALWAYS_REQUEST_PARCEL_ACL == true)
+            if (m_ParcelACL != null || Client.Settings.ALWAYS_REQUEST_PARCEL_ACL)
             {
                 Packet packet = e.Packet;
                 Simulator simulator = e.Simulator;
@@ -2031,11 +2031,11 @@ namespace OpenMetaverse
             ParcelMediaUpdatePacket reply = (ParcelMediaUpdatePacket)packet;
             ParcelMedia media = new ParcelMedia
             {
-                MediaAutoScale = (reply.DataBlock.MediaAutoScale == (byte) 0x1) ? true : false,
+                MediaAutoScale = (reply.DataBlock.MediaAutoScale == (byte) 0x1),
                 MediaID = reply.DataBlock.MediaID,
                 MediaDesc = Utils.BytesToString(reply.DataBlockExtended.MediaDesc),
                 MediaHeight = reply.DataBlockExtended.MediaHeight,
-                MediaLoop = ((reply.DataBlockExtended.MediaLoop & 1) != 0) ? true : false,
+                MediaLoop = ((reply.DataBlockExtended.MediaLoop & 1) != 0),
                 MediaType = Utils.BytesToString(reply.DataBlockExtended.MediaType),
                 MediaWidth = reply.DataBlockExtended.MediaWidth,
                 MediaURL = Utils.BytesToString(reply.DataBlock.MediaURL)
@@ -2073,7 +2073,7 @@ namespace OpenMetaverse
             else
             {
                 Logger.Log("Parcel overlay with sequence ID of " + overlay.ParcelData.SequenceID +
-                    " received from " + simulator.ToString(), Helpers.LogLevel.Warning, Client);
+                    " received from " + simulator, Helpers.LogLevel.Warning, Client);
             }
         }
 

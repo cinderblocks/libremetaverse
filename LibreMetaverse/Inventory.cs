@@ -38,7 +38,7 @@ namespace OpenMetaverse
     [Serializable]
     public class InventoryException : Exception
     {
-        public InventoryException() : base() { }
+        public InventoryException() { }
         public InventoryException(string message) : base(message) { }
         protected InventoryException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
         public InventoryException(string message, Exception innerException) : base(message, innerException) { }

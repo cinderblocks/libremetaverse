@@ -42,7 +42,7 @@ namespace OpenMetaverse.Rendering
     {
         const string MeshHeader = "Linden Binary Mesh 1.0";
         const string MorphFooter = "End Morphs";
-        public LindenSkeleton Skeleton { get; private set; }    //!< The skeleton used to animate this mesh
+        public LindenSkeleton Skeleton { get; }    //!< The skeleton used to animate this mesh
 
         #region Mesh Structs
 

@@ -223,7 +223,7 @@ namespace OpenMetaverse
                 {
                     string newLine = (i < values.Length - 1) ? "\n" : String.Empty;
                     output.AppendFormat("{0} {1} {2} {3} {4}{5}", value.Name, TypeStrings[(int)value.Type],
-                        ClassStrings[(int)value.Class], SendtoStrings[(int)value.Sendto], value.Value.ToString(), newLine);
+                        ClassStrings[(int)value.Class], SendtoStrings[(int)value.Sendto], value.Value, newLine);
                 }
             }
 

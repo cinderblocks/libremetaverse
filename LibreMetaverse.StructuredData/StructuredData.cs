@@ -65,7 +65,7 @@ namespace OpenMetaverse.StructuredData
     public class OSDException : Exception
     {
         public OSDException(string message) : base(message) { }
-        public OSDException() : base() { }
+        public OSDException() { }
         public OSDException(string message, Exception innerException) : base(message, innerException) { }
         protected OSDException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) : base(info, context) { }     
     }

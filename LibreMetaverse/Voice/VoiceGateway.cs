@@ -99,10 +99,7 @@ namespace OpenMetaverse.Voice
 
                     Logger.DebugLog("Voice folder: " + daemonProcess.StartInfo.WorkingDirectory);
                     Logger.DebugLog(path + " " + args);
-                    bool ok = true;
-
-                    if (!File.Exists(path))
-                        ok = false;
+                    bool ok = File.Exists(path);
 
                     if (ok)
                     {
@@ -249,7 +246,7 @@ namespace OpenMetaverse.Voice
                 sb.Append("\n\n\n");
 
 #if DEBUG
-                Logger.Log("Request: " + sb.ToString(), Helpers.LogLevel.Debug);
+                Logger.Log("Request: " + sb, Helpers.LogLevel.Debug);
 #endif
                 try
                 {

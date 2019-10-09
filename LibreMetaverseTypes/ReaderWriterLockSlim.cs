@@ -50,7 +50,6 @@ namespace OpenMetaverse
     public class LockRecursionException : Exception
     {
         public LockRecursionException()
-            : base()
         {
         }
 
@@ -419,36 +418,21 @@ namespace OpenMetaverse
             {
                 EnterMyLock();
                 LockDetails ld = GetReadLockDetails(Thread.CurrentThread.ManagedThreadId, false);
-                int count = ld == null ? 0 : ld.ReadLocks;
+                int count = ld?.ReadLocks ?? 0;
                 ExitMyLock();
                 return count;
             }
         }
 
-        public int RecursiveUpgradeCount
-        {
-            get { return upgradable_thread == Thread.CurrentThread ? 1 : 0; }
-        }
+        public int RecursiveUpgradeCount => upgradable_thread == Thread.CurrentThread ? 1 : 0;
 
-        public int RecursiveWriteCount
-        {
-            get { return write_thread == Thread.CurrentThread ? 1 : 0; }
-        }
+        public int RecursiveWriteCount => write_thread == Thread.CurrentThread ? 1 : 0;
 
-        public int WaitingReadCount
-        {
-            get { return (int)numReadWaiters; }
-        }
+        public int WaitingReadCount => (int)numReadWaiters;
 
-        public int WaitingUpgradeCount
-        {
-            get { return (int)numUpgradeWaiters; }
-        }
+        public int WaitingUpgradeCount => (int)numUpgradeWaiters;
 
-        public int WaitingWriteCount
-        {
-            get { return (int)numWriteWaiters; }
-        }
+        public int WaitingWriteCount => (int)numWriteWaiters;
 
         #region Private methods
         void EnterMyLock()
@@ -478,7 +462,7 @@ namespace OpenMetaverse
             myLock = 0;
         }
 
-        bool MyLockHeld { get { return myLock != 0; } }
+        bool MyLockHeld => myLock != 0;
 
         /// <summary>
         /// Determines the appropriate events to set, leaves the locks, and sets the events. 
@@ -496,7 +480,7 @@ namespace OpenMetaverse
                 upgradeEvent.Set();
                 //
                 // TODO: What does the following comment mean?
-                // two threads upgrading is a guarenteed deadlock, so we throw in that case. 
+                // two threads upgrading is a guaranteed deadlock, so we throw in that case. 
             }
             else if (owners == 0 && numWriteWaiters > 0)
             {

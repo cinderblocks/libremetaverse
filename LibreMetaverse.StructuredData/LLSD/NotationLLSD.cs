@@ -290,7 +290,7 @@ namespace OpenMetaverse.StructuredData
             }
             int integer;
             if (!Int32.TryParse(s.ToString(), out integer))
-                throw new OSDException("Notation LLSD parsing: Can't parse integer value." + s.ToString());
+                throw new OSDException("Notation LLSD parsing: Can't parse integer value." + s);
 
             return OSD.FromInteger(integer);
         }
@@ -315,7 +315,7 @@ namespace OpenMetaverse.StructuredData
             }
             double dbl;
             if (!Utils.TryParseDouble(s.ToString(), out dbl))
-                throw new OSDException("Notation LLSD parsing: Can't parse real value: " + s.ToString());
+                throw new OSDException("Notation LLSD parsing: Can't parse real value: " + s);
 
             return OSD.FromReal(dbl);
         }

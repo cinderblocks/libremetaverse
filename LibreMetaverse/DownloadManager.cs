@@ -137,7 +137,7 @@ namespace OpenMetaverse
             if (request.ServicePoint.ConnectionLimit < Settings.MAX_HTTP_CONNECTIONS)
             {
                 Logger.Log(
-                    $"In DownloadManager.SetupRequest() setting conn limit for " +
+                    "In DownloadManager.SetupRequest() setting conn limit for " +
                     $"{address.Host}:{address.Port} to {Settings.MAX_HTTP_CONNECTIONS}", Helpers.LogLevel.Debug);
                 request.ServicePoint.ConnectionLimit = Settings.MAX_HTTP_CONNECTIONS;
             }
@@ -183,7 +183,7 @@ namespace OpenMetaverse
                                 activeDownload.ProgresHandlers.Add(item.DownloadProgressCallback);
                             }
 
-                            Logger.DebugLog("Requesting " + item.Address.ToString());
+                            Logger.DebugLog("Requesting " + item.Address);
                             activeDownload.Request = SetupRequest(item.Address, item.ContentType);
                             CapsBase.DownloadDataAsync(
                                 activeDownload.Request,
