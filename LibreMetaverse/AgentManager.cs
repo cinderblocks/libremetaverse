@@ -2347,7 +2347,8 @@ namespace OpenMetaverse
 
         #region Touch and grab
 
-        public static readonly Vector3 TOUCH_INVALID_TEXCOORD = new Vector3(-1.0f, -1.0f, 1.0f);
+        public static readonly Vector3 TOUCH_INVALID_TEXCOORD = new Vector3(-1.0f, -1.0f, 0.0f);
+        public static readonly Vector3 TOUCH_INVALID_VECTOR = Vector3.Zero;
 
         /// <summary>
         /// Grabs an object
@@ -2357,7 +2358,7 @@ namespace OpenMetaverse
         public void Grab(uint objectLocalID)
         {
             Grab(objectLocalID, Vector3.Zero, TOUCH_INVALID_TEXCOORD, TOUCH_INVALID_TEXCOORD, 
-                0, Vector3.Zero, Vector3.Zero, Vector3.Zero);
+                0, TOUCH_INVALID_VECTOR, TOUCH_INVALID_VECTOR, TOUCH_INVALID_VECTOR);
         }
 
         /// <summary>
@@ -2470,7 +2471,7 @@ namespace OpenMetaverse
         public void DeGrab(uint objectLocalID)
         {
             DeGrab(objectLocalID, TOUCH_INVALID_TEXCOORD, TOUCH_INVALID_TEXCOORD, 
-                0, Vector3.Zero, Vector3.Zero, Vector3.Zero);
+                0, TOUCH_INVALID_VECTOR, TOUCH_INVALID_VECTOR, TOUCH_INVALID_VECTOR);
         }
 
         /// <summary>
