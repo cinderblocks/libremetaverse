@@ -34,7 +34,6 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Security.Cryptography;
 using System.Text;
-using LinkDotNet.NUniqueHardwareID;
 using Nwc.XmlRpc;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Http;
@@ -182,7 +181,7 @@ namespace OpenMetaverse
             PlatformVersion = NetworkManager.GetPlatformVersion();
             MAC = NetworkManager.GetHashedMAC();
             ViewerDigest = string.Empty;
-            ID0 = NetworkManager.GetUniqueId();
+            ID0 = NetworkManager.GetHashedMAC();
             AgreeToTos = true;
             ReadCritical = true;
             LastExecEvent = LastExecStatus.Normal;
@@ -1665,17 +1664,6 @@ namespace OpenMetaverse
         public static string GetHashedMAC()
         {
             return HashString(GetMAC());
-        }
-
-        public static string GetUniqueId()
-        {
-            var hardwareIdGenerator = new UniqueHardwareId
-            {
-                UseCPUInformation = true,
-                UseMACAddress = true,
-                UseVolumeInformation = true
-            };
-            return hardwareIdGenerator.CalculateHardwareId();
         }
 
         #endregion
