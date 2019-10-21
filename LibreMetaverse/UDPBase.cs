@@ -28,6 +28,7 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 
 namespace OpenMetaverse
 {
@@ -86,15 +87,19 @@ namespace OpenMetaverse
                 AddressFamily.InterNetwork,
                 SocketType.Dgram,
                 ProtocolType.Udp);
-            try
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                // this udp socket flag is not supported under mono,
-                // so we'll catch the exception and continue
-                udpSocket.IOControl(SIO_UDP_CONNRESET, new byte[] { 0 }, null);
-            }
-            catch (Exception)
-            {
-                Logger.DebugLog("UDP SIO_UDP_CONNRESET flag not supported on this platform");
+                try
+                {
+                    // this udp socket flag is not supported under mono,
+                    // so we'll catch the exception and continue
+                    udpSocket.IOControl(SIO_UDP_CONNRESET, new byte[] { 0 }, null);
+                }
+                catch (Exception)
+                {
+                    Logger.DebugLog("UDP SIO_UDP_CONNRESET flag not supported on this platform");
+                }
             }
 
             // On at least Mono 3.2.8, multiple UDP sockets can bind to the same port by default.  This means that
