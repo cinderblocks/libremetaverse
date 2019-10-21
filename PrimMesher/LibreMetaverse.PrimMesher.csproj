@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse.PrimMesher</RootNamespace>
     <AssemblyName>LibreMetaverse.PrimMesher</AssemblyName>
-    <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net471</TargetFrameworks>
     <Authors>Dhalia Trimble, OpenSim Contributors, Cinder Roxley</Authors>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <Version>1.2.0</Version>

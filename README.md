@@ -16,3 +16,5 @@ found at:
 https://bitbucket.org/cinderblocks/libremetaverse
 
 ![Build status](https://ci.appveyor.com/api/projects/status/18rb6y55iivi6i3h?svg=true)
+
+You may need to download and install the .NET Framework 4.7.1 Developer Pack for Windows developers ![here](https://www.microsoft.com/en-us/download/details.aspx?id=56119).
