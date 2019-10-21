@@ -1,10 +1,12 @@
 init:
-  - ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { $env:TAG_VERSION = "$env:APPVEYOR_REPO_TAG_NAME.$env:APPVEYOR_BUILD_NUMBER" } else { $env:TAG_VERSION = "v1.4.0.$env:APPVEYOR_BUILD_NUMBER-alpha" }
+  - ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { $env:TAG_VERSION = "$env:APPVEYOR_REPO_TAG_NAME.$env:APPVEYOR_BUILD_NUMBER" } else { $env:TAG_VERSION = "v1.5.0.$env:APPVEYOR_BUILD_NUMBER-alpha" }
   - ps: $env:TAG_VERSION = $env:TAG_VERSION -replace 'v',''
   - ps: Write-Host "Setting version to '$env:TAG_VERSION'"
   - ps: Update-AppveyorBuild -Version "$env:TAG_VERSION"
 
-image: Visual Studio 2017
+image: 
+  - Visual Studio 2019
+  - Ubuntu1804
 
 configuration: Release
 
@@ -40,11 +42,16 @@ before_build:
   - nuget restore LibreMetaverse.sln
 
 
+for:
+- 
+  matrix:
+    only:
+      - image: Visual Studio 2019
 
-deploy:
-  - provider: NuGet
-    name: nuget_release
-    api_key:
-      secure: WAEp9wQu4tWKiMdcfog7FWpzk7rPou8flMCYlmYy3mZ+thKwmG1ht4o4mmEE6ZLs
-    skip_symbols: true
-    artifact: /.*LibreMetaverse.*\.nupkg/
+  deploy:
+    - provider: NuGet
+      name: nuget_release
+      api_key:
+        secure: WAEp9wQu4tWKiMdcfog7FWpzk7rPou8flMCYlmYy3mZ+thKwmG1ht4o4mmEE6ZLs
+      skip_symbols: true
+      artifact: /.*LibreMetaverse.*\.nupkg/
