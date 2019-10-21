@@ -42,7 +42,7 @@ namespace OpenMetaverse
         public ComputeAssetCacheFilenameDelegate ComputeAssetCacheFilename = null;
 
         private GridClient Client;
-        private Thread cleanerThread;
+        private ManualResetEventSlim cleanerEvent = new ManualResetEventSlim();
         private System.Timers.Timer cleanerTimer;
         private double pruneInterval = 1000 * 60 * 5;
         private bool autoPruneEnabled = true;
@@ -352,6 +352,7 @@ namespace OpenMetaverse
                 DebugLog("Cache size is " + NiceFileSize(size) + ", file deletion not needed");
             }
 
+            cleanerEvent.Reset();
         }
 
         /// <summary>
@@ -360,16 +361,10 @@ namespace OpenMetaverse
         public void BeginPrune()
         {
             // Check if the background cache cleaning thread is active first
-            if (cleanerThread != null && cleanerThread.IsAlive)
+            if (!cleanerEvent.IsSet)
             {
-                return;
-            }
-
-            lock (this)
-            {
-                cleanerThread = new Thread(new ThreadStart(this.Prune));
-                cleanerThread.IsBackground = true;
-                cleanerThread.Start();
+                cleanerEvent.Set();
+                ThreadPool.QueueUserWorkItem((_) => Prune());
             }
         }
 

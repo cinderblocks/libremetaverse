@@ -2664,7 +2664,7 @@ namespace OpenMetaverse
         /// <param name="gestureID">Asset <seealso cref="UUID"/> of the gesture</param>
         public void PlayGesture(UUID gestureID)
         {
-            Thread t = new Thread(delegate()
+            ThreadPool.QueueUserWorkItem((_) =>
             {
                 // First fetch the guesture
                 AssetGesture gesture = null;
@@ -2763,13 +2763,7 @@ namespace OpenMetaverse
                             break;
                     }
                 }
-            })
-            {
-                IsBackground = true,
-                Name = $"Gesture thread: {gestureID}"
-            };
-
-            t.Start();
+            });
         }
 
         /// <summary>
