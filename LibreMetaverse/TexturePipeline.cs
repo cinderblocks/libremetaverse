@@ -494,7 +494,7 @@ namespace OpenMetaverse
 
 
                     //Logger.DebugLog(String.Format("Sending Worker thread new download request {0}", slot));
-                    WorkPool.QueueUserWorkItem(TextureRequestDoWork, nextTask);
+                    ThreadPool.QueueUserWorkItem(TextureRequestDoWork, nextTask);
                     continue;
                 }
 

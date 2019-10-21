@@ -142,7 +142,7 @@ namespace OpenMetaverse
                     wrapper.Callback = callback.Callback;
                     wrapper.Packet = packet;
                     wrapper.Simulator = simulator;
-                    WorkPool.QueueUserWorkItem(ThreadPoolDelegate, wrapper);
+                    ThreadPool.QueueUserWorkItem(ThreadPoolDelegate, wrapper);
                 }
                 else
                 {
@@ -162,7 +162,7 @@ namespace OpenMetaverse
                     wrapper.Callback = callback.Callback;
                     wrapper.Packet = packet;
                     wrapper.Simulator = simulator;
-                    WorkPool.QueueUserWorkItem(ThreadPoolDelegate, wrapper);
+                    ThreadPool.QueueUserWorkItem(ThreadPoolDelegate, wrapper);
                 }
                 else
                 {

@@ -2113,7 +2113,7 @@ namespace OpenMetaverse
                         EventHandler<PrimEventArgs> handler = m_ObjectUpdate;
                         if (handler != null)
                         {
-                            WorkPool.QueueUserWorkItem(delegate(object o)
+                            ThreadPool.QueueUserWorkItem(delegate(object o)
                             { handler(this, new PrimEventArgs(simulator, prim, update.RegionData.TimeDilation, isNewObject, attachment)); });
                         }
                         //OnParticleUpdate handler replacing decode particles, PCode.Particle system appears to be deprecated this is a fix
@@ -2334,7 +2334,7 @@ namespace OpenMetaverse
                     EventHandler<TerseObjectUpdateEventArgs> handler = m_TerseObjectUpdate;
                     if (handler != null)
                     {
-                        WorkPool.QueueUserWorkItem(delegate(object o)
+                        ThreadPool.QueueUserWorkItem(delegate(object o)
                         { handler(this, new TerseObjectUpdateEventArgs(simulator, obj, update, terse.RegionData.TimeDilation)); });
                     }
 

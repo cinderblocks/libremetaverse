@@ -4326,7 +4326,7 @@ namespace OpenMetaverse
 
             if (m_AnimationsChanged != null)
             {
-                WorkPool.QueueUserWorkItem(delegate(object o)
+                ThreadPool.QueueUserWorkItem(delegate(object o)
                 { OnAnimationsChanged(new AnimationsChangedEventArgs(this.SignaledAnimations)); });
             }
 
@@ -4705,7 +4705,7 @@ namespace OpenMetaverse
                 return;
             }
 
-            WorkPool.QueueUserWorkItem(sync =>
+            ThreadPool.QueueUserWorkItem(sync =>
             {
                 using (AutoResetEvent gotMuteList = new AutoResetEvent(false))
                 {
