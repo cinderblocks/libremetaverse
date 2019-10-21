@@ -1140,7 +1140,7 @@ namespace OpenMetaverse
             {
                 Logger.Log("UploadBakedTexture not available, falling back to UDP method", Helpers.LogLevel.Info, Client);
 
-                WorkPool.QueueUserWorkItem(
+                ThreadPool.QueueUserWorkItem(
                     delegate(object o)
                     {
                         UUID transactionID = UUID.Random();

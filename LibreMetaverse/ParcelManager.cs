@@ -1133,7 +1133,7 @@ namespace OpenMetaverse
                             simulator.ParcelMap[y, x] = 0;
             }
 
-            Thread th = new Thread(delegate()
+            ThreadPool.QueueUserWorkItem((_) =>
             {
                 int count = 0, timeouts = 0, y, x;
 
@@ -1165,8 +1165,6 @@ namespace OpenMetaverse
 
                 simulator.DownloadingParcelMap = false;
             });
-
-            th.Start();
         }
 
         /// <summary>

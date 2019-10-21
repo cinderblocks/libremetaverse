@@ -79,6 +79,7 @@ namespace OpenMetaverse.Voice
 
         // Position update thread
         private Thread posThread;
+        private CancellationTokenSource posTokenSource;
         private ManualResetEvent posRestart;
         public GridClient Client;
         private VoicePosition position;
@@ -133,7 +134,12 @@ namespace OpenMetaverse.Voice
         {
             // Start the background thread
             if (posThread != null && posThread.IsAlive)
-                posThread.Abort();
+            {
+                posRestart.Set();
+                posTokenSource.Cancel();
+            }
+            
+            posTokenSource = new CancellationTokenSource();
             posThread = new Thread(new ThreadStart(PositionThreadBody));
             posThread.Name = "VoicePositionUpdate";
             posThread.IsBackground = true;
@@ -252,10 +258,11 @@ namespace OpenMetaverse.Voice
             // Stop the background thread
             if (posThread != null)
             {
-                PosUpdating(false);
-
                 if (posThread.IsAlive)
-                    posThread.Abort();
+                {
+                    posRestart.Set();
+                    posTokenSource.Cancel();
+                }
                 posThread = null;
             }
 
@@ -997,9 +1004,12 @@ namespace OpenMetaverse.Voice
 
         private void PositionThreadBody()
         {
+            var token = posTokenSource.Token;
             while (true)
             {
                 posRestart.WaitOne();
+                token.ThrowIfCancellationRequested();
+                
                 Thread.Sleep(1500);
                 UpdatePosition(Client.Self);
             }

@@ -25,19 +25,19 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using Nwc.XmlRpc;
+using OpenMetaverse.Http;
+using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Security.Cryptography;
 using System.Text;
-using Nwc.XmlRpc;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Http;
-using OpenMetaverse.Packets;
+using System.Threading;
 
 namespace OpenMetaverse
 {
@@ -643,9 +643,9 @@ namespace OpenMetaverse
             switch (osd.Type)
             {
                 case OSDType.Array:
-                    return ((OSDArray) osd).AsVector3();
+                    return ((OSDArray)osd).AsVector3();
                 case OSDType.String:
-                    OSDArray array = (OSDArray) OSDParser.DeserializeLLSDNotation(osd.AsString());
+                    OSDArray array = (OSDArray)OSDParser.DeserializeLLSDNotation(osd.AsString());
                     return array.AsVector3();
             }
 
@@ -721,17 +721,17 @@ namespace OpenMetaverse
                 OSDArray array = (OSDArray)skeleton;
 
                 folders.AddRange(from t in array
-                    where t.Type == OSDType.Map
-                    select (OSDMap) t
+                                 where t.Type == OSDType.Map
+                                 select (OSDMap)t
                     into map
-                    select new InventoryFolder(map["folder_id"].AsUUID())
-                {
-                    PreferredType = (FolderType) map["type_default"].AsInteger(),
-                    Version = map["version"].AsInteger(),
-                    OwnerID = owner,
-                    ParentUUID = map["parent_id"].AsUUID(),
-                    Name = map["name"].AsString()
-                });
+                                 select new InventoryFolder(map["folder_id"].AsUUID())
+                                 {
+                                     PreferredType = (FolderType)map["type_default"].AsInteger(),
+                                     Version = map["version"].AsInteger(),
+                                     OwnerID = owner,
+                                     ParentUUID = map["parent_id"].AsUUID(),
+                                     Name = map["name"].AsString()
+                                 });
             }
 
             return folders.ToArray();
@@ -745,17 +745,17 @@ namespace OpenMetaverse
             if (reply.TryGetValue(key, out skeleton) && skeleton.Type == OSDType.Array)
             {
                 OSDArray array = (OSDArray)skeleton;
-                folders.AddRange(from t in array 
-                    where t.Type == OSDType.Map 
-                    select (OSDMap) t 
-                    into map 
-                    select new InventoryFolder(map["folder_id"].AsUUID()) 
-                {
-                    Name = map["name"].AsString(), 
-                    ParentUUID = map["parent_id"].AsUUID(), 
-                    PreferredType = (FolderType) map["type_default"].AsInteger(), 
-                    Version = map["version"].AsInteger()
-                });
+                folders.AddRange(from t in array
+                                 where t.Type == OSDType.Map
+                                 select (OSDMap)t
+                    into map
+                                 select new InventoryFolder(map["folder_id"].AsUUID())
+                                 {
+                                     Name = map["name"].AsString(),
+                                     ParentUUID = map["parent_id"].AsUUID(),
+                                     PreferredType = (FolderType)map["type_default"].AsInteger(),
+                                     Version = map["version"].AsInteger()
+                                 });
             }
             return folders.ToArray();
         }
@@ -778,8 +778,8 @@ namespace OpenMetaverse
                     {
                         Name = ParseString("name", map),
                         ParentUUID = ParseUUID("parent_id", map),
-                        PreferredType = (FolderType) ParseUInt("type_default", map),
-                        Version = (int) ParseUInt("version", map),
+                        PreferredType = (FolderType)ParseUInt("type_default", map),
+                        Version = (int)ParseUInt("version", map),
                         OwnerID = ownerID
                     };
 
@@ -1133,7 +1133,7 @@ namespace OpenMetaverse
                     ["read_critical"] = OSD.FromBoolean(loginParams.ReadCritical),
                     ["viewer_digest"] = OSD.FromString(loginParams.ViewerDigest),
                     ["id0"] = OSD.FromString(loginParams.ID0),
-                    ["last_exec_event"] = OSD.FromInteger((int) loginParams.LastExecEvent)
+                    ["last_exec_event"] = OSD.FromInteger((int)loginParams.LastExecEvent)
                 };
 
                 // Create the options LLSD array
@@ -1216,12 +1216,11 @@ namespace OpenMetaverse
 
                 try
                 {
-                    ArrayList loginArray = new ArrayList(1) {loginXmlRpc};
+                    ArrayList loginArray = new ArrayList(1) { loginXmlRpc };
                     XmlRpcRequest request = new XmlRpcRequest(CurrentContext.MethodName, loginArray);
                     var cc = CurrentContext;
                     // Start the request
-                    Thread requestThread = new Thread(
-                        delegate()
+                    ThreadPool.QueueUserWorkItem((_) =>
                         {
                             try
                             {
@@ -1234,8 +1233,7 @@ namespace OpenMetaverse
                                 UpdateLoginStatus(LoginStatus.Failed,
                                     "Error opening the login server connection: " + e.Message);
                             }
-                        }) {Name = "XML-RPC Login"};
-                    requestThread.Start();
+                        });
                 }
                 catch (Exception e)
                 {
@@ -1645,15 +1643,15 @@ namespace OpenMetaverse
 
             foreach (var b in buf)
             {
-                var n = (int) b;
+                var n = (int)b;
                 var n1 = n & 15;
                 var n2 = (n >> 4) & 15;
                 if (n2 > 9)
-                    str += ((char) (n2 - 10 + 'A')).ToString();
+                    str += ((char)(n2 - 10 + 'A')).ToString();
                 else
-                    str += ((char) (n1 - 10 + 'A')).ToString();
+                    str += ((char)(n1 - 10 + 'A')).ToString();
                 if (n1 > 9)
-                    str += ((char) (n1 - 10 + 'A')).ToString();
+                    str += ((char)(n1 - 10 + 'A')).ToString();
                 else
                     str += n1.ToString();
             }

@@ -246,6 +246,8 @@ namespace OpenMetaverse.TestClient
         /// <param name="imSessionID"></param>
         public void DoCommandAll(string cmd, UUID fromAgentID)
         {
+            if (cmd == null)
+                return;
             string[] tokens = cmd.Trim().Split(new char[] { ' ', '\t' });
             if (tokens.Length == 0)
                 return;

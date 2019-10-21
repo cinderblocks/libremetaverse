@@ -2664,7 +2664,7 @@ namespace OpenMetaverse
         /// <param name="gestureID">Asset <seealso cref="UUID"/> of the gesture</param>
         public void PlayGesture(UUID gestureID)
         {
-            Thread t = new Thread(delegate()
+            ThreadPool.QueueUserWorkItem((_) =>
             {
                 // First fetch the guesture
                 AssetGesture gesture = null;
@@ -2763,13 +2763,7 @@ namespace OpenMetaverse
                             break;
                     }
                 }
-            })
-            {
-                IsBackground = true,
-                Name = $"Gesture thread: {gestureID}"
-            };
-
-            t.Start();
+            });
         }
 
         /// <summary>
@@ -4326,7 +4320,7 @@ namespace OpenMetaverse
 
             if (m_AnimationsChanged != null)
             {
-                WorkPool.QueueUserWorkItem(delegate(object o)
+                ThreadPool.QueueUserWorkItem(delegate(object o)
                 { OnAnimationsChanged(new AnimationsChangedEventArgs(this.SignaledAnimations)); });
             }
 
@@ -4705,7 +4699,7 @@ namespace OpenMetaverse
                 return;
             }
 
-            WorkPool.QueueUserWorkItem(sync =>
+            ThreadPool.QueueUserWorkItem(sync =>
             {
                 using (AutoResetEvent gotMuteList = new AutoResetEvent(false))
                 {

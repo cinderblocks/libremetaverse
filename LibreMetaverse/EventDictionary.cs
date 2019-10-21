@@ -142,7 +142,7 @@ namespace OpenMetaverse
                     wrapper.Callback = callback.Callback;
                     wrapper.Packet = packet;
                     wrapper.Simulator = simulator;
-                    WorkPool.QueueUserWorkItem(ThreadPoolDelegate, wrapper);
+                    ThreadPool.QueueUserWorkItem(ThreadPoolDelegate, wrapper);
                 }
                 else
                 {
@@ -162,7 +162,7 @@ namespace OpenMetaverse
                     wrapper.Callback = callback.Callback;
                     wrapper.Packet = packet;
                     wrapper.Simulator = simulator;
-                    WorkPool.QueueUserWorkItem(ThreadPoolDelegate, wrapper);
+                    ThreadPool.QueueUserWorkItem(ThreadPoolDelegate, wrapper);
                 }
                 else
                 {
@@ -203,28 +203,11 @@ namespace OpenMetaverse
     /// </summary>
     public class CapsEventDictionary
     {
-        /// <summary>
-        /// Object that is passed to worker threads in the ThreadPool for
-        /// firing CAPS callbacks
-        /// </summary>
-        private struct CapsCallbackWrapper
-        {
-            /// <summary>Callback to fire for this packet</summary>
-            public Caps.EventQueueCallback Callback;
-            /// <summary>Name of the CAPS event</summary>
-            public string CapsEvent;
-            /// <summary>Strongly typed decoded data</summary>
-            public IMessage Message;
-            /// <summary>Reference to the simulator that generated this event</summary>
-            public Simulator Simulator;
-        }
-
         /// <summary>Reference to the GridClient object</summary>
         public GridClient Client;
 
         private Dictionary<string, Caps.EventQueueCallback> _EventTable =
             new Dictionary<string, Caps.EventQueueCallback>();
-        private WaitCallback _ThreadPoolCallback;
 
         /// <summary>
         /// Default constructor
@@ -233,7 +216,6 @@ namespace OpenMetaverse
         public CapsEventDictionary(GridClient client)
         {
             Client = client;
-            _ThreadPoolCallback = new WaitCallback(ThreadPoolDelegate);
         }
 
         /// <summary>
@@ -320,16 +302,7 @@ namespace OpenMetaverse
             // Default handler first, if one exists
             if (_EventTable.TryGetValue(String.Empty, out callback))
             {
-                if (callback != null)
-                {
-                    callback(capsEvent, message, simulator);
-//                    CapsCallbackWrapper wrapper;
-//                    wrapper.Callback = callback;
-//                    wrapper.CapsEvent = capsEvent;
-//                    wrapper.Message = message;
-//                    wrapper.Simulator = simulator;
-//                    WorkPool.QueueUserWorkItem(_ThreadPoolCallback, wrapper);
-                }
+                callback?.Invoke(capsEvent, message, simulator);
             }
             
             // Explicit handler next
@@ -337,32 +310,11 @@ namespace OpenMetaverse
             {
                 callback(capsEvent, message, simulator);
 
-//                CapsCallbackWrapper wrapper;
-//                wrapper.Callback = callback;
-//                wrapper.CapsEvent = capsEvent;
-//                wrapper.Message = message;
-//                wrapper.Simulator = simulator;
-//                WorkPool.QueueUserWorkItem(_ThreadPoolCallback, wrapper);
-
                 specialHandler = true;
             }
 
             if (!specialHandler)
                 Logger.Log("Unhandled CAPS event " + capsEvent, Helpers.LogLevel.Warning, Client);
-        }
-
-        private void ThreadPoolDelegate(Object state)
-        {
-            CapsCallbackWrapper wrapper = (CapsCallbackWrapper)state;
-
-            try
-            {
-                wrapper.Callback(wrapper.CapsEvent, wrapper.Message, wrapper.Simulator);
-            }
-            catch (Exception ex)
-            {
-                Logger.Log("Async CAPS Event Handler: " + ex, Helpers.LogLevel.Error, Client);
-            }
         }
     }
 }
