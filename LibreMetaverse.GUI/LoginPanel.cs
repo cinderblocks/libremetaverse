@@ -193,10 +193,11 @@ namespace OpenMetaverse.GUI
 
             if (LoginThread != null)
             {
-                LoginThread.Abort();
+                if (LoginThread.IsAlive)
+                    _Client.Network.AbortLogin();
                 LoginThread = null;
             }
-            LoginThread = new Thread(new ThreadStart(delegate() { _Client.Network.Login(_LoginParams); }));
+            LoginThread = new Thread(delegate() { _Client.Network.Login(_LoginParams); });
             LoginThread.Start();
         }
 
@@ -243,7 +244,7 @@ namespace OpenMetaverse.GUI
                 if (LoginThread != null)
                 {
                     if (LoginThread.IsAlive)
-                        LoginThread.Abort();
+                        _Client.Network.AbortLogin();
 
                     LoginThread = null;
                 }

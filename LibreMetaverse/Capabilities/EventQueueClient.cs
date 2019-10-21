@@ -33,8 +33,15 @@ namespace OpenMetaverse.Http
 {
     public class EventQueueClient
     {
-        /// <summary>=</summary>
-        public const int REQUEST_TIMEOUT = 1000 * 120;
+        private const string REQUEST_CONTENT_TYPE = "application/llsd+xml";
+
+        /// <summary>Viewer defauls to 30 for main grid, 60 for others</summary>
+        public const int REQUEST_TIMEOUT = 60 * 1000;
+
+        /// <summary>For exponential backoff on error.</summary>
+        public const int REQUEST_BACKOFF_SECONDS = 15 * 1000; // 15 seconds start
+        public const int REQUEST_BACKOFF_SECONDS_INC = 5 * 1000; // 5 seconds increase
+        public const int REQUEST_BACKOFF_SECONDS_MAX = 5 * 60 * 1000; // 5 minutes
 
         public delegate void ConnectedCallback();
         public delegate void EventCallback(string eventName, OSDMap body);
@@ -51,8 +58,6 @@ namespace OpenMetaverse.Http
 
         /// <summary>Number of times we've received an unknown CAPS exception in series.</summary>
         private int _errorCount;
-        /// <summary>For exponential backoff on error.</summary>
-        private static Random _random = new Random();
 
         public EventQueueClient(Uri eventQueueLocation)
         {
@@ -68,7 +73,7 @@ namespace OpenMetaverse.Http
 
             byte[] postData = OSDParser.SerializeLLSDXmlBytes(request);
 
-            _Request = CapsBase.UploadDataAsync(_Address, null, "application/xml", postData, REQUEST_TIMEOUT, OpenWriteHandler, null, RequestCompletedHandler);
+            _Request = CapsBase.UploadDataAsync(_Address, null, REQUEST_CONTENT_TYPE, postData, REQUEST_TIMEOUT, OpenWriteHandler, null, RequestCompletedHandler);
         }
 
         public void Stop(bool immediate)
@@ -127,14 +132,17 @@ namespace OpenMetaverse.Http
 
                 if (error is WebException webException)
                 {
+                    // Filter out some of the status requests to skip handling 
+                    switch (webException.Status)
+                    {
+                        case WebExceptionStatus.RequestCanceled:
+                        case WebExceptionStatus.KeepAliveFailure:
+                            goto HandlingDone;
+                    }
+
                     if (webException.Response != null)
                         code = ((HttpWebResponse)webException.Response).StatusCode;
-                    else if (webException.Status == WebExceptionStatus.RequestCanceled)
-                        goto HandlingDone;
                 }
-
-                if ((error as WebException)?.Response != null)
-                    code = ((HttpWebResponse)((WebException)error).Response).StatusCode;
 
                 switch (code)
                 {
@@ -145,6 +153,7 @@ namespace OpenMetaverse.Http
                         _Running = false;
                         _Dead = true;
                         break;
+                    case (HttpStatusCode)499: // weird error returned occasionally, ignore for now
                     case HttpStatusCode.BadGateway:
                         // This is not good (server) protocol design, but it's normal.
                         // The EventQueue server is a proxy that connects to a Squid
@@ -198,11 +207,11 @@ namespace OpenMetaverse.Http
                 byte[] postData = OSDParser.SerializeLLSDXmlBytes(osdRequest);
 
                 if (_errorCount > 0) // Exponentially back off, so we don't hammer the CPU
-                    Thread.Sleep(_random.Next(500 + (int)Math.Pow(2, _errorCount)));
+                    Thread.Sleep(Math.Min(REQUEST_BACKOFF_SECONDS + _errorCount * REQUEST_BACKOFF_SECONDS_INC, REQUEST_BACKOFF_SECONDS_MAX));
 
                 // Resume the connection. The event handler for the connection opening
                 // just sets class _Request variable to the current HttpWebRequest
-                CapsBase.UploadDataAsync(_Address, null, "application/xml", postData, REQUEST_TIMEOUT,
+                CapsBase.UploadDataAsync(_Address, null, REQUEST_CONTENT_TYPE, postData, REQUEST_TIMEOUT,
                     delegate(HttpWebRequest newRequest) { _Request = newRequest; }, null, RequestCompletedHandler);
 
                 // If the event queue is dead at this point, turn it off since

@@ -397,6 +397,10 @@ namespace OpenMetaverse
         /// </summary>
         private Thread AppearanceThread;
         /// <summary>
+        /// Main appearance cancellation token source
+        /// </summary>
+        private CancellationTokenSource CancellationTokenSource;
+        /// <summary>
         /// Is server baking complete. It needs doing only once
         /// </summary>
         private bool ServerBakingDone = false;
@@ -408,6 +412,8 @@ namespace OpenMetaverse
         /// <param name="client">A reference to our agent</param>
         public AppearanceManager(GridClient client)
         {
+            CancellationTokenSource = new CancellationTokenSource();
+
             Client = client;
 
             Client.Network.RegisterCallback(PacketType.AgentWearablesUpdate, AgentWearablesUpdateHandler);
@@ -466,6 +472,8 @@ namespace OpenMetaverse
                 RebakeScheduleTimer = null;
             }
 
+            var cancellationToken = CancellationTokenSource.Token;
+
             // This is the first time setting appearance, run through the entire sequence
             AppearanceThread = new Thread(
                 delegate()
@@ -480,6 +488,9 @@ namespace OpenMetaverse
                                 Textures[(int) BakeTypeToAgentTextureIndex((BakeType) bakedIndex)].TextureID = UUID.Zero;
                         }
 
+                        // FIXME: we really need to make this better...
+                        cancellationToken.ThrowIfCancellationRequested();
+
                         // Is this server side baking enabled sim
                         if (ServerBakingRegion())
                         {
@@ -491,6 +502,8 @@ namespace OpenMetaverse
                                     GotWearables = true;
                                 }
                             }
+
+                            cancellationToken.ThrowIfCancellationRequested();
 
                             if (!ServerBakingDone || forceRebake)
                             {
@@ -520,6 +533,8 @@ namespace OpenMetaverse
                                 GotWearables = true;
                             }
 
+                            cancellationToken.ThrowIfCancellationRequested();
+
                             // If we get back to server side backing region re-request server bake
                             ServerBakingDone = false;
 
@@ -531,6 +546,8 @@ namespace OpenMetaverse
                                     "One or more agent wearables failed to download, appearance will be incomplete",
                                     Helpers.LogLevel.Warning, Client);
                             }
+
+                            cancellationToken.ThrowIfCancellationRequested();
 
                             // If this is the first time setting appearance and we're not forcing rebakes, check the server
                             // for cached bakes
@@ -545,6 +562,8 @@ namespace OpenMetaverse
                                 }
                             }
 
+                            cancellationToken.ThrowIfCancellationRequested();
+
                             // Download textures, compute bakes, and upload for any cache misses
                             if (!CreateBakes())
                             {
@@ -554,15 +573,27 @@ namespace OpenMetaverse
                                     Helpers.LogLevel.Warning, Client);
                             }
 
+                            cancellationToken.ThrowIfCancellationRequested();
+
                             // Send the appearance packet
                             RequestAgentSetAppearance();
                         }
                     }
                     catch (Exception e)
                     {
-                        Logger.Log(
-                            $"Failed to set appearance with exception {e}", Helpers.LogLevel.Warning,
-                            Client);
+                        if (e is OperationCanceledException)
+                        {
+                            Logger.Log(
+                                "Setting appearance cancelled.",
+                                Helpers.LogLevel.Debug,
+                                Client);
+                        }
+                        else
+                        {
+                            Logger.Log(
+                                $"Failed to set appearance with exception {e}", Helpers.LogLevel.Warning,
+                                Client);
+                        }
 
                         success = false;
                     }
@@ -2422,10 +2453,7 @@ namespace OpenMetaverse
 
             if (AppearanceThread != null)
             {
-                if (AppearanceThread.IsAlive)
-                {
-                    AppearanceThread.Abort();
-                }
+                CancellationTokenSource.Cancel();
                 AppearanceThread = null;
                 AppearanceThreadRunning = 0;
             }
