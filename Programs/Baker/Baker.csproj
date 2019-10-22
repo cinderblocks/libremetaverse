@@ -10,7 +10,7 @@
 	  <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
 	  <DefaultTargetSchema>IE50</DefaultTargetSchema>
 	  <DelaySign>false</DelaySign>
-	  <TargetFrameworks>net471</TargetFrameworks>
+	  <TargetFrameworks>netstandard2.1</TargetFrameworks>
 	  <OutputType>WinExe</OutputType>
 	  <AppDesignerFolder></AppDesignerFolder>
 	  <RootNamespace>Baker</RootNamespace>
