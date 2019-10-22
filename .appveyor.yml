@@ -12,10 +12,12 @@ environment:
   matrix:
   - job_name: Windows build
     appveyor_build_worker_image: Visual Studio 2019
+    configuration: Release
   - job_name: Linux build
     appveyor_build_worker_image: Ubuntu1804
+    configuration: ReleaseNoGui
 
-configuration: Release
+
 
 pull_requests:
   do_not_increment_build_number: true
@@ -56,9 +58,3 @@ for:
         secure: WAEp9wQu4tWKiMdcfog7FWpzk7rPou8flMCYlmYy3mZ+thKwmG1ht4o4mmEE6ZLs
       skip_symbols: true
       artifact: /.*LibreMetaverse.*\.nupkg/
--
-  matrix:
-    only:
-      - job_name: Linux build
-      
-  configuration: ReleaseNoGui
