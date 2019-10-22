@@ -4,16 +4,18 @@ init:
   - ps: Write-Host "Setting version to '$env:TAG_VERSION'"
   - ps: Update-AppveyorBuild -Version "$env:TAG_VERSION"
 
-image: 
-  - Visual Studio 2019
-  - Ubuntu1804
-
-configuration: Release
-
 environment:
   LMVTestAgentUsername: SecretAgentTest Resident
   LMVTestAgentPassword:
     secure: bOoXrGfLiHjZlCG1tJ+nDQ==
+
+  matrix:
+  - job_name: Windows build
+    appveyor_build_worker_image: Visual Studio 2019
+  - job_name: Linux build
+    appveyor_build_worker_image: Ubuntu1804
+
+configuration: Release
 
 pull_requests:
   do_not_increment_build_number: true
@@ -41,26 +43,22 @@ dotnet_csproj:
 before_build:
   - nuget restore LibreMetaverse.sln
 
-matrix:
-  allow_failures:
-    - image: Ubuntu1804
-
 for:
-  - 
-    matrix:
-      only:
-        - image: Visual Studio 2019
+- 
+  matrix:
+    only:
+      - job_name: Windows build
 
-    deploy:
-      - provider: NuGet
-        name: nuget_release
-        api_key:
-          secure: WAEp9wQu4tWKiMdcfog7FWpzk7rPou8flMCYlmYy3mZ+thKwmG1ht4o4mmEE6ZLs
-        skip_symbols: true
-        artifact: /.*LibreMetaverse.*\.nupkg/
-  -
-    matrix:
-      only:
-        - image: Ubuntu1804
+  deploy:
+    - provider: NuGet
+      name: nuget_release
+      api_key:
+        secure: WAEp9wQu4tWKiMdcfog7FWpzk7rPou8flMCYlmYy3mZ+thKwmG1ht4o4mmEE6ZLs
+      skip_symbols: true
+      artifact: /.*LibreMetaverse.*\.nupkg/
+-
+  matrix:
+    only:
+      - job_name: Linux build
       
-    configuration: ReleaseNoGui
+  configuration: ReleaseNoGui
