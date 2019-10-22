@@ -46,15 +46,21 @@ matrix:
     - image: Ubuntu1804
 
 for:
-- 
-  matrix:
-    only:
-      - image: Visual Studio 2019
+  - 
+    matrix:
+      only:
+        - image: Visual Studio 2019
 
-  deploy:
-    - provider: NuGet
-      name: nuget_release
-      api_key:
-        secure: WAEp9wQu4tWKiMdcfog7FWpzk7rPou8flMCYlmYy3mZ+thKwmG1ht4o4mmEE6ZLs
-      skip_symbols: true
-      artifact: /.*LibreMetaverse.*\.nupkg/
+    deploy:
+      - provider: NuGet
+        name: nuget_release
+        api_key:
+          secure: WAEp9wQu4tWKiMdcfog7FWpzk7rPou8flMCYlmYy3mZ+thKwmG1ht4o4mmEE6ZLs
+        skip_symbols: true
+        artifact: /.*LibreMetaverse.*\.nupkg/
+  -
+    matrix:
+      only:
+        - image: Ubuntu1804
+      
+    configuration: ReleaseNoGui
