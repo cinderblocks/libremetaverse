@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 	  <ProjectType>Local</ProjectType>
 	  <ProductVersion>14.0.25123</ProductVersion>
@@ -10,7 +10,7 @@
 	  <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
 	  <DefaultTargetSchema>IE50</DefaultTargetSchema>
 	  <DelaySign>false</DelaySign>
-	  <TargetFramework>net471</TargetFramework>
+	  <TargetFrameworks>net471</TargetFrameworks>
 	  <OutputType>WinExe</OutputType>
 	  <AppDesignerFolder></AppDesignerFolder>
 	  <RootNamespace>Baker</RootNamespace>
