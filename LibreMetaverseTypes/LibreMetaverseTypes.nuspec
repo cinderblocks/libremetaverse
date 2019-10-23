@@ -5,11 +5,11 @@
     <version>$version$</version>
     <authors>Cinder Biscuits</authors>
     <owners>Cinder Biscuits</owners>
-    <licenseUrl>https://bitbucket.org/cinderblocks/libremetaverse/raw/34af5a40cf4bc32a7e012c61014966f5f534540d/LICENSE.txt</licenseUrl>
-    <projectUrl>https://bitbucket.org/cinderblocks/libremetaverse</projectUrl>
+    <licenseUrl>https://github.com/cinderblocks/libremetaverse/blob/master/LICENSE.txt</licenseUrl>
+    <projectUrl>https://github.com/cinderblocks/libremetaverse</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>LibreMetaverse type library</description>
     <copyright>Copyright 2017</copyright>
-    <tags>LMV OMV OpenMetaverse OpenSim Halcyon OpenMetaverseFoundation VirtualWorld</tags>
+    <tags>LMV OMV OpenMetaverse OpenSim Halcyon OpenMetaverseFoundation VirtualWorld Radegast SecondLife</tags>
   </metadata>
 </package>
