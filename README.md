@@ -16,7 +16,9 @@ https://github.com/cinderblocks/libremetaverse
 and is officially mirrored at:
 https://bitbucket.org/cinderblocks/libremetaverse
 
-![Build status](https://ci.appveyor.com/api/projects/status/18rb6y55iivi6i3h?svg=true)
+[![Build status](https://ci.appveyor.com/api/projects/status/pga5w0qken2k2nnl?svg=true)](https://ci.appveyor.com/project/cinderblocks57647/libremetaverse-ksbcr)
+
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/93077099a899402aa190d35c1a5b40f5)](https://www.codacy.com/manual/cinderblocks/libremetaverse?utm_content=cinderblocks/libremetaverse)
 
 ![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)
 
