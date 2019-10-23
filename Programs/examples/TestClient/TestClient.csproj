@@ -1,74 +1,47 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-	  <ProjectType>Local</ProjectType>
-	  <ProductVersion>14.0.25123</ProductVersion>
-	  <SchemaVersion>2.0</SchemaVersion>
-	  <ProjectGuid>{9F71FDB3-0000-0000-0000-000000000000}</ProjectGuid>
-	  <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-	  <AssemblyName>TestClient</AssemblyName>
-	  <DefaultClientScript>JScript</DefaultClientScript>
-	  <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
-	  <DefaultTargetSchema>IE50</DefaultTargetSchema>
-	  <DelaySign>false</DelaySign>
-	  <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
-	  <OutputType>Exe</OutputType>
-	  <RootNamespace>TestClient</RootNamespace>
-	  <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-	</PropertyGroup>
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-	  <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-	  <BaseAddress>285212672</BaseAddress>
-	  <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
-	  <DefineConstants>TRACE;DEBUG</DefineConstants>
-	  <DebugSymbols>True</DebugSymbols>
-	  <FileAlignment>4096</FileAlignment>
-	  <Optimize>False</Optimize>
-	  <OutputPath>..\..\..\bin\</OutputPath>
-	  <RegisterForComInterop>False</RegisterForComInterop>
-	  <RemoveIntegerChecks>False</RemoveIntegerChecks>
-	  <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
-	  <WarningLevel>4</WarningLevel>
-	  <NoStdLib>False</NoStdLib>
-	  <NoWarn>1591,1574,0419</NoWarn>
-	  <PlatformTarget>AnyCPU</PlatformTarget>
-	</PropertyGroup>
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-	  <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-	  <BaseAddress>285212672</BaseAddress>
-	  <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
-	  <DefineConstants>TRACE</DefineConstants>
-	  <DebugSymbols>False</DebugSymbols>
-	  <FileAlignment>4096</FileAlignment>
-	  <Optimize>True</Optimize>
-	  <OutputPath>..\..\..\bin\</OutputPath>
-	  <RegisterForComInterop>False</RegisterForComInterop>
-	  <RemoveIntegerChecks>False</RemoveIntegerChecks>
-	  <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
-	  <WarningLevel>4</WarningLevel>
-	  <NoStdLib>False</NoStdLib>
-	  <NoWarn>1591,1574,0419</NoWarn>
-	  <PlatformTarget>AnyCPU</PlatformTarget>
-	</PropertyGroup>
-	<ItemGroup>
-	  <ProjectReference Include="..\..\..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
-	  <ProjectReference Include="..\..\..\LibreMetaverse\LibreMetaverse.csproj" />
-	  <ProjectReference Include="..\..\..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
-	  <ProjectReference Include="..\..\..\LibreMetaverse.Utilities\LibreMetaverse.Utilities.csproj" />
-	</ItemGroup>
-	<ItemGroup>
-	  <Folder Include="Properties\" />
-	</ItemGroup>
-	<ItemGroup>
-	  <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
-	</ItemGroup>
-	<PropertyGroup>
-	  <PreBuildEvent>
-	  </PreBuildEvent>
-	  <PostBuildEvent>
-	  </PostBuildEvent>
-	  <Version>1.2.0</Version>
-	  <Authors>OpenMetaverse Developers</Authors>
-	  <Product>LibreMetaverse</Product>
-	  <Copyright>Copyright © OpenMetaverse Developers 2008, 2017 All rights reserved</Copyright>
-	</PropertyGroup>
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <ProductVersion>14.0.25123</ProductVersion>
+    <ProjectGuid>{9F71FDB3-0000-0000-0000-000000000000}</ProjectGuid>
+    <DefaultClientScript>JScript</DefaultClientScript>
+    <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
+    <DefaultTargetSchema>IE50</DefaultTargetSchema>
+    <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <NoWarn>1591,1574,0419</NoWarn>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <BaseAddress>285212672</BaseAddress>
+    <FileAlignment>4096</FileAlignment>
+    <NoStdLib>False</NoStdLib>
+    <RegisterForComInterop>False</RegisterForComInterop>
+    <OutputPath>..\..\..\bin\</OutputPath>
+    <RemoveIntegerChecks>False</RemoveIntegerChecks>
+    <PreBuildEvent />
+    <PostBuildEvent />
+    <PreBuildEvent />
+    <PostBuildEvent />
+    <PreBuildEvent />
+    <PostBuildEvent />
+  </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent />
+    <PostBuildEvent />
+    <Version>1.2.0</Version>
+    <Authors>OpenMetaverse Developers</Authors>
+    <Product>LibreMetaverse</Product>
+    <Copyright>Copyright © OpenMetaverse Developers 2008, 2017 All rights reserved</Copyright>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
+    <ProjectReference Include="..\..\..\LibreMetaverse\LibreMetaverse.csproj" />
+    <ProjectReference Include="..\..\..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
+    <ProjectReference Include="..\..\..\LibreMetaverse.Utilities\LibreMetaverse.Utilities.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
+  </ItemGroup>
 </Project>

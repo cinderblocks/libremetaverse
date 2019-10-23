@@ -1,91 +1,52 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-	  <ProjectType>Local</ProjectType>
-	  <ProductVersion>14.0.25123</ProductVersion>
-	  <SchemaVersion>2.0</SchemaVersion>
-	  <ProjectGuid>{95F42663-0000-0000-0000-000000000000}</ProjectGuid>
-	  <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-	  <AssemblyName>Baker</AssemblyName>
-	  <DefaultClientScript>JScript</DefaultClientScript>
-	  <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
-	  <DefaultTargetSchema>IE50</DefaultTargetSchema>
-	  <DelaySign>false</DelaySign>
-	  <TargetFrameworks>net462;net471;net48</TargetFrameworks>
-	  <OutputType>WinExe</OutputType>
-	  <AppDesignerFolder></AppDesignerFolder>
-	  <RootNamespace>Baker</RootNamespace>
-	  <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-	</PropertyGroup>
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-	  <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-	  <BaseAddress>285212672</BaseAddress>
-	  <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
-	  <ConfigurationOverrideFile>
-	  </ConfigurationOverrideFile>
-	  <DefineConstants>TRACE;DEBUG</DefineConstants>
-	  <DocumentationFile></DocumentationFile>
-	  <DebugSymbols>True</DebugSymbols>
-	  <FileAlignment>4096</FileAlignment>
-	  <Optimize>False</Optimize>
-	  <OutputPath>..\..\bin\</OutputPath>
-	  <RegisterForComInterop>False</RegisterForComInterop>
-	  <RemoveIntegerChecks>False</RemoveIntegerChecks>
-	  <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
-	  <WarningLevel>4</WarningLevel>
-	  <NoStdLib>False</NoStdLib>
-	  <NoWarn>1591,1574,0419</NoWarn>
-	  <PlatformTarget>AnyCPU</PlatformTarget>
-	</PropertyGroup>
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-	  <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-	  <BaseAddress>285212672</BaseAddress>
-	  <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
-	  <ConfigurationOverrideFile>
-	  </ConfigurationOverrideFile>
-	  <DefineConstants>TRACE</DefineConstants>
-	  <DocumentationFile></DocumentationFile>
-	  <DebugSymbols>False</DebugSymbols>
-	  <FileAlignment>4096</FileAlignment>
-	  <Optimize>True</Optimize>
-	  <OutputPath>..\..\bin\</OutputPath>
-	  <RegisterForComInterop>False</RegisterForComInterop>
-	  <RemoveIntegerChecks>False</RemoveIntegerChecks>
-	  <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
-	  <WarningLevel>4</WarningLevel>
-	  <NoStdLib>False</NoStdLib>
-	  <NoWarn>1591,1574,0419</NoWarn>
-	  <PlatformTarget>AnyCPU</PlatformTarget>
-	</PropertyGroup>
-	<ItemGroup>
-	  <Reference Include="System">
-		  <Name>System</Name>
-		<Private>False</Private>
-	  </Reference>
-	  <Reference Include="System.Data">
-		  <Name>System.Data</Name>
-		<Private>False</Private>
-	  </Reference>
-	  <Reference Include="System.Drawing">
-		  <Name>System.Drawing</Name>
-		<Private>False</Private>
-	  </Reference>
-	  <Reference Include="System.Windows.Forms">
-		  <Name>System.Windows.Forms</Name>
-		<Private>False</Private>
-	  </Reference>
-	</ItemGroup>
-	<ItemGroup>
-	  <ProjectReference Include="..\..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
-	  <ProjectReference Include="..\..\LibreMetaverse\LibreMetaverse.csproj" />
-	</ItemGroup>
-	<PropertyGroup>
-	  <PreBuildEvent>
-	  </PreBuildEvent>
-	  <PostBuildEvent>
-	  </PostBuildEvent>
-	  <Authors>OpenMetaverse Developers</Authors>
-	  <Version>1.2.0</Version>
-	  <Copyright>Copyright © OpenMetaverse Developers 2008, 2017 All rights reserved</Copyright>
-	  <Product>LibreMetaverse</Product>
-	</PropertyGroup>
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <ProductVersion>14.0.25123</ProductVersion>
+    <ProjectGuid>{95F42663-0000-0000-0000-000000000000}</ProjectGuid>
+    <DefaultClientScript>JScript</DefaultClientScript>
+    <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
+    <DefaultTargetSchema>IE50</DefaultTargetSchema>
+    <TargetFrameworks>net462;net471;net48</TargetFrameworks>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder />
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <NoWarn>1591,1574,0419</NoWarn>
+    <NoStdLib>False</NoStdLib>
+    <BaseAddress>285212672</BaseAddress>
+    <ConfigurationOverrideFile />
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <OutputPath>..\..\bin\</OutputPath>
+    <DocumentationFile />
+    <RemoveIntegerChecks>False</RemoveIntegerChecks>
+    <FileAlignment>4096</FileAlignment>
+    <RegisterForComInterop>False</RegisterForComInterop>
+    <PreBuildEvent />
+    <PostBuildEvent />
+  </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent />
+    <PostBuildEvent />
+    <Authors>OpenMetaverse Developers</Authors>
+    <Version>1.2.0</Version>
+    <Copyright>Copyright © OpenMetaverse Developers 2008, 2017 All rights reserved</Copyright>
+    <Product>LibreMetaverse</Product>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Data">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Drawing">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Windows.Forms">
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
+    <ProjectReference Include="..\..\LibreMetaverse\LibreMetaverse.csproj" />
+  </ItemGroup>
 </Project>

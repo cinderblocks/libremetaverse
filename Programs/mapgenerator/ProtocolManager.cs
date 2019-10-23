@@ -89,13 +89,13 @@ namespace mapgenerator
 		{
 			MapField temp = (MapField)obj;
 
-			if (this.KeywordPosition > temp.KeywordPosition)
+			if (KeywordPosition > temp.KeywordPosition)
 			{
 				return 1;
 			}
 			else
 			{
-				if(temp.KeywordPosition == this.KeywordPosition)
+				if(temp.KeywordPosition == KeywordPosition)
 				{
 					return 0;
 				}
@@ -130,13 +130,13 @@ namespace mapgenerator
 		{
 			MapBlock temp = (MapBlock)obj;
 
-			if (this.KeywordPosition > temp.KeywordPosition)
+			if (KeywordPosition > temp.KeywordPosition)
 			{
 				return 1;
 			}
 			else
 			{
-				if(temp.KeywordPosition == this.KeywordPosition)
+				if(temp.KeywordPosition == KeywordPosition)
 				{
 					return 0;
 				}
@@ -186,9 +186,7 @@ namespace mapgenerator
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="keywordFile"></param>
         /// <param name="mapFile"></param>
-        /// <param name="client"></param>
 		public ProtocolManager(string mapFile)
 		{
 			// Initialize the map arrays
@@ -197,26 +195,28 @@ namespace mapgenerator
 			HighMaps = new MapPacket[256];
 
 			// Build the type size hash table
-			TypeSizes = new Dictionary<FieldType,int>();
-			TypeSizes.Add(FieldType.U8, 1);
-			TypeSizes.Add(FieldType.U16, 2);
-			TypeSizes.Add(FieldType.U32, 4);
-			TypeSizes.Add(FieldType.U64, 8);
-			TypeSizes.Add(FieldType.S8, 1);
-			TypeSizes.Add(FieldType.S16, 2);
-			TypeSizes.Add(FieldType.S32, 4);
-			TypeSizes.Add(FieldType.F32, 4);
-			TypeSizes.Add(FieldType.F64, 8);
-            TypeSizes.Add(FieldType.LLUUID, 16);
-			TypeSizes.Add(FieldType.BOOL, 1);
-            TypeSizes.Add(FieldType.LLVector3, 12);
-            TypeSizes.Add(FieldType.LLVector3d, 24);
-            TypeSizes.Add(FieldType.LLVector4, 16);
-            TypeSizes.Add(FieldType.LLQuaternion, 16);
-			TypeSizes.Add(FieldType.IPADDR, 4);
-			TypeSizes.Add(FieldType.IPPORT, 2);
-			TypeSizes.Add(FieldType.Variable, -1);
-			TypeSizes.Add(FieldType.Fixed, -2);
+            TypeSizes = new Dictionary<FieldType, int>
+            {
+                {FieldType.U8, 1},
+                {FieldType.U16, 2},
+                {FieldType.U32, 4},
+                {FieldType.U64, 8},
+                {FieldType.S8, 1},
+                {FieldType.S16, 2},
+                {FieldType.S32, 4},
+                {FieldType.F32, 4},
+                {FieldType.F64, 8},
+                {FieldType.LLUUID, 16},
+                {FieldType.BOOL, 1},
+                {FieldType.LLVector3, 12},
+                {FieldType.LLVector3d, 24},
+                {FieldType.LLVector4, 16},
+                {FieldType.LLQuaternion, 16},
+                {FieldType.IPADDR, 4},
+                {FieldType.IPPORT, 2},
+                {FieldType.Variable, -1},
+                {FieldType.Fixed, -2}
+            };
 
             KeywordPositions = new Dictionary<string, int>();
 			LoadMapFile(mapFile);
@@ -336,9 +336,10 @@ namespace mapgenerator
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="writer"></param>
         /// <param name="map"></param>
         /// <param name="frequency"></param>
-		private void PrintOneMap(TextWriter writer, MapPacket[] map, string frequency) {
+        private void PrintOneMap(TextWriter writer, MapPacket[] map, string frequency) {
 			int i;
 
 			for (i = 0; i < map.Length; ++i)
@@ -515,53 +516,61 @@ namespace mapgenerator
 										
 										// Truncate the id to a short
 										packetID &= 0xFFFF;
-										LowMaps[packetID] = new MapPacket();
-										LowMaps[packetID].ID = (ushort)packetID;
-										LowMaps[packetID].Frequency = PacketFrequency.Low;
-										LowMaps[packetID].Name = tokens[0];
-										LowMaps[packetID].Trusted = (tokens[3] == "Trusted");
-										LowMaps[packetID].Encoded = (tokens[4] == "Zerocoded");
-										LowMaps[packetID].Blocks = new List<MapBlock>();
+                                        LowMaps[packetID] = new MapPacket
+                                        {
+                                            ID = (ushort) packetID,
+                                            Frequency = PacketFrequency.Low,
+                                            Name = tokens[0],
+                                            Trusted = (tokens[3] == "Trusted"),
+                                            Encoded = (tokens[4] == "Zerocoded"),
+                                            Blocks = new List<MapBlock>()
+                                        };
 
-										currentPacket = LowMaps[packetID];
+                                        currentPacket = LowMaps[packetID];
 									}
 									else if (tokens[1] == "Low")
 									{
-										LowMaps[packetID] = new MapPacket();
-										LowMaps[packetID].ID = (ushort)packetID;
-										LowMaps[packetID].Frequency = PacketFrequency.Low;
-										LowMaps[packetID].Name = tokens[0];
-										LowMaps[packetID].Trusted = (tokens[2] == "Trusted");
-										LowMaps[packetID].Encoded = (tokens[4] == "Zerocoded");
-										LowMaps[packetID].Blocks = new List<MapBlock>();
+                                        LowMaps[packetID] = new MapPacket
+                                        {
+                                            ID = (ushort) packetID,
+                                            Frequency = PacketFrequency.Low,
+                                            Name = tokens[0],
+                                            Trusted = (tokens[2] == "Trusted"),
+                                            Encoded = (tokens[4] == "Zerocoded"),
+                                            Blocks = new List<MapBlock>()
+                                        };
 
-										currentPacket = LowMaps[packetID];
+                                        currentPacket = LowMaps[packetID];
 
 									}
 									else if (tokens[1] == "Medium")
 									{
-										MediumMaps[packetID] = new MapPacket();
-										MediumMaps[packetID].ID = (ushort)packetID;
-										MediumMaps[packetID].Frequency = PacketFrequency.Medium;
-										MediumMaps[packetID].Name = tokens[0];
-										MediumMaps[packetID].Trusted = (tokens[2] == "Trusted");
-										MediumMaps[packetID].Encoded = (tokens[4] == "Zerocoded");
-										MediumMaps[packetID].Blocks = new List<MapBlock>();
+                                        MediumMaps[packetID] = new MapPacket
+                                        {
+                                            ID = (ushort) packetID,
+                                            Frequency = PacketFrequency.Medium,
+                                            Name = tokens[0],
+                                            Trusted = (tokens[2] == "Trusted"),
+                                            Encoded = (tokens[4] == "Zerocoded"),
+                                            Blocks = new List<MapBlock>()
+                                        };
 
-										currentPacket = MediumMaps[packetID];
+                                        currentPacket = MediumMaps[packetID];
 
 									}
 									else if (tokens[1] == "High")
 									{
-										HighMaps[packetID] = new MapPacket();
-										HighMaps[packetID].ID = (ushort)packetID;
-										HighMaps[packetID].Frequency = PacketFrequency.High;
-										HighMaps[packetID].Name = tokens[0];
-										HighMaps[packetID].Trusted = (tokens[2] == "Trusted");
-										HighMaps[packetID].Encoded = (tokens[4] == "Zerocoded");
-										HighMaps[packetID].Blocks = new List<MapBlock>();
+                                        HighMaps[packetID] = new MapPacket
+                                        {
+                                            ID = (ushort) packetID,
+                                            Frequency = PacketFrequency.High,
+                                            Name = tokens[0],
+                                            Trusted = (tokens[2] == "Trusted"),
+                                            Encoded = (tokens[4] == "Zerocoded"),
+                                            Blocks = new List<MapBlock>()
+                                        };
 
-										currentPacket = HighMaps[packetID];
+                                        currentPacket = HighMaps[packetID];
 
 									}
 									else
@@ -590,14 +599,7 @@ namespace mapgenerator
 								field.KeywordPosition = KeywordPosition(field.Name);
 								field.Type = (FieldType)Enum.Parse(typeof(FieldType), tokens[2], true);
 
-								if (tokens[3] != "}")
-								{
-									field.Count = Int32.Parse(tokens[3]);
-								}
-								else
-								{
-									field.Count = 1;
-								}
+								field.Count = tokens[3] != "}" ? Int32.Parse(tokens[3]) : 1;
 
 								// Save this field to the current block
 								currentBlock.Fields.Add(field);
@@ -667,7 +669,7 @@ namespace mapgenerator
 			}
 
             int hash = 0;
-            for (int i = 1; i < keyword.Length; i++)
+            for (var i = 1; i < keyword.Length; ++i)
             {
                 hash = (hash + (int)(keyword[i])) * 2;
             }
