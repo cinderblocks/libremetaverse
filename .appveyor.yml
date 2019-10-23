@@ -45,16 +45,12 @@ dotnet_csproj:
 before_build:
   - nuget restore LibreMetaverse.sln
 
-for:
-- 
-  matrix:
-    only:
-      - job_name: Windows build
-
-  deploy:
-    - provider: NuGet
-      name: nuget_release
-      api_key:
-        secure: WAEp9wQu4tWKiMdcfog7FWpzk7rPou8flMCYlmYy3mZ+thKwmG1ht4o4mmEE6ZLs
-      skip_symbols: true
-      artifact: /.*LibreMetaverse.*\.nupkg/
+deploy:
+  - provider: NuGet
+    name: nuget_release
+    api_key:
+      secure: WAEp9wQu4tWKiMdcfog7FWpzk7rPou8flMCYlmYy3mZ+thKwmG1ht4o4mmEE6ZLs
+    skip_symbols: true
+    artifact: /.*LibreMetaverse.*\.nupkg/
+    on:
+      job_name: Windows build
