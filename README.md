@@ -16,12 +16,10 @@ https://github.com/cinderblocks/libremetaverse
 and is officially mirrored at:
 https://bitbucket.org/cinderblocks/libremetaverse
 
-[![Build status](https://ci.appveyor.com/api/projects/status/pga5w0qken2k2nnl?svg=true)](https://ci.appveyor.com/project/cinderblocks57647/libremetaverse-ksbcr)
-
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/93077099a899402aa190d35c1a5b40f5)](https://www.codacy.com/manual/cinderblocks/libremetaverse?utm_content=cinderblocks/libremetaverse)
-
-![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)
-
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3319/badge)](https://bestpractices.coreinfrastructure.org/projects/3319)
+[![LibreMetaverse NuGet-Release](https://img.shields.io/nuget/v/libremetaverse.svg?label=LibreMetaverse)](https://www.nuget.org/packages/LibreMetaverse/)  
+[![NuGet Downloads](https://img.shields.io/nuget/dt/LibreMetaverse?label=NuGet%20downloads)](https://www.nuget.org/packages/LibreMetaverse/)  
+[![Build status](https://ci.appveyor.com/api/projects/status/pga5w0qken2k2nnl?svg=true)](https://ci.appveyor.com/project/cinderblocks57647/libremetaverse-ksbcr)  
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/93077099a899402aa190d35c1a5b40f5)](https://www.codacy.com/manual/cinderblocks/libremetaverse?utm_content=cinderblocks/libremetaverse)  
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3319/badge)](https://bestpractices.coreinfrastructure.org/projects/3319)  
 
 You may need to download and install the .NET Framework 4.7.1 Developer Pack for Windows developers ![here](https://www.microsoft.com/en-us/download/details.aspx?id=56119).
