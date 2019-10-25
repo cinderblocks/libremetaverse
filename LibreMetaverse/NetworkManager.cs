@@ -43,6 +43,9 @@ namespace OpenMetaverse
     /// </summary>
     public partial class NetworkManager
     {
+        // TODO: Implement throttle class for incoming and outgoing packets
+        
+        
         #region Enums
 
         /// <summary>
@@ -79,6 +82,36 @@ namespace OpenMetaverse
             {
                 Simulator = simulator;
                 Packet = packet;
+            }
+        }
+        
+        /// <summary>
+        /// Holds a simulator reference and a serialized packet, these structs are put in
+        /// the packet outbox for sending
+        /// </summary>
+        public class OutgoingPacket
+        {
+            /// <summary>Reference to the simulator this packet is destined for</summary>
+            public readonly Simulator Simulator;
+            /// <summary>Packet that needs to be sent</summary>
+            public readonly UDPPacketBuffer Buffer;
+            /// <summary>Sequence number of the wrapped packet</summary>
+            public uint SequenceNumber;
+            /// <summary>Number of times this packet has been resent</summary>
+            public int ResendCount;
+            /// <summary>Environment.TickCount when this packet was last sent over the wire</summary>
+            public int TickCount;
+            /// <summary>Type of the packet</summary>
+            public PacketType Type;
+
+            public OutgoingPacket(Simulator simulator, UDPPacketBuffer buffer, PacketType type)
+            {
+                Simulator = simulator;
+                Buffer = buffer;
+                SequenceNumber = 0;
+                ResendCount = 0;
+                TickCount = 0;
+                Type = type;
             }
         }
 
@@ -308,7 +341,7 @@ namespace OpenMetaverse
 
         private GridClient Client;
         private Timer DisconnectTimer;
-        private bool connected;
+        private bool connected; // TODO: switch to cancellation token
 
         /// <summary>
         /// Default constructor
@@ -838,39 +871,20 @@ namespace OpenMetaverse
 
         private void OutgoingPacketHandler()
         {
-            OutgoingPacket outgoingPacket = null;
-
-            // FIXME: This is kind of ridiculous. Port the HTB code from Simian over ASAP!
-            System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
-            
             while (connected)
             {
-                if (!PacketOutbox.Dequeue(100, ref outgoingPacket)) continue;
-
+                if (!PacketOutbox.Dequeue(100, out var outgoingPacket)) continue;
                 var simulator = outgoingPacket.Simulator;
 
-                // Very primitive rate limiting, keeps a fixed buffer of time between each packet
-                stopwatch.Stop();
-                if (stopwatch.ElapsedMilliseconds < 10)
-                {
-                    //Logger.DebugLog(String.Format("Rate limiting, last packet was {0}ms ago", ms));
-                    Thread.Sleep(10 - (int)stopwatch.ElapsedMilliseconds);
-                }
-
                 simulator.SendPacketFinal(outgoingPacket);
-                stopwatch.Start();
             }
         }
 
         private void IncomingPacketHandler()
         {
-            IncomingPacket incomingPacket = new IncomingPacket();
-
             while (connected)
             {
-                // Reset packet to null for the check below
-
-                if (!PacketInbox.Dequeue(100, ref incomingPacket)) continue;
+                if (!PacketInbox.Dequeue(100, out var incomingPacket)) continue;
                 var packet = incomingPacket.Packet;
                 var simulator = incomingPacket.Simulator;
 

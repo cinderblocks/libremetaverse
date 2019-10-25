@@ -29,6 +29,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.ObjectPool;
 
 namespace OpenMetaverse
 {
@@ -53,6 +54,10 @@ namespace OpenMetaverse
 
         // the all important shutdownFlag.
         private volatile bool shutdownFlag = true;
+        
+        // Packet pool for default sized packets
+        private readonly ObjectPool<UDPPacketBuffer> _packetPool =
+            new DefaultObjectPool<UDPPacketBuffer>(new DefaultPooledObjectPolicy<UDPPacketBuffer>());
 
         /// <summary>
         /// Initialize the UDP packet handler in server mode
@@ -80,8 +85,6 @@ namespace OpenMetaverse
         {
             if (!shutdownFlag) return;
 
-            const int SIO_UDP_CONNRESET = -1744830452;
-
             IPEndPoint ipep = new IPEndPoint(Settings.BIND_ADDR, udpPort);
             udpSocket = new Socket(
                 AddressFamily.InterNetwork,
@@ -94,6 +97,7 @@ namespace OpenMetaverse
                 {
                     // this udp socket flag is not supported under mono,
                     // so we'll catch the exception and continue
+                    const int SIO_UDP_CONNRESET = -1744830452;
                     udpSocket.IOControl(SIO_UDP_CONNRESET, new byte[] { 0 }, null);
                 }
                 catch (Exception)
@@ -142,8 +146,7 @@ namespace OpenMetaverse
         private void AsyncBeginReceive()
         {
             // allocate a packet buffer
-            //WrappedObject<UDPPacketBuffer> wrappedBuffer = Pool.CheckOut();
-            UDPPacketBuffer buf = new UDPPacketBuffer();
+            UDPPacketBuffer buf = _packetPool.Get();
 
             if (shutdownFlag) return;
 
@@ -151,14 +154,12 @@ namespace OpenMetaverse
             {
                 // kick off an async read
                 udpSocket.BeginReceiveFrom(
-                    //wrappedBuffer.Instance.Data,
                     buf.Data,
                     0,
                     UDPPacketBuffer.DEFAULT_BUFFER_SIZE,
                     SocketFlags.None,
                     ref buf.RemoteEndPoint,
                     AsyncEndReceive,
-                    //wrappedBuffer);
                     buf);
             }
             catch (SocketException e)
@@ -220,7 +221,7 @@ namespace OpenMetaverse
             }
             catch (SocketException) { }
             catch (ObjectDisposedException) { }
-            //finally { wrappedBuffer.Dispose(); }
+            finally { _packetPool.Return(buffer); }
         }
 
         public void AsyncBeginSend(UDPPacketBuffer buf)
