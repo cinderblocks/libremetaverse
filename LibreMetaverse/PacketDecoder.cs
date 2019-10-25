@@ -34,8 +34,8 @@ namespace OpenMetaverse.Packets
 {
     public static class PacketDecoder
     {
-        // TODO: make this Lazy<>
-        private static readonly Dictionary<string, Func<string, object, string>> Callbacks =
+        private static readonly Lazy<Dictionary<string, Func<string, object, string>>> Callbacks =
+            new Lazy<Dictionary<string, Func<string, object, string>>>(() =>
             new Dictionary<string, Func<string, object, string>>
             {
                 {"Color", DecodeColorField},
@@ -159,7 +159,7 @@ namespace OpenMetaverse.Packets
                 {"LayerData.LayerID.Type", DecodeLayerDataType},
 
                 {"GroupPowers", DecodeGroupPowers}
-            };
+            });
 
         #region Custom Decoders
 
@@ -1633,9 +1633,9 @@ namespace OpenMetaverse.Packets
                     }
                 }
 
-                if (Callbacks.ContainsKey(key)) // fieldname e.g: Plane
+                if (Callbacks.Value.ContainsKey(key)) // fieldname e.g: Plane
                 {
-                    result = Callbacks[key](keys[2], fieldData);
+                    result = Callbacks.Value[key](keys[2], fieldData);
                     return true;
                 }
             }
