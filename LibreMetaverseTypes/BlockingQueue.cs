@@ -141,14 +141,17 @@ namespace OpenMetaverse
             }
         }
 
-        public bool Dequeue(int timeout, ref T obj)
+        public bool Dequeue(int timeout, out T obj)
         {
             lock (_syncRoot)
             {
                 while (_open && (Count == 0))
                 {
                     if (!Monitor.Wait(_syncRoot, timeout))
+                    {
+                        obj = default(T);
                         return false;
+                    }
                 }
                 if (_open)
                 {

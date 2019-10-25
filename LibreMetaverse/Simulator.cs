@@ -478,7 +478,7 @@ namespace OpenMetaverse
         /// (for duplicate checking)</summary>
         internal IncomingPacketIDCollection PacketArchive;
         /// <summary>Packets we sent out that need ACKs from the simulator</summary>
-        internal SortedDictionary<uint, OutgoingPacket> NeedAck = new SortedDictionary<uint, OutgoingPacket>();
+        internal SortedDictionary<uint, NetworkManager.OutgoingPacket> NeedAck = new SortedDictionary<uint, NetworkManager.OutgoingPacket>();
         /// <summary>Sequence number for pause/resume</summary>
         internal int pauseSerial;
         /// <summary>Indicates if UDP connection to the sim is fully established</summary>
@@ -878,7 +878,7 @@ namespace OpenMetaverse
 
             #region Queue or Send
 
-            OutgoingPacket outgoingPacket = new OutgoingPacket(this, buffer, type);
+            NetworkManager.OutgoingPacket outgoingPacket = new NetworkManager.OutgoingPacket(this, buffer, type);
 
             // Send ACK and logout packets directly, everything else goes through the queue
             if (Client.Settings.THROTTLE_OUTGOING_PACKETS == false ||
@@ -902,7 +902,7 @@ namespace OpenMetaverse
             #endregion
         }
 
-        internal void SendPacketFinal(OutgoingPacket outgoingPacket)
+        internal void SendPacketFinal(NetworkManager.OutgoingPacket outgoingPacket)
         {
             UDPPacketBuffer buffer = outgoingPacket.Buffer;
             byte flags = buffer.Data[0];
@@ -1235,19 +1235,19 @@ namespace OpenMetaverse
         {
             if (NeedAck.Count <= 0) return;
 
-            OutgoingPacket[] array;
+            NetworkManager.OutgoingPacket[] array;
 
             lock (NeedAck)
             {
                 // Create a temporary copy of the outgoing packets array to iterate over
-                array = new OutgoingPacket[NeedAck.Count];
+                array = new NetworkManager.OutgoingPacket[NeedAck.Count];
                 NeedAck.Values.CopyTo(array, 0);
             }
 
             int now = Environment.TickCount;
 
             // Resend packets
-            foreach (OutgoingPacket outgoing in array)
+            foreach (NetworkManager.OutgoingPacket outgoing in array)
             {
                 if (outgoing.TickCount == 0 || now - outgoing.TickCount <= Client.Settings.RESEND_TIMEOUT) continue;
 
