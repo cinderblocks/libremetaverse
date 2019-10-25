@@ -326,7 +326,7 @@ namespace OpenMetaverse.ImportExport
 
         void ProcessNode(node node)
         {
-            Node n = new Node {ID = node.id};
+            Node n = new Node {Name = node.name, ID = node.id};
 
             if (node.Items != null)
                 // Try finding matrix

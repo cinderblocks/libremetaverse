@@ -496,8 +496,10 @@ namespace OpenMetaverse
                     return "callcard";
                 case AssetType.Landmark:
                     return "landmark";
+#pragma warning disable 618
                 case AssetType.Script:
                     return "script";
+#pragma warning restore 618
                 case AssetType.Clothing:
                     return "clothing";
                 case AssetType.Object:
