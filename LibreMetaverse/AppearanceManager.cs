@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Linq;
+using System.Threading.Tasks;
 using LibreMetaverse;
 using Microsoft.Collections.Extensions;
 using OpenMetaverse.Packets;
@@ -405,6 +406,12 @@ namespace OpenMetaverse
         /// Is server baking complete. It needs doing only once
         /// </summary>
         private bool ServerBakingDone = false;
+
+        private static readonly ParallelOptions _parallelOptions = new ParallelOptions()
+        {
+            MaxDegreeOfParallelism = MAX_CONCURRENT_DOWNLOADS
+        };
+        
         #endregion Private Members
 
         /// <summary>
@@ -1594,9 +1601,9 @@ namespace OpenMetaverse
                 return true;
 
             Logger.DebugLog("Downloading " + pendingWearables + " wearable assets");
-
-            Parallel.ForEach<WearableData>(Math.Min(pendingWearables, MAX_CONCURRENT_DOWNLOADS), wearables,
-                delegate(WearableData wearable)
+            
+            Parallel.ForEach(wearables, _parallelOptions,
+                wearable =>
                 {
                     if (wearable.Asset != null) return;
                     AutoResetEvent downloadEvent = new AutoResetEvent(false);
@@ -1698,14 +1705,14 @@ namespace OpenMetaverse
 
             Logger.DebugLog("Downloading " + textureIDs.Count + " textures for baking");
 
-            Parallel.ForEach<UUID>(MAX_CONCURRENT_DOWNLOADS, textureIDs,
-                delegate(UUID textureID)
+            Parallel.ForEach(textureIDs, _parallelOptions,
+                textureId =>
                 {
                     try
                     {
                         AutoResetEvent downloadEvent = new AutoResetEvent(false);
 
-                        Client.Assets.RequestImage(textureID,
+                        Client.Assets.RequestImage(textureId,
                             delegate(TextureRequestState state, AssetTexture assetTexture)
                             {
                                 if (state == TextureRequestState.Finished)
@@ -1714,13 +1721,13 @@ namespace OpenMetaverse
 
                                     for (int i = 0; i < Textures.Length; i++)
                                     {
-                                        if (Textures[i].TextureID == textureID)
+                                        if (Textures[i].TextureID == textureId)
                                             Textures[i].Texture = assetTexture;
                                     }
                                 }
                                 else
                                 {
-                                    Logger.Log("Texture " + textureID + " failed to download, one or more bakes will be incomplete",
+                                    Logger.Log("Texture " + textureId + " failed to download, one or more bakes will be incomplete",
                                         Helpers.LogLevel.Warning);
                                 }
 
@@ -1733,7 +1740,7 @@ namespace OpenMetaverse
                     catch (Exception e)
                     {
                         Logger.Log(
-                            $"Download of texture {textureID} failed with exception {e}", 
+                            $"Download of texture {textureId} failed with exception {e}", 
                             Helpers.LogLevel.Warning, Client);
                     }
                 }
@@ -1769,8 +1776,8 @@ namespace OpenMetaverse
             {
                 DownloadTextures(pendingBakes);
 
-                Parallel.ForEach<BakeType>(Math.Min(MAX_CONCURRENT_UPLOADS, pendingBakes.Count), pendingBakes,
-                    delegate(BakeType bakeType)
+                Parallel.ForEach(pendingBakes, _parallelOptions,
+                    bakeType =>
                     {
                         if (!CreateBake(bakeType))
                             success = false;
