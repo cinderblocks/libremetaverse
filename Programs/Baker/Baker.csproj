@@ -6,7 +6,7 @@
     <DefaultClientScript>JScript</DefaultClientScript>
     <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
     <DefaultTargetSchema>IE50</DefaultTargetSchema>
-    <TargetFrameworks>net462;net471;net48</TargetFrameworks>
+    <TargetFrameworks>net471;net48</TargetFrameworks>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder />
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
