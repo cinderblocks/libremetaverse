@@ -56,8 +56,8 @@ deploy:
       job_name: Windows build
   - provider: GitHub
     name: github_releases
-    description: "Release {version}"
-    tag: '{version}'
+    description: "Release '$env:TAG_VERSION'"
+    tag: '$env:TAG_VERSION'
     auth_token:
       secure: NWduXKOpjxTw6TAgzMV9SsBERjq5Qxv49XKbDtu6XQV7GygeQmG1RTKeyxl4zV1A
     skip_symbols: true
