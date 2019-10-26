@@ -420,8 +420,6 @@ namespace OpenMetaverse
         /// <param name="client">A reference to our agent</param>
         public AppearanceManager(GridClient client)
         {
-            CancellationTokenSource = new CancellationTokenSource();
-
             Client = client;
 
             Client.Network.RegisterCallback(PacketType.AgentWearablesUpdate, AgentWearablesUpdateHandler);
@@ -480,12 +478,13 @@ namespace OpenMetaverse
                 RebakeScheduleTimer = null;
             }
 
-            var cancellationToken = CancellationTokenSource.Token;
+            CancellationTokenSource = new CancellationTokenSource();
 
             // This is the first time setting appearance, run through the entire sequence
             AppearanceThread = new Thread(
                 delegate()
                 {
+                    var cancellationToken = CancellationTokenSource.Token;
                     bool success = true;
                     try
                     {
@@ -2407,9 +2406,15 @@ namespace OpenMetaverse
                 RebakeScheduleTimer = null;
             }
 
-            if (AppearanceThread != null)
+            if (CancellationTokenSource != null)
             {
                 CancellationTokenSource.Cancel();
+                CancellationTokenSource.Dispose();
+                CancellationTokenSource = null;
+            }
+            
+            if (AppearanceThread != null)
+            {
                 AppearanceThread = null;
                 AppearanceThreadRunning = 0;
             }
