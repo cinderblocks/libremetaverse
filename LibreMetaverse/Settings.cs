@@ -136,10 +136,7 @@ namespace OpenMetaverse
 
         #endregion
         #region Sizes
-
-        /// <summary>The initial size of the packet inbox, where packets are
-        /// stored before processing</summary>
-        public const int PACKET_INBOX_SIZE = 100;
+        
         /// <summary>Maximum size of packet that we want to send over the wire</summary>
         public const int MAX_PACKET_SIZE = 1200;
         /// <summary>The maximum value of a packet sequence number before it

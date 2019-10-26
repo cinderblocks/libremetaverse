@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -487,7 +488,7 @@ namespace OpenMetaverse
         private NetworkManager Network;
         private Queue<long> InBytes, OutBytes;
         // ACKs that are queued up to be sent to the simulator
-        private LocklessQueue<uint> PendingAcks = new LocklessQueue<uint>();
+        private ConcurrentQueue<uint> PendingAcks = new ConcurrentQueue<uint>();
         private Timer AckTimer;
         private Timer PingTimer;
         private Timer StatsTimer;
@@ -889,7 +890,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Network.PacketOutbox.Enqueue(outgoingPacket);
+                Network.EnqueueOutgoing(outgoingPacket);
             }
 
             #endregion Queue or Send
@@ -1172,7 +1173,7 @@ namespace OpenMetaverse
             incomingPacket.Simulator = this;
             incomingPacket.Packet = packet;
 
-            Network.PacketInbox.Enqueue(incomingPacket);
+            Network.EnqueueIncoming(incomingPacket);
 
             #endregion Inbox Insertion
 
@@ -1200,10 +1201,9 @@ namespace OpenMetaverse
         /// <returns>Number of ACKs sent</returns>
         private int SendAcks()
         {
-            uint ack;
             int ackCount = 0;
 
-            if (PendingAcks.TryDequeue(out ack))
+            if (PendingAcks.TryDequeue(out var ack))
             {
                 List<PacketAckPacket.PacketsBlock> blocks = new List<PacketAckPacket.PacketsBlock>();
                 PacketAckPacket.PacketsBlock block = new PacketAckPacket.PacketsBlock {ID = ack};
