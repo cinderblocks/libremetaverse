@@ -36,7 +36,7 @@ namespace OpenMetaverse
     public class BitPack
     {
         /// <summary></summary>
-        public byte[] Data;
+        public readonly byte[] Data;
 
         /// <summary></summary>
         public int BytePos
@@ -45,24 +45,21 @@ namespace OpenMetaverse
             {
                 if (bytePos != 0 && bitPos == 0)
                     return bytePos - 1;
-                else
-                    return bytePos;
+                return bytePos;
             }
         }
 
         /// <summary></summary>
-        public int BitPos { get { return bitPos; } }
+        public int BitPos => bitPos;
 
 
         private const int MAX_BITS = 8;
-        private static readonly byte[] ON = new byte[] { 1 };
-        private static readonly byte[] OFF = new byte[] { 0 };
+        private static readonly byte[] On = { 1 };
+        private static readonly byte[] Off = { 0 };
 
         private int bytePos;
         private int bitPos;
-        private bool weAreBigEndian = !BitConverter.IsLittleEndian;
-
-
+        
         /// <summary>
         /// Default constructor, initialize the bit packer / bit unpacker
         /// with a byte array and starting position
@@ -82,7 +79,7 @@ namespace OpenMetaverse
         public void PackFloat(float data)
         {
             byte[] input = BitConverter.GetBytes(data);
-            if (weAreBigEndian) Array.Reverse(input);
+            if (!BitConverter.IsLittleEndian) Array.Reverse(input);
             PackBitArray(input, 32);
         }
 
@@ -94,7 +91,7 @@ namespace OpenMetaverse
         public void PackBits(int data, int totalCount)
         {
             byte[] input = BitConverter.GetBytes(data);
-            if (weAreBigEndian) Array.Reverse(input);
+            if (!BitConverter.IsLittleEndian) Array.Reverse(input);
             PackBitArray(input, totalCount);
         }
 
@@ -106,7 +103,7 @@ namespace OpenMetaverse
         public void PackBits(uint data, int totalCount)
         {
             byte[] input = BitConverter.GetBytes(data);
-            if (weAreBigEndian) Array.Reverse(input);
+            if (!BitConverter.IsLittleEndian) Array.Reverse(input);
             PackBitArray(input, totalCount);
         }
 
@@ -117,9 +114,9 @@ namespace OpenMetaverse
         public void PackBit(bool bit)
         {
             if (bit)
-                PackBitArray(ON, 1);
+                PackBitArray(On, 1);
             else
-                PackBitArray(OFF, 1);
+                PackBitArray(Off, 1);
         }
 
         /// <summary>
@@ -194,7 +191,7 @@ namespace OpenMetaverse
         {
             byte[] output = UnpackBitsArray(32);
 
-            if (weAreBigEndian) Array.Reverse(output);
+            if (!BitConverter.IsLittleEndian) Array.Reverse(output);
             return BitConverter.ToSingle(output, 0);
         }
 
@@ -208,7 +205,7 @@ namespace OpenMetaverse
         {
             byte[] output = UnpackBitsArray(totalCount);
 
-            if (weAreBigEndian) Array.Reverse(output);
+            if (!BitConverter.IsLittleEndian) Array.Reverse(output);
             return BitConverter.ToInt32(output, 0);
         }
 
@@ -223,7 +220,7 @@ namespace OpenMetaverse
         {
             byte[] output = UnpackBitsArray(totalCount);
 
-            if (weAreBigEndian) Array.Reverse(output);
+            if (!BitConverter.IsLittleEndian) Array.Reverse(output);
             return BitConverter.ToUInt32(output, 0);
         }
 
@@ -306,7 +303,7 @@ namespace OpenMetaverse
         {
             if (bitPos != 0 || bytePos + size > Data.Length) throw new IndexOutOfRangeException();
 
-            string str = System.Text.UTF8Encoding.UTF8.GetString(Data, bytePos, size);
+            string str = System.Text.Encoding.UTF8.GetString(Data, bytePos, size);
             bytePos += size;
             return str;
         }

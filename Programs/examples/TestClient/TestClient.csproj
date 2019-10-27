@@ -6,7 +6,6 @@
     <DefaultClientScript>JScript</DefaultClientScript>
     <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
     <DefaultTargetSchema>IE50</DefaultTargetSchema>
-    <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <NoWarn>1591,1574,0419</NoWarn>
@@ -23,6 +22,8 @@
     <PostBuildEvent />
     <PreBuildEvent />
     <PostBuildEvent />
+    <IsPackable>false</IsPackable>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent />

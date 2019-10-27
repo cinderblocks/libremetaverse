@@ -28,6 +28,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Assets;
@@ -466,21 +467,20 @@ namespace OpenMetaverse
             while (_Running)
             {
                 // find free slots
-                int pending = 0;
                 int active = 0;
 
-                TaskInfo nextTask = null;
+                var pendingTasks = new Queue<TaskInfo>();
 
                 lock (_Transfers)
                 {
-                    foreach (KeyValuePair<UUID, TaskInfo> request in _Transfers)
+                    foreach (var request in _Transfers)
                     {
                         switch (request.Value.State)
                         {
                             case TextureRequestState.Pending:
-                                nextTask = request.Value;
-                                ++pending;
+                                pendingTasks.Enqueue(request.Value);
                                 break;
+                            case TextureRequestState.Started:
                             case TextureRequestState.Progress:
                                 ++active;
                                 break;
@@ -488,14 +488,15 @@ namespace OpenMetaverse
                     }
                 }
 
-                if (pending > 0 && active <= maxTextureRequests)
+                // NOTE: use TryDequeue once we can use .NET Standard 2.1
+                while (active <= maxTextureRequests && pendingTasks.Any())
                 {
+                    var nextTask = pendingTasks.Dequeue();
                     nextTask.State = TextureRequestState.Started;
-
 
                     //Logger.DebugLog(String.Format("Sending Worker thread new download request {0}", slot));
                     ThreadPool.QueueUserWorkItem(TextureRequestDoWork, nextTask);
-                    continue;
+                    ++active;
                 }
 
                 // Queue was empty or all download slots are inuse, let's give up some CPU time

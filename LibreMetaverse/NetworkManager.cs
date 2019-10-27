@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
@@ -320,10 +321,10 @@ namespace OpenMetaverse
         public bool Connected => connected;
 
         /// <summary>Number of packets in the incoming queue</summary>
-        public int InboxCount => PacketInbox.Count;
+        public int InboxCount => _packetInbox.Count;
 
         /// <summary>Number of packets in the outgoing queue</summary>
-        public int OutboxCount => PacketOutbox.Count;
+        public int OutboxCount => _packetOutbox.Count;
 
         #endregion Properties
 
@@ -335,13 +336,16 @@ namespace OpenMetaverse
         /// <summary>Handlers for incoming packets</summary>
         internal PacketEventDictionary PacketEvents;
         /// <summary>Incoming packets that are awaiting handling</summary>
-        internal BlockingQueue<IncomingPacket> PacketInbox = new BlockingQueue<IncomingPacket>(Settings.PACKET_INBOX_SIZE);
+        private readonly ConcurrentQueue<IncomingPacket> _packetInbox = new ConcurrentQueue<IncomingPacket>();
+        private readonly SemaphoreSlim _packetInboxDataAvailable = new SemaphoreSlim(0);
         /// <summary>Outgoing packets that are awaiting handling</summary>
-        internal BlockingQueue<OutgoingPacket> PacketOutbox = new BlockingQueue<OutgoingPacket>(Settings.PACKET_INBOX_SIZE);
+        private readonly ConcurrentQueue<OutgoingPacket> _packetOutbox = new ConcurrentQueue<OutgoingPacket>();
+        private readonly SemaphoreSlim _packetOutboxDataAvailable = new SemaphoreSlim(0);
 
         private GridClient Client;
         private Timer DisconnectTimer;
-        private bool connected; // TODO: switch to cancellation token
+        private bool connected;
+        private CancellationTokenSource _cancellationTokenSource = null;
 
         /// <summary>
         /// Default constructor
@@ -485,6 +489,26 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Add a packet to the Inbox queue to process
+        /// </summary>
+        /// <param name="packet">Incoming packet to process</param>
+        public void EnqueueIncoming(IncomingPacket packet)
+        {
+            _packetInbox.Enqueue(packet);
+            _packetInboxDataAvailable.Release();
+        }
+        
+        /// <summary>
+        /// Add a packet to the Inbox queue to process
+        /// </summary>
+        /// <param name="packet">Incoming packet to process</param>
+        public void EnqueueOutgoing(OutgoingPacket packet)
+        {
+            _packetOutbox.Enqueue(packet);
+            _packetOutboxDataAvailable.Release();
+        }
+
+        /// <summary>
         /// Connect to a simulator
         /// </summary>
         /// <param name="ip">IP address to connect to</param>
@@ -534,10 +558,7 @@ namespace OpenMetaverse
                     // Mark that we are connecting/connected to the grid
                     // 
                     connected = true;
-
-                    // Open the queues in case this is a reconnect and they were shut down
-                    PacketInbox.Open();
-                    PacketOutbox.Open();
+                    _cancellationTokenSource = new CancellationTokenSource();
 
                     // Start the packet decoding thread
                     Thread decodeThread = new Thread(IncomingPacketHandler)
@@ -710,6 +731,13 @@ namespace OpenMetaverse
                 DisconnectTimer = null;
             }
 
+            if (_cancellationTokenSource != null)
+            {
+                _cancellationTokenSource.Cancel();
+                _cancellationTokenSource.Dispose();
+                _cancellationTokenSource = null;
+            }
+
             // This will catch a Logout when the client is not logged in
             if (CurrentSim == null || !connected)
             {
@@ -817,8 +845,11 @@ namespace OpenMetaverse
             }
 
             // Clear out all of the packets that never had time to process
-            PacketInbox.Close();
-            PacketOutbox.Close();
+            // NOTE: .NET Standard 2.1 has .Clear() but 2.0 doesn't... so let's just keep Dequeuing till it's empty
+            while (!_packetInbox.IsEmpty)
+                _packetInbox.TryDequeue(out _);
+            while (!_packetOutbox.IsEmpty)
+                _packetOutbox.TryDequeue(out _);
 
             connected = false;
 
@@ -871,25 +902,44 @@ namespace OpenMetaverse
 
         private void OutgoingPacketHandler()
         {
-            while (connected)
+            try
             {
-                if (!PacketOutbox.Dequeue(100, out var outgoingPacket)) continue;
-                var simulator = outgoingPacket.Simulator;
+                var token = _cancellationTokenSource?.Token ?? throw new NullReferenceException();
+                while (connected)
+                {
+                    _packetOutboxDataAvailable.Wait(token);
 
-                simulator.SendPacketFinal(outgoingPacket);
+                    if (!_packetOutbox.TryDequeue(out var outgoingPacket)) continue;
+                    var simulator = outgoingPacket.Simulator;
+
+                    simulator.SendPacketFinal(outgoingPacket);
+                }
+            }
+            catch (ObjectDisposedException e)
+            {
+                Logger.Log("OutgoingPacketHandler thread was cancelled", Helpers.LogLevel.Debug, e);
+            }
+            catch (OperationCanceledException e)
+            {
+                Logger.Log("OutgoingPacketHandler thread was cancelled", Helpers.LogLevel.Debug, e);
             }
         }
 
         private void IncomingPacketHandler()
         {
-            while (connected)
+            try
             {
-                if (!PacketInbox.Dequeue(100, out var incomingPacket)) continue;
-                var packet = incomingPacket.Packet;
-                var simulator = incomingPacket.Simulator;
-
-                if (packet != null)
+                var token = _cancellationTokenSource?.Token ?? throw new NullReferenceException();
+                while (connected)
                 {
+                    _packetInboxDataAvailable.Wait(token);
+
+                    if (!_packetInbox.TryDequeue(out var incomingPacket)) continue;
+                    var packet = incomingPacket.Packet;
+                    var simulator = incomingPacket.Simulator;
+
+                    if (packet == null) continue;
+
                     // Skip blacklisted packets
                     if (UDPBlacklist.Contains(packet.Type.ToString()))
                     {
@@ -901,6 +951,14 @@ namespace OpenMetaverse
                     // Fire the callback(s), if any
                     PacketEvents.RaiseEvent(packet.Type, packet, simulator);
                 }
+            }
+            catch (ObjectDisposedException e)
+            {
+                Logger.Log("IncomingPacketHandler thread was cancelled", Helpers.LogLevel.Debug, e);
+            }
+            catch (OperationCanceledException e)
+            {
+                Logger.Log("IncomingPacketHandler thread was cancelled", Helpers.LogLevel.Debug, e);
             }
         }
 

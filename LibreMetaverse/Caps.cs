@@ -347,7 +347,7 @@ namespace OpenMetaverse
                         Logger.DebugLog("Serializing " + packet.Type + " capability with generic handler", 
                             Simulator.Client);
 
-                        Simulator.Client.Network.PacketInbox.Enqueue(incomingPacket);
+                        Simulator.Client.Network.EnqueueIncoming(incomingPacket);
                     }
                     else
                     {
