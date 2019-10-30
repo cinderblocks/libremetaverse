@@ -59,14 +59,22 @@
   <ItemGroup>
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\LICENSE.txt">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
   <PropertyGroup>
     <PreBuildEvent>
     </PreBuildEvent>
     <PostBuildEvent>
     </PostBuildEvent>
     <Version>1.2.0</Version>
-    <Authors>OpenMetaverse Developers</Authors>
+    <Authors>Sjofn LLC, OpenMetaverse Developers</Authors>
     <Product>LibreMetaverse</Product>
-    <Copyright>Copyright © OpenMetaverse Developers 2008, 2017 All rights reserved</Copyright>
+    <Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2019. All rights reserved.</Copyright>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/cinderblocks/libremetaverse</RepositoryUrl>
   </PropertyGroup>
 </Project>

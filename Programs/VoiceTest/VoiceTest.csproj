@@ -30,8 +30,8 @@
     <PreBuildEvent />
     <PostBuildEvent />
     <Version>1.2.0</Version>
-    <Authors>OpenMetaverse Developers</Authors>
-    <Copyright>Copyright © OpenMetaverse Developers 2008, 2017 All rights reserved</Copyright>
+    <Authors>Sjofn LLC, OpenMetaverse Developers</Authors>
+    <Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2019. All rights reserved.</Copyright>
     <Product>LibreMetaverse</Product>
   </PropertyGroup>
   <ItemGroup>

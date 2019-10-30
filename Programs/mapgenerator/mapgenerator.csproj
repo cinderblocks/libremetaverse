@@ -30,8 +30,19 @@
   <PropertyGroup>
     <PreBuildEvent />
     <PostBuildEvent />
+    <Authors>Sjofn LLC, Openmetaverse Developers</Authors>
+    <Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2019. All rights reserved</Copyright>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/cinderblocks/libremetaverse</RepositoryUrl>
+    <Version>1.2.0</Version>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="template.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\LICENSE.txt">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 </Project>
