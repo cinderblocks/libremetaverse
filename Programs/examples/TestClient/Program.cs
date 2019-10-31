@@ -78,39 +78,42 @@ namespace OpenMetaverse.TestClient
                 // Loading names from a file
                 try
                 {
-                    using StreamReader reader = new StreamReader(file);
-                    string line;
-                    int lineNumber = 0;
-
-                    while ((line = reader.ReadLine()) != null)
+                    using (StreamReader reader = new StreamReader(file))
                     {
-                        lineNumber++;
-                        string[] tokens = line.Trim().Split(new char[] { ' ', ',' });
+                        string line;
+                        int lineNumber = 0;
 
-                        if (tokens.Length >= 3)
+                        while ((line = reader.ReadLine()) != null)
                         {
-                            account = new LoginDetails
-                            {
-                                FirstName = tokens[0], 
-                                LastName = tokens[1], 
-                                Password = tokens[2]
-                            };
+                            lineNumber++;
+                            string[] tokens = line.Trim().Split(new char[] {' ', ','});
 
-                            if (tokens.Length >= 4) // Optional starting position
+                            if (tokens.Length >= 3)
                             {
-                                char sep = '/';
-                                string[] startbits = tokens[3].Split(sep);
-                                account.StartLocation = NetworkManager.StartLocation(startbits[0], Int32.Parse(startbits[1]),
-                                    Int32.Parse(startbits[2]), Int32.Parse(startbits[3]));
+                                account = new LoginDetails
+                                {
+                                    FirstName = tokens[0],
+                                    LastName = tokens[1],
+                                    Password = tokens[2]
+                                };
+
+                                if (tokens.Length >= 4) // Optional starting position
+                                {
+                                    char sep = '/';
+                                    string[] startbits = tokens[3].Split(sep);
+                                    account.StartLocation = NetworkManager.StartLocation(startbits[0],
+                                        Int32.Parse(startbits[1]),
+                                        Int32.Parse(startbits[2]), Int32.Parse(startbits[3]));
+                                }
+
+                                accounts.Add(account);
                             }
-
-                            accounts.Add(account);
-                        }
-                        else
-                        {
-                            Logger.Log("Invalid data on line " + lineNumber +
-                                       ", must be in the format of: FirstName LastName Password [Sim/StartX/StartY/StartZ]",
-                                Helpers.LogLevel.Warning);
+                            else
+                            {
+                                Logger.Log("Invalid data on line " + lineNumber +
+                                           ", must be in the format of: FirstName LastName Password [Sim/StartX/StartY/StartZ]",
+                                    Helpers.LogLevel.Warning);
+                            }
                         }
                     }
                 }
