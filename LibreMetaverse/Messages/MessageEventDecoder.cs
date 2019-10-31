@@ -101,45 +101,40 @@ namespace OpenMetaverse.Messages
                 case "BulkUpdateInventory": message = new BulkUpdateInventoryMessage(); break;
                 case "RenderMaterials": message = new RenderMaterialsMessage(); break;
                 case "GetObjectCost": message = GetObjectCostMessage.GetMessageHandler(map); break;
-
-                // Capabilities TODO:
-                // DispatchRegionInfo
-                // EstateChangeInfo
-                // EventQueueGet
-                // FetchInventoryDescendents
-                // GroupProposalBallot
-                // MapLayerGod
-                // NewFileAgentInventory
-                // RequestTextureDownload
-                // SearchStatTracking
-                // SendUserReport
-                // SendUserReportWithScreenshot
-                // ServerReleaseNotes
-                // StartGroupProposal
-                // UpdateGestureTaskInventory
-                // UpdateNotecardTaskInventory
-                // ViewerStartAuction
+                
+                // TODO: Capabilities	
+                // DispatchRegionInfo	
+                // EstateChangeInfo	
+                // EventQueueGet	
+                // FetchInventoryDescendents	
+                // GroupProposalBallot	
+                // MapLayerGod	
+                // NewFileAgentInventory	
+                // RequestTextureDownload	
+                // SearchStatTracking	
+                // SendUserReport	
+                // SendUserReportWithScreenshot	
+                // ServerReleaseNotes	
+                // StartGroupProposal	
+                // UpdateGestureTaskInventory	
+                // UpdateNotecardTaskInventory	
+                // ViewerStartAuction	
                 // UntrustedSimulatorMessage
             }
 
-            if (message != null)
+            if (message == null) return null;
+            
+            try
             {
-                try
-                {
-                    message.Deserialize(map);
-                    return message;
-                }
-                catch (Exception e)
-                {
-                    Logger.Log("Exception while trying to Deserialize " + eventName + ":" + e.Message + ": " + e.StackTrace, Helpers.LogLevel.Error);                    
-                }
+                message.Deserialize(map);
+                return message;
+            }
+            catch (Exception e)
+            {
+                Logger.Log("Exception while trying to Deserialize " + eventName + ":" + e.Message + ": " + e.StackTrace, Helpers.LogLevel.Error);                    
+            }
 
-                return null;
-            }
-            else
-            {
-                return null;
-            }
+            return null;
         }
     }
 }
