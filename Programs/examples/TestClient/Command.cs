@@ -48,9 +48,8 @@ namespace OpenMetaverse.TestClient
 
         public int CompareTo(object obj)
         {
-            if (obj is Command)
+            if (obj is Command c2)
             {
-                Command c2 = (Command)obj;
                 return Category.CompareTo(c2.Category);
             }
             else

@@ -9,7 +9,7 @@ namespace OpenMetaverse.TestClient
         public static string[] ParseArguments(string str)
         {
             List<string> list = new List<string>();
-            string current = String.Empty;
+            string current = string.Empty;
             string trimmed = null;
             bool withinQuote = false;
             bool escaped = false;

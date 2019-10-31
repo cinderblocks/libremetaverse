@@ -28,7 +28,7 @@ namespace OpenMetaverse.TestClient
         private System.Timers.Timer updateTimer;
         private UUID GroupMembersRequestID;
         public Dictionary<UUID, Group> GroupsCache = null;
-        private ManualResetEvent GroupsEvent = new ManualResetEvent(false);
+        private readonly ManualResetEvent GroupsEvent = new ManualResetEvent(false);
 
         /// <summary>
         /// 
@@ -203,7 +203,7 @@ namespace OpenMetaverse.TestClient
             lock(GroupsCache) {
                 if (GroupsCache.Count > 0) {
                     foreach (Group currentGroup in GroupsCache.Values)
-                        if (currentGroup.Name.ToLower() == groupName.ToLower())
+                        if (String.Equals(currentGroup.Name, groupName, StringComparison.CurrentCultureIgnoreCase))
                             return currentGroup.ID;
                 }
             }

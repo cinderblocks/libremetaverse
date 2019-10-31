@@ -41,7 +41,7 @@ namespace OpenMetaverse.TestClient
         const string VERSION = "1.0.0";
 
         class Singleton { internal static readonly ClientManager Instance = new ClientManager(); }
-        public static ClientManager Instance { get { return Singleton.Instance; } }
+        public static ClientManager Instance => Singleton.Instance;
 
         public Dictionary<UUID, TestClient> Clients = new Dictionary<UUID, TestClient>();
         public Dictionary<Simulator, Dictionary<uint, Primitive>> SimPrims = new Dictionary<Simulator, Dictionary<uint, Primitive>>();
@@ -49,7 +49,7 @@ namespace OpenMetaverse.TestClient
         public bool Running = true;
         public bool GetTextures = false;
         public volatile int PendingLogins = 0;
-        public string onlyAvatar = String.Empty;
+        public string onlyAvatar = string.Empty;
 
         ClientManager()
         {
@@ -70,10 +70,13 @@ namespace OpenMetaverse.TestClient
                 Console.WriteLine("Usage: login firstname lastname password [simname] [login server url]");
                 return null;
             }
-            LoginDetails account = new LoginDetails();
-            account.FirstName = args[0];
-            account.LastName = args[1];
-            account.Password = args[2];
+
+            LoginDetails account = new LoginDetails
+            {
+                FirstName = args[0], 
+                LastName = args[1], 
+                Password = args[2]
+            };
 
             if (args.Length > 3)
             {
@@ -90,8 +93,8 @@ namespace OpenMetaverse.TestClient
                         string[] startbits = args[3].Split(sep);
                         try
                         {
-                            account.StartLocation = NetworkManager.StartLocation(startbits[0], Int32.Parse(startbits[1]),
-                              Int32.Parse(startbits[2]), Int32.Parse(startbits[3]));
+                            account.StartLocation = NetworkManager.StartLocation(startbits[0], int.Parse(startbits[1]),
+                              int.Parse(startbits[2]), int.Parse(startbits[3]));
                         }
                         catch (FormatException) { }
                     }
@@ -131,7 +134,7 @@ namespace OpenMetaverse.TestClient
             client.Network.LoginProgress +=
                 delegate(object sender, LoginProgressEventArgs e)
                 {
-                    Logger.Log(String.Format("Login {0}: {1}", e.Status, e.Message), Helpers.LogLevel.Info, client);
+                    Logger.Log($"Login {e.Status}: {e.Message}", Helpers.LogLevel.Info, client);
 
                     if (e.Status == LoginStatus.Success)
                     {
@@ -349,7 +352,7 @@ namespace OpenMetaverse.TestClient
                                         result = testClient.Commands[firstToken].Execute(args, fromAgentID);
                                         Logger.Log(result, Helpers.LogLevel.Info, testClient);
                                     } catch(Exception e) {
-                                        Logger.Log(String.Format("{0} raised exception {1}", firstToken, e),
+                                        Logger.Log($"{firstToken} raised exception {e}",
                                                    Helpers.LogLevel.Error,
                                                    testClient);
                                     }

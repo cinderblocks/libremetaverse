@@ -3,9 +3,11 @@ compile.bat
 *.userprefs
 *.suo
 *.cache
+*.pfx
 
 [Oo]bj/
 [Bb]in/
 packages/
 .idea/
 .vs/
+/Programs/examples/TestClient/Properties/launchSettings.json

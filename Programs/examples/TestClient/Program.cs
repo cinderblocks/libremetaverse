@@ -60,7 +60,7 @@ namespace OpenMetaverse.TestClient
                 scriptFile = arguments["scriptfile"];
                 if (!File.Exists(scriptFile))
                 {
-                    Logger.Log(String.Format("File {0} Does not exist", scriptFile), Helpers.LogLevel.Error);
+                    Logger.Log($"File {scriptFile} Does not exist", Helpers.LogLevel.Error);
                     return;
                 }
             }
@@ -71,46 +71,46 @@ namespace OpenMetaverse.TestClient
 
                 if (!File.Exists(file))
                 {
-                    Logger.Log(String.Format("File {0} Does not exist", file), Helpers.LogLevel.Error);
+                    Logger.Log($"File {file} Does not exist", Helpers.LogLevel.Error);
                     return;
                 }
 
                 // Loading names from a file
                 try
                 {
-                    using (StreamReader reader = new StreamReader(file))
+                    using StreamReader reader = new StreamReader(file);
+                    string line;
+                    int lineNumber = 0;
+
+                    while ((line = reader.ReadLine()) != null)
                     {
-                        string line;
-                        int lineNumber = 0;
+                        lineNumber++;
+                        string[] tokens = line.Trim().Split(new char[] { ' ', ',' });
 
-                        while ((line = reader.ReadLine()) != null)
+                        if (tokens.Length >= 3)
                         {
-                            lineNumber++;
-                            string[] tokens = line.Trim().Split(new char[] { ' ', ',' });
-
-                            if (tokens.Length >= 3)
+                            account = new LoginDetails
                             {
-                                account = new LoginDetails();
-                                account.FirstName = tokens[0];
-                                account.LastName = tokens[1];
-                                account.Password = tokens[2];
+                                FirstName = tokens[0], 
+                                LastName = tokens[1], 
+                                Password = tokens[2]
+                            };
 
-                                if (tokens.Length >= 4) // Optional starting position
-                                {
-                                    char sep = '/';
-                                    string[] startbits = tokens[3].Split(sep);
-                                    account.StartLocation = NetworkManager.StartLocation(startbits[0], Int32.Parse(startbits[1]),
-                                        Int32.Parse(startbits[2]), Int32.Parse(startbits[3]));
-                                }
-
-                                accounts.Add(account);
-                            }
-                            else
+                            if (tokens.Length >= 4) // Optional starting position
                             {
-                                Logger.Log("Invalid data on line " + lineNumber +
-                                    ", must be in the format of: FirstName LastName Password [Sim/StartX/StartY/StartZ]",
-                                    Helpers.LogLevel.Warning);
+                                char sep = '/';
+                                string[] startbits = tokens[3].Split(sep);
+                                account.StartLocation = NetworkManager.StartLocation(startbits[0], Int32.Parse(startbits[1]),
+                                    Int32.Parse(startbits[2]), Int32.Parse(startbits[3]));
                             }
+
+                            accounts.Add(account);
+                        }
+                        else
+                        {
+                            Logger.Log("Invalid data on line " + lineNumber +
+                                       ", must be in the format of: FirstName LastName Password [Sim/StartX/StartY/StartZ]",
+                                Helpers.LogLevel.Warning);
                         }
                     }
                 }
@@ -123,10 +123,12 @@ namespace OpenMetaverse.TestClient
             else if (arguments["first"] != null && arguments["last"] != null && arguments["pass"] != null)
             {
                 // Taking a single login off the command-line
-                account = new LoginDetails();
-                account.FirstName = arguments["first"];
-                account.LastName = arguments["last"];
-                account.Password = arguments["pass"];
+                account = new LoginDetails
+                {
+                    FirstName = arguments["first"], 
+                    LastName = arguments["last"], 
+                    Password = arguments["pass"]
+                };
 
                 accounts.Add(account);
             }
