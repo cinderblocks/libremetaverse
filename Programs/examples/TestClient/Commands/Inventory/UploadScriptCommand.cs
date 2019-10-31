@@ -37,9 +37,7 @@ namespace OpenMetaverse.TestClient
 
             if (!File.Exists(file))
                 return $"Filename '{file}' does not exist";
-
-            var ret = $"Filename: {file}";
-
+            
             try
             {
                 using (var reader = new StreamReader(file))
@@ -57,20 +55,28 @@ namespace OpenMetaverse.TestClient
                                     System.Text.Encoding.UTF8.GetBytes(body), item.UUID, true,
                                     (uploadSuccess, uploadStatus, compileSuccess, compileMessages, itemId, assetId) =>
                                     {
+                                        var log = $"Filename: {file}";
                                         if (uploadSuccess)
-                                            ret += $" Script successfully uploaded, ItemID {itemId} AssetID {assetId}";
+                                            log += $" Script successfully uploaded, ItemID {itemId} AssetID {assetId}";
+                                        else
+                                            log += $" Script failed to upload, ItemID {itemId}";
+                                        
                                         if (compileSuccess)
-                                            ret += " compilation successful";
+                                            log += " compilation successful";
+                                        else
+                                            log += " compilation failed";
+                                        
+                                        Logger.Log(log, Helpers.LogLevel.Info, Client);
                                     });
                         });
                 }
-                return ret;
+                return $"Filename: {file} is being uploaded.";
 
             }
             catch (Exception e)
             {
                 Logger.Log(e.ToString(), Helpers.LogLevel.Error, Client);
-                return $"Error creating script for {ret}";
+                return $"Error creating script for {file}";
             }
         }
     }
