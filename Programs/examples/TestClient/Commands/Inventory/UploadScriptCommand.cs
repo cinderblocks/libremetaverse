@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OpenMetaverse.TestClient
 {
@@ -31,36 +32,38 @@ namespace OpenMetaverse.TestClient
             if (args.Length < 1)
                 return "Usage: uploadscript filename.lsl";
 
-            string file = String.Empty;
-            for (int ct = 0; ct < args.Length; ct++)
-                file = String.Format("{0}{1} ", file, args[ct]);
+            string file = args.Aggregate(string.Empty, (current, t) => $"{current}{t} ");
             file = file.TrimEnd();
 
             if (!File.Exists(file))
-                return String.Format("Filename '{0}' does not exist", file);
+            {
+                return $"Filename '{file}' does not exist";
+            }
 
-            string ret = String.Format("Filename: {0}", file);
+            string ret = $"Filename: {file}";
 
             try
             {
                 using (StreamReader reader = new StreamReader(file))
                 {
                     string body = reader.ReadToEnd();
-                    string desc = String.Format("{0} created by OpenMetaverse TestClient {1}", file, DateTime.Now);
+                    string desc = $"{file} created by LibreMetaverse TestClient {DateTime.Now}";
                     // create the asset
-                    Client.Inventory.RequestCreateItem(Client.Inventory.FindFolderForType(AssetType.LSLText), file, desc, AssetType.LSLText, UUID.Random(), InventoryType.LSL, PermissionMask.All,
+                    Client.Inventory.RequestCreateItem(Client.Inventory.FindFolderForType(AssetType.LSLText), 
+                        file, desc, AssetType.LSLText, UUID.Random(), InventoryType.LSL, PermissionMask.All,
                     delegate(bool success, InventoryItem item)
                     {
                         if (success)
                             // upload the asset
-                            Client.Inventory.RequestUpdateScriptAgentInventory(EncodeScript(body), item.UUID, true, new InventoryManager.ScriptUpdatedCallback(delegate(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string> compileMessages, UUID itemid, UUID assetid)
-                            {
-                                if (uploadSuccess)
-                                    ret += String.Format(" Script successfully uploaded, ItemID {0} AssetID {1}", itemid, assetid);
-                                if (compileSuccess)
-                                    ret += " compilation successful";
+                            Client.Inventory.RequestUpdateScriptAgentInventory(EncodeScript(body), item.UUID, true, 
+                                delegate(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string> compileMessages, UUID itemid, UUID assetid)
+                                {
+                                    if (uploadSuccess)
+                                        ret += $" Script successfully uploaded, ItemID {itemid} AssetID {assetid}";
+                                    if (compileSuccess)
+                                        ret += " compilation successful";
 
-                            }));
+                                });
                     });
                 }
                 return ret;
@@ -69,7 +72,7 @@ namespace OpenMetaverse.TestClient
             catch (System.Exception e)
             {
                 Logger.Log(e.ToString(), Helpers.LogLevel.Error, Client);
-                return String.Format("Error creating script for {0}", ret);
+                return $"Error creating script for {ret}";
             }
         }
         /// <summary>
