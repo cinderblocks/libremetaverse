@@ -127,6 +127,9 @@ namespace OpenMetaverse
         /// <summary>Used for converting shadow_id to asset_id</summary>
         public static readonly UUID MAGIC_ID = new UUID("3c115e51-04f4-523c-9fa6-98aff1034730");
 
+        /// <summary>Maximum items allowed to give</summary>
+        public static readonly int MAX_GIVE_ITEMS = 66; // viewer code says 66, but 42 in the notification
+
         protected struct InventorySearch
         {
             public UUID Folder;
@@ -653,32 +656,29 @@ namespace OpenMetaverse
             List<InventoryBase> objects = null;
             AutoResetEvent fetchEvent = new AutoResetEvent(false);
 
-            EventHandler<FolderUpdatedEventArgs> callback =
-                delegate(object sender, FolderUpdatedEventArgs e)
+            void FolderUpdatedCB(object sender, FolderUpdatedEventArgs e)
+            {
+                if (e.FolderID == folder && _Store[folder] is InventoryFolder)
                 {
-                    if (e.FolderID == folder
-                        && _Store[folder] is InventoryFolder)
-                    {
-                        // InventoryDescendentsHandler only stores DescendendCount if both folders and items are fetched.
-                        if (_Store.GetContents(folder).Count >= ((InventoryFolder)_Store[folder]).DescendentCount)
-                        {
-
-                            fetchEvent.Set();
-                        }
-                    }
-                    else
+                    // InventoryDescendentsHandler only stores DescendentCount if both folders and items are fetched.
+                    if (_Store.GetContents(folder).Count >= ((InventoryFolder) _Store[folder]).DescendentCount)
                     {
                         fetchEvent.Set();
                     }
-                };
+                }
+                else
+                {
+                    fetchEvent.Set();
+                }
+            }
 
-            FolderUpdated += callback;
+            FolderUpdated += FolderUpdatedCB;
 
             RequestFolderContents(folder, owner, folders, items, order);
             if (fetchEvent.WaitOne(timeoutMS, false))
                 objects = _Store.GetContents(folder);
 
-            FolderUpdated -= callback;
+            FolderUpdated -= FolderUpdatedCB;
 
             return objects;
         }
@@ -689,7 +689,7 @@ namespace OpenMetaverse
         /// <param name="folder">The folder to search</param>
         /// <param name="owner">The folder owners <seealso cref="UUID"/></param>
         /// <param name="folders">true to return <seealso cref="InventoryFolder"/>s contained in folder</param>
-        /// <param name="items">true to return <seealso cref="InventoryItem"/>s containd in folder</param>
+        /// <param name="items">true to return <seealso cref="InventoryItem"/>s contained in folder</param>
         /// <param name="order">the sort order to return items in</param>
         /// <seealso cref="InventoryManager.FolderContents"/>
         public void RequestFolderContents(UUID folder, UUID owner, bool folders, bool items,
@@ -731,7 +731,7 @@ namespace OpenMetaverse
         /// <param name="folderID">The folder to search</param>
         /// <param name="ownerID">The folder owners <seealso cref="UUID"/></param>
         /// <param name="fetchFolders">true to return <seealso cref="InventoryFolder"/>s contained in folder</param>
-        /// <param name="fetchItems">true to return <seealso cref="InventoryItem"/>s containd in folder</param>
+        /// <param name="fetchItems">true to return <seealso cref="InventoryItem"/>s contained in folder</param>
         /// <param name="order">the sort order to return items in</param>
         /// <seealso cref="InventoryManager.FolderContents"/>
         public void RequestFolderContentsCap(UUID folderID, UUID ownerID, bool fetchFolders, bool fetchItems,
@@ -2494,34 +2494,85 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Recurse inventory category and return folders and items. Does NOT contain parent folder being searched
+        /// </summary>
+        /// <param name="folder">Inventory category to recursively search</param>
+        /// <param name="owner">Owner of folder</param>
+        /// <param name="cats">reference to list of categories</param>
+        /// <param name="items">reference to list of items</param>
+        private void GetInventoryRecursive(UUID folderID, UUID owner, 
+            ref List<InventoryFolder> cats, ref List<InventoryItem> items)
+        {
+
+            List<InventoryBase> contents = Client.Inventory.FolderContents(
+                folderID, owner, true, true, InventorySortOrder.ByDate, 1000 * 15);
+
+            foreach (var entry in contents)
+            {
+                switch (entry)
+                {
+                    case InventoryFolder folder:
+                        cats.Add(folder);
+                        GetInventoryRecursive(folder.UUID, owner, ref cats, ref items);
+                        break;
+                    case InventoryItem _:
+                        items.Add(Client.Inventory.FetchItem(entry.UUID, owner, 1000 * 10));
+                        break;
+                    default: // shouldn't happen
+                        Logger.Log("Retrieved inventory contents of invalid type", Helpers.LogLevel.Error);
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
         /// Give an inventory Folder with contents to another avatar
         /// </summary>
         /// <param name="folderID">The <seealso cref="UUID"/> of the Folder to give</param>
         /// <param name="folderName">The name of the folder</param>
-        /// <param name="assetType">The type of the item from the <seealso cref="AssetType"/> enum</param>
         /// <param name="recipient">The <seealso cref="UUID"/> of the recipient</param>
         /// <param name="doEffect">true to generate a beameffect during transfer</param>
-        public void GiveFolder(UUID folderID, string folderName, AssetType assetType, UUID recipient,
-            bool doEffect)
+        public void GiveFolder(UUID folderID, string folderName, UUID recipient, bool doEffect)
         {
-            List<InventoryItem> folderContents = new List<InventoryItem>();
+            var folders = new List<InventoryFolder>();
+            var items = new List<InventoryItem>();
+            
+            GetInventoryRecursive(folderID, Client.Self.AgentID, ref folders, ref items);
 
-            Client.Inventory.FolderContents(folderID, Client.Self.AgentID, false, true, InventorySortOrder.ByDate, 1000 * 15).ForEach(
-                delegate(InventoryBase ib)
-                {
-                    folderContents.Add(Client.Inventory.FetchItem(ib.UUID, Client.Self.AgentID, 1000 * 10));
-                });
-            var bucket = new byte[17 * (folderContents.Count + 1)];
+            int total_contents = folders.Count + items.Count;
 
-            //Add parent folder (first item in bucket)
-            bucket[0] = (byte)assetType;
-            Buffer.BlockCopy(folderID.GetBytes(), 0, bucket, 1, 16);
-
-            //Add contents to bucket after folder
-            for (int i = 1; i <= folderContents.Count; ++i)
+            // check for too many items.
+            if (total_contents > MAX_GIVE_ITEMS)
             {
-                bucket[i * 17] = (byte)folderContents[i - 1].AssetType;
-                Buffer.BlockCopy(folderContents[i - 1].UUID.GetBytes(), 0, bucket, i * 17 + 1, 16);
+                Logger.Log("Cannot give more than 42 items in a single inventory transfer.", Helpers.LogLevel.Info);
+                return;
+            }
+            if (!items.Any())
+            {
+                Logger.Log("No items to transfer.", Helpers.LogLevel.Info);
+                return;
+            }
+
+            var bucket = new byte[17 * (total_contents + 1)];
+            int offset = 0; // account for first byte
+
+            //Add folders (parent folder first)
+            bucket[offset++] = (byte)AssetType.Folder;
+            Buffer.BlockCopy(folderID.GetBytes(), 0, bucket, offset, 16);
+            offset += 16;
+            foreach (var folder in folders)
+            {
+                bucket[offset++] = (byte)AssetType.Folder;
+                Buffer.BlockCopy(folder.UUID.GetBytes(), 0, bucket, offset, 16);
+                offset += 16;
+            }
+
+            //Add items to bucket after folders
+            foreach (var item in items)
+            {
+                bucket[offset++] = (byte)item.AssetType;
+                Buffer.BlockCopy(item.UUID.GetBytes(), 0, bucket, offset, 16);
+                offset += 16;
             }
 
             Client.Self.InstantMessage(
@@ -2542,7 +2593,7 @@ namespace OpenMetaverse
             }
 
             // Remove from store if items were no copy
-            foreach (InventoryItem item in folderContents)
+            foreach (InventoryItem item in items)
             {
                 if (Store.Items.ContainsKey(item.UUID) && Store[item.UUID] is InventoryItem)
                 {
