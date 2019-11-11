@@ -25,7 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using Nwc.XmlRpc;
+using XmlRpcCore;
 using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;

@@ -37,7 +37,7 @@ using System.Reflection;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
-using Nwc.XmlRpc;
+using XmlRpcCore;
 using GridProxy;
 
 

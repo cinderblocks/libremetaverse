@@ -37,7 +37,7 @@ using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Reflection;
-using Nwc.XmlRpc;
+using XmlRpcCore;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
 using GridProxy;

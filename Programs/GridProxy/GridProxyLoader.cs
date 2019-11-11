@@ -6,10 +6,10 @@ using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Reflection;
-using Nwc.XmlRpc;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
 using GridProxy;
+using XmlRpcCore;
 using Logger = OpenMetaverse.Logger;
 
 

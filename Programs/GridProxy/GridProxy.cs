@@ -44,8 +44,8 @@ using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
 using log4net;
-using Nwc.XmlRpc;
-using Logger = Nwc.XmlRpc.Logger;
+using XmlRpcCore;
+using Logger = XmlRpcCore.Logger;
 
 namespace GridProxy
 {
