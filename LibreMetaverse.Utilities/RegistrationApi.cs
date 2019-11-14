@@ -33,6 +33,7 @@ using OpenMetaverse.Http;
 
 namespace OpenMetaverse
 {
+    [Obsolete("Linden Lab has discontinued RegAPI access", true)]
     public class RegistrationApi
     {
         const int REQUEST_TIMEOUT = 1000 * 100;
