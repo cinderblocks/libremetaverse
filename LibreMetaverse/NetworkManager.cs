@@ -896,7 +896,10 @@ namespace OpenMetaverse
         private async Task OutgoingPacketHandler()
         {
             var reader = _packetOutbox.Reader;
-
+            
+            // FIXME: This is kind of ridiculous. Port the HTB code from Simian over ASAP!	
+            var stopwatch = new System.Diagnostics.Stopwatch();
+            
             while (await reader.WaitToReadAsync() && connected)
             {
                 while (reader.TryRead(out var outgoingPacket))
@@ -904,7 +907,16 @@ namespace OpenMetaverse
                     Interlocked.Decrement(ref _packetOutboxCount);
                     
                     var simulator = outgoingPacket.Simulator;
+                    
+                    stopwatch.Stop();
+                    if (stopwatch.ElapsedMilliseconds < 10)	
+                    {	
+                        //Logger.DebugLog(String.Format("Rate limiting, last packet was {0}ms ago", ms));	
+                        Thread.Sleep(10 - (int)stopwatch.ElapsedMilliseconds);	
+                    }
+
                     simulator.SendPacketFinal(outgoingPacket);
+                    stopwatch.Start();
                 }
             }
         }
