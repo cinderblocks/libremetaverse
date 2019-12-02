@@ -840,6 +840,9 @@ namespace OpenMetaverse
 
             _packetInbox = null;
             _packetOutbox = null;
+            
+            Interlocked.Exchange(ref _packetInboxCount, 0);
+            Interlocked.Exchange(ref _packetOutboxCount, 0);
 
             connected = false;
 
@@ -898,8 +901,9 @@ namespace OpenMetaverse
             {
                 while (reader.TryRead(out var outgoingPacket))
                 {
+                    Interlocked.Decrement(ref _packetOutboxCount);
+                    
                     var simulator = outgoingPacket.Simulator;
-
                     simulator.SendPacketFinal(outgoingPacket);
                 }
             }
@@ -913,6 +917,8 @@ namespace OpenMetaverse
             {
                 while (reader.TryRead(out var incomingPacket))
                 {
+                    Interlocked.Decrement(ref _packetInboxCount);
+                    
                     var packet = incomingPacket.Packet;
                     var simulator = incomingPacket.Simulator;
 
