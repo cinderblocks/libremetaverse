@@ -38,6 +38,7 @@ using System.Text;
 using System.Threading;
 using System.Net.Sockets;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using OpenMetaverse;
 using OpenMetaverse.Http;
@@ -186,6 +187,8 @@ namespace GridProxy
     {
         public ProxyConfig proxyConfig;
         private string loginURI;
+
+        private static readonly HttpClient HttpClient = new HttpClient();
         
         static List<string> BinaryResponseCaps = new List<string>()
         {
@@ -1129,8 +1132,9 @@ namespace GridProxy
                 try
                 {
                     // forward the XML-RPC request to the server
-                    response = (XmlRpcResponse)request.Send(proxyConfig.remoteLoginUri.ToString(),
-                        30 * 1000); // 30 second timeout
+                    var cts = new CancellationTokenSource();
+                    cts.CancelAfter(TimeSpan.FromSeconds(30)); // 30 second timeout
+                    response = HttpClient.PostAsXmlRpcAsync(proxyConfig.remoteLoginUri, request, cts.Token).Result;
                 }
                 catch (Exception e)
                 {

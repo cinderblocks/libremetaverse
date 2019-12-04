@@ -30,6 +30,7 @@ using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using OpenMetaverse.Packets;
