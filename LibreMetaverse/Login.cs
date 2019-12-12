@@ -1235,9 +1235,10 @@ namespace OpenMetaverse
                         {
                             var cts = new CancellationTokenSource();
                             cts.CancelAfter(cc.Timeout);
-                            LoginReplyXmlRpcHandler(
-                                await HTTP_CLIENT.PostAsXmlRpcAsync(cc.URI, request, cts.Token),
-                                loginParams);
+                            var loginResponse = await HTTP_CLIENT.PostAsXmlRpcAsync(cc.URI, request, cts.Token);
+                            cts.Dispose();
+                            
+                            LoginReplyXmlRpcHandler(loginResponse, loginParams);
                         }
                         catch (Exception e)
                         {

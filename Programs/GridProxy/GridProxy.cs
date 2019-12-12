@@ -1135,6 +1135,7 @@ namespace GridProxy
                     var cts = new CancellationTokenSource();
                     cts.CancelAfter(TimeSpan.FromSeconds(30)); // 30 second timeout
                     response = HttpClient.PostAsXmlRpcAsync(proxyConfig.remoteLoginUri, request, cts.Token).Result;
+                    cts.Dispose();
                 }
                 catch (Exception e)
                 {
