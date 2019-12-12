@@ -1169,9 +1169,11 @@ namespace OpenMetaverse
 
             #region Inbox Insertion
 
-            NetworkManager.IncomingPacket incomingPacket;
-            incomingPacket.Simulator = this;
-            incomingPacket.Packet = packet;
+            var incomingPacket = new NetworkManager.IncomingPacket
+            {
+                Simulator = this,
+                Packet = packet
+            };
 
             Network.EnqueueIncoming(incomingPacket);
 

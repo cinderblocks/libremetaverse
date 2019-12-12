@@ -336,13 +336,15 @@ namespace OpenMetaverse
                 // try generic decoder next which takes a caps event and tries to match it to an existing packet
                 if (body.Type == OSDType.Map)
                 {
-                    OSDMap map = (OSDMap)body;
+                    OSDMap map = body;
                     Packet packet = Packet.BuildPacket(eventName, map);
                     if (packet != null)
                     {
-                        NetworkManager.IncomingPacket incomingPacket;
-                        incomingPacket.Simulator = Simulator;
-                        incomingPacket.Packet = packet;
+                        var incomingPacket = new NetworkManager.IncomingPacket
+                        {
+                            Simulator = Simulator,
+                            Packet = packet
+                        };
 
                         Logger.DebugLog("Serializing " + packet.Type + " capability with generic handler", 
                             Simulator.Client);

@@ -75,18 +75,13 @@ namespace OpenMetaverse
         /// Holds a simulator reference and a decoded packet, these structs are put in
         /// the packet inbox for event handling
         /// </summary>
-        public struct IncomingPacket
+        public class IncomingPacket
         {
             /// <summary>Reference to the simulator that this packet came from</summary>
             public Simulator Simulator;
+
             /// <summary>Packet that needs to be processed</summary>
             public Packet Packet;
-
-            public IncomingPacket(Simulator simulator, Packet packet)
-            {
-                Simulator = simulator;
-                Packet = packet;
-            }
         }
         
         /// <summary>
