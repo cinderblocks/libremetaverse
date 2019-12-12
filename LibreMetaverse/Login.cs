@@ -34,10 +34,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace OpenMetaverse
 {
@@ -900,6 +902,13 @@ namespace OpenMetaverse
         #endregion
 
         #region Private Members
+
+        public static readonly HttpClient HTTP_CLIENT = new HttpClient(new HttpClientHandler()
+        {
+            ServerCertificateCustomValidationCallback = delegate { return true; },
+            AllowAutoRedirect = true
+        });
+        
         private LoginParams CurrentContext = null;
         private AutoResetEvent LoginEvent = new AutoResetEvent(false);
         private LoginStatus InternalStatusCode = LoginStatus.None;
@@ -1220,20 +1229,23 @@ namespace OpenMetaverse
                     XmlRpcRequest request = new XmlRpcRequest(CurrentContext.MethodName, loginArray);
                     var cc = CurrentContext;
                     // Start the request
-                    ThreadPool.QueueUserWorkItem((_) =>
+                    Task.Run(async () =>
+                    {
+                        try
                         {
-                            try
-                            {
-                                LoginReplyXmlRpcHandler(
-                                    request.Send(cc.URI, cc.Timeout),
-                                    loginParams);
-                            }
-                            catch (Exception e)
-                            {
-                                UpdateLoginStatus(LoginStatus.Failed,
-                                    "Error opening the login server connection: " + e.Message);
-                            }
-                        });
+                            var cts = new CancellationTokenSource();
+                            cts.CancelAfter(cc.Timeout);
+                            var loginResponse = await HTTP_CLIENT.PostAsXmlRpcAsync(cc.URI, request, cts.Token);
+                            cts.Dispose();
+                            
+                            LoginReplyXmlRpcHandler(loginResponse, loginParams);
+                        }
+                        catch (Exception e)
+                        {
+                            UpdateLoginStatus(LoginStatus.Failed,
+                                "Error opening the login server connection: " + e.Message);
+                        }
+                    });
                 }
                 catch (Exception e)
                 {
