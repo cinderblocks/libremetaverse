@@ -31,10 +31,10 @@ namespace OpenMetaverse
 {
     public class InventoryNodeDictionary: IComparer<UUID>
     {
-        protected SortedDictionary<UUID, InventoryNode> SDictionary;
-        protected Dictionary<UUID, InventoryNode> Dictionary = new Dictionary<UUID, InventoryNode>();
+        protected readonly SortedDictionary<UUID, InventoryNode> SDictionary;
+        protected readonly Dictionary<UUID, InventoryNode> Dictionary = new Dictionary<UUID, InventoryNode>();
         protected InventoryNode parent;
-        protected object syncRoot = new object();
+        protected readonly object syncRoot = new object();
         public int Compare(UUID x, UUID y)
         {
             InventoryNode n1 = Get(x);
@@ -97,14 +97,14 @@ namespace OpenMetaverse
 
         public InventoryNode this[UUID key]
         {
-            get => (InventoryNode)this.Dictionary[key];
+            get => (InventoryNode)Dictionary[key];
             set
             {
                 value.Parent = parent;
                 lock (syncRoot)
                 {
                     Dictionary[key] = value;
-                    if (Settings.SORT_INVENTORY) this.SDictionary[key] = value;
+                    if (Settings.SORT_INVENTORY) SDictionary[key] = value;
                 }
             }
         }
@@ -113,7 +113,7 @@ namespace OpenMetaverse
         {
             get
             {
-                if (Settings.SORT_INVENTORY) return this.SDictionary.Keys;
+                if (Settings.SORT_INVENTORY) return SDictionary.Keys;
                 return Dictionary.Keys;
             }
         }
@@ -121,8 +121,8 @@ namespace OpenMetaverse
         {
             get
             {
-                if (Settings.SORT_INVENTORY) return this.SDictionary.Values;
-                return this.Dictionary.Values;
+                if (Settings.SORT_INVENTORY) return SDictionary.Values;
+                return Dictionary.Values;
             }
         }
 
@@ -132,7 +132,7 @@ namespace OpenMetaverse
             lock (syncRoot)
             {
                 Dictionary[key] = value;
-                if (Settings.SORT_INVENTORY) this.SDictionary.Add(key, value);
+                if (Settings.SORT_INVENTORY) SDictionary.Add(key, value);
             } 
         }
 
@@ -140,14 +140,14 @@ namespace OpenMetaverse
         {
             lock (syncRoot)
             {
-                this.Dictionary.Remove(key);
-                if (Settings.SORT_INVENTORY) this.SDictionary.Remove(key);
+                Dictionary.Remove(key);
+                if (Settings.SORT_INVENTORY) SDictionary.Remove(key);
             }
         }
 
         public bool Contains(UUID key)
         {
-            return this.Dictionary.ContainsKey(key);
+            return Dictionary.ContainsKey(key);
         }
 
         internal void Sort()

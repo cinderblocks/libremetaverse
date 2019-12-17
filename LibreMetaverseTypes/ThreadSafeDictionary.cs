@@ -70,17 +70,17 @@ namespace OpenMetaverse
 
         public int Count
         {
-            get { return Dictionary.Count; }
+            get { lock (syncObject) return Dictionary.Count; }
         }
 
         public bool ContainsKey(TKey key)
         {
-            return Dictionary.ContainsKey(key);
+            lock (syncObject) return Dictionary.ContainsKey(key);
         }
 
         public bool TryGetValue(TKey key, out TValue value)
         {
-            return Dictionary.TryGetValue(key, out value);
+            lock (syncObject) return Dictionary.TryGetValue(key, out value);
         }
 
         public void ForEach(Action<TValue> action)
@@ -152,7 +152,7 @@ namespace OpenMetaverse
 
         public TValue this[TKey key]
         {
-            get { return Dictionary[key]; }
+            get { lock (syncObject) return Dictionary[key]; }
         }
     }
 }

@@ -54,7 +54,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Gets the number of Key/Value pairs contained in the <seealso cref="T:InternalDictionary"/>
         /// </summary>
-        public int Count { get { return Dictionary.Count; } }
+        public int Count { get { lock (Dictionary) return Dictionary.Count; } }
 
         /// <summary>
         /// Initializes a new instance of the <seealso cref="T:InternalDictionary"/> Class 
@@ -280,7 +280,7 @@ namespace OpenMetaverse
         /// <returns><see langword="true"/> if found, <see langword="false"/> otherwise</returns>
         public bool ContainsKey(TKey key)
         {
-            return Dictionary.ContainsKey(key);
+            lock (Dictionary) return Dictionary.ContainsKey(key);
         }
 
         /// <summary>Check if Value exists in Dictionary</summary>
@@ -288,7 +288,7 @@ namespace OpenMetaverse
         /// <returns><see langword="true"/> if found, <see langword="false"/> otherwise</returns>
         public bool ContainsValue(TValue value)
         {
-            return Dictionary.ContainsValue(value);
+            lock (Dictionary) return Dictionary.ContainsValue(value);
         }
 
         /// <summary>

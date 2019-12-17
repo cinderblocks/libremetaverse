@@ -281,16 +281,16 @@ namespace LitJson
 
         private static MethodInfo GetConvOp (Type t1, Type t2)
         {
-            lock (conv_ops_lock) {
-                if (! conv_ops.ContainsKey (t1))
-                    conv_ops.Add (t1, new Dictionary<Type, MethodInfo> ());
+            lock (conv_ops_lock)
+            {
+                if (!conv_ops.ContainsKey(t1))
+                    conv_ops.Add(t1, new Dictionary<Type, MethodInfo>());
+                
+                if (conv_ops[t1].ContainsKey(t2))
+                    return conv_ops[t1][t2];
             }
 
-            if (conv_ops[t1].ContainsKey (t2))
-                return conv_ops[t1][t2];
-
-            MethodInfo op = t1.GetMethod (
-                "op_Implicit", new Type[] { t2 });
+            var op = t1.GetMethod("op_Implicit", new[] { t2 });
 
             lock (conv_ops_lock) {
                 try {
