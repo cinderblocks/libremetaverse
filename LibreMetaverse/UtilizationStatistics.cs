@@ -24,37 +24,28 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System.Threading;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OpenMetaverse.Stats
 {
     public enum Type
-        {
-            Packet,
-            Message
-        }
+    {
+        Packet,
+        Message
+    }
+
     public class UtilizationStatistics
     {
-        
         public class Stat
         {
-            public Type Type;
-            public long TxCount;
-            public long RxCount;
-            public long TxBytes;
-            public long RxBytes;
-
-            public Stat(Type type, long txCount, long rxCount, long txBytes, long rxBytes)
-            {
-                Type = type;
-                TxCount = txCount;
-                RxCount = rxCount;
-                TxBytes = txBytes;
-                RxBytes = rxBytes;
-            }
+            public Type Type { get; set; }
+            public long TxCount { get; set; }
+            public long RxCount { get; set; }
+            public long TxBytes { get; set; }
+            public long RxBytes { get; set; }
         }
-                
+
         private readonly Dictionary<string, Stat> m_StatsCollection;
 
         public UtilizationStatistics()
@@ -62,39 +53,53 @@ namespace OpenMetaverse.Stats
             m_StatsCollection = new Dictionary<string, Stat>();
         }
 
-        internal void Update(string key, Type Type, long txBytes, long rxBytes)
-        {            
+        internal void Update(string key, Type type, long txBytes, long rxBytes)
+        {
             lock (m_StatsCollection)
             {
-                if(m_StatsCollection.ContainsKey(key))
+                Stat stat;
+
+                if (m_StatsCollection.ContainsKey(key))
                 {
-                    Stat stat = m_StatsCollection[key];
-                    if (rxBytes > 0)
+                    stat = m_StatsCollection[key];
+                }
+                else
+                {
+                    stat = new Stat()
                     {
-                        Interlocked.Increment(ref stat.RxCount);
-                        Interlocked.Add(ref stat.RxBytes, rxBytes);    
-                    }
-
-                    if (txBytes > 0)
-                    {
-                        Interlocked.Increment(ref stat.TxCount);
-                        Interlocked.Add(ref stat.TxBytes, txBytes);
-                    }
-                                                                           
-                } else {
-                    Stat stat;
-                    stat = txBytes > 0 ? new Stat(Type, 1, 0, txBytes, 0) : new Stat(Type, 0, 1, 0, rxBytes);
-
+                        Type = type
+                    };
                     m_StatsCollection.Add(key, stat);
+                }
+
+                if (rxBytes > 0)
+                {
+                    stat.RxCount += 1;
+                    stat.RxBytes += rxBytes;
+                }
+
+                if (txBytes > 0)
+                {
+                    stat.TxCount += 1;
+                    stat.TxBytes += txBytes;
                 }
             }
         }
 
         public Dictionary<string, Stat> GetStatistics()
         {
-            lock(m_StatsCollection)
+            lock (m_StatsCollection)
             {
-                return new Dictionary<string, Stat>(m_StatsCollection);
+                return m_StatsCollection.ToDictionary(
+                    e => e.Key,
+                    e => new Stat()
+                    {
+                        Type = e.Value.Type,
+                        RxBytes = e.Value.RxBytes,
+                        RxCount = e.Value.RxCount,
+                        TxBytes = e.Value.TxBytes,
+                        TxCount = e.Value.TxCount
+                    });
             }
         }
     }

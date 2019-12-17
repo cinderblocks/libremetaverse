@@ -763,9 +763,14 @@ namespace OpenMetaverse
                     OnSimDisconnected(new SimDisconnectedEventArgs(simulator, DisconnectType.NetworkTimeout));
                 }
 
-                lock (Simulators) Simulators.Remove(simulator);
+                int simulatorsCount;
+                lock (Simulators)
+                {
+                    Simulators.Remove(simulator);
+                    simulatorsCount = Simulators.Count;
+                }
 
-                if (Simulators.Count == 0) Shutdown(DisconnectType.SimShutdown);
+                if (simulatorsCount == 0) Shutdown(DisconnectType.SimShutdown);
             }
             else
             {

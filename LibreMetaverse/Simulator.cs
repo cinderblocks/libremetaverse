@@ -1235,12 +1235,12 @@ namespace OpenMetaverse
         /// </summary>
         private void ResendUnacked()
         {
-            if (NeedAck.Count <= 0) return;
-
             NetworkManager.OutgoingPacket[] array;
 
             lock (NeedAck)
             {
+                if (NeedAck.Count <= 0) return;
+                
                 // Create a temporary copy of the outgoing packets array to iterate over
                 array = new NetworkManager.OutgoingPacket[NeedAck.Count];
                 NeedAck.Values.CopyTo(array, 0);

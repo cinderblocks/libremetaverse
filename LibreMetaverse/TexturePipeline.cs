@@ -136,7 +136,10 @@ namespace OpenMetaverse
         private System.Timers.Timer RefreshDownloadsTimer;
 
         /// <summary>Current number of pending and in-process transfers</summary>
-        public int TransferCount => _Transfers.Count;
+        public int TransferCount
+        {
+            get { lock (_Transfers) return _Transfers.Count; }
+        }
 
         /// <summary>
         /// Default constructor, Instantiates a new copy of the TexturePipeline class
