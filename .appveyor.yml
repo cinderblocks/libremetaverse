@@ -17,8 +17,6 @@ environment:
     appveyor_build_worker_image: Ubuntu1804
     configuration: ReleaseNoGui
 
-
-
 pull_requests:
   do_not_increment_build_number: false
 
@@ -46,24 +44,13 @@ before_build:
   - nuget restore LibreMetaverse.sln
 
 deploy:
-  - provider: NuGet
-    name: nuget_release
-    api_key:
-      secure: WAEp9wQu4tWKiMdcfog7FWpzk7rPou8flMCYlmYy3mZ+thKwmG1ht4o4mmEE6ZLs
-    skip_symbols: true
-    artifact: /.*LibreMetaverse.*\.nupkg/
-    on:
-      job_name: Windows build
-  - provider: GitHub
-    name: github_releases
-    description: Release v$(appveyor_build_version)
-    tag: $(appveyor_build_version)
-    auth_token:
-      secure: NWduXKOpjxTw6TAgzMV9SsBERjq5Qxv49XKbDtu6XQV7GygeQmG1RTKeyxl4zV1A
+  - provider: Webhook
+    url: https://app.signpath.io/API/v1/8446d24b-7c29-473d-b13c-83bac9d9db17/Integrations/AppVeyor?ProjectKey=LibreMetaverse&SigningPolicyKey=LibreMetaverse
+    authorization:
+      secure: 5X22VkhN0wjILZOvbIPXRUutxFSiwHxhe9e7xYxEMGhxq+mAyMptnWJ0PH20YS8+v+nsnV7woz0pgYHBTEYahQ==
     skip_symbols: true
     artifact: /.*LibreMetaverse.*\.nupkg/
     draft: false
     prerelease: false
     on:
       job_name: Windows build
-      APPVEYOR_REPO_TAG: true
