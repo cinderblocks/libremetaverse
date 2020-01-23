@@ -43,13 +43,26 @@ dotnet_csproj:
 before_build:
   - nuget restore LibreMetaverse.sln
 
+after_build:
+  - ps: |
+    foreach ($artifactName in $artifacts.keys) {
+      $env:packagePath = $artifacts[$artifactName].path
+      break
+    }
+  - ps: Compress-Archive -Path "$env:packagePath\*.nuget" -CompressionLevel "fastest" -DestinationPath "$env:packagePath\nuget_libraries.zip"
+
+artifacts:
+  - path: 'nuget_libraries.zip'
+    name: 'Nuget Library Archive'
+    type: Auto
+
 deploy:
   - provider: Webhook
     url: https://app.signpath.io/API/v1/8446d24b-7c29-473d-b13c-83bac9d9db17/Integrations/AppVeyor?ProjectKey=LibreMetaverse&SigningPolicyKey=LibreMetaverse
     authorization:
       secure: 5X22VkhN0wjILZOvbIPXRUutxFSiwHxhe9e7xYxEMGhxq+mAyMptnWJ0PH20YS8+v+nsnV7woz0pgYHBTEYahQ==
     skip_symbols: true
-    artifact: /.*LibreMetaverse.*\.nupkg/
+    artifact: nuget_libraries.zip
     draft: false
     prerelease: false
     on:
