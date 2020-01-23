@@ -44,12 +44,7 @@ before_build:
   - nuget restore LibreMetaverse.sln
 
 after_build:
-  - ps: |
-    foreach ($artifactName in $artifacts.keys) {
-      $env:packagePath = $artifacts[$artifactName].path
-      break
-    }
-  - ps: Compress-Archive -Path "$env:packagePath\*.nuget" -CompressionLevel "fastest" -DestinationPath "$env:packagePath\nuget_libraries.zip"
+  - ps: Get-ChildItem -Filter "*.nupkg" | Compress-Archive -DestinationPath "$env:packagePath\nuget_libraries.zip" -Verbose
 
 artifacts:
   - path: 'nuget_libraries.zip'
