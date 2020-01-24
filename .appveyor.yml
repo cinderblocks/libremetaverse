@@ -44,7 +44,7 @@ before_build:
   - nuget restore LibreMetaverse.sln
 
 after_build:
-  - ps: Get-ChildItem -Filter "*.nupkg" | Compress-Archive -DestinationPath "$env:packagePath\nuget_libraries.zip" -Verbose
+  - ps: Get-ChildItem -Filter "*.nupkg" -Path "C:\Users\appveyor\AppData\Local\Temp\" -recurse | Compress-Archive -DestinationPath "nuget_libraries.zip" -Verbose
 
 artifacts:
   - path: 'nuget_libraries.zip'
