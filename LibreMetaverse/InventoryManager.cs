@@ -1093,7 +1093,7 @@ namespace OpenMetaverse
         public void UpdateFolderProperties(UUID folderID, UUID parentID, string name, FolderType type)
         {
             InventoryFolder inv = null;
-            lock (Store)
+            lock (_Store)
             {
                 if (_Store.Contains(folderID))
                 {
