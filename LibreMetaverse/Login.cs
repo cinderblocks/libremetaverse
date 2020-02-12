@@ -156,27 +156,49 @@ namespace OpenMetaverse
         /// </summary>
         public LoginParams()
         {
-            var options = new List<string>(16)
+            var options = new List<string>(19)
             {
                 "inventory-root",
                 "inventory-skeleton",
-                "inventory-lib-root",
-                "inventory-lib-owner",
-                "inventory-skel-lib",
                 "initial-outfit",
                 "gestures",
+                "display_names",
                 "event_categories",
                 "event_notifications",
                 "classified_categories",
+                "adult_compliant",
                 "buddy-list",
+                "newuser-config",
                 "ui-config",
+                "advanced-mode",
+                "max-agent-groups",
+                "map-server-url",
+                "voice-config",
                 "tutorial_settings",
                 "login-flags",
-                "global-textures",
-                "adult_compliant"
+                "global-textures"
+            };
+
+            var library_options = new List<string>(3)
+            {
+                "inventory-lib-root",
+                "inventory-lib-owner",
+                "inventory-skel-lib"
+            };
+
+            var opensim_options = new List<string>(6)
+            {
+                "avatar_picker_url",
+                "classified_fee",
+                "currency",
+                "destination_guide_url",
+                //"max_groups", unsupported, OpenSim should use max-agent-groups
+                "profile-server-url",
+                "search"
             };
 
             Options = options.ToArray();
+            // *TODO: include library and opensim options when we support them
             MethodName = "login_to_simulator";
             Start = "last";
             Platform = NetworkManager.GetPlatform();
