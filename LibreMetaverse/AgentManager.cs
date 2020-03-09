@@ -1561,6 +1561,8 @@ namespace OpenMetaverse
 
         #region Chat and instant messages
 
+        protected int message_chunk_group_id = 0; // a int that starts at 1 goes upto 500 (then back to 1)
+
         /// <summary>
         /// Send a text message from the Agent to the Simulator
         /// </summary>
@@ -1568,24 +1570,46 @@ namespace OpenMetaverse
         /// <param name="channel">The channel to send the message on, 0 is the public channel. Channels above 0
         /// can be used however only scripts listening on the specified channel will see the message</param>
         /// <param name="type">Denotes the type of message being sent, shout, whisper, etc.</param>
-        public void Chat(string message, int channel, ChatType type)
+        /// <param name="allow_split_message">Enables large messages to be split into chunks of 900 with [CHUNKGROUPID|CHUNKID|TOTALCHUNKS] at the start</param>
+        /// <param name="hide_chunk_grouping">Hides [CHUNKGROUPID|CHUNKID|TOTALCHUNKS] at the start of chunked messages</param>
+        public void Chat(string message, int channel, ChatType type,bool allow_split_message=true,bool hide_chunk_grouping=true)
         {
-            ChatFromViewerPacket chat = new ChatFromViewerPacket
+            if ((message.Length > 900) && (allow_split_message == true))
             {
-                AgentData =
+                int group_id = message_chunk_group_id;
+                message_chunk_group_id++;
+                if (message_chunk_group_id > 500) message_chunk_group_id = 1;
+                string[] chunks = message.SplitBy(900).ToArray();
+                int chunkid = 1;
+                foreach(string C in chunks)
                 {
-                    AgentID = id,
-                    SessionID = Client.Self.SessionID
-                },
-                ChatData =
-                {
-                    Channel = channel,
-                    Message = Utils.StringToBytes(message),
-                    Type = (byte) type
+                    string chunk_grouping = "";
+                    if(hide_chunk_grouping == false)
+                    {
+                        chunk_grouping = "[" + group_id.ToString() + "|" + chunkid.ToString() + "|"+chunks.Length.ToString()+"]";
+                    }
+                    Chat(""+ chunk_grouping+"" + C + "", channel, type, false);
+                    chunkid++;
                 }
-            };
-
-            Client.Network.SendPacket(chat);
+            }
+            else if ((message.Length > 0) && (message.Length < 1000))
+            {
+                ChatFromViewerPacket chat = new ChatFromViewerPacket
+                {
+                    AgentData =
+                        {
+                            AgentID = id,
+                            SessionID = Client.Self.SessionID
+                        },
+                    ChatData =
+                        {
+                            Channel = channel,
+                            Message = Utils.StringToBytes(message),
+                            Type = (byte) type
+                        }
+                };
+                Client.Network.SendPacket(chat);
+            }
         }
 
         /// <summary>
