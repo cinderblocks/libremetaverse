@@ -690,6 +690,7 @@ namespace OpenMetaverse
                         {
                             transfer.Success = false;
                             transfer.Status = StatusCode.Error;
+                            callback(transfer, null);
                         }
 
                     }
