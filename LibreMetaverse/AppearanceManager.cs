@@ -1198,6 +1198,57 @@ namespace OpenMetaverse
         /// </summary>
         private void SendAgentIsNowWearing()
         {
+            List<AgentIsNowWearingPacket.WearableDataBlock> temp_block_storage = new List<AgentIsNowWearingPacket.WearableDataBlock>();
+            lock (Wearables)
+            {
+                List<WearableType> multiattached = new List<WearableType>();
+                int WearableData_index = 0;
+                for (int i = 0; i < WEARABLE_COUNT; i++)
+                {
+                    WearableType type = (WearableType)i;
+                    bool use_multi = false;
+                    if (Wearables.ContainsKey(type) == true)
+                    {
+                        if (Wearables[type].Count > 1)
+                        {
+                            if (multiattached.Contains(type) == false)
+                            {
+                                multiattached.Add(type);
+                            }
+                            use_multi = true;
+                        }
+                    }
+                    if (use_multi == false)
+                    {
+                        temp_block_storage.Add(new AgentIsNowWearingPacket.WearableDataBlock
+                        {
+                            WearableType = (byte)WearableData_index,
+                            // This appears to be hacked on SL server side to support multi-layers
+                            ItemID = Wearables.ContainsKey(type) ?
+                                (Wearables[type].First()?.ItemID ?? UUID.Zero)
+                                : UUID.Zero
+                        });
+                        WearableData_index++;
+                    }
+                }
+                // hacky multi layers
+                foreach (WearableType T in multiattached)
+                {
+                    int index = 0;
+                    while (index < Wearables[T].Count)
+                    {
+                        temp_block_storage.Add(new AgentIsNowWearingPacket.WearableDataBlock
+                        {
+                            WearableType = (byte)WearableData_index,
+                            ItemID = Wearables.ContainsKey(T) ? (Wearables[T].ElementAt(index)?.ItemID ?? UUID.Zero)
+                                : UUID.Zero
+                        });
+                        WearableData_index++;
+                        index++;
+                    }
+                }
+
+            }
             AgentIsNowWearingPacket wearing = new AgentIsNowWearingPacket
             {
                 AgentData =
@@ -1205,25 +1256,14 @@ namespace OpenMetaverse
                     AgentID = Client.Self.AgentID,
                     SessionID = Client.Self.SessionID
                 },
-                WearableData = new AgentIsNowWearingPacket.WearableDataBlock[WEARABLE_COUNT]
+                WearableData = new AgentIsNowWearingPacket.WearableDataBlock[temp_block_storage.Count]
             };
-
-            lock (Wearables)
+            int blockindex = 0;
+            foreach (AgentIsNowWearingPacket.WearableDataBlock block in temp_block_storage)
             {
-                for (int i = 0; i < WEARABLE_COUNT; i++)
-                {
-                    WearableType type = (WearableType)i;
-                    wearing.WearableData[i] = new AgentIsNowWearingPacket.WearableDataBlock
-                    {
-                        WearableType = (byte) i,
-                        // This appears to be hacked on SL server side to support multi-layers
-                        ItemID = Wearables.ContainsKey(type) ?
-                            (Wearables[type].First()?.ItemID ?? UUID.Zero)
-                            : UUID.Zero
-                    };
-                }
+                wearing.WearableData[blockindex] = block;
+                blockindex++;
             }
-
             Client.Network.SendPacket(wearing);
         }
 
