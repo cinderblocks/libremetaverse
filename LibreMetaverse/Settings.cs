@@ -357,7 +357,10 @@ namespace OpenMetaverse
 
         /// <summary>Log disk cache misses and other info</summary>
         public bool LOG_DISKCACHE = true;
-        
+
+        /// <summary>Target selection for log writer: console or NoLogWriter</summary>
+        public static string LOG_WRITER = "console";
+
         #endregion
         #region Private Fields
 
