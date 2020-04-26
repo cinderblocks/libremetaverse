@@ -202,7 +202,7 @@ namespace OpenMetaverse
         /// <summary>Should we connect to multiple sims? This will allow
         /// viewing in to neighboring simulators and sim crossings
         /// (Experimental)</summary>
-        public bool MULTIPLE_SIMS = true;
+        public bool MULTIPLE_SIMS = false;
 
         /// <summary>If true, all object update packets will be decoded in to
         /// native objects. If false, only updates for our own agent will be
