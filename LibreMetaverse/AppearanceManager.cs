@@ -30,7 +30,6 @@ using System.Threading;
 using System.Linq;
 using System.Threading.Tasks;
 using LibreMetaverse;
-using Microsoft.Collections.Extensions;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Imaging;
 using OpenMetaverse.Assets;
@@ -375,7 +374,9 @@ namespace OpenMetaverse
         #region Private Members
 
         /// <summary>A cache of wearables currently being worn</summary>
-        private MultiValueDictionary<WearableType, WearableData> Wearables = new MultiValueDictionary<WearableType, WearableData>();
+
+        private Dictionary<WearableType, List<WearableData>> Wearables = new Dictionary<WearableType, List<WearableData>>();
+
         /// <summary>A cache of textures currently being worn</summary>
         private TextureData[] Textures = new TextureData[(int)AvatarTextureIndex.NumberOfEntries];
         /// <summary>Incrementing serial number for AgentCachedTexture packets</summary>
@@ -454,9 +455,47 @@ namespace OpenMetaverse
         /// <summary>
         /// Starts the appearance setting thread
         /// </summary>
-        public void RequestSetAppearance()
+        public string RequestSetAppearance()
         {
-            RequestSetAppearance(false);
+            try
+            {
+                if (Client != null)
+                {
+                    if (Client.Self != null)
+                    {
+                        if (Client.Self.AgentID != null)
+                        {
+                            InventoryFolder cof = GetCOF();
+                            if (cof != null)
+                            {
+                                KeyValuePair<string, List<InventoryBase>> reply = Client.Inventory.FolderContents_replyed(cof.UUID, Client.Self.AgentID, true, true, InventorySortOrder.ByDate, 40 * 1000, false);
+                                if (reply.Key == "ok")
+                                {
+                                    List<InventoryBase> contents = reply.Value;
+                                    List<InventoryItem> wareables = new List<InventoryItem>();
+                                    if (contents != null)
+                                    {
+                                        foreach (InventoryBase item in contents)
+                                        {
+                                            if ((item is InventoryWearable) || (item is InventoryObject))
+                                            {
+                                                wareables.Add((InventoryItem)item);
+                                            }
+                                        }
+                                        Client.Appearance.ReplaceOutfit(wareables, false);
+                                    }
+                                }
+                                return reply.Key;
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                
+            }
+            return "retry";
         }
 
         /// <summary>
@@ -583,7 +622,7 @@ namespace OpenMetaverse
                             cancellationToken.ThrowIfCancellationRequested();
 
                             // Send the appearance packet
-                            RequestAgentSetAppearance();
+                            SendAgentIsNowWearing();
                         }
                     }
                     catch (Exception e)
@@ -761,7 +800,7 @@ namespace OpenMetaverse
         /// be added to the outfit</param>
         public void AddToOutfit(List<InventoryItem> wearableItems)
         {
-            AddToOutfit(wearableItems, true);
+            AddToOutfit(wearableItems, false);
         }
 
         /// <summary>
@@ -793,7 +832,11 @@ namespace OpenMetaverse
                         // Dump everything from the key
                         Wearables.Remove(wearableItem.WearableType);
                     }
-                    Wearables.Add(wearableItem.WearableType, wd);
+                    if(Wearables.ContainsKey(wearableItem.WearableType) == false)
+                    {
+                        Wearables.Add(wearableItem.WearableType, new List<WearableData>());
+                    }
+                    Wearables[wearableItem.WearableType].Add(wd);
                 }
             }
 
@@ -845,9 +888,15 @@ namespace OpenMetaverse
                             .SelectMany(e => e.Value);
                         WearableData wearableData = worn.FirstOrDefault(item => item.ItemID == wearable.UUID);
                         if (wearableData == null) continue;
-
-                        Wearables.Remove(wearable.WearableType, wearableData);
-                        needSetAppearance = true;
+                        if (Wearables.ContainsKey(wearable.WearableType) == true)
+                        {
+                            if (Wearables[wearable.WearableType].Contains(wearableData) == true)
+                            {
+                                Wearables[wearable.WearableType].Remove(wearableData);
+                                needSetAppearance = true;
+                            }
+                        }
+                        
                     }
                 }
             }
@@ -974,11 +1023,11 @@ namespace OpenMetaverse
             }
         }
 
-        public MultiValueDictionary<WearableType, WearableData> GetWearablesByType()
+        public Dictionary<WearableType, List<WearableData>> GetWearablesByType()
         {
             lock (Wearables)
             {
-                return new MultiValueDictionary<WearableType, WearableData>(Wearables);
+                return new Dictionary<WearableType, List<WearableData>>(Wearables);
             }
         }
 
@@ -1005,6 +1054,7 @@ namespace OpenMetaverse
 
         #region Attachments
 
+
         /// <summary>
         /// Adds a list of attachments to our agent
         /// </summary>
@@ -1012,7 +1062,7 @@ namespace OpenMetaverse
         /// <param name="removeExistingFirst">If true, tells simulator to remove existing attachment
         /// <param name="replace">If true replace existing attachment on this attachment point, otherwise add to it (multi-attachments)</param>
         /// first</param>
-        public void AddAttachments(List<InventoryItem> attachments, bool removeExistingFirst, bool replace = true)
+        public void AddAttachments(List<InventoryItem> attachments, bool removeExistingFirst, bool replace = false)
         {
             // Use RezMultipleAttachmentsFromInv  to clear out current attachments, and attach new ones
             RezMultipleAttachmentsFromInvPacket attachmentsPacket = new RezMultipleAttachmentsFromInvPacket
@@ -1198,6 +1248,57 @@ namespace OpenMetaverse
         /// </summary>
         private void SendAgentIsNowWearing()
         {
+            List<AgentIsNowWearingPacket.WearableDataBlock> temp_block_storage = new List<AgentIsNowWearingPacket.WearableDataBlock> ();
+            lock (Wearables)
+            {
+                List<WearableType> multiattached = new List<WearableType>();
+                int WearableData_index = 0;
+                for (int i = 0; i < WEARABLE_COUNT; i++)
+                {
+                    WearableType type = (WearableType)i;
+                    bool use_multi = false;
+                    if (Wearables.ContainsKey(type) == true)
+                    {
+                        if (Wearables[type].Count > 1)
+                        {
+                            if (multiattached.Contains(type) == false)
+                            {
+                                multiattached.Add(type);
+                            }
+                            use_multi = true;
+                        }
+                    }
+                    if (use_multi == false)
+                    {
+                        temp_block_storage.Add(new AgentIsNowWearingPacket.WearableDataBlock
+                        {
+                            WearableType = (byte)WearableData_index,
+                            // This appears to be hacked on SL server side to support multi-layers
+                            ItemID = Wearables.ContainsKey(type) ?
+                                (Wearables[type].First()?.ItemID ?? UUID.Zero)
+                                : UUID.Zero
+                        });
+                        WearableData_index++;
+                    }
+                }
+                // hacky multi layers
+                foreach(WearableType T in multiattached)
+                {
+                    int index = 0;
+                    while(index < Wearables[T].Count)
+                    {
+                        temp_block_storage.Add(new AgentIsNowWearingPacket.WearableDataBlock
+                        {
+                            WearableType = (byte)WearableData_index,
+                            ItemID = Wearables.ContainsKey(T) ? (Wearables[T].ElementAt(index) ?.ItemID ?? UUID.Zero)
+                                : UUID.Zero
+                        });
+                        WearableData_index++;
+                        index++;
+                    }
+                }
+
+            }
             AgentIsNowWearingPacket wearing = new AgentIsNowWearingPacket
             {
                 AgentData =
@@ -1205,25 +1306,14 @@ namespace OpenMetaverse
                     AgentID = Client.Self.AgentID,
                     SessionID = Client.Self.SessionID
                 },
-                WearableData = new AgentIsNowWearingPacket.WearableDataBlock[WEARABLE_COUNT]
+                WearableData = new AgentIsNowWearingPacket.WearableDataBlock[temp_block_storage.Count]
             };
-
-            lock (Wearables)
+            int blockindex = 0;
+            foreach (AgentIsNowWearingPacket.WearableDataBlock block in temp_block_storage)
             {
-                for (int i = 0; i < WEARABLE_COUNT; i++)
-                {
-                    WearableType type = (WearableType)i;
-                    wearing.WearableData[i] = new AgentIsNowWearingPacket.WearableDataBlock
-                    {
-                        WearableType = (byte) i,
-                        // This appears to be hacked on SL server side to support multi-layers
-                        ItemID = Wearables.ContainsKey(type) ?
-                            (Wearables[type].First()?.ItemID ?? UUID.Zero)
-                            : UUID.Zero
-                    };
-                }
+                wearing.WearableData[blockindex] = block;
+                blockindex++;
             }
-
             Client.Network.SendPacket(wearing);
         }
 
@@ -1235,7 +1325,7 @@ namespace OpenMetaverse
         {
             // *TODO: This could use some love. We need to sanitize wearable layers, and this may not be
             //        the most efficient way of doing that.
-            var newWearables = new MultiValueDictionary<WearableType, WearableData>();
+            var newWearables = new Dictionary<WearableType, List<WearableData>>();
             var bodyparts = new Dictionary<WearableType, WearableData>();
 
             lock (Wearables)
@@ -1267,14 +1357,22 @@ namespace OpenMetaverse
                     if (wearableItem.AssetType == AssetType.Bodypart) {
                         bodyparts[wearableItem.WearableType] = wd;
                     } else {
-                        newWearables.Add(wearableItem.WearableType, wd);
+                        if(newWearables.ContainsKey(wearableItem.WearableType) == false)
+                        {
+                            newWearables.Add(wearableItem.WearableType, new List<WearableData>());
+                        }
+                        newWearables[wearableItem.WearableType].Add(wd);
                     }
                 }
 
                 // merge bodyparts into new wearable list
                 foreach (var bodypart in bodyparts)
                 {
-                    newWearables.Add(bodypart.Key, bodypart.Value);
+                    if (newWearables.ContainsKey(bodypart.Key) == false)
+                    {
+                        newWearables.Add(bodypart.Key, new List<WearableData>());
+                    }
+                    newWearables[bodypart.Key].Add(bodypart.Value);
                 }
 
                 // heavy handed body part sanity check
@@ -1925,36 +2023,54 @@ namespace OpenMetaverse
             InventoryFolder COF = GetCOF();
             if (COF == null)
             {
+
+                OSDMap request = new OSDMap(1) { ["cof_version"] = COF.Version };
+
+                string msg = "Setting server side baking failed";
+
+                OSD res = capsRequest.GetResponse(request, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT * 2);
+
+                if (res is OSDMap result)
+                {
+                    if (result["success"])
+                    {
+                        Logger.Log("Successfully set appearance", Helpers.LogLevel.Info, Client);
+                        // TODO: Set local visual params and baked textures based on the result here
+                        return true;
+                    }
+                    if (result.ContainsKey("error"))
+                    {
+                        msg += ": " + result["error"].AsString();
+                    }
+                }
+
+                Logger.Log(msg, Helpers.LogLevel.Error, Client);
                 return false;
+
             }
             else
             {
                 // TODO: create Current Outfit Folder
-            }
-
-            OSDMap request = new OSDMap(1) {["cof_version"] = COF.Version};
-
-            string msg = "Setting server side baking failed";
-
-            OSD res = capsRequest.GetResponse(request, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT * 2);
-
-            if (res is OSDMap result)
-            {
-                if (result["success"])
+                List<InventoryBase> contents = Client.Inventory.FolderContents(COF.UUID, Client.Self.AgentID, true, true, InventorySortOrder.ByDate, 40 * 1000);
+                List<InventoryItem> wareables = new List<InventoryItem>();
+                if (contents != null)
                 {
-                    Logger.Log("Successfully set appearance", Helpers.LogLevel.Info, Client);
-                    // TODO: Set local visual params and baked textures based on the result here
+                    foreach (InventoryBase item in contents)
+                    {
+                        if ((item is InventoryWearable) || (item is InventoryObject))
+                        {
+                            wareables.Add((InventoryItem)item);
+                        }
+                    }
+                    Client.Appearance.ReplaceOutfit(wareables, false);
                     return true;
                 }
-                if (result.ContainsKey("error"))
+                else
                 {
-                    msg += ": " + result["error"].AsString();
+                    return false;
                 }
             }
 
-            Logger.Log(msg, Helpers.LogLevel.Error, Client);
-
-            return false;
         }
 
         /// <summary>
@@ -2267,82 +2383,43 @@ namespace OpenMetaverse
 
         protected void AgentWearablesUpdateHandler(object sender, PacketReceivedEventArgs e)
         {
-            bool changed = false;
             var update = (AgentWearablesUpdatePacket)e.Packet;
-
             lock (Wearables)
             {
-                #region Test if anything changed in this update
-
-                foreach (var block in update.WearableData)
-                {
-                    if (block.AssetID != UUID.Zero)
-                    {
-                        WearableType type = (WearableType)block.WearableType;
-                        if (Wearables.ContainsKey(type))
-                        {
-                            // HACK: I'm so tired and this is so bad.
-                            bool match = false;
-                            foreach (var wearable in Wearables.Where(w => w.Key == type).SelectMany(w => w.Value))
-                            {
-                                if (wearable.AssetID == block.AssetID || wearable.ItemID == block.ItemID)
-                                {
-                                    match = true;
-                                }
-                            }
-                            changed = !match;
-                            if (changed) break;
-                        }
-                        else
-                        {
-                            // A wearable is now set for this index
-                            changed = true;
-                            break;
-                        }
-                    }
-                    else if (Wearables.ContainsKey((WearableType)block.WearableType))
-                    {
-                        // This index is now empty
-                        changed = true;
-                        break;
-                    }
-                }
-
-                #endregion Test if anything changed in this update
-
-                if (changed)
+                if (Wearables.GetHashCode() != update.GetHashCode())
                 {
                     Logger.DebugLog("New wearables received in AgentWearablesUpdate");
                     Wearables.Clear();
 
                     foreach (AgentWearablesUpdatePacket.WearableDataBlock block in update.WearableData)
                     {
-                        if (block.AssetID == UUID.Zero) continue;
-
-                        WearableType type = (WearableType)block.WearableType;
-                        WearableData data = new WearableData
+                        if (block.AssetID != UUID.Zero)
                         {
-                            Asset = null,
-                            AssetID = block.AssetID,
-                            AssetType = WearableTypeToAssetType(type),
-                            ItemID = block.ItemID,
-                            WearableType = type
-                        };
+                            WearableType type = (WearableType)block.WearableType;
+                            WearableData data = new WearableData
+                            {
+                                Asset = null,
+                                AssetID = block.AssetID,
+                                AssetType = WearableTypeToAssetType(type),
+                                ItemID = block.ItemID,
+                                WearableType = type
+                            };
 
-                        // Add this wearable to our collection
-                        Wearables.Add(type, data);
+                            // Add this wearable to our collection
+                            if(Wearables.ContainsKey(type) == false)
+                            {
+                                Wearables.Add(type, new List<WearableData>());
+                            }
+                            Wearables[type].Add(data);
+
+                        }
                     }
+                    OnAgentWearables(new AgentWearablesReplyEventArgs());
                 }
                 else
                 {
                     Logger.DebugLog("Duplicate AgentWearablesUpdate received, discarding");
                 }
-            }
-
-            if (changed)
-            {
-                // Fire the callback
-                OnAgentWearables(new AgentWearablesReplyEventArgs());
             }
         }
 
@@ -2394,7 +2471,7 @@ namespace OpenMetaverse
             if (e.Simulator == Client.Network.CurrentSim && Client.Settings.SEND_AGENT_APPEARANCE)
             {
                 // Update appearance each time we enter a new sim and capabilities have been retrieved
-                Client.Appearance.RequestSetAppearance();
+                Client.Appearance.SendAgentIsNowWearing();
             }
         }
 
