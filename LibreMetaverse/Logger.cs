@@ -1,188 +1,201 @@
-/*
- * Copyright (c) 2006-2016, openmetaverse.co
- * All rights reserved.
- *
- * - Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions are met:
- *
- * - Redistributions of source code must retain the above copyright notice, this
- *   list of conditions and the following disclaimer.
- * - Neither the name of the openmetaverse.co nor the names 
- *   of its contributors may be used to endorse or promote products derived from
- *   this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
- * POSSIBILITY OF SUCH DAMAGE.
- */
-
 using System;
-using System.Reflection;
-using log4net;
-using log4net.Appender;
-using log4net.Config;
-
-[assembly: XmlConfigurator(Watch = true)]
+using System.Text;
 
 namespace OpenMetaverse
 {
-    /// <summary>
-    /// Singleton logging class for the entire library
-    /// </summary>
-    public static class Logger
+    public abstract class LogWriter
     {
-        /// <summary>
-        /// Callback used for client apps to receive log messages from
-        /// the library
-        /// </summary>
-        /// <param name="message">Data being logged</param>
-        /// <param name="level">The severity of the log entry from <seealso cref="Helpers.LogLevel"/></param>
-        public delegate void LogCallback(object message, Helpers.LogLevel level);
-
-        /// <summary>Triggered whenever a message is logged. If this is left
-        /// null, log messages will go to the console</summary>
-        public static event LogCallback OnLogMessage;
-
-        /// <summary>log4net logging engine</summary>
-        public static ILog LogInstance;
-
-        /// <summary>
-        /// Default constructor
-        /// </summary>
-        static Logger()
+        public static void LogMessage(StringBuilder messageBuilder, Helpers.LogLevel Level)
         {
-            LogInstance = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-
-            // If error level reporting isn't enabled we assume no logger is configured and initialize a default
-            // ConsoleAppender
-            if (!LogInstance.Logger.IsEnabledFor(log4net.Core.Level.Error))
-            {
-                IAppender appender = new ConsoleAppender
-                {
-                    Layout = new log4net.Layout.PatternLayout("%timestamp [%thread] %-5level - %message%newline")
-                };
-                BasicConfigurator.Configure(LogManager.GetRepository(Assembly.GetCallingAssembly()), appender);
-
-                if(Settings.LOG_LEVEL != Helpers.LogLevel.None)
-                    LogInstance.Info("No log configuration found, defaulting to console logging");
-            }
-        }
-
-        /// <summary>
-        /// Send a log message to the logging engine
-        /// </summary>
-        /// <param name="message">The log message</param>
-        /// <param name="level">The severity of the log entry</param>
-        public static void Log(object message, Helpers.LogLevel level)
-        {
-            Log(message, level, null, null);
-        }
-
-        /// <summary>
-        /// Send a log message to the logging engine
-        /// </summary>
-        /// <param name="message">The log message</param>
-        /// <param name="level">The severity of the log entry</param>
-        /// <param name="client">Instance of the client</param>
-        public static void Log(object message, Helpers.LogLevel level, GridClient client)
-        {
-            Log(message, level, client, null);
-        }
-
-        /// <summary>
-        /// Send a log message to the logging engine
-        /// </summary>
-        /// <param name="message">The log message</param>
-        /// <param name="level">The severity of the log entry</param>
-        /// <param name="exception">Exception that was raised</param>
-        public static void Log(object message, Helpers.LogLevel level, Exception exception)
-        {
-            Log(message, level, null, exception);
-        }
-
-        /// <summary>
-        /// Send a log message to the logging engine
-        /// </summary>
-        /// <param name="message">The log message</param>
-        /// <param name="level">The severity of the log entry</param>
-        /// <param name="client">Instance of the client</param>
-        /// <param name="exception">Exception that was raised</param>
-        public static void Log(object message, Helpers.LogLevel level, GridClient client, Exception exception)
-        {
-            if (client != null && client.Settings.LOG_NAMES)
-                message = $"<{client.Self.Name}>: {message}";
-
-            OnLogMessage?.Invoke(message, level);
-
-            switch (level)
+            var date = DateTime.Now;
+            string Message = messageBuilder.ToString();
+            messageBuilder.Clear();
+            messageBuilder.Append("[");
+            if (date.Hour < 10) messageBuilder.Append("0");
+            messageBuilder.Append(date.Hour.ToString());
+            messageBuilder.Append(":");
+            if (date.Minute < 10) messageBuilder.Append("0");
+            messageBuilder.Append(date.Minute.ToString());
+            messageBuilder.Append("] ");
+            switch (Level)
             {
                 case Helpers.LogLevel.Debug:
-                    if (Settings.LOG_LEVEL == Helpers.LogLevel.Debug)
-                        LogInstance.Debug(message, exception);
-                    break;
+                    {
+                        messageBuilder.Append("Debug - ");
+                        break;
+                    }
                 case Helpers.LogLevel.Info:
-                    if (Settings.LOG_LEVEL == Helpers.LogLevel.Debug
-                        || Settings.LOG_LEVEL == Helpers.LogLevel.Info)
-                        LogInstance.Info(message, exception);
-                    break;
+                    {
+                        messageBuilder.Append("Status - ");
+                        break;
+                    }
                 case Helpers.LogLevel.Warning:
-                    if (Settings.LOG_LEVEL == Helpers.LogLevel.Debug
-                        || Settings.LOG_LEVEL == Helpers.LogLevel.Info
-                        || Settings.LOG_LEVEL == Helpers.LogLevel.Warning)
-                        LogInstance.Warn(message, exception);
-                    break;
+                    {
+                        messageBuilder.Append("Warn - ");
+                        break;
+                    }
                 case Helpers.LogLevel.Error:
-                    if (Settings.LOG_LEVEL == Helpers.LogLevel.Debug
-                        || Settings.LOG_LEVEL == Helpers.LogLevel.Info
-                        || Settings.LOG_LEVEL == Helpers.LogLevel.Warning
-                        || Settings.LOG_LEVEL == Helpers.LogLevel.Error)
-                        LogInstance.Error(message, exception);
-                    break;
+                    {
+                        messageBuilder.Append("Error - ");
+                        break;
+                    }
                 default:
                     break;
-            } 
+            }
+            messageBuilder.Append(Message);
+            WriteMessage(Message);
         }
-
-        /// <summary>
-        /// If the library is compiled with DEBUG defined, an event will be
-        /// fired if an <code>OnLogMessage</code> handler is registered and the
-        /// message will be sent to the logging engine
-        /// </summary>
-        /// <param name="message">The message to log at the DEBUG level to the
-        /// current logging engine</param>
-        public static void DebugLog(object message)
+        protected static void WriteMessage(string message)
         {
-            DebugLog(message, null);
-        }
 
-        /// <summary>
-        /// If the library is compiled with DEBUG defined and
-        /// <code>GridClient.Settings.DEBUG</code> is true, an event will be
-        /// fired if an <code>OnLogMessage</code> handler is registered and the
-        /// message will be sent to the logging engine
-        /// </summary>
-        /// <param name="message">The message to log at the DEBUG level to the
-        /// current logging engine</param>
-        /// <param name="client">Instance of the client</param>
-        [System.Diagnostics.Conditional("DEBUG")]
-        public static void DebugLog(object message, GridClient client)
+        }
+    }
+    public class NoLogWriter : LogWriter
+    {
+    }
+    public class ConsoleWriter : LogWriter
+    {
+        public new static void WriteMessage(string message)
         {
-            if (Settings.LOG_LEVEL != Helpers.LogLevel.Debug) return;
-
-            if (client != null && client.Settings.LOG_NAMES)
-                message = $"<{client.Self.Name}>: {message}";
-
-            OnLogMessage?.Invoke(message, Helpers.LogLevel.Debug);
-
-            LogInstance.Debug(message);
+            Console.WriteLine(message);
         }
+    }
+    
+    public static class Logger
+    {
+        // Warn,Error,Log,Debug functions
+        #region Message only methods without Levels
+        public static void Warn(string message)
+        {
+            Log(message, Helpers.LogLevel.Warning);
+        }
+        public static void Error(string message)
+        {
+            Log(message, Helpers.LogLevel.Error);
+        }
+        public static void Info(string message)
+        {
+            Log(message, Helpers.LogLevel.Info);
+        }
+        public static void DebugLog(string message)
+        {
+            Log(message, Helpers.LogLevel.Debug);
+        }
+        #endregion
+        #region Message+Exception without levels
+        public static void Warn(string message, Exception e)
+        {
+            Log(message, Helpers.LogLevel.Warning, null, e);
+        }
+        public static void Error(string message, Exception e)
+        {
+            Log(message, Helpers.LogLevel.Error, null, e);
+        }
+        public static void Info(string message, Exception e)
+        {
+            Log(message, Helpers.LogLevel.Info, null, e);
+        }
+        public static void DebugLog(string message, Exception e)
+        {
+            Log(message, Helpers.LogLevel.Debug, null, e);
+        }
+        #endregion
+        #region Message+Client without levels
+        public static void Warn(string message, GridClient client)
+        {
+            Log(message, Helpers.LogLevel.Warning,client);
+        }
+        public static void Error(string message, GridClient client)
+        {
+            Log(message, Helpers.LogLevel.Error, client);
+        }
+        public static void Info(string message, GridClient client)
+        {
+            Log(message, Helpers.LogLevel.Info, client);
+        }
+        public static void DebugLog(string message, GridClient client)
+        {
+            Log(message, Helpers.LogLevel.Debug, client);
+        }
+        #endregion
+        #region Message+Client+Exeption without levels [Anything else call Log Directly]
+        public static void Warn(string message, GridClient client, Exception exception)
+        {
+            Log(message, Helpers.LogLevel.Warning, client, exception);
+        }
+        public static void Error(string message, GridClient client, Exception exception)
+        {
+            Log(message, Helpers.LogLevel.Error, client, exception);
+        }
+        public static void Info(string message, GridClient client, Exception exception)
+        {
+            Log(message, Helpers.LogLevel.Info, client, exception);
+        }
+        public static void DebugLog(string message, GridClient client, Exception exception)
+        {
+            Log(message, Helpers.LogLevel.Debug, client, exception);
+        }
+        #endregion
+
+        public static void Log(string message, Helpers.LogLevel Level, GridClient client, Exception exception)
+        {
+            if (Settings.LOG_LEVEL >= Level)
+            {
+                StringBuilder NewMessage = new StringBuilder();
+                if (client != null)
+                {
+                    if (client.Settings.LOG_NAMES)
+                    {
+                        NewMessage.Append("{");
+                        NewMessage.Append(client.Self.Name);
+                        NewMessage.Append("} ");
+                    }
+                }
+                NewMessage.Append(message);
+                switch (Settings.LOG_WRITER)
+                {
+                    case "NoLogWriter":
+                        {
+                            break;
+                        }
+                    default:
+                        {
+                            ConsoleWriter.LogMessage(NewMessage, Level);
+                            break;
+                        }
+                }
+            }
+        }
+        public static void LogFormat(string Message, Helpers.LogLevel Level, int Value)
+        {
+            LogFormat(Message, new[] { Value.ToString() });
+        }
+        public static void LogFormat(string Message, string[] Values)
+        {
+            LogFormat(Message, Helpers.LogLevel.Debug,Values);
+        }
+        public static void LogFormat(string Message, Helpers.LogLevel Level, string[] Values)
+        {
+            Log(String.Format(Message, Values), Level);
+        }
+
+        #region Log overloads
+        public static void Log(string message)
+        {
+            Log(message, Helpers.LogLevel.Debug);
+        }
+        public static void Log(string message, Helpers.LogLevel Level)
+        {
+            Log(message, Level, null, null);
+        }
+        public static void Log(string message, Helpers.LogLevel Level, GridClient client)
+        {
+            Log(message, Level, null, null);
+        }
+        public static void Log(string message, Helpers.LogLevel Level, Exception exception)
+        {
+            Log(message, Level, null, exception);
+        }
+        #endregion
     }
 }

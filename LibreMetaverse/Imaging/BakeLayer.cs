@@ -30,7 +30,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Drawing;
 using OpenMetaverse.Assets;
-using log4net;
 
 namespace OpenMetaverse.Imaging
 {
@@ -40,7 +39,6 @@ namespace OpenMetaverse.Imaging
     /// </summary>
     public class Baker
     {
-        private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         #region Properties
         /// <summary>Final baked texture</summary>
         public AssetTexture BakedTexture => bakedTexture;
@@ -333,7 +331,7 @@ namespace OpenMetaverse.Imaging
             }
 
             // Apply any alpha wearable textures to make parts of the avatar disappear
-            m_log.DebugFormat("[XBakes]: Number of alpha wearable textures: {0}", alphaWearableTextures.Count);
+            Logger.LogFormat("[XBakes]: Number of alpha wearable textures: {0}", Helpers.LogLevel.Debug, alphaWearableTextures.Count);
             foreach (ManagedImage img in alphaWearableTextures)
                 AddAlpha(bakedTexture.Image, img);
 
@@ -358,7 +356,7 @@ namespace OpenMetaverse.Imaging
                 }
                 if (bitmap == null)
                 {
-                    Logger.Log(String.Format("Failed loading resource file: {0}", fileName), Helpers.LogLevel.Error);
+                    Logger.LogFormat("[XBakes]: Number of alpha wearable textures: {0}", Helpers.LogLevel.Error, new[] { fileName });
                     return null;
                 }
                 else
@@ -368,8 +366,10 @@ namespace OpenMetaverse.Imaging
             }
             catch (Exception e)
             {
-                Logger.Log(String.Format("Failed loading resource file: {0} ({1})", fileName, e.Message),
-                    Helpers.LogLevel.Error, e);
+                Logger.Error(
+                    String.Format("Failed loading resource file: {0} ({1})", fileName, e.Message),
+                    e
+                );
                 return null;
             }
         }

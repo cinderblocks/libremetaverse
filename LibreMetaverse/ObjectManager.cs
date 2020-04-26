@@ -2626,7 +2626,7 @@ namespace OpenMetaverse
                 catch (IndexOutOfRangeException ex)
                 {
                     Logger.Log("Error decoding an ObjectUpdateCompressed packet", Helpers.LogLevel.Warning, Client, ex);
-                    Logger.Log(block, Helpers.LogLevel.Warning);
+                    Logger.Log(block.ToString(), Helpers.LogLevel.Warning); // ? Might want to look into what .ToString here returns
                 }
             }
         }
