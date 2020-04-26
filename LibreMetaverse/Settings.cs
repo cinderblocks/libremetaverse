@@ -349,6 +349,8 @@ namespace OpenMetaverse
         /// </summary>
         public static Helpers.LogLevel LOG_LEVEL = Helpers.LogLevel.Debug;
 
+        public static string LOG_WRITER = "console";
+
         /// <summary>Attach avatar names to log messages</summary>
         public bool LOG_NAMES = true;
 

@@ -44,7 +44,6 @@ using OpenMetaverse;
 using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
-using log4net;
 using XmlRpcCore;
 using Logger = XmlRpcCore.Logger;
 
