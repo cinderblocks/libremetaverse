@@ -637,21 +637,8 @@ namespace OpenMetaverse
             }
         }
 
-        /// <summary>
-        /// Get contents of a folder
-        /// </summary>
-        /// <param name="folder">The <seealso cref="UUID"/> of the folder to search</param>
-        /// <param name="owner">The <seealso cref="UUID"/> of the folders owner</param>
-        /// <param name="folders">true to retrieve folders</param>
-        /// <param name="items">true to retrieve items</param>
-        /// <param name="order">sort order to return results in</param>
-        /// <param name="timeoutMS">a integer representing the number of milliseconds to wait for results</param>
-        /// <returns>A list of inventory items matching search criteria within folder</returns>
-        /// <seealso cref="InventoryManager.RequestFolderContents"/>
-        /// <remarks>InventoryFolder.DescendentCount will only be accurate if both folders and items are
-        /// requested</remarks>
-        public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool folders, bool items,
-            InventorySortOrder order, int timeoutMS)
+        public KeyValuePair<string, List<InventoryBase>> FolderContents_replyed(UUID folder, UUID owner, bool folders, bool items,
+    InventorySortOrder order, int timeoutMS, bool fast_loading)
         {
             List<InventoryBase> objects = null;
             AutoResetEvent fetchEvent = new AutoResetEvent(false);
@@ -661,7 +648,7 @@ namespace OpenMetaverse
                 if (e.FolderID == folder && _Store[folder] is InventoryFolder)
                 {
                     // InventoryDescendentsHandler only stores DescendentCount if both folders and items are fetched.
-                    if (_Store.GetContents(folder).Count >= ((InventoryFolder) _Store[folder]).DescendentCount)
+                    if (_Store.GetContents(folder).Count >= ((InventoryFolder)_Store[folder]).DescendentCount)
                     {
                         fetchEvent.Set();
                     }
@@ -680,7 +667,67 @@ namespace OpenMetaverse
 
             FolderUpdated -= FolderUpdatedCB;
 
-            return objects;
+            List<InventoryBase> cleaned_list = new List<InventoryBase>();
+
+            List<UUID> load_items = new List<UUID>();
+            List<UUID> owner_ids = new List<UUID>();
+
+            foreach (InventoryItem o in objects)
+            {
+                if ((o.IsLink() == true) && (fast_loading == false))
+                {
+                    if (Store.Items.ContainsKey(o.AssetUUID) == false)
+                    {
+                        load_items.Add(o.AssetUUID);
+                        owner_ids.Add(Client.Self.AgentID);
+                    }
+                    else
+                    {
+                        cleaned_list.Add(Client.Inventory.FetchItem(o.AssetUUID, Client.Self.AgentID, 1000 * 5));
+                    }
+                }
+                else
+                {
+                    cleaned_list.Add(o);
+                }
+            }
+
+            if(load_items.Count > 0)
+            {
+                Client.Inventory.RequestFetchInventoryCap(load_items, owner_ids);
+                return new KeyValuePair<string, List<InventoryBase>>("retry", cleaned_list);
+            }
+            else
+            {
+                return new KeyValuePair<string, List<InventoryBase>>("ok", cleaned_list);
+            }
+        }
+
+        public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool folders, bool items,
+    InventorySortOrder order, int timeoutMS)
+        {
+            return FolderContents(folder, owner, folders, items,
+    order, timeoutMS, false);
+        }
+        /// <summary>
+        /// Get contents of a folder
+        /// </summary>
+        /// <param name="folder">The <seealso cref="UUID"/> of the folder to search</param>
+        /// <param name="owner">The <seealso cref="UUID"/> of the folders owner</param>
+        /// <param name="folders">true to retrieve folders</param>
+        /// <param name="items">true to retrieve items</param>
+        /// <param name="order">sort order to return results in</param>
+        /// <param name="timeoutMS">a integer representing the number of milliseconds to wait for results</param>
+        /// <param name="fast_loading">when false uses links and does not attempt to get the real object</param>
+        /// <returns>A list of inventory items matching search criteria within folder</returns>
+        /// <seealso cref="InventoryManager.RequestFolderContents"/>
+        /// <remarks>InventoryFolder.DescendentCount will only be accurate if both folders and items are
+        /// requested</remarks>
+        public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool folders, bool items,
+            InventorySortOrder order, int timeoutMS,bool fast_loading=false)
+        {
+            return FolderContents_replyed(folder, owner, folders, items,
+    order, timeoutMS, fast_loading).Value;
         }
 
         /// <summary>
