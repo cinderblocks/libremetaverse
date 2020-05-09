@@ -46,7 +46,7 @@ namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
             {
                 if (string.IsNullOrEmpty(nextName) || nextName == ".")
                     continue; // Ignore '.' and blanks, stay in the current directory.
-                if (nextName == ".." && currentFolder != Inventory.RootFolder)
+                if (nextName == ".." && !currentFolder.Equals((InventoryBase) Inventory.RootFolder))
                 {
                     // If we encounter .., move to the parent folder.
                     currentFolder = Inventory[currentFolder.ParentUUID] as InventoryFolder;

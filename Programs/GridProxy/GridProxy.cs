@@ -226,17 +226,15 @@ namespace GridProxy
 
                 RunSimProxy();
 
-                Thread runLoginProxy = new Thread(new ThreadStart(RunLoginProxy));
-                runLoginProxy.IsBackground = true;
-                runLoginProxy.Name = "Login Proxy";
+                Thread runLoginProxy = new Thread(new ThreadStart(RunLoginProxy))
+                {
+                    IsBackground = true, Name = "Login Proxy"
+                };
                 runLoginProxy.Start();
 
                 IPEndPoint endPoint = (IPEndPoint)loginServer.LocalEndPoint;
-                IPAddress displayAddress;
-                if (endPoint.Address == IPAddress.Any)
-                    displayAddress = IPAddress.Loopback;
-                else
-                    displayAddress = endPoint.Address;
+                var displayAddress = Equals(endPoint.Address, IPAddress.Any) 
+                    ? IPAddress.Loopback : endPoint.Address;
                 loginURI = "http://" + displayAddress + ":" + endPoint.Port + "/";
 
                 OpenMetaverse.Logger.Log("Proxy ready at " + loginURI, Helpers.LogLevel.Info);
@@ -1054,7 +1052,7 @@ namespace GridProxy
                     ushort simPort = (ushort)info["SimPort"].AsInteger();
                     string capsURL = info["SeedCapability"].AsString();
 
-                    GenericCheck(ref simIP, ref simPort, ref capsURL, capReq.Info.Sim == activeCircuit);
+                    GenericCheck(ref simIP, ref simPort, ref capsURL, Equals(capReq.Info.Sim, activeCircuit));
 
                     info["SeedCapability"] = OSD.FromString(capsURL);
                     bytes[0] = (byte)(simIP % 256);
@@ -1073,7 +1071,7 @@ namespace GridProxy
                     ushort Port = (ushort)info["Port"].AsInteger();
                     string capsURL = null;
 
-                    GenericCheck(ref IP, ref Port, ref capsURL, capReq.Info.Sim == activeCircuit);
+                    GenericCheck(ref IP, ref Port, ref capsURL, Equals(capReq.Info.Sim, activeCircuit));
 
                     bytes[0] = (byte)(IP % 256);
                     bytes[1] = (byte)((IP >> 8) % 256);
@@ -1096,7 +1094,7 @@ namespace GridProxy
 
                     GenericCheck(ref simIP, ref simPort, ref capsURL, false);
                     body["seed-capability"] = OSD.FromString(capsURL);
-                    string ipport = String.Format("{0}:{1}", new IPAddress(simIP), simPort);
+                    string ipport = $"{new IPAddress(simIP)}:{simPort}";
                     body["sim-ip-and-port"] = OSD.FromString(ipport);
 
                     OpenMetaverse.Logger.Log("DEBUG: Modified EstablishAgentCommunication to " + body["sim-ip-and-port"].AsString() + " with seed cap " + capsURL, Helpers.LogLevel.Debug);

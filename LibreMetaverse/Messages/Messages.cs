@@ -44,7 +44,7 @@ namespace OpenMetaverse.Messages
 
         public static OSD FromIP(IPAddress address)
         {
-            if (address != null && address != IPAddress.Any)
+            if (address != null && !Equals(address, IPAddress.Any))
                 return OSD.FromBinary(address.GetAddressBytes());
             else
                 return new OSD();
