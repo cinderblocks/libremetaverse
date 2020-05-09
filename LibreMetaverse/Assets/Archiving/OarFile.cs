@@ -110,13 +110,13 @@ namespace OpenMetaverse.Assets
         {
             // Right now we're nastily obtaining the UUID from the filename
             string filename = assetPath.Remove(0, ArchiveConstants.ASSETS_PATH.Length);
-            int i = filename.LastIndexOf(ArchiveConstants.ASSET_EXTENSION_SEPARATOR);
+            int i = filename.LastIndexOf(ArchiveConstants.ASSET_EXTENSION_SEPARATOR, StringComparison.Ordinal);
 
             if (i == -1)
             {
-                Logger.Log(String.Format(
-                    "[OarFile]: Could not find extension information in asset path {0} since it's missing the separator {1}.  Skipping",
-                    assetPath, ArchiveConstants.ASSET_EXTENSION_SEPARATOR), Helpers.LogLevel.Warning);
+                Logger.Log(
+                    $"[OarFile]: Could not find extension information in asset path {assetPath} since it's missing the separator " +
+                    $"{ArchiveConstants.ASSET_EXTENSION_SEPARATOR}.  Skipping", Helpers.LogLevel.Warning);
                 return false;
             }
 
