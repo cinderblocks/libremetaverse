@@ -92,7 +92,7 @@ namespace GridProxy
                     logLogin = true;
                 else if (arg.Substring(0, 2) == "--")
                 {
-                    int ipos = arg.IndexOf("=");
+                    int ipos = arg.IndexOf("=", StringComparison.Ordinal);
                     if (ipos != -1)
                     {
                         string sw = arg.Substring(0, ipos);

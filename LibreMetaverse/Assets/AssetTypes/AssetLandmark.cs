@@ -75,9 +75,9 @@ namespace OpenMetaverse.Assets
             String text = Utils.BytesToString(AssetData);
             if (text.ToLower().Contains("landmark version 2"))
             {
-                RegionID = new UUID(text.Substring(text.IndexOf("region_id") + 10, 36));
+                RegionID = new UUID(text.Substring(text.IndexOf("region_id", StringComparison.Ordinal) + 10, 36));
                 String vecDelim = " ";
-                String[] vecStrings = text.Substring(text.IndexOf("local_pos") + 10).Split(vecDelim.ToCharArray());
+                String[] vecStrings = text.Substring(text.IndexOf("local_pos", StringComparison.Ordinal) + 10).Split(vecDelim.ToCharArray());
                 if (vecStrings.Length == 3)
                 {
                     Position = new Vector3(float.Parse(vecStrings[0], System.Globalization.CultureInfo.InvariantCulture), float.Parse(vecStrings[1], System.Globalization.CultureInfo.InvariantCulture), float.Parse(vecStrings[2], System.Globalization.CultureInfo.InvariantCulture));

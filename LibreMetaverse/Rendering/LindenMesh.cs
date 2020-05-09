@@ -548,12 +548,9 @@ namespace OpenMetaverse.Rendering
         /// <returns>A standard .Net string</returns>
         public static string TrimAt0(string s)
         {
-            int pos = s.IndexOf("\0");
+            int pos = s.IndexOf("\0", StringComparison.Ordinal);
 
-            if (pos >= 0)
-                return s.Substring(0, pos);
-
-            return s;
+            return pos >= 0 ? s.Substring(0, pos) : s;
         }
     }
 }

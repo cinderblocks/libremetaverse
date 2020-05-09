@@ -140,7 +140,7 @@ public class IRCClient
                         int nameIndex = words[0].IndexOf('!');
                         string name = nameIndex > 0 ? words[0].Substring(1, nameIndex - 1) : words[0];
                         string address = words[0].Substring(nameIndex + 1);
-                        OnMessage(words[2], name, address, lines[i].Substring(lines[i].IndexOf(":", 1) + 1));
+                        OnMessage(words[2], name, address, lines[i].Substring(lines[i].IndexOf(":", 1, StringComparison.Ordinal) + 1));
                     }
                 }
             }            
@@ -148,8 +148,7 @@ public class IRCClient
 
         if (!ircClient.Connected)
         {
-            if (OnDisconnected != null)
-                OnDisconnected();
+            OnDisconnected?.Invoke();
         }
 
         else ircClient.Close();

@@ -24,6 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using System;
 using System.Collections;
 using System.Windows.Forms;
 
@@ -55,11 +56,9 @@ namespace OpenMetaverse.GUI
                     return valueA < valueB ? 1 : -1;
                 }
             }
-            else
-            {
-                if (Ascending) return string.Compare(itemA.Text, itemB.Text);
-                else return -string.Compare(itemA.Text, itemB.Text);
-            }
+
+            if (Ascending) return string.CompareOrdinal(itemA.Text, itemB.Text);
+            return -string.CompareOrdinal(itemA.Text, itemB.Text);
         }
     }
 
