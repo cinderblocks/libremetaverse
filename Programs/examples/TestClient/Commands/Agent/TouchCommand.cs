@@ -25,10 +25,7 @@ namespace OpenMetaverse.TestClient
             if (UUID.TryParse(args[0], out target))
             {
                 Primitive targetPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(
-                    delegate(Primitive prim)
-                    {
-                        return prim.ID == target;
-                    }
+                    prim => prim.ID == target
                 );
 
                 if (targetPrim != null)

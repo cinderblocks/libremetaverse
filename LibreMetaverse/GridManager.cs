@@ -811,7 +811,8 @@ namespace OpenMetaverse
             }
 
             // find stale entries (people who left the sim)
-            List<UUID> removedEntries = e.Simulator.avatarPositions.FindAll(delegate(UUID findID) { return !coarseEntries.ContainsKey(findID); });
+            List<UUID> removedEntries = e.Simulator.avatarPositions.FindAll(
+                findID => !coarseEntries.ContainsKey(findID));
 
             // anyone who was not listed in the previous update
             List<UUID> newEntries = new List<UUID>();

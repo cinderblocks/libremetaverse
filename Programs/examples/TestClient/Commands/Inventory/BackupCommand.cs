@@ -305,10 +305,7 @@ namespace OpenMetaverse.TestClient
             lock (CurrentDownloads)
             {
                 // see if we have this in our transfer list
-                QueuedDownloadInfo r = CurrentDownloads.Find(delegate(QueuedDownloadInfo q)
-                {
-                    return q.AssetID == asset.AssetID;
-                });
+                QueuedDownloadInfo r = CurrentDownloads.Find(q => q.AssetID == asset.AssetID);
 
                 if (r != null && r.AssetID == asset.AssetID)
                 {

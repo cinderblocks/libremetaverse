@@ -26,13 +26,10 @@ namespace OpenMetaverse.TestClient
 
             lock (Client.Network.Simulators)
             {
-                for (int i = 0; i < Client.Network.Simulators.Count; i++)
+                foreach (var sim in Client.Network.Simulators)
                 {
-                    Primitive exportPrim = Client.Network.Simulators[i].ObjectsPrimitives.Find(
-                        delegate(Primitive prim)
-                        {
-                            return prim.ID == id;
-                        }
+                    Primitive exportPrim = sim.ObjectsPrimitives.Find(
+                        prim => prim.ID == id
                     );
 
                     if (exportPrim != null)

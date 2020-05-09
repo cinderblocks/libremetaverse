@@ -47,8 +47,8 @@ namespace OpenMetaverse.TestClient
 
             foreach (Primitive p in prims)
             {
-                string name = p.Properties != null ? p.Properties.Name : null;
-                if (String.IsNullOrEmpty(searchString) || ((name != null) && (name.Contains(searchString))))
+                string name = p.Properties?.Name;
+                if (string.IsNullOrEmpty(searchString) || ((name != null) && (name.Contains(searchString))))
                     Console.WriteLine("Object '{0}': {1}", name, p.ID.ToString());
             }
 

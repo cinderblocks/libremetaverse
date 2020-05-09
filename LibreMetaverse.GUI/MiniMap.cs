@@ -147,7 +147,7 @@ namespace OpenMetaverse.GUI
                             Pen penColor;
                             Brush brushColor;
 
-                            if (Client.Network.CurrentSim.ObjectsAvatars.Find(delegate(Avatar av) { return av.ID == coarse.Key; }) != null)
+                            if (Client.Network.CurrentSim.ObjectsAvatars.Find(av => av.ID == coarse.Key) != null)
                             {
                                 brushColor = Brushes.PaleGreen;
                                 penColor = Pens.Green;

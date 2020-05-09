@@ -61,7 +61,7 @@ namespace OpenMetaverse.TestClient
             Logger.DebugLog("Using PermissionMask: " + Perms.ToString(), Client);
 
             // Find the requested prim
-            rootPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(delegate(Primitive prim) { return prim.ID == rootID; });
+            rootPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(prim => prim.ID == rootID);
             if (rootPrim == null)
                 return "Cannot find requested prim " + rootID.ToString();
             else
@@ -77,7 +77,7 @@ namespace OpenMetaverse.TestClient
             }
 
             // Find all of the child objects linked to this root
-            childPrims = Client.Network.CurrentSim.ObjectsPrimitives.FindAll(delegate(Primitive prim) { return prim.ParentID == rootPrim.LocalID; });
+            childPrims = Client.Network.CurrentSim.ObjectsPrimitives.FindAll(prim => prim.ParentID == rootPrim.LocalID);
 
             // Build a dictionary of primitives for referencing later
             Objects[rootPrim.ID] = rootPrim;

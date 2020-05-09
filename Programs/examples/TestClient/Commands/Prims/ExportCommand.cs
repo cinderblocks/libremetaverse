@@ -64,15 +64,12 @@ namespace OpenMetaverse.TestClient
             Primitive exportPrim;
 
             exportPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(
-                delegate(Primitive prim) { return prim.ID == id; }
+                prim => prim.ID == id
             );
 
             if (exportPrim != null)
             {
-                if (exportPrim.ParentID != 0)
-                    localid = exportPrim.ParentID;
-                else
-                    localid = exportPrim.LocalID;
+                localid = exportPrim.ParentID != 0 ? exportPrim.ParentID : exportPrim.LocalID;
 
                 // Check for export permission first
                 Client.Objects.RequestObjectPropertiesFamily(Client.Network.CurrentSim, id);

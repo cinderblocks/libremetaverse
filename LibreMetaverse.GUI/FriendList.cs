@@ -116,7 +116,7 @@ namespace OpenMetaverse.GUI
                 {
                     string key = friend.UUID.ToString();
                     string onlineText;
-                    string name = friend.Name == null ? "(loading...)" : friend.Name;
+                    string name = friend.Name ?? "(loading...)";
                     int image;
                     Color color;
 

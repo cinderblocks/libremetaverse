@@ -25,11 +25,11 @@ namespace OpenMetaverse.TestClient
             if (!UUID.TryParse(args[0], out objectID))
                 return "Usage: taskrunning objectID [[scriptName] true|false]";
 
-            Primitive found = Client.Network.CurrentSim.ObjectsPrimitives.Find(delegate(Primitive prim) { return prim.ID == objectID; });
+            Primitive found = Client.Network.CurrentSim.ObjectsPrimitives.Find(prim => prim.ID == objectID);
             if (found != null)
                 objectLocalID = found.LocalID;
             else
-                return String.Format("Couldn't find prim {0}", objectID);
+                return $"Couldn't find prim {objectID}";
 
             List<InventoryBase> items = Client.Inventory.GetTaskInventory(objectID, objectLocalID, 1000 * 30);
 

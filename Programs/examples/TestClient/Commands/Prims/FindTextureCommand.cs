@@ -27,7 +27,7 @@ namespace OpenMetaverse.TestClient
                 Client.Network.CurrentSim.ObjectsPrimitives.ForEach(
                     delegate(Primitive prim)
                     {
-                        if (prim.Textures != null && prim.Textures.FaceTextures[faceIndex] != null)
+                        if (prim.Textures?.FaceTextures[faceIndex] != null)
                         {
                             if (prim.Textures.FaceTextures[faceIndex].TextureID == textureID)
                             {

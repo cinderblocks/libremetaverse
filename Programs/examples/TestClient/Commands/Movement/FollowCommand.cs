@@ -51,10 +51,7 @@ namespace OpenMetaverse.TestClient
                 for (int i = 0; i < Client.Network.Simulators.Count; i++)
                 {
                     Avatar target = Client.Network.Simulators[i].ObjectsAvatars.Find(
-                        delegate(Avatar avatar)
-                        {
-                            return avatar.Name == name;
-                        }
+                        avatar => avatar.Name == name
                     );
 
                     if (target != null)

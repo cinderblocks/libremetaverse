@@ -571,78 +571,52 @@ namespace LitJson
 
         private static void RegisterBaseImporters ()
         {
-            ImporterFunc importer;
-
-            importer = delegate (object input) {
-                return Convert.ToByte ((int) input);
-            };
+            ImporterFunc importer = input => Convert.ToByte((int) input);
             RegisterImporter (base_importers_table, typeof (int),
                               typeof (byte), importer);
 
-            importer = delegate (object input) {
-                return Convert.ToUInt64 ((int) input);
-            };
+            importer = input => Convert.ToUInt64((int) input);
             RegisterImporter (base_importers_table, typeof (int),
                               typeof (ulong), importer);
 
-            importer = delegate (object input) {
-                return Convert.ToSByte ((int) input);
-            };
+            importer = input => Convert.ToSByte((int) input);
             RegisterImporter (base_importers_table, typeof (int),
                               typeof (sbyte), importer);
 
-            importer = delegate (object input) {
-                return Convert.ToInt16 ((int) input);
-            };
+            importer = input => Convert.ToInt16((int) input);
             RegisterImporter (base_importers_table, typeof (int),
                               typeof (short), importer);
 
-            importer = delegate (object input) {
-                return Convert.ToUInt16 ((int) input);
-            };
+            importer = input => Convert.ToUInt16((int) input);
             RegisterImporter (base_importers_table, typeof (int),
                               typeof (ushort), importer);
 
-            importer = delegate (object input) {
-                return Convert.ToUInt32 ((int) input);
-            };
+            importer = input => Convert.ToUInt32((int) input);
             RegisterImporter (base_importers_table, typeof (int),
                               typeof (uint), importer);
 
-            importer = delegate (object input) {
-                return Convert.ToSingle ((int) input);
-            };
+            importer = input => Convert.ToSingle((int) input);
             RegisterImporter (base_importers_table, typeof (int),
                               typeof (float), importer);
 
-            importer = delegate (object input) {
-                return Convert.ToDouble ((int) input);
-            };
+            importer = input => Convert.ToDouble((int) input);
             RegisterImporter (base_importers_table, typeof (int),
                               typeof (double), importer);
 
-            importer = delegate (object input) {
-                return Convert.ToDecimal ((double) input);
-            };
+            importer = input => Convert.ToDecimal((double) input);
             RegisterImporter (base_importers_table, typeof (double),
                               typeof (decimal), importer);
 
 
-            importer = delegate (object input) {
-                return Convert.ToUInt32 ((long) input);
-            };
+            importer = input => Convert.ToUInt32((long) input);
             RegisterImporter (base_importers_table, typeof (long),
                               typeof (uint), importer);
 
-            importer = delegate (object input) {
-                return Convert.ToChar ((string) input);
-            };
+            importer = input => Convert.ToChar((string) input);
             RegisterImporter (base_importers_table, typeof (string),
                               typeof (char), importer);
 
-            importer = delegate (object input) {
-                return Convert.ToDateTime ((string) input, datetime_format);
-            };
+            importer = input => Convert.ToDateTime((string) input, datetime_format);
             RegisterImporter (base_importers_table, typeof (string),
                               typeof (DateTime), importer);
         }
@@ -816,7 +790,7 @@ namespace LitJson
         public static JsonData ToObject (JsonReader reader)
         {
             return (JsonData) ToWrapper (
-                delegate { return new JsonData (); }, reader);
+                () => new JsonData(), reader);
         }
 
         public static JsonData ToObject (TextReader reader)
@@ -824,13 +798,13 @@ namespace LitJson
             JsonReader json_reader = new JsonReader (reader);
 
             return (JsonData) ToWrapper (
-                delegate { return new JsonData (); }, json_reader);
+                () => new JsonData(), json_reader);
         }
 
         public static JsonData ToObject (string json)
         {
             return (JsonData) ToWrapper (
-                delegate { return new JsonData (); }, json);
+                () => new JsonData(), json);
         }
 
         public static T ToObject<T> (JsonReader reader)
@@ -880,9 +854,7 @@ namespace LitJson
             ImporterFunc<TJson, TValue> importer)
         {
             ImporterFunc importer_wrapper =
-                delegate (object input) {
-                    return importer ((TJson) input);
-                };
+                input => importer((TJson) input);
 
             RegisterImporter (custom_importers_table, typeof (TJson),
                               typeof (TValue), importer_wrapper);
