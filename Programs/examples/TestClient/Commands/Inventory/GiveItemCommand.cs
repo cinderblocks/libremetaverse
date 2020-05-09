@@ -44,9 +44,8 @@ namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
                 if (inventoryName == b.Name || inventoryName == b.UUID.ToString())
                 {
                     found = true;
-                    if (b is InventoryItem)
+                    if (b is InventoryItem item)
                     {
-                        InventoryItem item = b as InventoryItem;
                         Manager.GiveItem(item.UUID, item.Name, item.AssetType, dest, true);
                         ret += "Gave " + item.Name + " (" + item.AssetType + ")" + nl;
                     }

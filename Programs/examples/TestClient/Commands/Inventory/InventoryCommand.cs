@@ -45,9 +45,8 @@ namespace OpenMetaverse.TestClient
                 foreach (InventoryBase i in contents)
                 {
                     result.AppendFormat("{0}{1} ({2})\n", new String(' ', indent * 2), i.Name, i.UUID);
-                    if (i is InventoryFolder)
+                    if (i is InventoryFolder folder)
                     {
-                        InventoryFolder folder = (InventoryFolder)i;
                         PrintFolder(folder, result, indent + 1);
                     }
                 }

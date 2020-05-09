@@ -262,33 +262,33 @@ namespace LitJson
 
         public JsonData (object obj)
         {
-            if (obj is Boolean) {
+            if (obj is bool b) {
                 type = JsonType.Boolean;
-                inst_boolean = (bool) obj;
+                inst_boolean = b;
                 return;
             }
 
-            if (obj is Double) {
+            if (obj is double d) {
                 type = JsonType.Double;
-                inst_double = (double) obj;
+                inst_double = d;
                 return;
             }
 
-            if (obj is Int32) {
+            if (obj is int i) {
                 type = JsonType.Int;
-                inst_int = (int) obj;
+                inst_int = i;
                 return;
             }
 
-            if (obj is Int64) {
+            if (obj is long l) {
                 type = JsonType.Long;
-                inst_long = (long) obj;
+                inst_long = l;
                 return;
             }
 
-            if (obj is String) {
+            if (obj is string s) {
                 type = JsonType.String;
-                inst_string = (string) obj;
+                inst_string = s;
                 return;
             }
 
@@ -658,8 +658,8 @@ namespace LitJson
             if (obj == null)
                 return null;
 
-            if (obj is JsonData)
-                return (JsonData) obj;
+            if (obj is JsonData data)
+                return data;
 
             return new JsonData (obj);
         }

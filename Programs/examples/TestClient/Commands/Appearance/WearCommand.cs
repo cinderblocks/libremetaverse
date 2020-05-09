@@ -45,8 +45,8 @@ namespace OpenMetaverse.TestClient
 
             foreach (InventoryBase item in contents)
             {
-                if (item is InventoryItem)
-                    items.Add((InventoryItem)item);
+                if (item is InventoryItem inventoryItem)
+                    items.Add(inventoryItem);
             }
 
             Client.Appearance.ReplaceOutfit(items);

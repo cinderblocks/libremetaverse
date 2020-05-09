@@ -1611,10 +1611,10 @@ namespace OpenMetaverse
                     Client.Assets.RequestAsset(wearable.AssetID, wearable.AssetType, true,
                         delegate(AssetDownload transfer, Asset asset)
                         {
-                            if (transfer.Success && asset is AssetWearable)
+                            if (transfer.Success && asset is AssetWearable assetWearable)
                             {
                                 // Update this wearable with the freshly downloaded asset 
-                                wearable.Asset = (AssetWearable)asset;
+                                wearable.Asset = assetWearable;
 
                                 if (wearable.Asset.Decode())
                                 {
@@ -1627,7 +1627,7 @@ namespace OpenMetaverse
                                 {
                                     wearable.Asset = null;
                                     Logger.Log("Failed to decode asset:" + Environment.NewLine +
-                                               Utils.BytesToString(asset.AssetData), Helpers.LogLevel.Error, Client);
+                                               Utils.BytesToString(assetWearable.AssetData), Helpers.LogLevel.Error, Client);
                                 }
                             }
                             else
@@ -2231,20 +2231,20 @@ namespace OpenMetaverse
             {
                 foreach (var ib in objects)
                 {
-                    if (ib is InventoryWearable)
+                    if (ib is InventoryWearable wearable)
                     {
-                        Logger.DebugLog("Adding wearable " + ib.Name, Client);
-                        wearables.Add((InventoryWearable)ib);
+                        Logger.DebugLog("Adding wearable " + wearable.Name, Client);
+                        wearables.Add(wearable);
                     }
-                    else if (ib is InventoryAttachment)
+                    else if (ib is InventoryAttachment attachment)
                     {
-                        Logger.DebugLog("Adding attachment (attachment) " + ib.Name, Client);
-                        attachments.Add((InventoryItem)ib);
+                        Logger.DebugLog("Adding attachment (attachment) " + attachment.Name, Client);
+                        attachments.Add(attachment);
                     }
-                    else if (ib is InventoryObject)
+                    else if (ib is InventoryObject inventoryObject)
                     {
-                        Logger.DebugLog("Adding attachment (object) " + ib.Name, Client);
-                        attachments.Add((InventoryItem)ib);
+                        Logger.DebugLog("Adding attachment (object) " + inventoryObject.Name, Client);
+                        attachments.Add(inventoryObject);
                     }
                     else
                     {

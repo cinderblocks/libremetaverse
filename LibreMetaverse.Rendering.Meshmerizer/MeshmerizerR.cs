@@ -464,9 +464,7 @@ namespace OpenMetaverse.Rendering
             try {
                 OSD convexBlockOsd = Helpers.DecompressOSD(compressedMeshData);
 
-                if (convexBlockOsd is OSDMap) {
-                    OSDMap convexBlock = convexBlockOsd as OSDMap;
-
+                if (convexBlockOsd is OSDMap convexBlock) {
                     Vector3 min = new Vector3(-0.5f, -0.5f, -0.5f);
                     if (convexBlock.ContainsKey("Min")) min = convexBlock["Min"].AsVector3();
                     Vector3 max = new Vector3(0.5f, 0.5f, 0.5f);
@@ -530,9 +528,8 @@ namespace OpenMetaverse.Rendering
 
         // Add the submesh to the passed SimpleMesh
         private void AddSubMesh(OSD subMeshOsd, ref OMVR.SimpleMesh holdingMesh) {
-            if (subMeshOsd is OSDMap)
+            if (subMeshOsd is OSDMap subMeshMap)
             {
-                OSDMap subMeshMap = (OSDMap) subMeshOsd;
                 // As per http://wiki.secondlife.com/wiki/Mesh/Mesh_Asset_Format, some Mesh Level
                 // of Detail Blocks (maps) contain just a NoGeometry key to signal there is no
                 // geometry for this submesh.
@@ -546,10 +543,8 @@ namespace OpenMetaverse.Rendering
 
         // Add the submesh to the passed FacetedMesh as a new face.
         private void AddSubMesh(OMV.Primitive prim, int faceIndex, OSD subMeshOsd, ref OMVR.FacetedMesh holdingMesh) {
-            if (subMeshOsd is OSDMap)
+            if (subMeshOsd is OSDMap subMesh)
             {
-                OSDMap subMesh = (OSDMap) subMeshOsd;
-
                 // As per http://wiki.secondlife.com/wiki/Mesh/Mesh_Asset_Format, some Mesh Level
                 // of Detail Blocks (maps) contain just a NoGeometry key to signal there is no
                 // geometry for this submesh.
@@ -564,7 +559,7 @@ namespace OpenMetaverse.Rendering
                     TextureFace = prim.Textures.GetFace((uint) faceIndex)
                 };
 
-                OSDMap subMeshMap = (OSDMap)subMeshOsd;
+                OSDMap subMeshMap = subMesh;
 
                 oface.Vertices = CollectVertices(subMeshMap);
                 oface.Indices = CollectIndices(subMeshMap);

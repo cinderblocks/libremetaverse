@@ -381,7 +381,7 @@ namespace OpenMetaverse
 
         public override bool Equals(object obj)
         {
-            return (obj is Vector3d) ? this == (Vector3d)obj : false;
+            return (obj is Vector3d v3d) && this == v3d;
         }
 
         public bool Equals(Vector3d other)

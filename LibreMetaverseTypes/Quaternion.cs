@@ -675,7 +675,7 @@ namespace OpenMetaverse
 
         public override bool Equals(object obj)
         {
-            return (obj is Quaternion) ? this == (Quaternion)obj : false;
+            return (obj is Quaternion quaternion) && this == quaternion;
         }
 
         public bool Equals(Quaternion other)

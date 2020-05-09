@@ -129,8 +129,8 @@ namespace OpenMetaverse
         /// <returns></returns>
         public override bool Equals(object obj)
         {
-            if (obj is GridRegion)
-                return Equals((GridRegion)obj);
+            if (obj is GridRegion region)
+                return Equals(region);
             else
                 return false;
         }

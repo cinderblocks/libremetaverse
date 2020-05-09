@@ -208,9 +208,9 @@ namespace OpenMetaverse.GUI
                 this.BeginInvoke(new MethodInvoker(delegate() { SetText(control, text); }));
             else
             {
-                if (control is Button) ((Button)control).Text = text;
-                else if (control is ComboBox) ((ComboBox)control).Text = text;
-                else if (control is TextBox) ((TextBox)control).Text = text;
+                if (control is Button button) button.Text = text;
+                else if (control is ComboBox box) box.Text = text;
+                else if (control is TextBox textBox) textBox.Text = text;
             }
         }
 

@@ -38,16 +38,14 @@ namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
                     // 9 character permissions string
                     // UUID of object
                     // Name of object
-                    if (b is InventoryFolder)
+                    if (b is InventoryFolder folder)
                     {
-                        InventoryFolder folder = b as InventoryFolder;
                         displayString += "d--------- ";
                         displayString += folder.UUID;
                         displayString += " " + folder.Name;
                     }
-                    else if (b is InventoryItem)
+                    else if (b is InventoryItem item)
                     {
-                        InventoryItem item = b as InventoryItem;
                         displayString += "-";
                         displayString += PermMaskString(item.Permissions.OwnerMask);
                         displayString += PermMaskString(item.Permissions.GroupMask);

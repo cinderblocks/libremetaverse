@@ -425,7 +425,7 @@ namespace OpenMetaverse
 
         public override bool Equals(object obj)
         {
-            return (obj is Color4) && this == (Color4)obj;
+            return (obj is Color4 color4) && this == color4;
         }
 
         public bool Equals(Color4 other)

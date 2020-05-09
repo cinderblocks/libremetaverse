@@ -145,7 +145,7 @@ namespace OpenMetaverse
 
         public override bool Equals(object obj)
         {
-            return (obj is Permissions) && this == (Permissions)obj;
+            return (obj is Permissions permissions) && this == permissions;
         }
 
         public bool Equals(Permissions other)

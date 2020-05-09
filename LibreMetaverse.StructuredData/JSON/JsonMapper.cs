@@ -672,44 +672,44 @@ namespace LitJson
                 return;
             }
 
-            if (obj is IJsonWrapper) {
+            if (obj is IJsonWrapper wrapper) {
                 if (writer_is_private)
-                    writer.TextWriter.Write (((IJsonWrapper) obj).ToJson ());
+                    writer.TextWriter.Write (wrapper.ToJson ());
                 else
-                    ((IJsonWrapper) obj).ToJson (writer);
+                    wrapper.ToJson (writer);
 
                 return;
             }
 
-            if (obj is String) {
-                writer.Write ((string) obj);
+            if (obj is string s) {
+                writer.Write (s);
                 return;
             }
 
-            if (obj is Double) {
-                writer.Write ((double) obj);
+            if (obj is double d) {
+                writer.Write (d);
                 return;
             }
 
-            if (obj is Int32) {
-                writer.Write ((int) obj);
+            if (obj is int i) {
+                writer.Write (i);
                 return;
             }
 
-            if (obj is Boolean) {
-                writer.Write ((bool) obj);
+            if (obj is bool b) {
+                writer.Write (b);
                 return;
             }
 
-            if (obj is Int64) {
-                writer.Write ((long) obj);
+            if (obj is long l) {
+                writer.Write (l);
                 return;
             }
 
-            if (obj is Array) {
+            if (obj is Array array) {
                 writer.WriteArrayStart ();
 
-                foreach (object elem in (Array) obj)
+                foreach (object elem in array)
                     WriteValue (elem, writer, writer_is_private, depth + 1);
 
                 writer.WriteArrayEnd ();
@@ -717,18 +717,18 @@ namespace LitJson
                 return;
             }
 
-            if (obj is IList) {
+            if (obj is IList list) {
                 writer.WriteArrayStart ();
-                foreach (object elem in (IList) obj)
+                foreach (object elem in list)
                     WriteValue (elem, writer, writer_is_private, depth + 1);
                 writer.WriteArrayEnd ();
 
                 return;
             }
 
-            if (obj is IDictionary) {
+            if (obj is IDictionary dictionary) {
                 writer.WriteObjectStart ();
-                foreach (DictionaryEntry entry in (IDictionary) obj) {
+                foreach (DictionaryEntry entry in dictionary) {
                     writer.WritePropertyName ((string) entry.Key);
                     WriteValue (entry.Value, writer, writer_is_private,
                                 depth + 1);

@@ -771,8 +771,8 @@ namespace OpenMetaverse.Packets
         private static string DecodeNameValue(string fieldName, object fieldData)
         {
             NameValue[] nameValues = null;
-            if (fieldData is NameValue[])
-                nameValues = fieldData as NameValue[];
+            if (fieldData is NameValue[] data)
+                nameValues = data;
             else
             {
                 string nameValue = Utils.BytesToString((byte[]) fieldData);
@@ -1024,12 +1024,12 @@ namespace OpenMetaverse.Packets
 
         private static string DecodeTimeStamp(string fieldName, object fieldData)
         {
-            if (fieldData is Int32 && (int) fieldData > 0)
+            if (fieldData is int data && data > 0)
                 return
-                    $"{fieldName,30}: {fieldData,-10} {"(" + Utils.UnixTimeToDateTime((int) fieldData) + ")",-29} [{fieldData.GetType().Name}]";
-            else if (fieldData is uint && (uint) fieldData > 0)
+                    $"{fieldName,30}: {data,-10} {"(" + Utils.UnixTimeToDateTime(data) + ")",-29} [{data.GetType().Name}]";
+            else if (fieldData is uint u && u > 0)
                 return
-                    $"{fieldName,30}: {fieldData,-10} {"(" + Utils.UnixTimeToDateTime((uint) fieldData) + ")",-29} [{fieldData.GetType().Name}]";
+                    $"{fieldName,30}: {u,-10} {"(" + Utils.UnixTimeToDateTime(u) + ")",-29} [{u.GetType().Name}]";
             else
                 return $"{fieldName,30}: {fieldData,-40} [{fieldData.GetType().Name}]";
         }
@@ -1272,8 +1272,8 @@ namespace OpenMetaverse.Packets
         private static string DecodeTextureEntry(string fieldName, object fieldData)
         {
             Primitive.TextureEntry te;
-            if (fieldData is Primitive.TextureEntry)
-                te = (Primitive.TextureEntry) fieldData;
+            if (fieldData is Primitive.TextureEntry data)
+                te = data;
             else
             {
                 byte[] tebytes = (byte[]) fieldData;
@@ -1622,9 +1622,8 @@ namespace OpenMetaverse.Packets
             string[] keyList = {decoderKey, decoderKey.Replace("Packet", ""), keys[1] + "." + keys[2], keys[2]};
             foreach (string key in keyList)
             {
-                if (fieldData is byte[])
+                if (fieldData is byte[] fd)
                 {
-                    byte[] fd = (byte[]) fieldData;
                     if (!(fd.Length > 0))
                     {
                         // bypass the decoder since we were passed an empty byte array

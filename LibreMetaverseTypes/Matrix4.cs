@@ -986,7 +986,7 @@ namespace OpenMetaverse
 
         public override bool Equals(object obj)
         {
-            return (obj is Matrix4) ? this.Equals((Matrix4)obj) : false;
+            return (obj is Matrix4 matrix4) && this.Equals(matrix4);
         }
 
         public bool Equals(Matrix4 other)

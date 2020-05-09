@@ -62,9 +62,9 @@ namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
                         if (item.Name == nextName || item.UUID.ToString() == nextName)
                         {
                             found = true;
-                            if (item is InventoryFolder)
+                            if (item is InventoryFolder folder)
                             {
-                                currentFolder = item as InventoryFolder;
+                                currentFolder = folder;
                             }
                             else
                             {
