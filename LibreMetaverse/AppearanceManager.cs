@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Linq;
@@ -376,6 +377,8 @@ namespace OpenMetaverse
 
         /// <summary>A cache of wearables currently being worn</summary>
         private MultiValueDictionary<WearableType, WearableData> Wearables = new MultiValueDictionary<WearableType, WearableData>();
+        /// <summary>A cache of attachments currently being worn</summary>
+        private ConcurrentDictionary<UUID, AttachmentPoint> Attachments = new ConcurrentDictionary<UUID, AttachmentPoint>();
         /// <summary>A cache of textures currently being worn</summary>
         private TextureData[] Textures = new TextureData[(int)AvatarTextureIndex.NumberOfEntries];
         /// <summary>Incrementing serial number for AgentCachedTexture packets</summary>
@@ -497,6 +500,18 @@ namespace OpenMetaverse
 
                         // FIXME: we really need to make this better...
                         cancellationToken.ThrowIfCancellationRequested();
+
+                        // Retrieve the worn attachments.
+                        if (!GetAgentAttachments().Result)
+                        {
+                            Logger.Log(
+                                "Failed to retrieve a list of current agent attachments, appearance cannot be set",
+                                Helpers.LogLevel.Error,
+                                Client);
+
+                            throw new AppearanceManagerException(
+                                "Failed to retrieve a list of current agent attachments, appearance cannot be set");
+                        }
 
                         // Is this server side baking enabled sim
                         if (ServerBakingRegion())
@@ -1031,6 +1046,10 @@ namespace OpenMetaverse
                 ObjectData = new RezMultipleAttachmentsFromInvPacket.ObjectDataBlock[attachments.Count]
             };
 
+            if (removeExistingFirst)
+            {
+                Attachments.Clear();
+            }
 
             for (int i = 0; i < attachments.Count; i++)
             {
@@ -1052,6 +1071,10 @@ namespace OpenMetaverse
                         NextOwnerMask = (uint) attachment.Permissions.NextOwnerMask,
                         OwnerID = attachment.OwnerID
                     };
+
+                    Attachments.AddOrUpdate(attachments[i].UUID,
+                        attachment.AttachmentPoint,
+                        (id, point) => attachment.AttachmentPoint);
                 }
                 else if (attachments[i] is InventoryObject)
                 {
@@ -1068,6 +1091,10 @@ namespace OpenMetaverse
                         NextOwnerMask = (uint) attachment.Permissions.NextOwnerMask,
                         OwnerID = attachment.OwnerID
                     };
+
+                    Attachments.AddOrUpdate(attachments[i].UUID,
+                        attachment.AttachPoint,
+                        (id, point) => attachment.AttachPoint);
                 }
                 else
                 {
@@ -1157,7 +1184,7 @@ namespace OpenMetaverse
                 }
             };
 
-
+            Attachments.AddOrUpdate(itemID, attachPoint, (id, point) => attachPoint);
 
             Client.Network.SendPacket(attach);
         }
@@ -1186,7 +1213,129 @@ namespace OpenMetaverse
                 }
             };
 
+            Attachments.TryRemove(itemID, out _);
+
             Client.Network.SendPacket(detach);
+        }
+
+        /// <summary>
+        /// Retrieves the currently worn attachments.
+        /// </summary>
+        /// <returns></returns>
+        private async Task<bool> GetAgentAttachments()
+        {
+            var objectsPrimitives = Client.Network.CurrentSim.ObjectsPrimitives.Copy();
+
+            // No primitives found.
+            if (objectsPrimitives.Count == 0)
+            {
+                return true;
+            }
+
+            // Build a list of objects that are attached to the avatar.
+            var primitives = objectsPrimitives.Where(primitive => primitive.Value.ParentID == Client.Self.LocalID)
+                                              .Select(primitive => primitive.Value);
+
+            var enumerable = primitives as Primitive[] ?? primitives.ToArray();
+
+            if (enumerable.Length == 0)
+            {
+                return true;
+            }
+
+            foreach (var primitive in enumerable)
+            {
+                // Find the inventory UUID from the primitive name-value collection.
+                var nameValue = primitive.NameValues.SingleOrDefault(item => item.Name.Equals("AttachItemID"));
+
+                if (nameValue.Equals(default(NameValue)))
+                {
+                    continue;
+                }
+
+                // Retrieve the inventory item UUID from the name values.
+                var inventoryItemId = (string)nameValue.Value;
+
+                if (string.IsNullOrEmpty(inventoryItemId) ||
+                    !UUID.TryParse(inventoryItemId, out var itemID))
+                {
+                    return false;
+                }
+
+                // Determine the attachment point from the primitive.
+                var attachmentPoint = (AttachmentPoint)(((primitive.PrimData.State & 0xF0) >> 4) |
+                                                        ((primitive.PrimData.State & ~0xF0) << 4));
+
+                // Add or update the attachment list.
+                Attachments.AddOrUpdate(itemID, attachmentPoint, (id, point) => attachmentPoint);
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Returns a collection of the agents currently worn wearables
+        /// </summary>
+        /// <returns>A copy of the agents currently worn wearables</returns>
+        /// <remarks>Avoid calling this function multiple times as it will make
+        /// a copy of all of the wearable data each time</remarks>
+        public IEnumerable<InventoryItem> GetAttachments()
+        {
+            foreach (var item in Attachments)
+            {
+                yield return Client.Inventory.Store[item.Key] as InventoryItem;
+            }
+        }
+
+        public Dictionary<UUID, AttachmentPoint> GetAttachmentsByItemId()
+        {
+            return Attachments.ToDictionary(k => k.Key, v => v.Value);
+        }
+
+        public MultiValueDictionary<AttachmentPoint, InventoryItem> GetAttachmentsByAttachmentPoint()
+        {
+            var attachmentsByPoint = new MultiValueDictionary<AttachmentPoint, InventoryItem>();
+
+            foreach (var item in Attachments)
+            {
+                // If the item is already retrieved then speed this up.
+                if (Client.Inventory.Store.Contains(item.Key))
+                {
+                    attachmentsByPoint.Add(item.Value, Client.Inventory.Store[item.Key] as InventoryItem);
+
+                    continue;
+                }
+
+                // Otherwise, retrieve the item off the asset server.
+                var inventoryItem = Client.Inventory.FetchItem(item.Key, Client.Self.AgentID, 1000 * 10);
+
+                attachmentsByPoint.Add(item.Value, inventoryItem);
+            }
+
+            return attachmentsByPoint;
+        }
+
+        public Dictionary<InventoryItem, AttachmentPoint> GetAttachmentsByInventoryItem()
+        {
+            var attachmentsByInventoryItem = new Dictionary<InventoryItem, AttachmentPoint>();
+
+            foreach (var item in Attachments)
+            {
+                // If the item is already retrieved then speed this up.
+                if (Client.Inventory.Store.Contains(item.Key))
+                {
+                    attachmentsByInventoryItem.Add(Client.Inventory.Store[item.Key] as InventoryItem, item.Value);
+
+                    continue;
+                }
+
+                // Otherwise, retrieve the item off the asset server.
+                var inventoryItem = Client.Inventory.FetchItem(item.Key, Client.Self.AgentID, 1000 * 10);
+
+                attachmentsByInventoryItem.Add(inventoryItem, item.Value);
+            }
+
+            return attachmentsByInventoryItem;
         }
 
         #endregion Attachments
