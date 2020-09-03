@@ -180,8 +180,9 @@ namespace OpenMetaverse.TestClient
                         {
                             Logger.DebugLog(Name + ": timeout on asset " + qdi.AssetID.ToString(), Client);
                             // submit request again
+                            var transferID = UUID.Random();
                             Client.Assets.RequestInventoryAsset(
-                                qdi.AssetID, qdi.ItemID, qdi.TaskID, qdi.OwnerID, qdi.Type, true, Assets_OnAssetReceived);
+                                qdi.AssetID, qdi.ItemID, qdi.TaskID, qdi.OwnerID, qdi.Type, true, transferID, Assets_OnAssetReceived);
                             qdi.WhenRequested = DateTime.Now;
                             qdi.IsRequested = true;
                         }
@@ -197,8 +198,9 @@ namespace OpenMetaverse.TestClient
                         QueuedDownloadInfo qdi = PendingDownloads.Dequeue();
                         qdi.WhenRequested = DateTime.Now;
                         qdi.IsRequested = true;
+                        var transferID = UUID.Random();
                         Client.Assets.RequestInventoryAsset(
-                            qdi.AssetID, qdi.ItemID, qdi.TaskID, qdi.OwnerID, qdi.Type, true, Assets_OnAssetReceived);
+                            qdi.AssetID, qdi.ItemID, qdi.TaskID, qdi.OwnerID, qdi.Type, true, transferID, Assets_OnAssetReceived);
 
                         lock (CurrentDownloads) CurrentDownloads.Add(qdi);
                     }

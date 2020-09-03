@@ -49,7 +49,8 @@ namespace OpenMetaverse.TestClient
                 InventoryItem ii = (InventoryItem)Client.Inventory.Store[note];
 
                 // make request for asset
-                Client.Assets.RequestInventoryAsset(ii, true,
+                var transferID = UUID.Random();
+                Client.Assets.RequestInventoryAsset(ii, true, transferID,
                     delegate(AssetDownload transfer, Asset asset)
                     {
                         if (transfer.Success)

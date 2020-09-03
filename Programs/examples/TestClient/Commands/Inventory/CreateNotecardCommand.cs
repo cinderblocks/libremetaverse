@@ -170,9 +170,10 @@ namespace OpenMetaverse.TestClient
             AutoResetEvent assetDownloadEvent = new AutoResetEvent(false);
             byte[] notecardData = null;
             string error = "Timeout";
+            var transferID = UUID.Random();
 
-            Client.Assets.RequestInventoryAsset(assetID, itemID, UUID.Zero, Client.Self.AgentID, AssetType.Notecard, true,
-                                delegate(AssetDownload transfer, Asset asset)
+            Client.Assets.RequestInventoryAsset(assetID, itemID, UUID.Zero, Client.Self.AgentID, AssetType.Notecard, true, transferID,
+                                delegate (AssetDownload transfer, Asset asset)
                                 {
                                     if (transfer.Success)
                                         notecardData = transfer.AssetData;
