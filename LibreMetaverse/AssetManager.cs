@@ -794,11 +794,11 @@ namespace OpenMetaverse
         }
 
         public void RequestInventoryAsset(UUID assetID, UUID itemID, UUID taskID, UUID ownerID, AssetType assetType,
-            bool priority, AssetReceivedCallback callback)
+            bool priority, UUID transferID, AssetReceivedCallback callback)
         {
             AssetDownload transfer = new AssetDownload
             {
-                ID = UUID.Random(),
+                ID = transferID,
                 AssetID = assetID,
                 AssetType = assetType,
                 Priority = 100.0f + (priority ? 1.0f : 0.0f),
@@ -932,9 +932,9 @@ namespace OpenMetaverse
             Client.Network.SendPacket(request, transfer.Simulator);
         }
 
-        public void RequestInventoryAsset(InventoryItem item, bool priority, AssetReceivedCallback callback)
+        public void RequestInventoryAsset(InventoryItem item, bool priority, UUID transferID, AssetReceivedCallback callback)
         {
-            RequestInventoryAsset(item.AssetUUID, item.UUID, UUID.Zero, item.OwnerID, item.AssetType, priority, callback);
+            RequestInventoryAsset(item.AssetUUID, item.UUID, UUID.Zero, item.OwnerID, item.AssetType, priority, transferID, callback);
         }
 
         public void RequestEstateAsset()
