@@ -3206,8 +3206,19 @@ namespace OpenMetaverse
         /// <param name="message">message to send with request</param>
         public void SendTeleportLureRequest(UUID targetID, UUID sessionID, string message)
         {
-            InstantMessage(Name, targetID, message, sessionID, InstantMessageDialog.RequestLure,
+            if (targetID != AgentID)
+            {
+                InstantMessage(Name, targetID, message, sessionID, InstantMessageDialog.RequestLure,
                 InstantMessageOnline.Online, SimPosition, UUID.Zero, Utils.EmptyBytes);
+            }
+        }
+        public void SendTeleportLureRequest(UUID targetID, string message)
+        {
+            SendTeleportLureRequest(targetID, targetID, message);
+        }
+        public void SendTeleportLureRequest(UUID targetID)
+        {
+            SendTeleportLureRequest(targetID, "Hi there I would like to teleport to you");
         }
 
         #endregion Teleporting
