@@ -936,6 +936,7 @@ namespace OpenMetaverse
                         }
                     }
                 }
+                OnfriendsListReady(new FriendsReadyEventArgs(FriendList.Count));
             }
         }
     }
