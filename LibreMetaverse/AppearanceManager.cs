@@ -502,7 +502,7 @@ namespace OpenMetaverse
                         cancellationToken.ThrowIfCancellationRequested();
 
                         // Retrieve the worn attachments.
-                        if (!GetAgentAttachments().Result)
+                        if (!GetAgentAttachments())
                         {
                             Logger.Log(
                                 "Failed to retrieve a list of current agent attachments, appearance cannot be set",
@@ -1220,9 +1220,10 @@ namespace OpenMetaverse
 
         /// <summary>
         /// Retrieves the currently worn attachments.
+        /// removed async and Task due to no await.
         /// </summary>
         /// <returns></returns>
-        private async Task<bool> GetAgentAttachments()
+        private bool GetAgentAttachments()
         {
             var objectsPrimitives = Client.Network.CurrentSim.ObjectsPrimitives.Copy();
 
