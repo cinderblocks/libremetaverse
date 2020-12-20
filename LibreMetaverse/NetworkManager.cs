@@ -348,6 +348,8 @@ namespace OpenMetaverse
         private Timer DisconnectTimer;
         private bool connected;
 
+        private long lastpacketwarning = 0;
+
         /// <summary>
         /// Default constructor
         /// </summary>
@@ -450,26 +452,7 @@ namespace OpenMetaverse
         /// <param name="packet">Packet to send</param>
         public void SendPacket(Packet packet)
         {
-            // try CurrentSim, however directly after login this will
-            // be null, so if it is, we'll try to find the first simulator
-            // we're connected to in order to send the packet.
-            Simulator simulator = CurrentSim;
-
-            if (simulator == null && Client.Network.Simulators.Count >= 1)
-            {
-                Logger.DebugLog("CurrentSim object was null, using first found connected simulator", Client);
-                simulator = Client.Network.Simulators[0];
-            }            
-
-            if (simulator != null && simulator.Connected)
-            {
-                simulator.SendPacket(packet);
-            }
-            else
-            {
-                //throw new NotConnectedException("Packet received before simulator packet processing threads running, make certain you are completely logged in");
-                Logger.Log("Packet received before simulator packet processing threads running, make certain you are completely logged in.", Helpers.LogLevel.Error);
-            }
+            SendPacket(packet, CurrentSim);
         }
 
         /// <summary>
@@ -479,13 +462,18 @@ namespace OpenMetaverse
         /// <param name="simulator">Simulator to send the packet to</param>
         public void SendPacket(Packet packet, Simulator simulator)
         {
+            if (simulator == null && Client.Network.Simulators.Count >= 1)
+            {
+                Logger.DebugLog("simulator object was null, using first found connected simulator", Client);
+                simulator = Client.Network.Simulators[0];
+            }
             if (simulator != null)
             {
                 simulator.SendPacket(packet);
             }
             else
             {
-                Logger.Log("Packet received before simulator packet processing threads running, make certain you are completely logged in", Helpers.LogLevel.Error);
+                NetworkInvaildWarning("simulator", "SendPacket");
             }
         }
 
@@ -495,8 +483,33 @@ namespace OpenMetaverse
         /// <param name="packet">Incoming packet to process</param>
         public void EnqueueIncoming(IncomingPacket packet)
         {
-            if (_packetInbox.Writer.TryWrite(packet))
-                Interlocked.Increment(ref _packetInboxCount);
+            if (_packetInbox != null)
+            {
+                if (_packetInbox.Writer.TryWrite(packet))
+                    Interlocked.Increment(ref _packetInboxCount);
+            }
+            else
+            {
+                NetworkInvaildWarning("_packetInbox", "EnqueueIncoming");
+            }
+        }
+
+        /// <summary>
+        /// adds a debug message when you try to access a network item
+        /// while they are still null
+        /// </summary>
+        /// <param name="source">what</param>
+        /// <param name="function">where</param>
+        protected void NetworkInvaildWarning(string source,string function)
+        {
+            long now = DateTimeOffset.Now.ToUnixTimeSeconds();
+            long dif = lastpacketwarning - now;
+            if (dif > 10)
+            {
+                lastpacketwarning = now;
+                Logger.Log(source+" is null (Are we disconnected?) - from: "+ function,
+                    Helpers.LogLevel.Debug);
+            }
         }
         
         /// <summary>
@@ -505,8 +518,15 @@ namespace OpenMetaverse
         /// <param name="packet">Incoming packet to process</param>
         public void EnqueueOutgoing(OutgoingPacket packet)
         {
-            if (_packetOutbox.Writer.TryWrite(packet))
-                Interlocked.Increment(ref _packetOutboxCount);
+            if (_packetOutbox != null)
+            {
+                if (_packetOutbox.Writer.TryWrite(packet))
+                    Interlocked.Increment(ref _packetOutboxCount);
+            }
+            else
+            {
+                NetworkInvaildWarning("_packetOutbox", "EnqueueOutgoing");
+            }
         }
 
         /// <summary>
@@ -774,7 +794,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("DisconnectSim() called with a null Simulator reference", Helpers.LogLevel.Warning, Client);
+                NetworkInvaildWarning("simulator", "DisconnectSim");
             }
         }
 
@@ -896,58 +916,73 @@ namespace OpenMetaverse
 
         private async Task OutgoingPacketHandler()
         {
-            var reader = _packetOutbox.Reader;
-            
-            // FIXME: This is kind of ridiculous. Port the HTB code from Simian over ASAP!	
-            var stopwatch = new System.Diagnostics.Stopwatch();
-            
-            while (await reader.WaitToReadAsync() && connected)
+            if (_packetOutbox != null)
             {
-                while (reader.TryRead(out var outgoingPacket))
-                {
-                    Interlocked.Decrement(ref _packetOutboxCount);
-                    
-                    var simulator = outgoingPacket.Simulator;
-                    
-                    stopwatch.Stop();
-                    if (stopwatch.ElapsedMilliseconds < 10)	
-                    {	
-                        //Logger.DebugLog(String.Format("Rate limiting, last packet was {0}ms ago", ms));	
-                        Thread.Sleep(10 - (int)stopwatch.ElapsedMilliseconds);	
-                    }
+                var reader = _packetOutbox.Reader;
 
-                    simulator.SendPacketFinal(outgoingPacket);
-                    stopwatch.Start();
+                // FIXME: This is kind of ridiculous. Port the HTB code from Simian over ASAP!	
+                var stopwatch = new System.Diagnostics.Stopwatch();
+
+                while (await reader.WaitToReadAsync() && connected)
+                {
+                    while (reader.TryRead(out var outgoingPacket))
+                    {
+                        Interlocked.Decrement(ref _packetOutboxCount);
+
+                        var simulator = outgoingPacket.Simulator;
+
+                        stopwatch.Stop();
+                        if (stopwatch.ElapsedMilliseconds < 10)
+                        {
+                            //Logger.DebugLog(String.Format("Rate limiting, last packet was {0}ms ago", ms));	
+                            Thread.Sleep(10 - (int)stopwatch.ElapsedMilliseconds);
+                        }
+
+                        simulator.SendPacketFinal(outgoingPacket);
+                        stopwatch.Start();
+                    }
                 }
             }
+            else
+            {
+                NetworkInvaildWarning("_packetOutbox", "OutgoingPacketHandler");
+            }
+
         }
 
         private async Task IncomingPacketHandler()
         {
-            var reader = _packetInbox.Reader;
-
-            while (await reader.WaitToReadAsync() && connected)
+            if (_packetInbox != null)
             {
-                while (reader.TryRead(out var incomingPacket))
+                var reader = _packetInbox.Reader;
+
+                while (await reader.WaitToReadAsync() && connected)
                 {
-                    Interlocked.Decrement(ref _packetInboxCount);
-                    
-                    var packet = incomingPacket.Packet;
-                    var simulator = incomingPacket.Simulator;
-
-                    if (packet == null) continue;
-
-                    // Skip blacklisted packets
-                    if (UDPBlacklist.Contains(packet.Type.ToString()))
+                    while (reader.TryRead(out var incomingPacket))
                     {
-                        Logger.Log($"Discarding Blacklisted packet {packet.Type} from {simulator.IPEndPoint}",
-                            Helpers.LogLevel.Warning);
-                        return;
-                    }
+                        Interlocked.Decrement(ref _packetInboxCount);
 
-                    // Fire the callback(s), if any
-                    PacketEvents.RaiseEvent(packet.Type, packet, simulator);
+                        var packet = incomingPacket.Packet;
+                        var simulator = incomingPacket.Simulator;
+
+                        if (packet == null) continue;
+
+                        // Skip blacklisted packets
+                        if (UDPBlacklist.Contains(packet.Type.ToString()))
+                        {
+                            Logger.Log($"Discarding Blacklisted packet {packet.Type} from {simulator.IPEndPoint}",
+                                Helpers.LogLevel.Warning);
+                            return;
+                        }
+
+                        // Fire the callback(s), if any
+                        PacketEvents.RaiseEvent(packet.Type, packet, simulator);
+                    }
                 }
+            }
+            else
+            {
+                NetworkInvaildWarning("_packetInbox", "IncomingPacketHandler");
             }
         }
 
