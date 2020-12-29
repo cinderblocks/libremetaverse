@@ -1142,7 +1142,7 @@ namespace OpenMetaverse
 
             if (string.IsNullOrEmpty(loginParams.LoginLocation) == false)
             {
-                string[] bits = loginParams.LoginLocation.Split("/");
+                string[] bits = loginParams.LoginLocation.Split('/');
                 if(bits.Count() == 4)
                 {
                     if(int.TryParse(bits[1],out int X) == true)
