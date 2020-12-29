@@ -110,10 +110,10 @@ namespace OpenMetaverse
         /// <summary>A md5 hashed password</summary>
         /// <remarks>plaintext password will be automatically hashed</remarks>
         public string Password;
-        /// <summary>The agents starting location once logged in</summary>
-        /// <remarks>Either "last", "home", or a string encoded URI 
-        /// containing the simulator name and x/y/z coordinates e.g: uri:hooper&amp;128&amp;152&amp;17</remarks>
+        /// <summary>The agents starting location home or last</summary>
+        /// <remarks>Please use LoginLocation for custom region and Location</remarks>
         public string Start;
+
         /// <summary>A string containing the client software channel information</summary>
         /// <example>Second Life Release</example>
         public string Channel;
@@ -150,6 +150,11 @@ namespace OpenMetaverse
         /// <summary>A randomly generated ID to distinguish between login attempts. This value is only used
         /// internally in the library and is never sent over the wire</summary>
         internal UUID LoginID;
+
+        /// <summary>LoginLocation used to set the starting region and location (overrides Start) example: "Tentacles/128/64/109"</summary>
+        /// <remarks>Leave empty to use the starting location</remarks>
+        public string LoginLocation;
+        
 
         /// <summary>
         /// Default constructor, initializes sane default values
@@ -1127,6 +1132,31 @@ namespace OpenMetaverse
                 Logger.Log("Viewer channel not set. This is a TOS violation on some grids.", 
                     Helpers.LogLevel.Warning);
                 loginParams.Channel = "LibreMetaverse client";
+            }
+
+            if((loginParams.Start != "home") && (loginParams.Start != "last"))
+            {
+                loginParams.Start = "home";
+                Logger.Log("The Start option only accepts home or last! please use LoginLocation to set a custom login location!", Helpers.LogLevel.Warning);
+            }
+
+            if (string.IsNullOrEmpty(loginParams.LoginLocation) == false)
+            {
+                string[] bits = loginParams.LoginLocation.Split("/");
+                if(bits.Count() == 4)
+                {
+                    if(int.TryParse(bits[1],out int X) == true)
+                    {
+                        if (int.TryParse(bits[2], out int Y) == true)
+                        {
+                            if (int.TryParse(bits[3], out int Z) == true)
+                            {
+                                Logger.Log("Setting login location to: "+ loginParams.LoginLocation, Helpers.LogLevel.Info);
+                                loginParams.Start = StartLocation(bits[0], X, Y, Z);
+                            }
+                        }
+                    }
+                }
             }
 
             if (loginParams.Author == null)
