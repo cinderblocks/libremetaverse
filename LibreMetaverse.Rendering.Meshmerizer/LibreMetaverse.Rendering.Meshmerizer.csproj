@@ -12,8 +12,6 @@
     <DelaySign>false</DelaySign>
     <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
     <OutputType>Library</OutputType>
-    <AppDesignerFolder>
-    </AppDesignerFolder>
     <RootNamespace>LibreMetaverse.Rendering.Meshmerizer</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
   </PropertyGroup>
@@ -38,8 +36,6 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <BaseAddress>285212672</BaseAddress>
     <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
-    <ConfigurationOverrideFile>
-    </ConfigurationOverrideFile>
     <DefineConstants>TRACE</DefineConstants>
     <DebugSymbols>False</DebugSymbols>
     <FileAlignment>4096</FileAlignment>
@@ -54,10 +50,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj">
-      <Project>{89D7A3E5-0000-0000-0000-000000000000}</Project>
-      <Name>LibreMetaverse.StructuredData</Name>
-    </ProjectReference>
+    <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
     <ProjectReference Include="..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
     <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\PrimMesher\LibreMetaverse.PrimMesher.csproj" />
@@ -84,7 +77,7 @@
     <Authors>Sjofn LLC, OpenMetaverse Developers</Authors>
     <Product>LibreMetaverse.Rendering.Meshmerizer</Product>
     <Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2019. All rights reserved.</Copyright>
-    <PackageProjectUrl>https://github.com/cinderblocks/libremetaverse</PackageProjectUrl>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/cinderblocks/libremetaverse</RepositoryUrl>
   </PropertyGroup>
 </Project>
