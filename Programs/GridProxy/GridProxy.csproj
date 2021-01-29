@@ -50,7 +50,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="log4net" Version="2.0.8" />
+    <PackageReference Include="log4net" Version="2.0.12" />
     <PackageReference Include="XmlRpcCore" Version="3.1.2.77" />
   </ItemGroup>
   <ItemGroup>
