@@ -624,8 +624,12 @@ namespace OpenMetaverse.Imaging
             {
                 using (System.IO.FileStream f = System.IO.File.OpenRead(filename))
                 {
-                    return LoadTGA(f);
+                    if (f != null)
+                    {
+                        return LoadTGA(f);
+                    }
                 }
+                return null; // file stream error
             }
             catch (System.IO.DirectoryNotFoundException)
             {

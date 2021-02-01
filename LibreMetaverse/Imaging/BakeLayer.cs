@@ -353,7 +353,10 @@ namespace OpenMetaverse.Imaging
                 {
                     using (Stream stream = Helpers.GetResourceStream(fileName, Settings.RESOURCE_DIR))
                     {
-                        bitmap = LoadTGAClass.LoadTGA(stream);
+                        if (stream != null)
+                        {
+                            bitmap = LoadTGAClass.LoadTGA(stream);
+                        }
                     }
                 }
                 if (bitmap == null)
