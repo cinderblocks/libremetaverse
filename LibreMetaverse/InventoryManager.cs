@@ -685,27 +685,29 @@ namespace OpenMetaverse
 
             List<UUID> load_items = new List<UUID>();
             List<UUID> owner_ids = new List<UUID>();
-
-            foreach (InventoryBase o in objects)
+            if (objects != null)
             {
-                if (o.GetType() != typeof(InventoryFolder))
+                foreach (InventoryBase o in objects)
                 {
-                    InventoryItem ob = (InventoryItem)o;
-                    if ((ob.IsLink() == true) && (fast_loading == false))
+                    if (o.GetType() != typeof(InventoryFolder))
                     {
-                        if (Store.Items.ContainsKey(ob.AssetUUID) == false)
+                        InventoryItem ob = (InventoryItem)o;
+                        if ((ob.IsLink() == true) && (fast_loading == false))
                         {
-                            load_items.Add(ob.AssetUUID);
-                            owner_ids.Add(Client.Self.AgentID);
+                            if (Store.Items.ContainsKey(ob.AssetUUID) == false)
+                            {
+                                load_items.Add(ob.AssetUUID);
+                                owner_ids.Add(Client.Self.AgentID);
+                            }
+                            else
+                            {
+                                cleaned_list.Add(Client.Inventory.FetchItem(ob.AssetUUID, Client.Self.AgentID, 1000 * 5));
+                            }
                         }
                         else
                         {
-                            cleaned_list.Add(Client.Inventory.FetchItem(ob.AssetUUID, Client.Self.AgentID, 1000 * 5));
+                            cleaned_list.Add(ob);
                         }
-                    }
-                    else
-                    {
-                        cleaned_list.Add(ob);
                     }
                 }
             }
