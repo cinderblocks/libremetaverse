@@ -12821,7 +12821,12 @@ namespace OpenMetaverse.Packets
             for (int j = 0; j < WearableData.Length; j++) { WearableData[j].ToBytes(bytes, ref i); }
             ObjectData.ToBytes(bytes, ref i);
             bytes[i++] = (byte)VisualParam.Length;
-            for (int j = 0; j < VisualParam.Length; j++) { VisualParam[j].ToBytes(bytes, ref i); }
+            for (int j = 0; j < VisualParam.Length; j++) {
+                if (VisualParam[j] != null)
+                {
+                    VisualParam[j].ToBytes(bytes, ref i);
+                }
+            }
             if (Header.AckList != null && Header.AckList.Length > 0) { Header.AcksToBytes(bytes, ref i); }
             return bytes;
         }
