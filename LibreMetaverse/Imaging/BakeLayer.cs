@@ -473,9 +473,15 @@ namespace OpenMetaverse.Imaging
 
                     if (sourceHasColor)
                     {
-                        bakedRed[i] = (byte)((bakedRed[i] * alphaInv + sourceRed[i] * alpha) >> 8);
-                        bakedGreen[i] = (byte)((bakedGreen[i] * alphaInv + sourceGreen[i] * alpha) >> 8);
-                        bakedBlue[i] = (byte)((bakedBlue[i] * alphaInv + sourceBlue[i] * alpha) >> 8);
+                        if ((bakedRed.Length > i) && (bakedGreen.Length > i) && (bakedBlue.Length > i))
+                        {
+                            if ((sourceRed.Length > i) && (sourceGreen.Length > i) && (sourceBlue.Length > i))
+                            {
+                                bakedRed[i] = (byte)((bakedRed[i] * alphaInv + sourceRed[i] * alpha) >> 8);
+                                bakedGreen[i] = (byte)((bakedGreen[i] * alphaInv + sourceGreen[i] * alpha) >> 8);
+                                bakedBlue[i] = (byte)((bakedBlue[i] * alphaInv + sourceBlue[i] * alpha) >> 8);
+                            }
+                        }
                     }
 
                     if (addSourceAlpha)
