@@ -12798,9 +12798,20 @@ namespace OpenMetaverse.Packets
             length += AgentData.Length;
             length += ObjectData.Length;
             length++;
-            for (int j = 0; j < WearableData.Length; j++) { length += WearableData[j].Length; }
+            for (int j = 0; j < WearableData.Length; j++) {
+                if (WearableData[j] != null)
+                {
+                    length += WearableData[j].Length;
+                }
+            }
             length++;
-            for (int j = 0; j < VisualParam.Length; j++) { length += VisualParam[j].Length; }
+            for (int j = 0; j < VisualParam.Length; j++) 
+            {
+                if (VisualParam[j] != null)
+                {
+                    length += VisualParam[j].Length;
+                }
+            }
             if (Header.AckList != null && Header.AckList.Length > 0) { length += Header.AckList.Length * 4 + 1; }
             byte[] bytes = new byte[length];
             int i = 0;

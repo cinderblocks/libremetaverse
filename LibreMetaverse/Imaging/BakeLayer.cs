@@ -40,7 +40,6 @@ namespace OpenMetaverse.Imaging
     /// </summary>
     public class Baker
     {
-        private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         #region Properties
         /// <summary>Final baked texture</summary>
         public AssetTexture BakedTexture => bakedTexture;
@@ -333,7 +332,7 @@ namespace OpenMetaverse.Imaging
             }
 
             // Apply any alpha wearable textures to make parts of the avatar disappear
-            m_log.DebugFormat("[XBakes]: Number of alpha wearable textures: {0}", alphaWearableTextures.Count);
+            Logger.Log("[XBakes]: Number of alpha wearable textures: " + alphaWearableTextures.Count.ToString(), Helpers.LogLevel.Debug);
             foreach (ManagedImage img in alphaWearableTextures)
                 AddAlpha(bakedTexture.Image, img);
 
@@ -465,8 +464,11 @@ namespace OpenMetaverse.Imaging
                 {
                     if (sourceHasAlpha)
                     {
-                        alpha = sourceAlpha[i];
-                        alphaInv = (byte)(Byte.MaxValue - alpha);
+                        if (sourceAlpha.Length > i)
+                        {
+                            alpha = sourceAlpha[i];
+                            alphaInv = (byte)(Byte.MaxValue - alpha);
+                        }
                     }
 
                     if (sourceHasColor)
