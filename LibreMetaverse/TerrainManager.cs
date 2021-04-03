@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
@@ -152,6 +153,7 @@ namespace OpenMetaverse
             // FIXME:
         }
 
+        protected List<TerrainPatch.LayerType> suppressWarningTypes = new List<TerrainPatch.LayerType>();
         private void LayerDataHandler(object sender, PacketReceivedEventArgs e)
         {
             LayerDataPacket layer = (LayerDataPacket)e.Packet;
@@ -182,7 +184,11 @@ namespace OpenMetaverse
                     DecompressCloud(e.Simulator, bitpack, header);
                     break;
                 default:
-                    Logger.Log("Unrecognized LayerData type " + type, Helpers.LogLevel.Warning, Client);
+                    if (suppressWarningTypes.Contains(type) == false)
+                    {
+                        suppressWarningTypes.Add(type);
+                        Logger.Log("Unrecognized LayerData type " + type + " - Suppressing repeated messages", Helpers.LogLevel.Warning, Client);
+                    }
                     break;
             }
         }
