@@ -2249,7 +2249,7 @@ namespace OpenMetaverse
                             break;
                     }
 
-                    if (vpIndex <= nrParams) break;
+                    if (vpIndex >= nrParams) break;
                 }
 
                 MyVisualParameters = new byte[set.VisualParam.Length];
@@ -2266,9 +2266,16 @@ namespace OpenMetaverse
 
                 for (uint i = 0; i < Textures.Length; i++)
                 {
-                    Primitive.TextureEntryFace face = te.CreateFace(i);
-                    face.TextureID = Textures[i].TextureID;
-                    Logger.DebugLog("Sending texture entry for " + (AvatarTextureIndex)i + " to " + Textures[i].TextureID, Client);
+                    if (Textures[i].TextureID != UUID.Zero)
+                    {
+                        Primitive.TextureEntryFace face = te.CreateFace(i);
+                        face.TextureID = Textures[i].TextureID;
+                        Logger.DebugLog("Sending texture entry for " + (AvatarTextureIndex)i + " to " + Textures[i].TextureID, Client);
+                    }
+                    else
+                    {
+                        Logger.DebugLog("Skipping texture entry for " + (AvatarTextureIndex)i + " its null", Client);
+                    }
                 }
 
                 set.ObjectData.TextureEntry = te.GetBytes();
