@@ -6,7 +6,8 @@
     <DefaultClientScript>JScript</DefaultClientScript>
     <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
     <DefaultTargetSchema>IE50</DefaultTargetSchema>
-    <TargetFrameworks>net471;net48</TargetFrameworks>
+    <TargetFrameworks>net471;net48;net50-windows</TargetFrameworks>
+	<UseWindowsForms>true</UseWindowsForms>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder />
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
@@ -28,7 +29,7 @@
     <PostBuildEvent />
     <Authors>Sjofn LLC, OpenMetaverse Developers</Authors>
     <Version>1.2.0</Version>
-    <Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2019. All rights reserved.</Copyright>
+    <Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2021. All rights reserved.</Copyright>
     <Product>LibreMetaverse</Product>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <RepositoryUrl>https://github.com/cinderblocks/libremetaverse</RepositoryUrl>

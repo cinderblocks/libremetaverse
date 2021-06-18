@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2019-2021, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -26,7 +27,6 @@
 
 using OpenMetaverse;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
@@ -99,10 +99,10 @@ namespace OpenMetaverse.GUI
             this.ListViewItemSorter = _ColumnSorter;
 
             EventHandler clickHandler = new EventHandler(defaultMenuItem_Click);
-            this.ContextMenu = new ContextMenu();
-            this.ContextMenu.MenuItems.Add("Offer Teleport", clickHandler);
-            this.ContextMenu.MenuItems.Add("Teleport To", clickHandler);
-            this.ContextMenu.MenuItems.Add("Walk To", clickHandler);
+            this.ContextMenuStrip = new ContextMenuStrip();
+            this.ContextMenuStrip.Items.Add("Offer Teleport", null, clickHandler);
+            this.ContextMenuStrip.Items.Add("Teleport To", null, clickHandler);
+            this.ContextMenuStrip.Items.Add("Walk To", null, clickHandler);
 
             this.DoubleBuffered = true;
             this.ListViewItemSorter = _ColumnSorter;
@@ -362,7 +362,7 @@ namespace OpenMetaverse.GUI
 
         private void defaultMenuItem_Click(object sender, EventArgs e)
         {
-            MenuItem menuItem = (MenuItem)sender;
+            ToolStripMenuItem menuItem = (ToolStripMenuItem)sender;
 
             switch (menuItem.Text)
             {
