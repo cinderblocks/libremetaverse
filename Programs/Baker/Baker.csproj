@@ -6,7 +6,7 @@
     <DefaultClientScript>JScript</DefaultClientScript>
     <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
     <DefaultTargetSchema>IE50</DefaultTargetSchema>
-    <TargetFrameworks>net471;net48;net50-windows</TargetFrameworks>
+    <TargetFrameworks>net471;net48;netcoreapp3.1;net50-windows</TargetFrameworks>
 	<UseWindowsForms>true</UseWindowsForms>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder />
