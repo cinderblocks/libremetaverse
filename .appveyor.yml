@@ -1,5 +1,5 @@
 init:
-  - ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { $env:TAG_VERSION = "$env:APPVEYOR_REPO_TAG_NAME.$env:APPVEYOR_BUILD_NUMBER" } else { $env:TAG_VERSION = "v1.5.0.$env:APPVEYOR_BUILD_NUMBER-alpha" }
+  - ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { $env:TAG_VERSION = "$env:APPVEYOR_REPO_TAG_NAME.$env:APPVEYOR_BUILD_NUMBER" } else { $env:TAG_VERSION = "v1.7.0.$env:APPVEYOR_BUILD_NUMBER-alpha" }
   - ps: $env:TAG_VERSION = $env:TAG_VERSION -replace 'v',''
   - ps: Write-Host "Setting version to '$env:TAG_VERSION'"
   - ps: Update-AppveyorBuild -Version "$env:TAG_VERSION"
@@ -10,11 +10,14 @@ environment:
     secure: bOoXrGfLiHjZlCG1tJ+nDQ==
 
   matrix:
-  - job_name: Windows build
+  - job_name: Windows Build
     appveyor_build_worker_image: Visual Studio 2019
     configuration: Release
-  - job_name: Linux build
-    appveyor_build_worker_image: Ubuntu1804
+  - job_name: Linux Build
+    appveyor_build_worker_image: Ubuntu2004
+    configuration: ReleaseNoGui
+  - job_name: MacOS Build
+    appveyor_build_worker_image: macos-mojave
     configuration: ReleaseNoGui
 
 pull_requests:
@@ -61,4 +64,4 @@ deploy:
     draft: false
     prerelease: false
     on:
-      job_name: Windows build
+      job_name: Windows Build
