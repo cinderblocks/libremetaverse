@@ -435,7 +435,7 @@ namespace OpenMetaverse.Assets
             xtw.WriteElementString("SnapshotID", parcel.SnapshotID.ToString());
             xtw.WriteElementString("UserLocation", parcel.UserLocation.ToString());
             xtw.WriteElementString("UserLookAt", parcel.UserLookAt.ToString());
-            xtw.WriteElementString("Dwell", "0");
+            xtw.WriteElementString("Dwell", parcel.Dwell.ToString());
             xtw.WriteElementString("SeeAVs", parcel.SeeAVs.ToString());
             xtw.WriteElementString("AnyAVSounds", parcel.AnyAVSounds.ToString());
             xtw.WriteElementString("GroupAVSounds", parcel.GroupAVSounds.ToString());
