@@ -1,5 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2021, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -645,6 +646,7 @@ namespace OpenMetaverse.Tests
             ParcelPropertiesMessage s = new ParcelPropertiesMessage();
             s.AABBMax = Vector3.Parse("<1,2,3>");
             s.AABBMin = Vector3.Parse("<2,3,1>");
+            s.AnyAVSounds = true;
             s.Area = 1024;
             s.AuctionID = uint.MaxValue;
             s.AuthBuyerID = UUID.Random();
@@ -653,6 +655,7 @@ namespace OpenMetaverse.Tests
             s.ClaimDate = new DateTime(2008, 12, 25, 3, 15, 22);
             s.ClaimPrice = 1000;
             s.Desc = "Test Description";
+            s.GroupAVSounds = true;
             s.GroupID = UUID.Random();
             s.GroupPrims = 50;
             s.IsGroupOwned = false;
@@ -687,6 +690,7 @@ namespace OpenMetaverse.Tests
             s.RentPrice = 0;
             s.RequestResult = ParcelResult.Single;
             s.SalePrice = 9999;
+            s.SeeAVs = true;
             s.SelectedPrims = 1;
             s.SelfCount = 2;
             s.SequenceID = -4000;
@@ -706,6 +710,7 @@ namespace OpenMetaverse.Tests
 
             Assert.AreEqual(s.AABBMax, t.AABBMax);
             Assert.AreEqual(s.AABBMin, t.AABBMin);
+            Assert.AreEqual(s.AnyAVSounds, t.AnyAVSounds);
             Assert.AreEqual(s.Area, t.Area);
             Assert.AreEqual(s.AuctionID, t.AuctionID);
             Assert.AreEqual(s.AuthBuyerID, t.AuthBuyerID);
@@ -714,6 +719,7 @@ namespace OpenMetaverse.Tests
             Assert.AreEqual(s.ClaimDate, t.ClaimDate);
             Assert.AreEqual(s.ClaimPrice, t.ClaimPrice);
             Assert.AreEqual(s.Desc, t.Desc);
+            Assert.AreEqual(s.GroupAVSounds, t.GroupAVSounds);
             Assert.AreEqual(s.GroupID, t.GroupID);
             Assert.AreEqual(s.GroupPrims, t.GroupPrims);
             Assert.AreEqual(s.IsGroupOwned, t.IsGroupOwned);
@@ -748,6 +754,7 @@ namespace OpenMetaverse.Tests
             Assert.AreEqual(s.RentPrice, t.RentPrice);
             Assert.AreEqual(s.RequestResult, t.RequestResult);
             Assert.AreEqual(s.SalePrice, t.SalePrice);
+            Assert.AreEqual(s.SeeAVs, t.SeeAVs);
             Assert.AreEqual(s.SelectedPrims, t.SelectedPrims);
             Assert.AreEqual(s.SelfCount, t.SelfCount);
             Assert.AreEqual(s.SequenceID, t.SequenceID);
@@ -765,9 +772,11 @@ namespace OpenMetaverse.Tests
         public void ParcelPropertiesUpdateMessage()
         {
             ParcelPropertiesUpdateMessage s = new ParcelPropertiesUpdateMessage();
+            s.AnyAVSounds = true;
             s.AuthBuyerID = UUID.Random();
             s.Category = ParcelCategory.Gaming;
             s.Desc = "Example Description";
+            s.GroupAVSounds = true;
             s.GroupID = UUID.Random();
             s.Landing = LandingType.LandingPoint;
             s.LocalID = 160;
@@ -787,6 +796,7 @@ namespace OpenMetaverse.Tests
             s.PassHours = 5.5f;
             s.PassPrice = 100;
             s.SalePrice = 99;
+            s.SeeAVs = true;
             s.SnapshotID = UUID.Random();
             s.UserLocation = Vector3.Parse("<128,128,128>");
             s.UserLookAt = Vector3.Parse("<256,256,256>");
@@ -797,9 +807,11 @@ namespace OpenMetaverse.Tests
 
             t.Deserialize(map);
 
+            Assert.AreEqual(s.AnyAVSounds, t.AnyAVSounds);
             Assert.AreEqual(s.AuthBuyerID, t.AuthBuyerID);
             Assert.AreEqual(s.Category, t.Category);
             Assert.AreEqual(s.Desc, t.Desc);
+            Assert.AreEqual(s.GroupAVSounds, t.GroupAVSounds);
             Assert.AreEqual(s.GroupID, t.GroupID);
             Assert.AreEqual(s.Landing, t.Landing);
             Assert.AreEqual(s.LocalID, t.LocalID);
@@ -819,6 +831,7 @@ namespace OpenMetaverse.Tests
             Assert.AreEqual(s.PassHours, t.PassHours);
             Assert.AreEqual(s.PassPrice, t.PassPrice);
             Assert.AreEqual(s.SalePrice, t.SalePrice);
+            Assert.AreEqual(s.SeeAVs, t.SeeAVs);
             Assert.AreEqual(s.SnapshotID, t.SnapshotID);
             Assert.AreEqual(s.UserLocation, t.UserLocation);
             Assert.AreEqual(s.UserLookAt, t.UserLookAt);

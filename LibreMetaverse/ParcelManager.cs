@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2021, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -570,6 +571,12 @@ namespace OpenMetaverse
         public bool ObscureMusic;
         /// <summary>A struct containing media details</summary>
         public ParcelMedia Media;
+        /// <summary>Parcel privacy see avatars outside/inside parcel</summary>
+        public bool SeeAVs;
+        /// <summary>Parcel privacy play sounds attached to avatars outside/inside parcel</summary>
+        public bool AnyAVSounds;
+        /// <summary>Parcel privacy play sounds for group members</summary>
+        public bool GroupAVSounds;
 
         /// <summary>
         /// Displays a parcel object in string format
@@ -635,7 +642,10 @@ namespace OpenMetaverse
                     SalePrice = (uint) SalePrice,
                     SnapshotID = SnapshotID,
                     UserLocation = UserLocation,
-                    UserLookAt = UserLookAt
+                    UserLookAt = UserLookAt,
+                    SeeAVs = SeeAVs,
+                    AnyAVSounds = AnyAVSounds,
+                    GroupAVSounds = GroupAVSounds
                 };
 
                 OSDMap body = req.Serialize();
@@ -1842,7 +1852,11 @@ namespace OpenMetaverse
                 RegionDenyAgeUnverified = msg.RegionDenyAgeUnverified,
                 RegionDenyAnonymous = msg.RegionDenyAnonymous,
                 RegionPushOverride = msg.RegionPushOverride,
-                RentPrice = msg.RentPrice
+                RentPrice = msg.RentPrice,
+                SeeAVs = msg.SeeAVs,
+                AnyAVSounds = msg.AnyAVSounds,
+                GroupAVSounds = msg.GroupAVSounds
+                
             };
 
             ParcelResult result = msg.RequestResult;
