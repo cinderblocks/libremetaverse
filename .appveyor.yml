@@ -11,12 +11,15 @@ environment:
 
   matrix:
   - job_name: Windows Build
+    platform: x64
     appveyor_build_worker_image: Visual Studio 2019
     configuration: Release
   - job_name: Linux Build
+    platform: x64
     appveyor_build_worker_image: Ubuntu2004
     configuration: ReleaseNoGui
   - job_name: MacOS Build
+    platform: x64
     appveyor_build_worker_image: macos-mojave
     configuration: ReleaseNoGui
 
