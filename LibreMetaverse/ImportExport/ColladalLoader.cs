@@ -164,11 +164,7 @@ namespace OpenMetaverse.ImportExport
                     bitmap = resized;
                 }
 
-                using (var writer = new LibreMetaverse.Imaging.J2KWriter(material.TextureData))
-                {
-                    writer.WriteHeader(new OpenJpegDotNet.IO.Parameter { Compression = 1 });
-                    material.TextureData = writer.Encode(bitmap);
-                }
+                material.TextureData = OpenJPEG.EncodeFromImage(bitmap, false);
 
                 Logger.Log("Successfully encoded " + fname, Helpers.LogLevel.Info);
             }

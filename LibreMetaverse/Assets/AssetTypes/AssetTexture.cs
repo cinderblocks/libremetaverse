@@ -1,6 +1,5 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -26,8 +25,7 @@
  */
 
 using System;
-using System.Runtime.InteropServices;
-using LibreMetaverse.Imaging;
+using OpenMetaverse;
 using OpenMetaverse.Imaging;
 
 namespace OpenMetaverse.Assets
@@ -42,6 +40,9 @@ namespace OpenMetaverse.Assets
 
         /// <summary>A <seealso cref="ManagedImage"/> object containing image data</summary>
         public ManagedImage Image;
+
+        /// <summary></summary>
+        public OpenJPEG.J2KLayerInfo[] LayerInfo;
 
         /// <summary></summary>
         public int Components;
@@ -80,12 +81,7 @@ namespace OpenMetaverse.Assets
         /// </summary>
         public override void Encode()
         {
-            using (J2KWriter writer = new J2KWriter(AssetData))
-            {
-                writer.WriteHeader(new OpenJpegDotNet.IO.Parameter { Compression = 1 });
-                // *hack: encode from ManagedImage directly or better yet, get rid of ManagedImage entirely!
-                AssetData = writer.Encode(Image.ExportBitmap());
-            }
+            AssetData = OpenJPEG.Encode(Image);
         }
 
         /// <summary>
@@ -95,28 +91,36 @@ namespace OpenMetaverse.Assets
         /// <returns>True if the decoding was successful, otherwise false</returns>
         public override bool Decode()
         {
-            if (AssetData == null || AssetData.Length <= 0) { return false; }
-
-            this.Components = 0;
-
-            using (J2KReader reader = new J2KReader(AssetData))
+            if (AssetData != null && AssetData.Length > 0)
             {
-                // *hack: decode from ManagedImage directly or better yet, get rid of ManagedImage entirely!
-                if (!reader.ReadHeader()) { return false; }
-                System.Drawing.Bitmap bitmap = reader.DecodeToBitmap();
-                Image = new ManagedImage(bitmap);
+                this.Components = 0;
+
+                if (OpenJPEG.DecodeToImage(AssetData, out Image))
+                {
+                    if ((Image.Channels & ManagedImage.ImageChannels.Color) != 0)
+                        Components += 3;
+                    if ((Image.Channels & ManagedImage.ImageChannels.Gray) != 0)
+                        ++Components;
+                    if ((Image.Channels & ManagedImage.ImageChannels.Bump) != 0)
+                        ++Components;
+                    if ((Image.Channels & ManagedImage.ImageChannels.Alpha) != 0)
+                        ++Components;
+
+                    return true;
+                }
             }
 
-            if ((Image.Channels & ManagedImage.ImageChannels.Color) != 0)
-                Components += 3;
-            if ((Image.Channels & ManagedImage.ImageChannels.Gray) != 0)
-                ++Components;
-            if ((Image.Channels & ManagedImage.ImageChannels.Bump) != 0)
-                ++Components;
-            if ((Image.Channels & ManagedImage.ImageChannels.Alpha) != 0)
-                ++Components;
+            return false;
+        }
 
-            return true;
+        /// <summary>
+        /// Decodes the begin and end byte positions for each quality layer in
+        /// the image
+        /// </summary>
+        /// <returns></returns>
+        public bool DecodeLayerBoundaries()
+        {
+            return OpenJPEG.DecodeLayerBoundaries(AssetData, out LayerInfo, out Components);
         }
     }
 }

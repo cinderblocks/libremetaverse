@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using OpenMetaverse;
 using OpenMetaverse.Imaging;
 using OpenMetaverse.Assets;
-using LibreMetaverse.Imaging;
 
 namespace OpenMetaverse.TestClient
 {
@@ -92,14 +91,10 @@ namespace OpenMetaverse.TestClient
                             File.WriteAllBytes(assetTexture.AssetID + ".jp2", assetTexture.AssetData);
                             Console.WriteLine("Wrote JPEG2000 image " + assetTexture.AssetID + ".jp2");
 
-                            using (J2KReader reader = new J2KReader(assetTexture.AssetData))
-                            {
-                                reader.ReadHeader();
-                                System.Drawing.Bitmap bitmap = reader.DecodeToBitmap();
-                                ManagedImage imgData = new ManagedImage(bitmap);
-                                byte[] tgaFile = imgData.ExportTGA();
-                                File.WriteAllBytes(assetTexture.AssetID + ".tga", tgaFile);
-                            }
+                            ManagedImage imgData;
+                            OpenJPEG.DecodeToImage(assetTexture.AssetData, out imgData);
+                            byte[] tgaFile = imgData.ExportTGA();
+                            File.WriteAllBytes(assetTexture.AssetID + ".tga", tgaFile);
                             Console.WriteLine("Wrote TGA image " + assetTexture.AssetID + ".tga");
                         }
                         catch (Exception e)

@@ -24,7 +24,6 @@
     <PostBuildEvent />
     <IsPackable>false</IsPackable>
     <TargetFrameworks>netcoreapp3.1;net50</TargetFrameworks>
-    <Platforms>AnyCPU;x64;x86</Platforms>
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent />

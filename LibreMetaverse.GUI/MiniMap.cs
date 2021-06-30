@@ -30,7 +30,6 @@ using System.Drawing;
 using System.Windows.Forms;
 using OpenMetaverse.Imaging;
 using OpenMetaverse.Assets;
-using LibreMetaverse.Imaging;
 
 namespace OpenMetaverse.GUI
 {
@@ -212,18 +211,13 @@ namespace OpenMetaverse.GUI
                 SetMapLayer(null);
 
                 _MapImageID = region.MapImageID;
+                ManagedImage nullImage;
 
                 Client.Assets.RequestImage(_MapImageID, ImageType.Baked, 
                     delegate(TextureRequestState state, AssetTexture asset)
                         {
-                            if (state == TextureRequestState.Finished)
-                            {
-                                using (J2KReader reader = new J2KReader(asset.AssetData))
-                                {
-                                    if (!reader.ReadHeader()) { return; }
-                                    _MapLayer = reader.DecodeToBitmap();
-                                }
-                            }
+                            if(state == TextureRequestState.Finished)
+                                OpenJPEG.DecodeToImage(asset.AssetData, out nullImage, out _MapLayer);
                         });
             }
         }       

@@ -26,7 +26,6 @@
     <ConfigurationOverrideFile />
     <PreBuildEvent />
     <PostBuildEvent />
-    <Platforms>AnyCPU;x64;x86</Platforms>
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent />
