@@ -77,7 +77,7 @@ namespace OpenMetaverse.TestClient
 
         private byte[] LoadImage(string fileName)
         {
-            byte[] UploadData;
+            byte[] UploadData = { };
             string lowfilename = fileName.ToLower();
             Bitmap bitmap = null;
 
@@ -85,22 +85,22 @@ namespace OpenMetaverse.TestClient
             {
                 if (lowfilename.EndsWith(".jp2") || lowfilename.EndsWith(".j2c"))
                 {
-                    Image image;
-                    ManagedImage managedImage;
-
                     // Upload JPEG2000 images untouched
                     UploadData = System.IO.File.ReadAllBytes(fileName);
-                    
-                    OpenJPEG.DecodeToImage(UploadData, out managedImage, out image);
-                    bitmap = (Bitmap)image;
+
+                    using (var reader = new LibreMetaverse.Imaging.J2KReader(UploadData))
+                    {
+                        reader.ReadHeader();
+                        bitmap = reader.DecodeToBitmap();
+                    }
                 }
                 else
                 {
-                    if (lowfilename.EndsWith(".tga"))
+                    if (lowfilename.EndsWith(".tga")) {
                         bitmap = LoadTGAClass.LoadTGA(fileName);
-                    else
+                    } else {
                         bitmap = (Bitmap)Image.FromFile(fileName);
-
+                    }
                     int oldwidth = bitmap.Width;
                     int oldheight = bitmap.Height;
 
@@ -137,8 +137,10 @@ namespace OpenMetaverse.TestClient
                         bitmap.Dispose();
                         bitmap = resized;
                     }
-
-                    UploadData = OpenJPEG.EncodeFromImage(bitmap, false);
+                    using (var writer = new LibreMetaverse.Imaging.J2KWriter(bitmap))
+                    {
+                        UploadData = writer.Encode();
+                    }
                 }
             }
             catch (Exception ex)
