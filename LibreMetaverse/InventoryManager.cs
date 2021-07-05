@@ -909,8 +909,8 @@ namespace OpenMetaverse
                     }
                     catch (Exception exc)
                     {
-                        Logger.Log($"Failed to fetch inventory descendants: {exc.Message}\n" +
-                                   $"{exc.StackTrace.ToString()}",
+                        Logger.Log($"Failed to fetch inventory descendants: {exc.Message}" + Environment.NewLine +
+                                   $"{exc.StackTrace}",
                                    Helpers.LogLevel.Warning, Client);
                         foreach (var f in batch)
                         {
@@ -941,7 +941,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed to fetch inventory descendants: {ex.Message}\n" +
+                Logger.Log($"Failed to fetch inventory descendants: {ex.Message}" + Environment.NewLine +
                            $"{ex.StackTrace}",
                            Helpers.LogLevel.Warning, Client);
                 foreach (var f in batch)
@@ -1778,31 +1778,29 @@ namespace OpenMetaverse
 
             CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("NewFileAgentInventory");
 
-            if (request != null)
-            {
-                OSDMap query = new OSDMap
-                {
-                    {"folder_id", OSD.FromUUID(folderID)},
-                    {"asset_type", OSD.FromString(Utils.AssetTypeToString(assetType))},
-                    {"inventory_type", OSD.FromString(Utils.InventoryTypeToString(invType))},
-                    {"name", OSD.FromString(name)},
-                    {"description", OSD.FromString(description)},
-                    {"everyone_mask", OSD.FromInteger((int) permissions.EveryoneMask)},
-                    {"group_mask", OSD.FromInteger((int) permissions.GroupMask)},
-                    {"next_owner_mask", OSD.FromInteger((int) permissions.NextOwnerMask)},
-                    {"expected_upload_cost", OSD.FromInteger(Client.Settings.UPLOAD_COST)}
-                };
-
-                // Make the request
-                request.OnComplete += CreateItemFromAssetResponse;
-                request.UserData = new object[] { callback, data, Client.Settings.CAPS_TIMEOUT, query };
-
-                request.BeginGetResponse(query, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
-            }
-            else
-            {
+            if (request == null) { 
                 throw new Exception("NewFileAgentInventory capability is not currently available");
             }
+
+            OSDMap query = new OSDMap
+            {
+                {"folder_id", OSD.FromUUID(folderID)},
+                {"asset_type", OSD.FromString(Utils.AssetTypeToString(assetType))},
+                {"inventory_type", OSD.FromString(Utils.InventoryTypeToString(invType))},
+                {"name", OSD.FromString(name)},
+                {"description", OSD.FromString(description)},
+                {"everyone_mask", OSD.FromInteger((int) permissions.EveryoneMask)},
+                {"group_mask", OSD.FromInteger((int) permissions.GroupMask)},
+                {"next_owner_mask", OSD.FromInteger((int) permissions.NextOwnerMask)},
+                {"expected_upload_cost", OSD.FromInteger(Client.Settings.UPLOAD_COST)}
+            };
+
+            // Make the request
+            request.OnComplete += CreateItemFromAssetResponse;
+            request.UserData = new object[] { callback, data, Client.Settings.CAPS_TIMEOUT, query };
+
+            request.BeginGetResponse(query, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+
         }
 
         /// <summary>

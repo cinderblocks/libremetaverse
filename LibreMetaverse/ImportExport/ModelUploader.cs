@@ -262,7 +262,7 @@ namespace OpenMetaverse.ImportExport
                     return;
                 }
 
-                Logger.Log("Response from mesh upload prepare:\n" + OSDParser.SerializeLLSDNotationFormatted(result), Helpers.LogLevel.Debug);
+                Logger.Log("Response from mesh upload prepare:" + Environment.NewLine + OSDParser.SerializeLLSDNotationFormatted(result), Helpers.LogLevel.Debug);
                 callback?.Invoke(result);
             };
 
@@ -287,7 +287,8 @@ namespace OpenMetaverse.ImportExport
                     return;
                 }
                 OSDMap res = (OSDMap)result;
-                Logger.Log("Response from mesh upload perform:\n" + OSDParser.SerializeLLSDNotationFormatted(result), Helpers.LogLevel.Debug);
+                Logger.Log("Response from mesh upload perform:" + Environment.NewLine 
+                    + OSDParser.SerializeLLSDNotationFormatted(result), Helpers.LogLevel.Debug);
                 callback?.Invoke(res);
             };
 
