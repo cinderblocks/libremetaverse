@@ -95,6 +95,7 @@ namespace OpenMetaverse.GUI
         private void InitializeClient(GridClient client)
         {
             _Client = client;
+            FetchMapLayer();
             _Client.Grid.CoarseLocationUpdate += Grid_CoarseLocationUpdate;
             _Client.Network.SimChanged += Network_OnCurrentSimChanged;
         }
@@ -106,25 +107,29 @@ namespace OpenMetaverse.GUI
 
         private void UpdateMiniMap(Simulator sim)
         {
-            if (!this.IsHandleCreated) return;
+            if (!this.IsHandleCreated) { return; }
 
-            if (this.InvokeRequired) this.BeginInvoke((MethodInvoker)delegate { UpdateMiniMap(sim); });
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke((MethodInvoker)delegate { UpdateMiniMap(sim); });
+            }
             else
             {
                 if (_MapLayer == null)
+                {
                     SetMapLayer(null);
-
+                }
                 Bitmap bmp = (Bitmap)_MapLayer.Clone();
                 Graphics g = Graphics.FromImage(bmp);
 
                 Vector3 myCoarsePos;
 
-                if (!sim.AvatarPositions.TryGetValue(Client.Self.AgentID, out myCoarsePos)) return;
+                if (!sim.AvatarPositions.TryGetValue(Client.Self.AgentID, out myCoarsePos)) { return; }
 
                 int i = 0;
 
                 _Client.Network.CurrentSim.AvatarPositions.ForEach(
-                    delegate(KeyValuePair<UUID, Vector3> coarse)
+                    delegate (KeyValuePair<UUID, Vector3> coarse)
                     {
                         int x = (int)coarse.Value.X;
                         int y = 255 - (int)coarse.Value.Y;
@@ -174,7 +179,7 @@ namespace OpenMetaverse.GUI
                 );
 
                 g.DrawImage(bmp, 0, 0);
-                this.Image = (System.Drawing.Image)(object)bmp; // *HACK:
+                Image = bmp;
             }
         }
 
