@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2021, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -28,9 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-using OpenMetaverse.Imaging;
 using OpenMetaverse.Assets;
-using LibreMetaverse.Imaging;
 
 namespace OpenMetaverse.GUI
 {
@@ -204,7 +203,7 @@ namespace OpenMetaverse.GUI
                     {
                         if (state == TextureRequestState.Finished)
                         {
-                            using (J2KReader reader = new J2KReader(asset.AssetData))
+                            using (var reader = new OpenJpegDotNet.IO.Reader(asset.AssetData))
                             {
                                 if (!reader.ReadHeader()) { return; }
                                 _MapLayer = reader.DecodeToBitmap();

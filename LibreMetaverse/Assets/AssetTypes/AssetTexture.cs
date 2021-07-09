@@ -1,4 +1,4 @@
-﻿/*
+﻿/**
  * Copyright (c) 2006-2016, openmetaverse.co
  * Copyright (c) 2021, Sjofn LLC.
  * All rights reserved.
@@ -26,8 +26,6 @@
  */
 
 using System;
-using System.Runtime.InteropServices;
-using LibreMetaverse.Imaging;
 using OpenMetaverse.Imaging;
 
 namespace OpenMetaverse.Assets
@@ -80,7 +78,7 @@ namespace OpenMetaverse.Assets
         /// </summary>
         public override void Encode()
         {
-            using (J2KWriter writer = new J2KWriter(Image.ExportBitmap()))
+            using (var writer = new OpenJpegDotNet.IO.Writer(Image.ExportBitmap()))
             {
                 AssetData = writer.Encode();
             }
@@ -97,7 +95,7 @@ namespace OpenMetaverse.Assets
 
             this.Components = 0;
 
-            using (J2KReader reader = new J2KReader(AssetData))
+            using (var reader = new OpenJpegDotNet.IO.Reader(AssetData))
             {
                 // *hack: decode from ManagedImage directly or better yet, get rid of ManagedImage entirely!
                 if (!reader.ReadHeader()) { return false; }
