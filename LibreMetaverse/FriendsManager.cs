@@ -954,7 +954,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct a new instance of the FriendsReadyEventArgs class
         /// </summary>
-        /// <param name="Count">The total number of people loaded into the friend list.</param>
+        /// <param name="count">The total number of people loaded into the friend list.</param>
         public FriendsReadyEventArgs(int count)
         {
             this.m_count = count;

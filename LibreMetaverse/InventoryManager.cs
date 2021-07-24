@@ -29,8 +29,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using System.Runtime.Serialization;
-using System.Threading.Tasks;
 using OpenMetaverse.Http;
 using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.StructuredData;
@@ -647,7 +645,7 @@ namespace OpenMetaverse
         /// <param name="order">sort order to return results in</param>
         /// <param name="timeoutMS">a integer representing the number of milliseconds to wait for results</param>
         /// <param name="fast_loading">when false uses links and does not attempt to get the real object</param>
-        /// <returns>keypair with a status message, and List<InventoryBase>
+        /// <returns>keypair with a status message, and List\<<seealso cref="InventoryBase/>\>
         /// if the status message is retry you should check again in a bit is is currently loading
         /// links using RequestFetchInventoryCap
         /// </returns>
@@ -2561,7 +2559,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Recurse inventory category and return folders and items. Does NOT contain parent folder being searched
         /// </summary>
-        /// <param name="folder">Inventory category to recursively search</param>
+        /// <param name="folderID">Inventory category to recursively search</param>
         /// <param name="owner">Owner of folder</param>
         /// <param name="cats">reference to list of categories</param>
         /// <param name="items">reference to list of items</param>

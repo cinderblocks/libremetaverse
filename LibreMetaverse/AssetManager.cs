@@ -846,8 +846,6 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="assetID">Use UUID.Zero if you do not have the 
         /// asset ID but have all the necessary permissions</param>
-        /// <param name="assetType"></param>
-        /// <param name="priority">Whether to prioritize this asset download or not</param>
         /// <param name="transfer"></param>
         /// <param name="callback"></param>
         private void RequestInventoryAssetHTTP(UUID assetID, AssetDownload transfer, AssetReceivedCallback callback)
