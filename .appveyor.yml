@@ -5,10 +5,6 @@ init:
   - ps: Update-AppveyorBuild -Version "$env:TAG_VERSION"
 
 environment:
-  LMVTestAgentUsername: SecretAgentTest Resident
-  LMVTestAgentPassword:
-    secure: bOoXrGfLiHjZlCG1tJ+nDQ==
-
   matrix:
   - job_name: Windows Build
     platform: x64
@@ -22,6 +18,16 @@ environment:
     platform: x64
     appveyor_build_worker_image: macos-mojave
     configuration: ReleaseNoGui
+
+  LMVTestAgentUsername: SecretAgentTest Resident
+  LMVTestAgentPassword:
+    secure: bOoXrGfLiHjZlCG1tJ+nDQ==
+  PfxDownloadUrl:
+    secure: 6zETilPjqhwgznp0rOyu2lloNy/uIU0coJBWCW+ADBiofQTU8ZuU3BCIEifEPI1R
+  PfxDownloadPasswd:
+    secure: qzHJldnavMFT8+Cm2eXndg==
+  PfxPassword:
+    secure: +vWSGzLkiBGVIxfPb+iRtD+/maQjI2d92hN4PoNAxMc=
 
 pull_requests:
   do_not_increment_build_number: false
@@ -47,24 +53,17 @@ dotnet_csproj:
   package_version: '{version}'
 
 before_build:
+  - ps: util/InstallRemotePfx.ps1 -PfxDownloadUrl $env:PfxDownloadUrl -PfxDownloadUser AppVeyor -PfxDownloadPasswd $env:PfxDownloadPasswd -PfxPasswd $env:PfxPassword
   - nuget restore LibreMetaverse.sln
 
 after_build:
+  - ps: if ($isWindows) { nuget sign LibreMetaverse.$env:TAG_VERSION.nupkg -CertificateFingerprint 95AEDF70A4C4E6184F43CA8C1E17B6D838430184 -CertificatePassword $env:PfxPassword -Timestamper http://timestamp.comodoca.com }
   - ps: if ($isWindows) { Get-ChildItem -Filter "*.nupkg" -Path "C:\Users\appveyor\AppData\Local\Temp\" -recurse | Compress-Archive -DestinationPath "nuget_libraries.zip" -Verbose }
 
 artifacts:
+  - path: 'LibreMetaverse.*.nupkg'
+    name: 'LibreMetaverse pkg'
+    type: Auto
   - path: 'nuget_libraries.zip'
     name: 'Nuget Library Archive'
     type: Auto
-
-deploy:
-  - provider: Webhook
-    url: https://app.signpath.io/API/v1/8446d24b-7c29-473d-b13c-83bac9d9db17/Integrations/AppVeyor?ProjectKey=LibreMetaverse&SigningPolicyKey=LibreMetaverse
-    authorization:
-      secure: 5X22VkhN0wjILZOvbIPXRUutxFSiwHxhe9e7xYxEMGhxq+mAyMptnWJ0PH20YS8+v+nsnV7woz0pgYHBTEYahQ==
-    skip_symbols: true
-    artifact: nuget_libraries.zip
-    draft: false
-    prerelease: false
-    on:
-      job_name: Windows Build
