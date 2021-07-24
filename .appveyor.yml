@@ -61,9 +61,31 @@ after_build:
   - ps: if ($isWindows) { Get-ChildItem -Filter "*.nupkg" -Path "C:\Users\appveyor\AppData\Local\Temp\" -recurse | Compress-Archive -DestinationPath "nuget_libraries.zip" -Verbose }
 
 artifacts:
-  - path: 'LibreMetaverse.*.nupkg'
-    name: 'LibreMetaverse pkg'
-    type: Auto
   - path: 'nuget_libraries.zip'
     name: 'Nuget Library Archive'
     type: Auto
+
+deploy:
+  - provider: NuGet
+    name: nuget_release
+    api_key:
+      secure: Mvs+45lPmiSYC9hv3AqdKWJVEzA5B5w0iU2IUCRz2/cxow/s00suGcO326h4Gjt7
+    artifact: /.*LibreMetaverse.*\.nupkg/
+    skip_symbols: true
+    draft: false
+    prerelease: false
+    on:
+      job_name: Windows build
+  - provider: GitHub
+    name: github_releases
+    description: Release v$(appveyor_build_version)
+    tag: $(appveyor_build_version)
+    auth_token:
+      secure: NWduXKOpjxTw6TAgzMV9SsBERjq5Qxv49XKbDtu6XQV7GygeQmG1RTKeyxl4zV1A
+    artifact: /.*LibreMetaverse.*\.nupkg/
+    skip_symbols: true
+    draft: false
+    prerelease: false
+    on:
+      job_name: Windows build
+      APPVEYOR_REPO_TAG: true
