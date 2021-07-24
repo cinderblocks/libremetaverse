@@ -131,6 +131,7 @@
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
     <PackageReference Include="System.Threading.Channels" Version="5.0.0" />
     <PackageReference Include="XmlRpcCore" Version="3.1.2.77" />
+    <PackageReference Include="ZeroFormatter" Version="1.6.4" />
     <PackageReference Include="zlib.net-mutliplatform" Version="1.0.5" />
   </ItemGroup>
   <ItemGroup>

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2021, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -26,18 +27,24 @@
 
 using System;
 using System.Runtime.Serialization;
+using ZeroFormatter;
 
 namespace OpenMetaverse
 {
-    [Serializable]
-    public class InventoryNode : ISerializable
+    [ZeroFormattable]
+    public class InventoryNode
     {
+        [Index(0)]
         private InventoryBase data;
+        [Index(1)]
         private InventoryNode parent;
+        [Index(3)]
         private UUID parentID; //used for de-seralization 
+        [Index(4)]
         private InventoryNodeDictionary nodes;
+        [Index(5)]
         private bool needsUpdate = true;
-        [NonSerialized]
+        [IgnoreFormat]
         private object tag;
 
         /// <summary></summary>

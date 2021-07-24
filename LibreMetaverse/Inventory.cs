@@ -346,13 +346,12 @@ namespace OpenMetaverse
 	        {
                 using (Stream stream = File.Open(filename, FileMode.Create))
                 {
-                    BinaryFormatter bformatter = new BinaryFormatter();
                     lock (Items)
                     {
                         Logger.Log("Caching " + Items.Count.ToString() + " inventory items to " + filename, Helpers.LogLevel.Info);
                         foreach (KeyValuePair<UUID, InventoryNode> kvp in Items)
                         {
-                            bformatter.Serialize(stream, kvp.Value);
+                            ZeroFormatter.ZeroFormatterSerializer.Serialize(stream, kvp.Value);
                         }
                     }
                 }
@@ -384,7 +383,7 @@ namespace OpenMetaverse
 
                     while (stream.Position < stream.Length)
                     {
-                        OpenMetaverse.InventoryNode node = (InventoryNode)bformatter.Deserialize(stream);
+                        var node = ZeroFormatter.ZeroFormatterSerializer.Deserialize<InventoryNode>(stream);
                         nodes.Add(node);
                         item_count++;
                     }
