@@ -10,7 +10,7 @@
     <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
     <DefaultTargetSchema>IE50</DefaultTargetSchema>
     <DelaySign>false</DelaySign>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net50</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0</TargetFrameworks>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse.StructuredData</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>

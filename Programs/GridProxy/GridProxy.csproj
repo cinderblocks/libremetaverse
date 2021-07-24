@@ -13,7 +13,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>GridProxy</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <TargetFrameworks>netcoreapp3.1;net5</TargetFrameworks>
+	<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
     <Platforms>AnyCPU;x64;x86</Platforms>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">

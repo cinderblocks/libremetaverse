@@ -8,7 +8,7 @@
     <DefaultClientScript>JScript</DefaultClientScript>
     <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
     <DefaultTargetSchema>IE50</DefaultTargetSchema>
-    <TargetFrameworks>netcoreapp3.1;net50</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder />
     <StartupObject />

@@ -10,7 +10,7 @@
     <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
     <DefaultTargetSchema>IE50</DefaultTargetSchema>
     <DelaySign>false</DelaySign>
-    <TargetFrameworks>netcoreapp3.1;net50</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse.Tests</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>

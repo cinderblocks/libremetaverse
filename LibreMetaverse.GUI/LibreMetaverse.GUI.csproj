@@ -1,4 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+	<TargetFrameworks>net471;net48;netcoreapp3.1;net5.0-windows</TargetFrameworks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' ">
+	<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' ">
+	<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+  </PropertyGroup>
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
     <ProductVersion>14.0.25123</ProductVersion>
@@ -10,7 +19,6 @@
     <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
     <DefaultTargetSchema>IE50</DefaultTargetSchema>
     <DelaySign>false</DelaySign>
-    <TargetFrameworks>net471;net48;netcoreapp3.1;net50-windows</TargetFrameworks>
 	<UseWindowsForms>true</UseWindowsForms>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse.GUI</RootNamespace>
