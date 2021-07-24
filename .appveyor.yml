@@ -53,11 +53,11 @@ dotnet_csproj:
   package_version: '{version}'
 
 before_build:
-  - ps: util/InstallRemotePfx.ps1 -PfxDownloadUrl $env:PfxDownloadUrl -PfxDownloadUser AppVeyor -PfxDownloadPasswd $env:PfxDownloadPasswd -PfxPasswd $env:PfxPassword
   - nuget restore LibreMetaverse.sln
 
 after_build:
-  - ps: if ($isWindows) { nuget sign LibreMetaverse.$env:TAG_VERSION.nupkg -CertificateFingerprint 95AEDF70A4C4E6184F43CA8C1E17B6D838430184 -CertificatePassword $env:PfxPassword -Timestamper http://timestamp.comodoca.com }
+  - ps: if ($isWindows) { util/InstallRemotePfx.ps1 -PfxDownloadUrl $env:PfxDownloadUrl -PfxDownloadUser AppVeyor -PfxDownloadPasswd $env:PfxDownloadPasswd -PfxPasswd $env:PfxPassword }
+  - ps: if ($isWindows) { util/SignPackages.ps1 -PfxPasswd $env:PfxPassword }
   - ps: if ($isWindows) { Get-ChildItem -Filter "*.nupkg" -Path "C:\Users\appveyor\AppData\Local\Temp\" -recurse | Compress-Archive -DestinationPath "nuget_libraries.zip" -Verbose }
 
 artifacts:
