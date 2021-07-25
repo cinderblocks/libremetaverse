@@ -68,10 +68,8 @@ namespace OpenMetaverse.TestClient
 
             // Build an organized structure from the imported prims
             Dictionary<uint, Linkset> linksets = new Dictionary<uint, Linkset>();
-            for (int i = 0; i < prims.Count; i++)
+            foreach (var prim in prims)
             {
-                Primitive prim = prims[i];
-
                 if (prim.ParentID == 0)
                 {
                     if (linksets.ContainsKey(prim.LocalID))

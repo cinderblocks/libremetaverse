@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse
@@ -130,8 +131,7 @@ namespace OpenMetaverse
             List<OSD> wl = new List<OSD>();
             if (WhiteList != null && WhiteList.Length > 0)
             {
-                for (int i = 0; i < WhiteList.Length; i++)
-                    wl.Add(OSD.FromString(WhiteList[i]));
+                wl.AddRange(WhiteList.Select(OSD.FromString));
             }
 
             map["whitelist"] = new OSDArray(wl);

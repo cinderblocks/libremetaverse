@@ -21,9 +21,11 @@ namespace OpenMetaverse.TestClient
 
             lock (Client.Network.Simulators)
             {
-                for (int i = 0; i < Client.Network.Simulators.Count; i++)
+                foreach (var sim
+                    in Client.Network.Simulators)
                 {
-                    Client.Network.Simulators[i].ObjectsAvatars.ForEach(
+                    sim
+.ObjectsAvatars.ForEach(
                         delegate(Avatar av)
                         {
                             result.AppendLine();

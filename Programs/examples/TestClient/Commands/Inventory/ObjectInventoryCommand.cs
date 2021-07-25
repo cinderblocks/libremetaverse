@@ -35,17 +35,16 @@ namespace OpenMetaverse.TestClient
             {
                 string result = String.Empty;
 
-                for (int i = 0; i < items.Count; i++)
+                foreach (var i in items)
                 {
-                    if (items[i] is InventoryFolder)
+                    if (i is InventoryFolder)
                     {
-                        result += String.Format("[Folder] Name: {0}", items[i].Name) + Environment.NewLine;
+                        result += $"[Folder] Name: {i.Name}" + Environment.NewLine;
                     }
                     else
                     {
-                        InventoryItem item = (InventoryItem)items[i];
-                        result += String.Format("[Item] Name: {0} Desc: {1} Type: {2}", item.Name, item.Description,
-                            item.AssetType) + Environment.NewLine;
+                        InventoryItem item = (InventoryItem)i;
+                        result += $"[Item] Name: {item.Name} Desc: {item.Description} Type: {item.AssetType}" + Environment.NewLine;
                     }
                 }
 

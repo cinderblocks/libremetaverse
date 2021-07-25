@@ -331,12 +331,12 @@ public class ClientAO : ProxyPlugin
                 //SayToUser("nb received: " + nbdescendantsreceived);
                 //folders are present, and we are not at end of path.
                 //look at them
-                for (int i = 0; i < reply.FolderData.Length; i++)
+                foreach (var fd in reply.FolderData)
                 {
                     //SayToUser("Folder: " + Utils.BytesToString(reply.FolderData[i].Name));
-                    if (searchPath[searchLevel] == Utils.BytesToString(reply.FolderData[i].Name)) {
+                    if (searchPath[searchLevel] == Utils.BytesToString(fd.Name)) {
                         //We found the next folder in the path                        
-                        currentFolder = reply.FolderData[i].FolderID;                       
+                        currentFolder = fd.FolderID;                       
                         if (searchLevel < searchPath.Length - 1)                        
                         {
                             // ask for next item in path
@@ -381,32 +381,32 @@ public class ClientAO : ProxyPlugin
                 //count them
                 nbdescendantsreceived += reply.ItemData.Length;
                 //SayToUser("nb received: " + nbdescendantsreceived);
-                for (int i = 0; i < reply.ItemData.Length; i++)
+                foreach (var d in reply.ItemData)
                 {
                     //we are going to store info on all items. we'll need
                     //it to get the asset ID of animations refered to by the
                     //configuration notecard
-                    if (reply.ItemData[i].ItemID != UUID.Zero)
+                    if (d.ItemID != UUID.Zero)
                     {
-                        InventoryItem item = CreateInventoryItem((InventoryType)reply.ItemData[i].InvType, reply.ItemData[i].ItemID);
-                        item.ParentUUID = reply.ItemData[i].FolderID;
-                        item.CreatorID = reply.ItemData[i].CreatorID;
-                        item.AssetType = (AssetType)reply.ItemData[i].Type;
-                        item.AssetUUID = reply.ItemData[i].AssetID;
-                        item.CreationDate = Utils.UnixTimeToDateTime((uint)reply.ItemData[i].CreationDate);
-                        item.Description = Utils.BytesToString(reply.ItemData[i].Description);
-                        item.Flags = (uint)reply.ItemData[i].Flags;
-                        item.Name = Utils.BytesToString(reply.ItemData[i].Name);
-                        item.GroupID = reply.ItemData[i].GroupID;
-                        item.GroupOwned = reply.ItemData[i].GroupOwned;
+                        InventoryItem item = CreateInventoryItem((InventoryType)d.InvType, d.ItemID);
+                        item.ParentUUID = d.FolderID;
+                        item.CreatorID = d.CreatorID;
+                        item.AssetType = (AssetType)d.Type;
+                        item.AssetUUID = d.AssetID;
+                        item.CreationDate = Utils.UnixTimeToDateTime((uint)d.CreationDate);
+                        item.Description = Utils.BytesToString(d.Description);
+                        item.Flags = (uint)d.Flags;
+                        item.Name = Utils.BytesToString(d.Name);
+                        item.GroupID = d.GroupID;
+                        item.GroupOwned = d.GroupOwned;
                         item.Permissions = new Permissions(
-                            reply.ItemData[i].BaseMask,
-                            reply.ItemData[i].EveryoneMask,
-                            reply.ItemData[i].GroupMask,
-                            reply.ItemData[i].NextOwnerMask,
-                            reply.ItemData[i].OwnerMask);
-                        item.SalePrice = reply.ItemData[i].SalePrice;
-                        item.SaleType = (SaleType)reply.ItemData[i].SaleType;
+                            d.BaseMask,
+                            d.EveryoneMask,
+                            d.GroupMask,
+                            d.NextOwnerMask,
+                            d.OwnerMask);
+                        item.SalePrice = d.SalePrice;
+                        item.SaleType = (SaleType)d.SaleType;
                         item.OwnerID = reply.AgentData.OwnerID;
 
                         //SayToUser("item in folder: " + item.Name);
@@ -575,10 +575,10 @@ public class ClientAO : ProxyPlugin
                 // Reset the signaled animation list
                 SignaledAnimations.Clear();
                 //fill it with the fresh list from simulator
-                for (int i = 0; i < animation.AnimationList.Length; i++)
+                foreach (var anim in animation.AnimationList)
                 {
-                    UUID animID = animation.AnimationList[i].AnimID;
-                    int sequenceID = animation.AnimationList[i].AnimSequenceID;
+                    UUID animID = anim.AnimID;
+                    int sequenceID = anim.AnimSequenceID;
 
                     // Add this animation to the list of currently signaled animations
                     SignaledAnimations[animID] = sequenceID;

@@ -149,16 +149,9 @@ namespace OpenMetaverse.ImportExport
             resources["mesh_list"] = meshList;
 
             OSDArray textureList = new OSDArray();
-            for (int i = 0; i < Images.Count; i++)
+            foreach (var img in Images)
             {
-                if (upload)
-                {
-                    textureList.Add(new OSDBinary(Images[i]));
-                }
-                else
-                {
-                    textureList.Add(new OSDBinary(Utils.EmptyBytes));
-                }
+                textureList.Add(upload ? new OSDBinary(img) : new OSDBinary(Utils.EmptyBytes));
             }
 
             resources["texture_list"] = textureList;

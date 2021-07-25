@@ -687,11 +687,11 @@ public class Analyst : ProxyPlugin
         Type packetTypeType = typeof(PacketType);
         System.Reflection.MemberInfo[] packetTypes = packetTypeType.GetMembers();
 
-        for (int i = 0; i < packetTypes.Length; i++)
+        foreach (var t in packetTypes)
         {
-            if (packetTypes[i].MemberType == System.Reflection.MemberTypes.Field && packetTypes[i].DeclaringType == packetTypeType)
+            if (t.MemberType == System.Reflection.MemberTypes.Field && t.DeclaringType == packetTypeType)
             {
-                string name = packetTypes[i].Name;
+                string name = t.Name;
                 PacketType pType;
 
                 try
@@ -718,9 +718,9 @@ public class Analyst : ProxyPlugin
             string[] lines = File.ReadAllLines(whitelistFile);
             int count = 0;
 
-            for (int i = 0; i < lines.Length; i++)
+            foreach (var l in lines)
             {
-                string line = lines[i].Trim();
+                string line = l.Trim();
                 if (line.Length == 0)
                     continue;
 
@@ -754,9 +754,9 @@ public class Analyst : ProxyPlugin
             string[] lines = File.ReadAllLines(blacklistFile);
             int count = 0;
 
-            for (int i = 0; i < lines.Length; i++)
+            foreach (var l in lines)
             {
-                string line = lines[i].Trim();
+                string line = l.Trim();
                 if (line.Length == 0)
                     continue;
 
@@ -802,11 +802,11 @@ public class Analyst : ProxyPlugin
         Type packetTypeType = typeof(PacketType);
         System.Reflection.MemberInfo[] packetTypes = packetTypeType.GetMembers();
 
-        for (int i = 0; i < packetTypes.Length; i++)
+        foreach (var t in packetTypes)
         {
-            if (packetTypes[i].MemberType == System.Reflection.MemberTypes.Field && packetTypes[i].DeclaringType == packetTypeType)
+            if (t.MemberType == System.Reflection.MemberTypes.Field && t.DeclaringType == packetTypeType)
             {
-                string name = packetTypes[i].Name;
+                string name = t.Name;
                 PacketType pType;
 
                 try

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using OpenMetaverse;
@@ -23,9 +24,7 @@ namespace OpenMetaverse.TestClient
 
         public override string Execute(string[] args, UUID fromAgentID)
 		{
-			string masterName = String.Empty;
-			for (int ct = 0; ct < args.Length;ct++)
-				masterName = masterName + args[ct] + " ";
+			string masterName = args.Aggregate(string.Empty, (current, t) => current + t + " ");
             masterName = masterName.TrimEnd();
 
             if (masterName.Length == 0)

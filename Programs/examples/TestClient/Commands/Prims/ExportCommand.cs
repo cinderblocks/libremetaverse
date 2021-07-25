@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
@@ -114,23 +115,21 @@ namespace OpenMetaverse.TestClient
 
                 lock (Textures)
                 {
-                    for (int i = 0; i < prims.Count; i++)
+                    foreach (var prim in prims)
                     {
-                        Primitive prim = prims[i];
-
                         if (prim.Textures.DefaultTexture.TextureID != Primitive.TextureEntry.WHITE_TEXTURE &&
                             !Textures.Contains(prim.Textures.DefaultTexture.TextureID))
                         {
                             Textures.Add(prim.Textures.DefaultTexture.TextureID);
                         }
 
-                        for (int j = 0; j < prim.Textures.FaceTextures.Length; j++)
+                        foreach (var face in prim.Textures.FaceTextures)
                         {
-                            if (prim.Textures.FaceTextures[j] != null &&
-                                prim.Textures.FaceTextures[j].TextureID != Primitive.TextureEntry.WHITE_TEXTURE &&
-                                !Textures.Contains(prim.Textures.FaceTextures[j].TextureID))
+                            if (face != null &&
+                                face.TextureID != Primitive.TextureEntry.WHITE_TEXTURE &&
+                                !Textures.Contains(face.TextureID))
                             {
-                                Textures.Add(prim.Textures.FaceTextures[j].TextureID);
+                                Textures.Add(face.TextureID);
                             }
                         }
 
@@ -141,8 +140,7 @@ namespace OpenMetaverse.TestClient
                     }
 
                     // Create a request list from all of the images
-                    for (int i = 0; i < Textures.Count; i++)
-                        textureRequests.Add(new ImageRequest(Textures[i], ImageType.Normal, 1013000.0f, 0));
+                    textureRequests.AddRange(Textures.Select(t => new ImageRequest(t, ImageType.Normal, 1013000.0f, 0)));
                 }
 
                 // Download all of the textures in the export list

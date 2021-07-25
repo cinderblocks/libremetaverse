@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text.RegularExpressions;
 using OpenMetaverse;
 
@@ -22,9 +23,7 @@ namespace OpenMetaverse.TestClient
             try
             {
                 // Build the predicat from the args list
-                string predicatPrim = string.Empty;
-                for (int i = 0; i < args.Length; i++)
-                    predicatPrim += args[i] + " ";
+                string predicatPrim = args.Aggregate(string.Empty, (current, t) => current + (t + " "));
                 predicatPrim = predicatPrim.TrimEnd();
 
                 // Build Regex

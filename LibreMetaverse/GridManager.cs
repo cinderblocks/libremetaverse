@@ -624,9 +624,9 @@ namespace OpenMetaverse
 
             if (m_GridLayer != null)
             {
-                for (int i = 0; i < layerData.Count; i++)
+                foreach (var data in layerData)
                 {
-                    OSDMap thisLayerData = (OSDMap)layerData[i];
+                    OSDMap thisLayerData = (OSDMap)data;
 
                     GridLayer layer;
                     layer.Bottom = thisLayerData["Bottom"].AsInteger();
@@ -635,7 +635,7 @@ namespace OpenMetaverse
                     layer.Right = thisLayerData["Right"].AsInteger();
                     layer.ImageID = thisLayerData["ImageID"].AsUUID();
 
-                    OnGridLayer(new GridLayerEventArgs(layer));                    
+                    OnGridLayer(new GridLayerEventArgs(layer));
                 }
             }
 
@@ -695,18 +695,18 @@ namespace OpenMetaverse
                 GridItemType type = (GridItemType)reply.RequestData.ItemType;
                 List<MapItem> items = new List<MapItem>();
 
-                for (int i = 0; i < reply.Data.Length; i++)
+                foreach (var data in reply.Data)
                 {
-                    string name = Utils.BytesToString(reply.Data[i].Name);
+                    string name = Utils.BytesToString(data.Name);
 
                     switch (type)
                     {
                         case GridItemType.AgentLocations:
                             MapAgentLocation location = new MapAgentLocation();
-                            location.GlobalX = reply.Data[i].X;
-                            location.GlobalY = reply.Data[i].Y;
+                            location.GlobalX = data.X;
+                            location.GlobalY = data.Y;
                             location.Identifier = name;
-                            location.AvatarCount = reply.Data[i].Extra;
+                            location.AvatarCount = data.Extra;
                             items.Add(location);
                             break;
                         case GridItemType.Classified:
@@ -715,28 +715,28 @@ namespace OpenMetaverse
                             break;
                         case GridItemType.LandForSale:
                             MapLandForSale landsale = new MapLandForSale();
-                            landsale.GlobalX = reply.Data[i].X;
-                            landsale.GlobalY = reply.Data[i].Y;
-                            landsale.ID = reply.Data[i].ID;
+                            landsale.GlobalX = data.X;
+                            landsale.GlobalY = data.Y;
+                            landsale.ID = data.ID;
                             landsale.Name = name;
-                            landsale.Size = reply.Data[i].Extra;
-                            landsale.Price = reply.Data[i].Extra2;
+                            landsale.Size = data.Extra;
+                            landsale.Price = data.Extra2;
                             items.Add(landsale);
                             break;
                         case GridItemType.MatureEvent:
                             MapMatureEvent matureEvent = new MapMatureEvent();
-                            matureEvent.GlobalX = reply.Data[i].X;
-                            matureEvent.GlobalY = reply.Data[i].Y;
+                            matureEvent.GlobalX = data.X;
+                            matureEvent.GlobalY = data.Y;
                             matureEvent.Description = name;
-                            matureEvent.Flags = (DirectoryManager.EventFlags)reply.Data[i].Extra2;
+                            matureEvent.Flags = (DirectoryManager.EventFlags)data.Extra2;
                             items.Add(matureEvent);
                             break;
                         case GridItemType.PgEvent:
                             MapPGEvent PGEvent = new MapPGEvent();
-                            PGEvent.GlobalX = reply.Data[i].X;
-                            PGEvent.GlobalY = reply.Data[i].Y;
+                            PGEvent.GlobalX = data.X;
+                            PGEvent.GlobalY = data.Y;
                             PGEvent.Description = name;
-                            PGEvent.Flags = (DirectoryManager.EventFlags)reply.Data[i].Extra2;
+                            PGEvent.Flags = (DirectoryManager.EventFlags)data.Extra2;
                             items.Add(PGEvent);
                             break;
                         case GridItemType.Popular:
@@ -745,26 +745,26 @@ namespace OpenMetaverse
                             break;
                         case GridItemType.Telehub:
                             MapTelehub teleHubItem = new MapTelehub();
-                            teleHubItem.GlobalX = reply.Data[i].X;
-                            teleHubItem.GlobalY = reply.Data[i].Y;
+                            teleHubItem.GlobalX = data.X;
+                            teleHubItem.GlobalY = data.Y;
                             items.Add(teleHubItem);
                             break;
                         case GridItemType.AdultLandForSale:
                             MapAdultLandForSale adultLandsale = new MapAdultLandForSale();
-                            adultLandsale.GlobalX = reply.Data[i].X;
-                            adultLandsale.GlobalY = reply.Data[i].Y;
-                            adultLandsale.ID = reply.Data[i].ID;
+                            adultLandsale.GlobalX = data.X;
+                            adultLandsale.GlobalY = data.Y;
+                            adultLandsale.ID = data.ID;
                             adultLandsale.Name = name;
-                            adultLandsale.Size = reply.Data[i].Extra;
-                            adultLandsale.Price = reply.Data[i].Extra2;
+                            adultLandsale.Size = data.Extra;
+                            adultLandsale.Price = data.Extra2;
                             items.Add(adultLandsale);
                             break;
                         case GridItemType.AdultEvent:
                             MapAdultEvent adultEvent = new MapAdultEvent();
-                            adultEvent.GlobalX = reply.Data[i].X;
-                            adultEvent.GlobalY = reply.Data[i].Y;
-                            adultEvent.Description = Utils.BytesToString(reply.Data[i].Name);
-                            adultEvent.Flags = (DirectoryManager.EventFlags)reply.Data[i].Extra2;
+                            adultEvent.GlobalX = data.X;
+                            adultEvent.GlobalY = data.Y;
+                            adultEvent.Description = Utils.BytesToString(data.Name);
+                            adultEvent.Flags = (DirectoryManager.EventFlags)data.Extra2;
                             items.Add(adultEvent);
                             break;
                         default:

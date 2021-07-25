@@ -32,13 +32,12 @@ namespace OpenMetaverse.TestClient
                 AutoResetEvent wait = new AutoResetEvent(false);
                 EventHandler<ForceSelectObjectsReplyEventArgs> callback = delegate(object sender, ForceSelectObjectsReplyEventArgs e)
                 {
-                    
-                    for (int i = 0; i < e.ObjectIDs.Count; i++)
+                    foreach (var id in e.ObjectIDs)
                     {
-                        result.Append(e.ObjectIDs[i].ToString() + " ");
+                        result.Append(id + " ");
                         counter++;
                     }
-                    
+
                     if (e.ObjectIDs.Count < 251)
                         wait.Set();
                 };

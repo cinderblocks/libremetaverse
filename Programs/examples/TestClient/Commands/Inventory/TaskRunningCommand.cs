@@ -82,19 +82,18 @@ namespace OpenMetaverse.TestClient
 
                     Client.Inventory.ScriptRunningReply += callback;
 
-                    for (int i = 0; i < items.Count; i++)
+                    foreach (var t in items)
                     {
-                        if (items[i] is InventoryFolder)
+                        if (t is InventoryFolder)
                         {
                             // this shouldn't happen this year
-                            result += String.Format("[Folder] Name: {0}", items[i].Name) + Environment.NewLine;
+                            result += $"[Folder] Name: {t.Name}" + Environment.NewLine;
                         }
                         else
                         {
-                            InventoryItem item = (InventoryItem)items[i];
+                            InventoryItem item = (InventoryItem)t;
                             AssetType assetType = item.AssetType;
-                            result += String.Format("[Item] Name: {0} Desc: {1} Type: {2}", item.Name, item.Description,
-                                                    assetType);
+                            result += $"[Item] Name: {item.Name} Desc: {item.Description} Type: {assetType}";
                             if (assetType == AssetType.LSLBytecode || assetType == AssetType.LSLText)
                             {
                                 OnScriptRunningReset.Reset();

@@ -87,17 +87,13 @@ namespace OpenMetaverse.TestClient
             if (enabled)
             {
                 // Search this prim for textures
-                for (int i = 0; i < prim.Textures.FaceTextures.Length; i++)
+                foreach (var face in prim.Textures.FaceTextures)
                 {
-                    Primitive.TextureEntryFace face = prim.Textures.FaceTextures[i];
-
-                    if (face != null)
+                    if (face == null) continue;
+                    if (!alreadyRequested.ContainsKey(face.TextureID))
                     {
-                        if (!alreadyRequested.ContainsKey(face.TextureID))
-                        {
-                            alreadyRequested[face.TextureID] = face.TextureID;
-                            Client.Assets.RequestImage(face.TextureID, ImageType.Normal, Assets_OnImageReceived);
-                        }
+                        alreadyRequested[face.TextureID] = face.TextureID;
+                        Client.Assets.RequestImage(face.TextureID, ImageType.Normal, Assets_OnImageReceived);
                     }
                 }
             }

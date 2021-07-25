@@ -30,8 +30,9 @@ namespace OpenMetaverse.TestClient
                 return Description;
 
             GroupName = String.Empty;
-            for (int i = 0; i < args.Length; i++)
-                GroupName += args[i] + " ";
+            foreach (var arg in args)
+                GroupName += arg + " ";
+
             GroupName = GroupName.Trim();
 
             GroupUUID = Client.GroupName2UUID(GroupName);

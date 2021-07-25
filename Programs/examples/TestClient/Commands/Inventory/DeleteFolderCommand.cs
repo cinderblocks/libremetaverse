@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Xml;
@@ -24,9 +25,7 @@ namespace OpenMetaverse.TestClient
         public override string Execute(string[] args, UUID fromAgentID)
         {
             // parse the command line
-            string target = String.Empty;
-            for (int ct = 0; ct < args.Length; ct++)
-                target = target + args[ct] + " ";
+            string target = args.Aggregate(String.Empty, (current, t) => current + t + " ");
             target = target.TrimEnd();
 
             // initialize results list

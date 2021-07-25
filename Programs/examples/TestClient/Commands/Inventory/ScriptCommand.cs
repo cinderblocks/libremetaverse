@@ -24,9 +24,9 @@ namespace OpenMetaverse.TestClient
             catch (Exception e) { return e.Message; }
 
             // Execute all of the commands
-            for (int i = 0; i < lines.Length; i++)
+            foreach (var l in lines)
             {
-                string line = lines[i].Trim();
+                string line = l.Trim();
 
                 if (line.Length > 0)
                     ClientManager.Instance.DoCommandAll(line, UUID.Zero);

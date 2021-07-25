@@ -767,9 +767,9 @@ namespace OpenMetaverse
                 char c;
 
                 // remove all non A-F, 0-9, characters
-                for (int i = 0; i < hexString.Length; i++)
+                foreach (var str in hexString)
                 {
-                    c = hexString[i];
+                    c = str;
                     if (IsHexDigit(c))
                         stripped.Append(c);
                 }

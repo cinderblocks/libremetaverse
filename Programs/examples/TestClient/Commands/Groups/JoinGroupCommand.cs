@@ -42,8 +42,9 @@ namespace OpenMetaverse.TestClient
             }
             else
             {
-                for (int i = 0; i < args.Length; i++)
-                    groupName += args[i] + " ";
+                foreach (var arg in args)
+                    groupName += arg + " ";
+
                 groupName = groupName.Trim();
 
                 Client.Directory.DirGroupsReply += Directory_DirGroups;

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
@@ -20,9 +21,7 @@ namespace OpenMetaverse.TestClient
                 return "Usage: findsim [Simulator Name]";
 
             // Build the simulator name from the args list
-            string simName = string.Empty;
-            for (int i = 0; i < args.Length; i++)
-                simName += args[i] + " ";
+            string simName = args.Aggregate(string.Empty, (current, t) => current + (t + " "));
             simName = simName.TrimEnd().ToLower();
 
             //if (!GridDataCached[Client])

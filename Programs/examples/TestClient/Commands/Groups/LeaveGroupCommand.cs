@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
@@ -23,9 +24,7 @@ namespace OpenMetaverse.TestClient
             if (args.Length < 1)
                 return Description;
 
-            string groupName = String.Empty;
-            for (int i = 0; i < args.Length; i++)
-                groupName += args[i] + " ";
+            string groupName = args.Aggregate(String.Empty, (current, t) => current + (t + " "));
             groupName = groupName.Trim();
 
             UUID groupUUID = Client.GroupName2UUID(groupName);

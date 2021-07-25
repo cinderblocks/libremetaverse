@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace OpenMetaverse.TestClient
@@ -81,13 +82,12 @@ namespace OpenMetaverse.TestClient
 
             // Build a dictionary of primitives for referencing later
             Objects[rootPrim.ID] = rootPrim;
-            for (int i = 0; i < childPrims.Count; i++)
-                Objects[childPrims[i].ID] = childPrims[i];
+            foreach (var p in childPrims)
+                Objects[p.ID] = p;
 
             // Build a list of all the localIDs to set permissions for
             localIDs.Add(rootPrim.LocalID);
-            for (int i = 0; i < childPrims.Count; i++)
-                localIDs.Add(childPrims[i].LocalID);
+            localIDs.AddRange(childPrims.Select(t => t.LocalID));
 
             // Go through each of the three main permissions and enable or disable them
             #region Set Linkset Permissions
@@ -128,24 +128,16 @@ namespace OpenMetaverse.TestClient
             int taskItems = 0;
             foreach (Primitive prim in Objects.Values)
             {
-                if ((prim.Flags & PrimFlags.InventoryEmpty) == 0)
+                if ((prim.Flags & PrimFlags.InventoryEmpty) != 0) continue;
+                List<InventoryBase> items = Client.Inventory.GetTaskInventory(prim.ID, prim.LocalID, 1000 * 30);
+
+                if (items == null) continue;
+                foreach (var item in items.Where(i => !(i is InventoryFolder)).Cast<InventoryItem>())
                 {
-                    List<InventoryBase> items = Client.Inventory.GetTaskInventory(prim.ID, prim.LocalID, 1000 * 30);
+                    item.Permissions.NextOwnerMask = Perms;
 
-                    if (items != null)
-                    {
-                        for (int i = 0; i < items.Count; i++)
-                        {
-                            if (!(items[i] is InventoryFolder))
-                            {
-                                InventoryItem item = (InventoryItem)items[i];
-                                item.Permissions.NextOwnerMask = Perms;
-
-                                Client.Inventory.UpdateTaskInventory(prim.LocalID, item);
-                                ++taskItems;
-                            }
-                        }
-                    }
+                    Client.Inventory.UpdateTaskInventory(prim.LocalID, item);
+                    ++taskItems;
                 }
             }
 

@@ -537,9 +537,8 @@ namespace OpenMetaverse.Assets
 
                 if (prim.Textures.FaceTextures != null)
                 {
-                    for (int i = 0; i < prim.Textures.FaceTextures.Length; i++)
+                    foreach (var face in prim.Textures.FaceTextures)
                     {
-                        Primitive.TextureEntryFace face = prim.Textures.FaceTextures[i];
                         if (face != null)
                             textureList[face.TextureID] = face.TextureID;
                     }

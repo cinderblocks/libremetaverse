@@ -57,9 +57,9 @@ namespace OpenMetaverse.TestClient
 
             lock (Client.Network.Simulators)
             {
-                for (int i = 0; i < Client.Network.Simulators.Count; i++)
+                foreach (var sim in Client.Network.Simulators)
                 {
-                    Avatar targetAv = Client.Network.Simulators[i].ObjectsAvatars.Find(
+                    Avatar targetAv = sim.ObjectsAvatars.Find(
                         avatar => avatar.ID == target
                     );
 

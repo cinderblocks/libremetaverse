@@ -49,7 +49,7 @@ namespace OpenMetaverse.TestClient
             {
                 result.AppendFormat(System.Environment.NewLine + "* {0} Related Commands:" + System.Environment.NewLine, kvp.Key.ToString());
                 int colMax = 0;
-                for (int i = 0; i < kvp.Value.Count; i++)
+                foreach (var val in kvp.Value)
                 {
                     if (colMax >= 120)
                     {
@@ -57,7 +57,7 @@ namespace OpenMetaverse.TestClient
                         colMax = 0;
                     }
 
-                    result.AppendFormat(" {0,-15}", kvp.Value[i].Name);
+                    result.AppendFormat(" {0,-15}", val.Name);
                     colMax += 15;
                 }
                 result.AppendLine();

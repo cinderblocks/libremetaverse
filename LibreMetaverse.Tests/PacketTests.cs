@@ -131,9 +131,8 @@ namespace OpenMetaverse.Tests
             int queryDataCount = 0;
             int queryRepliesCount = 0;
             int statusDataCount = 0;
-            for (int i = 0; i < splitPackets.Length; i++)
+            foreach (var packetData in splitPackets)
             {
-                byte[] packetData = splitPackets[i];
                 int len = packetData.Length - 1;
                 DirPlacesReplyPacket packet = (DirPlacesReplyPacket)Packet.BuildPacket(packetData, ref len, packetData);
 

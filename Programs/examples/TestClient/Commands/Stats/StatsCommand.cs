@@ -21,10 +21,8 @@ namespace OpenMetaverse.TestClient
 
             lock (Client.Network.Simulators)
             {
-                for (int i = 0; i < Client.Network.Simulators.Count; i++)
+                foreach (var sim in Client.Network.Simulators)
                 {
-                    Simulator sim = Client.Network.Simulators[i];
-
                     output.AppendLine(String.Format(
                         "[{0}] Dilation: {1} InBPS: {2} OutBPS: {3} ResentOut: {4}  ResentIn: {5}",
                         sim.ToString(), sim.Stats.Dilation, sim.Stats.IncomingBPS, sim.Stats.OutgoingBPS, 

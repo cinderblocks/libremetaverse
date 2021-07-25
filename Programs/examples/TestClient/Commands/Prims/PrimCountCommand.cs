@@ -18,13 +18,13 @@ namespace OpenMetaverse.TestClient
 
             lock (Client.Network.Simulators)
             {
-                for (int i = 0; i < Client.Network.Simulators.Count; i++)
+                foreach (var sim in Client.Network.Simulators)
                 {
-                    int avcount = Client.Network.Simulators[i].ObjectsAvatars.Count;
-                    int primcount = Client.Network.Simulators[i].ObjectsPrimitives.Count;
+                    int avcount = sim.ObjectsAvatars.Count;
+                    int primcount = sim.ObjectsPrimitives.Count;
 
                     Console.WriteLine("{0} (Avatars: {1} Primitives: {2})", 
-                        Client.Network.Simulators[i].Name, avcount, primcount);
+                        sim.Name, avcount, primcount);
 
                     count += avcount;
                     count += primcount;

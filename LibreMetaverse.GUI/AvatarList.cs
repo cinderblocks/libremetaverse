@@ -338,22 +338,22 @@ namespace OpenMetaverse.GUI
 
                 if (removedEntries != null)
                 {
-                    for (int i = 0; i < removedEntries.Count; i++)
-                        RemoveAvatar(removedEntries[i]);
+                    foreach (var entry in removedEntries)
+                        RemoveAvatar(entry);
                 }
 
                 if (newEntries != null)
                 {
-                    for (int i = 0; i < newEntries.Count; i++)
+                    foreach (var entry in newEntries)
                     {
-                        int index = this.Items.IndexOfKey(newEntries[i].ToString());
+                        int index = this.Items.IndexOfKey(entry.ToString());
                         if (index == -1)
                         {
                             Vector3 coarsePos;
-                            if (!sim.AvatarPositions.TryGetValue(newEntries[i], out coarsePos))
+                            if (!sim.AvatarPositions.TryGetValue(entry, out coarsePos))
                                 continue;
 
-                            AddAvatar(newEntries[i], null, coarsePos);
+                            AddAvatar(entry, null, coarsePos);
                         }
                     }
                 }

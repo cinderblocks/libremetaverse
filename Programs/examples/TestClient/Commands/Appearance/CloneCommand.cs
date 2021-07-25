@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
@@ -22,8 +23,7 @@ namespace OpenMetaverse.TestClient
             string targetName = String.Empty;
             List<DirectoryManager.AgentSearchData> matches;
 
-            for (int ct = 0; ct < args.Length; ct++)
-                targetName = targetName + args[ct] + " ";
+            targetName = args.Aggregate(targetName, (current, t) => current + t + " ");
             targetName = targetName.TrimEnd();
 
             if (targetName.Length == 0)

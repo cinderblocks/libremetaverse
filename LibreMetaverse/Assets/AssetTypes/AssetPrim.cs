@@ -782,8 +782,9 @@ namespace OpenMetaverse.Assets
                 if (Items != null)
                 {
                     OSDArray array = new OSDArray(Items.Length);
-                    for (int i = 0; i < Items.Length; i++)
-                        array.Add(Items[i].Serialize());
+                    foreach (var i in Items)
+                        array.Add(i.Serialize());
+
                     map["items"] = array;
                 }
 

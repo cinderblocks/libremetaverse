@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using OpenMetaverse;
 
@@ -34,12 +35,9 @@ namespace OpenMetaverse.TestClient
                 StringBuilder ret = new StringBuilder();
                 ret.AppendLine("Agent locations:");
 
-                for (int i = 0; i < items.Count; i++)
+                foreach (var location in items.Cast<MapAgentLocation>())
                 {
-                    MapAgentLocation location = (MapAgentLocation)items[i];
-
-                    ret.AppendLine(String.Format("{0} avatar(s) at {1},{2}", location.AvatarCount, location.LocalX,
-                        location.LocalY));
+                    ret.AppendLine($"{location.AvatarCount} avatar(s) at {location.LocalX},{location.LocalY}");
                 }
 
                 return ret.ToString();
