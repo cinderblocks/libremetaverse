@@ -3,10 +3,10 @@
 	<TargetFrameworks>net471;net48;netcoreapp3.1;net5.0-windows</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' ">
-	<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+	<TargetFrameworks>net471;netcoreapp3.1</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' ">
-	<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+	<TargetFrameworks>net471;netcoreapp3.1</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
