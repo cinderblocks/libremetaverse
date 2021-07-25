@@ -74,7 +74,7 @@ deploy:
     description: Release v$(appveyor_build_version)
     tag: $(appveyor_build_version)
     auth_token:
-      secure: NWduXKOpjxTw6TAgzMV9SsBERjq5Qxv49XKbDtu6XQV7GygeQmG1RTKeyxl4zV1A
+      secure: lzcaOIXHRZG5WwFThR/DpNiVFh/q4zVis8YcLkmXhJHjFsq8tZgewzVhTmopZhjW
     artifact: /.*LibreMetaverse.*\.nupkg/
     skip_symbols: true
     draft: false
