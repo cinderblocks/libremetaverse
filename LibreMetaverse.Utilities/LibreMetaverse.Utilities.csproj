@@ -128,7 +128,7 @@
 	  <PlatformTarget>AnyCPU</PlatformTarget>
 	</PropertyGroup>
 	<ItemGroup>
-	  <ProjectReference Include="..\LibreMetaverseTypes\LibreMetaverse.Types.csproj" />
+	  <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
 	  <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
 	  <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
 	</ItemGroup>
