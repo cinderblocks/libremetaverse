@@ -5,6 +5,9 @@ compile.bat
 *.cache
 *.pfx
 
+LibreMetaverse/LibreMetaverse.XML
+LibreMetaverse.*.XML
+
 [Oo]bj/
 [Bb]in/
 packages/
