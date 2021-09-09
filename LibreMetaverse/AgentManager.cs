@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2019-2021, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -1047,7 +1048,7 @@ namespace OpenMetaverse
             remove { lock (m_GroupChatJoinedLock) { m_GroupChatJoined -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<AlertMessageEventArgs> m_AlertMessage;
 
         /// <summary>Raises the AlertMessage event</summary>
@@ -1549,6 +1550,7 @@ namespace OpenMetaverse
             Client.Network.RegisterLoginResponseCallback(Network_OnLoginResponse);
             // Alert Messages
             Client.Network.RegisterCallback(PacketType.AlertMessage, AlertMessageHandler);
+            Client.Network.RegisterCallback(PacketType.AgentAlertMessage, AgentAlertMessageHandler);
             // script control change messages, ie: when an in-world LSL script wants to take control of your agent.
             Client.Network.RegisterCallback(PacketType.ScriptControlChange, ScriptControlChangeHandler);
             // Camera Constraint (probably needs to move to AgentManagerCamera TODO:
@@ -4689,6 +4691,18 @@ namespace OpenMetaverse
 
             AlertMessagePacket alert = (AlertMessagePacket)packet;
 
+            OnAlertMessage(new AlertMessageEventArgs(Utils.BytesToString(alert.AlertData.Message)));
+        }
+
+        protected void AgentAlertMessageHandler(object sender, PacketReceivedEventArgs e)
+        {
+            if (m_AlertMessage == null) return;
+            Packet packet = e.Packet;
+
+            AgentAlertMessagePacket alert = (AgentAlertMessagePacket)packet;
+
+            // HACK: Agent alerts support modal and Generic Alerts do not, but it's all the same for
+            //       my simplified ass right now.
             OnAlertMessage(new AlertMessageEventArgs(Utils.BytesToString(alert.AlertData.Message)));
         }
 
