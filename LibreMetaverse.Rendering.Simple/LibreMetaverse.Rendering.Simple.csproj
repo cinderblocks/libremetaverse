@@ -120,7 +120,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
-    <ProjectReference Include="..\..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
+    <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
