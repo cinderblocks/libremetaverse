@@ -1071,6 +1071,28 @@ namespace OpenMetaverse
             remove { lock (m_AlertMessageLock) { m_AlertMessage -= value; } }
         }
 
+        /// <summary>The event subscribers. null if no subscribers</summary>
+        private EventHandler<RegionRestartAlertMessageEventArgs> m_RegionRestartAlertMessage;
+
+        /// <summary>Raises the RegionRestartAlertMessage event</summary>
+        /// <param name="e">A RegionRestartAlertMessageEventArgs object containing the
+        /// data returned from the data server</param>
+        protected virtual void OnRegionRestartAlertMessage(RegionRestartAlertMessageEventArgs e)
+        {
+            EventHandler<RegionRestartAlertMessageEventArgs> handler = m_RegionRestartAlertMessage;
+            handler?.Invoke(this, e);
+        }
+
+        /// <summary>Thread sync lock object</summary>
+        private readonly object m_RegionRestartAlertMessageLock = new object();
+
+        /// <summary>Raised when simulator sends an imminent restart alert for the current region</summary>
+        public event EventHandler<RegionRestartAlertMessageEventArgs> RegionRestartAlertMessage
+        {
+            add { lock (m_RegionRestartAlertMessageLock) { m_RegionRestartAlertMessage += value; } }
+            remove { lock (m_RegionRestartAlertMessageLock) { m_RegionRestartAlertMessage -= value; } }
+        }
+
         /// <summary>The event subscribers. null if no subcribers</summary>
         private EventHandler<ScriptControlEventArgs> m_ScriptControl;
 
@@ -4691,7 +4713,35 @@ namespace OpenMetaverse
 
             AlertMessagePacket alert = (AlertMessagePacket)packet;
 
-            OnAlertMessage(new AlertMessageEventArgs(Utils.BytesToString(alert.AlertData.Message)));
+            string message = Utils.BytesToString(alert.AlertData.Message);
+
+            // if we have additional alert data
+            if (alert.AlertInfo.Length > 0)
+            {
+                string notification = Utils.BytesToString(alert.AlertInfo[0].Message);
+
+                switch (notification)
+                {
+                    // adhere to SL-13824 skip notification when both joining a group and leaving a group
+                    case "JoinGroupSuccess":
+                    case "GroupDepart":
+                        return;
+                    // handle Region Restart alerts
+                    case "RegionRestartMinutes":
+                    {
+                        OSDMap osdmap = (OSDMap)OSDParser.Deserialize(alert.AlertInfo[0].ExtraParams);
+                        OnRegionRestartAlertMessage(new RegionRestartAlertMessageEventArgs(osdmap["MINUTES"].AsInteger() * 60));
+                        break;
+                    }
+                    case "RegionRestartSeconds":
+                    {
+                        OSDMap osdmap = (OSDMap)OSDParser.Deserialize(alert.AlertInfo[0].ExtraParams);
+                        OnRegionRestartAlertMessage(new RegionRestartAlertMessageEventArgs(osdmap["SECONDS"].AsInteger()));
+                        break;
+                    }
+                }
+            }
+            OnAlertMessage(new AlertMessageEventArgs(message));
         }
 
         protected void AgentAlertMessageHandler(object sender, PacketReceivedEventArgs e)
@@ -5331,6 +5381,22 @@ namespace OpenMetaverse
         public AlertMessageEventArgs(string message)
         {
             Message = message;
+        }
+    }
+
+    /// <summary>Data sent by the simulator containing region restart alert</summary>
+    public class RegionRestartAlertMessageEventArgs : EventArgs
+    {
+        /// <summary>Get the alert message</summary>
+        public int SecondsRemaining { get; }
+
+        /// <summary>
+        /// Construct a new instance of the RegionRestartAlertMessageEventArgs class
+        /// </summary>
+        /// <param name="seconds_remaining">Seconds countdown to region restart</param>
+        public RegionRestartAlertMessageEventArgs(int seconds_remaining)
+        {
+            SecondsRemaining = seconds_remaining;
         }
     }
 
