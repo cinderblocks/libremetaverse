@@ -127,11 +127,14 @@ namespace OpenMetaverse.TestClient
             Packet packet = e.Packet;
             
             AlertMessagePacket alert = (AlertMessagePacket)packet;
-            string message = Utils.BytesToString(alert.AlertData.Message);
-
-            if (message.Contains("Autopilot cancel"))
+            if (alert.AlertInfo.Length > 0)
             {
-                Logger.Log("FollowCommand: " + message, Helpers.LogLevel.Info, Client);
+                string id = Utils.BytesToString(alert.AlertInfo[0].Message);
+                if (id == "AutopilotCancelled")
+                {
+                    Logger.Log("FollowCommand: " + Utils.BytesToString(alert.AlertData.Message),
+                        Helpers.LogLevel.Info, Client);
+                }
             }
         }
     }

@@ -4691,7 +4691,20 @@ namespace OpenMetaverse
 
             AlertMessagePacket alert = (AlertMessagePacket)packet;
 
-            OnAlertMessage(new AlertMessageEventArgs(Utils.BytesToString(alert.AlertData.Message)));
+            string message = Utils.BytesToString(alert.AlertData.Message);
+
+            if (alert.AlertInfo.Length > 0)
+            {
+                string notificationid = Utils.BytesToString(alert.AlertInfo[0].Message);
+                OSD extra = (alert.AlertInfo[0].ExtraParams != null && alert.AlertInfo[0].ExtraParams.Length > 0)
+                    ? OSDParser.Deserialize(alert.AlertInfo[0].ExtraParams)
+                    : null;
+                OnAlertMessage(new AlertMessageEventArgs(message, notificationid, extra));
+            }
+            else
+            {
+                OnAlertMessage(new AlertMessageEventArgs(message, null, null));
+            }
         }
 
         protected void AgentAlertMessageHandler(object sender, PacketReceivedEventArgs e)
@@ -4700,10 +4713,9 @@ namespace OpenMetaverse
             Packet packet = e.Packet;
 
             AgentAlertMessagePacket alert = (AgentAlertMessagePacket)packet;
-
             // HACK: Agent alerts support modal and Generic Alerts do not, but it's all the same for
             //       my simplified ass right now.
-            OnAlertMessage(new AlertMessageEventArgs(Utils.BytesToString(alert.AlertData.Message)));
+            OnAlertMessage(new AlertMessageEventArgs(Utils.BytesToString(alert.AlertData.Message), null, null));
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
@@ -5321,16 +5333,21 @@ namespace OpenMetaverse
     /// <summary>Data sent by the simulator containing urgent messages</summary>
     public class AlertMessageEventArgs : EventArgs
     {
-        /// <summary>Get the alert message</summary>
         public string Message { get; }
+        public string NotificationId { get; }
+        public OSD ExtraParams { get; }
 
         /// <summary>
         /// Construct a new instance of the AlertMessageEventArgs class
         /// </summary>
-        /// <param name="message">The alert message</param>
-        public AlertMessageEventArgs(string message)
+        /// <param name="message">user readable message</param>
+        /// <param name="notificationid">notification id for alert, may be null</param>
+        /// <param name="extraparams">any extra params in OSD format, may be null</param>
+        public AlertMessageEventArgs(string message, string notificationid, OSD extraparams)
         {
             Message = message;
+            NotificationId = notificationid;
+            ExtraParams = extraparams;
         }
     }
 
