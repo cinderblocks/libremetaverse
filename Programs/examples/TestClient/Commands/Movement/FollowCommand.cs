@@ -131,7 +131,7 @@ namespace OpenMetaverse.TestClient
             if (alert.AlertInfo.Length > 0)
             {
                 string id = Utils.BytesToString(alert.AlertInfo[0].Message);
-                if (id == "AutopilotCancelled")
+                if (id == "AutopilotCanceled")
                 {
                     Logger.Log("FollowCommand: " + Utils.BytesToString(alert.AlertData.Message),
                         Helpers.LogLevel.Info, Client);
