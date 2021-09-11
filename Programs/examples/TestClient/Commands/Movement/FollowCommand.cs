@@ -36,10 +36,11 @@ namespace OpenMetaverse.TestClient
             }
             else
             {
-                if (Follow(target))
-                    return "Following " + target;
-                else
-                    return "Unable to follow " + target + ".  Client may not be able to see that avatar.";
+                if (Follow(target)) {
+                    return $"Following {target}.";
+                } else {
+                    return $"Unable to follow {target}. Client may not be able to see the target avatar.";
+                }
             }
 		}
 
