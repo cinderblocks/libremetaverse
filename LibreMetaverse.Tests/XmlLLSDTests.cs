@@ -42,7 +42,7 @@ namespace OpenMetaverse.Tests
     {
         /// <summary>
         /// Test that the sample LLSD supplied by Linden Lab is properly deserialized.
-        /// The LLSD string in the test is a pared down version of the sample on the blog.
+        /// The LLSD string in the test is a pared down version of the sample on the wiki.
         /// http://wiki.secondlife.com/wiki/LLSD
         /// </summary>
         [Test]
@@ -153,6 +153,31 @@ namespace OpenMetaverse.Tests
             tempReal = (OSDReal)tempSD;
             Assert.AreEqual(0.0001096525d, tempReal.AsReal());
 
+        }
+
+        /// <summary>
+        /// Test that LLSD without a DTD is also parsed correctly.
+        /// </summary>
+        [Test]
+        public void DeserializeNoDTD()
+        {
+            string testSD = @"<llsd>
+            <map>
+              <key>MINUTES</key>
+              <integer>5</integer>
+              <key>NAME</key>
+              <string>Hippotropolis</string>
+            </map>
+            </llsd>";
+
+            byte[] bytes = Encoding.UTF8.GetBytes(testSD);
+            OSD theSD = OSDParser.DeserializeLLSDXml(bytes);
+            
+            Assert.IsTrue(theSD is OSDMap);
+            OSDMap map = (OSDMap)theSD;
+
+            Assert.AreEqual(map["MINUTES"].AsInteger(), 5);
+            Assert.AreEqual(map["NAME"].AsString(), "Hippotropolis");
         }
 
         /// <summary>
