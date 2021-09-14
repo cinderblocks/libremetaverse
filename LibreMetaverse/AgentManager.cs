@@ -4696,8 +4696,8 @@ namespace OpenMetaverse
             if (alert.AlertInfo.Length > 0)
             {
                 string notificationid = Utils.BytesToString(alert.AlertInfo[0].Message);
-                OSD extra = (alert.AlertInfo[0].ExtraParams != null && alert.AlertInfo[0].ExtraParams.Length > 0)
-                    ? OSDParser.Deserialize(alert.AlertInfo[0].ExtraParams)
+                OSDMap extra = (alert.AlertInfo[0].ExtraParams != null && alert.AlertInfo[0].ExtraParams.Length > 0)
+                    ? OSDParser.Deserialize(alert.AlertInfo[0].ExtraParams) as OSDMap
                     : null;
                 OnAlertMessage(new AlertMessageEventArgs(message, notificationid, extra));
             }
@@ -5335,7 +5335,7 @@ namespace OpenMetaverse
     {
         public string Message { get; }
         public string NotificationId { get; }
-        public OSD ExtraParams { get; }
+        public OSDMap ExtraParams { get; }
 
         /// <summary>
         /// Construct a new instance of the AlertMessageEventArgs class
@@ -5343,7 +5343,7 @@ namespace OpenMetaverse
         /// <param name="message">user readable message</param>
         /// <param name="notificationid">notification id for alert, may be null</param>
         /// <param name="extraparams">any extra params in OSD format, may be null</param>
-        public AlertMessageEventArgs(string message, string notificationid, OSD extraparams)
+        public AlertMessageEventArgs(string message, string notificationid, OSDMap extraparams)
         {
             Message = message;
             NotificationId = notificationid;
