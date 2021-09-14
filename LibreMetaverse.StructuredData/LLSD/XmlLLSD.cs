@@ -38,29 +38,52 @@ namespace OpenMetaverse.StructuredData
     /// </summary>
     public static partial class OSDParser
     {
+        private static string linden_lab_loves_bad_pi = "<? LLSD/";
+
         /// <summary>
-        /// 
+        /// Deserialize LLSD/XML stream
         /// </summary>
-        /// <param name="xmlStream"></param>
+        /// <param name="xmlStream">a <see cref="Stream" /> containing the serialized data</param>
         /// <returns></returns>
         public static OSD DeserializeLLSDXml(Stream xmlStream)
         {
+            // XmlReader don't take no shit from nobody. Parse out Linden Lab's bad PI.
+            bool match = true;
+            for (int i = 0; i < linden_lab_loves_bad_pi.Length; ++i)
+            {
+                if (xmlStream.ReadByte() != linden_lab_loves_bad_pi[i])
+                {
+                    match = false;
+                    break;
+                }
+            }
+            if (match)
+            {
+                // read until the linebreak >
+                while (xmlStream.ReadByte() != '\n')
+                { }
+            } else {
+                xmlStream.Seek(0, SeekOrigin.Begin);
+            }
+
             XmlReaderSettings settings = new XmlReaderSettings
             {
                 ValidationType = ValidationType.None,
                 CheckCharacters = false,
                 IgnoreComments = true,
-                IgnoreProcessingInstructions = true,
-                DtdProcessing = DtdProcessing.Prohibit
+                IgnoreProcessingInstructions = false,
+                DtdProcessing = DtdProcessing.Ignore
             };
             using (XmlReader xrd = XmlReader.Create(xmlStream))
+            {
                 return DeserializeLLSDXml(xrd);
+            }
         }
 
         /// <summary>
-        /// 
+        /// Deserialize LLSD/XML stream
         /// </summary>
-        /// <param name="xmlData"></param>
+        /// <param name="xmlData">Data as a byte array</param>
         /// <returns></returns>
         public static OSD DeserializeLLSDXml(byte[] xmlData)
         {
@@ -68,9 +91,9 @@ namespace OpenMetaverse.StructuredData
         }
 
         /// <summary>
-        /// 
+        /// Deserialize LLSD/XML stream
         /// </summary>
-        /// <param name="xmlData"></param>
+        /// <param name="xmlData">Serialized data as a <see cref="string" /></param>
         /// <returns></returns>
         public static OSD DeserializeLLSDXml(string xmlData)
         {
@@ -79,9 +102,9 @@ namespace OpenMetaverse.StructuredData
         }
 
         /// <summary>
-        /// 
+        /// Deserialize LLSD/XML stream
         /// </summary>
-        /// <param name="xmlData"></param>
+        /// <param name="xmlData">Serialized data as a <see cref="XmlReader" /></param>
         /// <returns></returns>
         public static OSD DeserializeLLSDXml(XmlReader xmlData)
         {
@@ -95,17 +118,18 @@ namespace OpenMetaverse.StructuredData
 
                 return ret;
             }
-            catch
+            catch (XmlException ex)
             {
+                string exs = ex.ToString();
                 return new OSD();
             }
         }
 
         /// <summary>
-        /// 
+        /// Serialize an OSD object in LLSD/XML
         /// </summary>
-        /// <param name="data"></param>
-        /// <returns></returns>
+        /// <param name="data">OSD object to serialize</param>
+        /// <returns>Serialized data as a byte aray</returns>
         public static byte[] SerializeLLSDXmlBytes(OSD data)
         {
             return Encoding.UTF8.GetBytes(SerializeLLSDXmlString(data));
@@ -119,7 +143,7 @@ namespace OpenMetaverse.StructuredData
         public static string SerializeLLSDXmlString(OSD data)
         {
             StringWriter sw = new StringWriter();
-            using(XmlTextWriter writer = new XmlTextWriter(sw))
+            using (XmlTextWriter writer = new XmlTextWriter(sw))
             {
                 writer.Formatting = Formatting.None;
 

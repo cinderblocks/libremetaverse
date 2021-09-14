@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2021, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -1246,7 +1247,7 @@ namespace OpenMetaverse.StructuredData
 
         public static OSD Deserialize(Stream stream)
         {
-            if (!stream.CanSeek) throw new OSDException("Cannot deserialize structured data from unseekable streams");
+            if (!stream.CanSeek) { throw new OSDException("Cannot deserialize structured data from unseekable streams"); }
 
             byte[] headerData = new byte[14];
             stream.Read(headerData, 0, 14);

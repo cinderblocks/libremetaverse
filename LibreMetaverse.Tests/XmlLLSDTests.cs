@@ -181,6 +181,32 @@ namespace OpenMetaverse.Tests
         }
 
         /// <summary>
+        /// Test LLSD with a silly Linden Lab PI.
+        /// </summary>
+        [Test]
+        public void DeserializeSillyPI()
+        {
+            string testSD = @"<? LLSD/XML ?>\n
+            <llsd>
+            <map>
+              <key>MINUTES</key>
+              <integer>5</integer>
+              <key>NAME</key>
+              <string>Hippotropolis</string>
+            </map>
+            </llsd>\n";
+
+            byte[] bytes = Encoding.UTF8.GetBytes(testSD);
+            OSD theSD = OSDParser.DeserializeLLSDXml(bytes);
+
+            Assert.IsTrue(theSD is OSDMap);
+            OSDMap map = (OSDMap)theSD;
+
+            Assert.AreEqual(map["MINUTES"].AsInteger(), 5);
+            Assert.AreEqual(map["NAME"].AsString(), "Hippotropolis");
+        }
+
+        /// <summary>
         /// Test that various Real representations are parsed correctly.
         /// </summary>
         [Test]
