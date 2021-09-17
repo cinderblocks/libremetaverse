@@ -280,6 +280,29 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null of no subscribers</summary>
+        private EventHandler<AvatarNotesReplyEventArgs> m_AvatarNotesReply;
+
+        ///<summary>Raises the AvatarNotesReply Event</summary>
+        /// <param name="e">A AvatarNotesReplyEventArgs object containing
+        /// the data sent from the simulator</param>
+        protected virtual void OnAvatarNotesReply(AvatarNotesReplyEventArgs e)
+        {
+            EventHandler<AvatarNotesReplyEventArgs> handler = m_AvatarNotesReply;
+            handler?.Invoke(this, e);
+        }
+
+        /// <summary>Thread sync lock object</summary>
+        private readonly object m_AvatarNotesReplyLock = new object();
+
+        /// <summary>Raised when the simulator sends us data containing
+        /// the private notes listed in an agents profile</summary>
+        public event EventHandler<AvatarNotesReplyEventArgs> AvatarNotesReply
+        {
+            add { lock (m_AvatarNotesReplyLock) { m_AvatarNotesReply += value; } }
+            remove { lock (m_AvatarNotesReplyLock) { m_AvatarNotesReply -= value; } }
+        }
+
+        /// <summary>The event subscribers, null of no subscribers</summary>
         private EventHandler<AvatarPropertiesReplyEventArgs> m_AvatarPropertiesReply;
 
         ///<summary>Raises the AvatarPropertiesReply Event</summary>
@@ -561,6 +584,7 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.AvatarPropertiesReply, AvatarPropertiesHandler);
             // Client.Network.RegisterCallback(PacketType.AvatarStatisticsReply, AvatarStatisticsHandler);
             Client.Network.RegisterCallback(PacketType.AvatarInterestsReply, AvatarInterestsHandler);
+            Client.Network.RegisterCallback(PacketType.AvatarNotesReply, AvatarNotesHandler);
 
             // Avatar group callback
             Client.Network.RegisterCallback(PacketType.AvatarGroupsReply, AvatarGroupsReplyHandler);
@@ -1038,6 +1062,19 @@ namespace OpenMetaverse
             }
         }
 
+        protected void AvatarNotesHandler(object sender, PacketReceivedEventArgs e)
+        {
+            if (m_AvatarNotesReply != null)
+            {
+                Packet packet = e.Packet;
+                AvatarNotesReplyPacket anrp = (AvatarNotesReplyPacket)packet;
+                UUID target = anrp.Data.TargetID;
+                string notes = Utils.BytesToString(anrp.Data.Notes);
+
+                OnAvatarNotesReply(new AvatarNotesReplyEventArgs(anrp.Data.TargetID, notes));
+            }
+        }
+
         /// <summary>
         /// EQ Message fired when someone nearby changes their display name
         /// </summary>
@@ -1489,6 +1526,22 @@ namespace OpenMetaverse
         {
             this.AvatarID = avatarID;
             this.Interests = interests;
+        }
+    }
+
+    /// <summary>Represents the private notes from the profile of an agent</summary>
+    public class AvatarNotesReplyEventArgs : EventArgs
+    {
+        /// <summary>Get the ID of the agent</summary>
+        public UUID AvatarID { get; }
+
+        /// <summary>Get the interests of the agent</summary>
+        public string Notes { get; }
+
+        public AvatarNotesReplyEventArgs(UUID avatarID, string notes)
+        {
+            this.AvatarID = avatarID;
+            this.Notes = notes;
         }
     }
 
