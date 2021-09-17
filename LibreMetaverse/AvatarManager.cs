@@ -1068,7 +1068,6 @@ namespace OpenMetaverse
             {
                 Packet packet = e.Packet;
                 AvatarNotesReplyPacket anrp = (AvatarNotesReplyPacket)packet;
-                UUID target = anrp.Data.TargetID;
                 string notes = Utils.BytesToString(anrp.Data.Notes);
 
                 OnAvatarNotesReply(new AvatarNotesReplyEventArgs(anrp.Data.TargetID, notes));
