@@ -3257,7 +3257,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Update agents profile interests
+        /// Update agent's profile interests
         /// </summary>
         /// <param name="interests">selection of interests from <seealso cref="T:OpenMetaverse.Avatar.Interests"/> struct</param>
         public void UpdateInterests(Avatar.Interests interests)
@@ -3280,6 +3280,29 @@ namespace OpenMetaverse
             };
 
             Client.Network.SendPacket(aiup);
+        }
+
+        /// <summary>
+        /// Update agent's private notes for target avatar
+        /// </summary>
+        /// <param name="target">target avatar for notes</param>
+        /// <param name="notes">notes to store</param>
+        public void UpdateProfileNotes(UUID target, string notes)
+        {
+            AvatarNotesUpdatePacket anup = new AvatarNotesUpdatePacket
+            {
+                AgentData =
+                {
+                    AgentID = id,
+                    SessionID = sessionID
+                },
+                Data =
+                {
+                    TargetID = target,
+                    Notes = Utils.StringToBytes(notes)
+                }
+            };
+            Client.Network.SendPacket(anup);
         }
 
         /// <summary>
