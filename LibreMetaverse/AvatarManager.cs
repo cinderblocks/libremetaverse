@@ -1015,21 +1015,27 @@ namespace OpenMetaverse
                         BornOn = Utils.BytesToString(reply.PropertiesData.BornOn)
                     };
 
-                //properties.CharterMember = Utils.BytesToString(reply.PropertiesData.CharterMember);
-                uint charter = Utils.BytesToUInt(reply.PropertiesData.CharterMember);
-                if (charter == 0)
+                if (reply.PropertiesData.CharterMember.Length == 1)
                 {
-                    properties.CharterMember = "Resident";
+                    uint charter = Utils.BytesToUInt(reply.PropertiesData.CharterMember);
+                    if (charter == 0)
+                    {
+                        properties.CharterMember = "Resident";
+                    }
+                    else if (charter == 1)
+                    {
+                        properties.CharterMember = "Trial";
+                    }
+                    else if (charter == 2)
+                    {
+                        properties.CharterMember = "Charter";
+                    }
+                    else if (charter == 3)
+                    {
+                        properties.CharterMember = "Employee";
+                    }
                 }
-                else if (charter == 2)
-                {
-                    properties.CharterMember = "Charter";
-                }
-                else if (charter == 3)
-                {
-                    properties.CharterMember = "Linden";
-                }
-                else
+                else if (reply.PropertiesData.CharterMember.Length > 1)
                 {
                     properties.CharterMember = Utils.BytesToString(reply.PropertiesData.CharterMember);
                 }
