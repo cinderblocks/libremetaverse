@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2021, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -774,6 +775,36 @@ namespace OpenMetaverse
                     Data = {Name = Utils.StringToBytes(name)}
                 };
             Client.Network.SendPacket(aprp);
+        }
+
+        /// <summary>
+        /// Request avatar notes from simulator
+        /// </summary>
+        /// <param name="avatarid">Target agent UUID</param>
+        public void RequestAvatarNotes(UUID avatarid)
+        {
+            GenericMessagePacket gmp = new GenericMessagePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    TransactionID = UUID.Zero
+                },
+                MethodData =
+                {
+                    Method = Utils.StringToBytes("avatarnotesrequest"),
+                    Invoice = UUID.Zero
+                },
+                ParamList = new GenericMessagePacket.ParamListBlock[1]
+            };
+
+            gmp.ParamList[0] =
+                new GenericMessagePacket.ParamListBlock
+                {
+                    Parameter = Utils.StringToBytes(avatarid.ToString())
+                };
+            Client.Network.SendPacket(gmp);
         }
 
         /// <summary>
