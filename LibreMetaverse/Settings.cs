@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2021, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -80,10 +81,6 @@ namespace OpenMetaverse
         /// GridClient initializes an Inventory store for the library.
         /// </summary>
         public const bool ENABLE_LIBRARY_STORE = true;
-        /// <summary>
-        /// Use Caps for fetching inventory where available
-        /// </summary>
-        public bool HTTP_INVENTORY = true;
 
         #endregion
 
@@ -309,9 +306,6 @@ namespace OpenMetaverse
 
         /// <summary>Throttle outgoing packet rate</summary>
         public bool THROTTLE_OUTGOING_PACKETS = true;
-
-        /// <summary>UUID of a texture used by some viewers to indentify type of client used</summary>
-        public UUID CLIENT_IDENTIFICATION_TAG = UUID.Zero;
 
         #endregion
         #region Texture Pipeline

@@ -546,8 +546,7 @@ namespace OpenMetaverse
             if (itemIDs.Count != ownerIDs.Count)
                 throw new ArgumentException("itemIDs and ownerIDs must contain the same number of entries");
 
-            if (Client.Settings.HTTP_INVENTORY &&
-                Client.Network.CurrentSim.Caps != null &&
+            if (Client.Network.CurrentSim.Caps != null &&
                 Client.Network.CurrentSim.Caps.CapabilityURI("FetchInventory2") != null)
             {
                 RequestFetchInventoryCap(itemIDs, ownerIDs);
@@ -588,8 +587,7 @@ namespace OpenMetaverse
             if (itemIDs.Count != ownerIDs.Count)
                 throw new ArgumentException("itemIDs and ownerIDs must contain the same number of entries");
 
-            if (Client.Settings.HTTP_INVENTORY &&
-                Client.Network.CurrentSim.Caps != null &&
+            if (Client.Network.CurrentSim.Caps != null &&
                 Client.Network.CurrentSim.Caps.CapabilityURI("FetchInventory2") != null)
             {
                 CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("FetchInventory2");
@@ -762,8 +760,7 @@ namespace OpenMetaverse
         {
             string cap = owner == Client.Self.AgentID ? "FetchInventoryDescendents2" : "FetchLibDescendents2";
 
-            if (Client.Settings.HTTP_INVENTORY &&
-                Client.Network.CurrentSim.Caps != null &&
+            if (Client.Network.CurrentSim.Caps != null &&
                 Client.Network.CurrentSim.Caps.CapabilityURI(cap) != null)
             {
                 RequestFolderContentsCap(folder, owner, folders, items, order);
