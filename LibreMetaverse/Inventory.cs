@@ -366,7 +366,7 @@ namespace OpenMetaverse
         /// Loads in inventory cache file into the inventory structure. Note only valid to call after login has been successful.
         /// </summary>
         /// <param name="filename">Name of the cache file to load</param>
-        /// <returns>The number of inventory items sucessfully reconstructed into the inventory node tree</returns>
+        /// <returns>The number of inventory items successfully reconstructed into the inventory node tree</returns>
         public int RestoreFromDisk(string filename)
         {
             List<InventoryNode> nodes = new List<InventoryNode>();
@@ -379,8 +379,6 @@ namespace OpenMetaverse
 
                 using (Stream stream = File.Open(filename, FileMode.Open))
                 {
-                    BinaryFormatter bformatter = new BinaryFormatter();
-
                     while (stream.Position < stream.Length)
                     {
                         var node = ZeroFormatter.ZeroFormatterSerializer.Deserialize<InventoryNode>(stream);
