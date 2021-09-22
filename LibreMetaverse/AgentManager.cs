@@ -1619,6 +1619,27 @@ namespace OpenMetaverse
         /// </summary>
         public void RetrieveInstantMessages()
         {
+            Uri offlineMsgsCap = Client.Network.CurrentSim.Caps.CapabilityURI("ReadOfflineMsgs");
+            if (offlineMsgsCap == null 
+                || Client.Network.CurrentSim.Caps.CapabilityURI("AcceptFriendship") == null
+                || Client.Network.CurrentSim.Caps.CapabilityURI("AcceptGroupInvite") == null)
+            {
+                // fallback to lludp
+                RetrieveInstantMessagesLegacy();
+                return;
+            }
+
+            var request = new CapsClient(offlineMsgsCap);
+            var body = new OSDMap();
+            request.OnComplete += OfflineMessageHandlerCallback;
+            request.BeginGetResponse(body, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+        }
+
+        /// <summary>
+        /// Request offline instant messages via the legacy LLUDP packet
+        /// </summary>
+        private void RetrieveInstantMessagesLegacy()
+        {
             RetrieveInstantMessagesPacket p = new RetrieveInstantMessagesPacket
             {
                 AgentData =
@@ -3892,7 +3913,7 @@ namespace OpenMetaverse
         protected void InstantMessageHandler(object sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
-            Simulator simulator = e.Simulator;
+            //Simulator simulator = e.Simulator;
 
             if (packet.Type != PacketType.ImprovedInstantMessage) return;
 
@@ -3915,7 +3936,58 @@ namespace OpenMetaverse
                 message.Offline = (InstantMessageOnline)im.MessageBlock.Offline;
                 message.BinaryBucket = im.MessageBlock.BinaryBucket;
 
-                OnInstantMessage(new InstantMessageEventArgs(message, simulator));
+                OnInstantMessage(new InstantMessageEventArgs(message));
+            }
+        }
+
+        protected void OfflineMessageHandlerCallback(CapsClient client, OSD response, Exception error)
+        {
+            if (error != null) {
+                Logger.Log($"Failed to retrieve offline messages from the simulator: {error.Message}",
+                    Helpers.LogLevel.Warning);
+                return; 
+            }
+
+            if (m_InstantMessage == null) return; // don't bother if we don't have any listeners
+
+            if (response == null || !(response is OSDMap respMap) 
+                || respMap.Count == 0 || respMap.ContainsKey("messages"))
+            {
+                Logger.Log($"Failed to retrieve offline messages because the capability returned some goofy shit.",
+                    Helpers.LogLevel.Warning);
+                return;
+            }
+
+            if (respMap["messages"] is OSDArray msgArray)
+            {
+                foreach (var osd in msgArray)
+                {
+                    var msg = (OSDMap)osd;
+
+                    InstantMessage message;
+                    message.FromAgentID = msg["from_agent_id"].AsUUID();
+                    message.FromAgentName = msg["from_agent_name"].AsString();
+                    message.ToAgentID = msg["to_agent_id"].AsUUID();
+                    message.RegionID = msg["region_id"].AsUUID();
+                    message.Dialog = (InstantMessageDialog)msg["dialog"].AsInteger();
+                    message.IMSessionID = msg["transaction-id"].AsUUID();
+                    message.Timestamp = new DateTime(msg["timestamp"].AsInteger());
+                    message.Message = msg["message"].AsString();
+                    message.Offline = msg.ContainsKey("offline")
+                        ? (InstantMessageOnline)msg["offline"].AsInteger() 
+                        : InstantMessageOnline.Offline;
+                    message.ParentEstateID = msg.ContainsKey("parent_estate_id")
+                        ? msg["parent_estate_id"].AsUInteger() : 1;
+                    message.Position = msg.ContainsKey("position")
+                        ? msg["position"].AsVector3()
+                        : new Vector3(msg["local_x"], msg["local_y"], msg["local_z"]);
+                    message.BinaryBucket = msg.ContainsKey("binary_bucket")
+                        ? msg["binary_bucket"].AsBinary() : new byte[] { 0 };
+                    message.GroupIM = msg.ContainsKey("from_group")
+                        ? msg["from_group"].AsBoolean() : false;
+
+                    OnInstantMessage(new InstantMessageEventArgs(message));
+                }                
             }
         }
 
@@ -4668,7 +4740,7 @@ namespace OpenMetaverse
             {
                 Logger.Log("Failed joining IM:", Helpers.LogLevel.Warning, Client, ex);
             }
-            OnInstantMessage(new InstantMessageEventArgs(im, simulator));
+            OnInstantMessage(new InstantMessageEventArgs(im));
         }
 
 
@@ -5107,18 +5179,14 @@ namespace OpenMetaverse
         /// <summary>Get the InstantMessage object</summary>
         public InstantMessage IM { get; }
 
-        /// <summary>Get the simulator where the InstantMessage origniated</summary>
-        public Simulator Simulator { get; }
-
         /// <summary>
         /// Construct a new instance of the InstantMessageEventArgs object
         /// </summary>
         /// <param name="im">the InstantMessage object</param>
         /// <param name="simulator">the simulator where the InstantMessage origniated</param>
-        public InstantMessageEventArgs(InstantMessage im, Simulator simulator)
+        public InstantMessageEventArgs(InstantMessage im)
         {
             IM = im;
-            Simulator = simulator;
         }
     }
 
