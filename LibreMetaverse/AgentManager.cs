@@ -3945,6 +3945,7 @@ namespace OpenMetaverse
             if (error != null) {
                 Logger.Log($"Failed to retrieve offline messages from the simulator: {error.Message}",
                     Helpers.LogLevel.Warning);
+                RetrieveInstantMessagesLegacy();
                 return; 
             }
 
@@ -3955,6 +3956,7 @@ namespace OpenMetaverse
             {
                 Logger.Log($"Failed to retrieve offline messages because the capability returned some goofy shit.",
                     Helpers.LogLevel.Warning);
+                RetrieveInstantMessagesLegacy();
                 return;
             }
 
