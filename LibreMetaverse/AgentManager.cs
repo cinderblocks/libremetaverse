@@ -1630,9 +1630,8 @@ namespace OpenMetaverse
             }
 
             var request = new CapsClient(offlineMsgsCap);
-            var body = new OSDMap();
             request.OnComplete += OfflineMessageHandlerCallback;
-            request.BeginGetResponse(body, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+            request.BeginGetResponse(null, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
         }
 
         /// <summary>
