@@ -25,7 +25,9 @@
 
 using System;
 using System.Collections.Generic;
+using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse
 {
@@ -515,6 +517,61 @@ namespace OpenMetaverse
                 FriendRequests.Remove(fromAgentID);
 
             Client.Avatars.RequestAvatarName(fromAgentID);
+        }
+
+        /// <summary>
+        /// Accept friendship request. Only to be used if rerquest was sent via Offline Msg cap
+        /// This can be determined by the presence of a <seealso cref="InstantMessageEventArgs.Simulator"/>
+        /// value in <seealso cref="InstantMessageEventArgs" />
+        /// </summary>
+        /// <param name="fromAgentID">agentID of avatatar to form friendship with</param>
+        public void AcceptFriendshipCapability(UUID fromAgentID)
+        {
+            Uri acceptFriendshipCap = Client.Network.CurrentSim.Caps.CapabilityURI("AcceptFriendship");
+            if (acceptFriendshipCap == null)
+            {
+                Logger.Log("AcceptFriendship capability not found.", Helpers.LogLevel.Warning);
+                return;
+            }
+            UriBuilder builder = new UriBuilder(acceptFriendshipCap);
+            // Second Life has some infintely stupid escaped agent name as part of the uri query.
+            // Hopefully we don't need it because it makes no goddamn sense at all. Period, but just in case:
+            // ?from={fromAgentID}&agent_name=\"This%20Sucks\"
+            builder.Query = $"from={fromAgentID}";   
+            acceptFriendshipCap = builder.Uri;
+
+            var request = new CapsClient(acceptFriendshipCap);
+            var body = new OSD();
+            request.OnComplete += delegate(CapsClient client, OSD result, Exception error)
+            {
+                if (error != null)
+                {
+                    Logger.Log($"AcceptFriendship failed for {fromAgentID}. ({error.Message})",
+                        Helpers.LogLevel.Warning);
+                    return;
+                }
+
+                if (result != null)
+                {
+                    var resMap = result as OSDMap;
+                    if (!(resMap.ContainsKey("success") && resMap["success"].AsBoolean())) { return; }
+
+                    FriendInfo friend = new FriendInfo(fromAgentID, FriendRights.CanSeeOnline, FriendRights.CanSeeOnline);
+
+                    if (!FriendList.ContainsKey(fromAgentID))
+                    {
+                        FriendList.Add(friend.UUID, friend);
+                    }
+                    if (FriendRequests.ContainsKey(fromAgentID))
+                    {
+                        FriendRequests.Remove(fromAgentID);
+                    }
+                    Client.Avatars.RequestAvatarName(fromAgentID);
+                }
+
+                
+            };
+            request.BeginGetResponse(body, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
         }
 
         /// <summary>
