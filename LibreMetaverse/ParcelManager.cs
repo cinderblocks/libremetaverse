@@ -650,7 +650,7 @@ namespace OpenMetaverse
 
                 OSDMap body = req.Serialize();
 
-                request.BeginGetResponse(body, CapsBase.POST, OSDFormat.Xml, simulator.Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(body, OSDFormat.Xml, simulator.Client.Settings.CAPS_TIMEOUT);
             }
             else
             {
@@ -1671,7 +1671,7 @@ namespace OpenMetaverse
 
                 try
                 {
-                    OSDMap result = request.GetResponse(msg.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT) as OSDMap;
+                    OSDMap result = request.PostRequest(msg.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT) as OSDMap;
                     RemoteParcelRequestReply response = new RemoteParcelRequestReply();
                     response.Deserialize(result);
                     return response.ParcelID;
@@ -1710,7 +1710,7 @@ namespace OpenMetaverse
                         response.Deserialize((OSDMap)result);
 
                         CapsClient summaryRequest = new CapsClient(response.ScriptResourceSummary, "ScriptResourceSummary");
-                        OSD summaryResponse = summaryRequest.GetResponse(Client.Settings.CAPS_TIMEOUT);
+                        OSD summaryResponse = summaryRequest.GetRequest(Client.Settings.CAPS_TIMEOUT);
 
                         LandResourcesInfo res = new LandResourcesInfo();
                         res.Deserialize((OSDMap)summaryResponse);
@@ -1718,7 +1718,7 @@ namespace OpenMetaverse
                         if (response.ScriptResourceDetails != null && getDetails)
                         {
                             CapsClient detailRequest = new CapsClient(response.ScriptResourceDetails, "ScriptResourceDetails");
-                            OSD detailResponse = detailRequest.GetResponse(Client.Settings.CAPS_TIMEOUT);
+                            OSD detailResponse = detailRequest.GetRequest(Client.Settings.CAPS_TIMEOUT);
                             res.Deserialize((OSDMap)detailResponse);
                         }
                         callback(true, res);
@@ -1731,7 +1731,7 @@ namespace OpenMetaverse
                 };
 
                 LandResourcesRequest param = new LandResourcesRequest {ParcelID = parcelID};
-                request.BeginGetResponse(param.Serialize(), CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(param.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
 
             }
             catch (Exception ex)

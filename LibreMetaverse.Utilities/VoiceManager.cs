@@ -314,7 +314,7 @@ namespace OpenMetaverse.Utilities
                         var request = new CapsClient(url);
                         var body = new OSDMap();
                         request.OnComplete += callback;
-                        request.BeginGetResponse(body, CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                        request.PostRequestAsync(body, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
 
                         return true;
                     }

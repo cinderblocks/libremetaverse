@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2019, Cinderblocks Design Co.
+ * Copyright (c) 2019-2021, Sjofn, LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -52,16 +52,33 @@ namespace OpenMetaverse.Http
         protected OSD _Response;
         protected AutoResetEvent _ResponseEvent = new AutoResetEvent(false);
 
+        #region Constructors
+
+        /// <summary>
+        /// CapsClient Ctor 
+        /// </summary>
+        /// <param name="capability"><seealso cref="Uri"/> for simulator capability</param>
         public CapsClient(Uri capability)
             : this(capability, null, null)
         {
         }
 
+        /// <summary>
+        /// CapsClient Ctor with name
+        /// </summary>
+        /// <param name="capability"><seealso cref="Uri"/> for simulator capability</param>
+        /// <param name="cap_name">Simulator capability name</param>
         public CapsClient(Uri capability, string cap_name)
             : this(capability, cap_name, null)
         {
         }
 
+        /// <summary>
+        /// CapsClient Ctor with name and certificate
+        /// </summary>
+        /// <param name="capability"><seealso cref="Uri"/> for simulator capability</param>
+        /// <param name="cap_name">Simulator capability name</param>
+        /// <param name="clientCert"><seealso cref="X509Certificate2"/> client certificate</param>
         public CapsClient(Uri capability, string cap_name, X509Certificate2 clientCert)
         {
             _Address = capability;
@@ -69,37 +86,47 @@ namespace OpenMetaverse.Http
             _ClientCert = clientCert;
         }
 
-        public void BeginGetResponse(int millisecondsTimeout)
-        {
-            BeginGetResponse(null, CapsBase.GET, null, millisecondsTimeout);
-        }
+        #endregion Constructors
 
-        public void BeginGetResponse(OSD data, string method, OSDFormat format, int millisecondsTimeout)
-        {
-            byte[] postData;
-            string contentType;
+        #region GET requests
 
-            switch (format)
+        public void GetRequestAsync(int msTimeout)
+        {
+            if (_Request != null)
             {
-                case OSDFormat.Xml:
-                    postData = OSDParser.SerializeLLSDXmlBytes(data);
-                    contentType = "application/llsd+xml";
-                    break;
-                case OSDFormat.Binary:
-                    postData = OSDParser.SerializeLLSDBinary(data);
-                    contentType = "application/llsd+binary";
-                    break;
-                case OSDFormat.Json:
-                default:
-                    postData = System.Text.Encoding.UTF8.GetBytes(OSDParser.SerializeJsonString(data));
-                    contentType = "application/llsd+json";
-                    break;
+                _Request.Abort();
+                _Request = null;
             }
 
-            BeginGetResponse(postData, method, contentType, millisecondsTimeout);
+            _Request = CapsBase.GetStringAsync(_Address, _ClientCert, msTimeout, DownloadProgressHandler,
+                    RequestCompletedHandler);
         }
 
-        public void BeginGetResponse(byte[] postData, string method, string contentType, int millisecondsTimeout)
+        public OSD GetRequest(int msTimeout)
+        {
+            GetRequestAsync(msTimeout);
+            _ResponseEvent.WaitOne(msTimeout, false);
+            return _Response;
+        }
+
+        #endregion GET requests
+
+        #region POST requests
+
+        public void PostRequestAsync(OSD data, OSDFormat format, int msTimeout)
+        {
+            serializeData(data, format, out byte[] serializedData, out string contentType);
+            PostRequestAsync(serializedData, contentType, msTimeout);
+        }
+
+        public OSD PostRequest(OSD data, OSDFormat format, int msTimeout)
+        {
+            PostRequestAsync(data, format, msTimeout);
+            _ResponseEvent.WaitOne(msTimeout, false);
+            return _Response;
+        }
+
+        public void PostRequestAsync(byte[] postData, string contentType, int msTimeout)
         {
             _PostData = postData;
             _ContentType = contentType;
@@ -110,53 +137,135 @@ namespace OpenMetaverse.Http
                 _Request = null;
             }
 
-            if (postData == null || method == CapsBase.GET)
-            {
-                _Request = CapsBase.GetStringAsync(_Address, _ClientCert, millisecondsTimeout, DownloadProgressHandler,
-                    RequestCompletedHandler);
-            }
-            else if (method == CapsBase.POST)
-            {
-                _Request = CapsBase.PostDataAsync(_Address, _ClientCert, contentType, postData, millisecondsTimeout, null,
-                    DownloadProgressHandler, RequestCompletedHandler);
-            }
-            else if (method == CapsBase.PUT)
-            {
-                _Request = CapsBase.PutDataAsync(_Address, _ClientCert, contentType, postData, millisecondsTimeout, null,
-                    DownloadProgressHandler, RequestCompletedHandler);
-            }
-            else if (method == CapsBase.DELETE)
-            {
-                _Request = CapsBase.DeleteDataAsync(_Address, _ClientCert, contentType, postData, millisecondsTimeout, null,
-                    DownloadProgressHandler, RequestCompletedHandler);
-            }
-            else if (method == CapsBase.PATCH)
-            {
-                _Request = CapsBase.PatchDataAsync(_Address, _ClientCert, contentType, postData, millisecondsTimeout, null,
-                    DownloadProgressHandler, RequestCompletedHandler);
-            }
+            _Request = CapsBase.PostDataAsync(_Address, _ClientCert, contentType, postData, msTimeout, 
+                null, DownloadProgressHandler, RequestCompletedHandler);
         }
 
-        public OSD GetResponse(int millisecondsTimeout)
+        public OSD PostRequest(byte[] postData, string contentType, int msTimeout)
         {
-            BeginGetResponse(millisecondsTimeout);
-            _ResponseEvent.WaitOne(millisecondsTimeout, false);
+            PostRequestAsync(postData, contentType, msTimeout);
+            _ResponseEvent.WaitOne(msTimeout, false);
             return _Response;
         }
 
-        public OSD GetResponse(OSD data, OSDFormat format, int millisecondsTimeout)
+        #endregion POST requests
+
+        #region PUT requests
+
+        public void PutRequestAsync(OSD data, OSDFormat format, int msTimeout)
         {
-            BeginGetResponse(data, CapsBase.POST, format, millisecondsTimeout);
-            _ResponseEvent.WaitOne(millisecondsTimeout, false);
+            serializeData(data, format, out byte[] serializedData, out string contentType);
+            PutRequestAsync(serializedData, contentType, msTimeout);
+        }
+
+        public OSD PutRequest(OSD data, OSDFormat format, int msTimeout)
+        {
+            PutRequestAsync(data, format, msTimeout);
+            _ResponseEvent.WaitOne(msTimeout, false);
             return _Response;
         }
 
-        public OSD GetResponse(byte[] postData, string method, string contentType, int millisecondsTimeout)
+        public void PutRequestAsync(byte[] postData, string contentType, int msTimeout)
         {
-            BeginGetResponse(postData, method, contentType, millisecondsTimeout);
-            _ResponseEvent.WaitOne(millisecondsTimeout, false);
+            _PostData = postData;
+            _ContentType = contentType;
+
+            if (_Request != null)
+            {
+                _Request.Abort();
+                _Request = null;
+            }
+
+            _Request = CapsBase.PutDataAsync(_Address, _ClientCert, contentType, postData, msTimeout,
+                null, DownloadProgressHandler, RequestCompletedHandler);
+        }
+
+        public OSD PutRequest(byte[] postData, string contentType, int msTimeout)
+        {
+            PutRequestAsync(postData, contentType, msTimeout);
+            _ResponseEvent.WaitOne(msTimeout, false);
             return _Response;
         }
+
+        #endregion PUT requests
+
+        #region PATCH requests
+
+        public void PatchRequestAsync(OSD data, OSDFormat format, int msTimeout)
+        {
+            serializeData(data, format, out byte[] serializedData, out string contentType);
+            PatchRequestAsync(serializedData, contentType, msTimeout);
+        }
+
+        public OSD PatchRequest(OSD data, OSDFormat format, int msTimeout)
+        {
+            PatchRequestAsync(data, format, msTimeout);
+            _ResponseEvent.WaitOne(msTimeout, false);
+            return _Response;
+        }
+
+        public void PatchRequestAsync(byte[] postData, string contentType, int msTimeout)
+        {
+            _PostData = postData;
+            _ContentType = contentType;
+
+            if (_Request != null)
+            {
+                _Request.Abort();
+                _Request = null;
+            }
+
+            _Request = CapsBase.PatchDataAsync(_Address, _ClientCert, contentType, postData, msTimeout,
+                null, DownloadProgressHandler, RequestCompletedHandler);
+        }
+
+        public OSD PatchRequest(byte[] postData, string contentType, int msTimeout)
+        {
+            PatchRequestAsync(postData, contentType, msTimeout);
+            _ResponseEvent.WaitOne(msTimeout, false);
+            return _Response;
+        }
+
+        #endregion PATCH requests
+
+        #region DELETE requests
+
+        public void DeleteRequestAsync(OSD data, OSDFormat format, int msTimeout)
+        {
+            serializeData(data, format, out byte[] serializedData, out string contentType);
+            DeleteRequestAsync(serializedData, contentType, msTimeout);
+        }
+
+        public OSD DeleteRequest(OSD data, OSDFormat format, int msTimeout)
+        {
+            DeleteRequestAsync(data, format, msTimeout);
+            _ResponseEvent.WaitOne(msTimeout, false);
+            return _Response;
+        }
+
+        public void DeleteRequestAsync(byte[] postData, string contentType, int msTimeout)
+        {
+            _PostData = postData;
+            _ContentType = contentType;
+
+            if (_Request != null)
+            {
+                _Request.Abort();
+                _Request = null;
+            }
+
+            _Request = CapsBase.DeleteDataAsync(_Address, _ClientCert, contentType, postData, msTimeout,
+                null, DownloadProgressHandler, RequestCompletedHandler);
+        }
+
+        public OSD DeleteRequest(byte[] postData, string contentType, int msTimeout)
+        {
+            PatchRequestAsync(postData, contentType, msTimeout);
+            _ResponseEvent.WaitOne(msTimeout, false);
+            return _Response;
+        }
+
+        #endregion DELETE requests
 
         public void Cancel()
         {
@@ -187,6 +296,33 @@ namespace OpenMetaverse.Http
             }
 
             FireCompleteCallback(result, error);
+        }
+
+        /// <summary>
+        /// Serializes OSD data for http request
+        /// </summary>
+        /// <param name="data"><seealso cref="OSD"/>formatted data for input</param>
+        /// <param name="format">Format to serialize data to</param>
+        /// <param name="serializedData">Output serialized data as byte array</param>
+        /// <param name="contentType">content-type string of serialized data</param>
+        private void serializeData(OSD data, OSDFormat format, out byte[] serializedData, out string contentType)
+        {
+            switch (format)
+            {
+                case OSDFormat.Xml:
+                    serializedData = OSDParser.SerializeLLSDXmlBytes(data);
+                    contentType = "application/llsd+xml";
+                    break;
+                case OSDFormat.Binary:
+                    serializedData = OSDParser.SerializeLLSDBinary(data);
+                    contentType = "application/llsd+binary";
+                    break;
+                case OSDFormat.Json:
+                default:
+                    serializedData = System.Text.Encoding.UTF8.GetBytes(OSDParser.SerializeJsonString(data));
+                    contentType = "application/llsd+json";
+                    break;
+            }
         }
 
         private void FireCompleteCallback(OSD result, Exception error)

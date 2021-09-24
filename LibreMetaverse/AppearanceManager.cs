@@ -2102,7 +2102,7 @@ namespace OpenMetaverse
 
             string msg = "Setting server side baking failed";
 
-            OSD res = capsRequest.GetResponse(request, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT * 2);
+            OSD res = capsRequest.PostRequest(request, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT * 2);
 
             if (res is OSDMap result)
             {

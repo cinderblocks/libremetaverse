@@ -1696,7 +1696,7 @@ namespace OpenMetaverse
                         }
                     };
 
-                request.BeginGetResponse(req.Serialize(), CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(req.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             else
             {
@@ -1725,7 +1725,7 @@ namespace OpenMetaverse
                             Logger.Log("ObjectMediaUpdate: " + error.Message, Helpers.LogLevel.Error, Client);
                         }
                     };
-                request.BeginGetResponse(req.Serialize(), CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(req.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             else
             {
@@ -1781,7 +1781,7 @@ namespace OpenMetaverse
                         }
                     };
 
-                request.BeginGetResponse(req.Serialize(), CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(req.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             else
             {

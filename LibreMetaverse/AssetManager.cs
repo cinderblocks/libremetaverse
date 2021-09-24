@@ -1126,7 +1126,7 @@ namespace OpenMetaverse
                                             Logger.Log("Bake upload failed during asset upload", Helpers.LogLevel.Warning, Client);
                                             callback(UUID.Zero);
                                         };
-                                    upload.BeginGetResponse(textureData, CapsBase.POST, "application/octet-stream", Client.Settings.CAPS_TIMEOUT);
+                                    upload.PostRequestAsync(textureData, "application/octet-stream", Client.Settings.CAPS_TIMEOUT);
                                     return;
                                 }
                             }
@@ -1135,7 +1135,7 @@ namespace OpenMetaverse
                         Logger.Log("Bake upload failed during uploader retrieval", Helpers.LogLevel.Warning, Client);
                         callback(UUID.Zero);
                     };
-                request.BeginGetResponse(new OSDMap(), CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(new OSDMap(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             else
             {

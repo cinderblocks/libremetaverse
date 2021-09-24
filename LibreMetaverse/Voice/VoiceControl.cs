@@ -355,11 +355,10 @@ namespace OpenMetaverse.Voice
         {
             CapsClient capClient = new Http.CapsClient(cap, "ReqVoiceProvision");
             capClient.OnComplete += cClient_OnComplete;
-            OSD postData = new OSD();
 
             // STEP 0
             Logger.Log("Requesting voice capability", Helpers.LogLevel.Info);
-            capClient.BeginGetResponse(postData, CapsBase.POST, OSDFormat.Xml, 10000);
+            capClient.PostRequestAsync(new OSD(), OSDFormat.Xml, 10000);
         }
 
         /// <summary>
@@ -890,10 +889,9 @@ namespace OpenMetaverse.Voice
             parcelCap = new CapsClient(cap, "RequestParcelInfo");
             parcelCap.OnComplete +=
                 pCap_OnComplete;
-            OSD postData = new OSD();
 
             currentParcelCap = cap;
-            parcelCap.BeginGetResponse(postData, CapsBase.POST, OSDFormat.Xml, 10000);
+            parcelCap.PostRequestAsync(new OSD(), OSDFormat.Xml, 10000);
         }
 
         /// <summary>

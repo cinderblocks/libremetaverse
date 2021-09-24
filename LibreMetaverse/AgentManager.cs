@@ -1631,7 +1631,7 @@ namespace OpenMetaverse
 
             var request = new CapsClient(offlineMsgsCap);
             request.OnComplete += OfflineMessageHandlerCallback;
-            request.BeginGetResponse(null, CapsBase.GET, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+            request.GetRequestAsync(Client.Settings.CAPS_TIMEOUT);
         }
 
         /// <summary>
@@ -1924,7 +1924,7 @@ namespace OpenMetaverse
             if (request != null)
             {
                 ChatSessionAcceptInvitation acceptInvite = new ChatSessionAcceptInvitation {SessionID = session_id};
-                request.BeginGetResponse(acceptInvite.Serialize(), CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(acceptInvite.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
 
                 lock (GroupChatSessions.Dictionary)
                     if (!GroupChatSessions.ContainsKey(session_id))
@@ -1963,7 +1963,7 @@ namespace OpenMetaverse
 
                 startConference.SessionID = tmp_session_id;
 
-                request.BeginGetResponse(startConference.Serialize(), CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(startConference.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             else
             {
@@ -3738,7 +3738,7 @@ namespace OpenMetaverse
                     }
                 };
 
-                request.BeginGetResponse(Client.Settings.CAPS_TIMEOUT);
+                request.GetRequestAsync(Client.Settings.CAPS_TIMEOUT);
             }
             catch (Exception ex)
             {
@@ -3776,7 +3776,7 @@ namespace OpenMetaverse
                 NewDisplayName = newName
             };
 
-            request.BeginGetResponse(msg.Serialize(), CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+            request.PostRequestAsync(msg.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
         }
 
         /// <summary>
@@ -3795,7 +3795,7 @@ namespace OpenMetaverse
                 };
 
                 CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("UpdateAgentLanguage");
-                request?.BeginGetResponse(msg.Serialize(), CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request?.PostRequestAsync(msg.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             catch (Exception ex)
             {
@@ -3853,11 +3853,12 @@ namespace OpenMetaverse
                 }
 
             };
-            OSDMap req = new OSDMap();
-            OSDMap prefs = new OSDMap {["max"] = access};
-            req["access_prefs"] = prefs;
+            OSDMap req = new OSDMap
+            {
+                ["access_prefs"] = new OSDMap { ["max"] = access }
+            };
 
-            request.BeginGetResponse(req, CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+            request.PostRequestAsync(req, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
         }
 
         /// <summary>
@@ -3896,7 +3897,7 @@ namespace OpenMetaverse
             var postData = new OSDMap {
                 ["hover_height"] = hoverHeight
             };
-            request.BeginGetResponse(postData, CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+            request.PostRequestAsync(postData, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
         }
 
         #endregion Misc
@@ -4769,7 +4770,7 @@ namespace OpenMetaverse
                     AgentID = memberID
                 };
 
-                request.BeginGetResponse(req.Serialize(), CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(req.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             else
             {

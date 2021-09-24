@@ -573,7 +573,7 @@ namespace OpenMetaverse
 
                 
             };
-            request.BeginGetResponse(body, CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+            request.PostRequestAsync(body, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
         }
 
         /// <summary>
@@ -637,7 +637,7 @@ namespace OpenMetaverse
 
 
             };
-            request.BeginGetResponse(body, CapsBase.DELETE, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+            request.DeleteRequestAsync(body, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
         }
 
         /// <summary>

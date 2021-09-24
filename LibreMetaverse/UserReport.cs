@@ -103,7 +103,7 @@ namespace LibreMetaverse
                         }
                     }
                 };
-                request.BeginGetResponse(Client.Settings.CAPS_TIMEOUT);
+                request.GetRequestAsync(Client.Settings.CAPS_TIMEOUT);
             } 
             else
             {
@@ -165,7 +165,7 @@ namespace LibreMetaverse
                     }
 
                 };
-                request.BeginGetResponse(report, CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(report, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             else
             {

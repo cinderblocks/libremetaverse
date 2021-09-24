@@ -629,7 +629,7 @@ namespace OpenMetaverse
 
                 OSDRequest["items"] = items;
 
-                request.BeginGetResponse(OSDRequest, CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(OSDRequest, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
         }
         /// <summary>
@@ -932,7 +932,7 @@ namespace OpenMetaverse
                 }
                 OSDMap req = new OSDMap(1) { ["folders"] = requestedFolders };
 
-                request.BeginGetResponse(req, CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(req, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             catch (Exception ex)
             {
@@ -1794,7 +1794,7 @@ namespace OpenMetaverse
             request.OnComplete += CreateItemFromAssetResponse;
             request.UserData = new object[] { callback, data, Client.Settings.CAPS_TIMEOUT, query };
 
-            request.BeginGetResponse(query, CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+            request.PostRequestAsync(query, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
 
         }
 
@@ -2002,7 +2002,7 @@ namespace OpenMetaverse
                     ObjectID = objectID
                 };
 
-                request.BeginGetResponse(message.Serialize(), CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(message.Serialize(),OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             else
             {
@@ -2156,7 +2156,7 @@ namespace OpenMetaverse
                 // Make the request
                 request.OnComplete += UploadInventoryAssetResponse;
                 request.UserData = new object[] { new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), notecardID };
-                request.BeginGetResponse(query, CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(query, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             else
             {
@@ -2189,7 +2189,7 @@ namespace OpenMetaverse
                 // Make the request
                 request.OnComplete += UploadInventoryAssetResponse;
                 request.UserData = new object[] { new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), notecardID };
-                request.BeginGetResponse(query, CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(query, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             else
             {
@@ -2217,7 +2217,7 @@ namespace OpenMetaverse
                 // Make the request
                 request.OnComplete += UploadInventoryAssetResponse;
                 request.UserData = new object[] { new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), gestureID };
-                request.BeginGetResponse(query, CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(query, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             else
             {
@@ -2246,7 +2246,7 @@ namespace OpenMetaverse
 
                 request.OnComplete += new CapsClient.CompleteCallback(UpdateScriptAgentInventoryResponse);
                 request.UserData = new object[2] { new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), itemID };
-                request.BeginGetResponse(msg.Serialize(), CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(msg.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             else
             {
@@ -2279,7 +2279,7 @@ namespace OpenMetaverse
 
                 request.OnComplete += new CapsClient.CompleteCallback(UpdateScriptAgentInventoryResponse);
                 request.UserData = new object[2] { new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), itemID };
-                request.BeginGetResponse(msg.Serialize(), CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.PostRequestAsync(msg.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             else
             {
@@ -3653,7 +3653,7 @@ namespace OpenMetaverse
                 CapsClient upload = new CapsClient(new Uri(uploadURL), "CreateItemFromAsset");
                 upload.OnComplete += CreateItemFromAssetResponse;
                 upload.UserData = new object[] { callback, itemData, millisecondsTimeout, request };
-                upload.BeginGetResponse(itemData, CapsBase.POST, "application/octet-stream", millisecondsTimeout);
+                upload.PostRequestAsync(itemData, "application/octet-stream", millisecondsTimeout);
             }
             else if (status == "complete")
             {
@@ -3732,7 +3732,7 @@ namespace OpenMetaverse
                         CapsClient upload = new CapsClient(uploadURL, "UploadItemResponse");
                         upload.OnComplete += UploadInventoryAssetResponse;
                         upload.UserData = new object[2] { kvp, (UUID)(((object[])client.UserData)[1]) };
-                        upload.BeginGetResponse(itemData, CapsBase.POST, "application/octet-stream", Client.Settings.CAPS_TIMEOUT);
+                        upload.PostRequestAsync(itemData, "application/octet-stream", Client.Settings.CAPS_TIMEOUT);
                     }
                     else
                     {
@@ -3803,7 +3803,7 @@ namespace OpenMetaverse
                 CapsClient upload = new CapsClient(new Uri(uploadURL), "ScriptAgentInventoryResponse");
                 upload.OnComplete += UpdateScriptAgentInventoryResponse;
                 upload.UserData = new object[2] { kvp, (UUID)(((object[])client.UserData)[1]) };
-                upload.BeginGetResponse(itemData, CapsBase.POST, "application/octet-stream", Client.Settings.CAPS_TIMEOUT);
+                upload.PostRequestAsync(itemData, "application/octet-stream", Client.Settings.CAPS_TIMEOUT);
             }
             else if (status == "complete" && callback != null)
             {

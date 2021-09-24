@@ -259,7 +259,7 @@ namespace OpenMetaverse.ImportExport
                 callback?.Invoke(result);
             };
 
-            request.BeginGetResponse(req, CapsBase.POST, OSDFormat.Xml, 3 * 60 * 1000);
+            request.PostRequestAsync(req, OSDFormat.Xml, 3 * 60 * 1000);
 
         }
 
@@ -285,7 +285,7 @@ namespace OpenMetaverse.ImportExport
                 callback?.Invoke(res);
             };
 
-            request.BeginGetResponse(AssetResources(true), CapsBase.POST, OSDFormat.Xml, 60 * 1000);
+            request.PostRequestAsync(AssetResources(true), OSDFormat.Xml, 60 * 1000);
         }
 
 
