@@ -3912,7 +3912,7 @@ namespace OpenMetaverse
         protected void InstantMessageHandler(object sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
-            //Simulator simulator = e.Simulator;
+            Simulator simulator = e.Simulator;
 
             if (packet.Type != PacketType.ImprovedInstantMessage) return;
 
@@ -3935,7 +3935,7 @@ namespace OpenMetaverse
                 message.Offline = (InstantMessageOnline)im.MessageBlock.Offline;
                 message.BinaryBucket = im.MessageBlock.BinaryBucket;
 
-                OnInstantMessage(new InstantMessageEventArgs(message));
+                OnInstantMessage(new InstantMessageEventArgs(message, simulator));
             }
         }
 
@@ -3987,7 +3987,7 @@ namespace OpenMetaverse
                     message.GroupIM = msg.ContainsKey("from_group")
                         ? msg["from_group"].AsBoolean() : false;
 
-                    OnInstantMessage(new InstantMessageEventArgs(message));
+                    OnInstantMessage(new InstantMessageEventArgs(message, null));
                 }                
             }
         }
@@ -4741,7 +4741,7 @@ namespace OpenMetaverse
             {
                 Logger.Log("Failed joining IM:", Helpers.LogLevel.Warning, Client, ex);
             }
-            OnInstantMessage(new InstantMessageEventArgs(im));
+            OnInstantMessage(new InstantMessageEventArgs(im, simulator));
         }
 
 
@@ -5180,14 +5180,18 @@ namespace OpenMetaverse
         /// <summary>Get the InstantMessage object</summary>
         public InstantMessage IM { get; }
 
+        /// <summary>Get the simulator where the InstantMessage origniated</summary>
+        public Simulator Simulator { get; }
+
         /// <summary>
         /// Construct a new instance of the InstantMessageEventArgs object
         /// </summary>
         /// <param name="im">the InstantMessage object</param>
         /// <param name="simulator">the simulator where the InstantMessage origniated</param>
-        public InstantMessageEventArgs(InstantMessage im)
+        public InstantMessageEventArgs(InstantMessage im, Simulator simulator)
         {
             IM = im;
+            Simulator = simulator;
         }
     }
 
