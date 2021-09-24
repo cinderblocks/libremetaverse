@@ -71,10 +71,10 @@ namespace OpenMetaverse.Http
 
         public void BeginGetResponse(int millisecondsTimeout)
         {
-            BeginGetResponse(null, null, millisecondsTimeout);
+            BeginGetResponse(null, CapsBase.GET, null, millisecondsTimeout);
         }
 
-        public void BeginGetResponse(OSD data, OSDFormat format, int millisecondsTimeout)
+        public void BeginGetResponse(OSD data, string method, OSDFormat format, int millisecondsTimeout)
         {
             byte[] postData;
             string contentType;
@@ -96,10 +96,10 @@ namespace OpenMetaverse.Http
                     break;
             }
 
-            BeginGetResponse(postData, contentType, millisecondsTimeout);
+            BeginGetResponse(postData, method, contentType, millisecondsTimeout);
         }
 
-        public void BeginGetResponse(byte[] postData, string contentType, int millisecondsTimeout)
+        public void BeginGetResponse(byte[] postData, string method, string contentType, int millisecondsTimeout)
         {
             _PostData = postData;
             _ContentType = contentType;
@@ -110,18 +110,29 @@ namespace OpenMetaverse.Http
                 _Request = null;
             }
 
-            if (postData == null)
+            if (postData == null || method == CapsBase.GET)
             {
-                // GET
-                //Logger.Log.Debug("[CapsClient] GET " + _Address);
-                _Request = CapsBase.DownloadStringAsync(_Address, _ClientCert, millisecondsTimeout, DownloadProgressHandler,
+                _Request = CapsBase.GetStringAsync(_Address, _ClientCert, millisecondsTimeout, DownloadProgressHandler,
                     RequestCompletedHandler);
             }
-            else
+            else if (method == CapsBase.POST)
             {
-                // POST
-                //Logger.Log.Debug("[CapsClient] POST (" + postData.Length + " bytes) " + _Address);
-                _Request = CapsBase.UploadDataAsync(_Address, _ClientCert, contentType, postData, millisecondsTimeout, null,
+                _Request = CapsBase.PostDataAsync(_Address, _ClientCert, contentType, postData, millisecondsTimeout, null,
+                    DownloadProgressHandler, RequestCompletedHandler);
+            }
+            else if (method == CapsBase.PUT)
+            {
+                _Request = CapsBase.PutDataAsync(_Address, _ClientCert, contentType, postData, millisecondsTimeout, null,
+                    DownloadProgressHandler, RequestCompletedHandler);
+            }
+            else if (method == CapsBase.DELETE)
+            {
+                _Request = CapsBase.DeleteDataAsync(_Address, _ClientCert, contentType, postData, millisecondsTimeout, null,
+                    DownloadProgressHandler, RequestCompletedHandler);
+            }
+            else if (method == CapsBase.PATCH)
+            {
+                _Request = CapsBase.PatchDataAsync(_Address, _ClientCert, contentType, postData, millisecondsTimeout, null,
                     DownloadProgressHandler, RequestCompletedHandler);
             }
         }
@@ -135,14 +146,14 @@ namespace OpenMetaverse.Http
 
         public OSD GetResponse(OSD data, OSDFormat format, int millisecondsTimeout)
         {
-            BeginGetResponse(data, format, millisecondsTimeout);
+            BeginGetResponse(data, CapsBase.POST, format, millisecondsTimeout);
             _ResponseEvent.WaitOne(millisecondsTimeout, false);
             return _Response;
         }
 
-        public OSD GetResponse(byte[] postData, string contentType, int millisecondsTimeout)
+        public OSD GetResponse(byte[] postData, string method, string contentType, int millisecondsTimeout)
         {
-            BeginGetResponse(postData, contentType, millisecondsTimeout);
+            BeginGetResponse(postData, method, contentType, millisecondsTimeout);
             _ResponseEvent.WaitOne(millisecondsTimeout, false);
             return _Response;
         }

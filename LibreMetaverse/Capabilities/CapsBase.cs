@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2019, Cinderblocks Design Co.
+ * Copyright (c) 2019-2021, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -35,6 +35,14 @@ namespace OpenMetaverse.Http
 {
     public static class CapsBase
     {
+        #region http methods
+        public const string GET = "GET";
+        public const string POST = "POST";
+        public const string PUT = "PUT";
+        public const string DELETE = "DELETE";
+        public const string PATCH = "PATCH"; // rfc 5789
+        #endregion http methods
+
         public delegate void OpenWriteEventHandler(HttpWebRequest request);
         public delegate void DownloadProgressEventHandler(HttpWebRequest request, HttpWebResponse response, int bytesReceived, int totalBytesToReceive);
         public delegate void RequestCompletedEventHandler(HttpWebRequest request, HttpWebResponse response, byte[] responseData, Exception error);
@@ -65,7 +73,17 @@ namespace OpenMetaverse.Http
             }
         }
 
-        public static HttpWebRequest UploadDataAsync(Uri address, X509Certificate2 clientCert, string contentType, byte[] data,
+        public static HttpWebRequest GetStringAsync(Uri address, X509Certificate2 clientCert, int millisecondsTimeout,
+            DownloadProgressEventHandler downloadProgressCallback, RequestCompletedEventHandler completedCallback)
+        {
+            // Create the request
+            HttpWebRequest request = SetupRequest(address, clientCert);
+            request.Method = GET;
+            DownloadDataAsync(request, millisecondsTimeout, downloadProgressCallback, completedCallback);
+            return request;
+        }
+
+        public static HttpWebRequest PostDataAsync(Uri address, X509Certificate2 clientCert, string contentType, byte[] data,
             int millisecondsTimeout, OpenWriteEventHandler openWriteCallback, DownloadProgressEventHandler downloadProgressCallback,
             RequestCompletedEventHandler completedCallback)
         {
@@ -74,7 +92,29 @@ namespace OpenMetaverse.Http
             request.ContentLength = data.Length;
             if (!string.IsNullOrEmpty(contentType))
                 request.ContentType = contentType;
-            request.Method = "POST";
+            request.Method = POST;
+
+            // Create an object to hold all of the state for this request
+            var state = new RequestState(request, data, millisecondsTimeout, openWriteCallback,
+                downloadProgressCallback, completedCallback);
+
+            // Start the request for a stream to upload to
+            IAsyncResult result = request.BeginGetRequestStream(OpenWrite, state);
+            // Register a timeout for the request
+            ThreadPool.RegisterWaitForSingleObject(result.AsyncWaitHandle, TimeoutCallback, state, millisecondsTimeout, true);
+
+            return request;
+        }
+        public static HttpWebRequest PutDataAsync(Uri address, X509Certificate2 clientCert, string contentType, byte[] data,
+            int millisecondsTimeout, OpenWriteEventHandler openWriteCallback, DownloadProgressEventHandler downloadProgressCallback,
+            RequestCompletedEventHandler completedCallback)
+        {
+            // Create the request
+            var request = SetupRequest(address, clientCert);
+            request.ContentLength = data.Length;
+            if (!string.IsNullOrEmpty(contentType))
+                request.ContentType = contentType;
+            request.Method = PUT;
 
             // Create an object to hold all of the state for this request
             var state = new RequestState(request, data, millisecondsTimeout, openWriteCallback,
@@ -88,13 +128,49 @@ namespace OpenMetaverse.Http
             return request;
         }
 
-        public static HttpWebRequest DownloadStringAsync(Uri address, X509Certificate2 clientCert, int millisecondsTimeout,
-            DownloadProgressEventHandler downloadProgressCallback, RequestCompletedEventHandler completedCallback)
+        public static HttpWebRequest DeleteDataAsync(Uri address, X509Certificate2 clientCert, string contentType, byte[] data,
+            int millisecondsTimeout, OpenWriteEventHandler openWriteCallback, DownloadProgressEventHandler downloadProgressCallback,
+            RequestCompletedEventHandler completedCallback)
         {
             // Create the request
-            HttpWebRequest request = SetupRequest(address, clientCert);
-            request.Method = "GET";
-            DownloadDataAsync(request, millisecondsTimeout, downloadProgressCallback, completedCallback);
+            var request = SetupRequest(address, clientCert);
+            request.ContentLength = data.Length;
+            if (!string.IsNullOrEmpty(contentType))
+                request.ContentType = contentType;
+            request.Method = DELETE;
+
+            // Create an object to hold all of the state for this request
+            var state = new RequestState(request, data, millisecondsTimeout, openWriteCallback,
+                downloadProgressCallback, completedCallback);
+
+            // Start the request for a stream to upload to
+            IAsyncResult result = request.BeginGetRequestStream(OpenWrite, state);
+            // Register a timeout for the request
+            ThreadPool.RegisterWaitForSingleObject(result.AsyncWaitHandle, TimeoutCallback, state, millisecondsTimeout, true);
+
+            return request;
+        }
+
+        public static HttpWebRequest PatchDataAsync(Uri address, X509Certificate2 clientCert, string contentType, byte[] data,
+            int millisecondsTimeout, OpenWriteEventHandler openWriteCallback, DownloadProgressEventHandler downloadProgressCallback,
+            RequestCompletedEventHandler completedCallback)
+        {
+            // Create the request
+            var request = SetupRequest(address, clientCert);
+            request.ContentLength = data.Length;
+            if (!string.IsNullOrEmpty(contentType))
+                request.ContentType = contentType;
+            request.Method = PATCH;
+
+            // Create an object to hold all of the state for this request
+            var state = new RequestState(request, data, millisecondsTimeout, openWriteCallback,
+                downloadProgressCallback, completedCallback);
+
+            // Start the request for a stream to upload to
+            IAsyncResult result = request.BeginGetRequestStream(OpenWrite, state);
+            // Register a timeout for the request
+            ThreadPool.RegisterWaitForSingleObject(result.AsyncWaitHandle, TimeoutCallback, state, millisecondsTimeout, true);
+
             return request;
         }
 

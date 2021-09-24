@@ -138,7 +138,7 @@ namespace OpenMetaverse
 
             var request = new CapsClient(RegistrationApiCaps);
             request.OnComplete += GatherCapsResponse;
-            request.BeginGetResponse(postData, "application/x-www-form-urlencoded", REQUEST_TIMEOUT);
+            request.BeginGetResponse(postData, CapsBase.POST, "application/x-www-form-urlencoded", REQUEST_TIMEOUT);
         }
 
         private void GatherCapsResponse(CapsClient client, OSD response, Exception error)

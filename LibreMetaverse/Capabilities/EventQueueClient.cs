@@ -73,7 +73,7 @@ namespace OpenMetaverse.Http
 
             byte[] postData = OSDParser.SerializeLLSDXmlBytes(request);
 
-            _Request = CapsBase.UploadDataAsync(_Address, null, REQUEST_CONTENT_TYPE, postData, REQUEST_TIMEOUT, OpenWriteHandler, null, RequestCompletedHandler);
+            _Request = CapsBase.PostDataAsync(_Address, null, REQUEST_CONTENT_TYPE, postData, REQUEST_TIMEOUT, OpenWriteHandler, null, RequestCompletedHandler);
         }
 
         public void Stop(bool immediate)
@@ -211,7 +211,7 @@ namespace OpenMetaverse.Http
 
                 // Resume the connection. The event handler for the connection opening
                 // just sets class _Request variable to the current HttpWebRequest
-                CapsBase.UploadDataAsync(_Address, null, REQUEST_CONTENT_TYPE, postData, REQUEST_TIMEOUT,
+                CapsBase.PostDataAsync(_Address, null, REQUEST_CONTENT_TYPE, postData, REQUEST_TIMEOUT,
                     delegate(HttpWebRequest newRequest) { _Request = newRequest; }, null, RequestCompletedHandler);
 
                 // If the event queue is dead at this point, turn it off since

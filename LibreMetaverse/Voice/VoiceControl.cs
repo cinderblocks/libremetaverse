@@ -34,6 +34,7 @@ using System.Threading;
 
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
+using OpenMetaverse.Http;
 
 namespace OpenMetaverse.Voice
 {
@@ -352,13 +353,13 @@ namespace OpenMetaverse.Voice
 
         void RequestVoiceProvision(System.Uri cap)
         {
-            Http.CapsClient capClient = new Http.CapsClient(cap, "ReqVoiceProvision");
+            CapsClient capClient = new Http.CapsClient(cap, "ReqVoiceProvision");
             capClient.OnComplete += cClient_OnComplete;
             OSD postData = new OSD();
 
             // STEP 0
             Logger.Log("Requesting voice capability", Helpers.LogLevel.Info);
-            capClient.BeginGetResponse(postData, OSDFormat.Xml, 10000);
+            capClient.BeginGetResponse(postData, CapsBase.POST, OSDFormat.Xml, 10000);
         }
 
         /// <summary>
@@ -886,13 +887,13 @@ namespace OpenMetaverse.Voice
         {
             Logger.Log("Requesting region voice info", Helpers.LogLevel.Info);
 
-            parcelCap = new OpenMetaverse.Http.CapsClient(cap, "RequestParcelInfo");
+            parcelCap = new CapsClient(cap, "RequestParcelInfo");
             parcelCap.OnComplete +=
                 pCap_OnComplete;
             OSD postData = new OSD();
 
             currentParcelCap = cap;
-            parcelCap.BeginGetResponse(postData, OSDFormat.Xml, 10000);
+            parcelCap.BeginGetResponse(postData, CapsBase.POST, OSDFormat.Xml, 10000);
         }
 
         /// <summary>

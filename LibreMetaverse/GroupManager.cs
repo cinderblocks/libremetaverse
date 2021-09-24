@@ -1058,7 +1058,7 @@ namespace OpenMetaverse
                 };
 
                 OSDMap requestData = new OSDMap(1) {["group_id"] = @group};
-                req.BeginGetResponse(requestData, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT * 4);
+                req.BeginGetResponse(requestData, CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT * 4);
 
                 return requestID;
             }
@@ -1737,7 +1737,7 @@ namespace OpenMetaverse
             }
             OSDRequest["ban_ids"] = banIDs;
 
-            req.BeginGetResponse(OSDRequest, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+            req.BeginGetResponse(OSDRequest, CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
         }
 
 

@@ -734,7 +734,7 @@ namespace OpenMetaverse
                                           callback(false, null, null);
                                       }
                                   };
-            cap.BeginGetResponse(null, string.Empty, Client.Settings.CAPS_TIMEOUT);
+            cap.BeginGetResponse(null, CapsBase.GET, null, Client.Settings.CAPS_TIMEOUT);
         }
 
         /// <summary>

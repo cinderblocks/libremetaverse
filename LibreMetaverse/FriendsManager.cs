@@ -491,7 +491,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Accept a friendship request
         /// </summary>
-        /// <param name="fromAgentID">agentID of avatatar to form friendship with</param>
+        /// <param name="fromAgentID">agentID of avatar to form friendship with</param>
         /// <param name="imSessionID">imSessionID of the friendship request message</param>
         public void AcceptFriendship(UUID fromAgentID, UUID imSessionID)
         {
@@ -520,11 +520,11 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Accept friendship request. Only to be used if rerquest was sent via Offline Msg cap
+        /// Accept friendship request. Only to be used if request was sent via Offline Msg cap
         /// This can be determined by the presence of a <seealso cref="InstantMessageEventArgs.Simulator"/>
         /// value in <seealso cref="InstantMessageEventArgs" />
         /// </summary>
-        /// <param name="fromAgentID">agentID of avatatar to form friendship with</param>
+        /// <param name="fromAgentID">agentID of avatar to form friendship with</param>
         public void AcceptFriendshipCapability(UUID fromAgentID)
         {
             Uri acceptFriendshipCap = Client.Network.CurrentSim.Caps.CapabilityURI("AcceptFriendship");
@@ -533,11 +533,13 @@ namespace OpenMetaverse
                 Logger.Log("AcceptFriendship capability not found.", Helpers.LogLevel.Warning);
                 return;
             }
-            UriBuilder builder = new UriBuilder(acceptFriendshipCap);
-            // Second Life has some infintely stupid escaped agent name as part of the uri query.
-            // Hopefully we don't need it because it makes no goddamn sense at all. Period, but just in case:
-            // ?from={fromAgentID}&agent_name=\"This%20Sucks\"
-            builder.Query = $"from={fromAgentID}";   
+            UriBuilder builder = new UriBuilder(acceptFriendshipCap)
+            {
+                // Second Life has some infintely stupid escaped agent name as part of the uri query.
+                // Hopefully we don't need it because it makes no goddamn sense at all. Period, but just in case:
+                // ?from={fromAgentID}&agent_name=\"This%20Sucks\"
+                Query = $"from={fromAgentID}"
+            };
             acceptFriendshipCap = builder.Uri;
 
             var request = new CapsClient(acceptFriendshipCap);
@@ -571,7 +573,7 @@ namespace OpenMetaverse
 
                 
             };
-            request.BeginGetResponse(body, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+            request.BeginGetResponse(body, CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
         }
 
         /// <summary>
@@ -589,6 +591,53 @@ namespace OpenMetaverse
 
             if (FriendRequests.ContainsKey(fromAgentID))
                 FriendRequests.Remove(fromAgentID);
+        }
+
+        /// <summary>
+        /// Decline friendship request. Only to be used if request was sent via Offline Msg cap
+        /// This can be determined by the presence of a <seealso cref="InstantMessageEventArgs.Simulator"/>
+        /// value in <seealso cref="InstantMessageEventArgs" />
+        /// </summary>
+        /// <param name="fronAgentID"><seealso cref="UUID"/> of friend</param>
+        public void DeclineFriendshipCap(UUID fromAgentID)
+        {
+            Uri declineFriendshipCap = Client.Network.CurrentSim.Caps.CapabilityURI("DeclineFriendship");
+            if (declineFriendshipCap == null)
+            {
+                Logger.Log("DeclineFriendship capability not found.", Helpers.LogLevel.Warning);
+                return;
+            }
+            UriBuilder builder = new UriBuilder(declineFriendshipCap)
+            {
+                Query = $"from={fromAgentID}"
+            };
+            declineFriendshipCap = builder.Uri;
+
+            var request = new CapsClient(declineFriendshipCap);
+            var body = new OSD();
+            request.OnComplete += delegate (CapsClient client, OSD result, Exception error)
+            {
+                if (error != null)
+                {
+                    Logger.Log($"AcceptFriendship failed for {fromAgentID}. ({error.Message})",
+                        Helpers.LogLevel.Warning);
+                    return;
+                }
+
+                if (result != null)
+                {
+                    var resMap = result as OSDMap;
+                    if (!(resMap.ContainsKey("success") && resMap["success"].AsBoolean())) { return; }
+
+                    if (FriendRequests.ContainsKey(fromAgentID))
+                    {
+                        FriendRequests.Remove(fromAgentID);
+                    }
+                }
+
+
+            };
+            request.BeginGetResponse(body, CapsBase.DELETE, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
         }
 
         /// <summary>

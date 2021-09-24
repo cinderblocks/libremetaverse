@@ -1217,7 +1217,7 @@ namespace GridProxy
                         remoteComplete.Set();
                     }
                     );
-                loginRequest.BeginGetResponse(content, "application/llsd+xml", 1000 * 100);
+                loginRequest.BeginGetResponse(content, CapsBase.POST, "application/llsd+xml", 1000 * 100);
                 remoteComplete.WaitOne(1000 * 100, false);
 
                 if (response == null)

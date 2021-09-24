@@ -430,7 +430,7 @@ namespace OpenMetaverse
                 OSDMap body = new OSDMap {["Flags"] = OSD.FromInteger((int) layer)};
 
                 request.OnComplete += new CapsClient.CompleteCallback(MapLayerResponseHandler);
-                request.BeginGetResponse(body, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.BeginGetResponse(body, CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
         }
 

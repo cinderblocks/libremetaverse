@@ -165,7 +165,7 @@ namespace LibreMetaverse
                     }
 
                 };
-                request.BeginGetResponse(report, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                request.BeginGetResponse(report, CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
             }
             else
             {

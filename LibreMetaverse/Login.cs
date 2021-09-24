@@ -1225,7 +1225,7 @@ namespace OpenMetaverse
                 loginRequest.UserData = CurrentContext;
                 UpdateLoginStatus(LoginStatus.ConnectingToLogin,
                     $"Logging in as {loginParams.FirstName} {loginParams.LastName}...");
-                loginRequest.BeginGetResponse(loginLLSD, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                loginRequest.BeginGetResponse(loginLLSD, CapsBase.POST, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
 
                 #endregion
             }
