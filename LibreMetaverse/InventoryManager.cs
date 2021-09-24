@@ -3602,7 +3602,7 @@ namespace OpenMetaverse
                         imp.MessageBlock.BinaryBucket = Utils.EmptyBytes;
                     }
 
-                    Client.Network.SendPacket(imp, e.Simulator);
+                    Client.Network.SendPacket(imp, e.Simulator ?? Client.Network.CurrentSim);
                 }
                 catch (Exception ex)
                 {
