@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2021, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -27,6 +28,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Globalization;
+using ProtoBuf;
 
 namespace OpenMetaverse
 {
@@ -35,13 +37,17 @@ namespace OpenMetaverse
     /// </summary>
     [Serializable]
     [StructLayout(LayoutKind.Sequential)]
+    [ProtoContract]
     public struct Vector3d : IComparable<Vector3d>, IEquatable<Vector3d>
     {
         /// <summary>X value</summary>
+        [ProtoMember(1)]
         public double X;
         /// <summary>Y value</summary>
+        [ProtoMember(2)]
         public double Y;
         /// <summary>Z value</summary>
+        [ProtoMember(3)]
         public double Z;
 
         #region Constructors

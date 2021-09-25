@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2021, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -26,6 +27,7 @@
 
 using System;
 using System.Security.Cryptography;
+using ProtoBuf;
 
 namespace OpenMetaverse
 {
@@ -34,9 +36,11 @@ namespace OpenMetaverse
     /// Life networking protocol
     /// </summary>
     [Serializable]
+    [ProtoContract]
     public struct UUID : IComparable<UUID>, IEquatable<UUID>
     {
         /// <summary>The System.Guid object this struct wraps around</summary>
+        [ProtoMember(1)]
         public Guid Guid { get; set; }
 
         #region Constructors
