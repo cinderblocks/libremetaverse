@@ -238,13 +238,6 @@ namespace OpenMetaverse
                     // As soon as we get the parent, the tree repairs itself.
                     //Logger.DebugLog("Attempting to update inventory child of " +
                     //    item.ParentUUID.ToString() + " when we have no local reference to that folder", Client);
-
-                    if (Client.Settings.FETCH_MISSING_INVENTORY)
-                    {
-                        // Fetch the parent
-                        List<UUID> fetchreq = new List<UUID>(1) {item.ParentUUID};
-
-                    }
                 }
 
                 InventoryNode itemNode;
