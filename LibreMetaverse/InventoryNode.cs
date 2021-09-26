@@ -27,26 +27,58 @@
 
 using System;
 using System.Runtime.Serialization;
-using ProtoBuf;
+using ZeroFormatter;
 
 namespace OpenMetaverse
 {
-    [Serializable]
-    [ProtoContract(SkipConstructor=true)]
-    public class InventoryNode : ISerializable
+    [ZeroFormattable]
+    public class InventoryNode
     {
+        [Index(0)]
+        private InventoryBase data;
+        [Index(1)]
+        private InventoryNode parent;
+        [Index(3)]
+        private UUID parentID; //used for de-seralization 
+        [Index(4)]
         private InventoryNodeDictionary nodes;
+        [Index(5)]
+        private bool needsUpdate = true;
+        [IgnoreFormat]
+        private object tag;
 
-        [ProtoMember(1)]
-        public InventoryBase Data { get; set; }
+        /// <summary></summary>
+        public InventoryBase Data
+        {
+            get => data;
+            set => data = value;
+        }
 
-        [ProtoMember(2)]
-        public InventoryNode Parent { get; set; }
+        /// <summary>User data</summary>
+        public object Tag
+        {
+            get => tag;
+            set => tag = value;
+        }
 
-        [ProtoMember(3)]
-        public UUID ParentID { get; private set; }
-        
-        public DateTime ModifyTime
+        /// <summary></summary>
+        public InventoryNode Parent
+        {
+            get => parent;
+            set => parent = value;
+        }
+
+        /// <summary></summary>
+        public UUID ParentID => parentID;
+
+        /// <summary></summary>
+        public InventoryNodeDictionary Nodes
+        {
+            get { return nodes ?? (nodes = new InventoryNodeDictionary(this)); }
+            set => nodes = value;
+        }
+
+        public System.DateTime ModifyTime
         {
             get
             {
@@ -54,7 +86,7 @@ namespace OpenMetaverse
                 {
                     return item.CreationDate;
                 }
-                DateTime newest = default; //.MinValue;
+                DateTime newest = default(DateTime); //.MinValue;
                 if (Data is InventoryFolder)
                 {
                     foreach (var node in Nodes.Values)
@@ -67,26 +99,29 @@ namespace OpenMetaverse
             }
         }
 
+        public void Sort()
+        {
+            Nodes.Sort();
+        }
+
         /// <summary>
         /// For inventory folder nodes specifies weather the folder needs to be
         /// refreshed from the server
         /// </summary>
-        [ProtoMember(4)]
-        public bool NeedsUpdate { get; set; }
-
-        public InventoryNodeDictionary Nodes
+        public bool NeedsUpdate
         {
-            get => nodes ?? (nodes = new InventoryNodeDictionary(this));
-            set => nodes = value;
+            get { return needsUpdate; }
+            set { needsUpdate = value; }
         }
 
-        /// <summary>
-        /// InventoryNode Ctor
-        /// </summary>
-        /// <param name="data"><seealso cref="InventoryBase" /> data</param>
+        public InventoryNode()
+        {
+        }
+
+        /// <param name="data"></param>
         public InventoryNode(InventoryBase data)
         {
-            this.Data = data;
+            this.data = data;
         }
 
         /// <summary>
@@ -94,8 +129,8 @@ namespace OpenMetaverse
         /// </summary>
         public InventoryNode(InventoryBase data, InventoryNode parent)
         {
-            this.Data = data;
-            this.Parent = parent;
+            this.data = data;
+            this.parent = parent;
 
             if (parent != null)
             {
@@ -103,20 +138,15 @@ namespace OpenMetaverse
                 lock (parent.Nodes.SyncRoot) parent.Nodes.Add(data.UUID, this);
             }
         }
-        
-        public void Sort()
-        {
-            Nodes.Sort();
-        }
 
         /// <summary>
         /// Serialization handler for the InventoryNode Class
         /// </summary>
         public void GetObjectData(SerializationInfo info, StreamingContext ctxt)
         {
-            info.AddValue("Parent", Parent?.Data.UUID ?? UUID.Zero, typeof(UUID));
-            info.AddValue("Type", Data.GetType(), typeof(Type));
-            Data.GetObjectData(info, ctxt);
+            info.AddValue("Parent", parent?.Data.UUID ?? UUID.Zero, typeof(UUID));
+            info.AddValue("Type", data.GetType(), typeof(Type));
+            data.GetObjectData(info, ctxt);
         }
 
         /// <summary>
@@ -124,12 +154,12 @@ namespace OpenMetaverse
         /// </summary>
         public InventoryNode(SerializationInfo info, StreamingContext ctxt)
         {
-            ParentID = (UUID)info.GetValue("Parent", typeof(UUID));
+            parentID = (UUID)info.GetValue("Parent", typeof(UUID));
             Type type = (Type)info.GetValue("Type", typeof(Type));
          
 	    // Construct a new inventory object based on the Type stored in Type
-            System.Reflection.ConstructorInfo ctr = type.GetConstructor(new[] {typeof(SerializationInfo),typeof(StreamingContext)});
-            Data = (InventoryBase) ctr?.Invoke(new object[] { info, ctxt });
+            System.Reflection.ConstructorInfo ctr = type.GetConstructor(new Type[] {typeof(SerializationInfo),typeof(StreamingContext)});
+            data = (InventoryBase) ctr.Invoke(new Object[] { info, ctxt });
         }
 
         public override string ToString()

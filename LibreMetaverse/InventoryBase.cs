@@ -1,57 +1,24 @@
-﻿/*
- * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021, Sjofn LLC.
- * All rights reserved.
- *
- * - Redistribution and use in source and binary forms, with or without
- *   modification, are permitted provided that the following conditions are met:
- *
- * - Redistributions of source code must retain the above copyright notice, this
- *   list of conditions and the following disclaimer.
- * - Neither the name of the openmetaverse.co nor the names
- *   of its contributors may be used to endorse or promote products derived from
- *   this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- */
-
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
+using System.Text;
 using OpenMetaverse.StructuredData;
-using ProtoBuf;
 
 namespace OpenMetaverse
 {
     /// <summary>
     /// Base Class for Inventory Items
     /// </summary>
-    [Serializable]
-    [ProtoContract]
-    [ProtoInclude(5, typeof(InventoryItem))]
-    [ProtoInclude(6, typeof(InventoryFolder))]
+    [Serializable()]
     public abstract class InventoryBase : ISerializable
     {
         /// <summary><seealso cref="OpenMetaverse.UUID"/> of item/folder</summary>
-        [ProtoMember(1)]
         public UUID UUID;
         /// <summary><seealso cref="OpenMetaverse.UUID"/> of parent folder</summary>
-        [ProtoMember(2)]
         public UUID ParentUUID;
         /// <summary>Name of item/folder</summary>
-        [ProtoMember(3)]
         public string Name;
         /// <summary>Item/Folder Owners <seealso cref="OpenMetaverse.UUID"/></summary>
-        [ProtoMember(4)]
         public UUID OwnerID;
 
         /// <summary>
@@ -135,20 +102,6 @@ namespace OpenMetaverse
     /// An Item in Inventory
     /// </summary>
     [Serializable]
-    [ProtoContract(SkipConstructor=true)]
-    [ProtoInclude(15, typeof(InventoryTexture))]
-    [ProtoInclude(16, typeof(InventorySound))]
-    [ProtoInclude(17, typeof(InventoryCallingCard))]
-    [ProtoInclude(18, typeof(InventoryLandmark))]
-    [ProtoInclude(19, typeof(InventoryObject))]
-    [ProtoInclude(20, typeof(InventoryNotecard))]
-    [ProtoInclude(21, typeof(InventoryCategory))]
-    [ProtoInclude(22, typeof(InventoryLSL))]
-    [ProtoInclude(23, typeof(InventorySnapshot))]
-    [ProtoInclude(24, typeof(InventoryAttachment))]
-    [ProtoInclude(25, typeof(InventoryWearable))]
-    [ProtoInclude(26, typeof(InventoryAnimation))]
-    [ProtoInclude(27, typeof(InventoryGesture))]
     public class InventoryItem : InventoryBase
     {
         public override string ToString()
@@ -157,47 +110,33 @@ namespace OpenMetaverse
                    Description + "' " + Permissions;
         }
         /// <summary>The <seealso cref="OpenMetaverse.UUID"/> of this item</summary>
-        [ProtoMember(1)]
         public UUID AssetUUID;
         /// <summary>The combined <seealso cref="OpenMetaverse.Permissions"/> of this item</summary>
-        [ProtoMember(2)]
         public Permissions Permissions;
         /// <summary>The type of item from <seealso cref="OpenMetaverse.AssetType"/></summary>
-        [ProtoMember(3)]
         public AssetType AssetType;
         /// <summary>The type of item from the <seealso cref="OpenMetaverse.InventoryType"/> enum</summary>
-        [ProtoMember(4)]
         public InventoryType InventoryType;
         /// <summary>The <seealso cref="OpenMetaverse.UUID"/> of the creator of this item</summary>
-        [ProtoMember(5)]
         public UUID CreatorID;
         /// <summary>A Description of this item</summary>
-        [ProtoMember(6)]
         public string Description;
         /// <summary>The <seealso cref="OpenMetaverse.Group"/>s <seealso cref="OpenMetaverse.UUID"/> this item is set to or owned by</summary>
-        [ProtoMember(7)]
         public UUID GroupID;
         /// <summary>If true, item is owned by a group</summary>
-        [ProtoMember(8)]
         public bool GroupOwned;
         /// <summary>The price this item can be purchased for</summary>
-        [ProtoMember(9)]
         public int SalePrice;
         /// <summary>The type of sale from the <seealso cref="OpenMetaverse.SaleType"/> enum</summary>
-        [ProtoMember(10)]
         public SaleType SaleType;
         /// <summary>Combined flags from <seealso cref="OpenMetaverse.InventoryItemFlags"/></summary>
-        [ProtoMember(11)]
         public uint Flags;
         /// <summary>Time and date this inventory item was created, stored as
         /// UTC (Coordinated Universal Time)</summary>
-        [ProtoMember(12)]
         public DateTime CreationDate;
         /// <summary>Used to update the AssetID in requests sent to the server</summary>
-        [ProtoMember(13)]
         public UUID TransactionID;
         /// <summary>The <seealso cref="OpenMetaverse.UUID"/> of the previous owner of the item</summary>
-        [ProtoMember(14)]
         public UUID LastOwnerID;
 
         /// <summary>
@@ -409,8 +348,7 @@ namespace OpenMetaverse
     /// InventoryTexture Class representing a graphical image
     /// </summary>
     /// <seealso cref="T:OpenMetaverse.Imaging.ManagedImage" />
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable()]
     public class InventoryTexture : InventoryItem
     {
         /// <summary>
@@ -438,8 +376,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventorySound Class representing a playable sound
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable()]
     public class InventorySound : InventoryItem
     {
         /// <summary>
@@ -467,8 +404,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryCallingCard Class, contains information on another avatar
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable()]
     public class InventoryCallingCard : InventoryItem
     {
         /// <summary>
@@ -496,8 +432,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryLandmark Class, contains details on a specific location
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable()]
     public class InventoryLandmark : InventoryItem
     {
         /// <summary>
@@ -539,8 +474,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryObject Class contains details on a primitive or coalesced set of primitives
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable()]
     public class InventoryObject : InventoryItem
     {
         /// <summary>
@@ -586,8 +520,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryNotecard Class, contains details on an encoded text document
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable()]
     public class InventoryNotecard : InventoryItem
     {
         /// <summary>
@@ -616,8 +549,7 @@ namespace OpenMetaverse
     /// InventoryCategory Class
     /// </summary>
     /// <remarks>TODO: Is this even used for anything?</remarks>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable()]
     public class InventoryCategory : InventoryItem
     {
         /// <summary>
@@ -645,8 +577,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryLSL Class, represents a Linden Scripting Language object
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable()]
     public class InventoryLSL : InventoryItem
     {
         /// <summary>
@@ -674,8 +605,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventorySnapshot Class, an image taken with the viewer
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable()]
     public class InventorySnapshot : InventoryItem
     {
         /// <inheritdoc />
@@ -703,8 +633,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryAttachment Class, contains details on an attachable object
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable()]
     public class InventoryAttachment : InventoryItem
     {
         /// <summary>
@@ -741,8 +670,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryWearable Class, details on a clothing item or body part
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable()]
     public class InventoryWearable : InventoryItem
     {
         /// <summary>
@@ -775,8 +703,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryAnimation Class, A bvh encoded object which animates an avatar
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable()]
     public class InventoryAnimation : InventoryItem
     {
         /// <summary>
@@ -804,8 +731,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryGesture Class, details on a series of animations, sounds, and actions
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable()]
     public class InventoryGesture : InventoryItem
     {
         /// <summary>
@@ -834,9 +760,7 @@ namespace OpenMetaverse
     /// A folder contains <seealso cref="T:OpenMetaverse.InventoryItem" />s and has certain attributes specific 
     /// to itself
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
-
+    [Serializable()]
     public class InventoryFolder : InventoryBase
     {
         /// <summary>The Preferred <seealso cref="T:OpenMetaverse.FolderType"/> for a folder.</summary>

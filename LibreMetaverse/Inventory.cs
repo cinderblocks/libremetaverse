@@ -28,7 +28,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
-using ProtoBuf;
 
 namespace OpenMetaverse
 {
@@ -352,7 +351,7 @@ namespace OpenMetaverse
                         Logger.Log("Caching " + Items.Count.ToString() + " inventory items to " + filename, Helpers.LogLevel.Info);
                         foreach (KeyValuePair<UUID, InventoryNode> kvp in Items)
                         {
-                            Serializer.Serialize(stream, kvp.Value);
+                            ZeroFormatter.ZeroFormatterSerializer.Serialize(stream, kvp.Value);
                         }
                     }
                 }
@@ -382,7 +381,7 @@ namespace OpenMetaverse
                 {
                     while (stream.Position < stream.Length)
                     {
-                        var node = Serializer.Deserialize<InventoryNode>(stream);
+                        var node = ZeroFormatter.ZeroFormatterSerializer.Deserialize<InventoryNode>(stream);
                         nodes.Add(node);
                         item_count++;
                     }
