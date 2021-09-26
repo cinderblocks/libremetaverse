@@ -27,24 +27,18 @@
 
 using System;
 using System.Runtime.Serialization;
-using ZeroFormatter;
 
 namespace OpenMetaverse
 {
-    [ZeroFormattable]
-    public class InventoryNode
+    [Serializable]
+    public class InventoryNode : ISerializable
     {
-        [Index(0)]
         private InventoryBase data;
-        [Index(1)]
         private InventoryNode parent;
-        [Index(3)]
-        private UUID parentID; //used for de-seralization 
-        [Index(4)]
+        private UUID parentID; //used for deseralization 
         private InventoryNodeDictionary nodes;
-        [Index(5)]
         private bool needsUpdate = true;
-        [IgnoreFormat]
+        [NonSerialized]
         private object tag;
 
         /// <summary></summary>
@@ -74,7 +68,7 @@ namespace OpenMetaverse
         /// <summary></summary>
         public InventoryNodeDictionary Nodes
         {
-            get { return nodes ?? (nodes = new InventoryNodeDictionary(this)); }
+            get => nodes ?? (nodes = new InventoryNodeDictionary(this));
             set => nodes = value;
         }
 
@@ -110,8 +104,8 @@ namespace OpenMetaverse
         /// </summary>
         public bool NeedsUpdate
         {
-            get { return needsUpdate; }
-            set { needsUpdate = value; }
+            get => needsUpdate;
+            set => needsUpdate = value;
         }
 
         public InventoryNode()
@@ -158,8 +152,8 @@ namespace OpenMetaverse
             Type type = (Type)info.GetValue("Type", typeof(Type));
          
 	    // Construct a new inventory object based on the Type stored in Type
-            System.Reflection.ConstructorInfo ctr = type.GetConstructor(new Type[] {typeof(SerializationInfo),typeof(StreamingContext)});
-            data = (InventoryBase) ctr.Invoke(new Object[] { info, ctxt });
+            System.Reflection.ConstructorInfo ctr = type.GetConstructor(new[] {typeof(SerializationInfo),typeof(StreamingContext)});
+            data = (InventoryBase) ctr.Invoke(new object[] { info, ctxt });
         }
 
         public override string ToString()

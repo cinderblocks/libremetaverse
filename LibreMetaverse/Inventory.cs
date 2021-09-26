@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2021, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -226,8 +227,10 @@ namespace OpenMetaverse
                 if (item.ParentUUID != UUID.Zero && !Items.TryGetValue(item.ParentUUID, out itemParent))
                 {
                     // OK, we have no data on the parent, let's create a fake one.
-                    InventoryFolder fakeParent = new InventoryFolder(item.ParentUUID);
-                    fakeParent.DescendentCount = 1; // Dear god, please forgive me.
+                    InventoryFolder fakeParent = new InventoryFolder(item.ParentUUID)
+                    {
+                        DescendentCount = 1 // Dear god, please forgive me.
+                    };
                     itemParent = new InventoryNode(fakeParent);
                     Items[item.ParentUUID] = itemParent;
                     // Unfortunately, this breaks the nice unified tree
@@ -346,12 +349,13 @@ namespace OpenMetaverse
 	        {
                 using (Stream stream = File.Open(filename, FileMode.Create))
                 {
+                    BinaryFormatter bformatter = new BinaryFormatter();
                     lock (Items)
                     {
                         Logger.Log("Caching " + Items.Count.ToString() + " inventory items to " + filename, Helpers.LogLevel.Info);
                         foreach (KeyValuePair<UUID, InventoryNode> kvp in Items)
                         {
-                            ZeroFormatter.ZeroFormatterSerializer.Serialize(stream, kvp.Value);
+                            bformatter.Serialize(stream, kvp.Value);
                         }
                     }
                 }
@@ -379,9 +383,10 @@ namespace OpenMetaverse
 
                 using (Stream stream = File.Open(filename, FileMode.Open))
                 {
+                    BinaryFormatter bformatter = new BinaryFormatter();
                     while (stream.Position < stream.Length)
                     {
-                        var node = ZeroFormatter.ZeroFormatterSerializer.Deserialize<InventoryNode>(stream);
+                        var node = (InventoryNode)bformatter.Deserialize(stream);
                         nodes.Add(node);
                         item_count++;
                     }
