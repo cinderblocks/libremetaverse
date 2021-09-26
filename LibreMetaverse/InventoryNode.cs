@@ -44,9 +44,8 @@ namespace OpenMetaverse
         public InventoryNode Parent { get; set; }
 
         [ProtoMember(3)]
-        public UUID ParentID { get; }
-
-        [ProtoMember(4)]
+        public UUID ParentID { get; private set; }
+        
         public DateTime ModifyTime
         {
             get
@@ -72,7 +71,7 @@ namespace OpenMetaverse
         /// For inventory folder nodes specifies weather the folder needs to be
         /// refreshed from the server
         /// </summary>
-        [ProtoMember(5)]
+        [ProtoMember(4)]
         public bool NeedsUpdate { get; set; }
 
         public InventoryNodeDictionary Nodes

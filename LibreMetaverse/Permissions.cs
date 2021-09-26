@@ -26,6 +26,7 @@
 
 using System;
 using OpenMetaverse.StructuredData;
+using ProtoBuf;
 
 namespace OpenMetaverse
 {
@@ -70,13 +71,19 @@ namespace OpenMetaverse
     /// <summary>
     /// 
     /// </summary>
-    [Serializable()]
+    [Serializable]
+    [ProtoContract]
     public struct Permissions
     {
+        [ProtoMember(1)]
         public PermissionMask BaseMask;
+        [ProtoMember(2)]
         public PermissionMask EveryoneMask;
+        [ProtoMember(3)]
         public PermissionMask GroupMask;
+        [ProtoMember(4)]
         public PermissionMask NextOwnerMask;
+        [ProtoMember(5)]
         public PermissionMask OwnerMask;
 
         public Permissions(uint baseMask, uint everyoneMask, uint groupMask, uint nextOwnerMask, uint ownerMask)
