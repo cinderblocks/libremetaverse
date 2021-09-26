@@ -28,7 +28,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
+using Binaron.Serializer;
 
 namespace OpenMetaverse
 {
@@ -339,23 +339,23 @@ namespace OpenMetaverse
         public void SaveToDisk(string filename)
         {
 	        try
-	        {
-                using (Stream stream = File.Open(filename, FileMode.Create))
+            {
+                using Stream stream = File.Open(filename, FileMode.Create);
+                lock (Items)
                 {
-                    BinaryFormatter bformatter = new BinaryFormatter();
-                    lock (Items)
+                    Logger.Log($"Caching {Items.Count} inventory items to {filename}",
+                        Helpers.LogLevel.Info);
+                    foreach (var kvp in Items)
                     {
-                        Logger.Log("Caching " + Items.Count.ToString() + " inventory items to " + filename, Helpers.LogLevel.Info);
-                        foreach (KeyValuePair<UUID, InventoryNode> kvp in Items)
-                        {
-                            bformatter.Serialize(stream, kvp.Value);
-                        }
+                        BinaronConvert.Serialize(kvp.Value, stream,
+                            new SerializerOptions { SkipNullValues = true });
                     }
                 }
-	        }
+            }
             catch (Exception e)
             {
-                Logger.Log("Error saving inventory cache to disk :"+e.Message,Helpers.LogLevel.Error);
+                Logger.Log($"Error saving inventory cache to disk : {e.Message}",
+                    Helpers.LogLevel.Error);
             }
         }
 
@@ -374,24 +374,21 @@ namespace OpenMetaverse
                 if (!File.Exists(filename))
                     return -1;
 
-                using (Stream stream = File.Open(filename, FileMode.Open))
+                using Stream stream = File.Open(filename, FileMode.Open);
+                while (stream.Position < stream.Length)
                 {
-                    BinaryFormatter bformatter = new BinaryFormatter();
-                    while (stream.Position < stream.Length)
-                    {
-                        var node = (InventoryNode)bformatter.Deserialize(stream);
-                        nodes.Add(node);
-                        item_count++;
-                    }
+                    var node = BinaronConvert.Deserialize<InventoryNode>(stream);
+                    nodes.Add(node);
+                    item_count++;
                 }
             }
             catch (Exception e)
             {
-                Logger.Log("Error accessing inventory cache file :" + e.Message, Helpers.LogLevel.Error);
+                Logger.Log($"Error accessing inventory cache file : {e.Message}", Helpers.LogLevel.Error);
                 return -1;
             }
 
-            Logger.Log("Read " + item_count.ToString() + " items from inventory cache file", Helpers.LogLevel.Info);
+            Logger.Log($"Read {item_count} items from inventory cache file", Helpers.LogLevel.Info);
 
             item_count = 0;
             List<InventoryNode> del_nodes = new List<InventoryNode>(); //nodes that we have processed and will delete
@@ -423,7 +420,8 @@ namespace OpenMetaverse
 
                             if (cacheFolder.Version != server_folder.Version)
                             {
-                                Logger.DebugLog("Inventory Cache/Server version mismatch on " + node.Data.Name + " " + cacheFolder.Version.ToString() + " vs " + server_folder.Version.ToString());
+                                Logger.DebugLog("Inventory Cache/Server version mismatch on " +
+                                                $"{node.Data.Name} {cacheFolder.Version} vs {server_folder.Version}");
                                 pnode.NeedsUpdate = true;
                                 dirty_folders.Add(node.Data.UUID);
                             }
@@ -473,7 +471,7 @@ namespace OpenMetaverse
                 del_nodes.Clear();
             }
 
-            Logger.Log("Reassembled " + item_count.ToString() + " items from inventory cache file", Helpers.LogLevel.Info);
+            Logger.Log($"Reassembled {item_count} items from inventory cache file", Helpers.LogLevel.Info);
             return item_count;
         }
 
@@ -501,8 +499,8 @@ namespace OpenMetaverse
                 {
                     // Log a warning if there is a UUID mismatch, this will cause problems
                     if (value.UUID != uuid)
-                        Logger.Log("Inventory[uuid]: uuid " + uuid.ToString() + " is not equal to value.UUID " +
-                            value.UUID.ToString(), Helpers.LogLevel.Warning, Client);
+                        Logger.Log($"Inventory[uuid]: uuid {uuid} is not equal to value.UUID {value.UUID}", 
+                            Helpers.LogLevel.Warning, Client);
 
                     UpdateNodeFor(value);
                 }
