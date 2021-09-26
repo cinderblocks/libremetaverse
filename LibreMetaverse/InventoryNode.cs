@@ -47,13 +47,6 @@ namespace OpenMetaverse
         public UUID ParentID { get; }
 
         [ProtoMember(4)]
-        public InventoryNodeDictionary Nodes
-        {
-            get => nodes ?? (nodes = new InventoryNodeDictionary(this));
-            set => nodes = value;
-        }
-
-        [ProtoMember(5)]
         public DateTime ModifyTime
         {
             get
@@ -79,10 +72,19 @@ namespace OpenMetaverse
         /// For inventory folder nodes specifies weather the folder needs to be
         /// refreshed from the server
         /// </summary>
-        [ProtoMember(6)]
+        [ProtoMember(5)]
         public bool NeedsUpdate { get; set; }
 
-        /// <param name="data"></param>
+        public InventoryNodeDictionary Nodes
+        {
+            get => nodes ?? (nodes = new InventoryNodeDictionary(this));
+            set => nodes = value;
+        }
+
+        /// <summary>
+        /// InventoryNode Ctor
+        /// </summary>
+        /// <param name="data"><seealso cref="InventoryBase" /> data</param>
         public InventoryNode(InventoryBase data)
         {
             this.Data = data;
