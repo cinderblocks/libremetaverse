@@ -1116,7 +1116,7 @@ namespace OpenMetaverse
                 loginParams.Version = string.Empty;
 
             if (loginParams.UserAgent == null)
-                loginParams.UserAgent = string.Empty;
+                loginParams.UserAgent = Settings.USER_AGENT;
 
             if (loginParams.Platform == null)
                 loginParams.Platform = string.Empty;
@@ -1131,7 +1131,7 @@ namespace OpenMetaverse
             {
                 Logger.Log("Viewer channel not set. This is a TOS violation on some grids.", 
                     Helpers.LogLevel.Warning);
-                loginParams.Channel = "LibreMetaverse client";
+                loginParams.Channel = $"{Settings.USER_AGENT}";
             }
 
             if((loginParams.Start != "home") && (loginParams.Start != "last"))

@@ -38,6 +38,8 @@ namespace OpenMetaverse
     /// happen at login or dynamically</remarks>
     public class Settings
     {
+        public static string USER_AGENT = "LibreMetaverse";
+
         #region Login/Networking Settings
 
         /// <summary>Main grid login server</summary>
