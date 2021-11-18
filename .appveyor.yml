@@ -19,7 +19,7 @@ environment:
   LMVTestAgentPassword:
     secure: bOoXrGfLiHjZlCG1tJ+nDQ==
   PfxDownloadUrl:
-    secure: 6zETilPjqhwgznp0rOyu2lloNy/uIU0coJBWCW+ADBiofQTU8ZuU3BCIEifEPI1R
+    secure: 6zETilPjqhwgznp0rOyu2uOUI4whFbLT3QUXdaTQSH/FqOXIKwj/qz3d4Xo2rrgo
   PfxDownloadPasswd:
     secure: qzHJldnavMFT8+Cm2eXndg==
   PfxPassword:
