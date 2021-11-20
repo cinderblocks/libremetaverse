@@ -3582,6 +3582,7 @@ namespace OpenMetaverse
                                 break;
                         }
                         imp.MessageBlock.BinaryBucket = args.FolderID.GetBytes();
+                        RequestFetchInventory(objectID, e.IM.ToAgentID);
                     }
                     else
                     {
