@@ -28,17 +28,15 @@
 using System;
 using System.IO;
 using System.Net;
-using System.Collections.Generic;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Xml.Serialization;
 using OpenMetaverse;
-using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Messages.Linden;
 using NUnit.Framework;
 
-namespace OpenMetaverse.Tests
+namespace LibreMetaverse.Tests
 {
     /// <summary>
     /// These unit tests specifically test the Message class can serialize and deserialize its own data properly

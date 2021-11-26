@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2021, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -25,13 +26,11 @@
  */
 
 using System;
-using System.Collections.Generic;
-using System.Net;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
 using NUnit.Framework;
 
-namespace OpenMetaverse.Tests
+namespace LibreMetaverse.Tests
 {
     [TestFixture]
     [Category("Network")]
@@ -68,15 +67,15 @@ namespace OpenMetaverse.Tests
             // Connect to the grid
             string startLoc = NetworkManager.StartLocation("Hooper", 179, 18, 32);
             Assert.IsTrue(Client.Network.Login(username[0], username[1], password, "Unit Test Framework", startLoc,
-                "contact@openmetaverse.co"), "Client failed to login, reason: " + Client.Network.LoginMessage);
+                "contact@radegast.life"), "Client failed to login, reason: " + Client.Network.LoginMessage);
             Console.WriteLine("Done");
 
             Assert.IsTrue(Client.Network.Connected, "Client is not connected to the grid");
 
             //int start = Environment.TickCount;
 
-            Assert.AreEqual("hooper", Client.Network.CurrentSim.Name.ToLower(), "Logged in to sim " + 
-                Client.Network.CurrentSim.Name + " instead of hooper");
+            Assert.AreEqual("hooper", Client.Network.CurrentSim.Name.ToLower(),
+                $"Logged in to region {Client.Network.CurrentSim.Name} instead of Hooper");
         }
 
         [Test]

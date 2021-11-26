@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2021, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -25,14 +26,12 @@
  */
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using OpenMetaverse;
-using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
 using NUnit.Framework;
 
-namespace OpenMetaverse.Tests
+namespace LibreMetaverse.Tests
 {
     [TestFixture]
     public class TypeTests : Assert
