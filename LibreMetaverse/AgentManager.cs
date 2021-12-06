@@ -1302,12 +1302,15 @@ namespace OpenMetaverse
         /// <summary>A <seealso cref="Vector3"/> which specifies the angular speed, and axis about which an Avatar is rotating.</summary>
         public Vector3 AngularVelocity => angularVelocity;
 
+        /// <summary>Region handle for 'home' region</summary>
+        public ulong HomeRegionHandle => home.RegionHandle;
+
         /// <summary>Position avatar client will goto when login to 'home' or during
         /// teleport request to 'home' region.</summary>
-        public Vector3 HomePosition => homePosition;
+        public Vector3 HomePosition => home.Position;
 
         /// <summary>LookAt point saved/restored with HomePosition</summary>
-        public Vector3 HomeLookAt => homeLookAt;
+        public Vector3 HomeLookAt => home.LookAt;
 
         /// <summary>Avatar First Name (i.e. Philip)</summary>
         public string FirstName => firstName;
@@ -1472,8 +1475,7 @@ namespace OpenMetaverse
         private UUID secureSessionID;
         private string startLocation = string.Empty;
         private string agentAccess = string.Empty;
-        private Vector3 homePosition;
-        private Vector3 homeLookAt;
+        private HomeInfo home;
         private Vector3 lookAt;
         private string firstName = string.Empty;
         private string lastName = string.Empty;
@@ -4501,8 +4503,7 @@ namespace OpenMetaverse
             startLocation = reply.StartLocation;
             agentAccess = reply.AgentAccess;
             Movement.Camera.LookDirection(reply.LookAt);
-            homePosition = reply.HomePosition;
-            homeLookAt = reply.HomeLookAt;
+            home = reply.Home;
             lookAt = reply.LookAt;
 
             if (reply.Gestures != null)
