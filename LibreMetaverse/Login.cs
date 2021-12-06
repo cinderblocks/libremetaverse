@@ -466,31 +466,50 @@ namespace OpenMetaverse
             {
                 Logger.Log("Login server returned (some) invalid data: " + e.Message, Helpers.LogLevel.Warning);
             }
-            if (!Success)
-                return;
+            if (!Success) { return; }
 
             // Home
             if (reply.ContainsKey("home"))
             {
-                var osdHome = OSDParser.DeserializeLLSDNotation(reply["home"].ToString());
-
-                if (osdHome.Type == OSDType.Map)
+                try
                 {
-                    var home = (OSDMap)osdHome;
-
-                    OSD homeRegion;
-                    if (home.TryGetValue("region_handle", out homeRegion) && homeRegion.Type == OSDType.Array)
+                    if (reply?["home"] is Hashtable map)
                     {
-                        var homeArray = (OSDArray)homeRegion;
-                        if (homeArray.Count == 2)
-                            HomeRegion = Utils.UIntsToLong((uint)homeArray[0].AsInteger(),
-                                                           (uint)homeArray[1].AsInteger());
-                        else
-                            HomeRegion = 0;
-                    }
+                        HomePosition = ParseVector3("position", map);
+                        HomeLookAt = ParseVector3("look_at", map);
 
-                    HomePosition = ParseVector3("position", home);
-                    HomeLookAt = ParseVector3("look_at", home);
+                        var coords = (OSDArray)OSDParser.DeserializeLLSDNotation(map["region_handle"].ToString());
+                        if (coords.Type == OSDType.Array)
+                        {
+                            HomeRegion = (coords.Count == 2)
+                                ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
+                        }
+                    }
+                    else if (reply?["home"] is string osdString)
+                    {
+                        var osdMap = (OSDMap)OSDParser.DeserializeLLSDNotation(osdString);
+                        OSD homeRegion;
+                        if (osdMap.TryGetValue("region_handle", out homeRegion) && homeRegion.Type == OSDType.Array)
+                        {
+                            var homeArray = (OSDArray)homeRegion;
+                            HomeRegion = (homeArray.Count == 2)
+                                ? Utils.UIntsToLong((uint)homeArray[0].AsInteger(), (uint)homeArray[1].AsInteger()) : 0;
+                        }
+
+                        HomePosition = ParseVector3("position", osdMap);
+                        HomeLookAt = ParseVector3("look_at", osdMap);
+                    }
+                    else
+                    {
+                        throw new Exception("Could not parse 'home' in Login Response");
+                    }
+                } 
+                catch (Exception ex)
+                {
+                    Logger.Log("Could not parse 'home' field in login response. Setting nil.", Helpers.LogLevel.Warning, ex);
+                    HomeRegion = 0;
+                    HomePosition = Vector3.Zero;
+                    HomeLookAt = Vector3.Zero;
                 }
             }
             else
