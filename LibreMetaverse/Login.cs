@@ -495,22 +495,41 @@ namespace OpenMetaverse
                 // Home
                 if (Home.RegionHandle == 0 && reply.ContainsKey("home"))
                 {
-                    var osdHome = OSDParser.DeserializeLLSDNotation(reply["home"].ToString());
-
-                    if (osdHome.Type == OSDType.Map)
+                    if (reply?["home"] is Hashtable map)
                     {
-                        var home = (OSDMap)osdHome;
+                        Home.Position = ParseVector3("position", map);
+                        Home.LookAt = ParseVector3("look_at", map);
 
-                        OSD homeRegion;
-                        if (home.TryGetValue("region_handle", out homeRegion) && homeRegion.Type == OSDType.Array)
+                        var coords = (OSDArray)OSDParser.DeserializeLLSDNotation(map["region_handle"].ToString());
+                        if (coords.Type == OSDType.Array)
                         {
-                            var coords = (OSDArray)homeRegion;
                             Home.RegionHandle = (coords.Count == 2)
                                 ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
-
                         }
-                        Home.Position = ParseVector3("position", home);
-                        Home.LookAt = ParseVector3("look_at", home);
+                    }
+                    else if (reply?["home"] is string osdString)
+                    {
+                        var osdHome = OSDParser.DeserializeLLSDNotation(reply["home"].ToString());
+
+                        if (osdHome.Type == OSDType.Map)
+                        {
+                            var home = (OSDMap)osdHome;
+
+                            OSD homeRegion;
+                            if (home.TryGetValue("region_handle", out homeRegion) && homeRegion.Type == OSDType.Array)
+                            {
+                                var coords = (OSDArray)homeRegion;
+                                Home.RegionHandle = (coords.Count == 2)
+                                    ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
+
+                            }
+                            Home.Position = ParseVector3("position", home);
+                            Home.LookAt = ParseVector3("look_at", home);
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception("Could not parse 'home' in Login Response");
                     }
                 }
             } catch (Exception ex)
