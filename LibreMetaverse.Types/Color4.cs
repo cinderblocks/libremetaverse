@@ -26,6 +26,7 @@
 
 using System;
 using System.Runtime.InteropServices;
+using ProtoBuf;
 
 namespace OpenMetaverse
 {
@@ -33,16 +34,21 @@ namespace OpenMetaverse
     /// An 8-bit color structure including an alpha channel
     /// </summary>
     [Serializable]
+    [ProtoContract]
     [StructLayout(LayoutKind.Sequential)]
     public struct Color4 : IComparable<Color4>, IEquatable<Color4>
     {
         /// <summary>Red</summary>
+        [ProtoMember(1)]
         public float R;
         /// <summary>Green</summary>
+        [ProtoMember(2)]
         public float G;
         /// <summary>Blue</summary>
+        [ProtoMember(3)]
         public float B;
         /// <summary>Alpha</summary>
+        [ProtoMember(4)]
         public float A;
 
         #region Constructors

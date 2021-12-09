@@ -27,10 +27,12 @@
 
 using System;
 using System.Runtime.Serialization;
+using ProtoBuf;
 
 namespace OpenMetaverse
 {
     [Serializable]
+    [ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
     public class InventoryNode : ISerializable
     {
         private InventoryBase data;
@@ -39,9 +41,9 @@ namespace OpenMetaverse
         private InventoryNodeDictionary nodes;
         private bool needsUpdate = true;
         [NonSerialized]
+        [ProtoIgnore]
         private object tag;
 
-        /// <summary></summary>
         public InventoryBase Data
         {
             get => data;
@@ -55,24 +57,31 @@ namespace OpenMetaverse
             set => tag = value;
         }
 
-        /// <summary></summary>
         public InventoryNode Parent
         {
             get => parent;
             set => parent = value;
         }
 
-        /// <summary></summary>
         public UUID ParentID => parentID;
 
-        /// <summary></summary>
         public InventoryNodeDictionary Nodes
         {
             get => nodes ?? (nodes = new InventoryNodeDictionary(this));
             set => nodes = value;
         }
 
-        public System.DateTime ModifyTime
+        /// <summary>
+        /// For inventory folder nodes specifies weather the folder needs to be
+        /// refreshed from the server
+        /// </summary>
+        public bool NeedsUpdate
+        {
+            get => needsUpdate;
+            set => needsUpdate = value;
+        }
+
+        public DateTime ModifyTime
         {
             get
             {
@@ -96,16 +105,6 @@ namespace OpenMetaverse
         public void Sort()
         {
             Nodes.Sort();
-        }
-
-        /// <summary>
-        /// For inventory folder nodes specifies weather the folder needs to be
-        /// refreshed from the server
-        /// </summary>
-        public bool NeedsUpdate
-        {
-            get => needsUpdate;
-            set => needsUpdate = value;
         }
 
         public InventoryNode()

@@ -26,10 +26,12 @@
 
 using System;
 using OpenMetaverse.Packets;
+using ProtoBuf;
 
 namespace OpenMetaverse
 {
     [Serializable]
+    [ProtoContract]
     public class TerrainPatch
     {
         #region Enums and Structs
@@ -77,10 +79,13 @@ namespace OpenMetaverse
         #endregion Enums and Structs
 
         /// <summary>X position of this patch</summary>
+        [ProtoMember(1)]
         public int X;
         /// <summary>Y position of this patch</summary>
+        [ProtoMember(2)]
         public int Y;
         /// <summary>A 16x16 array of floats holding decompressed layer data</summary>
+        [ProtoMember(3)]
         public float[] Data;
     }
 

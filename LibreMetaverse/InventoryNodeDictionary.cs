@@ -26,9 +26,11 @@
 
 using System;
 using System.Collections.Generic;
+using ProtoBuf;
 
 namespace OpenMetaverse
 {
+    [ProtoContract(SkipConstructor = true, ImplicitFields = ImplicitFields.AllFields)]
     public class InventoryNodeDictionary: IComparer<UUID>
     {
         protected readonly SortedDictionary<UUID, InventoryNode> SDictionary;
