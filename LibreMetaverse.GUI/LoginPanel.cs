@@ -35,7 +35,6 @@ namespace OpenMetaverse.GUI
     public class LoginPanel : Panel
     {
         private GridClient _Client;
-        private LoginParams _LoginParams = new LoginParams();
         private Thread LoginThread;
         private Dictionary<string, string> _Accounts = new Dictionary<string, string>();
         private Button btnLogin = new Button();
@@ -58,11 +57,7 @@ namespace OpenMetaverse.GUI
         /// <summary>
         /// Gets or sets the LoginParams associated with this control's GridClient object
         /// </summary>
-        public LoginParams LoginParams
-        {
-            get { return _LoginParams; }
-            set { _LoginParams = value; }
-        }
+        public LoginParams LoginParams { get; set; } = new LoginParams();
 
         /// <summary>
         /// First name parsed from the textbox control
@@ -184,12 +179,12 @@ namespace OpenMetaverse.GUI
         {
             if (_Client == null) return;
 
-            if (_LoginParams.MethodName == null)
-                _LoginParams = Client.Network.DefaultLoginParams("", "", "", "", "");
+            if (LoginParams.MethodName == null)
+                LoginParams = Client.Network.DefaultLoginParams("", "", "", "", "");
 
             SetText(btnLogin, "Logout");
-            SetText(listNames, _LoginParams.FirstName + " " + _LoginParams.LastName);
-            SetText(txtPass, _LoginParams.Password);
+            SetText(listNames, LoginParams.FirstName + " " + LoginParams.LastName);
+            SetText(txtPass, LoginParams.Password);
 
             if (LoginThread != null)
             {
@@ -197,7 +192,7 @@ namespace OpenMetaverse.GUI
                     _Client.Network.AbortLogin();
                 LoginThread = null;
             }
-            LoginThread = new Thread(delegate() { _Client.Network.Login(_LoginParams); });
+            LoginThread = new Thread(delegate() { _Client.Network.Login(LoginParams); });
             LoginThread.Start();
         }
 
@@ -232,10 +227,10 @@ namespace OpenMetaverse.GUI
                     return;
                 }
 
-                _LoginParams.FirstName = FirstName;
-                _LoginParams.LastName = LastName;
-                _LoginParams.Password = Password;
-                _LoginParams.Start = StartURI;
+                LoginParams.FirstName = FirstName;
+                LoginParams.LastName = LastName;
+                LoginParams.Password = Password;
+                LoginParams.Start = StartURI;
 
                 Login();
             }
@@ -287,7 +282,7 @@ namespace OpenMetaverse.GUI
             {
                 lock (_Accounts)
                 {
-                    _Accounts[_Client.Self.Name] = _LoginParams.Password;
+                    _Accounts[_Client.Self.Name] = LoginParams.Password;
 
                     if (!listNames.Items.Contains(_Client.Self.Name))
                     {
@@ -305,8 +300,8 @@ namespace OpenMetaverse.GUI
             }
             else
             {
-                SetText(listNames, _LoginParams.FirstName + " " + _LoginParams.LastName);
-                SetText(txtPass, _LoginParams.Password);
+                SetText(listNames, LoginParams.FirstName + " " + LoginParams.LastName);
+                SetText(txtPass, LoginParams.Password);
             }
         }
 

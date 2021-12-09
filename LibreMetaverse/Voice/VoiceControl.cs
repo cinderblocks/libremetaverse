@@ -88,16 +88,16 @@ namespace OpenMetaverse.Voice
         private Vector3d oldAt;
 
         // Audio interfaces
-        private List<string> inputDevices;
         /// <summary>
         /// List of audio input devices
         /// </summary>
-        public List<string> CaptureDevices { get { return inputDevices; } }
-        private List<string> outputDevices;
+        public List<string> CaptureDevices { get; private set; }
+
         /// <summary>
         /// List of audio output devices
         /// </summary>
-        public List<string> PlaybackDevices { get { return outputDevices; } }
+        public List<string> PlaybackDevices { get; private set; }
+
         private string currentCaptureDevice;
         private string currentPlaybackDevice;
         private bool testing = false;
@@ -756,7 +756,7 @@ namespace OpenMetaverse.Voice
             object sender,
             VoiceDevicesEventArgs e)
         {
-            outputDevices = e.Devices;
+            PlaybackDevices = e.Devices;
             currentPlaybackDevice = e.CurrentDevice;
         }
 
@@ -767,7 +767,7 @@ namespace OpenMetaverse.Voice
             object sender,
             VoiceDevicesEventArgs e)
         {
-            inputDevices = e.Devices;
+            CaptureDevices = e.Devices;
             currentCaptureDevice = e.CurrentDevice;
         }
 

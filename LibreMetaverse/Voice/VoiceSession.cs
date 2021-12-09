@@ -36,15 +36,12 @@ namespace OpenMetaverse.Voice
     /// </summary>
     public class VoiceSession
     {
-        private string m_Handle;
         private static Dictionary<string, VoiceParticipant> knownParticipants;
         public string RegionName;
-        private bool m_spatial;
-        public bool IsSpatial { get { return m_spatial; } }
-        private VoiceGateway connector;
+        public bool IsSpatial { get; }
 
-        public VoiceGateway Connector { get { return connector; } }
-        public string Handle { get { return m_Handle; } }
+        public VoiceGateway Connector { get; }
+        public string Handle { get; }
 
         public event System.EventHandler OnParticipantAdded;
         public event System.EventHandler OnParticipantUpdate;
@@ -52,10 +49,10 @@ namespace OpenMetaverse.Voice
 
         public VoiceSession(VoiceGateway conn, string handle)
         {
-            m_Handle = handle;
-            connector = conn;
+            Handle = handle;
+            Connector = conn;
 
-            m_spatial = true;
+            IsSpatial = true;
             knownParticipants = new Dictionary<string, VoiceParticipant>();
         }
 
@@ -150,7 +147,7 @@ namespace OpenMetaverse.Voice
 
         public void Set3DPosition(VoicePosition SpeakerPosition, VoicePosition ListenerPosition)
         {
-            connector.SessionSet3DPosition(m_Handle, SpeakerPosition, ListenerPosition);
+            Connector.SessionSet3DPosition(Handle, SpeakerPosition, ListenerPosition);
         }
     }
 

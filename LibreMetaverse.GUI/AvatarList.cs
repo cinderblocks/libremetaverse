@@ -41,7 +41,6 @@ namespace OpenMetaverse.GUI
     {
         private GridClient _Client;
         private ListColumnSorter _ColumnSorter = new ListColumnSorter();
-        private TrackedAvatar _SelectedAvatar;
 
         private DoubleDictionary<uint, UUID, TrackedAvatar> _TrackedAvatars = new DoubleDictionary<uint, UUID, TrackedAvatar>();
         private Dictionary<UUID, TrackedAvatar> _UntrackedAvatars = new Dictionary<UUID, TrackedAvatar>();
@@ -75,10 +74,7 @@ namespace OpenMetaverse.GUI
         /// <summary>
         /// Returns the current selected avatar in the tracked avatars list
         /// </summary>
-        public TrackedAvatar SelectedAvatar
-        {
-            get { return _SelectedAvatar; }
-        }
+        public TrackedAvatar SelectedAvatar { get; private set; }
 
         /// <summary>
         /// TreeView control for an unspecified client's nearby avatar list
@@ -124,7 +120,7 @@ namespace OpenMetaverse.GUI
                         if (!_TrackedAvatars.TryGetValue(selectedID, out selectedAV) && !_UntrackedAvatars.TryGetValue(selectedID, out selectedAV))
                             selectedAV = null;
 
-                        _SelectedAvatar = selectedAV;
+                        SelectedAvatar = selectedAV;
                     }
                 }
             }
@@ -368,13 +364,13 @@ namespace OpenMetaverse.GUI
             {
                 case "Offer Teleport":
                     {
-                        Client.Self.SendTeleportLure(_SelectedAvatar.ID);
+                        Client.Self.SendTeleportLure(SelectedAvatar.ID);
                         break;
                     }
                 case "Teleport To":
                     {
                         Vector3 pos;
-                        if (Client.Network.CurrentSim.AvatarPositions.TryGetValue(_SelectedAvatar.ID, out pos))
+                        if (Client.Network.CurrentSim.AvatarPositions.TryGetValue(SelectedAvatar.ID, out pos))
                             Client.Self.Teleport(Client.Network.CurrentSim.Name, pos);
 
                         break;
@@ -382,7 +378,7 @@ namespace OpenMetaverse.GUI
                 case "Walk To":
                     {
                         Vector3 pos;
-                        if (Client.Network.CurrentSim.AvatarPositions.TryGetValue(_SelectedAvatar.ID, out pos))
+                        if (Client.Network.CurrentSim.AvatarPositions.TryGetValue(SelectedAvatar.ID, out pos))
                             Client.Self.AutoPilotLocal((int)pos.X, (int)pos.Y, pos.Z);
 
                         break;

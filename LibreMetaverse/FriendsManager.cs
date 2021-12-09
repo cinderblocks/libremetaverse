@@ -55,40 +55,25 @@ namespace OpenMetaverse
     /// </summary>
     public class FriendInfo
     {
-        private UUID m_id;
-        private string m_name;
-        private bool m_isOnline;
         private bool m_canSeeMeOnline;
         private bool m_canSeeMeOnMap;
-        private bool m_canModifyMyObjects;
-        private bool m_canSeeThemOnline;
-        private bool m_canSeeThemOnMap;
-        private bool m_canModifyTheirObjects;
 
         #region Properties
 
         /// <summary>
         /// System ID of the avatar
         /// </summary>
-        public UUID UUID { get { return m_id; } }
+        public UUID UUID { get; }
 
         /// <summary>
         /// full name of the avatar
         /// </summary>
-        public string Name
-        {
-            get { return m_name; }
-            set { m_name = value; }
-        }
+        public string Name { get; set; }
 
         /// <summary>
         /// True if the avatar is online
         /// </summary>
-        public bool IsOnline
-        {
-            get { return m_isOnline; }
-            set { m_isOnline = value; }
-        }
+        public bool IsOnline { get; set; }
 
         /// <summary>
         /// True if the friend can see if I am online
@@ -123,26 +108,22 @@ namespace OpenMetaverse
         /// <summary>
         /// True if the freind can modify my objects
         /// </summary>
-        public bool CanModifyMyObjects
-        {
-            get { return m_canModifyMyObjects; }
-            set { m_canModifyMyObjects = value; }
-        }
+        public bool CanModifyMyObjects { get; set; }
 
         /// <summary>
         /// True if I can see if my friend is online
         /// </summary>
-        public bool CanSeeThemOnline { get { return m_canSeeThemOnline; } }
+        public bool CanSeeThemOnline { get; private set; }
 
         /// <summary>
         /// True if I can see if my friend is on the map
         /// </summary>
-        public bool CanSeeThemOnMap { get { return m_canSeeThemOnMap; } }
+        public bool CanSeeThemOnMap { get; private set; }
 
         /// <summary>
         /// True if I can modify my friend's objects
         /// </summary>
-        public bool CanModifyTheirObjects { get { return m_canModifyTheirObjects; } }
+        public bool CanModifyTheirObjects { get; private set; }
 
         /// <summary>
         /// My friend's rights represented as bitmapped flags
@@ -156,7 +137,7 @@ namespace OpenMetaverse
                     results |= FriendRights.CanSeeOnline;
                 if (m_canSeeMeOnMap)
                     results |= FriendRights.CanSeeOnMap;
-                if (m_canModifyMyObjects)
+                if (CanModifyMyObjects)
                     results |= FriendRights.CanModifyObjects;
 
                 return results;
@@ -165,7 +146,7 @@ namespace OpenMetaverse
             {
                 m_canSeeMeOnline = (value & FriendRights.CanSeeOnline) != 0;
                 m_canSeeMeOnMap = (value & FriendRights.CanSeeOnMap) != 0;
-                m_canModifyMyObjects = (value & FriendRights.CanModifyObjects) != 0;
+                CanModifyMyObjects = (value & FriendRights.CanModifyObjects) != 0;
             }
         }
 
@@ -177,20 +158,20 @@ namespace OpenMetaverse
             get
             {
                 FriendRights results = FriendRights.None;
-                if (m_canSeeThemOnline)
+                if (CanSeeThemOnline)
                     results |= FriendRights.CanSeeOnline;
-                if (m_canSeeThemOnMap)
+                if (CanSeeThemOnMap)
                     results |= FriendRights.CanSeeOnMap;
-                if (m_canModifyTheirObjects)
+                if (CanModifyTheirObjects)
                     results |= FriendRights.CanModifyObjects;
 
                 return results;
             }
             set
             {
-                m_canSeeThemOnline = (value & FriendRights.CanSeeOnline) != 0;
-                m_canSeeThemOnMap = (value & FriendRights.CanSeeOnMap) != 0;
-                m_canModifyTheirObjects = (value & FriendRights.CanModifyObjects) != 0;
+                CanSeeThemOnline = (value & FriendRights.CanSeeOnline) != 0;
+                CanSeeThemOnMap = (value & FriendRights.CanSeeOnMap) != 0;
+                CanModifyTheirObjects = (value & FriendRights.CanModifyObjects) != 0;
             }
         }
 
@@ -204,14 +185,14 @@ namespace OpenMetaverse
         /// <param name="myRights">Rights you have to see your friend online and to modify their objects</param>
         internal FriendInfo(UUID id, FriendRights theirRights, FriendRights myRights)
         {
-            m_id = id;
+            UUID = id;
             m_canSeeMeOnline = (theirRights & FriendRights.CanSeeOnline) != 0;
             m_canSeeMeOnMap = (theirRights & FriendRights.CanSeeOnMap) != 0;
-            m_canModifyMyObjects = (theirRights & FriendRights.CanModifyObjects) != 0;
+            CanModifyMyObjects = (theirRights & FriendRights.CanModifyObjects) != 0;
 
-            m_canSeeThemOnline = (myRights & FriendRights.CanSeeOnline) != 0;
-            m_canSeeThemOnMap = (myRights & FriendRights.CanSeeOnMap) != 0;
-            m_canModifyTheirObjects = (myRights & FriendRights.CanModifyObjects) != 0;
+            CanSeeThemOnline = (myRights & FriendRights.CanSeeOnline) != 0;
+            CanSeeThemOnMap = (myRights & FriendRights.CanSeeOnMap) != 0;
+            CanModifyTheirObjects = (myRights & FriendRights.CanModifyObjects) != 0;
         }
 
         /// <summary>
@@ -220,11 +201,11 @@ namespace OpenMetaverse
         /// <returns>A string reprentation of both my rights and my friends rights</returns>
         public override string ToString()
         {
-            if (!String.IsNullOrEmpty(m_name))
-                return String.Format("{0} (Their Rights: {1}, My Rights: {2})", m_name, TheirFriendRights,
+            if (!String.IsNullOrEmpty(Name))
+                return String.Format("{0} (Their Rights: {1}, My Rights: {2})", Name, TheirFriendRights,
                     MyFriendRights);
             else
-                return String.Format("{0} (Their Rights: {1}, My Rights: {2})", m_id, TheirFriendRights,
+                return String.Format("{0} (Their Rights: {1}, My Rights: {2})", UUID, TheirFriendRights,
                     MyFriendRights);
         }
     }
@@ -1051,10 +1032,9 @@ namespace OpenMetaverse
    
     public class FriendsReadyEventArgs : EventArgs
     {
-        private readonly int m_count;
-
         /// <summary>Number of friends we have</summary>
-        public int Count { get { return m_count; } }
+        public int Count { get; }
+
         /// <summary>Get the name of the agent we requested a friendship with</summary>
 
         /// <summary>
@@ -1063,17 +1043,15 @@ namespace OpenMetaverse
         /// <param name="count">The total number of people loaded into the friend list.</param>
         public FriendsReadyEventArgs(int count)
         {
-            this.m_count = count;
+            this.Count = count;
         }
     }
 
     /// <summary>Contains information on a member of our friends list</summary>
     public class FriendInfoEventArgs : EventArgs
     {
-        private readonly FriendInfo m_Friend;
-
         /// <summary>Get the FriendInfo</summary>
-        public FriendInfo Friend { get { return m_Friend; } }
+        public FriendInfo Friend { get; }
 
         /// <summary>
         /// Construct a new instance of the FriendInfoEventArgs class
@@ -1081,18 +1059,16 @@ namespace OpenMetaverse
         /// <param name="friend">The FriendInfo</param>
         public FriendInfoEventArgs(FriendInfo friend)
         {
-            this.m_Friend = friend;
+            this.Friend = friend;
         }
     }
 
     /// <summary>Contains Friend Names</summary>
     public class FriendNamesEventArgs : EventArgs
     {
-        private readonly Dictionary<UUID, string> m_Names;
-
         /// <summary>A dictionary where the Key is the ID of the Agent, 
         /// and the Value is a string containing their name</summary>
-        public Dictionary<UUID, string> Names { get { return m_Names; } }
+        public Dictionary<UUID, string> Names { get; }
 
         /// <summary>
         /// Construct a new instance of the FriendNamesEventArgs class
@@ -1101,24 +1077,22 @@ namespace OpenMetaverse
         /// and the Value is a string containing their name</param>
         public FriendNamesEventArgs(Dictionary<UUID, string> names)
         {
-            this.m_Names = names;
+            this.Names = names;
         }
     }
 
     /// <summary>Sent when another agent requests a friendship with our agent</summary>
     public class FriendshipOfferedEventArgs : EventArgs
     {
-        private readonly UUID m_AgentID;
-        private readonly string m_AgentName;
-        private readonly UUID m_SessionID;
-
         /// <summary>Get the ID of the agent requesting friendship</summary>
-        public UUID AgentID { get { return m_AgentID; } }
+        public UUID AgentID { get; }
+
         /// <summary>Get the name of the agent requesting friendship</summary>
-        public string AgentName { get { return m_AgentName; } }
+        public string AgentName { get; }
+
         /// <summary>Get the ID of the session, used in accepting or declining the 
         /// friendship offer</summary>
-        public UUID SessionID { get { return m_SessionID; } }
+        public UUID SessionID { get; }
 
         /// <summary>
         /// Construct a new instance of the FriendshipOfferedEventArgs class
@@ -1129,25 +1103,23 @@ namespace OpenMetaverse
         /// friendship offer</param>
         public FriendshipOfferedEventArgs(UUID agentID, string agentName, UUID imSessionID)
         {
-            this.m_AgentID = agentID;
-            this.m_AgentName = agentName;
-            this.m_SessionID = imSessionID;
+            this.AgentID = agentID;
+            this.AgentName = agentName;
+            this.SessionID = imSessionID;
         }
     }
 
     /// <summary>A response containing the results of our request to form a friendship with another agent</summary>
     public class FriendshipResponseEventArgs : EventArgs
     {
-        private readonly UUID m_AgentID;
-        private readonly string m_AgentName;
-        private readonly bool m_Accepted;
-
         /// <summary>Get the ID of the agent we requested a friendship with</summary>
-        public UUID AgentID { get { return m_AgentID; } }
+        public UUID AgentID { get; }
+
         /// <summary>Get the name of the agent we requested a friendship with</summary>
-        public string AgentName { get { return m_AgentName; } }
+        public string AgentName { get; }
+
         /// <summary>true if the agent accepted our friendship offer</summary>
-        public bool Accepted { get { return m_Accepted; } }
+        public bool Accepted { get; }
 
         /// <summary>
         /// Construct a new instance of the FriendShipResponseEventArgs class
@@ -1157,22 +1129,20 @@ namespace OpenMetaverse
         /// <param name="accepted">true if the agent accepted our friendship offer</param>
         public FriendshipResponseEventArgs(UUID agentID, string agentName, bool accepted)
         {
-            this.m_AgentID = agentID;
-            this.m_AgentName = agentName;
-            this.m_Accepted = accepted;
+            this.AgentID = agentID;
+            this.AgentName = agentName;
+            this.Accepted = accepted;
         }
     }
 
     /// <summary>Contains data sent when a friend terminates a friendship with us</summary>
     public class FriendshipTerminatedEventArgs : EventArgs
     {
-        private readonly UUID m_AgentID;
-        private readonly string m_AgentName;
-
         /// <summary>Get the ID of the agent that terminated the friendship with us</summary>
-        public UUID AgentID { get { return m_AgentID; } }
+        public UUID AgentID { get; }
+
         /// <summary>Get the name of the agent that terminated the friendship with us</summary>
-        public string AgentName { get { return m_AgentName; } }
+        public string AgentName { get; }
 
         /// <summary>
         /// Construct a new instance of the FrindshipTerminatedEventArgs class
@@ -1181,8 +1151,8 @@ namespace OpenMetaverse
         /// <param name="agentName">The name of the friend who terminated the friendship with us</param>
         public FriendshipTerminatedEventArgs(UUID agentID, string agentName)
         {
-            this.m_AgentID = agentID;
-            this.m_AgentName = agentName;
+            this.AgentID = agentID;
+            this.AgentName = agentName;
         }
     }
 
@@ -1191,16 +1161,14 @@ namespace OpenMetaverse
     /// </summary>
     public class FriendFoundReplyEventArgs : EventArgs
     {
-        private readonly UUID m_AgentID;
-        private readonly ulong m_RegionHandle;
-        private readonly Vector3 m_Location;
-
         /// <summary>Get the ID of the agent we have received location information for</summary>
-        public UUID AgentID { get { return m_AgentID; } }
+        public UUID AgentID { get; }
+
         /// <summary>Get the region handle where our mapped friend is located</summary>
-        public ulong RegionHandle { get { return m_RegionHandle; } }
+        public ulong RegionHandle { get; }
+
         /// <summary>Get the simulator local position where our friend is located</summary>
-        public Vector3 Location { get { return m_Location; } }
+        public Vector3 Location { get; }
 
         /// <summary>
         /// Construct a new instance of the FriendFoundReplyEventArgs class
@@ -1210,9 +1178,9 @@ namespace OpenMetaverse
         /// <param name="location">The simulator local position our friend is located</param>
         public FriendFoundReplyEventArgs(UUID agentID, ulong regionHandle, Vector3 location)
         {
-            this.m_AgentID = agentID;
-            this.m_RegionHandle = regionHandle;
-            this.m_Location = location;
+            this.AgentID = agentID;
+            this.RegionHandle = regionHandle;
+            this.Location = location;
         }
     }
     #endregion

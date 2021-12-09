@@ -382,13 +382,16 @@ namespace OpenMetaverse
         #endregion Delegates
 
         /// <summary>Unknown</summary>
-        public float SunPhase { get { return sunPhase; } }
-		/// <summary>Current direction of the sun</summary>
-        public Vector3 SunDirection { get { return sunDirection; } }
+        public float SunPhase { get; private set; }
+
+        /// <summary>Current direction of the sun</summary>
+        public Vector3 SunDirection { get; private set; }
+
         /// <summary>Current angular velocity of the sun</summary>
-        public Vector3 SunAngVelocity { get { return sunAngVelocity; } }
+        public Vector3 SunAngVelocity { get; private set; }
+
         /// <summary>Microseconds since the start of SL 4-hour day</summary>
-        public ulong TimeOfDay { get { return timeOfDay; } }
+        public ulong TimeOfDay { get; private set; }
 
         /// <summary>A dictionary of all the regions, indexed by region name</summary>
         internal Dictionary<string, GridRegion> Regions = new Dictionary<string, GridRegion>();
@@ -396,10 +399,6 @@ namespace OpenMetaverse
         internal Dictionary<ulong, GridRegion> RegionsByHandle = new Dictionary<ulong, GridRegion>();
 
 		private GridClient Client;
-        private float sunPhase;
-        private Vector3 sunDirection;
-        private Vector3 sunAngVelocity;
-        private ulong timeOfDay;
 
         /// <summary>
         /// Constructor
@@ -784,10 +783,10 @@ namespace OpenMetaverse
         {
             SimulatorViewerTimeMessagePacket time = (SimulatorViewerTimeMessagePacket)e.Packet;
             
-            sunPhase = time.TimeInfo.SunPhase;
-            sunDirection = time.TimeInfo.SunDirection;
-            sunAngVelocity = time.TimeInfo.SunAngVelocity;
-            timeOfDay = time.TimeInfo.UsecSinceStart;
+            SunPhase = time.TimeInfo.SunPhase;
+            SunDirection = time.TimeInfo.SunDirection;
+            SunAngVelocity = time.TimeInfo.SunAngVelocity;
+            TimeOfDay = time.TimeInfo.UsecSinceStart;
             // TODO: Does anyone have a use for the time stuff?
         }
 
@@ -857,72 +856,59 @@ namespace OpenMetaverse
 
     public class CoarseLocationUpdateEventArgs : EventArgs
     {
-        private readonly Simulator m_Simulator;
-        private readonly List<UUID> m_NewEntries;
-        private readonly List<UUID> m_RemovedEntries;
-
-        public Simulator Simulator { get { return m_Simulator; } }
-        public List<UUID> NewEntries { get { return m_NewEntries; } }
-        public List<UUID> RemovedEntries { get { return m_RemovedEntries; } }
+        public Simulator Simulator { get; }
+        public List<UUID> NewEntries { get; }
+        public List<UUID> RemovedEntries { get; }
 
         public CoarseLocationUpdateEventArgs(Simulator simulator, List<UUID> newEntries, List<UUID> removedEntries)
         {
-            this.m_Simulator = simulator;
-            this.m_NewEntries = newEntries;
-            this.m_RemovedEntries = removedEntries;
+            this.Simulator = simulator;
+            this.NewEntries = newEntries;
+            this.RemovedEntries = removedEntries;
         }
     }
 
     public class GridRegionEventArgs : EventArgs
     {
-        private readonly GridRegion m_Region;
-        public GridRegion Region { get { return m_Region; } }
+        public GridRegion Region { get; }
 
         public GridRegionEventArgs(GridRegion region)
         {
-            this.m_Region = region;
+            this.Region = region;
         }
     }
 
     public class GridLayerEventArgs : EventArgs
     {
-        private readonly GridLayer m_Layer;
-
-        public GridLayer Layer { get { return m_Layer; } }
+        public GridLayer Layer { get; }
 
         public GridLayerEventArgs(GridLayer layer)
         {
-            this.m_Layer = layer;
+            this.Layer = layer;
         }
     }
 
     public class GridItemsEventArgs : EventArgs
     {
-        private readonly GridItemType m_Type;
-        private readonly List<MapItem> m_Items;
-
-        public GridItemType Type { get { return m_Type; } }
-        public List<MapItem> Items { get { return m_Items; } }
+        public GridItemType Type { get; }
+        public List<MapItem> Items { get; }
 
         public GridItemsEventArgs(GridItemType type, List<MapItem> items)
         {
-            this.m_Type = type;
-            this.m_Items = items;
+            this.Type = type;
+            this.Items = items;
         }
     }
 
     public class RegionHandleReplyEventArgs : EventArgs
     {
-        private readonly UUID m_RegionID;
-        private readonly ulong m_RegionHandle;
-
-        public UUID RegionID { get { return m_RegionID; } }
-        public ulong RegionHandle { get { return m_RegionHandle; } }
+        public UUID RegionID { get; }
+        public ulong RegionHandle { get; }
 
         public RegionHandleReplyEventArgs(UUID regionID, ulong regionHandle)
         {
-            this.m_RegionID = regionID;
-            this.m_RegionHandle = regionHandle;
+            this.RegionID = regionID;
+            this.RegionHandle = regionHandle;
         }
     }
 

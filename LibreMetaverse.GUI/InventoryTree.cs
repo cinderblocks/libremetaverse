@@ -39,17 +39,12 @@ namespace OpenMetaverse.GUI
     public class InventoryTree : TreeView
     {
         private GridClient _Client;
-        private ContextMenuStrip _ContextMenu;
         private UUID _SelectedItemID;
 
         /// <summary>
         /// Gets or sets the context menu associated with this control
         /// </summary>
-        public ContextMenuStrip Menu
-        {
-            get { return _ContextMenu; }
-            set { _ContextMenu = value; }
-        }
+        public ContextMenuStrip Menu { get; set; }
 
         /// <summary>
         /// Gets or sets the GridClient associated with this control
@@ -66,9 +61,9 @@ namespace OpenMetaverse.GUI
         public InventoryTree()
         {
             EventHandler clickHandler = new EventHandler(defaultMenuItem_Click);
-            _ContextMenu = new ContextMenuStrip();
-            _ContextMenu.Items.Add("Wear", null, clickHandler);
-            _ContextMenu.Items.Add("Detach", null, clickHandler);
+            Menu = new ContextMenuStrip();
+            Menu.Items.Add("Wear", null, clickHandler);
+            Menu.Items.Add("Detach", null, clickHandler);
 
             this.NodeMouseClick += new TreeNodeMouseClickEventHandler(InventoryTree_NodeMouseClick);
             this.BeforeExpand += new TreeViewCancelEventHandler(InventoryTree_BeforeExpand);
@@ -211,7 +206,7 @@ namespace OpenMetaverse.GUI
             if (e.Button == MouseButtons.Right)
             {
                 _SelectedItemID = new UUID(e.Node.Name);
-                _ContextMenu.Show(this, e.Location);
+                Menu.Show(this, e.Location);
             }
         }
 

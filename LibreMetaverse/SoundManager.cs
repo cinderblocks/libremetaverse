@@ -343,18 +343,14 @@ namespace OpenMetaverse
     /// changes its volume level</remarks>
     public class AttachedSoundGainChangeEventArgs : EventArgs
     {
-        private readonly Simulator m_Simulator;
-        private readonly UUID m_ObjectID;
-        private readonly float m_Gain;
-
         /// <summary>Simulator where the event originated</summary>
-        public Simulator Simulator => m_Simulator;
+        public Simulator Simulator { get; }
 
         /// <summary>Get the ID of the Object</summary>
-        public UUID ObjectID => m_ObjectID;
+        public UUID ObjectID { get; }
 
         /// <summary>Get the volume level</summary>
-        public float Gain => m_Gain;
+        public float Gain { get; }
 
         /// <summary>
         /// Construct a new instance of the AttachedSoundGainChangedEventArgs class
@@ -364,9 +360,9 @@ namespace OpenMetaverse
         /// <param name="gain">The new volume level</param>
         public AttachedSoundGainChangeEventArgs(Simulator sim, UUID objectID, float gain)
         {
-            m_Simulator = sim;
-            m_ObjectID = objectID;
-            m_Gain = gain;
+            Simulator = sim;
+            ObjectID = objectID;
+            Gain = gain;
         }
     }
 
@@ -398,38 +394,29 @@ namespace OpenMetaverse
     /// </example>
     public class SoundTriggerEventArgs : EventArgs
     {
-        private readonly Simulator m_Simulator;
-        private readonly UUID m_SoundID;
-        private readonly UUID m_OwnerID;
-        private readonly UUID m_ObjectID;
-        private readonly UUID m_ParentID;
-        private readonly float m_Gain;
-        private readonly ulong m_RegionHandle;
-        private readonly Vector3 m_Position;
-
         /// <summary>Simulator where the event originated</summary>
-        public Simulator Simulator => m_Simulator;
+        public Simulator Simulator { get; }
 
         /// <summary>Get the sound asset id</summary>
-        public UUID SoundID => m_SoundID;
+        public UUID SoundID { get; }
 
         /// <summary>Get the ID of the owner</summary>
-        public UUID OwnerID => m_OwnerID;
+        public UUID OwnerID { get; }
 
         /// <summary>Get the ID of the Object</summary>
-        public UUID ObjectID => m_ObjectID;
+        public UUID ObjectID { get; }
 
         /// <summary>Get the ID of the objects parent</summary>
-        public UUID ParentID => m_ParentID;
+        public UUID ParentID { get; }
 
         /// <summary>Get the volume level</summary>
-        public float Gain => m_Gain;
+        public float Gain { get; }
 
         /// <summary>Get the regionhandle</summary>
-        public ulong RegionHandle => m_RegionHandle;
+        public ulong RegionHandle { get; }
 
         /// <summary>Get the source position</summary>
-        public Vector3 Position => m_Position;
+        public Vector3 Position { get; }
 
         /// <summary>
         /// Construct a new instance of the SoundTriggerEventArgs class
@@ -444,14 +431,14 @@ namespace OpenMetaverse
         /// <param name="position">The source position</param>
         public SoundTriggerEventArgs(Simulator sim, UUID soundID, UUID ownerID, UUID objectID, UUID parentID, float gain, ulong regionHandle, Vector3 position)
         {
-            m_Simulator = sim;
-            m_SoundID = soundID;
-            m_OwnerID = ownerID;
-            m_ObjectID = objectID;
-            m_ParentID = parentID;
-            m_Gain = gain;
-            m_RegionHandle = regionHandle;
-            m_Position = position;
+            Simulator = sim;
+            SoundID = soundID;
+            OwnerID = ownerID;
+            ObjectID = objectID;
+            ParentID = parentID;
+            Gain = gain;
+            RegionHandle = regionHandle;
+            Position = position;
         }
     }
 
@@ -474,22 +461,17 @@ namespace OpenMetaverse
     /// </example>
     public class PreloadSoundEventArgs : EventArgs
     {
-        private readonly Simulator m_Simulator;
-        private readonly UUID m_SoundID;
-        private readonly UUID m_OwnerID;
-        private readonly UUID m_ObjectID;
-
         /// <summary>Simulator where the event originated</summary>
-        public Simulator Simulator => m_Simulator;
+        public Simulator Simulator { get; }
 
         /// <summary>Get the sound asset id</summary>
-        public UUID SoundID => m_SoundID;
+        public UUID SoundID { get; }
 
         /// <summary>Get the ID of the owner</summary>
-        public UUID OwnerID => m_OwnerID;
+        public UUID OwnerID { get; }
 
         /// <summary>Get the ID of the Object</summary>
-        public UUID ObjectID => m_ObjectID;
+        public UUID ObjectID { get; }
 
         /// <summary>
         /// Construct a new instance of the PreloadSoundEventArgs class
@@ -500,10 +482,10 @@ namespace OpenMetaverse
         /// <param name="objectID">The ID of the object</param>
         public PreloadSoundEventArgs(Simulator sim, UUID soundID, UUID ownerID, UUID objectID)
         {
-            m_Simulator = sim;
-            m_SoundID = soundID;
-            m_OwnerID = ownerID;
-            m_ObjectID = objectID;
+            Simulator = sim;
+            SoundID = soundID;
+            OwnerID = ownerID;
+            ObjectID = objectID;
         }
     }
     #endregion

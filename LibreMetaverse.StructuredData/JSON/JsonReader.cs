@@ -46,16 +46,13 @@ namespace LitJson
         private Stack<int>    automaton_stack;
         private int           current_input;
         private int           current_symbol;
-        private bool          end_of_json;
-        private bool          end_of_input;
         private Lexer         lexer;
         private bool          parser_in_string;
         private bool          parser_return;
         private bool          read_started;
         private TextReader    reader;
         private bool          reader_is_owned;
-        private object        token_value;
-        private JsonToken     token;
+
         #endregion
 
 
@@ -70,13 +67,13 @@ namespace LitJson
             set { lexer.AllowSingleQuotedStrings = value; }
         }
 
-        public bool EndOfInput => end_of_input;
+        public bool EndOfInput { get; private set; }
 
-        public bool EndOfJson => end_of_json;
+        public bool EndOfJson { get; private set; }
 
-        public JsonToken Token => token;
+        public JsonToken Token { get; private set; }
 
-        public object Value => token_value;
+        public object Value { get; private set; }
 
         #endregion
 
@@ -112,8 +109,8 @@ namespace LitJson
 
             lexer = new Lexer (reader);
 
-            end_of_input = false;
-            end_of_json  = false;
+            EndOfInput = false;
+            EndOfJson  = false;
 
             this.reader = reader;
             reader_is_owned = owned;
@@ -250,8 +247,8 @@ namespace LitJson
 
                 double n_double;
                 if (Double.TryParse (number, out n_double)) {
-                    token = JsonToken.Double;
-                    token_value = n_double;
+                    Token = JsonToken.Double;
+                    Value = n_double;
 
                     return;
                 }
@@ -259,41 +256,41 @@ namespace LitJson
 
             int n_int32;
             if (Int32.TryParse (number, out n_int32)) {
-                token = JsonToken.Int;
-                token_value = n_int32;
+                Token = JsonToken.Int;
+                Value = n_int32;
 
                 return;
             }
 
             long n_int64;
             if (Int64.TryParse (number, out n_int64)) {
-                token = JsonToken.Long;
-                token_value = n_int64;
+                Token = JsonToken.Long;
+                Value = n_int64;
 
                 return;
             }
 
             // Shouldn't happen, but just in case, return something
-            token = JsonToken.Int;
-            token_value = 0;
+            Token = JsonToken.Int;
+            Value = 0;
         }
 
         private void ProcessSymbol ()
         {
             if (current_symbol == '[')  {
-                token = JsonToken.ArrayStart;
+                Token = JsonToken.ArrayStart;
                 parser_return = true;
 
             } else if (current_symbol == ']')  {
-                token = JsonToken.ArrayEnd;
+                Token = JsonToken.ArrayEnd;
                 parser_return = true;
 
             } else if (current_symbol == '{')  {
-                token = JsonToken.ObjectStart;
+                Token = JsonToken.ObjectStart;
                 parser_return = true;
 
             } else if (current_symbol == '}')  {
-                token = JsonToken.ObjectEnd;
+                Token = JsonToken.ObjectEnd;
                 parser_return = true;
 
             } else if (current_symbol == '"')  {
@@ -303,22 +300,22 @@ namespace LitJson
                     parser_return = true;
 
                 } else {
-                    if (token == JsonToken.None)
-                        token = JsonToken.String;
+                    if (Token == JsonToken.None)
+                        Token = JsonToken.String;
 
                     parser_in_string = true;
                 }
 
             } else if (current_symbol == (int) ParserToken.CharSeq) {
-                token_value = lexer.StringValue;
+                Value = lexer.StringValue;
 
             } else if (current_symbol == (int) ParserToken.False)  {
-                token = JsonToken.Boolean;
-                token_value = false;
+                Token = JsonToken.Boolean;
+                Value = false;
                 parser_return = true;
 
             } else if (current_symbol == (int) ParserToken.Null)  {
-                token = JsonToken.Null;
+                Token = JsonToken.Null;
                 parser_return = true;
 
             } else if (current_symbol == (int) ParserToken.Number)  {
@@ -327,11 +324,11 @@ namespace LitJson
                 parser_return = true;
 
             } else if (current_symbol == (int) ParserToken.Pair)  {
-                token = JsonToken.PropertyName;
+                Token = JsonToken.PropertyName;
 
             } else if (current_symbol == (int) ParserToken.True)  {
-                token = JsonToken.Boolean;
-                token_value = true;
+                Token = JsonToken.Boolean;
+                Value = true;
                 parser_return = true;
 
             }
@@ -339,7 +336,7 @@ namespace LitJson
 
         private bool ReadToken ()
         {
-            if (end_of_input)
+            if (EndOfInput)
                 return false;
 
             lexer.NextToken ();
@@ -359,11 +356,11 @@ namespace LitJson
 
         public void Close ()
         {
-            if (end_of_input)
+            if (EndOfInput)
                 return;
 
-            end_of_input = true;
-            end_of_json  = true;
+            EndOfInput = true;
+            EndOfJson  = true;
 
             if (reader_is_owned)
                 reader.Close ();
@@ -373,11 +370,11 @@ namespace LitJson
 
         public bool Read ()
         {
-            if (end_of_input)
+            if (EndOfInput)
                 return false;
 
-            if (end_of_json) {
-                end_of_json = false;
+            if (EndOfJson) {
+                EndOfJson = false;
                 automaton_stack.Clear ();
                 automaton_stack.Push ((int) ParserToken.End);
                 automaton_stack.Push ((int) ParserToken.Text);
@@ -386,8 +383,8 @@ namespace LitJson
             parser_in_string = false;
             parser_return    = false;
 
-            token       = JsonToken.None;
-            token_value = null;
+            Token       = JsonToken.None;
+            Value = null;
 
             if (! read_started) {
                 read_started = true;
@@ -400,7 +397,7 @@ namespace LitJson
             while (true) {
                 if (parser_return) {
                     if (automaton_stack.Peek () == (int) ParserToken.End)
-                        end_of_json = true;
+                        EndOfJson = true;
 
                     return true;
                 }

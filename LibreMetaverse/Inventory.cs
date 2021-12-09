@@ -134,7 +134,7 @@ namespace OpenMetaverse
             set 
             {
                 UpdateNodeFor(value);
-                _RootNode = Items[value.UUID];
+                RootNode = Items[value.UUID];
             }
         }
 
@@ -147,24 +147,21 @@ namespace OpenMetaverse
             set
             {
                 UpdateNodeFor(value);
-                _LibraryRootNode = Items[value.UUID];
+                LibraryRootNode = Items[value.UUID];
             }
         }
 
-        private InventoryNode _LibraryRootNode;
-        private InventoryNode _RootNode;
-        
         /// <summary>
         /// The root node of the avatars inventory
         /// </summary>
-        public InventoryNode RootNode => _RootNode;
+        public InventoryNode RootNode { get; private set; }
 
         /// <summary>
         /// The root node of the default shared library
         /// </summary>
-        public InventoryNode LibraryRootNode => _LibraryRootNode;
+        public InventoryNode LibraryRootNode { get; private set; }
 
-        public UUID Owner { get; }
+        public UUID Owner { get; private set; }
 
         private GridClient Client;
         //private InventoryManager Manager;

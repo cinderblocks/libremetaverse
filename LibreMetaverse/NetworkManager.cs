@@ -316,7 +316,7 @@ namespace OpenMetaverse
 
         /// <summary>Shows whether the network layer is logged in to the
         /// grid or not</summary>
-        public bool Connected => connected;
+        public bool Connected { get; private set; }
 
         /// <summary>Number of packets in the incoming queue</summary>
         public int InboxCount => _packetInboxCount;
@@ -346,7 +346,6 @@ namespace OpenMetaverse
 
         private GridClient Client;
         private Timer DisconnectTimer;
-        private bool connected;
 
         private long lastpacketwarning = 0;
 
@@ -587,7 +586,7 @@ namespace OpenMetaverse
             {
                 // Mark that we are connecting/connected to the grid
                 // 
-                connected = true;
+                Connected = true;
 
                 // raise the SimConnecting event and allow any event
                 // subscribers to cancel the connection
@@ -746,7 +745,7 @@ namespace OpenMetaverse
             }
 
             // This will catch a Logout when the client is not logged in
-            if (CurrentSim == null || !connected)
+            if (CurrentSim == null || !Connected)
             {
                 Logger.Log("Ignoring RequestLogout(), client is already logged out", Helpers.LogLevel.Warning, Client);
                 return;
@@ -865,7 +864,7 @@ namespace OpenMetaverse
             Interlocked.Exchange(ref _packetInboxCount, 0);
             Interlocked.Exchange(ref _packetOutboxCount, 0);
 
-            connected = false;
+            Connected = false;
 
             // Fire the disconnected callback
             if (m_Disconnected != null)
@@ -923,7 +922,7 @@ namespace OpenMetaverse
                 // FIXME: This is kind of ridiculous. Port the HTB code from Simian over ASAP!	
                 var stopwatch = new System.Diagnostics.Stopwatch();
 
-                while (await reader.WaitToReadAsync() && connected)
+                while (await reader.WaitToReadAsync() && Connected)
                 {
                     while (reader.TryRead(out var outgoingPacket))
                     {
@@ -956,7 +955,7 @@ namespace OpenMetaverse
             {
                 var reader = _packetInbox.Reader;
 
-                while (await reader.WaitToReadAsync() && connected)
+                while (await reader.WaitToReadAsync() && Connected)
                 {
                     while (reader.TryRead(out var incomingPacket))
                     {
@@ -1006,14 +1005,14 @@ namespace OpenMetaverse
 
         private void DisconnectTimer_Elapsed(object obj)
         {
-            if (!connected || CurrentSim == null)
+            if (!Connected || CurrentSim == null)
             {
                 if (DisconnectTimer != null)
                 {
                     DisconnectTimer.Dispose();
                     DisconnectTimer = null;
                 }
-                connected = false;
+                Connected = false;
             }
             else if (CurrentSim.DisconnectCandidate)
             {
@@ -1027,7 +1026,7 @@ namespace OpenMetaverse
                     DisconnectTimer = null;
                 }
 
-                connected = false;
+                Connected = false;
 
                 // Shutdown the network layer
                 Shutdown(DisconnectType.NetworkTimeout);

@@ -977,7 +977,7 @@ namespace OpenMetaverse
         /// <summary>Seed CAPS URL returned from the login server</summary>
         public string LoginSeedCapability = string.Empty;
         /// <summary>Current state of logging in</summary>
-        public LoginStatus LoginStatusCode => InternalStatusCode;
+        public LoginStatus LoginStatusCode { get; private set; } = LoginStatus.None;
 
         /// <summary>Upon login failure, contains a short string key for the
         /// type of login error that occurred</summary>
@@ -1011,7 +1011,6 @@ namespace OpenMetaverse
         
         private LoginParams CurrentContext = null;
         private readonly AutoResetEvent LoginEvent = new AutoResetEvent(false);
-        private LoginStatus InternalStatusCode = LoginStatus.None;
         private readonly Dictionary<LoginResponseCallback, string[]> CallbackOptions = new Dictionary<LoginResponseCallback, string[]>();
 
         /// <summary>A list of packets obtained during the login process which 
@@ -1096,12 +1095,12 @@ namespace OpenMetaverse
             if (CurrentContext != null)
             {
                 CurrentContext = null; // Will force any pending callbacks to bail out early
-                InternalStatusCode = LoginStatus.Failed;
+                LoginStatusCode = LoginStatus.Failed;
                 LoginMessage = "Timed out";
                 return false;
             }
 
-            return (InternalStatusCode == LoginStatus.Success);
+            return (LoginStatusCode == LoginStatus.Success);
         }
 
         public void BeginLogin(LoginParams loginParams)
@@ -1157,7 +1156,7 @@ namespace OpenMetaverse
             }
             else
             {
-                InternalStatusCode = LoginStatus.Failed;
+                LoginStatusCode = LoginStatus.Failed;
                 LoginMessage = "Aborted";
             }
             UpdateLoginStatus(LoginStatus.Failed, "Abort Requested");
@@ -1379,7 +1378,7 @@ namespace OpenMetaverse
 
         private void UpdateLoginStatus(LoginStatus status, string message)
         {
-            InternalStatusCode = status;
+            LoginStatusCode = status;
             LoginMessage = message;
 
             Logger.DebugLog($"Login status: {status.ToString()}: {message}", Client);

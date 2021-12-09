@@ -30,8 +30,6 @@ namespace LitJson
     internal struct ArrayMetadata
     {
         private Type element_type;
-        private bool is_array;
-        private bool is_list;
 
 
         public Type ElementType {
@@ -45,24 +43,15 @@ namespace LitJson
             set { element_type = value; }
         }
 
-        public bool IsArray {
-            get { return is_array; }
-            set { is_array = value; }
-        }
+        public bool IsArray { get; set; }
 
-        public bool IsList {
-            get { return is_list; }
-            set { is_list = value; }
-        }
+        public bool IsList { get; set; }
     }
 
 
     internal struct ObjectMetadata
     {
         private Type element_type;
-        private bool is_dictionary;
-
-        private IDictionary<string, PropertyMetadata> properties;
 
 
         public Type ElementType {
@@ -76,15 +65,9 @@ namespace LitJson
             set { element_type = value; }
         }
 
-        public bool IsDictionary {
-            get { return is_dictionary; }
-            set { is_dictionary = value; }
-        }
+        public bool IsDictionary { get; set; }
 
-        public IDictionary<string, PropertyMetadata> Properties {
-            get { return properties; }
-            set { properties = value; }
-        }
+        public IDictionary<string, PropertyMetadata> Properties { get; set; }
     }
 
 

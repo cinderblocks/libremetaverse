@@ -3359,22 +3359,20 @@ namespace OpenMetaverse
     /// <seealso cref="AvatarUpdateEventArgs"/>
     public class PrimEventArgs : EventArgs
     {
-        private readonly Simulator m_Simulator;
-        private readonly bool m_IsNew;
-        private readonly bool m_IsAttachment;
-        private readonly Primitive m_Prim;
-        private readonly ushort m_TimeDilation;
-
         /// <summary>Get the simulator the <see cref="Primitive"/> originated from</summary>
-        public Simulator Simulator { get { return m_Simulator; } }
+        public Simulator Simulator { get; }
+
         /// <summary>Get the <see cref="Primitive"/> details</summary>
-        public Primitive Prim { get { return m_Prim; } }
+        public Primitive Prim { get; }
+
         /// <summary>true if the <see cref="Primitive"/> did not exist in the dictionary before this update (always true if object tracking has been disabled)</summary>
-        public bool IsNew { get { return m_IsNew; } }
+        public bool IsNew { get; }
+
         /// <summary>true if the <see cref="Primitive"/> is attached to an <see cref="Avatar"/></summary>
-        public bool IsAttachment { get { return m_IsAttachment; } }
+        public bool IsAttachment { get; }
+
         /// <summary>Get the simulator Time Dilation</summary>
-        public ushort TimeDilation { get { return m_TimeDilation; } }
+        public ushort TimeDilation { get; }
 
         /// <summary>
         /// Construct a new instance of the PrimEventArgs class
@@ -3386,11 +3384,11 @@ namespace OpenMetaverse
         /// <param name="isAttachment">true if the primitive represents an attachment to an agent</param>
         public PrimEventArgs(Simulator simulator, Primitive prim, ushort timeDilation, bool isNew, bool isAttachment)
         {
-            this.m_Simulator = simulator;
-            this.m_IsNew = isNew;
-            this.m_IsAttachment = isAttachment;
-            this.m_Prim = prim;
-            this.m_TimeDilation = timeDilation;
+            this.Simulator = simulator;
+            this.IsNew = isNew;
+            this.IsAttachment = isAttachment;
+            this.Prim = prim;
+            this.TimeDilation = timeDilation;
         }
     }
 
@@ -3440,19 +3438,17 @@ namespace OpenMetaverse
     /// <seealso cref="PrimEventArgs"/>
     public class AvatarUpdateEventArgs : EventArgs
     {
-        private readonly Simulator m_Simulator;
-        private readonly Avatar m_Avatar;
-        private readonly ushort m_TimeDilation;
-        private readonly bool m_IsNew;
-
         /// <summary>Get the simulator the object originated from</summary>
-        public Simulator Simulator { get { return m_Simulator; } }
+        public Simulator Simulator { get; }
+
         /// <summary>Get the <see cref="Avatar"/> data</summary>
-        public Avatar Avatar { get { return m_Avatar; } }
+        public Avatar Avatar { get; }
+
         /// <summary>Get the simulator time dilation</summary>
-        public ushort TimeDilation { get { return m_TimeDilation; } }
+        public ushort TimeDilation { get; }
+
         /// <summary>true if the <see cref="Avatar"/> did not exist in the dictionary before this update (always true if avatar tracking has been disabled)</summary>
-        public bool IsNew { get { return m_IsNew; } }
+        public bool IsNew { get; }
 
         /// <summary>
         /// Construct a new instance of the AvatarUpdateEventArgs class
@@ -3463,24 +3459,22 @@ namespace OpenMetaverse
         /// <param name="isNew">The avatar was not in the dictionary before this update</param>
         public AvatarUpdateEventArgs(Simulator simulator, Avatar avatar, ushort timeDilation, bool isNew)
         {
-            this.m_Simulator = simulator;
-            this.m_Avatar = avatar;
-            this.m_TimeDilation = timeDilation;
-            this.m_IsNew = isNew;
+            this.Simulator = simulator;
+            this.Avatar = avatar;
+            this.TimeDilation = timeDilation;
+            this.IsNew = isNew;
         }
     }
 
     public class ParticleUpdateEventArgs : EventArgs {
-        private readonly Simulator m_Simulator;
-        private readonly Primitive.ParticleSystem m_ParticleSystem;
-        private readonly Primitive m_Source;
-
         /// <summary>Get the simulator the object originated from</summary>
-        public Simulator Simulator { get { return m_Simulator; } }
+        public Simulator Simulator { get; }
+
         /// <summary>Get the <see cref="ParticleSystem"/> data</summary>
-        public Primitive.ParticleSystem ParticleSystem { get { return m_ParticleSystem; } }
+        public Primitive.ParticleSystem ParticleSystem { get; }
+
         /// <summary>Get <see cref="Primitive"/> source</summary>
-        public Primitive Source { get { return m_Source; } }
+        public Primitive Source { get; }
 
         /// <summary>
         /// Construct a new instance of the ParticleUpdateEventArgs class
@@ -3489,9 +3483,9 @@ namespace OpenMetaverse
         /// <param name="particlesystem">The ParticleSystem data</param>
         /// <param name="source">The Primitive source</param>
         public ParticleUpdateEventArgs(Simulator simulator, Primitive.ParticleSystem particlesystem, Primitive source) {
-            this.m_Simulator = simulator;
-            this.m_ParticleSystem = particlesystem;
-            this.m_Source = source;
+            this.Simulator = simulator;
+            this.ParticleSystem = particlesystem;
+            this.Source = source;
         }
     }
 
@@ -3548,11 +3542,8 @@ namespace OpenMetaverse
     /// </remarks>    
     public class ObjectPropertiesUpdatedEventArgs : ObjectPropertiesEventArgs
     {
-
-        private readonly Primitive m_Prim;
-
         /// <summary>Get the primitive details</summary>
-        public Primitive Prim { get { return m_Prim; } }
+        public Primitive Prim { get; }
 
         /// <summary>
         /// Construct a new instance of the ObjectPropertiesUpdatedEvenrArgs class
@@ -3562,7 +3553,7 @@ namespace OpenMetaverse
         /// <param name="props">The primitive Properties</param>
         public ObjectPropertiesUpdatedEventArgs(Simulator simulator, Primitive prim, Primitive.ObjectProperties props) : base(simulator, props)
         {
-            this.m_Prim = prim;
+            this.Prim = prim;
         }
     }
 
@@ -3575,22 +3566,20 @@ namespace OpenMetaverse
     /// </remarks>    
     public class ObjectPropertiesFamilyEventArgs : EventArgs
     {
-        private readonly Simulator m_Simulator;
-        private readonly Primitive.ObjectProperties m_Properties;
-        private readonly ReportType m_Type;
-
         /// <summary>Get the simulator the object is located</summary>
-        public Simulator Simulator { get { return m_Simulator; } }
+        public Simulator Simulator { get; }
+
         /// <summary></summary>
-        public Primitive.ObjectProperties Properties { get { return m_Properties; } }
+        public Primitive.ObjectProperties Properties { get; }
+
         /// <summary></summary>
-        public ReportType Type { get { return m_Type; } }
+        public ReportType Type { get; }
 
         public ObjectPropertiesFamilyEventArgs(Simulator simulator, Primitive.ObjectProperties props, ReportType type)
         {
-            this.m_Simulator = simulator;
-            this.m_Properties = props;
-            this.m_Type = type;
+            this.Simulator = simulator;
+            this.Properties = props;
+            this.Type = type;
         }
     }
 
@@ -3599,26 +3588,24 @@ namespace OpenMetaverse
     /// </remarks>
     public class TerseObjectUpdateEventArgs : EventArgs
     {
-        private readonly Simulator m_Simulator;
-        private readonly Primitive m_Prim;
-        private readonly ObjectMovementUpdate m_Update;
-        private readonly ushort m_TimeDilation;
-
         /// <summary>Get the simulator the object is located</summary>
-        public Simulator Simulator { get { return m_Simulator; } }
+        public Simulator Simulator { get; }
+
         /// <summary>Get the primitive details</summary>
-        public Primitive Prim { get { return m_Prim; } }
+        public Primitive Prim { get; }
+
         /// <summary></summary>
-        public ObjectMovementUpdate Update { get { return m_Update; } }
+        public ObjectMovementUpdate Update { get; }
+
         /// <summary></summary>
-        public ushort TimeDilation { get { return m_TimeDilation; } }
+        public ushort TimeDilation { get; }
 
         public TerseObjectUpdateEventArgs(Simulator simulator, Primitive prim, ObjectMovementUpdate update, ushort timeDilation)
         {
-            this.m_Simulator = simulator;
-            this.m_Prim = prim;
-            this.m_Update = update;
-            this.m_TimeDilation = timeDilation;
+            this.Simulator = simulator;
+            this.Prim = prim;
+            this.Update = update;
+            this.TimeDilation = timeDilation;
         }
     }
 
@@ -3627,35 +3614,33 @@ namespace OpenMetaverse
     /// </summary>
     public class ObjectDataBlockUpdateEventArgs : EventArgs
     {
-        private readonly Simulator m_Simulator;
-        private readonly Primitive m_Prim;
-        private readonly Primitive.ConstructionData m_ConstructionData;
-        private readonly ObjectUpdatePacket.ObjectDataBlock m_Block;
-        private readonly ObjectMovementUpdate m_Update;
-        private readonly NameValue[] m_NameValues;
-
         /// <summary>Get the simulator the object is located</summary>
-        public Simulator Simulator { get { return m_Simulator; } }
+        public Simulator Simulator { get; }
+
         /// <summary>Get the primitive details</summary>
-        public Primitive Prim { get { return m_Prim; } }
+        public Primitive Prim { get; }
+
         /// <summary></summary>
-        public Primitive.ConstructionData ConstructionData { get { return m_ConstructionData; } }
+        public Primitive.ConstructionData ConstructionData { get; }
+
         /// <summary></summary>
-        public ObjectUpdatePacket.ObjectDataBlock Block { get { return m_Block; } }
+        public ObjectUpdatePacket.ObjectDataBlock Block { get; }
+
         /// <summary></summary>
-        public ObjectMovementUpdate Update { get { return m_Update; } }
+        public ObjectMovementUpdate Update { get; }
+
         /// <summary></summary>
-        public NameValue[] NameValues { get { return m_NameValues; } }
+        public NameValue[] NameValues { get; }
 
         public ObjectDataBlockUpdateEventArgs(Simulator simulator, Primitive prim, Primitive.ConstructionData constructionData,
             ObjectUpdatePacket.ObjectDataBlock block, ObjectMovementUpdate objectupdate, NameValue[] nameValues)
         {
-            this.m_Simulator = simulator;
-            this.m_Prim = prim;
-            this.m_ConstructionData = constructionData;
-            this.m_Block = block;
-            this.m_Update = objectupdate;
-            this.m_NameValues = nameValues;
+            this.Simulator = simulator;
+            this.Prim = prim;
+            this.ConstructionData = constructionData;
+            this.Block = block;
+            this.Update = objectupdate;
+            this.NameValues = nameValues;
         }
     }
 
@@ -3663,18 +3648,16 @@ namespace OpenMetaverse
     /// <see cref="ObjectManager.KillObject"/> event</summary>
     public class KillObjectEventArgs : EventArgs
     {
-        private readonly Simulator m_Simulator;
-        private readonly uint m_ObjectLocalID;
-
         /// <summary>Get the simulator the object is located</summary>
-        public Simulator Simulator { get { return m_Simulator; } }
+        public Simulator Simulator { get; }
+
         /// <summary>The LocalID of the object</summary>
-        public uint ObjectLocalID { get { return m_ObjectLocalID; } }
+        public uint ObjectLocalID { get; }
 
         public KillObjectEventArgs(Simulator simulator, uint objectID)
         {
-            this.m_Simulator = simulator;
-            this.m_ObjectLocalID = objectID;
+            this.Simulator = simulator;
+            this.ObjectLocalID = objectID;
         }
     }
 
@@ -3682,18 +3665,16 @@ namespace OpenMetaverse
     /// <see cref="ObjectManager.KillObjects"/> event</summary>
     public class KillObjectsEventArgs : EventArgs
     {
-        private readonly Simulator m_Simulator;
-        private readonly uint[] m_ObjectLocalIDs;
-
         /// <summary>Get the simulator the object is located</summary>
-        public Simulator Simulator { get { return m_Simulator; } }
+        public Simulator Simulator { get; }
+
         /// <summary>The LocalID of the object</summary>
-        public uint[] ObjectLocalIDs { get { return m_ObjectLocalIDs; } }
+        public uint[] ObjectLocalIDs { get; }
 
         public KillObjectsEventArgs(Simulator simulator, uint[] objectIDs)
         {
-            this.m_Simulator = simulator;
-            this.m_ObjectLocalIDs = objectIDs;
+            this.Simulator = simulator;
+            this.ObjectLocalIDs = objectIDs;
         }
     }
 
@@ -3702,26 +3683,24 @@ namespace OpenMetaverse
     /// </summary>
     public class AvatarSitChangedEventArgs : EventArgs
     {
-        private readonly Simulator m_Simulator;
-        private readonly Avatar m_Avatar;
-        private readonly uint m_SittingOn;
-        private readonly uint m_OldSeat;
-
         /// <summary>Get the simulator the object is located</summary>
-        public Simulator Simulator { get { return m_Simulator; } }
+        public Simulator Simulator { get; }
+
         /// <summary></summary>
-        public Avatar Avatar { get { return m_Avatar; } }
+        public Avatar Avatar { get; }
+
         /// <summary></summary>
-        public uint SittingOn { get { return m_SittingOn; } }
+        public uint SittingOn { get; }
+
         /// <summary></summary>
-        public uint OldSeat { get { return m_OldSeat; } }
+        public uint OldSeat { get; }
 
         public AvatarSitChangedEventArgs(Simulator simulator, Avatar avatar, uint sittingOn, uint oldSeat)
         {
-            this.m_Simulator = simulator;
-            this.m_Avatar = avatar;
-            this.m_SittingOn = sittingOn;
-            this.m_OldSeat = oldSeat;
+            this.Simulator = simulator;
+            this.Avatar = avatar;
+            this.SittingOn = sittingOn;
+            this.OldSeat = oldSeat;
         }
     }
 
@@ -3730,26 +3709,24 @@ namespace OpenMetaverse
     /// </summary>
     public class PayPriceReplyEventArgs : EventArgs
     {
-        private readonly Simulator m_Simulator;
-        private readonly UUID m_ObjectID;
-        private readonly int m_DefaultPrice;
-        private readonly int[] m_ButtonPrices;
-
         /// <summary>Get the simulator the object is located</summary>
-        public Simulator Simulator { get { return m_Simulator; } }
+        public Simulator Simulator { get; }
+
         /// <summary></summary>
-        public UUID ObjectID { get { return m_ObjectID; } }
+        public UUID ObjectID { get; }
+
         /// <summary></summary>
-        public int DefaultPrice { get { return m_DefaultPrice; } }
+        public int DefaultPrice { get; }
+
         /// <summary></summary>
-        public int[] ButtonPrices { get { return m_ButtonPrices; } }
+        public int[] ButtonPrices { get; }
 
         public PayPriceReplyEventArgs(Simulator simulator, UUID objectID, int defaultPrice, int[] buttonPrices)
         {
-            this.m_Simulator = simulator;
-            this.m_ObjectID = objectID;
-            this.m_DefaultPrice = defaultPrice;
-            this.m_ButtonPrices = buttonPrices;
+            this.Simulator = simulator;
+            this.ObjectID = objectID;
+            this.DefaultPrice = defaultPrice;
+            this.ButtonPrices = buttonPrices;
         }
     }
 

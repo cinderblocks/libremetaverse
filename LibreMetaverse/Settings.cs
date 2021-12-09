@@ -297,7 +297,7 @@ namespace OpenMetaverse
 
         /// <summary>Cost of uploading an asset</summary>
         /// <remarks>Read-only since this value is dynamically fetched at login</remarks>
-        public int UPLOAD_COST => priceUpload;
+        public int UPLOAD_COST { get; private set; } = 0;
 
         /// <summary>Maximum number of times to resend a failed packet</summary>
         public int MAX_RESEND_COUNT = 3;
@@ -354,7 +354,6 @@ namespace OpenMetaverse
         #region Private Fields
 
         private GridClient Client;
-        private int priceUpload = 0;
         public static bool SORT_INVENTORY = false;
 
         /// <summary>Constructor</summary>
@@ -375,7 +374,7 @@ namespace OpenMetaverse
         {
             EconomyDataPacket econ = (EconomyDataPacket)e.Packet;
 
-            priceUpload = econ.Info.PriceUpload;
+            UPLOAD_COST = econ.Info.PriceUpload;
         }
 
         #endregion

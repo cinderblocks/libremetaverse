@@ -286,7 +286,7 @@ public class ClientAO : ProxyPlugin
         // Start the search
         RequestFolderContents(baseFolder,
             true, 
-            (searchPath.Length == 1) ? true : false, 
+            (searchPath.Length == 1), 
             InventorySortOrder.ByName);
     }
 

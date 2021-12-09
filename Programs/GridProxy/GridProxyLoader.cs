@@ -19,39 +19,19 @@ namespace GridProxy
     {
         public Proxy proxy;
         private Dictionary<string, CommandDelegate> commandDelegates = new Dictionary<string, CommandDelegate>();
-        private UUID agentID;
-        private UUID sessionID;
-        private UUID secureSessionID;
-        private UUID inventoryRoot;
         private bool logLogin = false;
-        private string[] args;
 
         public delegate void CommandDelegate(string[] words);
 
-        public string[] Args
-        {
-            get { return args; }
-        }
+        public string[] Args { get; private set; }
 
-        public UUID AgentID
-        {
-            get { return agentID; }
-        }
+        public UUID AgentID { get; private set; }
 
-        public UUID SessionID
-        {
-            get { return sessionID; }
-        }
+        public UUID SessionID { get; private set; }
 
-        public UUID SecureSessionID
-        {
-            get { return secureSessionID; }
-        }
+        public UUID SecureSessionID { get; private set; }
 
-        public UUID InventoryRoot
-        {
-            get { return inventoryRoot; }
-        }
+        public UUID InventoryRoot { get; private set; }
 
         public void AddCommand(string cmd, CommandDelegate deleg)
         {
@@ -71,7 +51,7 @@ namespace GridProxy
         private void Init(string[] args, ProxyConfig proxyConfig)
         {
             //bool externalPlugin = false;
-            this.args = args;
+            this.Args = args;
 
             if (proxyConfig == null)
             {
@@ -166,19 +146,19 @@ namespace GridProxy
         {
             System.Collections.Hashtable values = (System.Collections.Hashtable)response.Value;
             if (values.Contains("agent_id"))
-                agentID = new UUID((string)values["agent_id"]);
+                AgentID = new UUID((string)values["agent_id"]);
             if (values.Contains("session_id"))
-                sessionID = new UUID((string)values["session_id"]);
+                SessionID = new UUID((string)values["session_id"]);
             if (values.Contains("secure_session_id"))
-                secureSessionID = new UUID((string)values["secure_session_id"]);
+                SecureSessionID = new UUID((string)values["secure_session_id"]);
             if (values.Contains("inventory-root"))
             {
-                inventoryRoot = new UUID(
+                InventoryRoot = new UUID(
                     (string)((System.Collections.Hashtable)(((System.Collections.ArrayList)values["inventory-root"])[0]))?["folder_id"]
                     );
                 if (logLogin)
                 {
-                    Console.WriteLine("inventory root: " + inventoryRoot);
+                    Console.WriteLine("inventory root: " + InventoryRoot);
                 }
             }
 
@@ -230,7 +210,7 @@ namespace GridProxy
             ChatFromSimulatorPacket packet = new ChatFromSimulatorPacket();
             packet.ChatData.SourceID = UUID.Random();
             packet.ChatData.FromName = Utils.StringToBytes(fromName);
-            packet.ChatData.OwnerID = agentID;
+            packet.ChatData.OwnerID = AgentID;
             packet.ChatData.SourceType = (byte)2;
             packet.ChatData.ChatType = (byte)1;
             packet.ChatData.Audible = (byte)1;

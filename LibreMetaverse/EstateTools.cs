@@ -984,72 +984,66 @@ namespace OpenMetaverse
     /// <summary>Raised on LandStatReply when the report type is for "top colliders"</summary>
     public class TopCollidersReplyEventArgs : EventArgs
     {
-        private readonly int m_objectCount;
-        private readonly Dictionary<UUID, EstateTask> m_Tasks;
-
         /// <summary>
         /// The number of returned items in LandStatReply
         /// </summary>
-        public int ObjectCount { get { return m_objectCount; } }
+        public int ObjectCount { get; }
+
         /// <summary>
         /// A Dictionary of Object UUIDs to tasks returned in LandStatReply
         /// </summary>
-        public Dictionary<UUID, EstateTask> Tasks { get { return m_Tasks; } }
+        public Dictionary<UUID, EstateTask> Tasks { get; }
 
         /// <summary>Construct a new instance of the TopCollidersReplyEventArgs class</summary>
         /// <param name="objectCount">The number of returned items in LandStatReply</param>
         /// <param name="tasks">Dictionary of Object UUIDs to tasks returned in LandStatReply</param>
         public TopCollidersReplyEventArgs(int objectCount, Dictionary<UUID, EstateTask> tasks)
         {
-            this.m_objectCount = objectCount;
-            this.m_Tasks = tasks;
+            this.ObjectCount = objectCount;
+            this.Tasks = tasks;
         }
     }
 
     /// <summary>Raised on LandStatReply when the report type is for "top Scripts"</summary>
     public class TopScriptsReplyEventArgs : EventArgs
     {
-        private readonly int m_objectCount;
-        private readonly Dictionary<UUID, EstateTask> m_Tasks;
-
         /// <summary>
         /// The number of scripts returned in LandStatReply
         /// </summary>
-        public int ObjectCount { get { return m_objectCount; } }
+        public int ObjectCount { get; }
+
         /// <summary>
         /// A Dictionary of Object UUIDs to tasks returned in LandStatReply
         /// </summary>
-        public Dictionary<UUID, EstateTask> Tasks { get { return m_Tasks; } }
+        public Dictionary<UUID, EstateTask> Tasks { get; }
 
         /// <summary>Construct a new instance of the TopScriptsReplyEventArgs class</summary>
         /// <param name="objectCount">The number of returned items in LandStatReply</param>
         /// <param name="tasks">Dictionary of Object UUIDs to tasks returned in LandStatReply</param>
         public TopScriptsReplyEventArgs(int objectCount, Dictionary<UUID, EstateTask> tasks)
         {
-            this.m_objectCount = objectCount;
-            this.m_Tasks = tasks;
+            this.ObjectCount = objectCount;
+            this.Tasks = tasks;
         }
     }
 
     /// <summary>Returned, along with other info, upon a successful .RequestInfo()</summary>
     public class EstateBansReplyEventArgs : EventArgs
     {
-        private readonly uint m_estateID;
-        private readonly int m_count;
-        private readonly List<UUID> m_banned;
-
         /// <summary>
         /// The identifier of the estate
         /// </summary>
-        public uint EstateID { get { return m_estateID; } }
+        public uint EstateID { get; }
+
         /// <summary>
         /// The number of returned itmes
         /// </summary>
-        public int Count { get { return m_count; } }
+        public int Count { get; }
+
         /// <summary>
         /// List of UUIDs of Banned Users
         /// </summary>
-        public List<UUID> Banned { get { return m_banned; } }
+        public List<UUID> Banned { get; }
 
         /// <summary>Construct a new instance of the EstateBansReplyEventArgs class</summary>
         /// <param name="estateID">The estate's identifier on the grid</param>
@@ -1057,31 +1051,29 @@ namespace OpenMetaverse
         /// <param name="banned">User UUIDs banned</param>
         public EstateBansReplyEventArgs(uint estateID, int count, List<UUID> banned)
         {
-            this.m_estateID = estateID;
-            this.m_count = count;
-            this.m_banned = banned;
+            this.EstateID = estateID;
+            this.Count = count;
+            this.Banned = banned;
         }
     }
 
     /// <summary>Returned, along with other info, upon a successful .RequestInfo()</summary>
     public class EstateUsersReplyEventArgs : EventArgs
     {
-        private readonly uint m_estateID;
-        private readonly int m_count;
-        private readonly List<UUID> m_allowedUsers;
-
         /// <summary>
         /// The identifier of the estate
         /// </summary>
-        public uint EstateID { get { return m_estateID; } }
+        public uint EstateID { get; }
+
         /// <summary>
         /// The number of returned items
         /// </summary>
-        public int Count { get { return m_count; } }
+        public int Count { get; }
+
         /// <summary>
         /// List of UUIDs of Allowed Users
         /// </summary>
-        public List<UUID> AllowedUsers { get { return m_allowedUsers; } }
+        public List<UUID> AllowedUsers { get; }
 
         /// <summary>Construct a new instance of the EstateUsersReplyEventArgs class</summary>
         /// <param name="estateID">The estate's identifier on the grid</param>
@@ -1089,31 +1081,29 @@ namespace OpenMetaverse
         /// <param name="allowedUsers">Allowed users UUIDs</param>
         public EstateUsersReplyEventArgs(uint estateID, int count, List<UUID> allowedUsers)
         {
-            this.m_estateID = estateID;
-            this.m_count = count;
-            this.m_allowedUsers = allowedUsers;
+            this.EstateID = estateID;
+            this.Count = count;
+            this.AllowedUsers = allowedUsers;
         }
     }
 
     /// <summary>Returned, along with other info, upon a successful .RequestInfo()</summary>
     public class EstateGroupsReplyEventArgs : EventArgs
     {
-        private readonly uint m_estateID;
-        private readonly int m_count;
-        private readonly List<UUID> m_allowedGroups;
-
         /// <summary>
         /// The identifier of the estate
         /// </summary>
-        public uint EstateID { get { return m_estateID; } }
+        public uint EstateID { get; }
+
         /// <summary>
         /// The number of returned items
         /// </summary>
-        public int Count { get { return m_count; } }
+        public int Count { get; }
+
         /// <summary>
         /// List of UUIDs of Allowed Groups
         /// </summary>
-        public List<UUID> AllowedGroups { get { return m_allowedGroups; } }
+        public List<UUID> AllowedGroups { get; }
 
         /// <summary>Construct a new instance of the EstateGroupsReplyEventArgs class</summary>
         /// <param name="estateID">The estate's identifier on the grid</param>
@@ -1121,31 +1111,29 @@ namespace OpenMetaverse
         /// <param name="allowedGroups">Allowed Groups UUIDs</param>
         public EstateGroupsReplyEventArgs(uint estateID, int count, List<UUID> allowedGroups)
         {
-            this.m_estateID = estateID;
-            this.m_count = count;
-            this.m_allowedGroups = allowedGroups;
+            this.EstateID = estateID;
+            this.Count = count;
+            this.AllowedGroups = allowedGroups;
         }
     }
 
     /// <summary>Returned, along with other info, upon a successful .RequestInfo()</summary>
     public class EstateManagersReplyEventArgs : EventArgs
     {
-        private readonly uint m_estateID;
-        private readonly int m_count;
-        private readonly List<UUID> m_Managers;
-
         /// <summary>
         /// The identifier of the estate
         /// </summary>
-        public uint EstateID { get { return m_estateID; } }
+        public uint EstateID { get; }
+
         /// <summary>
         /// The number of returned items
         /// </summary>
-        public int Count { get { return m_count; } }
+        public int Count { get; }
+
         /// <summary>
         /// List of UUIDs of the Estate's Managers
         /// </summary>
-        public List<UUID> Managers { get { return m_Managers; } }
+        public List<UUID> Managers { get; }
 
         /// <summary>Construct a new instance of the EstateManagersReplyEventArgs class</summary>
         /// <param name="estateID">The estate's identifier on the grid</param>
@@ -1153,36 +1141,34 @@ namespace OpenMetaverse
         /// <param name="managers"> Managers UUIDs</param>
         public EstateManagersReplyEventArgs(uint estateID, int count, List<UUID> managers)
         {
-            this.m_estateID = estateID;
-            this.m_count = count;
-            this.m_Managers = managers;
+            this.EstateID = estateID;
+            this.Count = count;
+            this.Managers = managers;
         }
     }
 
     /// <summary>Returned, along with other info, upon a successful .RequestInfo()</summary>
     public class EstateCovenantReplyEventArgs : EventArgs
     {
-        private readonly UUID m_covenantID;
-        private readonly long m_timestamp;
-        private readonly string m_estateName;
-        private readonly UUID m_estateOwnerID;
-
         /// <summary>
         /// The Covenant
         /// </summary>
-        public UUID CovenantID { get { return m_covenantID; } }
+        public UUID CovenantID { get; }
+
         /// <summary>
         /// The timestamp
         /// </summary>
-        public long Timestamp { get { return m_timestamp; } }
+        public long Timestamp { get; }
+
         /// <summary>
         /// The Estate name
         /// </summary>
-        public String EstateName { get { return m_estateName; } }
+        public String EstateName { get; }
+
         /// <summary>
         /// The Estate Owner's ID (can be a GroupID)
         /// </summary>
-        public UUID EstateOwnerID { get { return m_estateOwnerID; } }
+        public UUID EstateOwnerID { get; }
 
         /// <summary>Construct a new instance of the EstateCovenantReplyEventArgs class</summary>
         /// <param name="covenantID">The Covenant ID</param>
@@ -1191,10 +1177,10 @@ namespace OpenMetaverse
         /// <param name="estateOwnerID">The Estate Owner's ID (can be a GroupID)</param>
         public EstateCovenantReplyEventArgs(UUID covenantID, long timestamp, string estateName, UUID estateOwnerID)
         {
-            this.m_covenantID = covenantID;
-            this.m_timestamp = timestamp;
-            this.m_estateName = estateName;
-            this.m_estateOwnerID = estateOwnerID;
+            this.CovenantID = covenantID;
+            this.Timestamp = timestamp;
+            this.EstateName = estateName;
+            this.EstateOwnerID = estateOwnerID;
 
         }
     }
@@ -1203,25 +1189,23 @@ namespace OpenMetaverse
     /// <summary>Returned, along with other info, upon a successful .RequestInfo()</summary>
     public class EstateUpdateInfoReplyEventArgs : EventArgs
     {
-        private readonly uint m_estateID;
-        private readonly bool m_denyNoPaymentInfo;
-        private readonly string m_estateName;
-        private readonly UUID m_estateOwner;
-
         /// <summary>
         /// The estate's name
         /// </summary>
-        public String EstateName { get { return m_estateName; } }
+        public String EstateName { get; }
+
         /// <summary>
         /// The Estate Owner's ID (can be a GroupID)
         /// </summary>
-        public UUID EstateOwner { get { return m_estateOwner; } }
+        public UUID EstateOwner { get; }
+
         /// <summary>
         /// The identifier of the estate on the grid
         /// </summary>
-        public uint EstateID { get { return m_estateID; } }
+        public uint EstateID { get; }
+
         /// <summary></summary>
-        public bool DenyNoPaymentInfo { get { return m_denyNoPaymentInfo; } }
+        public bool DenyNoPaymentInfo { get; }
 
         /// <summary>Construct a new instance of the EstateUpdateInfoReplyEventArgs class</summary>
         /// <param name="estateName">The estate's name</param>
@@ -1230,10 +1214,10 @@ namespace OpenMetaverse
         /// <param name="denyNoPaymentInfo"></param>
         public EstateUpdateInfoReplyEventArgs(string estateName, UUID estateOwner, uint estateID, bool denyNoPaymentInfo)
         {
-            this.m_estateName = estateName;
-            this.m_estateOwner = estateOwner;
-            this.m_estateID = estateID;
-            this.m_denyNoPaymentInfo = denyNoPaymentInfo;
+            this.EstateName = estateName;
+            this.EstateOwner = estateOwner;
+            this.EstateID = estateID;
+            this.DenyNoPaymentInfo = denyNoPaymentInfo;
 
         }
     }

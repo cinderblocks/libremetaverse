@@ -34,25 +34,21 @@ namespace OpenMetaverse.Voice
 {
     public class VoiceParticipant
     {
-        private string Sip;
         private string AvatarName { get; set; }
-        private UUID id;
 
         private bool muted;
         private int volume;
         private VoiceSession session;
-        private float energy;
 
-        public float Energy { get { return energy; } }
-        private bool speaking;
-        public bool IsSpeaking { get { return speaking; } }
-        public string URI { get { return Sip; } }
-        public UUID ID { get { return id; } }
+        public float Energy { get; private set; }
+        public bool IsSpeaking { get; private set; }
+        public string URI { get; }
+        public UUID ID { get; }
 
         public VoiceParticipant(string puri, VoiceSession s)
         {
-            id = IDFromName(puri);
-            Sip = puri;
+            ID = IDFromName(puri);
+            URI = puri;
             session = s;
         }
 
@@ -128,7 +124,7 @@ namespace OpenMetaverse.Voice
                 muted = value;
                 StringBuilder sb = new StringBuilder();
                 sb.Append(OpenMetaverse.Voice.VoiceGateway.MakeXML("SessionHandle", session.Handle));
-                sb.Append(OpenMetaverse.Voice.VoiceGateway.MakeXML("ParticipantURI", Sip));
+                sb.Append(OpenMetaverse.Voice.VoiceGateway.MakeXML("ParticipantURI", URI));
                 sb.Append(OpenMetaverse.Voice.VoiceGateway.MakeXML("Mute", muted ? "1" : "0"));
                 session.Connector.Request("Session.SetParticipantMuteForMe.1", sb.ToString());
             }
@@ -142,7 +138,7 @@ namespace OpenMetaverse.Voice
                 volume = value;
                 StringBuilder sb = new StringBuilder();
                 sb.Append(OpenMetaverse.Voice.VoiceGateway.MakeXML("SessionHandle", session.Handle));
-                sb.Append(OpenMetaverse.Voice.VoiceGateway.MakeXML("ParticipantURI", Sip));
+                sb.Append(OpenMetaverse.Voice.VoiceGateway.MakeXML("ParticipantURI", URI));
                 sb.Append(OpenMetaverse.Voice.VoiceGateway.MakeXML("Volume", volume.ToString()));
                 session.Connector.Request("Session.SetParticipantVolumeForMe.1", sb.ToString());
             }
@@ -150,9 +146,9 @@ namespace OpenMetaverse.Voice
 
         internal void SetProperties(bool speak, bool mute, float en)
         {
-            speaking = speak;
+            IsSpeaking = speak;
             muted = mute;
-            energy = en;
+            Energy = en;
         }
     }
 }

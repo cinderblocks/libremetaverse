@@ -2115,12 +2115,6 @@ namespace GridProxy
     // Describes a caps URI
     public class CapInfo
     {
-        private string uri;
-        private IPEndPoint sim;
-        private string type;
-        private CapsDataFormat reqFmt;
-        private CapsDataFormat respFmt;
-
         private List<CapsDelegate> Delegates = new List<CapsDelegate>();
 
 
@@ -2129,28 +2123,17 @@ namespace GridProxy
             this(URI, Sim, CapType, CapsDataFormat.OSD, CapsDataFormat.OSD) { }
         public CapInfo(string URI, IPEndPoint Sim, string CapType, CapsDataFormat ReqFmt, CapsDataFormat RespFmt)
         {
-            uri = URI; sim = Sim; type = CapType; reqFmt = ReqFmt; respFmt = RespFmt;
+            this.URI = URI; this.Sim = Sim; this.CapType = CapType; this.ReqFmt = ReqFmt; this.RespFmt = RespFmt;
         }
-        public string URI
-        {
-            get { return uri; }
-        }
-        public string CapType
-        {
-            get { return type; } /* EventQueueGet, etc */
-        }
-        public IPEndPoint Sim
-        {
-            get { return sim; }
-        }
-        public CapsDataFormat ReqFmt
-        {
-            get { return reqFmt; } /* expected request format */
-        }
-        public CapsDataFormat RespFmt
-        {
-            get { return respFmt; } /* expected response format */
-        }
+        public string URI { get; }
+
+        public string CapType { get; /* EventQueueGet, etc */ }
+
+        public IPEndPoint Sim { get; }
+
+        public CapsDataFormat ReqFmt { get; /* expected request format */ }
+
+        public CapsDataFormat RespFmt { get; /* expected response format */ }
 
         public void AddDelegate(CapsDelegate deleg)
         {
