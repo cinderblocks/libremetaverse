@@ -31,16 +31,15 @@ using ProtoBuf;
 
 namespace OpenMetaverse
 {
-    [Serializable, ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
+    [Serializable, ProtoContract(ImplicitFields = ImplicitFields.AllPublic)]
     public class InventoryNode : ISerializable
     {
         private InventoryBase data;
         private InventoryNode parent;
-        private UUID parentID; //used for deseralization 
-        [ProtoIgnore]
+        private UUID parentID; //used for deseralization
         private InventoryNodeDictionary nodes;
         private bool needsUpdate = true;
-        [NonSerialized, ProtoIgnore]
+        [NonSerialized]
         private object tag;
 
         public InventoryBase Data
@@ -57,14 +56,20 @@ namespace OpenMetaverse
             set => tag = value;
         }
 
+        [ProtoIgnore]
         public InventoryNode Parent
         {
             get => parent;
             set => parent = value;
         }
 
-        public UUID ParentID => parentID;
+        public UUID ParentID
+        {
+            get => parentID;
+            private set => parentID = value;
+        }
 
+        [ProtoIgnore]
         public InventoryNodeDictionary Nodes
         {
             get => nodes ?? (nodes = new InventoryNodeDictionary(this));
