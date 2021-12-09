@@ -88,7 +88,7 @@ namespace OpenMetaverse.GUI
         /// </summary>
         public void ClearNodes()
         {
-            if (this.InvokeRequired) this.BeginInvoke((MethodInvoker)delegate { ClearNodes(); });
+            if (this.InvokeRequired) this.BeginInvoke((MethodInvoker)ClearNodes);
             else this.Nodes.Clear();
         }
 

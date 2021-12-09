@@ -135,7 +135,7 @@ namespace OpenMetaverse.GUI
         /// </summary>
         public void ClearItems()
         {
-            if (this.InvokeRequired) this.BeginInvoke((MethodInvoker)delegate { ClearItems(); });
+            if (this.InvokeRequired) this.BeginInvoke((MethodInvoker)ClearItems);
             else
             {
                 if (this.Handle != IntPtr.Zero)

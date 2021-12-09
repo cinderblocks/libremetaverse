@@ -109,7 +109,7 @@ namespace OpenMetaverse.GUI
 
         private void RefreshFriends()
         {
-            if (this.InvokeRequired) this.BeginInvoke((MethodInvoker)delegate { RefreshFriends(); });
+            if (this.InvokeRequired) this.BeginInvoke((MethodInvoker)RefreshFriends);
             else
             {
                 Client.Friends.FriendList.ForEach(delegate(FriendInfo friend)
