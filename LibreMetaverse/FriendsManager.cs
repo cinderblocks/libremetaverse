@@ -598,7 +598,7 @@ namespace OpenMetaverse
         /// This can be determined by the presence of a <seealso cref="InstantMessageEventArgs.Simulator"/>
         /// value in <seealso cref="InstantMessageEventArgs" />
         /// </summary>
-        /// <param name="fronAgentID"><seealso cref="UUID"/> of friend</param>
+        /// <param name="fromAgentID"><seealso cref="UUID"/> of friend</param>
         public void DeclineFriendshipCap(UUID fromAgentID)
         {
             Uri declineFriendshipCap = Client.Network.CurrentSim.Caps.CapabilityURI("DeclineFriendship");
