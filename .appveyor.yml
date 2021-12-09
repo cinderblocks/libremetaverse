@@ -8,7 +8,7 @@ environment:
   matrix:
   - job_name: Windows Build
     platform: x64
-    appveyor_build_worker_image: Visual Studio 2019
+    appveyor_build_worker_image: Visual Studio 2022
     configuration: Release
   - job_name: MacOS Build
     platform: x64
