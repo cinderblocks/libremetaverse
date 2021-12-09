@@ -46,6 +46,7 @@ namespace OpenMetaverse
             /// <summary>
             /// Particle source pattern
             /// </summary>
+            [Flags]
             public enum SourcePattern : byte
             {
                 /// <summary>None</summary>
