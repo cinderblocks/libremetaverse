@@ -168,7 +168,7 @@ namespace OpenMetaverse
 
         private GridClient Client;
         //private InventoryManager Manager;
-        public Dictionary<UUID, InventoryNode> Items = new Dictionary<UUID, InventoryNode>();
+        public Dictionary<UUID, InventoryNode> Items;
 
         public Inventory(GridClient client, InventoryManager manager)
             : this(client, manager, client.Self.AgentID) { }

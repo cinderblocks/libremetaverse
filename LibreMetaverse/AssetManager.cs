@@ -163,7 +163,7 @@ namespace OpenMetaverse
     {
         public UUID ID;
         public int Size;
-        public byte[] AssetData = Utils.EmptyBytes;
+        public byte[] AssetData;
         public int Transferred;
         public bool Success;
         public AssetType AssetType;

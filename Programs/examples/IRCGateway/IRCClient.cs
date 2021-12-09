@@ -10,7 +10,7 @@ public class IRCClient
     private string ServerHost;
     private int ServerPort;
     private string Nickname;
-    private string RealName = String.Empty;
+    private string RealName;
     private Thread LoopThread;
     private Thread ConnectThread;
 
