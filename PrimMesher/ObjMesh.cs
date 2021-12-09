@@ -66,7 +66,7 @@ namespace LibreMetaverse.PrimMesher
 
             while (!s.EndOfStream)
             {
-                var line = s.ReadLine().Trim();
+                var line = s.ReadLine()?.Trim();
                 var tokens = Regex.Split(line, @"\s+");
 
                 // Skip blank lines and comments

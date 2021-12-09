@@ -158,7 +158,7 @@ namespace OpenMetaverse
          
 	    // Construct a new inventory object based on the Type stored in Type
             System.Reflection.ConstructorInfo ctr = type.GetConstructor(new[] {typeof(SerializationInfo),typeof(StreamingContext)});
-            data = (InventoryBase) ctr.Invoke(new object[] { info, ctxt });
+            if (ctr != null) data = (InventoryBase)ctr.Invoke(new object[] { info, ctxt });
         }
 
         public override string ToString()

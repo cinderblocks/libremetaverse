@@ -279,7 +279,7 @@ namespace OpenMetaverse.Http
                         int totalBytesRead = 0;
                         int totalSize = nolength ? 0 : size;
 
-                        while ((bytesRead = responseStream.Read(buffer, offset, size)) != 0)
+                        while (responseStream != null && (bytesRead = responseStream.Read(buffer, offset, size)) != 0)
                         {
                             totalBytesRead += bytesRead;
 

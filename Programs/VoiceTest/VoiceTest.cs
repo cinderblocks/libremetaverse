@@ -163,7 +163,7 @@ namespace VoiceTest
             catch(Exception e) 
             {
                 Console.WriteLine(e.Message);
-                if (e is VoiceException exception && exception.LoggedIn) 
+                if (e is VoiceException { LoggedIn: true } exception) 
                 {
                     client.Network.Logout();
                 }

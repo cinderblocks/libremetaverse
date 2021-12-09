@@ -555,8 +555,8 @@ namespace OpenMetaverse
 
                 if (result != null)
                 {
-                    var resMap = result as OSDMap;
-                    if (!(resMap.ContainsKey("success") && resMap["success"].AsBoolean())) { return; }
+                    if (result is OSDMap resMap 
+                        && !(resMap.ContainsKey("success") && resMap["success"].AsBoolean())) { return; }
 
                     FriendInfo friend = new FriendInfo(fromAgentID, FriendRights.CanSeeOnline, FriendRights.CanSeeOnline);
 
@@ -626,8 +626,8 @@ namespace OpenMetaverse
 
                 if (result != null)
                 {
-                    var resMap = result as OSDMap;
-                    if (!(resMap.ContainsKey("success") && resMap["success"].AsBoolean())) { return; }
+                    if (result is OSDMap resMap && 
+                        !(resMap.ContainsKey("success") && resMap["success"].AsBoolean())) { return; }
 
                     if (FriendRequests.ContainsKey(fromAgentID))
                     {

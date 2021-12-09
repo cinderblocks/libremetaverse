@@ -450,9 +450,12 @@ namespace OpenMetaverse.Rendering
             if (meshOSD != null)
             {
                 ret = new SimpleMesh();
-                foreach (OSD subMesh in meshFaces)
+                if (meshFaces != null)
                 {
-                    AddSubMesh(subMesh, ref ret);
+                    foreach (OSD subMesh in meshFaces)
+                    {
+                        AddSubMesh(subMesh, ref ret);
+                    }
                 }
             }
             return ret;

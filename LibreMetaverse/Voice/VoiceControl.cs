@@ -151,11 +151,11 @@ namespace OpenMetaverse.Voice
 
             // Connection events
             OnDaemonRunning +=
-                 new VoiceGateway.DaemonRunningCallback(connector_OnDaemonRunning);
+                 new DaemonRunningCallback(connector_OnDaemonRunning);
             OnDaemonCouldntRun +=
-                new VoiceGateway.DaemonCouldntRunCallback(connector_OnDaemonCouldntRun);
+                new DaemonCouldntRunCallback(connector_OnDaemonCouldntRun);
             OnConnectorCreateResponse +=
-                new EventHandler<VoiceGateway.VoiceConnectorEventArgs>(connector_OnConnectorCreateResponse);
+                new EventHandler<VoiceConnectorEventArgs>(connector_OnConnectorCreateResponse);
             OnDaemonConnected +=
                 new DaemonConnectedCallback(connector_OnDaemonConnected);
             OnDaemonCouldntConnect +=
@@ -193,7 +193,7 @@ namespace OpenMetaverse.Voice
             // If voice provisioning capability is already available,
             // proceed with voice startup.   Otherwise the EventQueueRunning
             // event will do it.
-            System.Uri vCap =
+            Uri vCap =
                  Client.Network.CurrentSim.Caps.CapabilityURI("ProvisionVoiceAccountRequest");
             if (vCap != null)
                 RequestVoiceProvision(vCap);
@@ -206,7 +206,7 @@ namespace OpenMetaverse.Voice
         /// <param name="sender"></param>
         /// <param name="e"></param>
         /// ///<remarks>If something goes wrong, we log it.</remarks>
-        void connector_OnVoiceResponse(object sender, VoiceGateway.VoiceResponseEventArgs e)
+        void connector_OnVoiceResponse(object sender, VoiceResponseEventArgs e)
         {
             if (e.StatusCode == 0)
                 return;
@@ -220,15 +220,15 @@ namespace OpenMetaverse.Voice
 
             // Connection events
             OnDaemonRunning -=
-                     new VoiceGateway.DaemonRunningCallback(connector_OnDaemonRunning);
+                     new DaemonRunningCallback(connector_OnDaemonRunning);
             OnDaemonCouldntRun -=
-                    new VoiceGateway.DaemonCouldntRunCallback(connector_OnDaemonCouldntRun);
+                    new DaemonCouldntRunCallback(connector_OnDaemonCouldntRun);
             OnConnectorCreateResponse -=
-                new EventHandler<VoiceGateway.VoiceConnectorEventArgs>(connector_OnConnectorCreateResponse);
+                new EventHandler<VoiceConnectorEventArgs>(connector_OnConnectorCreateResponse);
             OnDaemonConnected -=
-                    new VoiceGateway.DaemonConnectedCallback(connector_OnDaemonConnected);
+                    new DaemonConnectedCallback(connector_OnDaemonConnected);
             OnDaemonCouldntConnect -=
-                    new VoiceGateway.DaemonCouldntConnectCallback(connector_OnDaemonCouldntConnect);
+                    new DaemonCouldntConnectCallback(connector_OnDaemonCouldntConnect);
             OnAuxAudioPropertiesEvent -=
                     new EventHandler<AudioPropertiesEventArgs>(connector_OnAuxAudioPropertiesEvent);
 
@@ -248,13 +248,13 @@ namespace OpenMetaverse.Voice
 
             // Tuning events
             OnAuxGetCaptureDevicesResponse -=
-                    new EventHandler<VoiceGateway.VoiceDevicesEventArgs>(connector_OnAuxGetCaptureDevicesResponse);
+                    new EventHandler<VoiceDevicesEventArgs>(connector_OnAuxGetCaptureDevicesResponse);
             OnAuxGetRenderDevicesResponse -=
-                    new EventHandler<VoiceGateway.VoiceDevicesEventArgs>(connector_OnAuxGetRenderDevicesResponse);
+                    new EventHandler<VoiceDevicesEventArgs>(connector_OnAuxGetRenderDevicesResponse);
 
             // Account events
             OnAccountLoginResponse -=
-                    new EventHandler<VoiceGateway.VoiceAccountEventArgs>(connector_OnAccountLoginResponse);
+                    new EventHandler<VoiceAccountEventArgs>(connector_OnAccountLoginResponse);
 
             // Stop the background thread
             if (posThread != null)
@@ -332,7 +332,7 @@ namespace OpenMetaverse.Voice
                     progFiles = Environment.GetEnvironmentVariable("ProgramFiles");
                 }
 
-                if (System.IO.File.Exists(Path.Combine(progFiles, @"SecondLife" + Path.DirectorySeparatorChar + @"SLVoice.exe")))
+                if (File.Exists(Path.Combine(progFiles, @"SecondLife" + Path.DirectorySeparatorChar + @"SLVoice.exe")))
                 {
                     return Path.Combine(progFiles, @"SecondLife" + Path.DirectorySeparatorChar + @"SLVoice.exe");
                 }
@@ -351,9 +351,9 @@ namespace OpenMetaverse.Voice
             }
         }
 
-        void RequestVoiceProvision(System.Uri cap)
+        void RequestVoiceProvision(Uri cap)
         {
-            CapsClient capClient = new Http.CapsClient(cap, "ReqVoiceProvision");
+            CapsClient capClient = new CapsClient(cap, "ReqVoiceProvision");
             capClient.OnComplete += cClient_OnComplete;
 
             // STEP 0
@@ -382,7 +382,7 @@ namespace OpenMetaverse.Voice
                 //  5. Create session
 
                 // Get the voice provisioning data
-                System.Uri vCap =
+                Uri vCap =
                     Client.Network.CurrentSim.Caps.CapabilityURI("ProvisionVoiceAccountRequest");
 
                 // Do we have voice capability?
@@ -489,7 +489,7 @@ namespace OpenMetaverse.Voice
 
             switch (e.State)
             {
-                case VoiceGateway.SessionState.Connected:
+                case SessionState.Connected:
                     s = FindSession(e.SessionHandle, true);
                     sessionHandle = e.SessionHandle;
                     s.RegionName = regionName;
@@ -501,7 +501,7 @@ namespace OpenMetaverse.Voice
                         OnSessionCreate(s, null);
                     break;
 
-                case VoiceGateway.SessionState.Disconnected:
+                case SessionState.Disconnected:
                     s = FindSession(sessionHandle, false);
                     sessions.Remove(sessionHandle);
 
@@ -611,8 +611,8 @@ namespace OpenMetaverse.Voice
         /// <param name="client"></param>
         /// <param name="result"></param>
         /// <param name="error"></param>
-        void cClient_OnComplete(OpenMetaverse.Http.CapsClient client,
-            OpenMetaverse.StructuredData.OSD result,
+        void cClient_OnComplete(CapsClient client,
+            OSD result,
             Exception error)
         {
             if (error != null)
@@ -624,25 +624,28 @@ namespace OpenMetaverse.Voice
             Logger.Log("Voice provisioned", Helpers.LogLevel.Info);
             ReportConnectionState(ConnectionState.Provisioned);
 
-            OpenMetaverse.StructuredData.OSDMap pMap = result as OpenMetaverse.StructuredData.OSDMap;
+            OSDMap pMap = result as OSDMap;
 
             // We can get back 4 interesting values:
             //      voice_sip_uri_hostname
             //      voice_account_server_name   (actually a full URI)
             //      username
             //      password
-            if (pMap.ContainsKey("voice_sip_uri_hostname"))
-                sipServer = pMap["voice_sip_uri_hostname"].AsString();
-            if (pMap.ContainsKey("voice_account_server_name"))
-                acctServer = pMap["voice_account_server_name"].AsString();
-            voiceUser = pMap["username"].AsString();
-            voicePassword = pMap["password"].AsString();
+            if (pMap != null)
+            {
+                if (pMap.ContainsKey("voice_sip_uri_hostname"))
+                    sipServer = pMap["voice_sip_uri_hostname"].AsString();
+                if (pMap.ContainsKey("voice_account_server_name"))
+                    acctServer = pMap["voice_account_server_name"].AsString();
+                voiceUser = pMap["username"].AsString();
+                voicePassword = pMap["password"].AsString();
+            }
 
             // Start the SLVoice daemon
             slvoicePath = GetVoiceDaemonPath();
 
             // Test if the executable exists
-            if (!System.IO.File.Exists(slvoicePath))
+            if (!File.Exists(slvoicePath))
             {
                 Logger.Log("SLVoice is missing", Helpers.LogLevel.Error);
                 return;
@@ -669,7 +672,7 @@ namespace OpenMetaverse.Voice
         void connector_OnDaemonRunning()
         {
             OnDaemonRunning -=
-                new VoiceGateway.DaemonRunningCallback(connector_OnDaemonRunning);
+                new DaemonRunningCallback(connector_OnDaemonRunning);
 
             Logger.Log("Daemon started", Helpers.LogLevel.Info);
             ReportConnectionState(ConnectionState.DaemonStarted);
@@ -688,8 +691,8 @@ namespace OpenMetaverse.Voice
             ReportConnectionState(ConnectionState.DaemonConnected);
 
             // The connector is what does the logging.
-            VoiceGateway.VoiceLoggingSettings vLog =
-                new VoiceGateway.VoiceLoggingSettings();
+            VoiceLoggingSettings vLog =
+                new VoiceLoggingSettings();
             
 #if DEBUG_VOICE
             vLog.Enabled = true;
@@ -714,7 +717,7 @@ namespace OpenMetaverse.Voice
         /// </summary>
         void connector_OnConnectorCreateResponse(
             object sender,
-            VoiceGateway.VoiceConnectorEventArgs e)
+            VoiceConnectorEventArgs e)
         {
             Logger.Log("Voice daemon protocol started " + e.Message, Helpers.LogLevel.Info);
 
@@ -737,7 +740,7 @@ namespace OpenMetaverse.Voice
 
         void connector_OnAccountLoginResponse(
             object sender,
-            VoiceGateway.VoiceAccountEventArgs e)
+            VoiceAccountEventArgs e)
         {
             Logger.Log("Account Login " + e.Message, Helpers.LogLevel.Info);
             accountHandle = e.AccountHandle;
@@ -751,7 +754,7 @@ namespace OpenMetaverse.Voice
         /// </summary>
         void connector_OnAuxGetRenderDevicesResponse(
             object sender,
-            VoiceGateway.VoiceDevicesEventArgs e)
+            VoiceDevicesEventArgs e)
         {
             outputDevices = e.Devices;
             currentPlaybackDevice = e.CurrentDevice;
@@ -762,7 +765,7 @@ namespace OpenMetaverse.Voice
         /// </summary>
         void connector_OnAuxGetCaptureDevicesResponse(
             object sender,
-            VoiceGateway.VoiceDevicesEventArgs e)
+            VoiceDevicesEventArgs e)
         {
             inputDevices = e.Devices;
             currentCaptureDevice = e.CurrentDevice;
@@ -856,7 +859,7 @@ namespace OpenMetaverse.Voice
         {
             // Get the capability for this parcel.
             Caps c = Client.Network.CurrentSim.Caps;
-            System.Uri pCap = c.CapabilityURI("ParcelVoiceInfoRequest");
+            Uri pCap = c.CapabilityURI("ParcelVoiceInfoRequest");
 
             if (pCap == null)
             {
@@ -875,7 +878,7 @@ namespace OpenMetaverse.Voice
             RequestParcelInfo(pCap);
         }
 
-        private OpenMetaverse.Http.CapsClient parcelCap;
+        private CapsClient parcelCap;
 
         /// <summary>
         /// Request info from a parcel capability Uri.
@@ -900,12 +903,11 @@ namespace OpenMetaverse.Voice
         /// <param name="client"></param>
         /// <param name="result"></param>
         /// <param name="error"></param>
-        void pCap_OnComplete(OpenMetaverse.Http.CapsClient client,
-            OpenMetaverse.StructuredData.OSD result,
+        void pCap_OnComplete(CapsClient client,
+            OSD result,
             Exception error)
         {
-            parcelCap.OnComplete -=
-                new OpenMetaverse.Http.CapsClient.CompleteCallback(pCap_OnComplete);
+            parcelCap.OnComplete -= pCap_OnComplete;
             parcelCap = null;
 
             if (error != null)
@@ -914,15 +916,15 @@ namespace OpenMetaverse.Voice
                 return;
             }
 
-            OpenMetaverse.StructuredData.OSDMap pMap = result as OpenMetaverse.StructuredData.OSDMap;
+            OSDMap pMap = result as OSDMap;
 
             regionName = pMap["region_name"].AsString();
             ReportConnectionState(ConnectionState.RegionCapAvailable);
 
             if (pMap.ContainsKey("voice_credentials"))
             {
-                OpenMetaverse.StructuredData.OSDMap cred =
-                    pMap["voice_credentials"] as OpenMetaverse.StructuredData.OSDMap;
+                OSDMap cred =
+                    pMap["voice_credentials"] as OSDMap;
 
                 if (cred.ContainsKey("channel_uri"))
                     spatialUri = cred["channel_uri"].AsString();

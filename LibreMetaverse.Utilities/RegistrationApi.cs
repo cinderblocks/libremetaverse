@@ -299,7 +299,8 @@ namespace OpenMetaverse
                 query.Add("limited_to_estate", OSD.FromInteger(user.LimitedToEstate.Value));
 
             if (!string.IsNullOrEmpty(user.StartRegionName))
-                query.Add("start_region_name", OSD.FromInteger(user.LimitedToEstate.Value));
+                if (user.LimitedToEstate != null)
+                    query.Add("start_region_name", OSD.FromInteger(user.LimitedToEstate.Value));
 
             if (user.StartLocation != null)
             {

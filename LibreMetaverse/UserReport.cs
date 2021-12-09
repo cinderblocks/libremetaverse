@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using OpenMetaverse;
 using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
@@ -92,15 +93,12 @@ namespace LibreMetaverse
                             Helpers.LogLevel.Info);
                         return;
                     }
-                    if (result != null && result is OSDMap respMap && respMap.ContainsKey("categories"))
+                    if (result is OSDMap respMap && respMap.ContainsKey("categories"))
                     {
-                        reportCategories = new Dictionary<string, string>();
                         var categories = respMap["categories"] as OSDArray;
-                        foreach (OSDMap row in categories)
-                        {
-                            reportCategories.Add(
-                                row["description_localized"].AsString(), row["category"].AsString());
-                        }
+                        reportCategories = categories.Cast<OSDMap>().ToDictionary(
+                            row => row["description_localized"].AsString(), 
+                            row => row["category"].AsString());
                     }
                 };
                 request.GetRequestAsync(Client.Settings.CAPS_TIMEOUT);

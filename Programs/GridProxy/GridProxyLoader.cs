@@ -174,7 +174,7 @@ namespace GridProxy
             if (values.Contains("inventory-root"))
             {
                 inventoryRoot = new UUID(
-                    (string)((System.Collections.Hashtable)(((System.Collections.ArrayList)values["inventory-root"])[0]))["folder_id"]
+                    (string)((System.Collections.Hashtable)(((System.Collections.ArrayList)values["inventory-root"])[0]))?["folder_id"]
                     );
                 if (logLogin)
                 {
