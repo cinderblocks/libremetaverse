@@ -122,18 +122,16 @@ namespace LitJson
 
         #region IDictionary Indexer
         object IDictionary.this[object key] {
-            get {
-                return EnsureDictionary ()[key];
-            }
+            get => EnsureDictionary ()[key];
 
             set {
-                if (! (key is String))
+                if (! (key is string str))
                     throw new ArgumentException (
                         "The key has to be a string");
 
                 JsonData data = ToJsonData (value);
 
-                this[(string) key] = data;
+                this[str] = data;
             }
         }
         #endregion

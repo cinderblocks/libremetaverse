@@ -141,7 +141,7 @@ namespace LibreMetaverse
                 ["abuse-region-id"] = UUID.Zero,
                 ["position"] = pos,
                 ["summary"] = summary,
-                ["version-string"] = $"<3 LibreMetaverse",
+                ["version-string"] = "<3 LibreMetaverse",
                 ["details"] = details
             };
 
@@ -211,7 +211,7 @@ namespace LibreMetaverse
 
                     Summary = Utils.StringToBytes(summary),
                     Details = Utils.StringToBytes(details),
-                    VersionString = Utils.StringToBytes($"<3 LibreMetaverse")
+                    VersionString = Utils.StringToBytes("<3 LibreMetaverse")
                 }
             };
             Client.Network.SendPacket(urp);

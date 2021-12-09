@@ -3832,9 +3832,9 @@ namespace OpenMetaverse
             {
                 bool success = true;
 
-                if (error == null && result is OSDMap)
+                if (error == null && result is OSDMap osdMap)
                 {
-                    var map = ((OSDMap)result)["access_prefs"];
+                    var map = osdMap["access_prefs"];
                     agentAccess = ((OSDMap)map)["max"];
                     Logger.Log($"Max maturity access set to {agentAccess}", Helpers.LogLevel.Info, Client );
                 }
@@ -3953,10 +3953,9 @@ namespace OpenMetaverse
 
             if (m_InstantMessage == null) return; // don't bother if we don't have any listeners
 
-            if (response == null || !(response is OSDMap respMap) 
-                || respMap.Count == 0 || respMap.ContainsKey("messages"))
+            if (!(response is OSDMap respMap) || respMap.Count == 0 || respMap.ContainsKey("messages"))
             {
-                Logger.Log($"Failed to retrieve offline messages because the capability returned some goofy shit.",
+                Logger.Log("Failed to retrieve offline messages because the capability returned some goofy shit.",
                     Helpers.LogLevel.Warning);
                 RetrieveInstantMessagesLegacy();
                 return;
@@ -3987,8 +3986,7 @@ namespace OpenMetaverse
                         : new Vector3(msg["local_x"], msg["local_y"], msg["local_z"]);
                     message.BinaryBucket = msg.ContainsKey("binary_bucket")
                         ? msg["binary_bucket"].AsBinary() : new byte[] { 0 };
-                    message.GroupIM = msg.ContainsKey("from_group")
-                        ? msg["from_group"].AsBoolean() : false;
+                    message.GroupIM = msg.ContainsKey("from_group") && msg["from_group"].AsBoolean();
 
                     OnInstantMessage(new InstantMessageEventArgs(message, null));
                 }                

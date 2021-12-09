@@ -199,14 +199,12 @@ namespace OpenMetaverse.ImportExport
         ModelMaterial ExtractMaterial(object diffuse)
         {
             ModelMaterial ret = new ModelMaterial();
-            if (diffuse is common_color_or_texture_typeColor)
+            if (diffuse is common_color_or_texture_typeColor color)
             {
-                var col = (common_color_or_texture_typeColor)diffuse;
-                ret.DiffuseColor = new Color4((float)col.Values[0], (float)col.Values[1], (float)col.Values[2], (float)col.Values[3]);
+                ret.DiffuseColor = new Color4((float)color.Values[0], (float)color.Values[1], (float)color.Values[2], (float)color.Values[3]);
             }
-            else if (diffuse is common_color_or_texture_typeTexture)
+            else if (diffuse is common_color_or_texture_typeTexture tex)
             {
-                var tex = (common_color_or_texture_typeTexture)diffuse;
                 ret.Texture = tex.texcoord;
             }
             return ret;
@@ -229,18 +227,17 @@ namespace OpenMetaverse.ImportExport
 
             foreach (var item in Model.Items)
             {
-                if (item is library_images)
+                if (item is library_images images)
                 {
-                    var images = (library_images)item;
                     if (images.image != null)
                     {
                         foreach (var image in images.image)
                         {
                             var img = (image)image;
                             string ID = img.id;
-                            if (img.Item is string)
+                            if (img.Item is string imgItem)
                             {
-                                imgMap[ID] = (string)img.Item;
+                                imgMap[ID] = imgItem;
                             }
                         }
                     }
@@ -249,9 +246,8 @@ namespace OpenMetaverse.ImportExport
 
             foreach (var item in Model.Items)
             {
-                if (item is library_materials)
+                if (item is library_materials materials)
                 {
-                    var materials = (library_materials)item;
                     if (materials.material != null)
                     {
                         foreach (var material in materials.material)
@@ -268,9 +264,8 @@ namespace OpenMetaverse.ImportExport
 
             foreach (var item in Model.Items)
             {
-                if (item is library_effects)
+                if (item is library_effects effects)
                 {
-                    var effects = (library_effects)item;
                     if (effects.effect != null)
                     {
                         foreach (var effect in effects.effect)
@@ -278,24 +273,22 @@ namespace OpenMetaverse.ImportExport
                             string ID = effect.id;
                             foreach (var effItem in effect.Items)
                             {
-                                if (effItem is effectFx_profile_abstractProfile_COMMON)
+                                if (effItem is effectFx_profile_abstractProfile_COMMON common)
                                 {
-                                    var teq = ((effectFx_profile_abstractProfile_COMMON)effItem).technique;
+                                    var teq = common.technique;
                                     if (teq != null)
                                     {
-                                        if (teq.Item is effectFx_profile_abstractProfile_COMMONTechniquePhong)
+                                        if (teq.Item is effectFx_profile_abstractProfile_COMMONTechniquePhong phong)
                                         {
-                                            var shader = (effectFx_profile_abstractProfile_COMMONTechniquePhong)teq.Item;
-                                            if (shader.diffuse != null)
+                                            if (phong.diffuse != null)
                                             {
-                                                var material = ExtractMaterial(shader.diffuse.Item);
+                                                var material = ExtractMaterial(phong.diffuse.Item);
                                                 material.ID = ID;
                                                 tmpEffects.Add(material);
                                             }
                                         }
-                                        else if (teq.Item is effectFx_profile_abstractProfile_COMMONTechniqueLambert)
+                                        else if (teq.Item is effectFx_profile_abstractProfile_COMMONTechniqueLambert shader)
                                         {
-                                            var shader = (effectFx_profile_abstractProfile_COMMONTechniqueLambert)teq.Item;
                                             if (shader.diffuse != null)
                                             {
                                                 var material = ExtractMaterial(shader.diffuse.Item);
@@ -336,13 +329,12 @@ namespace OpenMetaverse.ImportExport
                 // Try finding matrix
                 foreach (var i in node.Items)
                 {
-                    if (i is matrix)
+                    if (i is matrix mtx)
                     {
-                        var m = (matrix)i;
                         for (int a = 0; a < 4; a++)
                             for (int b = 0; b < 4; b++)
                             {
-                                n.Transform[b, a] = (float)m.Values[a * 4 + b];
+                                n.Transform[b, a] = (float)mtx.Values[a * 4 + b];
                             }
                     }
                 }
@@ -386,9 +378,9 @@ namespace OpenMetaverse.ImportExport
 
             foreach (var item in Model.Items)
             {
-                if (item is library_visual_scenes)
+                if (item is library_visual_scenes scenes)
                 {
-                    var scene = ((library_visual_scenes)item).visual_scene[0];
+                    var scene = scenes.visual_scene[0];
                     foreach (var node in scene.node)
                     {
                         ProcessNode(node);
@@ -440,8 +432,7 @@ namespace OpenMetaverse.ImportExport
             ParseMaterials();
 
             foreach (var item in Model.Items) {
-                if (item is library_geometries) {
-                    var geometries = (library_geometries)item;
+                if (item is library_geometries geometries) {
                     foreach (var geo in geometries.geometry) {
                         var mesh = geo.Item as mesh;
                         if (mesh == null) 
@@ -455,8 +446,10 @@ namespace OpenMetaverse.ImportExport
                             Vector3 asset_offset = new Vector3(0, 0, 0);            // Scale and offset between Collada and OS asset (Which is always in a unit cube)
 
                             foreach (var node in nodes) {
-                                var prim = new ModelPrim();
-                                prim.ID = node.ID;
+                                var prim = new ModelPrim
+                                {
+                                    ID = node.ID
+                                };
                                 Prims.Add(prim);
 
                                 // First node is used to create the asset. This is as the code to crate the byte array is somewhat
@@ -466,10 +459,10 @@ namespace OpenMetaverse.ImportExport
                                     AddPositions(out asset_scale, out asset_offset, mesh, prim, transform);     // transform is used only for inch -> meter and up axis transform. 
 
                                     foreach (var mitem in mesh.Items) {
-                                        if (mitem is triangles)
-                                            AddFacesFromPolyList(Triangles2Polylist((triangles)mitem), mesh, prim, transform);  // Transform is used to turn normals according to up axis
-                                        if (mitem is polylist)
-                                            AddFacesFromPolyList((polylist)mitem, mesh, prim, transform);
+                                        if (mitem is triangles triangles)
+                                            AddFacesFromPolyList(Triangles2Polylist(triangles), mesh, prim, transform);  // Transform is used to turn normals according to up axis
+                                        if (mitem is polylist polylist)
+                                            AddFacesFromPolyList(polylist, mesh, prim, transform);
                                     }
 
                                     prim.CreateAsset(UUID.Zero);

@@ -299,9 +299,8 @@ namespace OpenMetaverse
         /// <returns>True if the object is a UUID and both UUIDs are equal</returns>
         public override bool Equals(object o)
         {
-            if (!(o is UUID)) return false;
+            if (!(o is UUID uuid)) return false;
 
-            UUID uuid = (UUID)o;
             return Guid == uuid.Guid;
         }
 

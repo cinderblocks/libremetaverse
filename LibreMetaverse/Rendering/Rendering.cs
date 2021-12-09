@@ -116,7 +116,7 @@ namespace OpenMetaverse.Rendering
 
         public override bool Equals(object obj)
         {
-            return (obj is Vertex) && this == (Vertex)obj;
+            return (obj is Vertex vertex) && this == vertex;
         }
 
         public bool Equals(Vertex other)
@@ -289,23 +289,19 @@ namespace OpenMetaverse.Rendering
                         break;
                 }
 
-                if (!(facesOSD is OSDArray))
+                if (!(facesOSD is OSDArray decodedMeshOsdArray))
                 {
                     return false;
                 }
-
-                OSDArray decodedMeshOsdArray = (OSDArray)facesOSD;
 
                 for (int faceNr = 0; faceNr < decodedMeshOsdArray.Count; faceNr++)
                 {
                     OSD subMeshOsd = decodedMeshOsdArray[faceNr];
 
                     // Decode each individual face
-                    if (subMeshOsd is OSDMap)
+                    if (subMeshOsd is OSDMap subMeshMap)
                     {
-                        OSDMap subMeshMap = (OSDMap)subMeshOsd;
-
-                    // As per http://wiki.secondlife.com/wiki/Mesh/Mesh_Asset_Format, some Mesh Level
+                        // As per http://wiki.secondlife.com/wiki/Mesh/Mesh_Asset_Format, some Mesh Level
                     // of Detail Blocks (maps) contain just a NoGeometry key to signal there is no
                     // geometry for this submesh.
                     if (subMeshMap.ContainsKey("NoGeometry") && ((OSDBoolean)subMeshMap["NoGeometry"]))

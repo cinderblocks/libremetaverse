@@ -183,9 +183,8 @@ namespace OpenMetaverse.ImportExport
                     return;
                 }
 
-                if (result is OSDMap)
+                if (result is OSDMap res)
                 {
-                    var res = (OSDMap)result;
                     Uri uploader = new Uri(res["uploader"]);
                     PerformUpload(uploader, (contents =>
                     {

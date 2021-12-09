@@ -512,26 +512,24 @@ namespace OpenMetaverse.Utilities
 
         private void ProvisionCapsResponse(CapsClient client, OSD response, Exception error)
         {
-            if (!(response is OSDMap)) return;
-            var respTable = (OSDMap)response;
+            if (!(response is OSDMap respMap)) return;
 
             if (OnProvisionAccount == null) return;
-            try { OnProvisionAccount(respTable["username"].AsString(), respTable["password"].AsString()); }
+            try { OnProvisionAccount(respMap["username"].AsString(), respMap["password"].AsString()); }
             catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
         }
 
         private void ParcelVoiceInfoResponse(CapsClient client, OSD response, Exception error)
         {
-            if (!(response is OSDMap)) return;
-            var respTable = (OSDMap)response;
+            if (!(response is OSDMap respMap)) return;
 
-            var regionName = respTable["region_name"].AsString();
-            var localID = respTable["parcel_local_id"].AsInteger();
+            var regionName = respMap["region_name"].AsString();
+            var localID = respMap["parcel_local_id"].AsInteger();
 
             string channelURI = null;
-            if (respTable["voice_credentials"] is OSDMap)
+            if (respMap["voice_credentials"] is OSDMap)
             {
-                var creds = (OSDMap)respTable["voice_credentials"];
+                var creds = (OSDMap)respMap["voice_credentials"];
                 channelURI = creds["channel_uri"].AsString();
             }
 

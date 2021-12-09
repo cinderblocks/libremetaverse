@@ -1402,9 +1402,7 @@ namespace OpenMetaverse.Messages.Linden
             {
                 FolderDataInfo ret = new FolderDataInfo();
 
-                if (!(data is OSDMap)) return ret;
-
-                OSDMap map = (OSDMap)data;
+                if (!(data is OSDMap map)) return ret;
 
                 ret.FolderID = map["FolderID"];
                 ret.ParentID = map["ParentID"];
@@ -1443,9 +1441,7 @@ namespace OpenMetaverse.Messages.Linden
             {
                 ItemDataInfo ret = new ItemDataInfo();
 
-                if (!(data is OSDMap)) return ret;
-
-                OSDMap map = (OSDMap)data;
+                if (!(data is OSDMap map)) return ret;
 
                 ret.ItemID = map["ItemID"];
                 ret.CallbackID = map["CallbackID"];

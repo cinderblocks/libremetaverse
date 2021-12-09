@@ -143,16 +143,15 @@ namespace OpenMetaverse
 
         private void GatherCapsResponse(CapsClient client, OSD response, Exception error)
         {
-            if (!(response is OSDMap)) return;
-            var respTable = (OSDMap)response;
+            if (!(response is OSDMap respMap)) return;
 
             // parse
             _caps = new RegistrationCaps
             {
-                CreateUser = respTable["create_user"].AsUri(),
-                CheckName = respTable["check_name"].AsUri(),
-                GetLastNames = respTable["get_last_names"].AsUri(),
-                GetErrorCodes = respTable["get_error_codes"].AsUri()
+                CreateUser = respMap["create_user"].AsUri(),
+                CheckName = respMap["check_name"].AsUri(),
+                GetLastNames = respMap["get_last_names"].AsUri(),
+                GetErrorCodes = respMap["get_error_codes"].AsUri()
             };
 
             // finalize
