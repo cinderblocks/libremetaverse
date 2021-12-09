@@ -35,8 +35,7 @@ namespace OpenMetaverse
     /// <summary>
     /// Base Class for Inventory Items
     /// </summary>
-    [Serializable]
-    [ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
+    [Serializable, ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
     [ProtoInclude(20, typeof(InventoryItem))]
     [ProtoInclude(21, typeof(InventoryFolder))]
     public abstract class InventoryBase : ISerializable
@@ -130,8 +129,7 @@ namespace OpenMetaverse
     /// <summary>
     /// An Item in Inventory
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true, ImplicitFields = ImplicitFields.AllFields)]
+    [Serializable, ProtoContract(SkipConstructor = true, ImplicitFields = ImplicitFields.AllFields)]
     [ProtoInclude(20, typeof(InventoryTexture))]
     [ProtoInclude(21, typeof(InventorySound))]
     [ProtoInclude(22, typeof(InventoryCallingCard))]
@@ -390,8 +388,7 @@ namespace OpenMetaverse
     /// InventoryTexture Class representing a graphical image
     /// </summary>
     /// <seealso cref="T:OpenMetaverse.Imaging.ManagedImage" />
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable, ProtoContract(SkipConstructor = true)]
     public class InventoryTexture : InventoryItem
     {
         /// <summary>
@@ -419,8 +416,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventorySound Class representing a playable sound
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable, ProtoContract(SkipConstructor = true)]
     public class InventorySound : InventoryItem
     {
         /// <summary>
@@ -448,8 +444,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryCallingCard Class, contains information on another avatar
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable, ProtoContract(SkipConstructor = true)]
     public class InventoryCallingCard : InventoryItem
     {
         /// <summary>
@@ -477,8 +472,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryLandmark Class, contains details on a specific location
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable, ProtoContract(SkipConstructor = true)]
     public class InventoryLandmark : InventoryItem
     {
         /// <summary>
@@ -520,8 +514,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryObject Class contains details on a primitive or coalesced set of primitives
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable, ProtoContract(SkipConstructor = true)]
     public class InventoryObject : InventoryItem
     {
         /// <summary>
@@ -567,8 +560,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryNotecard Class, contains details on an encoded text document
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable, ProtoContract(SkipConstructor = true)]
     public class InventoryNotecard : InventoryItem
     {
         /// <summary>
@@ -597,8 +589,7 @@ namespace OpenMetaverse
     /// InventoryCategory Class
     /// </summary>
     /// <remarks>TODO: Is this even used for anything?</remarks>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable, ProtoContract(SkipConstructor = true)]
     public class InventoryCategory : InventoryItem
     {
         /// <summary>
@@ -626,8 +617,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryLSL Class, represents a Linden Scripting Language object
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable, ProtoContract(SkipConstructor = true)]
     public class InventoryLSL : InventoryItem
     {
         /// <summary>
@@ -655,8 +645,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventorySnapshot Class, an image taken with the viewer
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable, ProtoContract(SkipConstructor = true)]
     public class InventorySnapshot : InventoryItem
     {
         /// <inheritdoc />
@@ -684,8 +673,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryAttachment Class, contains details on an attachable object
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable, ProtoContract(SkipConstructor = true)]
     public class InventoryAttachment : InventoryItem
     {
         /// <summary>
@@ -722,8 +710,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryWearable Class, details on a clothing item or body part
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable, ProtoContract(SkipConstructor = true)]
     public class InventoryWearable : InventoryItem
     {
         /// <summary>
@@ -756,8 +743,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryAnimation Class, A bvh encoded object which animates an avatar
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable, ProtoContract(SkipConstructor = true)]
     public class InventoryAnimation : InventoryItem
     {
         /// <summary>
@@ -785,8 +771,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryGesture Class, details on a series of animations, sounds, and actions
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true)]
+    [Serializable, ProtoContract(SkipConstructor = true)]
     public class InventoryGesture : InventoryItem
     {
         /// <summary>
@@ -815,8 +800,7 @@ namespace OpenMetaverse
     /// A folder contains <seealso cref="T:OpenMetaverse.InventoryItem" />s and has certain attributes specific 
     /// to itself
     /// </summary>
-    [Serializable]
-    [ProtoContract(SkipConstructor = true, ImplicitFields = ImplicitFields.AllFields)]
+    [Serializable, ProtoContract(SkipConstructor = true, ImplicitFields = ImplicitFields.AllFields)]
     public class InventoryFolder : InventoryBase
     {
         /// <summary>The Preferred <seealso cref="T:OpenMetaverse.FolderType"/> for a folder.</summary>

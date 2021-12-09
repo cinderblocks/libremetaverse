@@ -34,8 +34,7 @@ namespace OpenMetaverse
     /// A 128-bit Universally Unique Identifier, used throughout the Second
     /// Life networking protocol
     /// </summary>
-    [Serializable]
-    [ProtoContract]
+    [Serializable, ProtoContract]
     public struct UUID : IComparable<UUID>, IEquatable<UUID>
     {
         /// <summary>The System.Guid object this struct wraps around</summary>

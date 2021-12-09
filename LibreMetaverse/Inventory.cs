@@ -356,7 +356,7 @@ namespace OpenMetaverse
 	        }
             catch (Exception e)
             {
-                Logger.Log("Error saving inventory cache to disk :"+e.Message,Helpers.LogLevel.Error);
+                Logger.Log("Error saving inventory cache to disk", Helpers.LogLevel.Error, e);
             }
         }
 
@@ -388,11 +388,11 @@ namespace OpenMetaverse
             }
             catch (Exception e)
             {
-                Logger.Log("Error accessing inventory cache file :" + e.Message, Helpers.LogLevel.Error);
+                Logger.Log("Error accessing inventory cache file", Helpers.LogLevel.Error, e);
                 return -1;
             }
 
-            Logger.Log("Read " + item_count.ToString() + " items from inventory cache file", Helpers.LogLevel.Info);
+            Logger.Log($"Read {item_count} items from inventory cache file", Helpers.LogLevel.Info);
 
             item_count = 0;
             List<InventoryNode> del_nodes = new List<InventoryNode>(); //nodes that we have processed and will delete
@@ -474,7 +474,7 @@ namespace OpenMetaverse
                 del_nodes.Clear();
             }
 
-            Logger.Log("Reassembled " + item_count.ToString() + " items from inventory cache file", Helpers.LogLevel.Info);
+            Logger.Log($"Reassembled {item_count} items from inventory cache file", Helpers.LogLevel.Info);
             return item_count;
         }
 
@@ -502,9 +502,10 @@ namespace OpenMetaverse
                 {
                     // Log a warning if there is a UUID mismatch, this will cause problems
                     if (value.UUID != uuid)
-                        Logger.Log("Inventory[uuid]: uuid " + uuid.ToString() + " is not equal to value.UUID " +
-                            value.UUID.ToString(), Helpers.LogLevel.Warning, Client);
-
+                    {
+                        Logger.Log($"Inventory[uuid]: uuid {uuid} is not equal to value.UUID {value.UUID}",
+                            Helpers.LogLevel.Warning, Client);
+                    }
                     UpdateNodeFor(value);
                 }
                 else

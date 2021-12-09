@@ -30,8 +30,7 @@ using ProtoBuf;
 
 namespace OpenMetaverse
 {
-    [Serializable]
-    [ProtoContract]
+    [Serializable, ProtoContract]
     public class TerrainPatch
     {
         #region Enums and Structs
