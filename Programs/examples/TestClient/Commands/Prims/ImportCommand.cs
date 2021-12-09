@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.IO;
-using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.TestClient

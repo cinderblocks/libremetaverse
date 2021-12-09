@@ -25,14 +25,13 @@
  */
 
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
 
 namespace PacketDump
 {
-	class PacketDump
+    class PacketDump
 	{
         static bool LoginSuccess = false;
         static AutoResetEvent LoginEvent = new AutoResetEvent(false);

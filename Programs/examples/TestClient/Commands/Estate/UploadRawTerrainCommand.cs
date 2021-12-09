@@ -1,8 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Collections.Generic;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 namespace OpenMetaverse.TestClient
 {
     public class UploadRawTerrainCommand : Command

@@ -28,7 +28,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using ProtoBuf;
 using System.Runtime.Serialization.Formatters.Binary;
 
 namespace OpenMetaverse

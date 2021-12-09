@@ -24,7 +24,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
 using LibreMetaverse;
 
 namespace OpenMetaverse

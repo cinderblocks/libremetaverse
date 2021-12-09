@@ -1,7 +1,5 @@
-using System;
 using System.Linq;
 using System.Text.RegularExpressions;
-using OpenMetaverse;
 
 namespace OpenMetaverse.TestClient
 {

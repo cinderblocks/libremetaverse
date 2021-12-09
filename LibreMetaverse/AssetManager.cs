@@ -28,7 +28,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using System.Net;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Assets;
 using OpenMetaverse.Http;

@@ -25,8 +25,6 @@
  */
 
 using System;
-using System.Text;
-using OpenMetaverse;
 
 namespace OpenMetaverse
 {

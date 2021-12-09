@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 using OpenMetaverse.Assets;
 
 namespace OpenMetaverse.TestClient

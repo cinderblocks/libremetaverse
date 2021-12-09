@@ -4,11 +4,6 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.ComponentModel;
-using System.Xml;
-using System.Xml.Serialization;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
-using OpenMetaverse.TestClient;
 using OpenMetaverse.Assets;
 
 namespace OpenMetaverse.TestClient

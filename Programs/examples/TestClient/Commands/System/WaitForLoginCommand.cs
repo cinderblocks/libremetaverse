@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using OpenMetaverse;
-
-namespace OpenMetaverse.TestClient
+﻿namespace OpenMetaverse.TestClient
 {
     public class WaitForLoginCommand : Command
     {

@@ -1,7 +1,4 @@
-﻿using System;
-using OpenMetaverse;
-
-namespace OpenMetaverse.TestClient
+﻿namespace OpenMetaverse.TestClient
 {
     public class DeRezCommand : Command
     {

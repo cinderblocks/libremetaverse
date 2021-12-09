@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
-using OpenMetaverse;
 using OpenMetaverse.Assets;
 
 namespace OpenMetaverse.TestClient

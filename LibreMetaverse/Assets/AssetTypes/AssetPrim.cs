@@ -28,7 +28,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
-using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.Assets

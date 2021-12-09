@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using OpenMetaverse;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.TestClient

@@ -1,7 +1,4 @@
 using System;
-using System.Collections.Generic;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.TestClient
 {

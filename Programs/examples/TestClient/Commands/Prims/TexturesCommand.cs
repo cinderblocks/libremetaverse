@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using OpenMetaverse;
 using OpenMetaverse.Assets;
 
 namespace OpenMetaverse.TestClient

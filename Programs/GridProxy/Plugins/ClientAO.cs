@@ -29,15 +29,10 @@
  */
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Net;
-using System.IO;
-using System.Reflection;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
-using XmlRpcCore;
 using GridProxy;
 
 

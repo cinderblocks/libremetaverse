@@ -1,6 +1,3 @@
-using System;
-using OpenMetaverse;
-
 namespace OpenMetaverse.TestClient
 {
     public class GoHomeCommand : Command

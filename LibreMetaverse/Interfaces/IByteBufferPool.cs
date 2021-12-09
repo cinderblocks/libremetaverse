@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace OpenMetaverse.Interfaces
+﻿namespace OpenMetaverse.Interfaces
 {
     /// <summary>
     /// Interface to a class that can supply cached byte arrays

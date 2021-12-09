@@ -25,8 +25,6 @@
  */
 
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse

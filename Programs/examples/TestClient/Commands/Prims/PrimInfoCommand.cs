@@ -1,6 +1,5 @@
 using System;
 using System.Threading;
-using OpenMetaverse;
 
 namespace OpenMetaverse.TestClient
 {

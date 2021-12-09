@@ -1,10 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Xml;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.TestClient
 {

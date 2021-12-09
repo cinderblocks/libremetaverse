@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Reflection;
-using System.Xml;
-using OpenMetaverse;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Utilities;
 

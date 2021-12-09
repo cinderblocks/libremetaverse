@@ -25,7 +25,6 @@
  */
 
 using System;
-using OpenMetaverse;
 
 namespace OpenMetaverse.Assets
 {

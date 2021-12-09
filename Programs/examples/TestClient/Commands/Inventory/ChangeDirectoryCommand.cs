@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using OpenMetaverse;
+﻿using System.Collections.Generic;
 
 namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
 {

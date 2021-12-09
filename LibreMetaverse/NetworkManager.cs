@@ -25,12 +25,10 @@
  */
 
 using System;
-using System.Collections.Concurrent;
 using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using OpenMetaverse.Packets;
@@ -38,7 +36,7 @@ using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
 
 namespace OpenMetaverse
-{        
+{
     /// <summary>
     /// NetworkManager is responsible for managing the network layer of 
     /// OpenMetaverse. It tracks all the server connections, serializes 
