@@ -1004,7 +1004,7 @@ namespace OpenMetaverse.Voice
         private void PositionThreadBody()
         {
             var token = posTokenSource.Token;
-            while (true)
+            while (!token.IsCancellationRequested)
             {
                 posRestart.WaitOne();
                 token.ThrowIfCancellationRequested();
