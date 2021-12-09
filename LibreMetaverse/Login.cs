@@ -1221,7 +1221,7 @@ namespace OpenMetaverse
             if (string.IsNullOrEmpty(loginParams.LoginLocation) == false)
             {
                 var bits = loginParams.LoginLocation.Split('/');
-                if(bits.Count() == 4)
+                if(bits.Length == 4)
                 {
                     if(int.TryParse(bits[1],out var X) == true)
                     {

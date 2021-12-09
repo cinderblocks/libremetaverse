@@ -1217,9 +1217,7 @@ namespace OpenMetaverse
         /// <param name="rhs">Second value</param>
         public static void Swap<T>(ref T lhs, ref T rhs)
         {
-            T temp = lhs;
-            lhs = rhs;
-            rhs = temp;
+            (lhs, rhs) = (rhs, lhs);
         }
 
         /// <summary>

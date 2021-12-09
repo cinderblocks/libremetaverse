@@ -517,7 +517,7 @@ namespace OpenMetaverse.Imaging
             }
         }
 
-        public static unsafe ManagedImage LoadTGAImage(System.IO.Stream source)
+        public static ManagedImage LoadTGAImage(System.IO.Stream source)
         {
             return LoadTGAImage(source, false);
         }
