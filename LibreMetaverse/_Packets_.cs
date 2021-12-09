@@ -76692,7 +76692,7 @@ namespace OpenMetaverse.Packets
                     if (TextureEntry != null) { length += Math.Min(TextureEntry.Length, 65535); }
                     if (TextureAnim != null) { length += (byte)TextureAnim.Length; }
                     if (NameValue != null) { length += Math.Min(NameValue.Length, 65535); }
-                    if (Data != null) { length += Math.Min(Data.Length, 65535); ; }
+                    if (Data != null) { length += Math.Min(Data.Length, 65535); }
                     if (Text != null) { length += (byte)Text.Length; }
                     if (MediaURL != null) { length += (byte)MediaURL.Length; }
                     if (PSBlock != null) { length += (byte)PSBlock.Length; }
