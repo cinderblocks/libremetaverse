@@ -30,21 +30,18 @@ namespace Baker
                 _alphaMask = LoadTGAClass.LoadTGA(stream);
                 stream.Close();
 
-                //ManagedImage managedImage = new ManagedImage(AlphaMask);
-
-                // FIXME: Operate on ManagedImage instead of Bitmap
                 pic1.Image = Oven.ModifyAlphaMask(_alphaMask, (byte)scrollWeight.Value, 0.0f); // *HACK:
             }
             else
             {
-                MessageBox.Show("Failed to load embedded resource \"" + resource + "\"", "Baker",
+                MessageBox.Show($"Failed to load embedded resource \"{resource}\"", "Baker",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private void scrollWeight_Scroll(object sender, ScrollEventArgs e)
         {
-            pic1.Image = (Image)Oven.ModifyAlphaMask(_alphaMask, (byte)scrollWeight.Value, 0.0f); // *HACK:
+            pic1.Image = Oven.ModifyAlphaMask(_alphaMask, (byte)scrollWeight.Value, 0.0f); // *HACK:
         }
 
         private void frmBaker_FormClosing(object sender, FormClosingEventArgs e)
