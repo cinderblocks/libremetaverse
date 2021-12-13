@@ -893,6 +893,11 @@ namespace OpenMetaverse.StructuredData
             return new OSDMap(new Dictionary<string, OSD>(_mMap));
         }
 
+        public Hashtable ToHashtable()
+        {
+            return new Hashtable(_mMap);
+        }
+
         #region IDictionary Implementation
 
         public int Count => _mMap.Count;
@@ -1123,6 +1128,11 @@ namespace OpenMetaverse.StructuredData
         public override string ToString()
         {
             return OSDParser.SerializeJsonString(this, true);
+        }
+
+        public ArrayList ToArrayList()
+        {
+            return new ArrayList(_mArray);
         }
 
         #region IList Implementation

@@ -365,27 +365,46 @@ namespace OpenMetaverse
             }
             catch (OSDException e)
             {
-                Logger.Log("Login server returned (some) invalid data: " + e.Message, Helpers.LogLevel.Warning);
+                Logger.Log("Login server returned (some) invalid data", Helpers.LogLevel.Warning, e);
             }
 
             // Home
-            var osdHome = OSDParser.DeserializeLLSDNotation(reply["home"].AsString());
-
-            if (osdHome.Type == OSDType.Map)
+            if (reply.ContainsKey("home_info"))
             {
-                var home = (OSDMap)osdHome;
-
-                OSD homeRegion;
-                if (home.TryGetValue("region_handle", out homeRegion) && homeRegion.Type == OSDType.Array)
+                if (reply["home_info"].Type == OSDType.Map)
                 {
-                    var homeArray = (OSDArray)homeRegion;
-                    Home.RegionHandle = homeArray.Count == 2
-                        ? Utils.UIntsToLong((uint)homeArray[0].AsInteger(), (uint)homeArray[1].AsInteger())
-                        : 0;
-                }
+                    var map = (OSDMap)reply["home_info"];
+                    Home.Position = ParseVector3("position", map);
+                    Home.LookAt = ParseVector3("look_at", map);
 
-                Home.Position = ParseVector3("position", home);
-                Home.LookAt = ParseVector3("look_at", home);
+                    var coords = (OSDArray)OSDParser.DeserializeLLSDNotation(map["region_handle"].ToString());
+                    if (coords.Type == OSDType.Array)
+                    {
+                        Home.RegionHandle = (coords.Count == 2)
+                            ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
+                    }
+                }
+            }
+            else if (reply.ContainsKey("home"))
+            {
+                var osdHome = OSDParser.DeserializeLLSDNotation(reply["home"].AsString());
+
+                if (osdHome.Type == OSDType.Map)
+                {
+                    var home = (OSDMap)osdHome;
+
+                    OSD homeRegion;
+                    if (home.TryGetValue("region_handle", out homeRegion) && homeRegion.Type == OSDType.Array)
+                    {
+                        var homeArray = (OSDArray)homeRegion;
+                        Home.RegionHandle = homeArray.Count == 2
+                            ? Utils.UIntsToLong((uint)homeArray[0].AsInteger(), (uint)homeArray[1].AsInteger())
+                            : 0;
+                    }
+
+                    Home.Position = ParseVector3("position", home);
+                    Home.LookAt = ParseVector3("look_at", home);
+                }
             }
             else
             {
@@ -433,6 +452,63 @@ namespace OpenMetaverse
             LibraryOwner = ParseMappedUUID("inventory-lib-owner", "agent_id", reply);
             LibraryRoot = ParseMappedUUID("inventory-lib-root", "folder_id", reply);
             LibrarySkeleton = ParseInventorySkeleton("inventory-skel-lib", reply);
+
+            if (reply.ContainsKey("account_level_benefits"))
+            {
+                if (reply["account_level_benefits"].Type == OSDType.Map)
+                {
+                    AccountLevelBenefits = ((OSDMap)reply["account_level_benefits"]).ToHashtable();
+                }
+            }
+
+            if (reply.ContainsKey("classified_categories"))
+            {
+                if (reply["classified_categories"].Type == OSDType.Array)
+                {
+                    ClassifiedCategories = ((OSDArray)reply["classified_categories"]).ToArrayList();
+                }
+            }
+
+            if (reply.ContainsKey("event_categories"))
+            {
+                if (reply["event_categories"].Type == OSDType.Array)
+                {
+                    EventCategories = ((OSDArray)reply["event_categories"]).ToArrayList();
+                }
+            }
+
+            if (reply.ContainsKey("global-textures"))
+            {
+                if (reply["global-textures"].Type == OSDType.Array)
+                {
+                    GlobalTextures = ((OSDArray)reply["global-textures"]).ToArrayList();
+                }
+            }
+
+            if (reply.ContainsKey("premium_packages"))
+            {
+                if (reply["premium_packages"].Type == OSDType.Map)
+                {
+                    PremiumPackages = ((OSDMap)reply["premium_packages"]).ToHashtable();
+                }
+            }
+
+            if (reply.ContainsKey("ui-config"))
+            {
+                if (reply["ui-config"].Type == OSDType.Array)
+                {
+                    UiConfig = ((OSDArray)reply["ui-config"]).ToArrayList();
+                }
+            }
+
+            if (reply.ContainsKey("max-agent-groups"))
+            {
+                MaxAgentGroups = (int)ParseUInt("max-agent-groups", reply);
+            }
+            else
+            {
+                MaxAgentGroups = -1;
+            }
         }
 
         public void Parse(Hashtable reply)
