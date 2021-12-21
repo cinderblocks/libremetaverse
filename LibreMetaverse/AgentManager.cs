@@ -1569,17 +1569,17 @@ namespace OpenMetaverse
             {
                 int group_id = message_chunk_group_id;
                 message_chunk_group_id++;
-                if (message_chunk_group_id > 500) message_chunk_group_id = 1;
+                if (message_chunk_group_id > 500) { message_chunk_group_id = 1; }
                 string[] chunks = message.SplitBy(900).ToArray();
                 int chunkid = 1;
-                foreach(string C in chunks)
+                foreach(string chunk in chunks)
                 {
                     string chunk_grouping = "";
                     if(hide_chunk_grouping == false)
                     {
-                        chunk_grouping = "[" + group_id.ToString() + "|" + chunkid.ToString() + "|"+chunks.Length.ToString()+"]";
+                        chunk_grouping = $"[{group_id}|{chunkid}|{chunks.Length}]";
                     }
-                    Chat(""+ chunk_grouping+"" + C + "", channel, type, false);
+                    Chat($"{chunk_grouping}{chunk}", channel, type, false);
                     chunkid++;
                 }
             }
