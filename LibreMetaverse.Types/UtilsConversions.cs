@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.Collections;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -745,8 +746,10 @@ namespace OpenMetaverse
         public static byte[] StringToBytes(string str)
         {
             if (string.IsNullOrEmpty(str)) { return EmptyBytes; }
-            if (!str.EndsWith("\0")) { str += "\0"; }
-            return Encoding.UTF8.GetBytes(str);
+            // HACK: Say it ain't so .NET5
+            return str.EndsWith("\0", StringComparison.Ordinal)
+                ? Encoding.UTF8.GetBytes(str) 
+                : Encoding.UTF8.GetBytes(str + '\0');
         }
 
         /// <summary>
