@@ -303,14 +303,14 @@ namespace OpenMetaverse.Voice
                     ? Path.Combine(progFiles, @"SecondLife" + Path.DirectorySeparatorChar + @"SLVoice.exe") 
                     : Path.Combine(myDir, @"SLVoice.exe");
             }
-            else
+
+            if (myDir != null)
             {
-                if (myDir != null)
-                {
-                    var localDaemon = Path.Combine(myDir, Path.Combine("voice", "SLVoice"));
-                    return File.Exists(localDaemon) ? localDaemon : Path.Combine(myDir,"SLVoice");
-                }
+                var localDaemon = Path.Combine(myDir, Path.Combine("voice", "SLVoice"));
+                return File.Exists(localDaemon) ? localDaemon : Path.Combine(myDir,"SLVoice");
             }
+
+            return string.Empty;
         }
 
         void RequestVoiceProvision(Uri cap)
