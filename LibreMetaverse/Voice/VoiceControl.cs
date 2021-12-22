@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2021, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -28,6 +29,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Http;
@@ -68,7 +70,7 @@ namespace OpenMetaverse.Voice
         private string spatialCredentials;
 
         // Session management
-        private Dictionary<string, VoiceSession> sessions;
+        private readonly Dictionary<string, VoiceSession> sessions;
         private VoiceSession spatialSession;
         private Uri currentParcelCap;
         private Uri nextParcelCap;
@@ -79,7 +81,7 @@ namespace OpenMetaverse.Voice
         private CancellationTokenSource posTokenSource;
         private ManualResetEvent posRestart;
         public GridClient Client;
-        private VoicePosition position;
+        private readonly VoicePosition position;
         private Vector3d oldPosition;
         private Vector3d oldAt;
 
@@ -107,15 +109,17 @@ namespace OpenMetaverse.Voice
 
         public VoiceGateway(GridClient c)
         {
-            Random rand = new Random();
+            var rand = new Random();
             daemonPort = rand.Next(34000, 44000);
 
             Client = c;
 
             sessions = new Dictionary<string, VoiceSession>();
-            position = new VoicePosition();
-            position.UpOrientation = new Vector3d(0.0, 1.0, 0.0);
-            position.Velocity = new Vector3d(0.0, 0.0, 0.0);
+            position = new VoicePosition
+            {
+                UpOrientation = new Vector3d(0.0, 1.0, 0.0),
+                Velocity = new Vector3d(0.0, 0.0, 0.0)
+            };
             oldPosition = new Vector3d(0, 0, 0);
             oldAt = new Vector3d(1, 0, 0);
 
@@ -137,60 +141,48 @@ namespace OpenMetaverse.Voice
             }
             
             posTokenSource = new CancellationTokenSource();
-            posThread = new Thread(new ThreadStart(PositionThreadBody));
-            posThread.Name = "VoicePositionUpdate";
-            posThread.IsBackground = true;
+            posThread = new Thread(PositionThreadBody)
+            {
+                Name = "VoicePositionUpdate",
+                IsBackground = true
+            };
             posRestart = new ManualResetEvent(false);
             posThread.Start();
 
-            Client.Network.EventQueueRunning += new EventHandler<EventQueueRunningEventArgs>(Network_EventQueueRunning);
+            Client.Network.EventQueueRunning += Network_EventQueueRunning;
 
             // Connection events
-            OnDaemonRunning +=
-                 new DaemonRunningCallback(connector_OnDaemonRunning);
-            OnDaemonCouldntRun +=
-                new DaemonCouldntRunCallback(connector_OnDaemonCouldntRun);
-            OnConnectorCreateResponse +=
-                new EventHandler<VoiceConnectorEventArgs>(connector_OnConnectorCreateResponse);
-            OnDaemonConnected +=
-                new DaemonConnectedCallback(connector_OnDaemonConnected);
-            OnDaemonCouldntConnect +=
-                new DaemonCouldntConnectCallback(connector_OnDaemonCouldntConnect);
-            OnAuxAudioPropertiesEvent +=
-                new EventHandler<AudioPropertiesEventArgs>(connector_OnAuxAudioPropertiesEvent);
+            OnDaemonRunning += connector_OnDaemonRunning;
+            OnDaemonCouldntRun += connector_OnDaemonCouldntRun;
+            OnConnectorCreateResponse += connector_OnConnectorCreateResponse;
+            OnDaemonConnected += connector_OnDaemonConnected;
+            OnDaemonCouldntConnect += connector_OnDaemonCouldntConnect;
+            OnAuxAudioPropertiesEvent += connector_OnAuxAudioPropertiesEvent;
 
             // Session events
-            OnSessionStateChangeEvent +=
-                new EventHandler<SessionStateChangeEventArgs>(connector_OnSessionStateChangeEvent);
-            OnSessionAddedEvent +=
-                new EventHandler<SessionAddedEventArgs>(connector_OnSessionAddedEvent);
+            OnSessionStateChangeEvent += connector_OnSessionStateChangeEvent;
+            OnSessionAddedEvent += connector_OnSessionAddedEvent;
 
             // Session Participants events
-            OnSessionParticipantUpdatedEvent +=
-                new EventHandler<ParticipantUpdatedEventArgs>(connector_OnSessionParticipantUpdatedEvent);
-            OnSessionParticipantAddedEvent +=
-                new EventHandler<ParticipantAddedEventArgs>(connector_OnSessionParticipantAddedEvent);
+            OnSessionParticipantUpdatedEvent += connector_OnSessionParticipantUpdatedEvent;
+            OnSessionParticipantAddedEvent += connector_OnSessionParticipantAddedEvent;
 
             // Device events
-            OnAuxGetCaptureDevicesResponse +=
-                new EventHandler<VoiceDevicesEventArgs>(connector_OnAuxGetCaptureDevicesResponse);
-            OnAuxGetRenderDevicesResponse +=
-                new EventHandler<VoiceDevicesEventArgs>(connector_OnAuxGetRenderDevicesResponse);
+            OnAuxGetCaptureDevicesResponse += connector_OnAuxGetCaptureDevicesResponse;
+            OnAuxGetRenderDevicesResponse += connector_OnAuxGetRenderDevicesResponse;
 
             // Generic status response
-            OnVoiceResponse += new EventHandler<VoiceResponseEventArgs>(connector_OnVoiceResponse);
+            OnVoiceResponse += connector_OnVoiceResponse;
 
             // Account events
-            OnAccountLoginResponse +=
-                new EventHandler<VoiceAccountEventArgs>(connector_OnAccountLoginResponse);
+            OnAccountLoginResponse += connector_OnAccountLoginResponse;
 
             Logger.Log("Voice initialized", Helpers.LogLevel.Info);
 
             // If voice provisioning capability is already available,
             // proceed with voice startup.   Otherwise the EventQueueRunning
             // event will do it.
-            Uri vCap =
-                 Client.Network.CurrentSim.Caps.CapabilityURI("ProvisionVoiceAccountRequest");
+            var vCap = Client.Network.CurrentSim.Caps.CapabilityURI("ProvisionVoiceAccountRequest");
             if (vCap != null)
                 RequestVoiceProvision(vCap);
 
@@ -204,53 +196,37 @@ namespace OpenMetaverse.Voice
         /// ///<remarks>If something goes wrong, we log it.</remarks>
         void connector_OnVoiceResponse(object sender, VoiceResponseEventArgs e)
         {
-            if (e.StatusCode == 0)
-                return;
-
-            Logger.Log(e.Message + " on " + sender as string, Helpers.LogLevel.Error);
+            if (e.StatusCode == 0) { return; }
+            Logger.Log($"{e.Message} on {sender}", Helpers.LogLevel.Error);
         }
 
         public void Stop()
         {
-            Client.Network.EventQueueRunning -= new EventHandler<EventQueueRunningEventArgs>(Network_EventQueueRunning);
+            Client.Network.EventQueueRunning -= Network_EventQueueRunning;
 
             // Connection events
-            OnDaemonRunning -=
-                     new DaemonRunningCallback(connector_OnDaemonRunning);
-            OnDaemonCouldntRun -=
-                    new DaemonCouldntRunCallback(connector_OnDaemonCouldntRun);
-            OnConnectorCreateResponse -=
-                new EventHandler<VoiceConnectorEventArgs>(connector_OnConnectorCreateResponse);
-            OnDaemonConnected -=
-                    new DaemonConnectedCallback(connector_OnDaemonConnected);
-            OnDaemonCouldntConnect -=
-                    new DaemonCouldntConnectCallback(connector_OnDaemonCouldntConnect);
-            OnAuxAudioPropertiesEvent -=
-                    new EventHandler<AudioPropertiesEventArgs>(connector_OnAuxAudioPropertiesEvent);
+            OnDaemonRunning -= connector_OnDaemonRunning;
+            OnDaemonCouldntRun -= connector_OnDaemonCouldntRun;
+            OnConnectorCreateResponse -= connector_OnConnectorCreateResponse;
+            OnDaemonConnected -= connector_OnDaemonConnected;
+            OnDaemonCouldntConnect -= connector_OnDaemonCouldntConnect;
+            OnAuxAudioPropertiesEvent -= connector_OnAuxAudioPropertiesEvent;
 
             // Session events
-            OnSessionStateChangeEvent -=
-                    new EventHandler<SessionStateChangeEventArgs>(connector_OnSessionStateChangeEvent);
-            OnSessionAddedEvent -=
-                    new EventHandler<SessionAddedEventArgs>(connector_OnSessionAddedEvent);
+            OnSessionStateChangeEvent -= connector_OnSessionStateChangeEvent;
+            OnSessionAddedEvent -= connector_OnSessionAddedEvent;
 
             // Session Participants events
-            OnSessionParticipantUpdatedEvent -=
-                    new EventHandler<ParticipantUpdatedEventArgs>(connector_OnSessionParticipantUpdatedEvent);
-            OnSessionParticipantAddedEvent -=
-                    new EventHandler<ParticipantAddedEventArgs>(connector_OnSessionParticipantAddedEvent);
-            OnSessionParticipantRemovedEvent -=
-                    new EventHandler<ParticipantRemovedEventArgs>(connector_OnSessionParticipantRemovedEvent);
+            OnSessionParticipantUpdatedEvent -= connector_OnSessionParticipantUpdatedEvent;
+            OnSessionParticipantAddedEvent -= connector_OnSessionParticipantAddedEvent;
+            OnSessionParticipantRemovedEvent -= connector_OnSessionParticipantRemovedEvent;
 
             // Tuning events
-            OnAuxGetCaptureDevicesResponse -=
-                    new EventHandler<VoiceDevicesEventArgs>(connector_OnAuxGetCaptureDevicesResponse);
-            OnAuxGetRenderDevicesResponse -=
-                    new EventHandler<VoiceDevicesEventArgs>(connector_OnAuxGetRenderDevicesResponse);
+            OnAuxGetCaptureDevicesResponse -= connector_OnAuxGetCaptureDevicesResponse;
+            OnAuxGetRenderDevicesResponse -= connector_OnAuxGetRenderDevicesResponse;
 
             // Account events
-            OnAccountLoginResponse -=
-                    new EventHandler<VoiceAccountEventArgs>(connector_OnAccountLoginResponse);
+            OnAccountLoginResponse -= connector_OnAccountLoginResponse;
 
             // Stop the background thread
             if (posThread != null)
@@ -264,10 +240,9 @@ namespace OpenMetaverse.Voice
             }
 
             // Close all sessions
-            foreach (VoiceSession s in sessions.Values)
+            foreach (var s in sessions.Values)
             {
-                if (OnSessionRemove != null)
-                    OnSessionRemove(s, EventArgs.Empty);
+                OnSessionRemove?.Invoke(s, EventArgs.Empty);
                 s.Close();
             }
 
@@ -306,50 +281,41 @@ namespace OpenMetaverse.Voice
 
         internal string GetVoiceDaemonPath()
         {
-            string myDir =
+            var myDir =
                 Path.GetDirectoryName(
                     (System.Reflection.Assembly.GetEntryAssembly() ?? typeof (VoiceGateway).Assembly).Location);
             
-            if (Environment.OSVersion.Platform != PlatformID.MacOSX &&
-                Environment.OSVersion.Platform != PlatformID.Unix)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                string localDaemon = Path.Combine(myDir, Path.Combine("voice", "SLVoice.exe"));
+                if (myDir != null)
+                {
+                    var localDaemon = Path.Combine(myDir, Path.Combine("voice", "SLVoice.exe"));
                 
-                if (File.Exists(localDaemon))
-                    return localDaemon;
-
-                string progFiles;
-                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ProgramFiles(x86)")))
-                {
-                    progFiles = Environment.GetEnvironmentVariable("ProgramFiles(x86)");
-                }
-                else
-                {
-                    progFiles = Environment.GetEnvironmentVariable("ProgramFiles");
+                    if (File.Exists(localDaemon))
+                        return localDaemon;
                 }
 
-                if (File.Exists(Path.Combine(progFiles, @"SecondLife" + Path.DirectorySeparatorChar + @"SLVoice.exe")))
-                {
-                    return Path.Combine(progFiles, @"SecondLife" + Path.DirectorySeparatorChar + @"SLVoice.exe");
-                }
+                var progFiles = Environment.GetEnvironmentVariable(
+                    !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ProgramFiles(x86)")) 
+                        ? "ProgramFiles(x86)" : "ProgramFiles");
 
-                return Path.Combine(myDir, @"SLVoice.exe");
-
+                return progFiles != null && File.Exists(Path.Combine(progFiles, @"SecondLife" + Path.DirectorySeparatorChar + @"SLVoice.exe")) 
+                    ? Path.Combine(progFiles, @"SecondLife" + Path.DirectorySeparatorChar + @"SLVoice.exe") 
+                    : Path.Combine(myDir, @"SLVoice.exe");
             }
             else
             {
-                string localDaemon = Path.Combine(myDir, Path.Combine("voice", "SLVoice"));
-
-                if (File.Exists(localDaemon))
-                    return localDaemon;
-
-                return Path.Combine(myDir,"SLVoice");
+                if (myDir != null)
+                {
+                    var localDaemon = Path.Combine(myDir, Path.Combine("voice", "SLVoice"));
+                    return File.Exists(localDaemon) ? localDaemon : Path.Combine(myDir,"SLVoice");
+                }
             }
         }
 
         void RequestVoiceProvision(Uri cap)
         {
-            CapsClient capClient = new CapsClient(cap, "ReqVoiceProvision");
+            var capClient = new CapsClient(cap, "ReqVoiceProvision");
             capClient.OnComplete += cClient_OnComplete;
 
             // STEP 0
@@ -378,8 +344,7 @@ namespace OpenMetaverse.Voice
                 //  5. Create session
 
                 // Get the voice provisioning data
-                Uri vCap =
-                    Client.Network.CurrentSim.Caps.CapabilityURI("ProvisionVoiceAccountRequest");
+                var vCap = Client.Network.CurrentSim.Caps.CapabilityURI("ProvisionVoiceAccountRequest");
 
                 // Do we have voice capability?
                 if (vCap == null)
@@ -405,9 +370,8 @@ namespace OpenMetaverse.Voice
 
         void connector_OnSessionParticipantUpdatedEvent(object sender, ParticipantUpdatedEventArgs e)
         {
-            VoiceSession s = FindSession(e.SessionHandle, false);
-            if (s == null) return;
-            s.ParticipantUpdate(e.URI, e.IsMuted, e.IsSpeaking, e.Volume, e.Energy);
+            var s = FindSession(e.SessionHandle, false);
+            s?.ParticipantUpdate(e.URI, e.IsMuted, e.IsSpeaking, e.Volume, e.Energy);
         }
 
         public string SIPFromUUID(UUID id)
@@ -431,7 +395,7 @@ namespace OpenMetaverse.Voice
             // Base64 encode and replace the pieces of base64 that are less compatible 
             // with e-mail local-parts.
             // See RFC-4648 "Base 64 Encoding with URL and Filename Safe Alphabet"
-            byte[] encbuff = id.GetBytes();
+            var encbuff = id.GetBytes();
             result += Convert.ToBase64String(encbuff);
             result = result.Replace('+', '-');
             result = result.Replace('/', '_');
@@ -441,7 +405,7 @@ namespace OpenMetaverse.Voice
 
         void connector_OnSessionParticipantAddedEvent(object sender, ParticipantAddedEventArgs e)
         {
-            VoiceSession s = FindSession(e.SessionHandle, false);
+            var s = FindSession(e.SessionHandle, false);
             if (s == null)
             {
                 Logger.Log("Orphan participant", Helpers.LogLevel.Error);
@@ -452,9 +416,8 @@ namespace OpenMetaverse.Voice
 
         void connector_OnSessionParticipantRemovedEvent(object sender, ParticipantRemovedEventArgs e)
         {
-            VoiceSession s = FindSession(e.SessionHandle, false);
-            if (s == null) return;
-            s.RemoveParticipant(e.URI);
+            var s = FindSession(e.SessionHandle, false);
+            s?.RemoveParticipant(e.URI);
         }
         #endregion
 
@@ -464,14 +427,13 @@ namespace OpenMetaverse.Voice
             sessionHandle = e.SessionHandle;
 
             // Create our session context.
-            VoiceSession s = FindSession(sessionHandle, true);
+            var s = FindSession(sessionHandle, true);
             s.RegionName = regionName;
 
             spatialSession = s;
 
             // Tell any user-facing code.
-            if (OnSessionCreate != null)
-                OnSessionCreate(s, null);
+            OnSessionCreate?.Invoke(s, null);
 
             Logger.Log("Added voice session in " + regionName, Helpers.LogLevel.Info);
         }
@@ -493,8 +455,7 @@ namespace OpenMetaverse.Voice
 
                     Logger.Log("Voice connected in " + regionName, Helpers.LogLevel.Info);
                     // Tell any user-facing code.
-                    if (OnSessionCreate != null)
-                        OnSessionCreate(s, null);
+                    OnSessionCreate?.Invoke(s, null);
                     break;
 
                 case SessionState.Disconnected:
@@ -506,8 +467,7 @@ namespace OpenMetaverse.Voice
                         Logger.Log("Voice disconnected in " + s.RegionName, Helpers.LogLevel.Info);
 
                         // Inform interested parties
-                        if (OnSessionRemove != null)
-                            OnSessionRemove(s, null);
+                        OnSessionRemove?.Invoke(s, null);
 
                         if (s == spatialSession)
                             spatialSession = null;
@@ -522,6 +482,20 @@ namespace OpenMetaverse.Voice
                         RequestParcelInfo(currentParcelCap);
                     }
                     break;
+                case SessionState.Idle:
+                    break;
+                case SessionState.Answering:
+                    break;
+                case SessionState.InProgress:
+                    break;
+                case SessionState.Hold:
+                    break;
+                case SessionState.Refer:
+                    break;
+                case SessionState.Ringing:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
 
 
@@ -540,7 +514,7 @@ namespace OpenMetaverse.Voice
             ReportConnectionState(ConnectionState.AccountLogin);
 
             // Clean up spatial pointers.
-            VoiceSession s = sessions[sessionHandle];
+            var s = sessions[sessionHandle];
             if (s.IsSpatial)
             {
                 spatialSession = null;
@@ -551,8 +525,7 @@ namespace OpenMetaverse.Voice
             sessions.Remove(sessionHandle);
 
             // Let any user-facing code clean up.
-            if (OnSessionRemove != null)
-                OnSessionRemove(s, null);
+            OnSessionRemove?.Invoke(s, null);
 
             // Tell SLVoice to clean it up as well.
             SessionTerminate(sessionHandle);
@@ -570,7 +543,7 @@ namespace OpenMetaverse.Voice
             if (!make) return null;
 
             // Create a new session and add it to the sessions list.
-            VoiceSession s = new VoiceSession(this, sessionHandle);
+            var s = new VoiceSession(this, sessionHandle);
 
             // Turn on position updating for spatial sessions
             // (For now, only spatial sessions are supported)
@@ -588,17 +561,14 @@ namespace OpenMetaverse.Voice
 
         void connector_OnAuxAudioPropertiesEvent(object sender, AudioPropertiesEventArgs e)
         {
-            if (OnVoiceMicTest != null)
-                OnVoiceMicTest(e.MicEnergy);
+            OnVoiceMicTest?.Invoke(e.MicEnergy);
         }
 
         #endregion
 
         private void ReportConnectionState(ConnectionState s)
         {
-            if (OnVoiceConnectionChange == null) return;
-
-            OnVoiceConnectionChange(s);
+            OnVoiceConnectionChange?.Invoke(s);
         }
 
         /// <summary>
@@ -620,14 +590,12 @@ namespace OpenMetaverse.Voice
             Logger.Log("Voice provisioned", Helpers.LogLevel.Info);
             ReportConnectionState(ConnectionState.Provisioned);
 
-            OSDMap pMap = result as OSDMap;
-
             // We can get back 4 interesting values:
             //      voice_sip_uri_hostname
             //      voice_account_server_name   (actually a full URI)
             //      username
             //      password
-            if (pMap != null)
+            if (result is OSDMap pMap)
             {
                 if (pMap.ContainsKey("voice_sip_uri_hostname"))
                     sipServer = pMap["voice_sip_uri_hostname"].AsString();
@@ -668,7 +636,7 @@ namespace OpenMetaverse.Voice
         void connector_OnDaemonRunning()
         {
             OnDaemonRunning -=
-                new DaemonRunningCallback(connector_OnDaemonRunning);
+                connector_OnDaemonRunning;
 
             Logger.Log("Daemon started", Helpers.LogLevel.Info);
             ReportConnectionState(ConnectionState.DaemonStarted);
@@ -687,7 +655,7 @@ namespace OpenMetaverse.Voice
             ReportConnectionState(ConnectionState.DaemonConnected);
 
             // The connector is what does the logging.
-            VoiceLoggingSettings vLog =
+            var vLog =
                 new VoiceLoggingSettings();
             
 #if DEBUG_VOICE
@@ -697,7 +665,7 @@ namespace OpenMetaverse.Voice
             vLog.LogLevel = 4;
 #endif
             // STEP 3
-            int reqId = ConnectorCreate(
+            var reqId = ConnectorCreate(
                 "V2 SDK",       // Magic value keeps SLVoice happy
                 acctServer,     // Account manager server
                 30000, 30099,   // port range
@@ -738,7 +706,7 @@ namespace OpenMetaverse.Voice
             object sender,
             VoiceAccountEventArgs e)
         {
-            Logger.Log("Account Login " + e.Message, Helpers.LogLevel.Info);
+            Logger.Log($"Account Login {e.Message}", Helpers.LogLevel.Info);
             accountHandle = e.AccountHandle;
             ReportConnectionState(ConnectionState.AccountLogin);
             ParcelChanged();
@@ -769,7 +737,7 @@ namespace OpenMetaverse.Voice
 
         public string CurrentCaptureDevice
         {
-            get { return currentCaptureDevice; }
+            get => currentCaptureDevice;
             set
             {
                 currentCaptureDevice = value;
@@ -778,7 +746,7 @@ namespace OpenMetaverse.Voice
         }
         public string PlaybackDevice
         {
-            get { return currentPlaybackDevice; }
+            get => currentPlaybackDevice;
             set
             {
                 currentPlaybackDevice = value;
@@ -788,33 +756,21 @@ namespace OpenMetaverse.Voice
 
         public int MicLevel
         {
-            set
-            {
-                ConnectorSetLocalMicVolume(connectionHandle, value);
-            }
+            set => ConnectorSetLocalMicVolume(connectionHandle, value);
         }
         public int SpkrLevel
         {
-            set
-            {
-                ConnectorSetLocalSpeakerVolume(connectionHandle, value);
-            }
+            set => ConnectorSetLocalSpeakerVolume(connectionHandle, value);
         }
 
         public bool MicMute
         {
-            set
-            {
-                ConnectorMuteLocalMic(connectionHandle, value);
-            }
+            set => ConnectorMuteLocalMic(connectionHandle, value);
         }
 
         public bool SpkrMute
         {
-            set
-            {
-                ConnectorMuteLocalSpeaker(connectionHandle, value);
-            }
+            set => ConnectorMuteLocalSpeaker(connectionHandle, value);
         }
 
         /// <summary>
@@ -822,7 +778,7 @@ namespace OpenMetaverse.Voice
         /// </summary>
         public bool TestMode
         {
-            get { return testing; }
+            get => testing;
             set
             {
                 testing = value;
@@ -854,8 +810,8 @@ namespace OpenMetaverse.Voice
         internal void ParcelChanged()
         {
             // Get the capability for this parcel.
-            Caps c = Client.Network.CurrentSim.Caps;
-            Uri pCap = c.CapabilityURI("ParcelVoiceInfoRequest");
+            var c = Client.Network.CurrentSim.Caps;
+            var pCap = c.CapabilityURI("ParcelVoiceInfoRequest");
 
             if (pCap == null)
             {
@@ -912,20 +868,21 @@ namespace OpenMetaverse.Voice
                 return;
             }
 
-            OSDMap pMap = result as OSDMap;
-
-            regionName = pMap["region_name"].AsString();
-            ReportConnectionState(ConnectionState.RegionCapAvailable);
-
-            if (pMap.ContainsKey("voice_credentials"))
+            if (result is OSDMap pMap)
             {
-                OSDMap cred =
-                    pMap["voice_credentials"] as OSDMap;
+                regionName = pMap["region_name"].AsString();
+                ReportConnectionState(ConnectionState.RegionCapAvailable);
 
-                if (cred.ContainsKey("channel_uri"))
-                    spatialUri = cred["channel_uri"].AsString();
-                if (cred.ContainsKey("channel_credentials"))
-                    spatialCredentials = cred["channel_credentials"].AsString();
+                if (pMap.ContainsKey("voice_credentials"))
+                {
+                    var cred =
+                        pMap["voice_credentials"] as OSDMap;
+
+                    if (cred.ContainsKey("channel_uri"))
+                        spatialUri = cred["channel_uri"].AsString();
+                    if (cred.ContainsKey("channel_credentials"))
+                        spatialCredentials = cred["channel_credentials"].AsString();
+                }
             }
 
             if (string.IsNullOrEmpty(spatialUri))
@@ -937,7 +894,7 @@ namespace OpenMetaverse.Voice
             Logger.Log("Voice connecting for region " + regionName, Helpers.LogLevel.Info);
 
             // STEP 5
-            int reqId = SessionCreate(
+            var reqId = SessionCreate(
                 accountHandle,
                 spatialUri, // uri
                 "", // Channel name seems to be always null
@@ -959,7 +916,7 @@ namespace OpenMetaverse.Voice
         internal void UpdatePosition(AgentManager self)
         {
             // Get position in Global coordinates
-            Vector3d OMVpos = new Vector3d(self.GlobalPosition);
+            var OMVpos = new Vector3d(self.GlobalPosition);
 
             // Do not send trivial updates.
             if (OMVpos.ApproxEquals(oldPosition, 1.0))
@@ -976,7 +933,7 @@ namespace OpenMetaverse.Voice
 
             // Get azimuth from the facing Quaternion.
             // By definition, facing.W = Cos( angle/2 )
-            double angle = 2.0 * Math.Acos(self.Movement.BodyRotation.W);
+            var angle = 2.0 * Math.Acos(self.Movement.BodyRotation.W);
 
             position.LeftOrientation = new Vector3d(-1.0, 0.0, 0.0);
             position.AtOrientation = new Vector3d((float)Math.Acos(angle), 0.0, -(float)Math.Asin(angle));

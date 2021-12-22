@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2021, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -25,6 +26,7 @@
  */
 
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 
 namespace OpenMetaverse.Voice
@@ -258,56 +260,56 @@ namespace OpenMetaverse.Voice
             sb.Append(VoiceGateway.MakeXML("SessionHandle", SessionHandle));
             sb.Append("<SpeakerPosition>");
             sb.Append("<Position>");
-            sb.Append(VoiceGateway.MakeXML("X", SpeakerPosition.Position.X.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Y", SpeakerPosition.Position.Y.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Z", SpeakerPosition.Position.Z.ToString()));
+            sb.Append(VoiceGateway.MakeXML("X", SpeakerPosition.Position.X.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Y", SpeakerPosition.Position.Y.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Z", SpeakerPosition.Position.Z.ToString(CultureInfo.InvariantCulture)));
             sb.Append("</Position>");
             sb.Append("<Velocity>");
-            sb.Append(VoiceGateway.MakeXML("X", SpeakerPosition.Velocity.X.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Y", SpeakerPosition.Velocity.Y.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Z", SpeakerPosition.Velocity.Z.ToString()));
+            sb.Append(VoiceGateway.MakeXML("X", SpeakerPosition.Velocity.X.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Y", SpeakerPosition.Velocity.Y.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Z", SpeakerPosition.Velocity.Z.ToString(CultureInfo.InvariantCulture)));
             sb.Append("</Velocity>");
             sb.Append("<AtOrientation>");
-            sb.Append(VoiceGateway.MakeXML("X", SpeakerPosition.AtOrientation.X.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Y", SpeakerPosition.AtOrientation.Y.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Z", SpeakerPosition.AtOrientation.Z.ToString()));
+            sb.Append(VoiceGateway.MakeXML("X", SpeakerPosition.AtOrientation.X.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Y", SpeakerPosition.AtOrientation.Y.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Z", SpeakerPosition.AtOrientation.Z.ToString(CultureInfo.InvariantCulture)));
             sb.Append("</AtOrientation>");
             sb.Append("<UpOrientation>");
-            sb.Append(VoiceGateway.MakeXML("X", SpeakerPosition.UpOrientation.X.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Y", SpeakerPosition.UpOrientation.Y.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Z", SpeakerPosition.UpOrientation.Z.ToString()));
+            sb.Append(VoiceGateway.MakeXML("X", SpeakerPosition.UpOrientation.X.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Y", SpeakerPosition.UpOrientation.Y.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Z", SpeakerPosition.UpOrientation.Z.ToString(CultureInfo.InvariantCulture)));
             sb.Append("</UpOrientation>");
             sb.Append("<LeftOrientation>");
-            sb.Append(VoiceGateway.MakeXML("X", SpeakerPosition.LeftOrientation.X.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Y", SpeakerPosition.LeftOrientation.Y.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Z", SpeakerPosition.LeftOrientation.Z.ToString()));
+            sb.Append(VoiceGateway.MakeXML("X", SpeakerPosition.LeftOrientation.X.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Y", SpeakerPosition.LeftOrientation.Y.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Z", SpeakerPosition.LeftOrientation.Z.ToString(CultureInfo.InvariantCulture)));
             sb.Append("</LeftOrientation>");
             sb.Append("</SpeakerPosition>");
             sb.Append("<ListenerPosition>");
             sb.Append("<Position>");
-            sb.Append(VoiceGateway.MakeXML("X", ListenerPosition.Position.X.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Y", ListenerPosition.Position.Y.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Z", ListenerPosition.Position.Z.ToString()));
+            sb.Append(VoiceGateway.MakeXML("X", ListenerPosition.Position.X.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Y", ListenerPosition.Position.Y.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Z", ListenerPosition.Position.Z.ToString(CultureInfo.InvariantCulture)));
             sb.Append("</Position>");
             sb.Append("<Velocity>");
-            sb.Append(VoiceGateway.MakeXML("X", ListenerPosition.Velocity.X.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Y", ListenerPosition.Velocity.Y.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Z", ListenerPosition.Velocity.Z.ToString()));
+            sb.Append(VoiceGateway.MakeXML("X", ListenerPosition.Velocity.X.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Y", ListenerPosition.Velocity.Y.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Z", ListenerPosition.Velocity.Z.ToString(CultureInfo.InvariantCulture)));
             sb.Append("</Velocity>");
             sb.Append("<AtOrientation>");
-            sb.Append(VoiceGateway.MakeXML("X", ListenerPosition.AtOrientation.X.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Y", ListenerPosition.AtOrientation.Y.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Z", ListenerPosition.AtOrientation.Z.ToString()));
+            sb.Append(VoiceGateway.MakeXML("X", ListenerPosition.AtOrientation.X.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Y", ListenerPosition.AtOrientation.Y.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Z", ListenerPosition.AtOrientation.Z.ToString(CultureInfo.InvariantCulture)));
             sb.Append("</AtOrientation>");
             sb.Append("<UpOrientation>");
-            sb.Append(VoiceGateway.MakeXML("X", ListenerPosition.UpOrientation.X.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Y", ListenerPosition.UpOrientation.Y.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Z", ListenerPosition.UpOrientation.Z.ToString()));
+            sb.Append(VoiceGateway.MakeXML("X", ListenerPosition.UpOrientation.X.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Y", ListenerPosition.UpOrientation.Y.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Z", ListenerPosition.UpOrientation.Z.ToString(CultureInfo.InvariantCulture)));
             sb.Append("</UpOrientation>");
             sb.Append("<LeftOrientation>");
-            sb.Append(VoiceGateway.MakeXML("X", ListenerPosition.LeftOrientation.X.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Y", ListenerPosition.LeftOrientation.Y.ToString()));
-            sb.Append(VoiceGateway.MakeXML("Z", ListenerPosition.LeftOrientation.Z.ToString()));
+            sb.Append(VoiceGateway.MakeXML("X", ListenerPosition.LeftOrientation.X.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Y", ListenerPosition.LeftOrientation.Y.ToString(CultureInfo.InvariantCulture)));
+            sb.Append(VoiceGateway.MakeXML("Z", ListenerPosition.LeftOrientation.Z.ToString(CultureInfo.InvariantCulture)));
             sb.Append("</LeftOrientation>");
             sb.Append("</ListenerPosition>");
             return Request("Session.Set3DPosition.1", sb.ToString());

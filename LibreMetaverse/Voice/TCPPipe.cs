@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2021, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -34,7 +35,7 @@ namespace OpenMetaverse.Voice
     {
         protected class SocketPacket
         {
-            public System.Net.Sockets.Socket TCPSocket;
+            public Socket TCPSocket;
             public byte[] DataBuffer = new byte[1];
         }
 
@@ -47,12 +48,9 @@ namespace OpenMetaverse.Voice
         protected Socket _TCPSocket;
         protected IAsyncResult _Result;
         protected AsyncCallback _Callback;
-        protected string _Buffer = String.Empty;
+        protected string _Buffer = string.Empty;
 
-        public bool Connected
-        {
-            get { return _TCPSocket != null && _TCPSocket.Connected; }
-        }
+        public bool Connected => _TCPSocket != null && _TCPSocket.Connected;
 
         public SocketException Connect(string address, int port)
         {
@@ -117,8 +115,10 @@ namespace OpenMetaverse.Voice
             try
             {
                 if (_Callback == null) _Callback = new AsyncCallback(OnDataReceived);
-                SocketPacket packet = new SocketPacket();
-                packet.TCPSocket = _TCPSocket;
+                SocketPacket packet = new SocketPacket
+                {
+                    TCPSocket = _TCPSocket
+                };
                 _Result = _TCPSocket.BeginReceive(packet.DataBuffer, 0, packet.DataBuffer.Length, SocketFlags.None, _Callback, packet);
             }
             catch (SocketException se)
@@ -127,8 +127,8 @@ namespace OpenMetaverse.Voice
             }
         }
 
-        static char[] splitNull = { '\0' };
-        static string[] splitLines = { "\r", "\n", "\r\n" };
+        static readonly char[] splitNull = { '\0' };
+        static readonly string[] splitLines = { "\r", "\n", "\r\n" };
 
         void ReceiveData(string data)
         {
@@ -159,7 +159,7 @@ namespace OpenMetaverse.Voice
                 char[] chars = new char[end + 1];
                 System.Text.Decoder d = System.Text.Encoding.UTF8.GetDecoder();
                 d.GetChars(packet.DataBuffer, 0, end, chars, 0);
-                System.String data = new System.String(chars);
+                string data = new string(chars);
                 ReceiveData(data);
                 WaitForData();
             }
@@ -171,8 +171,7 @@ namespace OpenMetaverse.Voice
             {
                 if (!_TCPSocket.Connected)
                 {
-                    if (OnDisconnected != null)
-                        OnDisconnected(se);
+                    OnDisconnected?.Invoke(se);
                 }
             }
         }

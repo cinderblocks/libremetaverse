@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2021, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -36,7 +37,7 @@ namespace OpenMetaverse.Voice
 
         private bool muted;
         private int volume;
-        private VoiceSession session;
+        private readonly VoiceSession session;
 
         public float Energy { get; private set; }
         public bool IsSpeaking { get; private set; }
@@ -86,7 +87,7 @@ namespace OpenMetaverse.Voice
 
         private static string Encode64(string str)
         {
-            byte[] encbuff = System.Text.Encoding.UTF8.GetBytes(str);
+            byte[] encbuff = Encoding.UTF8.GetBytes(str);
             return Convert.ToBase64String(encbuff);
         }
         private static byte[] Decode64(string str)
@@ -110,34 +111,34 @@ namespace OpenMetaverse.Voice
 
         public string Name
         {
-            get { return AvatarName; }
-            set { AvatarName = value; }
+            get => AvatarName;
+            set => AvatarName = value;
         }
 
         public bool IsMuted
         {
-            get { return muted; }
+            get => muted;
             set
             {
                 muted = value;
                 StringBuilder sb = new StringBuilder();
-                sb.Append(OpenMetaverse.Voice.VoiceGateway.MakeXML("SessionHandle", session.Handle));
-                sb.Append(OpenMetaverse.Voice.VoiceGateway.MakeXML("ParticipantURI", URI));
-                sb.Append(OpenMetaverse.Voice.VoiceGateway.MakeXML("Mute", muted ? "1" : "0"));
+                sb.Append(VoiceGateway.MakeXML("SessionHandle", session.Handle));
+                sb.Append(VoiceGateway.MakeXML("ParticipantURI", URI));
+                sb.Append(VoiceGateway.MakeXML("Mute", muted ? "1" : "0"));
                 session.Connector.Request("Session.SetParticipantMuteForMe.1", sb.ToString());
             }
         }
 
         public int Volume
         {
-            get { return volume; }
+            get => volume;
             set
             {
                 volume = value;
                 StringBuilder sb = new StringBuilder();
-                sb.Append(OpenMetaverse.Voice.VoiceGateway.MakeXML("SessionHandle", session.Handle));
-                sb.Append(OpenMetaverse.Voice.VoiceGateway.MakeXML("ParticipantURI", URI));
-                sb.Append(OpenMetaverse.Voice.VoiceGateway.MakeXML("Volume", volume.ToString()));
+                sb.Append(VoiceGateway.MakeXML("SessionHandle", session.Handle));
+                sb.Append(VoiceGateway.MakeXML("ParticipantURI", URI));
+                sb.Append(VoiceGateway.MakeXML("Volume", volume.ToString()));
                 session.Connector.Request("Session.SetParticipantVolumeForMe.1", sb.ToString());
             }
         }
