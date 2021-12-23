@@ -856,19 +856,24 @@ namespace OpenMetaverse
         /// <summary>A reference to the current <seealso cref="GridClient"/> instance</summary>
         private GridClient Client;
         /// <summary>Currently-active group members requests</summary>
-        private List<UUID> GroupMembersRequests;
+        public List<UUID> GroupMembersRequests;
         /// <summary>Currently-active group roles requests</summary>
         private List<UUID> GroupRolesRequests;
         /// <summary>Currently-active group role-member requests</summary>
         private List<UUID> GroupRolesMembersRequests;
         /// <summary>Dictionary keeping group members while request is in progress</summary>
-        private InternalDictionary<UUID, Dictionary<UUID, GroupMember>> TempGroupMembers;
+        public InternalDictionary<UUID, Dictionary<UUID, GroupMember>> TempGroupMembers;
         /// <summary>Dictionary keeping mebmer/role mapping while request is in progress</summary>
         private InternalDictionary<UUID, List<KeyValuePair<UUID, UUID>>> TempGroupRolesMembers;
         /// <summary>Dictionary keeping GroupRole information while request is in progress</summary>
         private InternalDictionary<UUID, Dictionary<UUID, GroupRole>> TempGroupRoles;
         /// <summary>Caches group name lookups</summary>
         public InternalDictionary<UUID, string> GroupName2KeyCache;
+
+        // Temporary open fields to optimize performance
+        public long lastGroupMembersPacket = 0;
+        public Dictionary<UUID, long> GroupMembersPackets = new Dictionary<UUID, long>();
+        public Dictionary<UUID, long> GroupMembersRequestTimes = new Dictionary<UUID, long>();
 
         /// <summary>
         /// Construct a new instance of the GroupManager class
@@ -1064,6 +1069,10 @@ namespace OpenMetaverse
             }
 
             lock (GroupMembersRequests) GroupMembersRequests.Add(requestID);
+
+            // Remember when we started loading groups
+            long epoch = (DateTime.Now.ToUniversalTime().Ticks - 621355968000000000) / 10000000;
+            GroupMembersRequestTimes.Add(requestID, epoch);
 
             GroupMembersRequestPacket request =
                 new GroupMembersRequestPacket
@@ -1900,6 +1909,16 @@ namespace OpenMetaverse
             Packet packet = e.Packet;
             GroupMembersReplyPacket members = (GroupMembersReplyPacket)packet;
             Dictionary<UUID, GroupMember> groupMemberCache = null;
+
+            // The code contols automatic reloading of large groups which got stuck
+            lastGroupMembersPacket = (DateTime.Now.ToUniversalTime().Ticks - 621355968000000000) / 10000000;
+            UUID groupid = members.GroupData.GroupID;
+
+            lock(GroupMembersPackets)
+                if(GroupMembersPackets.ContainsKey(groupid))
+                    GroupMembersPackets[groupid] = lastGroupMembersPacket;
+                else
+                    GroupMembersPackets.Add(groupid, lastGroupMembersPacket);
 
             lock (GroupMembersRequests)
             {
