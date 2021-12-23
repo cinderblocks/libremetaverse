@@ -1,5 +1,5 @@
 <#
- # Copyright (c) 2020, Sjofn LLC. All rights reserved.
+ # Copyright (c) 2020-2021, Sjofn LLC. All rights reserved.
  #
  # Permission to use, copy, modify, and/or distribute this script for any
  # purpose without fee is hereby granted.
@@ -14,6 +14,27 @@
  #>
 
 param([String]$PfxDownloadUrl, [String]$PfxDownloadUser, [String]$PfxDownloadPasswd, [String]$PfxPasswd)
+
+if ([string]::IsNullOrEmpty($PfxDownloadUrl)) {
+	Write-Output "Download Url not supplied"
+	exit
+}
+
+if ([string]::IsNullOrEmpty($PfxDownloadUser)) {
+	Write-Output "Download User not supplied"
+	exit
+}
+
+if ([string]::IsNullOrEmpty($PfxDownloadPasswd)) {
+	Write-Output "Download Password not supplied"
+	exit
+}
+
+if ([string]::IsNullOrEmpty($PfxPasswd)) {
+	Write-Output "Pfx Password not supplied"
+	exit
+}
+
 Write-Output "Downloading signing certificate..."
 
 $secure_pwd = ConvertTo-SecureString -String $PfxDownloadPasswd -AsPlainText -Force
