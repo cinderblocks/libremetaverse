@@ -1,0 +1,12 @@
+# To learn more about .editorconfig see https://aka.ms/editorconfigdocs
+root = true
+
+# All files
+[*]
+indent_style = space
+indent_size = 4
+curly_bracket_next_line = true
+
+# Xml files
+[*.xml]
+indent_size = 2
