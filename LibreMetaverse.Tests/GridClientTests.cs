@@ -49,8 +49,9 @@ namespace LibreMetaverse.Tests
         {
             var fullusername = Environment.GetEnvironmentVariable("LMVTestAgentUsername");
             var password = Environment.GetEnvironmentVariable("LMVTestAgentPassword");
-            Assert.IsFalse(string.IsNullOrWhiteSpace(fullusername), "LMVTestAgentUsername is empty. Live GridManagerTests cannot be performed.");
-            Assert.IsFalse(string.IsNullOrWhiteSpace(password), "LMVTestAgentPassword is empty. Live GridManagerTests cannot be performed.");
+            if (string.IsNullOrWhiteSpace(fullusername)) { Assert.Ignore("LMVTestAgentUsername is empty. Live GridManagerTests cannot be performed."); }
+            if (string.IsNullOrWhiteSpace(password)) { Assert.Ignore("LMVTestAgentPassword is empty. Live GridManagerTests cannot be performed."); }
+
             var username = fullusername.Split(' ');
 
             Console.Write($"Logging in {fullusername}...");
