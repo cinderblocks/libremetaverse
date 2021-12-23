@@ -1483,6 +1483,19 @@ namespace OpenMetaverse
             LoginReplyXmlRpcHandler(response, newContext);
         }
 
+        /// <summary>
+        /// Connect to the simulator after the successful remote XMLRPC login attempt.
+        /// </summary>
+        public void RemoteLoginHandler(XmlRpcResponse response, UUID loginID) {
+            var loginParams = new LoginParams();
+            loginParams.LoginID = loginID;
+
+            // Simulate CurrentContext
+            CurrentContext = loginParams;
+
+            LoginReplyXmlRpcHandler(response, loginParams);
+        }
+
 
         /// <summary>
         /// Handles response from XML-RPC login replies
