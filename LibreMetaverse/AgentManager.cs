@@ -704,6 +704,14 @@ namespace OpenMetaverse
         public string Message;
         /// <summary>Whether this message is held for offline avatars</summary>
         public InstantMessageOnline Offline;
+
+        /// <summary>If group notice has an inventory attachment</summary>
+        public bool HasAttachment; 
+        /// <summary>The group UUID of the group notice</summary>
+        public UUID GroupUUID;
+        /// <summary>The group notice attachment type</summary>
+        public AssetType AttachmentType;
+        
         /// <summary>Context specific packed data</summary>
         public byte[] BinaryBucket;
 
@@ -3908,9 +3916,8 @@ namespace OpenMetaverse
 
             ImprovedInstantMessagePacket im = (ImprovedInstantMessagePacket)packet;
 
-            if (m_InstantMessage != null)
-            {
-                InstantMessage message;
+            if (m_InstantMessage != null) {
+	            InstantMessage message = new InstantMessage();
                 message.FromAgentID = im.AgentData.AgentID;
                 message.FromAgentName = Utils.BytesToString(im.MessageBlock.FromAgentName);
                 message.ToAgentID = im.MessageBlock.ToAgentID;
@@ -3924,6 +3931,18 @@ namespace OpenMetaverse
                 message.Message = Utils.BytesToString(im.MessageBlock.Message);
                 message.Offline = (InstantMessageOnline)im.MessageBlock.Offline;
                 message.BinaryBucket = im.MessageBlock.BinaryBucket;
+
+                if(message.Dialog == InstantMessageDialog.GroupNotice) {
+	                try {
+		                int i = 0;
+		                message.HasAttachment = message.BinaryBucket[i++] > 0;
+		                message.AttachmentType = (AssetType) message.BinaryBucket[i++];
+
+		                message.GroupUUID.FromBytes(message.BinaryBucket, i);
+	                } catch {
+		                message.HasAttachment = false;
+	                }
+                }
 
                 OnInstantMessage(new InstantMessageEventArgs(message, simulator));
             }
@@ -3954,7 +3973,7 @@ namespace OpenMetaverse
                 {
                     var msg = (OSDMap)osd;
 
-                    InstantMessage message;
+                    InstantMessage message = new InstantMessage();
                     message.FromAgentID = msg["from_agent_id"].AsUUID();
                     message.FromAgentName = msg["from_agent_name"].AsString();
                     message.ToAgentID = msg["to_agent_id"].AsUUID();
