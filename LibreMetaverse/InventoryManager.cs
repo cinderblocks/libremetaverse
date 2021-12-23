@@ -2666,6 +2666,59 @@ namespace OpenMetaverse
             }
         }
 
+        /// <summary>
+        /// Send inventory acceptance message
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="ObjectID"></param>
+        /// <param name="FromAgentID"></param>
+        /// <param name="folder"></param>
+        /// <param name="IMSessionID"></param>
+        /// <param name="accept"></param>
+        public void AcceptInventoryOffer(InstantMessageDialog type, UUID ObjectID, UUID FromAgentID, UUID folder,
+            UUID IMSessionID, bool accept = true) {
+            ImprovedInstantMessagePacket imp = new ImprovedInstantMessagePacket();
+            imp.AgentData.AgentID = Client.Self.AgentID;
+            imp.AgentData.SessionID = Client.Self.SessionID;
+            imp.MessageBlock.FromGroup = false;
+            imp.MessageBlock.ToAgentID = FromAgentID;
+            imp.MessageBlock.Offline = 0;
+            imp.MessageBlock.ID = IMSessionID;
+            imp.MessageBlock.Timestamp = 0;
+            imp.MessageBlock.FromAgentName = Utils.StringToBytes(Client.Self.Name);
+            imp.MessageBlock.Message = Utils.EmptyBytes;
+            imp.MessageBlock.ParentEstateID = 0;
+            imp.MessageBlock.RegionID = UUID.Zero;
+            imp.MessageBlock.Position = Client.Self.SimPosition;
+
+            switch(type) {
+                case InstantMessageDialog.InventoryOffered:
+                    imp.MessageBlock.Dialog =
+                        accept
+                            ? (byte) InstantMessageDialog.InventoryAccepted
+                            : (byte) InstantMessageDialog.InventoryDeclined;
+                    break;
+                case InstantMessageDialog.TaskInventoryOffered:
+                    imp.MessageBlock.Dialog =
+                        accept
+                            ? (byte) InstantMessageDialog.TaskInventoryAccepted
+                            : (byte) InstantMessageDialog.TaskInventoryDeclined;
+                    break;
+                case InstantMessageDialog.GroupNotice:
+                    imp.MessageBlock.Dialog =
+                        accept
+                            ? (byte) InstantMessageDialog.GroupNoticeInventoryAccepted
+                            : (byte) InstantMessageDialog.GroupNoticeInventoryDeclined;
+                    break;
+            }
+
+            imp.MessageBlock.BinaryBucket = accept ? folder.GetBytes() : Utils.EmptyBytes;
+
+            Client.Network.SendPacket(imp, Client.Network.CurrentSim);
+
+            //OnInventoryOfferProcessed(new InventoryOfferProcessedArgs(type, ObjectID, FromAgentID, folder, accept));
+        }
+
         #endregion Rez/Give
 
         #region Task
