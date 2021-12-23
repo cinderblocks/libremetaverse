@@ -328,6 +328,15 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Convert quaternion to euler angles vector
+        /// </summary>
+        /// <returns></returns>
+        public Vector3 ToEulerVector() {
+	        GetEulerAngles(out float r, out float p, out float y);
+	        return new Vector3(r, p, y);
+        }
+
+        /// <summary>
         /// Convert this quaternion to an angle around an axis
         /// </summary>
         /// <param name="axis">Unit vector describing the axis</param>
