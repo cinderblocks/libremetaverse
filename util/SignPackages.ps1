@@ -14,6 +14,11 @@
  #>
 
  param([String]$PfxPasswd)
+
+ if ([string]::IsNullOrEmpty($PfxPasswd)) {
+	Write-Output "Certificate Password not supplied. Cannot sign package."
+	exit
+}
  
  Write-Output "Signing nupkgs..."
 
