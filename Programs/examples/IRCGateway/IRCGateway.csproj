@@ -14,7 +14,7 @@
     <Platforms>AnyCPU;x64;x86</Platforms>
   </PropertyGroup>
   <PropertyGroup>
-	<AssemblyName>IRC Gateway</AssemblyName>
+	<AssemblyName>IrcGateway</AssemblyName>
 	<Authors>Sjofn LLC, OpenMetaverse Developers</Authors>
 	<Company>Sjofn LLC</Company>
     <Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2021. All rights reserved.</Copyright>
