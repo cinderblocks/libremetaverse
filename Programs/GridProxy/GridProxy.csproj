@@ -1,14 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <ProjectType>Local</ProjectType>
-    <ProductVersion>14.0.25123</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{79B51DAA-0000-0000-0000-000000000000}</ProjectGuid>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <AssemblyName>GridProxy</AssemblyName>
-    <DefaultClientScript>JScript</DefaultClientScript>
-    <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
-    <DefaultTargetSchema>IE50</DefaultTargetSchema>
     <DelaySign>false</DelaySign>
     <OutputType>Library</OutputType>
     <RootNamespace>GridProxy</RootNamespace>
@@ -134,16 +128,9 @@
     </None>
   </ItemGroup>
   <PropertyGroup>
-    <PreBuildEvent>
-    </PreBuildEvent>
-    <PostBuildEvent>
-    </PostBuildEvent>
-    <Version>1.2.0</Version>
     <Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2021. All rights reserved.</Copyright>
     <Product>LibreMetaverse</Product>
     <Authors>Sjofn LLC, OpenMetaverse Developers</Authors>
     <Company>Sjofn LLC</Company>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <RepositoryUrl>https://github.com/cinderblocks/libremetaverse</RepositoryUrl>
   </PropertyGroup>
 </Project>

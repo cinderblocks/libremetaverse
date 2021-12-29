@@ -1,16 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <ProjectType>Local</ProjectType>
-    <ProductVersion>14.0.25123</ProductVersion>
     <ProjectGuid>{58443010-0000-0000-0000-000000000000}</ProjectGuid>
-    <AssemblyKeyContainerName />
-    <DefaultClientScript>JScript</DefaultClientScript>
-    <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
-    <DefaultTargetSchema>IE50</DefaultTargetSchema>
     <OutputType>Exe</OutputType>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <RegisterForComInterop>False</RegisterForComInterop>
-    <ConfigurationOverrideFile />
     <RemoveIntegerChecks>False</RemoveIntegerChecks>
     <FileAlignment>4096</FileAlignment>
     <NoStdLib>False</NoStdLib>
@@ -18,24 +11,13 @@
     <NoWarn>1591,1574,0419</NoWarn>
     <OutputPath>..\..\..\bin\</OutputPath>
     <BaseAddress>285212672</BaseAddress>
-    <PreBuildEvent />
-    <PostBuildEvent />
-    <PreBuildEvent />
-    <PostBuildEvent />
-    <PreBuildEvent />
-    <PostBuildEvent />
     <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
     <Platforms>AnyCPU;x64;x86</Platforms>
   </PropertyGroup>
   <PropertyGroup>
-    <PreBuildEvent />
-    <PostBuildEvent />
-    <Version>1.2.0</Version>
     <Authors>Sjofn LLC, OpenMetaverse Developers</Authors>
     <Product>LibreMetaverse</Product>
     <Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2021. All rights reserved.</Copyright>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <RepositoryUrl>https://github.com/cinderblocks/libremetaverse</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />

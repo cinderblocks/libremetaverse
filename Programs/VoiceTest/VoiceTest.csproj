@@ -1,37 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <ProjectType>Local</ProjectType>
-    <ProductVersion>14.0.25123</ProductVersion>
     <ProjectGuid>{EE4EA934-0000-0000-0000-000000000000}</ProjectGuid>
-    <AssemblyKeyContainerName />
-    <DefaultClientScript>JScript</DefaultClientScript>
-    <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
-    <DefaultTargetSchema>IE50</DefaultTargetSchema>
     <OutputType>Exe</OutputType>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <OutputPath>..\..\bin\</OutputPath>
     <NoWarn>1591,1574,0419</NoWarn>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <RemoveIntegerChecks>False</RemoveIntegerChecks>
-    <ConfigurationOverrideFile />
     <RegisterForComInterop>False</RegisterForComInterop>
     <BaseAddress>285212672</BaseAddress>
     <NoStdLib>False</NoStdLib>
     <FileAlignment>4096</FileAlignment>
-    <PreBuildEvent />
-    <PostBuildEvent />
-    <PreBuildEvent />
-    <PostBuildEvent />
-    <PreBuildEvent />
-    <PostBuildEvent />
     <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
     <Platforms>AnyCPU;x64;x86</Platforms>
 	<IsPackable>false</IsPackable>
   </PropertyGroup>
   <PropertyGroup>
-    <PreBuildEvent />
-    <PostBuildEvent />
-    <Version>1.2.0</Version>
     <Authors>Sjofn LLC, OpenMetaverse Developers</Authors>
     <Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2021. All rights reserved.</Copyright>
     <Product>LibreMetaverse</Product>

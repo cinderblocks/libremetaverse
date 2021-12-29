@@ -38,6 +38,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "mapgenerator", "Programs\mapgenerator\mapgenerator.csproj", "{2867B4B3-0000-0000-0000-000000000000}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F8CE4DE6-82E5-49D1-BCDF-BB3E63A52867}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Build.props = Directory.Build.props
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "utilities", "utilities", "{6EF29E7F-FC69-4269-BDCF-4780D54E299D}"
 	ProjectSection(SolutionItems) = preProject
