@@ -18,6 +18,5 @@
 		<RepositoryUrl>https://github.com/cinderblocks/libremetaverse</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<RepositoryBranch>master</RepositoryBranch>
-		<RepositoryCommit></RepositoryCommit>
 	</PropertyGroup>
 </Project>
