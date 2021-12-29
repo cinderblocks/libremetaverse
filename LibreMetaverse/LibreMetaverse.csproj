@@ -8,7 +8,7 @@
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	<EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	<NoWarn>1591</NoWarn>
+	<NoWarn>0419,1574,1591</NoWarn>
     <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0</TargetFrameworks>
     <Platforms>AnyCPU;x64;x86</Platforms>
 	<OutputPath>..\bin\</OutputPath>
