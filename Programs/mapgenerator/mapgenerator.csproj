@@ -3,13 +3,8 @@
     <ProjectGuid>{2867B4B3-0000-0000-0000-000000000000}</ProjectGuid>
     <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
     <OutputType>Exe</OutputType>
-    <RemoveIntegerChecks>False</RemoveIntegerChecks>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <OutputPath>..\..\bin\</OutputPath>
-    <BaseAddress>285212672</BaseAddress>
-    <FileAlignment>4096</FileAlignment>
-    <RegisterForComInterop>False</RegisterForComInterop>
-    <NoWarn>1591,1574,0419</NoWarn>
+	<AssemblyName>MapGenerator</AssemblyName>
     <Platforms>AnyCPU;x64;x86</Platforms>
   </PropertyGroup>
   <PropertyGroup>
