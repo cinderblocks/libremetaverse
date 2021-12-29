@@ -1,15 +1,21 @@
 <?xml version="1.0"?>
 <package >
   <metadata>
-    <id>LibreMetaverse.Types</id>
+    <id>$id$</id>
     <version>$version$</version>
-    <authors>Cinder Biscuits</authors>
-    <owners>Cinder Biscuits</owners>
-    <licenseUrl>https://github.com/cinderblocks/libremetaverse/blob/master/LICENSE.txt</licenseUrl>
+    <authors>$author$</authors>
+    <license type="expression">BSD-3-Clause-Clear</license>
+	<icon>..\data\logo.png</icon>
+	<readme>..\docs\README.md</readme>
     <projectUrl>https://github.com/cinderblocks/libremetaverse</projectUrl>
-    <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>LibreMetaverse type library</description>
-    <copyright>Copyright 2017</copyright>
-    <tags>LMV OMV OpenMetaverse OpenSim Halcyon OpenMetaverseFoundation VirtualWorld Radegast SecondLife</tags>
+	<repository type="git" url="https://github.com/cinderblocks/libremetaverse.git" branch="master" />
+	<requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>$description$</description>
+    <copyright>$copyright$</copyright>
+    <tags>LMV OMV OpenMetaverse OpenSim Halcyon OpenMetaverseFoundation VirtualWorld VirtualReality 3D Radegast MEGAbolt SecondLife</tags>
   </metadata>
+  <files>
+    <file src="..\data\logo.png" target="images\" />
+    <file src="..\README.md" target="docs\" />
+  </files>
 </package>

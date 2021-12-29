@@ -1,11 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>LibreMetaverse</AssemblyName>
+	<PackageId>LibreMetaverse</PackageId>
+	<Description>LibreMetaverse allows your code to read and work with data send across a SecondLife, Halcyon, OpenSimulator, or related connection.</Description>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	<EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<NoWarn>1591</NoWarn>
     <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0</TargetFrameworks>
     <Platforms>AnyCPU;x64;x86</Platforms>
 	<OutputPath>..\bin\</OutputPath>

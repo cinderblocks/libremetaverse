@@ -10,10 +10,13 @@
   </PropertyGroup>
   <PropertyGroup>
     <AssemblyName>LibreMetaverse.GUI</AssemblyName>
+	<PackageId>LibreMetaverse.GUI</PackageId>
+	<Description>GUI library for LibreMetaverse</Description>
 	<UseWindowsForms>true</UseWindowsForms>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse.GUI</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+	<NoWarn>1591</NoWarn>
     <Platforms>AnyCPU;x64;x86</Platforms>
 	<OutputPath>..\bin\</OutputPath>
   </PropertyGroup>

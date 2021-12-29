@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>PacketDump</AssemblyName>
+	<PackageId>LibreMetaverse.PacketDump</PackageId>
 	<OutputType>Exe</OutputType>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <OutputPath>..\..\..\bin\</OutputPath>

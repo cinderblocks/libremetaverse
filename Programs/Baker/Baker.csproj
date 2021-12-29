@@ -9,6 +9,8 @@
 	<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup>
+	<PackageId>LibreMetaverse.Baker</PackageId>
+	<AssemblyName>Baker</AssemblyName>
 	<UseWindowsForms>true</UseWindowsForms>
 	<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	<OutputType>WinExe</OutputType>

@@ -1,14 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Library</OutputType>
-    <RootNamespace>LibreMetaverse.PrimMesher</RootNamespace>
+	<RootNamespace>LibreMetaverse.PrimMesher</RootNamespace>
     <AssemblyName>LibreMetaverse.PrimMesher</AssemblyName>
+	<PackageId>LibreMetaverse.PrimMesher</PackageId>
+	<OutputType>Library</OutputType>
     <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0</TargetFrameworks>
     <Authors>Dhalia Trimble, Sjofn LLC, OpenMetaverse Developers</Authors>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <Product>LibreMetaverse.PrimMesher</Product>
-    <PackageId>LibreMetaverse.PrimMesher</PackageId>
-    <Platforms>AnyCPU;x64;x86</Platforms>
+	<NoWarn>1591</NoWarn>
+	<Platforms>AnyCPU;x64;x86</Platforms>
 	<OutputPath>..\bin\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">

@@ -1,9 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
-    <OutputType>Exe</OutputType>
 	<AssemblyName>MapGenerator</AssemblyName>
-    <Platforms>AnyCPU;x64;x86</Platforms>
+	<PackageId>LibreMetaverse.MapGenerator</PackageId>
+	<TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
+	<OutputType>Exe</OutputType>
+	<Platforms>AnyCPU;x64;x86</Platforms>
 	<OutputPath>..\..\bin\</OutputPath>
   </PropertyGroup>
 	<ItemGroup>
