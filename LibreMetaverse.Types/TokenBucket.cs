@@ -55,10 +55,7 @@ namespace OpenMetaverse
         /// parent. The parent bucket will limit the aggregate bandwidth of all
         /// of its children buckets
         /// </summary>
-        public TokenBucket Parent
-        {
-            get { return parent; }
-        }
+        public TokenBucket Parent => parent;
 
         /// <summary>
         /// Maximum burst rate in bytes per second. This is the maximum number
@@ -66,8 +63,8 @@ namespace OpenMetaverse
         /// </summary>
         public int MaxBurst
         {
-            get { return maxBurst; }
-            set { maxBurst = (value >= 0 ? value : 0); }
+            get => maxBurst;
+            set => maxBurst = (value >= 0 ? value : 0);
         }
 
         /// <summary>
@@ -75,11 +72,11 @@ namespace OpenMetaverse
         /// number of tokens that are added to the bucket per second
         /// </summary>
         /// <remarks>Tokens are added to the bucket any time 
-        /// <seealso cref="RemoveTokens"/> is called, at the granularity of
+        /// <seealso cref="TokenBucket.RemoveTokens"/> is called, at the granularity of
         /// the system tick interval (typically around 15-22ms)</remarks>
         public int DripRate
         {
-            get { return tokensPerMS * 1000; }
+            get => tokensPerMS * 1000;
             set
             {
                 if (value == 0)
@@ -95,13 +92,10 @@ namespace OpenMetaverse
         /// The number of bytes that can be sent at this moment. This is the
         /// current number of tokens in the bucket
         /// <remarks>If this bucket has a parent bucket that does not have
-        /// enough tokens for a request, <seealso cref="RemoveTokens"/> will 
+        /// enough tokens for a request, <seealso cref="TokenBucket.RemoveTokens"/> will 
         /// return false regardless of the content of this bucket</remarks>
         /// </summary>
-        public int Content
-        {
-            get { return content; }
-        }
+        public int Content => content;
 
         #endregion Properties
 
