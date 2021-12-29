@@ -12,12 +12,6 @@
     <Compile Remove="template.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="unusedpackets.txt">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
 	<None Include="..\..\LICENSE.txt" Pack="true" PackagePath="docs\" />
 	<None Include="..\..\README.md" Pack="true" PackagePath="docs\" />
 	<None Include="..\..\data\logo.png" Pack="true" PackagePath="images\" />
