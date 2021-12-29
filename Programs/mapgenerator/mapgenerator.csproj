@@ -11,7 +11,7 @@
     <Compile Remove="template.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\LICENSE.txt">
+    <None Include="unusedpackets.txt">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>

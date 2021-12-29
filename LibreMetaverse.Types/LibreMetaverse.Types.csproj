@@ -42,12 +42,6 @@
     <Optimize>True</Optimize>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="..\LICENSE.txt">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="protobuf-net" Version="3.0.101" />
   </ItemGroup>
   <PropertyGroup>

@@ -15,10 +15,4 @@
     <ProjectReference Include="..\..\..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\..\..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\LICENSE.txt">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
-  </ItemGroup>
 </Project>
