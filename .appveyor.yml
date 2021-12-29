@@ -10,9 +10,13 @@ environment:
     platform: x64
     appveyor_build_worker_image: Visual Studio 2022
     configuration: Release
+  - job_name: Linux Build
+    platform: x64
+    appveyor_build_worker_image: Ubuntu2004
+    configuration: ReleaseNoGui
   - job_name: MacOS Build
     platform: x64
-    appveyor_build_worker_image: macos
+    appveyor_build_worker_image: macOS
     configuration: ReleaseNoGui
 
   LMVTestAgentUsername: SecretAgentTest Resident
@@ -24,6 +28,11 @@ environment:
     secure: qzHJldnavMFT8+Cm2eXndg==
   PfxPassword:
     secure: +vWSGzLkiBGVIxfPb+iRtD+/maQjI2d92hN4PoNAxMc=
+
+matrix:
+  allow_failures:
+  - image: macOS
+  - image: Ubuntu2004
 
 pull_requests:
   do_not_increment_build_number: false
