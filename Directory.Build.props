@@ -9,6 +9,5 @@
 		<Company>Sjofn LLC</Company>
 		<RepositoryUrl>https://github.com/cinderblocks/libremetaverse</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 	</PropertyGroup>
 </Project>
