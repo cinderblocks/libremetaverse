@@ -8,6 +8,7 @@
 	<TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
     <Platforms>x64;x86</Platforms>
     <OutputPath>..\..\bin\</OutputPath>
+	<IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="log4net" Version="2.0.13" />
@@ -17,5 +18,10 @@
     <ProjectReference Include="..\..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
     <ProjectReference Include="..\..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+	<None Include="..\..\LICENSE.txt" Pack="true" PackagePath="docs\" />
+	<None Include="..\..\README.md" Pack="true" PackagePath="docs\" />
+	<None Include="..\..\data\logo.png" Pack="true" PackagePath="images\" />
   </ItemGroup>
 </Project>

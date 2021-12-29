@@ -16,9 +16,15 @@
 	<OutputType>WinExe</OutputType>
     <OutputPath>..\..\bin\</OutputPath>
     <Platforms>AnyCPU;x64;x86</Platforms>
+    <IsTool>true</IsTool>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\LibreMetaverse\LibreMetaverse.csproj" />
 	<ProjectReference Include="..\..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+	<None Include="..\..\LICENSE.txt" Pack="true" PackagePath="docs\" />
+	<None Include="..\..\README.md" Pack="true" PackagePath="docs\" />
+	<None Include="..\..\data\logo.png" Pack="true" PackagePath="images\" />
   </ItemGroup>
 </Project>

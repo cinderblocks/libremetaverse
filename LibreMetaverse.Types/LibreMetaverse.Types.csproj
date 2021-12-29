@@ -44,6 +44,9 @@
   <ItemGroup>
     <PackageReference Include="protobuf-net" Version="3.0.101" />
   </ItemGroup>
-  <PropertyGroup>
-  </PropertyGroup>
+  <ItemGroup>
+	<None Include="..\LICENSE.txt" Pack="true" PackagePath="docs\" />
+	<None Include="..\README.md" Pack="true" PackagePath="docs\" />
+	<None Include="..\data\logo.png" Pack="true" PackagePath="images\" />
+  </ItemGroup>
 </Project>

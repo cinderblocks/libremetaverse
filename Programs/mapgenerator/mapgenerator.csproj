@@ -6,6 +6,7 @@
 	<OutputType>Exe</OutputType>
 	<Platforms>AnyCPU;x64;x86</Platforms>
 	<OutputPath>..\..\bin\</OutputPath>
+	<IsTool>true</IsTool>
   </PropertyGroup>
 	<ItemGroup>
     <Compile Remove="template.cs" />
@@ -15,5 +16,11 @@
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+	<None Include="..\..\LICENSE.txt" Pack="true" PackagePath="docs\" />
+	<None Include="..\..\README.md" Pack="true" PackagePath="docs\" />
+	<None Include="..\..\data\logo.png" Pack="true" PackagePath="images\" />
+	<None Include="unusedpackets.txt" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>

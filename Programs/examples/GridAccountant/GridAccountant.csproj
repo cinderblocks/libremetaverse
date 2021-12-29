@@ -16,6 +16,7 @@
     <OutputType>WinExe</OutputType>
 	<OutputPath>..\..\..\bin\</OutputPath>
 	<Platforms>x64;x86</Platforms>
+	<IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
@@ -25,5 +26,10 @@
     <EmbeddedResource Update="frmGridAccountant.resx">
       <DependentUpon>frmGridAccountant.cs</DependentUpon>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+	<None Include="..\..\..\LICENSE.txt" Pack="true" PackagePath="docs\" />
+	<None Include="..\..\..\README.md" Pack="true" PackagePath="docs\" />
+	<None Include="..\..\..\data\logo.png" Pack="true" PackagePath="images\" />
   </ItemGroup>
 </Project>
