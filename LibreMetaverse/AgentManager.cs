@@ -2501,8 +2501,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="objectLocalID">The Objects Simulator Local ID</param>
         /// <seealso cref="Simulator.ObjectsPrimitives"/>
-        /// <seealso cref="Grab"/>
-        /// <seealso cref="GrabUpdate"/>
+        /// <seealso cref="AgentManager.Grab"/>
+        /// <seealso cref="AgentManager.GrabUpdate"/>
         public void DeGrab(uint objectLocalID)
         {
             DeGrab(objectLocalID, TOUCH_INVALID_TEXCOORD, TOUCH_INVALID_TEXCOORD, 

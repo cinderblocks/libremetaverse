@@ -998,8 +998,8 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Calls either <seealso cref="ReplaceOutfit"/> or
-        /// <seealso cref="AddToOutfit"/> depending on the value of
+        /// Calls either <seealso cref="AppearanceManager.ReplaceOutfit"/> or
+        /// <seealso cref="AppearanceManager.AddToOutfit"/> depending on the value of
         /// replaceItems
         /// </summary>
         /// <param name="wearables">List of wearable inventory items to add

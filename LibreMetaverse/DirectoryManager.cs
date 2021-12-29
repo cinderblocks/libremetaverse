@@ -355,7 +355,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Parcel information returned from a <see cref="StartPlacesSearch"/> request
+        /// Parcel information returned from a <see cref="DirectoryManager.StartPlacesSearch"/> request
         /// <para>
         /// Represents one of the following:
         /// A parcel of land on the grid that has its Show In Search flag set
@@ -514,8 +514,7 @@ namespace OpenMetaverse
         protected virtual void OnEventInfo(EventInfoReplyEventArgs e)
         {
             EventHandler<EventInfoReplyEventArgs> handler = m_EventInfoReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -537,21 +536,20 @@ namespace OpenMetaverse
         protected virtual void OnDirEvents(DirEventsReplyEventArgs e)
         {
             EventHandler<DirEventsReplyEventArgs> handler = m_DirEvents;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
         private readonly object m_DirEventsLock = new object();
 
-        /// <summary>Raised when the data server responds to a <see cref="StartEventsSearch"/> request.</summary>
+        /// <summary>Raised when the data server responds to a <see cref="DirectoryManager.StartEventsSearch"/> request.</summary>
         public event EventHandler<DirEventsReplyEventArgs> DirEventsReply
         {
             add { lock (m_DirEventsLock) { m_DirEvents += value; } }
             remove { lock (m_DirEventsLock) { m_DirEvents -= value; } }
         }
         
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<PlacesReplyEventArgs> m_Places;
 
         /// <summary>Raises the PlacesReply event</summary>
@@ -560,21 +558,20 @@ namespace OpenMetaverse
         protected virtual void OnPlaces(PlacesReplyEventArgs e)
         {
             EventHandler<PlacesReplyEventArgs> handler = m_Places;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
         private readonly object m_PlacesLock = new object();
 
-        /// <summary>Raised when the data server responds to a <see cref="StartPlacesSearch"/> request.</summary>
+        /// <summary>Raised when the data server responds to a <see cref="DirectoryManager.StartPlacesSearch"/> request.</summary>
         public event EventHandler<PlacesReplyEventArgs> PlacesReply
         {
             add { lock (m_PlacesLock) { m_Places += value; } }
             remove { lock (m_PlacesLock) { m_Places -= value; } }
         }
         
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<DirPlacesReplyEventArgs> m_DirPlaces;
 
         /// <summary>Raises the DirPlacesReply event</summary>
@@ -583,14 +580,13 @@ namespace OpenMetaverse
         protected virtual void OnDirPlaces(DirPlacesReplyEventArgs e)
         {
             EventHandler<DirPlacesReplyEventArgs> handler = m_DirPlaces;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
         private readonly object m_DirPlacesLock = new object();
 
-        /// <summary>Raised when the data server responds to a <see cref="StartDirPlacesSearch"/> request.</summary>
+        /// <summary>Raised when the data server responds to a <see cref="DirectoryManager.StartDirPlacesSearch"/> request.</summary>
         public event EventHandler<DirPlacesReplyEventArgs> DirPlacesReply
         {
             add { lock (m_DirPlacesLock) { m_DirPlaces += value; } }
@@ -606,14 +602,13 @@ namespace OpenMetaverse
         protected virtual void OnDirClassifieds(DirClassifiedsReplyEventArgs e)
         {
             EventHandler<DirClassifiedsReplyEventArgs> handler = m_DirClassifieds;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
         private readonly object m_DirClassifiedsLock = new object();
 
-        /// <summary>Raised when the data server responds to a <see cref="StartClassifiedSearch"/> request.</summary>
+        /// <summary>Raised when the data server responds to a <see cref="DirectoryManager.StartClassifiedSearch"/> request.</summary>
         public event EventHandler<DirClassifiedsReplyEventArgs> DirClassifiedsReply
         {
             add { lock (m_DirClassifiedsLock) { m_DirClassifieds += value; } }
@@ -629,14 +624,13 @@ namespace OpenMetaverse
         protected virtual void OnDirGroups(DirGroupsReplyEventArgs e)
         {
             EventHandler<DirGroupsReplyEventArgs> handler = m_DirGroups;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
         private readonly object m_DirGroupsLock = new object();
 
-        /// <summary>Raised when the data server responds to a <see cref="StartGroupSearch"/> request.</summary>
+        /// <summary>Raised when the data server responds to a <see cref="DirectoryManager.StartGroupSearch"/> request.</summary>
         public event EventHandler<DirGroupsReplyEventArgs> DirGroupsReply
         {
             add { lock (m_DirGroupsLock) { m_DirGroups += value; } }
@@ -652,14 +646,13 @@ namespace OpenMetaverse
         protected virtual void OnDirPeople(DirPeopleReplyEventArgs e)
         {
             EventHandler<DirPeopleReplyEventArgs> handler = m_DirPeople;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
         private readonly object m_DirPeopleLock = new object();
 
-        /// <summary>Raised when the data server responds to a <see cref="StartPeopleSearch"/> request.</summary>
+        /// <summary>Raised when the data server responds to a <see cref="DirectoryManager.StartPeopleSearch"/> request.</summary>
         public event EventHandler<DirPeopleReplyEventArgs> DirPeopleReply
         {
             add { lock (m_DirPeopleLock) { m_DirPeople += value; } }
@@ -675,14 +668,13 @@ namespace OpenMetaverse
         protected virtual void OnDirLand(DirLandReplyEventArgs e)
         {
             EventHandler<DirLandReplyEventArgs> handler = m_DirLandReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
         private readonly object m_DirLandLock = new object();
 
-        /// <summary>Raised when the data server responds to a <see cref="StartLandSearch"/> request.</summary>
+        /// <summary>Raised when the data server responds to a <see cref="DirectoryManager.StartLandSearch"/> request.</summary>
         public event EventHandler<DirLandReplyEventArgs> DirLandReply
         {
             add { lock (m_DirLandLock) { m_DirLandReply += value; } }
