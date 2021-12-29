@@ -5,8 +5,10 @@
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <OutputPath>..\..\..\bin\</OutputPath>
     <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
-    <Platforms>AnyCPU;x64;x86</Platforms>
-	<IsPackable>false</IsPackable>
+    <Platforms>x64;x86</Platforms>
+	<IsTool>true</IsTool>
+	<IncludeSymbols>true</IncludeSymbols>
+	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\LibreMetaverse\LibreMetaverse.csproj" />
