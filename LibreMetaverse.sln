@@ -49,6 +49,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "utilities", "utilities", "{
 		util\SignPackages.ps1 = util\SignPackages.ps1
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GridAccountant", "Programs\examples\GridAccountant\GridAccountant.csproj", "{6DE58F9A-0000-0000-0000-000000000000}"
+	ProjectSection(ProjectDependencies) = postProject
+		{27C70F3A-0000-0000-0000-000000000000} = {27C70F3A-0000-0000-0000-000000000000}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -247,6 +252,16 @@ Global
 		{2867B4B3-0000-0000-0000-000000000000}.ReleaseNoGui|x64.Build.0 = Release|x64
 		{2867B4B3-0000-0000-0000-000000000000}.ReleaseNoGui|x86.ActiveCfg = Release|x86
 		{2867B4B3-0000-0000-0000-000000000000}.ReleaseNoGui|x86.Build.0 = Release|x86
+		{6DE58F9A-0000-0000-0000-000000000000}.Debug|x64.ActiveCfg = Debug|x64
+		{6DE58F9A-0000-0000-0000-000000000000}.Debug|x64.Build.0 = Debug|x64
+		{6DE58F9A-0000-0000-0000-000000000000}.Debug|x86.ActiveCfg = Debug|x86
+		{6DE58F9A-0000-0000-0000-000000000000}.Debug|x86.Build.0 = Debug|x86
+		{6DE58F9A-0000-0000-0000-000000000000}.Release|x64.ActiveCfg = Release|x64
+		{6DE58F9A-0000-0000-0000-000000000000}.Release|x64.Build.0 = Release|x64
+		{6DE58F9A-0000-0000-0000-000000000000}.Release|x86.ActiveCfg = Release|x64
+		{6DE58F9A-0000-0000-0000-000000000000}.Release|x86.Build.0 = Release|x64
+		{6DE58F9A-0000-0000-0000-000000000000}.ReleaseNoGui|x64.ActiveCfg = Release|x64
+		{6DE58F9A-0000-0000-0000-000000000000}.ReleaseNoGui|x86.ActiveCfg = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

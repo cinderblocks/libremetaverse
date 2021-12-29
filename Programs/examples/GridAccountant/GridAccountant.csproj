@@ -1,52 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <ProjectType>Local</ProjectType>
-    <ProductVersion>14.0.25123</ProductVersion>
-    <ProjectGuid>{6DE58F9A-0000-0000-0000-000000000000}</ProjectGuid>
-    <ApplicationIcon />
-    <AssemblyKeyContainerName />
-    <DefaultClientScript>JScript</DefaultClientScript>
-    <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
-    <DefaultTargetSchema>IE50</DefaultTargetSchema>
-    <TargetFramework>net40</TargetFramework>
+	<TargetFrameworks>netcoreapp3.1;net5.0-windows</TargetFrameworks>
+	<UseWindowsForms>true</UseWindowsForms>
+	<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <OutputType>WinExe</OutputType>
-    <AppDesignerFolder />
-    <StartupObject />
-    <StartArguments />
-    <FileUpgradeFlags />
-    <Deterministic>false</Deterministic>
-    <AssemblyVersion>1.0.*</AssemblyVersion>
-    <FileVersion>1.0.*</FileVersion>
-    <BaseAddress>285212672</BaseAddress>
-    <RemoveIntegerChecks>False</RemoveIntegerChecks>
-    <DocumentationFile />
-    <ConfigurationOverrideFile />
-    <NoWarn>1591,1574,0419</NoWarn>
-    <FileAlignment>4096</FileAlignment>
-    <RegisterForComInterop>False</RegisterForComInterop>
-    <OutputPath>..\..\..\bin\</OutputPath>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <NoStdLib>False</NoStdLib>
-    <PreBuildEvent />
-    <PostBuildEvent />
-    <PreBuildEvent />
-    <PostBuildEvent />
-    <PreBuildEvent />
-    <PostBuildEvent />
+	<OutputPath>..\..\..\bin\</OutputPath>
+	<Platforms>AnyCPU;x64;x86</Platforms>
   </PropertyGroup>
-  <PropertyGroup>
-    <PreBuildEvent />
-    <PostBuildEvent />
-  </PropertyGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
   <ItemGroup>
-    <Reference Include="System.Windows.Forms">
-      <Private>False</Private>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
+    <ProjectReference Include="..\..\..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
     <ProjectReference Include="..\..\..\LibreMetaverse\LibreMetaverse.csproj" />
-    <ProjectReference Include="..\..\..\LibreMetaverseTypes\LibreMetaverseTypes.csproj" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="frmGridAccountant.resx">
