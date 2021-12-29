@@ -9,24 +9,11 @@
 	<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup>
-    <ProjectGuid>{95F42663-0000-0000-0000-000000000000}</ProjectGuid>
 	<UseWindowsForms>true</UseWindowsForms>
 	<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <OutputType>WinExe</OutputType>
-    <AppDesignerFolder />
-    <NoWarn>1591,1574,0419</NoWarn>
-    <BaseAddress>285212672</BaseAddress>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+	<OutputType>WinExe</OutputType>
     <OutputPath>..\..\bin\</OutputPath>
-    <RemoveIntegerChecks>False</RemoveIntegerChecks>
-    <FileAlignment>4096</FileAlignment>
     <Platforms>AnyCPU;x64;x86</Platforms>
-  </PropertyGroup>
-  <PropertyGroup>
-    <Authors>Sjofn LLC, OpenMetaverse Developers</Authors>
-    <Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2021. All rights reserved.</Copyright>
-	<Company>Sjofn LLC</Company>
-	<AssemblyName>Baker</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\LibreMetaverse\LibreMetaverse.csproj" />

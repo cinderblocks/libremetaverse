@@ -1,31 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <ProjectGuid>{9F71FDB3-0000-0000-0000-000000000000}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+	<AssemblyName>TestClient</AssemblyName>
+	<OutputType>Exe</OutputType>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <NoWarn>1591,1574,0419</NoWarn>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <BaseAddress>285212672</BaseAddress>
-    <FileAlignment>4096</FileAlignment>
-    <RegisterForComInterop>False</RegisterForComInterop>
     <OutputPath>..\..\..\bin\</OutputPath>
     <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
     <Platforms>AnyCPU;x64;x86</Platforms>
 	<IsPackable>false</IsPackable>
-  </PropertyGroup>
-  <PropertyGroup>
-    <Authors>Sjofn LLC, OpenMetaverse Developers</Authors>
-    <Product>LibreMetaverse</Product>
-    <Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2021. All rights reserved.</Copyright>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\..\..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
     <ProjectReference Include="..\..\..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
     <ProjectReference Include="..\..\..\LibreMetaverse.Utilities\LibreMetaverse.Utilities.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />

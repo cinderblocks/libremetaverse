@@ -1,23 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <ProjectType>Local</ProjectType>
-    <ProjectGuid>{89049BBC-0000-0000-0000-000000000000}</ProjectGuid>
+	<AssemblyName>IrcGateway</AssemblyName>
 	<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <OutputType>Exe</OutputType>
-    <FileAlignment>4096</FileAlignment>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <OutputPath>..\..\..\bin\</OutputPath>
-    <NoWarn>1591,1574,0419</NoWarn>
-    <BaseAddress>285212672</BaseAddress>
-    <RegisterForComInterop>False</RegisterForComInterop>
-	<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+	<TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
     <Platforms>AnyCPU;x64;x86</Platforms>
-  </PropertyGroup>
-  <PropertyGroup>
-	<AssemblyName>IrcGateway</AssemblyName>
-	<Authors>Sjofn LLC, OpenMetaverse Developers</Authors>
-	<Company>Sjofn LLC</Company>
-    <Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2021. All rights reserved.</Copyright>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\LibreMetaverse\LibreMetaverse.csproj" />

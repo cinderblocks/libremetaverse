@@ -1,17 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <ProjectGuid>{2867B4B3-0000-0000-0000-000000000000}</ProjectGuid>
     <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
     <OutputType>Exe</OutputType>
-    <OutputPath>..\..\bin\</OutputPath>
 	<AssemblyName>MapGenerator</AssemblyName>
     <Platforms>AnyCPU;x64;x86</Platforms>
+	<OutputPath>..\..\bin\</OutputPath>
   </PropertyGroup>
-  <PropertyGroup>
-    <Authors>Sjofn LLC, Openmetaverse Developers</Authors>
-    <Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2021. All rights reserved</Copyright>
-  </PropertyGroup>
-  <ItemGroup>
+	<ItemGroup>
     <Compile Remove="template.cs" />
   </ItemGroup>
   <ItemGroup>

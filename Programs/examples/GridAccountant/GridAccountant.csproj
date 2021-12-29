@@ -9,6 +9,7 @@
 	<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup>
+	<AssemblyName>GridAccountant</AssemblyName>
 	<UseWindowsForms>true</UseWindowsForms>
 	<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <OutputType>WinExe</OutputType>
