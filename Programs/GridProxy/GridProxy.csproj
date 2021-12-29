@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>GridProxy</AssemblyName>
-	<PackageId>LibreMetaverse.GridProxy</PackageId>
+	<PackageId>GridProxy</PackageId>
 	<OutputType>Library</OutputType>
     <RootNamespace>GridProxy</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>

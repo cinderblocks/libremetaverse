@@ -9,7 +9,7 @@
 	<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup>
-	<PackageId>LibreMetaverse.GridAccountant</PackageId>
+	<PackageId>GridAccountant</PackageId>
 	<AssemblyName>GridAccountant</AssemblyName>
 	<UseWindowsForms>true</UseWindowsForms>
 	<GenerateAssemblyInfo>true</GenerateAssemblyInfo>

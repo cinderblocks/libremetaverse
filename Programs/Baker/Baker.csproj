@@ -9,7 +9,7 @@
 	<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup>
-	<PackageId>LibreMetaverse.Baker</PackageId>
+	<PackageId>Baker</PackageId>
 	<AssemblyName>Baker</AssemblyName>
 	<UseWindowsForms>true</UseWindowsForms>
 	<GenerateAssemblyInfo>true</GenerateAssemblyInfo>

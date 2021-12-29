@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
 	<AssemblyName>IrcGateway</AssemblyName>
-	<PackageId>LibreMetaverse.IrcGateway</PackageId>
+	<PackageId>IrcGateway</PackageId>
 	<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <OutputType>Exe</OutputType>
     <OutputPath>..\..\..\bin\</OutputPath>
