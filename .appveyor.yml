@@ -47,8 +47,6 @@ dotnet_csproj:
   file: '**\*.csproj;**\*.props'
   version: '{version}'
   package_version: '{version}'
-  assembly_version: '{version}'
-  file_version: '{version}'
 
 before_build:
   - dotnet --info
