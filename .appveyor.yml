@@ -47,8 +47,6 @@ dotnet_csproj:
   file: '**\*.csproj;**\*.props'
   version: '{version}'
   package_version: '{version}'
-  repository_branch: $(appveyor_repo_branch) 
-  repository_commit: $(appveyor_repo_commit)
 
 before_build:
   - dotnet --info
