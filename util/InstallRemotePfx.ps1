@@ -1,5 +1,5 @@
 <#
- # Copyright (c) 2020-2021, Sjofn LLC. All rights reserved.
+ # Copyright (c) 2020-2022, Sjofn LLC. All rights reserved.
  #
  # Permission to use, copy, modify, and/or distribute this script for any
  # purpose without fee is hereby granted.
