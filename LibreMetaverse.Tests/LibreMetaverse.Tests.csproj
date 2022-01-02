@@ -8,6 +8,7 @@
     <IsPackable>false</IsPackable>
     <Platforms>AnyCPU;x64;x86</Platforms>
 	<OutputPath>..\bin\</OutputPath>
+	<NoWarn>$(NoWarn);SYSLIB0001</NoWarn>
 	<EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
