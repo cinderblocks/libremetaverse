@@ -59,7 +59,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Fetch a list of Abuse Report categories from the simulator
         /// </summary>
-        /// <returns>Returns Dictionary<string string> of Abuse Report categories from the server</returns>
+        /// <returns>Returns Dictionary of Abuse Report categories from the server</returns>
         public Dictionary<string, string> FetchAbuseReportCategories()
         {
             return FetchAbuseReportCategories(null);
@@ -69,7 +69,7 @@ namespace LibreMetaverse
         /// Fetch a list of Abuse Report categories from the simulator
         /// </summary>
         /// <param name="lang">language to return categories in</param>
-        /// <returns>Returns Dictionary<string, string> of Abuse Report categories from the server</returns>
+        /// <returns>Returns Dictionary of Abuse Report categories from the server</returns>
         public Dictionary<string, string> FetchAbuseReportCategories(string lang)
         {
             Dictionary<string, string> reportCategories = null;
