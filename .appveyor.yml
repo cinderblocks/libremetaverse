@@ -59,7 +59,7 @@ dotnet_csproj:
 
 before_build:
   - dotnet --info
-  - nuget restore LibreMetaverse.sln
+  - dotnet restore LibreMetaverse.sln
 
 artifacts:
   - path: 'nuget_libraries.zip'
