@@ -26,7 +26,6 @@
 
 using System;
 using System.Security.Cryptography;
-using ProtoBuf;
 
 namespace OpenMetaverse
 {
@@ -34,11 +33,10 @@ namespace OpenMetaverse
     /// A 128-bit Universally Unique Identifier, used throughout the Second
     /// Life networking protocol
     /// </summary>
-    [Serializable, ProtoContract]
+    [Serializable]
     public struct UUID : IComparable<UUID>, IEquatable<UUID>
     {
         /// <summary>The System.Guid object this struct wraps around</summary>
-        [ProtoMember(1)]
         public Guid Guid { get; set; }
 
         #region Constructors

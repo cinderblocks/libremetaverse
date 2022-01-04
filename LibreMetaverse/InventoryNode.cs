@@ -27,11 +27,10 @@
 
 using System;
 using System.Runtime.Serialization;
-using ProtoBuf;
 
 namespace OpenMetaverse
 {
-    [Serializable, ProtoContract(ImplicitFields = ImplicitFields.AllPublic)]
+    [Serializable]
     public class InventoryNode : ISerializable
     {
         private InventoryBase data;
@@ -49,14 +48,12 @@ namespace OpenMetaverse
         }
 
         /// <summary>User data</summary>
-        [ProtoIgnore]
         public object Tag
         {
             get => tag;
             set => tag = value;
         }
 
-        [ProtoIgnore]
         public InventoryNode Parent
         {
             get => parent;
@@ -69,7 +66,6 @@ namespace OpenMetaverse
             private set => parentID = value;
         }
 
-        [ProtoIgnore]
         public InventoryNodeDictionary Nodes
         {
             get => nodes ?? (nodes = new InventoryNodeDictionary(this));
@@ -86,7 +82,6 @@ namespace OpenMetaverse
             set => needsUpdate = value;
         }
 
-        [ProtoIgnore]
         public DateTime ModifyTime
         {
             get

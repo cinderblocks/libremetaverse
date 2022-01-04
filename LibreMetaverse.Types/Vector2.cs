@@ -27,7 +27,6 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Globalization;
-using ProtoBuf;
 
 namespace OpenMetaverse
 {
@@ -35,15 +34,12 @@ namespace OpenMetaverse
     /// A two-dimensional vector with floating-point values
     /// </summary>
     [Serializable]
-    [ProtoContract]
     [StructLayout(LayoutKind.Sequential)]
     public struct Vector2 : IComparable<Vector2>, IEquatable<Vector2>
     {
         /// <summary>X value</summary>
-        [ProtoMember(1)]
         public float X;
         /// <summary>Y value</summary>
-        [ProtoMember(2)]
         public float Y;
 
         #region Constructors

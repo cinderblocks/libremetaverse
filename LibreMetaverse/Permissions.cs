@@ -26,7 +26,6 @@
 
 using System;
 using OpenMetaverse.StructuredData;
-using ProtoBuf;
 
 namespace OpenMetaverse
 {
@@ -62,7 +61,7 @@ namespace OpenMetaverse
         All = 0x1F
     }
 
-    [Serializable, ProtoContract(ImplicitFields = ImplicitFields.AllFields)]
+    [Serializable]
     public struct Permissions
     {
         public PermissionMask BaseMask;
