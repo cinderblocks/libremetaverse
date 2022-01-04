@@ -29,4 +29,9 @@
 		<DefineConstants>TRACE</DefineConstants>
 		<Optimize>True</Optimize>
 	</PropertyGroup>
+	<ItemGroup>
+		<None Include="..\LICENSE.txt" Pack="true" PackagePath="docs\" />
+		<None Include="..\README.md" Pack="true" PackagePath="docs\" />
+		<None Include="..\data\logo.png" Pack="true" PackagePath="images\" />
+	</ItemGroup>
 </Project>
