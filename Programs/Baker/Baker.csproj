@@ -15,7 +15,7 @@
 	<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	<OutputType>WinExe</OutputType>
     <OutputPath>..\..\bin\</OutputPath>
-    <Platforms>AnyCPU;x64;x86</Platforms>
+    <Platforms>x64;x86</Platforms>
     <IsTool>true</IsTool>
 	<IncludeSymbols>true</IncludeSymbols>
 	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
