@@ -9,8 +9,8 @@
 	</PropertyGroup>
 	<PropertyGroup>
 		<PackageVersion>0.10.0.0</PackageVersion>
-		<PackageIcon>images\logo.png</PackageIcon>
-		<PackageReadmeFile>docs\README.md</PackageReadmeFile>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
 		<PackageProjectUrl>https://github.com/cinderblocks/libremetaverse</PackageProjectUrl>
 		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
