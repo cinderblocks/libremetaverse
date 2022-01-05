@@ -9,7 +9,6 @@
     <Platforms>x64;x86</Platforms>
     <IsTool>true</IsTool>
 	<IncludeSymbols>true</IncludeSymbols>
-	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />

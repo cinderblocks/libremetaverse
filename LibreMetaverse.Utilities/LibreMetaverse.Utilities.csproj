@@ -8,7 +8,6 @@
 	  <RootNamespace>LibreMetaverse.Utilities</RootNamespace>
 	  <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	  <IncludeSymbols>true</IncludeSymbols>
-	  <SymbolPackageFormat>snupkg</SymbolPackageFormat>
       <NoWarn>0419,1574,1591</NoWarn>
 	  <Platforms>AnyCPU;x64;x86</Platforms>
       <OutputPath>..\bin\</OutputPath>
