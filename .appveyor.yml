@@ -72,7 +72,7 @@ deploy:
     api_key:
       secure: Mvs+45lPmiSYC9hv3AqdKWJVEzA5B5w0iU2IUCRz2/cxow/s00suGcO326h4Gjt7
     artifact: /.*LibreMetaverse.*\.nupkg/
-    skip_symbols: false
+    skip_symbols: true
     draft: false
     prerelease: false
     on:
