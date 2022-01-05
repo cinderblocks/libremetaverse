@@ -16,7 +16,6 @@
 	<OutputType>WinExe</OutputType>
     <OutputPath>..\..\bin\</OutputPath>
     <Platforms>x64;x86</Platforms>
-    <IsTool>true</IsTool>
 	<IncludeSymbols>true</IncludeSymbols>
   </PropertyGroup>
   <ItemGroup>

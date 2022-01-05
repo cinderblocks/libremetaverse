@@ -7,7 +7,6 @@
     <OutputPath>..\..\..\bin\</OutputPath>
     <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
     <Platforms>x64;x86</Platforms>
-    <IsTool>true</IsTool>
 	<IncludeSymbols>true</IncludeSymbols>
   </PropertyGroup>
   <ItemGroup>
