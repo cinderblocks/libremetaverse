@@ -6,7 +6,11 @@ init:
 
 environment:
   matrix:
-  - job_name: Windows Build
+  - job_name: Windows x64 Build
+    platform: x64
+    appveyor_build_worker_image: Visual Studio 2022
+    configuration: Release
+  - job_name: Windows x86 Build
     platform: x64
     appveyor_build_worker_image: Visual Studio 2022
     configuration: Release
@@ -76,7 +80,7 @@ deploy:
     draft: false
     prerelease: false
     on:
-      job_name: Windows build
+      job_name: Windows x64 build
       APPVEYOR_REPO_TAG: true
   - provider: GitHub
     name: github_releases
@@ -89,14 +93,14 @@ deploy:
     draft: false
     prerelease: false
     on:
-      job_name: Windows build
+      job_name: Windows x64 build
       APPVEYOR_REPO_TAG: true
 
 for:
 -
   matrix:
     only:
-      - job_name: Windows Build
+      - job_name: Windows x64 Build
 
   after_build:
     - ps: util/InstallRemotePfx.ps1 -PfxDownloadUrl $env:PfxDownloadUrl -PfxDownloadUser AppVeyor -PfxDownloadPasswd $env:PfxDownloadPasswd -PfxPasswd $env:PfxPassword
