@@ -9,7 +9,7 @@
 	<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	<IncludeSymbols>true</IncludeSymbols>
 	<NoWarn>0419,1574,1591</NoWarn>
-    <Platforms>x64;x86</Platforms>
+    <Platforms>x64;x86;AnyCPU</Platforms>
 	<OutputPath>..\bin\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
@@ -17,6 +17,10 @@
     <Optimize>False</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <Optimize>False</Optimize>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>TRACE;DEBUG</DefineConstants>
     <Optimize>False</Optimize>
   </PropertyGroup>
@@ -30,6 +34,12 @@
 	<GenerateDocumentationFile>true</GenerateDocumentationFile>
 	<DebugType>pdbonly</DebugType>
 	<DefineConstants>TRACE</DefineConstants>
+    <Optimize>True</Optimize>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DebugType>pdbonly</DebugType>
+    <DefineConstants>TRACE</DefineConstants>
     <Optimize>True</Optimize>
   </PropertyGroup>
   <ItemGroup>

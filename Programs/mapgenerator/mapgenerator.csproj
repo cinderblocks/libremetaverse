@@ -6,7 +6,7 @@
 	<OutputPath>..\..\bin\</OutputPath>
 	<PackageId>LibreMetaverse.MapGenerator</PackageId>
 	<TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
-	<Platforms>x64;x86</Platforms>
+	<Platforms>AnyCPU</Platforms>
 	<IncludeSymbols>true</IncludeSymbols>
   </PropertyGroup>
 	<ItemGroup>
