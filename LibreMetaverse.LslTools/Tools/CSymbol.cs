@@ -190,7 +190,7 @@ namespace LibreMetaverse.LslTools
             this.isNullable = (object) false;
             break;
           default:
-            throw new Exception("unexpected symbol type");
+            throw new LslToolsException("unexpected symbol type");
         }
       }
       return (bool) this.isNullable;

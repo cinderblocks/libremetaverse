@@ -113,11 +113,10 @@ namespace LibreMetaverse.LslTools
       }
       else
       {
-        string str = this.Deserialise() as string;
-        if (str == null)
-          throw new Exception("Serialisation error - found data from version 4.4 or earlier");
+          if (this.Deserialise() is not string str)
+          throw new LslToolsException("Serialisation error - found data from version 4.4 or earlier");
         if (str != "4.5")
-          throw new Exception("Serialisation error - expected version 4.5, found data from version " + str);
+          throw new LslToolsException("Serialisation error - expected version 4.5, found data from version " + str);
       }
     }
 
@@ -258,9 +257,9 @@ namespace LibreMetaverse.LslTools
       {
         return (object) Encoding.GetEncoding(name);
       }
-      catch (Exception)
+      catch (Exception ex)
       {
-        throw new Exception("Unknown encoding");
+        throw new LslToolsException("Unknown encoding " + ex.Message);
       }
     }
 
@@ -306,7 +305,7 @@ namespace LibreMetaverse.LslTools
         }
         object tp = Serialiser.tps[(object) type];
         if (tp == null)
-          throw new Exception("unknown type " + type.FullName);
+          throw new LslToolsException("unknown type " + type.FullName);
         Serialiser.SerType t = (Serialiser.SerType) tp;
         this._Write(t);
         object obj = ((Serialiser.ObjectSerialiser) Serialiser.srs[(object) t])(o, this);
@@ -326,7 +325,7 @@ namespace LibreMetaverse.LslTools
       }
       Serialiser.ObjectSerialiser sr = (Serialiser.ObjectSerialiser) Serialiser.srs[(object) (Serialiser.SerType) num1];
       if (sr == null)
-        throw new Exception("unknown type " + (object) num1);
+        throw new LslToolsException("unknown type " + (object) num1);
       if (num2 <= 0)
         return sr((object) null, this);
       object o = sr((object) null, (Serialiser) null);
