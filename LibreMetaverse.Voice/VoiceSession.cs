@@ -29,7 +29,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
-namespace OpenMetaverse.Voice
+namespace LibreMetaverse.Voice
 {
     /// <summary>
     /// Represents a single Voice Session to the Vivox service.

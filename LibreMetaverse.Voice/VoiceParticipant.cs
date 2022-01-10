@@ -28,8 +28,9 @@
 using System;
 using System.Text;
 using System.Text.RegularExpressions;
+using OpenMetaverse;
 
-namespace OpenMetaverse.Voice
+namespace LibreMetaverse.Voice
 {
     public class VoiceParticipant
     {

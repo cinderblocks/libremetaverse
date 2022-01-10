@@ -29,7 +29,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 
-namespace OpenMetaverse.Voice
+namespace LibreMetaverse.Voice
 {
     public class TCPPipe
     {

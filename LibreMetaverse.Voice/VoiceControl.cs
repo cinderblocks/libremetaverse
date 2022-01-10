@@ -31,10 +31,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
+using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Http;
 
-namespace OpenMetaverse.Voice
+namespace LibreMetaverse.Voice
 {
     public partial class VoiceGateway : IDisposable
     {

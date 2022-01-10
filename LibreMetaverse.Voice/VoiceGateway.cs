@@ -32,8 +32,9 @@ using System.Net.Sockets;
 using System.Diagnostics;
 using System.Threading;
 using System.Text;
+using OpenMetaverse;
 
-namespace OpenMetaverse.Voice
+namespace LibreMetaverse.Voice
 {
     public partial class VoiceGateway
     {

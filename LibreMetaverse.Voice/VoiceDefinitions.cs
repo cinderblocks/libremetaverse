@@ -28,8 +28,9 @@
 using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
+using OpenMetaverse;
 
-namespace OpenMetaverse.Voice
+namespace LibreMetaverse.Voice
 {
     public partial class VoiceGateway
     {

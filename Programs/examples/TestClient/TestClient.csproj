@@ -12,7 +12,7 @@
     <ProjectReference Include="..\..\..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\..\..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
     <ProjectReference Include="..\..\..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
-    <ProjectReference Include="..\..\..\LibreMetaverse.Utilities\LibreMetaverse.Utilities.csproj" />
+    <ProjectReference Include="..\..\..\LibreMetaverse.Voice\LibreMetaverse.Voice.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
