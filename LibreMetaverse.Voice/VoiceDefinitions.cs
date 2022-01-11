@@ -608,7 +608,7 @@ namespace LibreMetaverse.Voice
             public string RequestId;
             [XmlAttribute("action")]
             public string Action;
-            public string ReturnCode;
+            public int ReturnCode;
             public VoiceResponseResults Results;
             public VoiceInputXml InputXml;
         }
@@ -626,7 +626,7 @@ namespace LibreMetaverse.Voice
         public class VoiceResponseResults
         {
             public string VersionID;
-            public string StatusCode;
+            public int StatusCode;
             public string StatusString;
             public string ConnectorHandle;
             public string AccountHandle;

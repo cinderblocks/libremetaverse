@@ -305,8 +305,8 @@ namespace LibreMetaverse.Voice
                         OnConnectorCreateResponse?.Invoke(
                             rsp.InputXml.Request,
                             new VoiceConnectorEventArgs(
-                                int.Parse(rsp.ReturnCode),
-                                int.Parse(rsp.Results.StatusCode),
+                                rsp.ReturnCode,
+                                rsp.Results.StatusCode,
                                 rsp.Results.StatusString,
                                 rsp.Results.VersionID,
                                 rsp.Results.ConnectorHandle));
@@ -327,8 +327,8 @@ namespace LibreMetaverse.Voice
                                 rsp.InputXml.Request,
                                 new VoiceDevicesEventArgs(
                                     ResponseType.GetCaptureDevices,
-                                    int.Parse(rsp.ReturnCode),
-                                    int.Parse(rsp.Results.StatusCode),
+                                    rsp.ReturnCode,
+                                    rsp.Results.StatusCode,
                                     rsp.Results.StatusString,
                                     rsp.Results.CurrentCaptureDevice.Device,
                                     CaptureDevices));
@@ -352,8 +352,8 @@ namespace LibreMetaverse.Voice
                                 rsp.InputXml.Request,
                                 new VoiceDevicesEventArgs(
                                     ResponseType.GetCaptureDevices,
-                                    int.Parse(rsp.ReturnCode),
-                                    int.Parse(rsp.Results.StatusCode),
+                                    rsp.ReturnCode,
+                                    rsp.Results.StatusCode,
                                     rsp.Results.StatusString,
                                     rsp.Results.CurrentRenderDevice.Device,
                                     PlaybackDevices));
@@ -365,8 +365,8 @@ namespace LibreMetaverse.Voice
                         {
                             OnAccountLoginResponse(rsp.InputXml.Request,
                                 new VoiceAccountEventArgs(
-                                    int.Parse(rsp.ReturnCode),
-                                    int.Parse(rsp.Results.StatusCode),
+                                    rsp.ReturnCode,
+                                    rsp.Results.StatusCode,
                                     rsp.Results.StatusString,
                                     rsp.Results.AccountHandle));
                         }
@@ -378,8 +378,8 @@ namespace LibreMetaverse.Voice
                             OnSessionCreateResponse(
                                 rsp.InputXml.Request,
                                 new VoiceSessionEventArgs(
-                                    int.Parse(rsp.ReturnCode),
-                                    int.Parse(rsp.Results.StatusCode),
+                                    rsp.ReturnCode,
+                                    rsp.Results.StatusCode,
                                     rsp.Results.StatusString,
                                     rsp.Results.SessionHandle));
                         }
@@ -456,8 +456,8 @@ namespace LibreMetaverse.Voice
                     OnVoiceResponse(rsp.InputXml.Request,
                         new VoiceResponseEventArgs(
                             genericResponse,
-                            int.Parse(rsp.ReturnCode),
-                            int.Parse(rsp.Results.StatusCode),
+                            rsp.ReturnCode,
+                            rsp.Results.StatusCode,
                             rsp.Results.StatusString));
                 }
             }
