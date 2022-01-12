@@ -110,9 +110,9 @@ namespace OpenMetaverse
         /// <remarks>plaintext password will be automatically hashed</remarks>
         public string Password;
         /// <summary>The agents starting location home or last</summary>
-        /// <remarks>Please use LoginLocation for custom region and Location</remarks>
+        /// <remarks>Either "last", "home", or a string encoded URI 
+        /// containing the simulator name and x/y/z coordinates e.g: uri:hooper&amp;128&amp;152&amp;17</remarks>
         public string Start;
-
         /// <summary>A string containing the client software channel information</summary>
         /// <example>Second Life Release</example>
         public string Channel;
@@ -1214,8 +1214,7 @@ namespace OpenMetaverse
         /// <param name="x">X coordinate to start at</param>
         /// <param name="y">Y coordinate to start at</param>
         /// <param name="z">Z coordinate to start at</param>
-        /// <returns>String with a URI that can be used to login to a specified
-        /// location</returns>
+        /// <returns>String with a URI that can be used to login to a specified location</returns>
         public static string StartLocation(string sim, int x, int y, int z)
         {
             return $"uri:{sim}&{x}&{y}&{z}";
@@ -1285,36 +1284,29 @@ namespace OpenMetaverse
                 loginParams.Channel = $"{Settings.USER_AGENT}";
             }
 
-            if((loginParams.Start != "home") && (loginParams.Start != "last"))
+            if (!string.IsNullOrEmpty(loginParams.LoginLocation))
             {
-                loginParams.Start = "home";
-                Logger.Log("The Start option only accepts home or last! " +
-                           "Please use LoginLocation to set a custom login location!", Helpers.LogLevel.Warning);
-            }
-
-            if (string.IsNullOrEmpty(loginParams.LoginLocation) == false)
+                var startLoc = new LocationParser(loginParams.LoginLocation.Trim());
+                loginParams.Start = startLoc.GetStartLocationUri();
+            } 
+            else
             {
-                var bits = loginParams.LoginLocation.Split('/');
-                if(bits.Length == 4)
+                switch (loginParams.Start)
                 {
-                    if(int.TryParse(bits[1],out var X) == true)
-                    {
-                        if (int.TryParse(bits[2], out var Y) == true)
-                        {
-                            if (int.TryParse(bits[3], out var Z) == true)
-                            {
-                                Logger.Log("Setting login location to: "
-                                           + loginParams.LoginLocation, Helpers.LogLevel.Info);
-                                loginParams.Start = StartLocation(bits[0], X, Y, Z);
-                            }
-                        }
-                    }
+                    case "home":
+                    case "last":
+                        break;
+                    default:
+                        var startLoc = new LocationParser(loginParams.Start.Trim());
+                        loginParams.Start = startLoc.GetStartLocationUri();
+                        break;
                 }
             }
 
             if (loginParams.Author == null)
+            {
                 loginParams.Author = string.Empty;
-
+            }
             #endregion
 
             // TODO: Allow a user callback to be defined for handling the cert
