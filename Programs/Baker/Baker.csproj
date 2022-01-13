@@ -17,6 +17,7 @@
     <OutputPath>..\..\bin\</OutputPath>
     <Platforms>x64;x86</Platforms>
 	<IncludeSymbols>true</IncludeSymbols>
+	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\LibreMetaverse\LibreMetaverse.csproj" />

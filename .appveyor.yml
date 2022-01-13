@@ -49,7 +49,7 @@ build:
   parallel: true
   verbosity: minimal
   publish_nuget: true
-  publish_nuget_symbols: false
+  publish_nuget_symbols: true
 
 cache:
   - packages -> **\packages.config
@@ -75,8 +75,8 @@ deploy:
     name: nuget_release
     api_key:
       secure: Mvs+45lPmiSYC9hv3AqdKWJVEzA5B5w0iU2IUCRz2/cxow/s00suGcO326h4Gjt7
-    artifact: /.*LibreMetaverse.*\.nupkg/
-    skip_symbols: true
+    artifact: /.*LibreMetaverse.*(\.|\.s)nupkg/
+    skip_symbols: false
     draft: false
     prerelease: false
     on:
@@ -88,7 +88,7 @@ deploy:
     tag: $(appveyor_build_version)
     auth_token:
       secure: lzcaOIXHRZG5WwFThR/DpNiVFh/q4zVis8YcLkmXhJHjFsq8tZgewzVhTmopZhjW
-    artifact: /.*LibreMetaverse.*\.nupkg/
+    artifact: /.*LibreMetaverse.*(\.|\.s)nupkg/
     skip_symbols: false
     draft: false
     prerelease: false

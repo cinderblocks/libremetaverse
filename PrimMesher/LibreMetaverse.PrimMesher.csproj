@@ -8,6 +8,7 @@
     <Authors>Dhalia Trimble, Sjofn LLC, OpenMetaverse Developers</Authors>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	<IncludeSymbols>true</IncludeSymbols>
+	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 	<NoWarn>0419,1574,1591</NoWarn>
 	<Platforms>x64;x86;AnyCPU</Platforms>
 	<OutputPath>..\bin\</OutputPath>
