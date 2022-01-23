@@ -130,7 +130,7 @@ namespace OpenMetaverse
                 request.ClientCertificates.Add(ClientCert);
 
             // Leave idle connections to this endpoint open for up to 60 seconds
-            request.ServicePoint.MaxIdleTime = 0;
+            request.ServicePoint.MaxIdleTime = 1000 * 60;
             // Disable stupid Expect-100: Continue header
             request.ServicePoint.Expect100Continue = false;
             // Crank up the max number of connections per endpoint
