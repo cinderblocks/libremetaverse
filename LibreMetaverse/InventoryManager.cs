@@ -1449,8 +1449,17 @@ namespace OpenMetaverse
         /// <param name="item">The <seealso cref="UUID"/> of the inventory item to remove</param>
         public void RemoveItem(UUID item)
         {
-            List<UUID> items = new List<UUID>(1) { item };
-            Remove(items, null);
+            if (Client.AisClient.IsAvailable)
+            {
+                Client.AisClient.RemoveItem(item, RemoveLocalUi).ConfigureAwait(false);
+            }
+            else
+            {
+                List<UUID> items = new List<UUID>(1) { item };
+#pragma warning disable CS0612 // Type or member is obsolete
+                Remove(items, null);
+#pragma warning restore CS0612 // Type or member is obsolete
+            }
         }
 
         /// <summary>
@@ -1459,15 +1468,26 @@ namespace OpenMetaverse
         /// <param name="folder">The <seealso cref="UUID"/> of the folder to remove</param>
         public void RemoveFolder(UUID folder)
         {
-            List<UUID> folders = new List<UUID>(1) { folder };
-            Remove(null, folders);
+            if (Client.AisClient.IsAvailable)
+            {
+                Client.AisClient.RemoveCategory(folder, RemoveLocalUi).ConfigureAwait(false);
+            } 
+            else
+            {
+                List<UUID> folders = new List<UUID>(1) { folder };
+#pragma warning disable CS0612 // Type or member is obsolete
+                Remove(null, folders);
+#pragma warning restore CS0612 // Type or member is obsolete
+            }
         }
 
         /// <summary>
-        /// Remove multiple items or folders from inventory
+        /// Remove multiple items or folders from inventory. Note that this uses the LLUDP method
+        /// which Second Life has deprecated and removed.
         /// </summary>
         /// <param name="items">A List containing the <seealso cref="UUID"/>s of items to remove</param>
         /// <param name="folders">A List containing the <seealso cref="UUID"/>s of the folders to remove</param>
+        [Obsolete]
         public void Remove(List<UUID> items, List<UUID> folders)
         {
             if ((items == null || items.Count == 0) && (folders == null || folders.Count == 0))
@@ -1583,7 +1603,9 @@ namespace OpenMetaverse
                     }
                 }
 
+#pragma warning disable CS0612 // Type or member is obsolete
                 Remove(remItems, remFolders);
+#pragma warning restore CS0612 // Type or member is obsolete
             }
         }
         #endregion Remove

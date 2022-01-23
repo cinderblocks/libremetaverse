@@ -166,7 +166,7 @@ namespace LibreMetaverse
             }
         }
 
-        public async Task RemoveCategory(UUID categoryUuid, Action<bool> callback)
+        public async Task RemoveCategory(UUID categoryUuid, Action<bool, UUID> callback)
         {
             var cap = getInventoryCap();
             if (cap == null)
@@ -204,11 +204,11 @@ namespace LibreMetaverse
             }
             finally
             {
-                callback?.Invoke(success);
+                callback?.Invoke(success, categoryUuid);
             }
         }
 
-        public async Task RemoveItem(UUID itemUuid, Action<bool> callback)
+        public async Task RemoveItem(UUID itemUuid, Action<bool, UUID> callback)
         {
             var cap = getInventoryCap();
             if (cap == null)
@@ -247,7 +247,7 @@ namespace LibreMetaverse
             }
             finally
             {
-                callback?.Invoke(success);
+                callback?.Invoke(success, itemUuid);
             }
         }
 
