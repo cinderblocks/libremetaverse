@@ -46,6 +46,7 @@ build:
   verbosity: minimal
   publish_nuget: true
   publish_nuget_symbols: true
+  use_snupkg_format: true
 
 cache:
   - packages -> **\packages.config
