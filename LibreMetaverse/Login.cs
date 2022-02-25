@@ -89,6 +89,28 @@ namespace OpenMetaverse
 
     #region Structs
 
+    public class LoginCredential
+    {
+        public string FirstName { get; private set; }
+        public string LastName { get; private set; }
+        public string Password { get; private set; }
+        public string Token { get; private set; }
+        public string MfaHash { get; private set; }
+
+        LoginCredential(string first, string last, string passwd, string token, string mfaHash)
+        {
+            FirstName = first;
+            LastName = last;
+            Password = passwd;
+            Token = token;
+            MfaHash = mfaHash;
+        }
+
+        LoginCredential(string first, string last, string passwd)
+            : this(first, last, passwd, string.Empty, string.Empty)
+        { }
+    }
+
     /// <summary>
     /// Login Request Parameters
     /// </summary>
@@ -109,6 +131,12 @@ namespace OpenMetaverse
         /// <summary>A md5 hashed password</summary>
         /// <remarks>plaintext password will be automatically hashed</remarks>
         public string Password;
+        /// <summary>The user's entered Time based One Time Password (TOTP) token.</summary>
+        /// <remarks>This should be the empty string for login attempts that are not responding to an MFA challenge.</remarks>
+        public string Token;
+        /// <summary>The saved hash value and timestamp from a previously successfully answered MFA challenge.</summary>
+        /// <remarks>This should be the empty string initially.</remarks>
+        public string MfaHash;
         /// <summary>The agents starting location home or last</summary>
         /// <remarks>Either "last", "home", or a string encoded URI 
         /// containing the simulator name and x/y/z coordinates e.g: uri:hooper&amp;128&amp;152&amp;17</remarks>
@@ -144,7 +172,7 @@ namespace OpenMetaverse
         public LastExecStatus LastExecEvent;
 
         /// <summary>An array of string sent to the login server to enable various options</summary>
-        public string[] Options;
+        public List<string> Options;
 
         /// <summary>A randomly generated ID to distinguish between login attempts. This value is only used
         /// internally in the library and is never sent over the wire</summary>
@@ -153,6 +181,11 @@ namespace OpenMetaverse
         /// <summary>LoginLocation used to set the starting region and location (overrides Start) example: "Tentacles/128/64/109"</summary>
         /// <remarks>Leave empty to use the starting location</remarks>
         public string LoginLocation;
+
+        /// <summary>
+        /// Is the client Multi-Factor Authentication enabled
+        /// </summary>
+        public bool MfaEnabled;
 
         /// <summary>
         /// Default constructor, initializes sane default values
@@ -200,7 +233,7 @@ namespace OpenMetaverse
                 "search"
             };
 
-            Options = options.ToArray();
+            Options = options;
             // *TODO: include library and opensim options when we support them
             MethodName = "login_to_simulator";
             Start = "last";
@@ -212,6 +245,44 @@ namespace OpenMetaverse
             AgreeToTos = true;
             ReadCritical = true;
             LastExecEvent = LastExecStatus.Normal;
+        }
+
+        /// <summary>
+        /// Instantiate LoginParams
+        /// </summary>
+        /// <remarks>Use this constructor if Application supports multi-factor authentication</remarks>
+        /// <param name="client">Instance of <seealso cref="GridClient"/></param>
+        /// <param name="credential">Instance of <seealso cref="LoginCredential"/></param>
+        /// <param name="channel">Login channel (application name)</param>
+        /// <param name="version">Client version, as application name + version number</param>
+        public LoginParams(GridClient client, LoginCredential credential, string channel, string version)
+            : this()
+        {
+            URI = client.Settings.LOGIN_SERVER;
+            Timeout = client.Settings.LOGIN_TIMEOUT;
+            MfaEnabled = client.Settings.MFA_ENABLED;
+            FirstName = credential.FirstName;
+            LastName = credential.LastName;
+            Password = credential.Password;
+            Token = credential.Token;
+            MfaHash = credential.MfaHash;
+            Channel = channel;
+            Version = version;
+        }
+
+        /// <summary>
+        /// Instantiate LoginParams
+        /// </summary>
+        /// <remarks>Use this constructor if Application supports multi-factor authentication</remarks>
+        /// <param name="client">Instance of <seealso cref="GridClient"/></param>
+        /// <param name="credential">Instance of <seealso cref="LoginCredential"/></param>
+        /// <param name="channel">Login channel (application name)</param>
+        /// <param name="version">Client version, as application name + version number</param>
+        /// <param name="loginUri">Address of login service</param>
+        public LoginParams(GridClient client, LoginCredential credential, string channel, string version, string loginUri)
+            : this(client, credential, channel, version)
+        {
+            URI = loginUri;
         }
 
         /// <summary>
@@ -284,6 +355,7 @@ namespace OpenMetaverse
         public UUID AgentID;
         public UUID SessionID;
         public UUID SecureSessionID;
+        public string MfaHash;
         public string FirstName;
         public string LastName;
         public string StartLocation;
@@ -452,6 +524,11 @@ namespace OpenMetaverse
             LibraryOwner = ParseMappedUUID("inventory-lib-owner", "agent_id", reply);
             LibraryRoot = ParseMappedUUID("inventory-lib-root", "folder_id", reply);
             LibrarySkeleton = ParseInventorySkeleton("inventory-skel-lib", reply);
+
+            if (reply.ContainsKey("mfa_hash"))
+            {
+                MfaHash = ParseString("mfa_hash", reply);
+            }
 
             if (reply.ContainsKey("account_level_benefits"))
             {
@@ -660,6 +737,11 @@ namespace OpenMetaverse
             OpenIDUrl = ParseString("openid_url", reply);
             SnapshotConfigUrl = ParseString("snapshot_config_url", reply);
             UDPBlacklist = ParseString("udp_blacklist", reply);
+
+            if (reply.ContainsKey("mfa_hash"))
+            {
+                MfaHash = ParseString("mfa_hash", reply);
+            }
 
             if (reply.ContainsKey("account_level_benefits"))
             {
@@ -1226,7 +1308,7 @@ namespace OpenMetaverse
             // FIXME: Now that we're using CAPS we could cancel the current login and start a new one
             if (loginParams == null)
             {
-                Logger.DebugLog("No Login was in progress: " + CurrentContext, Client);
+                Logger.DebugLog($"No Login was in progress: {CurrentContext}", Client);
             }
             else
             {
@@ -1250,7 +1332,7 @@ namespace OpenMetaverse
             #region Sanity Check loginParams
 
             if (loginParams.Options == null)
-                loginParams.Options = new List<string>().ToArray();
+                loginParams.Options = new List<string>();
 
             if (loginParams.Password == null)
                 loginParams.Password = string.Empty;
@@ -1335,12 +1417,18 @@ namespace OpenMetaverse
                     ["id0"] = OSD.FromString(loginParams.ID0),
                     ["last_exec_event"] = OSD.FromInteger((int)loginParams.LastExecEvent)
                 };
+                if (loginParams.MfaEnabled)
+                {
+                    loginLLSD["token"] = OSD.FromString(loginParams.Token);
+                    loginLLSD["mfa_hash"] = OSD.FromString(loginParams.MfaHash);
+                }
 
                 // Create the options LLSD array
                 var optionsOSD = new OSDArray();
-                foreach (var t in loginParams.Options)
-                    optionsOSD.Add(OSD.FromString(t));
-
+                foreach (var option in loginParams.Options)
+                {
+                    optionsOSD.Add(OSD.FromString(option));
+                }
                 foreach (var t in from callbackOpts in CallbackOptions.Values where callbackOpts != null
                     from t in callbackOpts where !optionsOSD.Contains(t) select t)
                 {
@@ -1385,20 +1473,24 @@ namespace OpenMetaverse
                     ["version"] = loginParams.Version,
                     ["platform"] = loginParams.Platform,
                     ["platform_version"] = loginParams.PlatformVersion,
-                    ["mac"] = loginParams.MAC
+                    ["mac"] = loginParams.MAC,
+                    ["id0"] = loginParams.ID0,
+                    ["last_exec_event"] = (int)loginParams.LastExecEvent
                 };
-                if (loginParams.AgreeToTos)
-                    loginXmlRpc["agree_to_tos"] = "true";
-                if (loginParams.ReadCritical)
-                    loginXmlRpc["read_critical"] = "true";
-                loginXmlRpc["id0"] = loginParams.ID0;
-                loginXmlRpc["last_exec_event"] = (int)loginParams.LastExecEvent;
+                if (loginParams.AgreeToTos) { loginXmlRpc["agree_to_tos"] = "true"; }
+                if (loginParams.ReadCritical) { loginXmlRpc["read_critical"] = "true"; }
+                if (loginParams.MfaEnabled)
+                {
+                    loginXmlRpc["token"] = loginParams.Token;
+                    loginXmlRpc["mfa_hash"] = loginParams.MfaHash;
+                }
 
                 // Create the options array
                 var options = new ArrayList();
-                foreach (var t in loginParams.Options)
-                    options.Add(t);
-
+                foreach (var option in loginParams.Options)
+                {
+                    options.Add(option);
+                }
                 foreach (var callbackOpts in CallbackOptions.Values)
                 {
                     if (callbackOpts == null) continue;
@@ -1448,7 +1540,7 @@ namespace OpenMetaverse
             LoginStatusCode = status;
             LoginMessage = message;
 
-            Logger.DebugLog($"Login status: {status.ToString()}: {message}", Client);
+            Logger.DebugLog($"Login status: {status}: {message}", Client);
 
             // If we reached a login resolution trigger the event
             if (status == LoginStatus.Success || status == LoginStatus.Failed)
@@ -1584,7 +1676,7 @@ namespace OpenMetaverse
                 var loginParams = CurrentContext;
                 loginParams.URI = reply.NextUrl;
                 loginParams.MethodName = reply.NextMethod;
-                loginParams.Options = reply.NextOptions;
+                loginParams.Options = reply.NextOptions.ToList();
 
                 // Sleep for some amount of time while the servers work
                 var seconds = reply.NextDuration;

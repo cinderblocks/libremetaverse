@@ -60,6 +60,9 @@ namespace OpenMetaverse
         /// <summary>Use XML-RPC Login or LLSD Login, default is XML-RPC Login</summary>
         public bool USE_LLSD_LOGIN = false;
 
+        /// <summary>Client is Multi-Factor Authentication enabled</summary>
+        public bool MFA_ENABLED = false;
+
         /// <summary>
         /// Maximum number of HTTP connections to open to a particular endpoint.
         /// </summary>
