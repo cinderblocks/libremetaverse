@@ -97,7 +97,7 @@ namespace OpenMetaverse
         public string Token { get; private set; }
         public string MfaHash { get; private set; }
 
-        LoginCredential(string first, string last, string passwd, string token, string mfaHash)
+        public LoginCredential(string first, string last, string passwd, string token, string mfaHash)
         {
             FirstName = first;
             LastName = last;
@@ -106,7 +106,7 @@ namespace OpenMetaverse
             MfaHash = mfaHash;
         }
 
-        LoginCredential(string first, string last, string passwd)
+        public LoginCredential(string first, string last, string passwd)
             : this(first, last, passwd, string.Empty, string.Empty)
         { }
     }
@@ -1185,12 +1185,11 @@ namespace OpenMetaverse
         /// <param name="password">Account password</param>
         /// <param name="channel">Client application name (channel)</param>
         /// <param name="version">Client application name + version</param>
-        /// <returns>A populated <seealso cref="LoginParams"/> struct containing
-        /// sane defaults</returns>
+        /// <returns>A populated <seealso cref="LoginParams"/> object containing sane defaults</returns>
         public LoginParams DefaultLoginParams(string firstName, string lastName, string password,
             string channel, string version)
         {
-            return new LoginParams(Client, firstName, lastName, password, channel, version);
+            return new LoginParams(Client, new LoginCredential(firstName, lastName, password), channel, version);
         }
 
         /// <summary>
