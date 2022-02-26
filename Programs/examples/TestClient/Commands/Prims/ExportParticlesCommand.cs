@@ -80,25 +80,38 @@ namespace OpenMetaverse.TestClient
 
                             lsl.Append("," + Environment.NewLine);
 
-                            lsl.Append("         PSYS_PART_START_ALPHA, " + String.Format("{0:0.00000}", exportPrim.ParticleSys.PartStartColor.A) + "," + Environment.NewLine);
-                            lsl.Append("         PSYS_PART_END_ALPHA, " + String.Format("{0:0.00000}", exportPrim.ParticleSys.PartEndColor.A) + "," + Environment.NewLine);
+                            lsl.Append("         PSYS_PART_START_ALPHA, " +
+                                       $"{exportPrim.ParticleSys.PartStartColor.A:0.00000}" + "," + Environment.NewLine);
+                            lsl.Append("         PSYS_PART_END_ALPHA, " +
+                                       $"{exportPrim.ParticleSys.PartEndColor.A:0.00000}" + "," + Environment.NewLine);
                             lsl.Append("         PSYS_PART_START_COLOR, " + exportPrim.ParticleSys.PartStartColor.ToRGBString() + "," + Environment.NewLine);
                             lsl.Append("         PSYS_PART_END_COLOR, " + exportPrim.ParticleSys.PartEndColor.ToRGBString() + "," + Environment.NewLine);
-                            lsl.Append("         PSYS_PART_START_SCALE, <" + String.Format("{0:0.00000}", exportPrim.ParticleSys.PartStartScaleX) + ", " + String.Format("{0:0.00000}", exportPrim.ParticleSys.PartStartScaleY) + ", 0>, " + Environment.NewLine);
-                            lsl.Append("         PSYS_PART_END_SCALE, <" + String.Format("{0:0.00000}", exportPrim.ParticleSys.PartEndScaleX) + ", " + String.Format("{0:0.00000}", exportPrim.ParticleSys.PartEndScaleY) + ", 0>, " + Environment.NewLine);
-                            lsl.Append("         PSYS_PART_MAX_AGE, " + String.Format("{0:0.00000}", exportPrim.ParticleSys.PartMaxAge) + "," + Environment.NewLine);
-                            lsl.Append("         PSYS_SRC_MAX_AGE, " + String.Format("{0:0.00000}", exportPrim.ParticleSys.MaxAge) + "," + Environment.NewLine);
-                            lsl.Append("         PSYS_SRC_ACCEL, " + exportPrim.ParticleSys.PartAcceleration.ToString() + "," + Environment.NewLine);
-                            lsl.Append("         PSYS_SRC_BURST_PART_COUNT, " + String.Format("{0:0}", exportPrim.ParticleSys.BurstPartCount) + "," + Environment.NewLine);
-                            lsl.Append("         PSYS_SRC_BURST_RADIUS, " + String.Format("{0:0.00000}", exportPrim.ParticleSys.BurstRadius) + "," + Environment.NewLine);
-                            lsl.Append("         PSYS_SRC_BURST_RATE, " + String.Format("{0:0.00000}", exportPrim.ParticleSys.BurstRate) + "," + Environment.NewLine);
-                            lsl.Append("         PSYS_SRC_BURST_SPEED_MIN, " + String.Format("{0:0.00000}", exportPrim.ParticleSys.BurstSpeedMin) + "," + Environment.NewLine);
-                            lsl.Append("         PSYS_SRC_BURST_SPEED_MAX, " + String.Format("{0:0.00000}", exportPrim.ParticleSys.BurstSpeedMax) + "," + Environment.NewLine);
-                            lsl.Append("         PSYS_SRC_INNERANGLE, " + String.Format("{0:0.00000}", exportPrim.ParticleSys.InnerAngle) + "," + Environment.NewLine);
-                            lsl.Append("         PSYS_SRC_OUTERANGLE, " + String.Format("{0:0.00000}", exportPrim.ParticleSys.OuterAngle) + "," + Environment.NewLine);
-                            lsl.Append("         PSYS_SRC_OMEGA, " + exportPrim.ParticleSys.AngularVelocity.ToString() + "," + Environment.NewLine);
-                            lsl.Append("         PSYS_SRC_TEXTURE, (key)\"" + exportPrim.ParticleSys.Texture.ToString() + "\"," + Environment.NewLine);
-                            lsl.Append("         PSYS_SRC_TARGET_KEY, (key)\"" + exportPrim.ParticleSys.Target.ToString() + "\"" + Environment.NewLine);
+                            lsl.Append("         PSYS_PART_START_SCALE, <" +
+                                       $"{exportPrim.ParticleSys.PartStartScaleX:0.00000}" + ", " +
+                                       $"{exportPrim.ParticleSys.PartStartScaleY:0.00000}" + ", 0>, " + Environment.NewLine);
+                            lsl.Append("         PSYS_PART_END_SCALE, <" +
+                                       $"{exportPrim.ParticleSys.PartEndScaleX:0.00000}" + ", " +
+                                       $"{exportPrim.ParticleSys.PartEndScaleY:0.00000}" + ", 0>, " + Environment.NewLine);
+                            lsl.Append("         PSYS_PART_MAX_AGE, " + $"{exportPrim.ParticleSys.PartMaxAge:0.00000}" + "," + Environment.NewLine);
+                            lsl.Append("         PSYS_SRC_MAX_AGE, " + $"{exportPrim.ParticleSys.MaxAge:0.00000}" + "," + Environment.NewLine);
+                            lsl.Append("         PSYS_SRC_ACCEL, " + exportPrim.ParticleSys.PartAcceleration + "," + Environment.NewLine);
+                            lsl.Append("         PSYS_SRC_BURST_PART_COUNT, " +
+                                       $"{exportPrim.ParticleSys.BurstPartCount:0}" + "," + Environment.NewLine);
+                            lsl.Append("         PSYS_SRC_BURST_RADIUS, " +
+                                       $"{exportPrim.ParticleSys.BurstRadius:0.00000}" + "," + Environment.NewLine);
+                            lsl.Append("         PSYS_SRC_BURST_RATE, " +
+                                       $"{exportPrim.ParticleSys.BurstRate:0.00000}" + "," + Environment.NewLine);
+                            lsl.Append("         PSYS_SRC_BURST_SPEED_MIN, " +
+                                       $"{exportPrim.ParticleSys.BurstSpeedMin:0.00000}" + "," + Environment.NewLine);
+                            lsl.Append("         PSYS_SRC_BURST_SPEED_MAX, " +
+                                       $"{exportPrim.ParticleSys.BurstSpeedMax:0.00000}" + "," + Environment.NewLine);
+                            lsl.Append("         PSYS_SRC_INNERANGLE, " +
+                                       $"{exportPrim.ParticleSys.InnerAngle:0.00000}" + "," + Environment.NewLine);
+                            lsl.Append("         PSYS_SRC_OUTERANGLE, " +
+                                       $"{exportPrim.ParticleSys.OuterAngle:0.00000}" + "," + Environment.NewLine);
+                            lsl.Append("         PSYS_SRC_OMEGA, " + exportPrim.ParticleSys.AngularVelocity + "," + Environment.NewLine);
+                            lsl.Append("         PSYS_SRC_TEXTURE, (key)\"" + exportPrim.ParticleSys.Texture + "\"," + Environment.NewLine);
+                            lsl.Append("         PSYS_SRC_TARGET_KEY, (key)\"" + exportPrim.ParticleSys.Target + "\"" + Environment.NewLine);
 
                             lsl.Append("         ]);" + Environment.NewLine);
                             lsl.Append("    }" + Environment.NewLine);
@@ -116,7 +129,7 @@ namespace OpenMetaverse.TestClient
                 }
             }
 
-            return "Couldn't find prim " + id.ToString();
+            return "Couldn't find prim " + id;
         }
     }
 }

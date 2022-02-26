@@ -16,7 +16,7 @@ namespace OpenMetaverse.TestClient
 
         private string Usage()
         {
-            String usage = "Usage:\n" +
+            string usage = "Usage:\n" +
                 "\tplay list - list the built in animations\n" +
                 "\tplay show - show any currently playing animations\n" +
                 "\tplay UUID - play an animation asset\n" +

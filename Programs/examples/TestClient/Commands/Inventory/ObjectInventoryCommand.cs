@@ -26,13 +26,13 @@ namespace OpenMetaverse.TestClient
             if (found != null)
                 objectLocalID = found.LocalID;
             else
-                return "Couldn't find prim " + objectID.ToString();
+                return "Couldn't find prim " + objectID;
 
             List<InventoryBase> items = Client.Inventory.GetTaskInventory(objectID, objectLocalID, 1000 * 30);
 
             if (items != null)
             {
-                string result = String.Empty;
+                string result = string.Empty;
 
                 foreach (var i in items)
                 {

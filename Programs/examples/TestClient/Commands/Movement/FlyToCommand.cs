@@ -44,7 +44,7 @@ namespace OpenMetaverse.TestClient.Commands.Movement
             target0.X = target.X;
             target0.Y = target.Y;
 
-            if (args.Length == 4 && Int32.TryParse(args[3], out duration))
+            if (args.Length == 4 && int.TryParse(args[3], out duration))
                 duration *= 1000;
 
             startTime = Environment.TickCount;
@@ -54,7 +54,7 @@ namespace OpenMetaverse.TestClient.Commands.Movement
             ZMovement();
             Client.Self.Movement.TurnToward(target);
 
-            return string.Format("flying to {0} in {1} seconds", target.ToString(), duration / 1000);
+            return $"flying to {target.ToString()} in {duration / 1000} seconds";
         }
 
         private void Objects_OnObjectUpdated(object sender, TerseObjectUpdateEventArgs e)

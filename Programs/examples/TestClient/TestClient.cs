@@ -15,7 +15,7 @@ namespace OpenMetaverse.TestClient
         public Dictionary<string, Command> Commands = new Dictionary<string, Command>();
         public bool Running = true;
         public bool GroupCommands = false;
-        public string MasterName = String.Empty;
+        public string MasterName = string.Empty;
         public UUID MasterKey = UUID.Zero;
         public bool AllowObjectMaster = false;
         public ClientManager ClientManager;
@@ -36,7 +36,7 @@ namespace OpenMetaverse.TestClient
             ClientManager = manager;
 
             updateTimer = new System.Timers.Timer(500);
-            updateTimer.Elapsed += new System.Timers.ElapsedEventHandler(updateTimer_Elapsed);
+            updateTimer.Elapsed += updateTimer_Elapsed;
 
             RegisterAllCommands(Assembly.GetExecutingAssembly());
 
@@ -50,9 +50,9 @@ namespace OpenMetaverse.TestClient
 
             Network.RegisterCallback(PacketType.AgentDataUpdate, AgentDataUpdateHandler);
             Network.LoginProgress += LoginHandler;
-            Objects.AvatarUpdate += new EventHandler<AvatarUpdateEventArgs>(Objects_AvatarUpdate);
-            Objects.TerseObjectUpdate += new EventHandler<TerseObjectUpdateEventArgs>(Objects_TerseObjectUpdate);
-            Network.SimChanged += new EventHandler<SimChangedEventArgs>(Network_SimChanged);
+            Objects.AvatarUpdate += Objects_AvatarUpdate;
+            Objects.TerseObjectUpdate += Objects_TerseObjectUpdate;
+            Network.SimChanged += Network_SimChanged;
             Self.IM += Self_IM;
             Groups.GroupMembersReply += GroupMembersHandler;
             Inventory.InventoryObjectOffered += Inventory_OnInventoryObjectReceived;            
@@ -149,7 +149,7 @@ namespace OpenMetaverse.TestClient
                 {
                     if (t.IsSubclassOf(typeof(Command)))
                     {
-                        ConstructorInfo info = t.GetConstructor(new Type[] { typeof(TestClient) });
+                        ConstructorInfo info = t.GetConstructor(new[] { typeof(TestClient) });
                         Command command = (Command)info.Invoke(new object[] { this });
                         RegisterCommand(command);
                     }
@@ -188,7 +188,7 @@ namespace OpenMetaverse.TestClient
             GroupsEvent.Set();
         }
 
-        public UUID GroupName2UUID(String groupName)
+        public UUID GroupName2UUID(string groupName)
         {
             UUID tryUUID;
             if (UUID.TryParse(groupName,out tryUUID))
@@ -201,7 +201,7 @@ namespace OpenMetaverse.TestClient
             lock(GroupsCache) {
                 if (GroupsCache.Count > 0) {
                     foreach (Group currentGroup in GroupsCache.Values)
-                        if (String.Equals(currentGroup.Name, groupName, StringComparison.CurrentCultureIgnoreCase))
+                        if (string.Equals(currentGroup.Name, groupName, StringComparison.CurrentCultureIgnoreCase))
                             return currentGroup.ID;
                 }
             }

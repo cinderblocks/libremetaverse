@@ -47,10 +47,9 @@ namespace OpenMetaverse.TestClient
             if (DownloadHandle.WaitOne(120 * 1000, false))
             {
                 if (Success)
-                    return String.Format("Saved {0}.{1}", AssetID, assetType.ToString().ToLower());
+                    return $"Saved {AssetID}.{assetType.ToString().ToLower()}";
                 else
-                    return String.Format("Failed to download asset {0}, perhaps {1} is the incorrect asset type?",
-                        AssetID, assetType);
+                    return $"Failed to download asset {AssetID}, perhaps {assetType} is the incorrect asset type?";
             }
             else
             {
@@ -66,8 +65,7 @@ namespace OpenMetaverse.TestClient
                 {
                     try
                     {
-                        File.WriteAllBytes(String.Format("{0}.{1}", AssetID,
-                            assetType.ToString().ToLower()), asset.AssetData);
+                        File.WriteAllBytes($"{AssetID}.{assetType.ToString().ToLower()}", asset.AssetData);
                         Success = true;
                     }
                     catch (Exception ex)

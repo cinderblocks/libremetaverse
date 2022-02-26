@@ -36,7 +36,7 @@ namespace OpenMetaverse.TestClient
 
                 if (args.Length > 1)
                 {
-                    if (!Int32.TryParse(args[1], out discardLevel))
+                    if (!int.TryParse(args[1], out discardLevel))
                         return "Usage: downloadtexture [texture-uuid] [discardlevel]";
                 }
 
@@ -51,16 +51,16 @@ namespace OpenMetaverse.TestClient
                             try { File.WriteAllBytes(Asset.AssetID + ".jp2", Asset.AssetData); }
                             catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
 
-                            return String.Format("Saved {0}.jp2 ({1}x{2})", Asset.AssetID, Asset.Image.Width, Asset.Image.Height);
+                            return $"Saved {Asset.AssetID}.jp2 ({Asset.Image.Width}x{Asset.Image.Height})";
                         }
                         else
                         {
-                            return "Failed to decode texture " + TextureID.ToString();
+                            return "Failed to decode texture " + TextureID;
                         }
                     }
                     else if (resultState == TextureRequestState.NotFound)
                     {
-                        return "Simulator reported texture not found: " + TextureID.ToString();
+                        return "Simulator reported texture not found: " + TextureID;
                     }
                     else
                     {

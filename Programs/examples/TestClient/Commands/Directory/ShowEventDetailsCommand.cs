@@ -20,7 +20,7 @@ namespace OpenMetaverse.TestClient.Commands
             Client.Directory.EventInfoReply += Directory_EventDetails;
             uint eventID;
 
-            if (UInt32.TryParse(args[0], out eventID))
+            if (uint.TryParse(args[0], out eventID))
             {
                 Client.Directory.EventInfoRequest(eventID);
                 return "Sent query for Event " + eventID;

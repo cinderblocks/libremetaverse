@@ -46,7 +46,7 @@ namespace OpenMetaverse.TestClient
                         }
                         if (trimmed.Length > 0)
                             list.Add(trimmed);
-                        current = String.Empty;
+                        current = string.Empty;
                     }
                 }
                 else if (c == '\\')
@@ -64,7 +64,7 @@ namespace OpenMetaverse.TestClient
                 else
                 {
                     if (escaped)
-                        throw new FormatException(c.ToString() + " is not an escapable character.");
+                        throw new FormatException(c + " is not an escapable character.");
                     current += c;
                 }
             }

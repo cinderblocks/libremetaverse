@@ -17,7 +17,7 @@ namespace OpenMetaverse.TestClient.Commands.Appearance
             if (args.Length != 2)
                 return "Usage: avatarinfo [firstname] [lastname]";
 
-            string targetName = String.Format("{0} {1}", args[0], args[1]);
+            string targetName = $"{args[0]} {args[1]}";
 
             Avatar foundAv = Client.Network.CurrentSim.ObjectsAvatars.Find(
                 avatar => (avatar.Name == targetName)

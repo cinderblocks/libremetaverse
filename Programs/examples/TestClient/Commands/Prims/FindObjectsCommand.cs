@@ -12,7 +12,7 @@ namespace OpenMetaverse.TestClient
 
         public FindObjectsCommand(TestClient testClient)
         {
-            testClient.Objects.ObjectProperties += new EventHandler<ObjectPropertiesEventArgs>(Objects_OnObjectProperties);
+            testClient.Objects.ObjectProperties += Objects_OnObjectProperties;
 
             Name = "findobjects";
             Description = "Finds all objects, which name contains search-string. " +
@@ -26,7 +26,7 @@ namespace OpenMetaverse.TestClient
             if ((args.Length < 1) || (args.Length > 2))
                 return "Usage: findobjects [radius] <search-string>";
             float radius = float.Parse(args[0]);
-            string searchString = (args.Length > 1) ? args[1] : String.Empty;
+            string searchString = (args.Length > 1) ? args[1] : string.Empty;
 
             // *** get current location ***
             Vector3 location = Client.Self.SimPosition;

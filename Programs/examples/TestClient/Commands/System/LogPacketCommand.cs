@@ -23,22 +23,20 @@ namespace OpenMetaverse.TestClient
         public override string Execute(string[] args, UUID fromAgentID)
         {
             if (args.Length != 2)
-                return string.Format("Usage: {0} no-of-packets filename", Name);
+                return $"Usage: {Name} no-of-packets filename";
 
             string rawNumberOfPackets = args[0];
             string path = args[1];
             int numberOfPackets;
 
             if (!int.TryParse(args[0], out numberOfPackets) || numberOfPackets <= 0)
-                return string.Format(
-                    "{0} is not a valid number of packets for {1}", rawNumberOfPackets, m_client.Self.Name);
+                return $"{rawNumberOfPackets} is not a valid number of packets for {m_client.Self.Name}";
 
             lock (this)
             {
                 if (m_isLogging)
-                    return string.Format(
-                        "Still waiting to finish logging {0} packets for {1}", 
-                        m_packetsToLogRemaining, m_client.Self.Name);
+                    return
+                        $"Still waiting to finish logging {m_packetsToLogRemaining} packets for {m_client.Self.Name}";
 
                 try
                 {
@@ -46,7 +44,7 @@ namespace OpenMetaverse.TestClient
                 }
                 catch (Exception e)
                 {
-                    return string.Format("Could not open file with path [{0}], exception {1}", path, e);
+                    return $"Could not open file with path [{path}], exception {e}";
                 }
 
                 m_isLogging = true;
@@ -54,7 +52,7 @@ namespace OpenMetaverse.TestClient
 
             m_packetsToLogRemaining = numberOfPackets;
             m_client.Network.RegisterCallback(PacketType.Default, HandlePacket);
-            return string.Format("Now logging {0} packets for {1}", m_packetsToLogRemaining, m_client.Self.Name);
+            return $"Now logging {m_packetsToLogRemaining} packets for {m_client.Self.Name}";
         }
 
         /// <summary>

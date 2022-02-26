@@ -14,7 +14,7 @@ namespace OpenMetaverse.TestClient
         public override string Execute(string[] args, UUID fromAgentID)
 		{
             Primitive closest = null;
-		    double closestDistance = Double.MaxValue;
+		    double closestDistance = double.MaxValue;
 
             Client.Network.CurrentSim.ObjectsPrimitives.ForEach(
                 delegate(Primitive prim)

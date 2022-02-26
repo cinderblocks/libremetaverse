@@ -34,7 +34,7 @@ namespace OpenMetaverse.TestClient
                 }
             }
 
-            return "Master set to " + Client.MasterKey.ToString();
+            return "Master set to " + Client.MasterKey;
         }
     }
 }

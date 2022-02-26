@@ -15,7 +15,6 @@ namespace OpenMetaverse.TestClient
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            StringBuilder output = new StringBuilder();
             if (!Client.Settings.TRACK_UTILIZATION)
             {
                 return "TRACK_UTILIZATION is not enabled in Settings, statistics not available";
@@ -72,19 +71,19 @@ namespace OpenMetaverse.TestClient
             packetOutput.AppendFormat("{0,30}|{1,4}|{2,4}|{3,-10}|{4,-10}|" + System.Environment.NewLine, "Packet Totals", packetsSentCount, packetsRecvCount,
                         FormatBytes(packetBytesSent), FormatBytes(packetBytesRecv));
 
-            return System.Environment.NewLine + capsOutput.ToString() + System.Environment.NewLine + System.Environment.NewLine + packetOutput.ToString();
+            return System.Environment.NewLine + capsOutput + System.Environment.NewLine + System.Environment.NewLine + packetOutput;
         }
 
         public string FormatBytes(long bytes)
         {
             const int scale = 1024;
-            string[] orders = new string[] { "GB", "MB", "KB", "Bytes" };
+            string[] orders = new[] { "GB", "MB", "KB", "Bytes" };
             long max = (long)Math.Pow(scale, orders.Length - 1);
 
             foreach (string order in orders)
             {
                 if ( bytes > max )
-                    return string.Format("{0:##.##} {1}", decimal.Divide( bytes, max ), order);
+                    return $"{decimal.Divide(bytes, max):##.##} {order}";
 
                 max /= scale;
             }

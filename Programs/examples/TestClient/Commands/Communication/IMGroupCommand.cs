@@ -24,7 +24,7 @@ namespace OpenMetaverse.TestClient
 
             if (UUID.TryParse(args[0], out ToGroupID))
             {
-                string message = String.Empty;
+                string message = string.Empty;
                 for (int ct = 1; ct < args.Length; ct++)
                     message += args[ct] + " ";
 
@@ -57,7 +57,7 @@ namespace OpenMetaverse.TestClient
                 }
 
                 Client.Self.GroupChatJoined -= Self_GroupChatJoined;
-                return "Instant Messaged group " + ToGroupID.ToString() + " with message: " + message;
+                return "Instant Messaged group " + ToGroupID + " with message: " + message;
             }
             else
             {

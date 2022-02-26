@@ -36,7 +36,7 @@ namespace OpenMetaverse.TestClient
         public override string Execute(string[] args, UUID fromAgentID)
         {
             if (!IsVoiceManagerRunning())
-                return String.Format("VoiceManager not running for {0}", Client.Self.Name);
+                return $"VoiceManager not running for {Client.Self.Name}";
 
             if (!Client.VoiceManager.RequestProvisionAccount())
             {
@@ -44,13 +44,12 @@ namespace OpenMetaverse.TestClient
             }
             ProvisionEvent.WaitOne(30 * 1000, false);
 
-            if (String.IsNullOrEmpty(VoiceAccount) && String.IsNullOrEmpty(VoicePassword))
+            if (string.IsNullOrEmpty(VoiceAccount) && string.IsNullOrEmpty(VoicePassword))
             {
-                return String.Format("Voice account information lookup for {0} failed.", Client.Self.Name);
+                return $"Voice account information lookup for {Client.Self.Name} failed.";
             }
 
-            return String.Format("Voice Account for {0}: user \"{1}\", password \"{2}\"",
-                                 Client.Self.Name, VoiceAccount, VoicePassword);
+            return $"Voice Account for {Client.Self.Name}: user \"{VoiceAccount}\", password \"{VoicePassword}\"";
         }
 
         void Voice_OnProvisionAccount(string username, string password)

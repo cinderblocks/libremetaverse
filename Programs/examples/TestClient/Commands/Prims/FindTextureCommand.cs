@@ -20,7 +20,7 @@ namespace OpenMetaverse.TestClient
             if (args.Length != 2)
                 return "Usage: findtexture [face-index] [texture-uuid]";
 
-            if (Int32.TryParse(args[0], out faceIndex) &&
+            if (int.TryParse(args[0], out faceIndex) &&
                 UUID.TryParse(args[1], out textureID))
             {
                 Client.Network.CurrentSim.ObjectsPrimitives.ForEach(
@@ -30,8 +30,8 @@ namespace OpenMetaverse.TestClient
                         {
                             if (prim.Textures.FaceTextures[faceIndex].TextureID == textureID)
                             {
-                                Logger.Log(String.Format("Primitive {0} ({1}) has face index {2} set to {3}",
-                                    prim.ID.ToString(), prim.LocalID, faceIndex, textureID.ToString()),
+                                Logger.Log(
+                                    $"Primitive {prim.ID.ToString()} ({prim.LocalID}) has face index {faceIndex} set to {textureID.ToString()}",
                                     Helpers.LogLevel.Info, Client);
                             }
                         }

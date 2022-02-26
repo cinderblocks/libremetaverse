@@ -16,7 +16,7 @@ namespace OpenMetaverse.TestClient
 			if (args.Length < 1)
                 return "Usage: goto sim/x/y/z";
 
-            string destination = String.Empty;
+            string destination = string.Empty;
 
             // Handle multi-word sim names by combining the arguments
             foreach (string arg in args)
@@ -25,7 +25,7 @@ namespace OpenMetaverse.TestClient
             }
             destination = destination.Trim();
 
-            string[] tokens = destination.Split(new char[] { '/' });
+            string[] tokens = destination.Split(new[] { '/' });
             if (tokens.Length != 4)
                 return "Usage: goto sim/x/y/z";
 

@@ -2,7 +2,7 @@ using System;
 
 namespace OpenMetaverse.TestClient
 {
-    public enum CommandCategory : int
+    public enum CommandCategory
     {
         Parcel,
         Appearance,

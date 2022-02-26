@@ -15,7 +15,7 @@ namespace OpenMetaverse.TestClient
 
         public ChangePermsCommand(TestClient testClient)
         {            
-            testClient.Objects.ObjectProperties += new EventHandler<ObjectPropertiesEventArgs>(Objects_OnObjectProperties);
+            testClient.Objects.ObjectProperties += Objects_OnObjectProperties;
 
             Name = "changeperms";
             Description = "Recursively changes all of the permissions for child and task inventory objects. Usage prim-uuid [copy] [mod] [xfer]";
@@ -59,14 +59,14 @@ namespace OpenMetaverse.TestClient
                 }
             }
 
-            Logger.DebugLog("Using PermissionMask: " + Perms.ToString(), Client);
+            Logger.DebugLog($"Using PermissionMask: {Perms}", Client);
 
             // Find the requested prim
             rootPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(prim => prim.ID == rootID);
             if (rootPrim == null)
-                return "Cannot find requested prim " + rootID.ToString();
+                return $"Cannot find requested prim {rootID}";
             else
-                Logger.DebugLog("Found requested prim " + rootPrim.ID.ToString(), Client);
+                Logger.DebugLog($"Found requested prim {rootPrim.ID}", Client);
 
             if (rootPrim.ParentID != 0)
             {
@@ -74,7 +74,7 @@ namespace OpenMetaverse.TestClient
                 if (!Client.Network.CurrentSim.ObjectsPrimitives.TryGetValue(rootPrim.ParentID, out rootPrim))
                     return "Cannot find root prim for requested object";
                 else
-                    Logger.DebugLog("Set root prim to " + rootPrim.ID.ToString(), Client);
+                    Logger.DebugLog($"Set root prim to {rootPrim.ID}", Client);
             }
 
             // Find all of the child objects linked to this root
@@ -93,30 +93,24 @@ namespace OpenMetaverse.TestClient
             #region Set Linkset Permissions
 
             PermCount = 0;
-            if ((Perms & PermissionMask.Modify) == PermissionMask.Modify)
-                Client.Objects.SetPermissions(Client.Network.CurrentSim, localIDs, PermissionWho.NextOwner, PermissionMask.Modify, true);
-            else
-                Client.Objects.SetPermissions(Client.Network.CurrentSim, localIDs, PermissionWho.NextOwner, PermissionMask.Modify, false);
+            Client.Objects.SetPermissions(Client.Network.CurrentSim, localIDs, PermissionWho.NextOwner,
+                PermissionMask.Modify, (Perms & PermissionMask.Modify) == PermissionMask.Modify);
             PermsSent = true;
 
             if (!GotPermissionsEvent.WaitOne(1000 * 30, false))
                 return "Failed to set the modify bit, permissions in an unknown state";
 
             PermCount = 0;
-            if ((Perms & PermissionMask.Copy) == PermissionMask.Copy)
-                Client.Objects.SetPermissions(Client.Network.CurrentSim, localIDs, PermissionWho.NextOwner, PermissionMask.Copy, true);
-            else
-                Client.Objects.SetPermissions(Client.Network.CurrentSim, localIDs, PermissionWho.NextOwner, PermissionMask.Copy, false);
+            Client.Objects.SetPermissions(Client.Network.CurrentSim, localIDs, PermissionWho.NextOwner,
+                PermissionMask.Copy, (Perms & PermissionMask.Copy) == PermissionMask.Copy);
             PermsSent = true;
 
             if (!GotPermissionsEvent.WaitOne(1000 * 30, false))
                 return "Failed to set the copy bit, permissions in an unknown state";
 
             PermCount = 0;
-            if ((Perms & PermissionMask.Transfer) == PermissionMask.Transfer)
-                Client.Objects.SetPermissions(Client.Network.CurrentSim, localIDs, PermissionWho.NextOwner, PermissionMask.Transfer, true);
-            else
-                Client.Objects.SetPermissions(Client.Network.CurrentSim, localIDs, PermissionWho.NextOwner, PermissionMask.Transfer, false);
+            Client.Objects.SetPermissions(Client.Network.CurrentSim, localIDs, PermissionWho.NextOwner,
+                PermissionMask.Transfer, (Perms & PermissionMask.Transfer) == PermissionMask.Transfer);
             PermsSent = true;
 
             if (!GotPermissionsEvent.WaitOne(1000 * 30, false))
@@ -141,21 +135,20 @@ namespace OpenMetaverse.TestClient
                 }
             }
 
-            return "Set permissions to " + Perms.ToString() + " on " + localIDs.Count + " objects and " + taskItems + " inventory items";
+            return $"Set permissions to {Perms} on {localIDs.Count} objects and {taskItems} inventory items";
         }
 
         void Objects_OnObjectProperties(object sender, ObjectPropertiesEventArgs e)
         {
-            if (PermsSent)
-            {
-                if (Objects.ContainsKey(e.Properties.ObjectID))
-                {
-                    // FIXME: Confirm the current operation against properties.Permissions.NextOwnerMask
+            if (!PermsSent) { return; }
 
-                    ++PermCount;
-                    if (PermCount >= Objects.Count)
-                        GotPermissionsEvent.Set();
-                }
+            if (Objects.ContainsKey(e.Properties.ObjectID))
+            {
+                // FIXME: Confirm the current operation against properties.Permissions.NextOwnerMask
+
+                ++PermCount;
+                if (PermCount >= Objects.Count)
+                    GotPermissionsEvent.Set();
             }
         }
     }

@@ -13,9 +13,9 @@ namespace OpenMetaverse.TestClient
             Name = "bots";
             Description = "detects avatars that appear to be bots.";
             Category = CommandCategory.Other;        
-            testClient.Avatars.ViewerEffect += new EventHandler<ViewerEffectEventArgs>(Avatars_ViewerEffect);
-            testClient.Avatars.ViewerEffectLookAt += new EventHandler<ViewerEffectLookAtEventArgs>(Avatars_ViewerEffectLookAt);
-            testClient.Avatars.ViewerEffectPointAt += new EventHandler<ViewerEffectPointAtEventArgs>(Avatars_ViewerEffectPointAt);
+            testClient.Avatars.ViewerEffect += Avatars_ViewerEffect;
+            testClient.Avatars.ViewerEffectLookAt += Avatars_ViewerEffectLookAt;
+            testClient.Avatars.ViewerEffectPointAt += Avatars_ViewerEffectPointAt;
         }
         
         private void Avatars_ViewerEffectPointAt(object sender, ViewerEffectPointAtEventArgs e)

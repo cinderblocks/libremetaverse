@@ -11,8 +11,8 @@ namespace OpenMetaverse.TestClient
 
 		public override string Execute(string[] args, UUID fromAgentID)
 		{
-            return "CurrentSim: '" + Client.Network.CurrentSim.ToString() + "' Position: " + 
-                Client.Self.SimPosition.ToString();
+            return "CurrentSim: '" + Client.Network.CurrentSim + "' Position: " + 
+                Client.Self.SimPosition;
 		}
     }
 }

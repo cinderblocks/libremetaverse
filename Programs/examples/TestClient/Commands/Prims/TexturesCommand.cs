@@ -17,7 +17,7 @@ namespace OpenMetaverse.TestClient
             Description = "Turns automatic texture downloading on or off. Usage: textures [on/off]";
             Category = CommandCategory.Objects;
             
-            testClient.Objects.ObjectUpdate += new EventHandler<PrimEventArgs>(Objects_OnNewPrim);            
+            testClient.Objects.ObjectUpdate += Objects_OnNewPrim;            
             testClient.Objects.AvatarUpdate += Objects_OnNewAvatar;
         }
 
@@ -102,10 +102,7 @@ namespace OpenMetaverse.TestClient
         {
             if (state == TextureRequestState.Finished && enabled && alreadyRequested.ContainsKey(asset.AssetID))
             {
-                if (state == TextureRequestState.Finished)
-                    Logger.DebugLog(String.Format("Finished downloading texture {0} ({1} bytes)", asset.AssetID, asset.AssetData.Length));
-                else
-                    Logger.Log("Failed to download texture " + asset.AssetID + ": " + state, Helpers.LogLevel.Warning);
+                Logger.DebugLog($"Finished downloading texture {asset.AssetID} ({asset.AssetData.Length} bytes)");
             }
         }
     }

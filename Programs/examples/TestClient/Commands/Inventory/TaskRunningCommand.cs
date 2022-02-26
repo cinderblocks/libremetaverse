@@ -36,31 +36,24 @@ namespace OpenMetaverse.TestClient
             bool setTaskTo = false;
             if (items != null)
             {
-                string result = String.Empty;
-                string matching = String.Empty;
+                string result = string.Empty;
+                string matching = string.Empty;
                 bool setAny = false;
                 if (args.Length > 1)
                 {
                     matching = args[1];
 
-                    string tf;
-                    if (args.Length > 2)
+                    var tf = args.Length > 2 ? args[2] : matching.ToLower();
+                    switch (tf)
                     {
-                        tf = args[2];
-                    }
-                    else
-                    {
-                        tf = matching.ToLower();
-                    }
-                    if (tf == "true")
-                    {
-                        setAny = true;
-                        setTaskTo = true;
-                    }
-                    else if (tf == "false")
-                    {
-                        setAny = true;
-                        setTaskTo = false;
+                        case "true":
+                            setAny = true;
+                            setTaskTo = true;
+                            break;
+                        case "false":
+                            setAny = true;
+                            setTaskTo = false;
+                            break;
                     }
 
                 }
@@ -69,11 +62,11 @@ namespace OpenMetaverse.TestClient
                 EventHandler<ScriptRunningReplyEventArgs> callback;
                 using (AutoResetEvent OnScriptRunningReset = new AutoResetEvent(false))
                 {
-                    callback = ((object sender, ScriptRunningReplyEventArgs e) =>
+                    callback = ((sender, e) =>
                     {
                         if (e.ObjectID == objectID)
                         {
-                            result += String.Format(" IsMono: {0} IsRunning: {1}", e.IsMono, e.IsRunning);
+                            result += $" IsMono: {e.IsMono} IsRunning: {e.IsRunning}";
                             wasRunning = e.IsRunning;
                             OnScriptRunningReset.Set();
                         }

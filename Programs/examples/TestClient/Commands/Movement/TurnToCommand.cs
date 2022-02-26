@@ -39,9 +39,9 @@ namespace OpenMetaverse.TestClient.Commands.Movement
             if (args.Length != 3)
                 return "Usage: turnto x y z";
             double x, y, z;
-            if (!Double.TryParse(args[0], out x) ||
-                !Double.TryParse(args[1], out y) ||
-                !Double.TryParse(args[2], out z))
+            if (!double.TryParse(args[0], out x) ||
+                !double.TryParse(args[1], out y) ||
+                !double.TryParse(args[2], out z))
             {
                 return "Usage: turnto x y z";
             }

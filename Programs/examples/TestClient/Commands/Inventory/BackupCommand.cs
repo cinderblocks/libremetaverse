@@ -57,26 +57,17 @@ namespace OpenMetaverse.TestClient
         /// <summary>
         /// true if either of the background threads is running
         /// </summary>
-        private bool BackgroundBackupRunning
-        {
-            get { return InventoryWalkerRunning || QueueRunnerRunning; }
-        }
+        private bool BackgroundBackupRunning => InventoryWalkerRunning || QueueRunnerRunning;
 
         /// <summary>
         /// true if the thread walking inventory is running
         /// </summary>
-        private bool InventoryWalkerRunning
-        {
-            get { return BackupWorker != null; }
-        }
+        private bool InventoryWalkerRunning => BackupWorker != null;
 
         /// <summary>
         /// true if the thread feeding the queue to the server is running
         /// </summary>
-        private bool QueueRunnerRunning
-        {
-            get { return QueueWorker != null; }
-        }
+        private bool QueueRunnerRunning => QueueWorker != null;
 
         /// <summary>
         /// returns a string summarizing activity
@@ -140,15 +131,15 @@ namespace OpenMetaverse.TestClient
 
             QueueWorker = new BackgroundWorker();
             QueueWorker.WorkerSupportsCancellation = true;
-            QueueWorker.DoWork += new DoWorkEventHandler(bwQueueRunner_DoWork);
-            QueueWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(bwQueueRunner_RunWorkerCompleted);
+            QueueWorker.DoWork += bwQueueRunner_DoWork;
+            QueueWorker.RunWorkerCompleted += bwQueueRunner_RunWorkerCompleted;
 
             QueueWorker.RunWorkerAsync();
 
             BackupWorker = new BackgroundWorker();
             BackupWorker.WorkerSupportsCancellation = true;
-            BackupWorker.DoWork += new DoWorkEventHandler(bwBackup_DoWork);
-            BackupWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(bwBackup_RunWorkerCompleted);
+            BackupWorker.DoWork += bwBackup_DoWork;
+            BackupWorker.RunWorkerCompleted += bwBackup_RunWorkerCompleted;
 
             BackupWorker.RunWorkerAsync(args);
             return "Started background operations.";
@@ -173,7 +164,7 @@ namespace OpenMetaverse.TestClient
                     {
                         if ((qdi.WhenRequested + TimeSpan.FromSeconds(60)) < DateTime.Now)
                         {
-                            Logger.DebugLog(Name + ": timeout on asset " + qdi.AssetID.ToString(), Client);
+                            Logger.DebugLog(Name + ": timeout on asset " + qdi.AssetID, Client);
                             // submit request again
                             var transferID = UUID.Random();
                             Client.Assets.RequestInventoryAsset(
@@ -336,7 +327,7 @@ namespace OpenMetaverse.TestClient
         /// <returns></returns>
         private static string BoolToNot(bool b)
         {
-            return b ? String.Empty : "not";
+            return b ? string.Empty : "not";
         }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OpenMetaverse.TestClient
 {
@@ -18,12 +19,7 @@ namespace OpenMetaverse.TestClient
             if (args.Length < 1)
                 return "Usage: wear [outfit name] eg: 'wear Clothing/My Outfit";
 
-            string target = String.Empty;
-
-            for (int ct = 0; ct < args.Length; ct++)
-            {
-                target += args[ct] + " ";
-            }
+            string target = args.Aggregate(string.Empty, (current, t) => current + (t + " "));
 
             target = target.TrimEnd();
 

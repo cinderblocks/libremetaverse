@@ -26,7 +26,7 @@ namespace OpenMetaverse.TestClient
 
             activeGroup = string.Empty;
 
-            string groupName = args.Aggregate(String.Empty, (current, t) => current + (t + " "));
+            string groupName = args.Aggregate(string.Empty, (current, t) => current + (t + " "));
             groupName = groupName.Trim();
 
             UUID groupUUID = Client.GroupName2UUID(groupName);
@@ -45,12 +45,12 @@ namespace OpenMetaverse.TestClient
                  * TODO: Handle titles choosing.
                  */
 
-                if (String.IsNullOrEmpty(activeGroup))
-                    return Client.ToString() + " failed to activate the group " + groupName;
+                if (string.IsNullOrEmpty(activeGroup))
+                    return Client + " failed to activate the group " + groupName;
 
                 return "Active group is now " + activeGroup;
             }
-            return Client.ToString() + " doesn't seem to be member of the group " + groupName;
+            return Client + " doesn't seem to be member of the group " + groupName;
         }
 
         private void AgentDataUpdateHandler(object sender, PacketReceivedEventArgs e)

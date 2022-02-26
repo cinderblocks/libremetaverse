@@ -22,30 +22,37 @@ namespace OpenMetaverse.TestClient
 
             string methodName = args[0];
 
-            GenericMessagePacket gmp = new GenericMessagePacket();
-
-            gmp.AgentData.AgentID = Client.Self.AgentID;
-            gmp.AgentData.SessionID = Client.Self.SessionID;
-            gmp.AgentData.TransactionID = UUID.Zero;
-
-            gmp.MethodData.Method = Utils.StringToBytes(methodName);
-            gmp.MethodData.Invoice = UUID.Zero;
-
-            gmp.ParamList = new GenericMessagePacket.ParamListBlock[args.Length - 1];
+            GenericMessagePacket gmp = new GenericMessagePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    TransactionID = UUID.Zero
+                },
+                MethodData =
+                {
+                    Method = Utils.StringToBytes(methodName),
+                    Invoice = UUID.Zero
+                },
+                ParamList = new GenericMessagePacket.ParamListBlock[args.Length - 1]
+            };
 
             StringBuilder sb = new StringBuilder();
 
             for (int i = 1; i < args.Length; i++)
             {
-                GenericMessagePacket.ParamListBlock paramBlock = new GenericMessagePacket.ParamListBlock();
-                paramBlock.Parameter = Utils.StringToBytes(args[i]);
+                GenericMessagePacket.ParamListBlock paramBlock = new GenericMessagePacket.ParamListBlock
+ {
+     Parameter = Utils.StringToBytes(args[i])
+ };
                 gmp.ParamList[i - 1] = paramBlock;
                 sb.AppendFormat(" {0}", args[i]);
             }
 
             Client.Network.SendPacket(gmp);
 
-            return string.Format("Sent generic message with method {0}, params{1}", methodName, sb);
+            return $"Sent generic message with method {methodName}, params{sb}";
         }
     }
 }

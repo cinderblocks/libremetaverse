@@ -6,7 +6,7 @@ namespace OpenMetaverse.TestClient
 {
     public class ImCommand : Command
     {
-        string ToAvatarName = String.Empty;
+        string ToAvatarName = string.Empty;
         ManualResetEvent NameSearchEvent = new ManualResetEvent(false);
         Dictionary<string, UUID> Name2Key = new Dictionary<string, UUID>();
 
@@ -27,7 +27,7 @@ namespace OpenMetaverse.TestClient
             ToAvatarName = args[0] + " " + args[1];
 
             // Build the message
-            string message = String.Empty;
+            string message = string.Empty;
             for (int ct = 2; ct < args.Length; ct++)
                 message += args[ct] + " ";
             message = message.TrimEnd();
@@ -46,7 +46,7 @@ namespace OpenMetaverse.TestClient
                 UUID id = Name2Key[ToAvatarName.ToLower()];
 
                 Client.Self.InstantMessage(id, message);
-                return "Instant Messaged " + id.ToString() + " with message: " + message;
+                return "Instant Messaged " + id + " with message: " + message;
             }
             else
             {

@@ -27,29 +27,27 @@ namespace OpenMetaverse.TestClient
 
                 if (target != null)
                 {
-                    if (target.Text != String.Empty)
+                    if (target.Text != string.Empty)
                     {
                         Logger.Log("Text: " + target.Text, Helpers.LogLevel.Info, Client);
                     }
                     if(target.Light != null)
-                        Logger.Log("Light: " + target.Light.ToString(), Helpers.LogLevel.Info, Client);
+                        Logger.Log("Light: " + target.Light, Helpers.LogLevel.Info, Client);
 
                     if (target.ParticleSys.CRC != 0)
-                        Logger.Log("Particles: " + target.ParticleSys.ToString(), Helpers.LogLevel.Info, Client);
+                        Logger.Log("Particles: " + target.ParticleSys, Helpers.LogLevel.Info, Client);
 
                     Logger.Log("TextureEntry:", Helpers.LogLevel.Info, Client);
                     if (target.Textures != null)
                     {
-                        Logger.Log(String.Format("Default texure: {0}",
-                            target.Textures.DefaultTexture.TextureID.ToString()),
+                        Logger.Log($"Default texure: {target.Textures.DefaultTexture.TextureID.ToString()}",
                             Helpers.LogLevel.Info);
 
                         for (int i = 0; i < target.Textures.FaceTextures.Length; i++)
                         {
                             if (target.Textures.FaceTextures[i] != null)
                             {
-                                Logger.Log(String.Format("Face {0}: {1}", i,
-                                    target.Textures.FaceTextures[i].TextureID.ToString()),
+                                Logger.Log($"Face {i}: {target.Textures.FaceTextures[i].TextureID.ToString()}",
                                     Helpers.LogLevel.Info, Client);
                             }
                         }
@@ -63,10 +61,8 @@ namespace OpenMetaverse.TestClient
                     EventHandler<ObjectPropertiesEventArgs> propsCallback =
                         delegate(object sender, ObjectPropertiesEventArgs e)
                         {
-                            Logger.Log(String.Format(
-                                "Category: {0}\nFolderID: {1}\nFromTaskID: {2}\nInventorySerial: {3}\nItemID: {4}\nCreationDate: {5}",
-                                e.Properties.Category, e.Properties.FolderID, e.Properties.FromTaskID, e.Properties.InventorySerial, 
-                                e.Properties.ItemID, e.Properties.CreationDate), Helpers.LogLevel.Info);
+                            Logger.Log(
+                                $"Category: {e.Properties.Category}\nFolderID: {e.Properties.FolderID}\nFromTaskID: {e.Properties.FromTaskID}\nInventorySerial: {e.Properties.InventorySerial}\nItemID: {e.Properties.ItemID}\nCreationDate: {e.Properties.CreationDate}", Helpers.LogLevel.Info);
                             propsEvent.Set();
                         };
 
@@ -81,7 +77,7 @@ namespace OpenMetaverse.TestClient
                 }
                 else
                 {
-                    return "Could not find prim " + primID.ToString();
+                    return "Could not find prim " + primID;
                 }
             }
             else

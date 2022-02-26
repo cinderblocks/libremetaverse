@@ -24,7 +24,7 @@ namespace OpenMetaverse.TestClient
             int counter = 0;
             StringBuilder result = new StringBuilder();
             // test argument that is is a valid integer, then verify we have that parcel data stored in the dictionary
-            if (Int32.TryParse(args[0], out parcelID) 
+            if (int.TryParse(args[0], out parcelID) 
                 && UUID.TryParse(args[1], out ownerUUID))
             {
                 AutoResetEvent wait = new AutoResetEvent(false);
@@ -57,7 +57,8 @@ namespace OpenMetaverse.TestClient
             }
             else
             {
-                return String.Format("Unable to find Parcel {0} in Parcels Dictionary, Did you run parcelinfo to populate the dictionary first?", args[0]);
+                return
+                    $"Unable to find Parcel {args[0]} in Parcels Dictionary, Did you run parcelinfo to populate the dictionary first?";
             }
         }
     }

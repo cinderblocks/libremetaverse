@@ -11,7 +11,7 @@ namespace OpenMetaverse.TestClient
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            return "Dilation is " + Client.Network.CurrentSim.Stats.Dilation.ToString();
+            return "Dilation is " + Client.Network.CurrentSim.Stats.Dilation;
         }
     }
 }

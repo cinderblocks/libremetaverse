@@ -19,7 +19,7 @@ namespace OpenMetaverse.TestClient
 
             Vector2 windSpeed = Client.Network.CurrentSim.WindSpeeds[yPos * 16 + xPos];
 
-            return "Local wind speed is " + windSpeed.ToString();
+            return "Local wind speed is " + windSpeed;
         }
     }
 }

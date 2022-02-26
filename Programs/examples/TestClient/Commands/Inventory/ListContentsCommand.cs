@@ -16,7 +16,7 @@ namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
         {
             if (args.Length > 1)
                 return "Usage: ls [-l]";
-            bool longDisplay = false || args.Length > 0 && args[0] == "-l";
+            bool longDisplay = args.Length > 0 && args[0] == "-l";
 
             Manager = Client.Inventory;
             Inventory = Manager.Store;

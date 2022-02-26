@@ -19,7 +19,7 @@ namespace OpenMetaverse.TestClient
         public override string Execute(string[] args, UUID fromAgentID)
         {
             // parse the command line
-            string target = args.Aggregate(String.Empty, (current, t) => current + t + " ");
+            string target = args.Aggregate(string.Empty, (current, t) => current + t + " ");
             target = target.TrimEnd();
 
             // initialize results list
@@ -33,10 +33,10 @@ namespace OpenMetaverse.TestClient
                 // move the folder to the trash folder
                 Client.Inventory.MoveFolder(found[0].UUID, Client.Inventory.FindFolderForType(FolderType.Trash));
                 
-                return String.Format("Moved folder {0} to Trash", found[0].Name);
+                return $"Moved folder {found[0].Name} to Trash";
             }
 
-            return String.Empty;
+            return string.Empty;
         }
     }
 }

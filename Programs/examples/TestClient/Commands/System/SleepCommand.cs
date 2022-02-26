@@ -17,23 +17,33 @@ namespace OpenMetaverse.TestClient
         public override string Execute(string[] args, UUID fromAgentID)
         {
             int seconds;
-            if (args.Length != 1 || !Int32.TryParse(args[0], out seconds))
+            if (args.Length != 1 || !int.TryParse(args[0], out seconds))
                 return "Usage: sleep [seconds]";
 
-            AgentPausePacket pause = new AgentPausePacket();
-            pause.AgentData.AgentID = Client.Self.AgentID;
-            pause.AgentData.SessionID = Client.Self.SessionID;
-            pause.AgentData.SerialNum = sleepSerialNum++;
+            AgentPausePacket pause = new AgentPausePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    SerialNum = sleepSerialNum++
+                }
+            };
 
             Client.Network.SendPacket(pause);
 
             // Sleep
             System.Threading.Thread.Sleep(seconds * 1000);
 
-            AgentResumePacket resume = new AgentResumePacket();
-            resume.AgentData.AgentID = Client.Self.AgentID;
-            resume.AgentData.SessionID = Client.Self.SessionID;
-            resume.AgentData.SerialNum = pause.AgentData.SerialNum;
+            AgentResumePacket resume = new AgentResumePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    SerialNum = pause.AgentData.SerialNum
+                }
+            };
 
             Client.Network.SendPacket(resume);
 

@@ -21,7 +21,7 @@ namespace OpenMetaverse.TestClient
         public override string Execute(string[] args, UUID fromAgentID)
 		{
             // Construct the target name from the passed arguments
-			string target = args.Aggregate(String.Empty, (current, t) => current + t + " ");
+			string target = args.Aggregate(string.Empty, (current, t) => current + t + " ");
             target = target.TrimEnd();
 
             if (target.Length == 0 || target == "off")
@@ -102,8 +102,8 @@ namespace OpenMetaverse.TestClient
                                 double yTarget = (double)targetAv.Position.Y + (double)regionY;
                                 double zTarget = targetAv.Position.Z - 2f;
 
-                                Logger.DebugLog(String.Format("[Autopilot] {0} meters away from the target, starting autopilot to <{1},{2},{3}>",
-                                    distance, xTarget, yTarget, zTarget), Client);
+                                Logger.DebugLog(
+                                    $"[Autopilot] {distance} meters away from the target, starting autopilot to <{xTarget},{yTarget},{zTarget}>", Client);
 
                                 Client.Self.AutoPilot(xTarget, yTarget, zTarget);
                             }

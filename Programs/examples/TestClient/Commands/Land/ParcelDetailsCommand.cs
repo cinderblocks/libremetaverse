@@ -21,7 +21,7 @@ namespace OpenMetaverse.TestClient
             Parcel parcel;
 
             // test argument that is is a valid integer, then verify we have that parcel data stored in the dictionary
-            if (Int32.TryParse(args[0], out parcelID) && Client.Network.CurrentSim.Parcels.TryGetValue(parcelID, out parcel))
+            if (int.TryParse(args[0], out parcelID) && Client.Network.CurrentSim.Parcels.TryGetValue(parcelID, out parcel))
             {
                 // this request will update the parcels dictionary
                 Client.Parcels.RequestParcelProperties(Client.Network.CurrentSim, parcelID, 0);
@@ -39,7 +39,8 @@ namespace OpenMetaverse.TestClient
             }
             else
             {
-                return String.Format("Unable to find Parcel {0} in Parcels Dictionary, Did you run parcelinfo to populate the dictionary first?", args[0]);
+                return
+                    $"Unable to find Parcel {args[0]} in Parcels Dictionary, Did you run parcelinfo to populate the dictionary first?";
             }
         }
     }

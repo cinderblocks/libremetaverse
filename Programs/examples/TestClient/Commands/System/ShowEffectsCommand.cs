@@ -12,9 +12,9 @@ namespace OpenMetaverse.TestClient
             Description = "Prints out information for every viewer effect that is received. Usage: showeffects [on/off]";
             Category = CommandCategory.Other;
 
-            testClient.Avatars.ViewerEffect += new EventHandler<ViewerEffectEventArgs>(Avatars_ViewerEffect);
-            testClient.Avatars.ViewerEffectPointAt += new EventHandler<ViewerEffectPointAtEventArgs>(Avatars_ViewerEffectPointAt);
-            testClient.Avatars.ViewerEffectLookAt += new EventHandler<ViewerEffectLookAtEventArgs>(Avatars_ViewerEffectLookAt);            
+            testClient.Avatars.ViewerEffect += Avatars_ViewerEffect;
+            testClient.Avatars.ViewerEffectPointAt += Avatars_ViewerEffectPointAt;
+            testClient.Avatars.ViewerEffectLookAt += Avatars_ViewerEffectLookAt;            
         }
 
         void Avatars_ViewerEffectLookAt(object sender, ViewerEffectLookAtEventArgs e)

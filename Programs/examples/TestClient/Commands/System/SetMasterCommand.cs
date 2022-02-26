@@ -48,7 +48,7 @@ namespace OpenMetaverse.TestClient
             Client.Self.InstantMessage(
                 Client.MasterKey, "You are now my master.  IM me with \"help\" for a command list.");
 
-            return String.Format("Master set to {0} ({1})", masterName, Client.MasterKey.ToString());
+            return $"Master set to {masterName} ({Client.MasterKey.ToString()})";
 		}
 
         private void KeyResolvHandler(object sender, DirPeopleReplyEventArgs e)

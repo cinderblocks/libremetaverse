@@ -15,7 +15,7 @@ namespace OpenMetaverse.TestClient
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            string fileName = String.Empty;
+            string fileName = string.Empty;
 
             if (args.Length != 1)
                 return "Usage: uploadterrain filename";
@@ -25,12 +25,12 @@ namespace OpenMetaverse.TestClient
 
             if (!System.IO.File.Exists(fileName))
             {
-                return String.Format("File {0} Does not exist", fileName);
+                return $"File {fileName} Does not exist";
             }
 
             // Setup callbacks for upload request reply and progress indicator 
             // so we can detect when the upload is complete
-            Client.Assets.UploadProgress += new EventHandler<AssetUploadEventArgs>(Assets_UploadProgress);
+            Client.Assets.UploadProgress += Assets_UploadProgress;
             byte[] fileData = File.ReadAllBytes(fileName);
 
             Client.Estate.UploadTerrain(fileData, fileName);
@@ -53,7 +53,7 @@ namespace OpenMetaverse.TestClient
         /// </summary>
         private void Cleanup()
         {
-            Client.Assets.UploadProgress -= new EventHandler<AssetUploadEventArgs>(Assets_UploadProgress);
+            Client.Assets.UploadProgress -= Assets_UploadProgress;
         }
 
 

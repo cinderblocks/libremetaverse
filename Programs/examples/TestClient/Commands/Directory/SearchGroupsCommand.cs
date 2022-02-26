@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 namespace OpenMetaverse.TestClient.Commands
 {
@@ -20,9 +21,7 @@ namespace OpenMetaverse.TestClient.Commands
             if (args.Length < 1)
                 return "Usage: searchgroups [search text]";
 
-            string searchText = string.Empty;
-            for (int i = 0; i < args.Length; i++)
-                searchText += args[i] + " ";
+            string searchText = args.Aggregate(string.Empty, (current, t) => current + (t + " "));
             searchText = searchText.TrimEnd();
 
             waitQuery.Reset();

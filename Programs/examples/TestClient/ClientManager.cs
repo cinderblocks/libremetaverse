@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace OpenMetaverse.TestClient
@@ -128,8 +129,7 @@ namespace OpenMetaverse.TestClient
                     }
 
                     // Otherwise, use the center of the named region
-                    if (account.StartLocation == null)
-                        account.StartLocation = NetworkManager.StartLocation(args[3], 128, 128, 40);
+                    account.StartLocation ??= NetworkManager.StartLocation(args[3], 128, 128, 40);
                 }
             }
 
@@ -256,10 +256,9 @@ namespace OpenMetaverse.TestClient
                 }
             }
 
-            foreach (GridClient client in Clients.Values)
+            foreach (var client in Clients.Values.Cast<GridClient>().Where(client => client.Network.Connected))
             {
-                if (client.Network.Connected)
-                    client.Network.Logout();
+                client.Network.Logout();
             }
         }
 
@@ -268,12 +267,7 @@ namespace OpenMetaverse.TestClient
         /// </summary>
         private void PrintPrompt()
         {
-            int online = 0;
-
-            foreach (GridClient client in Clients.Values)
-            {
-                if (client.Network.Connected) online++;
-            }
+            int online = Clients.Values.Cast<GridClient>().Count(client => client.Network.Connected);
 
             Console.Write($"{online} avatars online> ");
         }
@@ -288,7 +282,7 @@ namespace OpenMetaverse.TestClient
         {
             if (cmd == null)
                 return;
-            string[] tokens = cmd.Trim().Split(new char[] { ' ', '\t' });
+            string[] tokens = cmd.Trim().Split(' ', '\t');
             if (tokens.Length == 0)
                 return;
             
@@ -301,21 +295,15 @@ namespace OpenMetaverse.TestClient
                 return;
 
             if ('@' == firstToken[0]) {
-                onlyAvatar = String.Empty;
+                onlyAvatar = string.Empty;
                 if (tokens.Length == 3) {
-                    bool found = false;
                     onlyAvatar = tokens[1]+" "+tokens[2];
-                    foreach (TestClient client in Clients.Values) {
-                        if ((client.ToString() == onlyAvatar) && (client.Network.Connected)) {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (found) {
-                        Logger.Log($"Commanding only {onlyAvatar} now", Helpers.LogLevel.Info);
-                    } else {
-                        Logger.Log($"Commanding nobody now. Avatar {onlyAvatar} is offline", Helpers.LogLevel.Info);
-                    }
+                    bool found = Clients.Values.Any(client => (client.ToString() == onlyAvatar) && (client.Network.Connected));
+
+                    Logger.Log(
+                        found
+                            ? $"Commanding only {onlyAvatar} now"
+                            : $"Commanding nobody now. Avatar {onlyAvatar} is offline", Helpers.LogLevel.Info);
                 } else {
                     Logger.Log("Commanding all avatars now", Helpers.LogLevel.Info);
                 }

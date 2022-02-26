@@ -25,7 +25,7 @@ namespace OpenMetaverse.TestClient
             }
             else
             {
-                Console.WriteLine("Teleporting to " + landmark.ToString());
+                Console.WriteLine("Teleporting to " + landmark);
             }
             if (Client.Self.Teleport(landmark))
             {

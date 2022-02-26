@@ -20,9 +20,9 @@ namespace OpenMetaverse.TestClient.Commands.Movement
             Utils.LongToUInts(Client.Network.CurrentSim.Handle, out regionX, out regionY);
 
             double x, y, z;
-            if (!Double.TryParse(args[0], out x) ||
-                !Double.TryParse(args[1], out y) ||
-                !Double.TryParse(args[2], out z))
+            if (!double.TryParse(args[0], out x) ||
+                !double.TryParse(args[1], out y) ||
+                !double.TryParse(args[2], out z))
             {
                 return "Usage: moveto x y z";
             }
@@ -33,7 +33,7 @@ namespace OpenMetaverse.TestClient.Commands.Movement
 
             Client.Self.AutoPilot(x, y, z);
 
-            return String.Format("Attempting to move to <{0},{1},{2}>", x, y, z);
+            return $"Attempting to move to <{x},{y},{z}>";
         }
     }
 }

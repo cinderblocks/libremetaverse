@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.IO;
+using System.Linq;
 using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.TestClient
@@ -110,7 +111,7 @@ namespace OpenMetaverse.TestClient
                     if (!primDone.WaitOne(10000, false))
                         return "Rez failed, timed out while creating the root prim.";
 
-                    Client.Objects.SetPosition(Client.Network.CurrentSim, primsCreated[primsCreated.Count - 1].LocalID, linkset.RootPrim.Position);
+                    Client.Objects.SetPosition(Client.Network.CurrentSim, primsCreated[^1].LocalID, linkset.RootPrim.Position);
 
                     state = ImporterState.RezzingChildren;
 
@@ -125,22 +126,17 @@ namespace OpenMetaverse.TestClient
 
                         if (!primDone.WaitOne(10000, false))
                             return "Rez failed, timed out while creating child prim.";
-                        Client.Objects.SetPosition(Client.Network.CurrentSim, primsCreated[primsCreated.Count - 1].LocalID, currentPosition);
+                        Client.Objects.SetPosition(Client.Network.CurrentSim, primsCreated[^1].LocalID, currentPosition);
 
                     }
 
                     // Create a list of the local IDs of the newly created prims
-                    List<uint> primIDs = new List<uint>(primsCreated.Count);
-                    primIDs.Add(rootLocalID); // Root prim is first in list.
-                    
+                    List<uint> primIDs = new List<uint>(primsCreated.Count) { rootLocalID /*Root prim is first in list.*/ };
+
                     if (linkset.Children.Count != 0)
                     {
                         // Add the rest of the prims to the list of local IDs
-                        foreach (Primitive prim in primsCreated)
-                        {
-                            if (prim.LocalID != rootLocalID)
-                                primIDs.Add(prim.LocalID);
-                        }
+                        primIDs.AddRange(from prim in primsCreated where prim.LocalID != rootLocalID select prim.LocalID);
                         linkQueue = new List<uint>(primIDs.Count);
                         linkQueue.AddRange(primIDs);
 
@@ -214,12 +210,12 @@ namespace OpenMetaverse.TestClient
                             Client.Objects.SetSculpt(e.Simulator, prim.LocalID, currentPrim.Sculpt);
                         }
 
-                        if (currentPrim.Properties!= null && !String.IsNullOrEmpty(currentPrim.Properties.Name))
+                        if (currentPrim.Properties!= null && !string.IsNullOrEmpty(currentPrim.Properties.Name))
                         {
                             Client.Objects.SetName(e.Simulator, prim.LocalID, currentPrim.Properties.Name);
                         }
 
-                        if (currentPrim.Properties != null && !String.IsNullOrEmpty(currentPrim.Properties.Description))
+                        if (currentPrim.Properties != null && !string.IsNullOrEmpty(currentPrim.Properties.Description))
                         {
                             Client.Objects.SetDescription(e.Simulator, prim.LocalID, currentPrim.Properties.Description);
                         }

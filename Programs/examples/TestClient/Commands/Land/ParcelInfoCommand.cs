@@ -21,14 +21,15 @@ namespace OpenMetaverse.TestClient
         {
             StringBuilder sb = new StringBuilder();
             string result;
-            EventHandler<SimParcelsDownloadedEventArgs> del = delegate(object sender, SimParcelsDownloadedEventArgs e)
+
+            void parcelsDownloaded(object sender, SimParcelsDownloadedEventArgs e)
             {
                 ParcelsDownloaded.Set();
-            };
-            
+            }
+
 
             ParcelsDownloaded.Reset();
-            Client.Parcels.SimParcelsDownloaded += del;
+            Client.Parcels.SimParcelsDownloaded += parcelsDownloaded;
             Client.Parcels.RequestAllSimParcels(Client.Network.CurrentSim);
 
             if (Client.Network.CurrentSim.IsParcelMapFull())
@@ -50,7 +51,7 @@ namespace OpenMetaverse.TestClient
             else
                 result = "Failed to retrieve information on all the simulator parcels";
 
-            Client.Parcels.SimParcelsDownloaded -= del;
+            Client.Parcels.SimParcelsDownloaded -= parcelsDownloaded;
             return result;
         }
 

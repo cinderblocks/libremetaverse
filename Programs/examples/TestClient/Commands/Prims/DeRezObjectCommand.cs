@@ -32,7 +32,7 @@
                 }
                 else
                 {
-                    return "Could not find prim " + primID.ToString();
+                    return "Could not find prim " + primID;
                 }
             }
             else

@@ -21,10 +21,10 @@ namespace OpenMetaverse.TestClient
 
         public ExportCommand(TestClient testClient)
         {
-            testClient.Objects.ObjectPropertiesFamily += new EventHandler<ObjectPropertiesFamilyEventArgs>(Objects_OnObjectPropertiesFamily);
+            testClient.Objects.ObjectPropertiesFamily += Objects_OnObjectPropertiesFamily;
 
-            testClient.Objects.ObjectProperties += new EventHandler<ObjectPropertiesEventArgs>(Objects_OnObjectProperties);
-            testClient.Avatars.ViewerEffectPointAt += new EventHandler<ViewerEffectPointAtEventArgs>(Avatars_ViewerEffectPointAt);
+            testClient.Objects.ObjectProperties += Objects_OnObjectProperties;
+            testClient.Avatars.ViewerEffectPointAt += Avatars_ViewerEffectPointAt;
 
             Name = "export";
             Description = "Exports an object to an xml file. Usage: export uuid outputfile.xml";
@@ -152,7 +152,7 @@ namespace OpenMetaverse.TestClient
             }
             else
             {
-                return "Couldn't find UUID " + id.ToString() + " in the " + 
+                return "Couldn't find UUID " + id + " in the " + 
                     Client.Network.CurrentSim.ObjectsPrimitives.Count + 
                     "objects currently indexed in the current simulator";
             }
@@ -187,27 +187,20 @@ namespace OpenMetaverse.TestClient
                 lock (Textures)
                     Textures.Remove(asset.AssetID);
 
-                if (state == TextureRequestState.Finished)
+                try { File.WriteAllBytes(asset.AssetID + ".jp2", asset.AssetData); }
+                catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
+
+                if (asset.Decode())
                 {
-                    try { File.WriteAllBytes(asset.AssetID + ".jp2", asset.AssetData); }
+                    try { File.WriteAllBytes(asset.AssetID + ".tga", asset.Image.ExportTGA()); }
                     catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
-
-                    if (asset.Decode())
-                    {
-                        try { File.WriteAllBytes(asset.AssetID + ".tga", asset.Image.ExportTGA()); }
-                        catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
-                    }
-                    else
-                    {
-                        Logger.Log("Failed to decode image " + asset.AssetID, Helpers.LogLevel.Error, Client);
-                    }
-
-                    Logger.Log("Finished downloading image " + asset.AssetID, Helpers.LogLevel.Info, Client);
                 }
                 else
                 {
-                    Logger.Log("Failed to download image " + asset.AssetID + ":" + state, Helpers.LogLevel.Warning, Client);
+                    Logger.Log("Failed to decode image " + asset.AssetID, Helpers.LogLevel.Error, Client);
                 }
+
+                Logger.Log("Finished downloading image " + asset.AssetID, Helpers.LogLevel.Info, Client);
             }
         }
 

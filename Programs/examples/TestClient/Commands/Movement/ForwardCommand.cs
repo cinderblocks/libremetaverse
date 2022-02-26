@@ -27,7 +27,7 @@ namespace OpenMetaverse.TestClient.Commands.Movement
             {
                 // Parse the number of seconds
                 int duration;
-                if (!Int32.TryParse(args[0], out duration))
+                if (!int.TryParse(args[0], out duration))
                     return "Usage: forward [seconds]";
                 // Convert to milliseconds
                 duration *= 1000;

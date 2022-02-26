@@ -22,13 +22,13 @@ namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
             string[] path = null;
             if (args.Length == 0)
             {
-                path = new string[] { "" };
+                path = new[] { "" };
                 // cd without any arguments doesn't do anything.
             }
             else if (args.Length == 1)
             {
                 pathStr = args[0];
-                path = pathStr.Split(new char[] { '/' });
+                path = pathStr.Split(new[] { '/' });
                 // Use '/' as a path seperator.
             }
             InventoryFolder currentFolder = Client.CurrentDirectory;

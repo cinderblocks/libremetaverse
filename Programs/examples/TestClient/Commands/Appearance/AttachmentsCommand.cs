@@ -19,14 +19,13 @@ namespace OpenMetaverse.TestClient
                 prim => prim.ParentID == Client.Self.LocalID
             );
 
-            for (int i = 0; i < attachments.Count; i++)
+            foreach (var prim in attachments)
             {
-                Primitive prim = attachments[i];
                 AttachmentPoint point = StateToAttachmentPoint(prim.PrimData.State);
 
                 // TODO: Fetch properties for the objects with missing property sets so we can show names
-                Logger.Log(String.Format("[Attachment @ {0}] LocalID: {1} UUID: {2} Offset: {3}",
-                    point, prim.LocalID, prim.ID, prim.Position), Helpers.LogLevel.Info, Client);
+                Logger.Log($"[Attachment @ {point}] LocalID: {prim.LocalID} UUID: {prim.ID} Offset: {prim.Position}", 
+                    Helpers.LogLevel.Info, Client);
             }
 
             return "Found " + attachments.Count + " attachments";

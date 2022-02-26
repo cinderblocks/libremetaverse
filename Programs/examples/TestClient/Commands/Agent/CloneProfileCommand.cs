@@ -16,12 +16,12 @@ namespace OpenMetaverse.TestClient
 
         public CloneProfileCommand(TestClient testClient)
         {
-            testClient.Avatars.AvatarInterestsReply += new EventHandler<AvatarInterestsReplyEventArgs>(Avatars_AvatarInterestsReply);
-            testClient.Avatars.AvatarPropertiesReply += new EventHandler<AvatarPropertiesReplyEventArgs>(Avatars_AvatarPropertiesReply);
-            testClient.Avatars.AvatarGroupsReply += new EventHandler<AvatarGroupsReplyEventArgs>(Avatars_AvatarGroupsReply);            
-            testClient.Groups.GroupJoinedReply += new EventHandler<GroupOperationEventArgs>(Groups_OnGroupJoined);
-            testClient.Avatars.AvatarPicksReply += new EventHandler<AvatarPicksReplyEventArgs>(Avatars_AvatarPicksReply);            
-            testClient.Avatars.PickInfoReply += new EventHandler<PickInfoReplyEventArgs>(Avatars_PickInfoReply);
+            testClient.Avatars.AvatarInterestsReply += Avatars_AvatarInterestsReply;
+            testClient.Avatars.AvatarPropertiesReply += Avatars_AvatarPropertiesReply;
+            testClient.Avatars.AvatarGroupsReply += Avatars_AvatarGroupsReply;            
+            testClient.Groups.GroupJoinedReply += Groups_OnGroupJoined;
+            testClient.Avatars.AvatarPicksReply += Avatars_AvatarPicksReply;            
+            testClient.Avatars.PickInfoReply += Avatars_PickInfoReply;
 
             Name = "cloneprofile";
             Description = "Clones another avatars profile as closely as possible. WARNING: This command will " +
@@ -76,17 +76,17 @@ namespace OpenMetaverse.TestClient
                 Client.Groups.RequestJoinGroup(groupID);
             }
 
-            return "Synchronized our profile to the profile of " + targetID.ToString();
+            return "Synchronized our profile to the profile of " + targetID;
         }                           
 
         void Groups_OnGroupJoined(object sender, GroupOperationEventArgs e)
         {
-            Console.WriteLine(Client.ToString() + (e.Success ? " joined " : " failed to join ") +
-                e.GroupID.ToString());
+            Console.WriteLine(Client + (e.Success ? " joined " : " failed to join ") +
+                e.GroupID);
 
             if (e.Success)
             {
-                Console.WriteLine(Client.ToString() + " setting " + e.GroupID.ToString() +
+                Console.WriteLine(Client + " setting " + e.GroupID +
                     " as the active group");
                 Client.Groups.ActivateGroup(e.GroupID);
             }

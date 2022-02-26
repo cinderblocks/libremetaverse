@@ -100,7 +100,7 @@ namespace OpenMetaverse.TestClient
                 }
             }
 
-            return "Couldn't find avatar " + target.ToString();
+            return "Couldn't find avatar " + target;
         }
 
         private void Assets_OnImageReceived(TextureRequestState state, AssetTexture assetTexture)

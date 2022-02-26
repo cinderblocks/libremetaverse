@@ -22,11 +22,11 @@ namespace OpenMetaverse.TestClient
             }
             else if (args.Length > 1)
             {
-                if (Int32.TryParse(args[0], out channel))
+                if (int.TryParse(args[0], out channel))
                     startIndex = 1;
             }
 
-            String message = String.Empty;
+            string message = string.Empty;
 
             for (int i = startIndex; i < args.Length; i++)
             {
@@ -38,7 +38,7 @@ namespace OpenMetaverse.TestClient
 
             Client.Self.Chat(message, channel, ChatType.Normal);
 
-            return "Said " + message.ToString();
+            return "Said " + message;
         }
     }
 }

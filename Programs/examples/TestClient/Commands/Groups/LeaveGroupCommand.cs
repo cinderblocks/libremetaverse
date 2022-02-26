@@ -20,7 +20,7 @@ namespace OpenMetaverse.TestClient
             if (args.Length < 1)
                 return Description;
 
-            string groupName = args.Aggregate(String.Empty, (current, t) => current + (t + " "));
+            string groupName = args.Aggregate(string.Empty, (current, t) => current + (t + " "));
             groupName = groupName.Trim();
 
             UUID groupUUID = Client.GroupName2UUID(groupName);
@@ -35,15 +35,15 @@ namespace OpenMetaverse.TestClient
                 Client.ReloadGroupsCache();
 
                 if (leftGroup)
-                    return Client.ToString() + " has left the group " + groupName;
+                    return Client + " has left the group " + groupName;
                 return "failed to leave the group " + groupName;
             }
-            return Client.ToString() + " doesn't seem to be member of the group " + groupName;
+            return Client + " doesn't seem to be member of the group " + groupName;
         }
 
         void Groups_GroupLeft(object sender, GroupOperationEventArgs e)
         {
-            Console.WriteLine(Client.ToString() + (e.Success ? " has left group " : " failed to left group ") + e.GroupID.ToString());
+            Console.WriteLine(Client + (e.Success ? " has left group " : " failed to left group ") + e.GroupID);
 
             leftGroup = e.Success;
             GroupsEvent.Set();

@@ -14,16 +14,20 @@ namespace OpenMetaverse.TestClient
         public override string Execute(string[] args, UUID fromAgentID)
 		{
             System.Threading.AutoResetEvent waitBalance = new System.Threading.AutoResetEvent(false);
-            
-            EventHandler<BalanceEventArgs> del = delegate(object sender, BalanceEventArgs e) { waitBalance.Set(); };
-            Client.Self.MoneyBalance += del;            
+
+            void balance(object sender, BalanceEventArgs e)
+            {
+                waitBalance.Set();
+            }
+
+            Client.Self.MoneyBalance += balance;            
             Client.Self.RequestBalance();
-            String result = "Timeout waiting for balance reply";
+            string result = "Timeout waiting for balance reply";
             if (waitBalance.WaitOne(10000, false))
             {
-                result = Client.ToString() + " has L$: " + Client.Self.Balance;
+                result = Client + " has L$: " + Client.Self.Balance;
             }
-            Client.Self.MoneyBalance -= del;
+            Client.Self.MoneyBalance -= balance;
             return result;            
 		}
     }

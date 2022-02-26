@@ -37,7 +37,7 @@ namespace OpenMetaverse.TestClient
         public override string Execute(string[] args, UUID fromAgentID)
         {
             if (!IsVoiceManagerRunning()) 
-                return String.Format("VoiceManager not running for {0}", fromAgentID);
+                return $"VoiceManager not running for {fromAgentID}";
 
             if (!Client.VoiceManager.RequestParcelVoiceInfo()) 
             {
@@ -45,13 +45,13 @@ namespace OpenMetaverse.TestClient
             }
             ParcelVoiceInfoEvent.WaitOne(30 * 1000, false);
 
-            if (String.IsNullOrEmpty(VoiceRegionName) && -1 == VoiceLocalID)
+            if (string.IsNullOrEmpty(VoiceRegionName) && -1 == VoiceLocalID)
             {
-                return String.Format("Parcel Voice Info request for {0} failed.", Client.Self.Name);
+                return $"Parcel Voice Info request for {Client.Self.Name} failed.";
             }
 
-            return String.Format("Parcel Voice Info request for {0}: region name \"{1}\", parcel local id {2}, channel URI {3}",
-                                 Client.Self.Name, VoiceRegionName, VoiceLocalID, VoiceChannelURI);
+            return
+                $"Parcel Voice Info request for {Client.Self.Name}: region name \"{VoiceRegionName}\", parcel local id {VoiceLocalID}, channel URI {VoiceChannelURI}";
         }
 
         void Voice_OnParcelVoiceInfo(string regionName, int localID, string channelURI)

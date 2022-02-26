@@ -27,7 +27,7 @@ namespace OpenMetaverse.TestClient
             if (args.Length < 1)
                 return Description;
 
-            GroupName = String.Empty;
+            GroupName = string.Empty;
             foreach (var arg in args)
                 GroupName += arg + " ";
 
@@ -40,9 +40,9 @@ namespace OpenMetaverse.TestClient
                 GroupsEvent.WaitOne(30000, false);
                 GroupsEvent.Reset();
                 Client.Groups.GroupMembersReply -= GroupMembersHandler;
-                return Client.ToString() + " got group members";
+                return Client + " got group members";
             }
-            return Client.ToString() + " doesn't seem to be member of the group " + GroupName;
+            return Client + " doesn't seem to be member of the group " + GroupName;
         }
 
         private void GroupMembersHandler(object sender, GroupMembersReplyEventArgs e)

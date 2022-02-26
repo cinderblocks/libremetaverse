@@ -27,7 +27,7 @@ namespace OpenMetaverse.TestClient
             if (args.Length < 1)
                 return Description;
 
-            GroupName = String.Empty;
+            GroupName = string.Empty;
             foreach (var arg in args)
                 GroupName += arg + " ";
 
@@ -40,9 +40,9 @@ namespace OpenMetaverse.TestClient
                 GroupsEvent.WaitOne(30000, false);
                 GroupsEvent.Reset();
                 Client.Groups.GroupRoleDataReply += Groups_GroupRoles;
-                return Client.ToString() + " got group roles";
+                return Client + " got group roles";
             }
-            return Client.ToString() + " doesn't seem to have any roles in the group " + GroupName;
+            return Client + " doesn't seem to have any roles in the group " + GroupName;
         }
 
         void Groups_GroupRoles(object sender, GroupRolesDataReplyEventArgs e)

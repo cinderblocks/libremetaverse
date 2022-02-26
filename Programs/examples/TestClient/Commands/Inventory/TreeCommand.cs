@@ -17,7 +17,7 @@ namespace OpenMetaverse.TestClient
 		    {
 		        try
 		        {
-		            string treeName = args[0].Trim(new char[] { ' ' });
+		            string treeName = args[0].Trim(new[] { ' ' });
 		            Tree tree = (Tree)Enum.Parse(typeof(Tree), treeName);
 
 		            Vector3 treePosition = Client.Self.SimPosition;
@@ -39,7 +39,7 @@ namespace OpenMetaverse.TestClient
 		    {
 		        usage += value + ",";
 		    }
-		    usage = usage.TrimEnd(new char[] { ',' });
+		    usage = usage.TrimEnd(new[] { ',' });
 		    usage += "]";
 		    return usage;
 		}
