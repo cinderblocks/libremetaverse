@@ -44,22 +44,6 @@ namespace OpenMetaverse.TestClient
         public string URI;
     }
 
-    public class StartPosition
-    {
-        public string sim;
-        public int x;
-        public int y;
-        public int z;
-
-        public StartPosition()
-        {
-            this.sim = null;
-            this.x = 0;
-            this.y = 0;
-            this.z = 0;
-        }
-    }
-
     public sealed class ClientManager
     {
         const string VERSION = "1.0.0";
@@ -152,13 +136,12 @@ namespace OpenMetaverse.TestClient
         public TestClient Login(LoginDetails account)
         {
             // Check if this client is already logged in
-            foreach (TestClient c in Clients.Values)
+            foreach (var c in Clients.Values.Where(
+                         client => client.Self.FirstName == account.FirstName
+                                   && client.Self.LastName == account.LastName))
             {
-                if (c.Self.FirstName == account.FirstName && c.Self.LastName == account.LastName)
-                {
-                    Logout(c);
-                    break;
-                }
+                Logout(c);
+                break;
             }
 
             ++PendingLogins;
@@ -176,24 +159,22 @@ namespace OpenMetaverse.TestClient
                         if (client.MasterKey == UUID.Zero)
                         {
                             UUID query = UUID.Zero;
-                            EventHandler<DirPeopleReplyEventArgs> peopleDirCallback =
-                                delegate(object sender2, DirPeopleReplyEventArgs dpe)
-                                {
-                                    if (dpe.QueryID == query)
-                                    {
-                                        if (dpe.MatchedPeople.Count != 1)
-                                        {
-                                            Logger.Log($"Unable to resolve master key from {client.MasterName}", Helpers.LogLevel.Warning);
-                                        }
-                                        else
-                                        {
-                                            client.MasterKey = dpe.MatchedPeople[0].AgentID;
-                                            Logger.Log($"Master key resolved to {client.MasterKey}", Helpers.LogLevel.Info);
-                                        }
-                                    }
-                                };
 
-                            client.Directory.DirPeopleReply += peopleDirCallback;
+                            void PeopleDirCallback(object sender2, DirPeopleReplyEventArgs dpe)
+                            {
+                                if (dpe.QueryID != query) { return; }
+                                if (dpe.MatchedPeople.Count != 1)
+                                {
+                                    Logger.Log($"Unable to resolve master key from {client.MasterName}", Helpers.LogLevel.Warning);
+                                }
+                                else
+                                {
+                                    client.MasterKey = dpe.MatchedPeople[0].AgentID;
+                                    Logger.Log($"Master key resolved to {client.MasterKey}", Helpers.LogLevel.Info);
+                                }
+                            }
+
+                            client.Directory.DirPeopleReply += PeopleDirCallback;
                             query = client.Directory.StartPeopleSearch(client.MasterName, 0);
                         }
 
