@@ -8,7 +8,7 @@ LibreMetaverse
 ===============================================================================
 LibreMetaverse is a fork of libOpenMetaverse which in turn was a fork of
 libSecondLife, a library for developing Second Life-compatible virtual world
-clients. LibreMetavrse returns the focus to up-to-date Second Life and OpenSim
+clients. LibreMetaverse returns the focus to up-to-date Second Life and OpenSim
 compatibility with an eye to performance, multi-threading, and memory management.
 
 The canonical source for LibreMetaverse can be found at:
