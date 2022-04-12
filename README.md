@@ -14,6 +14,17 @@ compatibility with an eye to performance, multi-threading, and memory management
 The canonical source for LibreMetaverse can be found at:
 https://github.com/cinderblocks/libremetaverse
 
+## Simple installation procedure
+
+(Linux/macOS only)
+
+- Make sure you have at least `dotnet` installed, with a valid net5.0/net6.0 SDK _and_ runtime available!
+- From the root, run `dotnet restore`. You should get some errors regarding missing Windows libraries; that's ok, you can ignore those, they're to be expected since Linux/macOS do _not_ include such libraries. Some test applications are Windows-only.  
+If all goes well, you should now have all dependent packages properly installed.
+- From the root, run `dotnet msbuild`, and enjoy the superfast Roslyn compiler at work 😄 It should finish after a few minutes, depending on the speed of your machine.
+- Your binaries will be under `../bin/net5.0` or `../bin/net6.0` (there might be a few more directories under `../bin`), depending on what runtimes you have installed on your system. Make sure you `cd` to the correct directory depending on the runtime you have, and then search for all your binaries there: they should be normal-looking executable files (with the `x` attribute set) and having the name of the appropriate test application (e.g. `TestClient` for the interactive testing tool).
+- Unlike OpenSimulator, you don't need to launch the binaries with Mono, they're _directly_ executable; the `dotnet` chain already embeds the small runtime that allows .NET apps to run natively on whatever operating system you've got.
+
 [![LibreMetaverse NuGet-Release](https://img.shields.io/nuget/v/libremetaverse.svg?label=LibreMetaverse)](https://www.nuget.org/packages/LibreMetaverse/)  
 [![NuGet Downloads](https://img.shields.io/nuget/dt/LibreMetaverse?label=NuGet%20downloads)](https://www.nuget.org/packages/LibreMetaverse/)  
 [![Build status](https://ci.appveyor.com/api/projects/status/pga5w0qken2k2nnl?svg=true)](https://ci.appveyor.com/project/cinderblocks57647/libremetaverse-ksbcr)  
