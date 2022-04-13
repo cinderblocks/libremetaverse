@@ -132,7 +132,7 @@ namespace OpenMetaverse.Http
 
                 if (error is WebException webException)
                 {
-                    // Filter out some of the status requests to skip handling 
+                    // Filter out some of the status requests to skip handling
                     switch (webException.Status)
                     {
                         case WebExceptionStatus.RequestCanceled:
@@ -154,6 +154,12 @@ namespace OpenMetaverse.Http
                         _Dead = true;
                         break;
                     case (HttpStatusCode)499: // weird error returned occasionally, ignore for now
+												// I believe this is the timeout error invented by LL for LSL HTTP-out requests (gwyneth 20220413)
+												Logger.Log("Possible HTTP-out timeout error, no need to continue)", Helpers.LogLevel.Info);
+
+												_Running = false;
+												_Dead = true;
+												break;
                     case HttpStatusCode.BadGateway:
                         // This is not good (server) protocol design, but it's normal.
                         // The EventQueue server is a proxy that connects to a Squid
@@ -167,14 +173,32 @@ namespace OpenMetaverse.Http
                         // Try to log a meaningful error message
                         if (code != HttpStatusCode.OK)
                         {
-                            Logger.Log($"Unrecognized caps connection problem from {_Address}: {code}", 
+                            Logger.Log($"Unrecognized caps connection problem from {_Address}: {code}",
                                 Helpers.LogLevel.Warning);
                         }
                         else if (error.InnerException != null)
                         {
-                            Logger.Log(
-                                $"Unrecognized internal caps exception from {_Address}: {error.InnerException.Message}",
-                                Helpers.LogLevel.Warning);
+														// There is a situation where the InnerException contains
+														// InternalServerError (the 500 HTTP code) although the
+														// code _is_ HttpStatusCode.OK. Keeping this open will
+														// leak memory massively!!
+														// As per LL's instructions, we ought to consider this a
+														// 'request to close client' even though it's improperly
+														// formatted... (gwyneth 202204139)
+														if (error.InnerException.Message == "InternalServerError")
+														{
+																Logger.Log("Grid sent us back an Internal Server Error, but HTTP code was 200, not 500 -- closing connection",
+																	Helpers.LogLevel.Warning);
+
+																_Running = false;
+																_Dead = true;
+																break;
+														}
+														else
+														{
+																Logger.Log($"Unrecognized internal caps exception from {_Address}: {error.InnerException.Message}",
+																	Helpers.LogLevel.Warning);
+														}
                         }
                         else
                         {
