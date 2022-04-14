@@ -155,52 +155,52 @@ namespace OpenMetaverse.Http
                         _Dead = true;
                         break;
                     case (HttpStatusCode)499: // weird error returned occasionally, ignore for now
-												// I believe this is the timeout error invented by LL for LSL HTTP-out requests (gwyneth 20220413)
-												Logger.Log($"Possible HTTP-out timeout error from {_Address}, no need to continue", Helpers.LogLevel.Debug);
+						// I believe this is the timeout error invented by LL for LSL HTTP-out requests (gwyneth 20220413)
+						Logger.Log($"Possible HTTP-out timeout error from {_Address}, no need to continue", Helpers.LogLevel.Debug);
 
-												_Running = false;
-												_Dead = true;
-												break;
-										case HttpStatusCode.InternalServerError:
-												// As per LL's instructions, we ought to consider this a
-												// 'request to close client' (gwyneth 20220413)
-												Logger.Log($"Grid sent a {code} at {_Address}, closing connection", Helpers.LogLevel.Debug);
+						_Running = false;
+						_Dead = true;
+						break;
+					case HttpStatusCode.InternalServerError:
+						// As per LL's instructions, we ought to consider this a
+						// 'request to close client' (gwyneth 20220413)
+						Logger.Log($"Grid sent a {code} at {_Address}, closing connection", Helpers.LogLevel.Debug);
 
-												// ... but do we happen to have an InnerException? Log it!
-												if (error.InnerException != null)
-												{
-														// unravel the whole inner error message, so we finally figure out what it is!
-														// (gwyneth 20220414)
-														Logger.Log($"Unrecognized internal caps exception from {_Address}: '{error.InnerException.Message}'",																					Helpers.LogLevel.Warning);
-														Logger.Log("\nMessage ---\n{error.Message}",				Helpers.LogLevel.Warning);
-														Logger.Log("\nHelpLink ---\n{ex.HelpLink}",					Helpers.LogLevel.Warning);
-														Logger.Log("\nSource ---\n{error.Source}",					Helpers.LogLevel.Warning);
-														Logger.Log("\nStackTrace ---\n{error.StackTrace}",  Helpers.LogLevel.Warning);
-														Logger.Log("\nTargetSite ---\n{error.TargetSite}",  Helpers.LogLevel.Warning);
-														if (error.Data.Count > 0)
-														{
-																Logger.Log("  Extra details:",									Helpers.LogLevel.Warning);
-																foreach (DictionaryEntry de in error.Data)
-															 		Logger.Log(String.Format("    Key: {0,-20}      Value: {1}",
-																			"'" + de.Key.ToString() + "'", de.Value),
-																			Helpers.LogLevel.Warning);
-														}
-														// but we'll nevertheless close this connection (gwyneth 20220414)
-												}
+						// ... but do we happen to have an InnerException? Log it!
+						if (error.InnerException != null)
+						{
+							// unravel the whole inner error message, so we finally figure out what it is!
+							// (gwyneth 20220414)
+							Logger.Log($"Unrecognized internal caps exception from {_Address}: '{error.InnerException.Message}'",																					Helpers.LogLevel.Warning);
+							Logger.Log("\nMessage ---\n{error.Message}",		Helpers.LogLevel.Warning);
+							Logger.Log("\nHelpLink ---\n{ex.HelpLink}",			Helpers.LogLevel.Warning);
+							Logger.Log("\nSource ---\n{error.Source}",			Helpers.LogLevel.Warning);
+							Logger.Log("\nStackTrace ---\n{error.StackTrace}",  Helpers.LogLevel.Warning);
+							Logger.Log("\nTargetSite ---\n{error.TargetSite}",  Helpers.LogLevel.Warning);
+							if (error.Data.Count > 0)
+							{
+								Logger.Log("  Extra details:",					Helpers.LogLevel.Warning);
+								foreach (DictionaryEntry de in error.Data)
+									Logger.Log(String.Format("    Key: {0,-20}      Value: {1}",
+										"'" + de.Key.ToString() + "'", de.Value),
+										Helpers.LogLevel.Warning);
+							}
+							// but we'll nevertheless close this connection (gwyneth 20220414)
+						}
 
-												_Running = false;
-												_Dead = true;
-												break;
+						_Running = false;
+						_Dead = true;
+						break;
                     case HttpStatusCode.BadGateway:
                         // This is not good (server) protocol design, but it's normal.
                         // The EventQueue server is a proxy that connects to a Squid
                         // cache which will time out periodically. The EventQueue server
                         // interprets this as a generic error and returns a 502 to us
                         // that we ignore
-												//
-												// Note: if this condition persists, it _might_ be the grid trying to request
-												// that the client closes the connection, as per LL's specs (gwyneth 20220414)
-												Logger.Log($"Grid sent a Bad Gateway Error at {_Address}; probably a time-out from the grid's EventQueue server (normal) -- ignoring and continuing", Helpers.LogLevel.Debug);
+						//
+						// Note: if this condition persists, it _might_ be the grid trying to request
+						// that the client closes the connection, as per LL's specs (gwyneth 20220414)
+						Logger.Log($"Grid sent a Bad Gateway Error at {_Address}; probably a time-out from the grid's EventQueue server (normal) -- ignoring and continuing", Helpers.LogLevel.Debug);
                         break;
                     default:
                         ++_errorCount;
@@ -213,21 +213,21 @@ namespace OpenMetaverse.Http
                         }
                         else if (error.InnerException != null)
                         {
-														// see comment above (gwyneth 20220414)
-														Logger.Log($"Unrecognized internal caps exception from {_Address}: '{error.InnerException.Message}'",													Helpers.LogLevel.Warning);
-														Logger.Log("\nMessage ---\n{error.Message}",				Helpers.LogLevel.Warning);
-														Logger.Log("\nHelpLink ---\n{ex.HelpLink}",					Helpers.LogLevel.Warning);
-														Logger.Log("\nSource ---\n{error.Source}",					Helpers.LogLevel.Warning);
-														Logger.Log("\nStackTrace ---\n{error.StackTrace}",  Helpers.LogLevel.Warning);
-														Logger.Log("\nTargetSite ---\n{error.TargetSite}",  Helpers.LogLevel.Warning);
-														if (error.Data.Count > 0)
-														{
-																Logger.Log("  Extra details:",									Helpers.LogLevel.Warning);
-																foreach (DictionaryEntry de in error.Data)
-																	 Logger.Log(String.Format("    Key: {0,-20}      Value: {1}",
-																			"'" + de.Key.ToString() + "'", de.Value),
-																			Helpers.LogLevel.Warning);
-														}
+							// see comment above (gwyneth 20220414)
+							Logger.Log($"Unrecognized internal caps exception from {_Address}: '{error.InnerException.Message}'",							Helpers.LogLevel.Warning);
+							Logger.Log("\nMessage ---\n{error.Message}",		Helpers.LogLevel.Warning);
+							Logger.Log("\nHelpLink ---\n{ex.HelpLink}",			Helpers.LogLevel.Warning);
+							Logger.Log("\nSource ---\n{error.Source}",			Helpers.LogLevel.Warning);
+							Logger.Log("\nStackTrace ---\n{error.StackTrace}",  Helpers.LogLevel.Warning);
+							Logger.Log("\nTargetSite ---\n{error.TargetSite}",	Helpers.LogLevel.Warning);
+							if (error.Data.Count > 0)
+							{
+								Logger.Log("  Extra details:",					Helpers.LogLevel.Warning);
+								foreach (DictionaryEntry de in error.Data)
+									Logger.Log(String.Format("    Key: {0,-20}      Value: {1}",
+										"'" + de.Key.ToString() + "'", de.Value),
+										Helpers.LogLevel.Warning);
+							}
                         }
                         else
                         {

@@ -1,13 +1,14 @@
 # top-most EditorConfig file
 root = true
 
-# Unix-style newlines with a newline ending every file
+# Windows-style newlines with a newline ending every file
+# Tab width seems to be 4 spaces, not 2
 [*]
 end_of_line = lf
 charset = utf-8
 indent_style = tab
 indent_size = tab
-tab_width = 2
+tab_width = 4
 trim_trailing_whitespace = true
 
 # The property below is not yet universally supported
