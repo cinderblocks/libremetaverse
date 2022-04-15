@@ -300,8 +300,7 @@ namespace OpenMetaverse
         internal void Add(TKey key, TValue value)
         {
             lock (Dictionary)
-//                Dictionary.Add(key, value);
-									Dictionary[key] = value;
+				Dictionary[key] = value;
         }
 
         /// <summary>

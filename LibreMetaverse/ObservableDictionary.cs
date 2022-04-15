@@ -268,7 +268,7 @@ namespace OpenMetaverse
         /// <returns><see langword="true"/> if found, <see langword="false"/> otherwise</returns>
         public bool ContainsKey(TKey key)
         {
-                return Dictionary.ContainsKey(key);
+            return Dictionary.ContainsKey(key);
         }
 
         /// <summary>Check if Value exists in Dictionary</summary>
@@ -276,7 +276,7 @@ namespace OpenMetaverse
         /// <returns><see langword="true"/> if found, <see langword="false"/> otherwise</returns>
         public bool ContainsValue(TValue value)
         {
-                return Dictionary.ContainsValue(value);
+            return Dictionary.ContainsValue(value);
         }
 
         /// <summary>
@@ -287,8 +287,7 @@ namespace OpenMetaverse
         /// <param name="value">The value</param>
         public void Add(TKey key, TValue value)
         {
-            // Dictionary.Add(key, value);
-						Dictionary[key] = value;
+			Dictionary[key] = value;
             FireChangeEvent(DictionaryEventAction.Add, new DictionaryEntry(key, value));
         }
 
