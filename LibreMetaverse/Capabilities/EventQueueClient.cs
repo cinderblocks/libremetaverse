@@ -225,7 +225,7 @@ namespace OpenMetaverse.Http
 								Logger.Log("  Extra details:",					Helpers.LogLevel.Warning);
 								foreach (DictionaryEntry de in error.Data)
 									Logger.Log(String.Format("    Key: {0,-20}      Value: {1}",
-										"'" + de.Key.ToString() + "'", de.Value),
+										"'" + de.Key + "'", de.Value),
 										Helpers.LogLevel.Warning);
 							}
                         }
