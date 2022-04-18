@@ -1,0 +1,26 @@
+# top-most EditorConfig file
+root = true
+
+# Unix-style newlines with a newline ending every file
+[*]
+end_of_line = lf
+charset = utf-8
+indent_style = tab
+indent_size = tab
+tab_width = 2
+trim_trailing_whitespace = true
+
+# The property below is not yet universally supported
+[*.md]
+max_line_length = 108
+word_wrap = true
+# Markdown sometimes uses two spaces at the end to
+#  mark soft line breaks
+trim_trailing_whitespace = false
+
+[*.yml]
+end_of_line = lf
+charset = utf-8
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true

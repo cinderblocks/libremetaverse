@@ -32,26 +32,26 @@ namespace OpenMetaverse
 {
 
     /// <summary>
-    /// 
+    ///
     /// </summary>
     public enum DictionaryEventAction
     {
         /// <summary>
-        /// 
+        ///
         /// </summary>
         Add,
         /// <summary>
-        /// 
+        ///
         /// </summary>
         Remove,
         /// <summary>
-        /// 
+        ///
         /// </summary>
         Change
     }
 
     /// <summary>
-    /// 
+    ///
     /// </summary>
     /// <param name="action"></param>
     /// <param name="entry"></param>
@@ -80,7 +80,7 @@ namespace OpenMetaverse
         {
             if (Delegates.ContainsKey(action))
             {
-                Delegates[action].Add(callback);   
+                Delegates[action].Add(callback);
             }
             else
             {
@@ -105,13 +105,13 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="action"></param>
         /// <param name="entry"></param>
         private void FireChangeEvent(DictionaryEventAction action, DictionaryEntry entry)
         {
-            
+
             if(Delegates.ContainsKey(action))
             {
                 foreach(DictionaryChangeCallback handler in Delegates[action])
@@ -133,7 +133,7 @@ namespace OpenMetaverse
         public int Count { get { return Dictionary.Count; } }
 
         /// <summary>
-        /// Initializes a new instance of the <seealso cref="T:ObservableDictionary"/> Class 
+        /// Initializes a new instance of the <seealso cref="T:ObservableDictionary"/> Class
         /// with the specified key/value, has the default initial capacity.
         /// </summary>
         /// <example>
@@ -149,13 +149,13 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Initializes a new instance of the <seealso cref="T:OpenMetaverse.ObservableDictionary"/> Class 
+        /// Initializes a new instance of the <seealso cref="T:OpenMetaverse.ObservableDictionary"/> Class
         /// with the specified key/value, With its initial capacity specified.
         /// </summary>
         /// <param name="capacity">Initial size of dictionary</param>
         /// <example>
         /// <code>
-        /// // initialize a new ObservableDictionary named testDict with a string as the key and an int as the value, 
+        /// // initialize a new ObservableDictionary named testDict with a string as the key and an int as the value,
         /// // initially allocated room for 10 entries.
         /// public ObservableDictionary&lt;string, int&gt; testDict = new ObservableDictionary&lt;string, int&gt;(10);
         /// </code>
@@ -167,7 +167,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Try to get entry from the <seealso cref="ObservableDictionary"/> with specified key 
+        /// Try to get entry from the <seealso cref="ObservableDictionary"/> with specified key
         /// </summary>
         /// <param name="key">Key to use for lookup</param>
         /// <param name="value">Value returned</param>
@@ -222,13 +222,13 @@ namespace OpenMetaverse
         ///             Vector3 pos = prim.Position;
         ///             return ((prim.ParentID == 0) &amp;&amp; (pos != Vector3.Zero) &amp;&amp; (Vector3.Distance(pos, location) &lt; radius));
         ///         }
-        ///    ); 
+        ///    );
         ///</code>
         ///</example>
         public List<TValue> FindAll(Predicate<TValue> match)
         {
             List<TValue> found = new List<TValue>();
-         
+
                 foreach (KeyValuePair<TKey, TValue> kvp in Dictionary)
                 {
                     if (match(kvp.Value))
@@ -247,19 +247,19 @@ namespace OpenMetaverse
         ///         delegate(UUID id) {
         ///             return myOtherDict.ContainsKey(id);
         ///         }
-        ///    ); 
+        ///    );
         ///</code>
         ///</example>
         public List<TKey> FindAll(Predicate<TKey> match)
         {
             List<TKey> found = new List<TKey>();
-         
+
                 foreach (KeyValuePair<TKey, TValue> kvp in Dictionary)
                 {
                     if (match(kvp.Key))
                         found.Add(kvp.Key);
                 }
-         
+
             return found;
         }
 
@@ -268,7 +268,7 @@ namespace OpenMetaverse
         /// <returns><see langword="true"/> if found, <see langword="false"/> otherwise</returns>
         public bool ContainsKey(TKey key)
         {
-                return Dictionary.ContainsKey(key);
+            return Dictionary.ContainsKey(key);
         }
 
         /// <summary>Check if Value exists in Dictionary</summary>
@@ -276,18 +276,18 @@ namespace OpenMetaverse
         /// <returns><see langword="true"/> if found, <see langword="false"/> otherwise</returns>
         public bool ContainsValue(TValue value)
         {
-                return Dictionary.ContainsValue(value);
+            return Dictionary.ContainsValue(value);
         }
 
         /// <summary>
-        /// Adds the specified key to the dictionary, dictionary locking is not performed, 
+        /// Adds the specified key to the dictionary, dictionary locking is not performed,
         /// <see cref="SafeAdd"/>
         /// </summary>
         /// <param name="key">The key</param>
         /// <param name="value">The value</param>
         public void Add(TKey key, TValue value)
         {
-            Dictionary.Add(key, value);
+			Dictionary[key] = value;
             FireChangeEvent(DictionaryEventAction.Add, new DictionaryEntry(key, value));
         }
 
