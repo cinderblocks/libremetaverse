@@ -1,17 +1,24 @@
 # A test workflow, which seems to get good results sometimes.
 # (gwyneth 20220418)
+# See https://docs.microsoft.com/en-us/dotnet/devops/dotnet-test-github-action
 name: .NET
 
 on:
   push:
-    branches: [ master ]
   pull_request:
     branches: [ master ]
+    paths:
+    - '**.cs'
+    - '**.csproj'
 
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    name: dotnet-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
 
     steps:
     - uses: actions/checkout@v2
@@ -20,7 +27,7 @@ jobs:
       with:
         dotnet-version: 6.0.x
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore LibreMetaverse.ReleaseNoGui.sln
     - name: Build
       run: dotnet build --no-restore LibreMetaverse.ReleaseNoGui.sln
     - name: Test
