@@ -31,10 +31,10 @@ namespace OpenMetaverse
 {
     /// <summary>
     /// The InternalDictionary class is used through the library for storing key/value pairs.
-    /// It is intended to be a replacement for the generic Dictionary class and should 
+    /// It is intended to be a replacement for the generic Dictionary class and should
     /// be used in its place. It contains several methods for allowing access to the data from
     /// outside the library that are read only and thread safe.
-    /// 
+    ///
     /// </summary>
     /// <typeparam name="TKey">Key <see langword="Tkey"/></typeparam>
     /// <typeparam name="TValue">Value <see langword="TValue"/></typeparam>
@@ -57,7 +57,7 @@ namespace OpenMetaverse
         public int Count { get { lock (Dictionary) return Dictionary.Count; } }
 
         /// <summary>
-        /// Initializes a new instance of the <seealso cref="T:InternalDictionary"/> Class 
+        /// Initializes a new instance of the <seealso cref="T:InternalDictionary"/> Class
         /// with the specified key/value, has the default initial capacity.
         /// </summary>
         /// <example>
@@ -72,8 +72,8 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Initializes a new instance of the <seealso cref="T:InternalDictionary"/> Class 
-        /// with the specified key/value, has its initial valies copied from the specified 
+        /// Initializes a new instance of the <seealso cref="T:InternalDictionary"/> Class
+        /// with the specified key/value, has its initial valies copied from the specified
         /// <seealso cref="T:System.Collections.Generic.Dictionary"/>
         /// </summary>
         /// <param name="dictionary"><seealso cref="T:System.Collections.Generic.Dictionary"/>
@@ -82,12 +82,12 @@ namespace OpenMetaverse
         /// <code>
         /// // initialize a new InternalDictionary named testAvName with a UUID as the key and an string as the value.
         /// // populates with copied values from example KeyNameCache Dictionary.
-        /// 
+        ///
         /// // create source dictionary
         /// Dictionary&lt;UUID, string&gt; KeyNameCache = new Dictionary&lt;UUID, string&gt;();
         /// KeyNameCache.Add("8300f94a-7970-7810-cf2c-fc9aa6cdda24", "Jack Avatar");
         /// KeyNameCache.Add("27ba1e40-13f7-0708-3e98-5819d780bd62", "Jill Avatar");
-        /// 
+        ///
         /// // Initialize new dictionary.
         /// public InternalDictionary&lt;UUID, string&gt; testAvName = new InternalDictionary&lt;UUID, string&gt;(KeyNameCache);
         /// </code>
@@ -98,13 +98,13 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Initializes a new instance of the <seealso cref="T:OpenMetaverse.InternalDictionary"/> Class 
+        /// Initializes a new instance of the <seealso cref="T:OpenMetaverse.InternalDictionary"/> Class
         /// with the specified key/value, With its initial capacity specified.
         /// </summary>
         /// <param name="capacity">Initial size of dictionary</param>
         /// <example>
         /// <code>
-        /// // initialize a new InternalDictionary named testDict with a string as the key and an int as the value, 
+        /// // initialize a new InternalDictionary named testDict with a string as the key and an int as the value,
         /// // initially allocated room for 10 entries.
         /// public InternalDictionary&lt;string, int&gt; testDict = new InternalDictionary&lt;string, int&gt;(10);
         /// </code>
@@ -115,7 +115,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Try to get entry from <seealso cref="T:OpenMetaverse.InternalDictionary"/> with specified key 
+        /// Try to get entry from <seealso cref="T:OpenMetaverse.InternalDictionary"/> with specified key
         /// </summary>
         /// <param name="key">Key to use for lookup</param>
         /// <param name="value">Value returned</param>
@@ -176,7 +176,7 @@ namespace OpenMetaverse
         ///             Vector3 pos = prim.Position;
         ///             return ((prim.ParentID == 0) &amp;&amp; (pos != Vector3.Zero) &amp;&amp; (Vector3.Distance(pos, location) &lt; radius));
         ///         }
-        ///    ); 
+        ///    );
         ///</code>
         ///</example>
         public List<TValue> FindAll(Predicate<TValue> match)
@@ -203,7 +203,7 @@ namespace OpenMetaverse
         ///         delegate(UUID id) {
         ///             return myOtherDict.ContainsKey(id);
         ///         }
-        ///    ); 
+        ///    );
         ///</code>
         ///</example>
         public List<TKey> FindAll(Predicate<TKey> match)
@@ -230,7 +230,7 @@ namespace OpenMetaverse
         ///     {
         ///         if (prim.Text != null)
         ///         {
-        ///             Console.WriteLine("NAME={0} ID = {1} TEXT = '{2}'", 
+        ///             Console.WriteLine("NAME={0} ID = {1} TEXT = '{2}'",
         ///                 prim.PropertiesFamily.Name, prim.ID, prim.Text);
         ///         }
         ///     });
@@ -292,7 +292,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Adds the specified key to the dictionary, dictionary locking is not performed, 
+        /// Adds the specified key to the dictionary, dictionary locking is not performed,
         /// <see cref="SafeAdd"/>
         /// </summary>
         /// <param name="key">The key</param>
@@ -300,7 +300,7 @@ namespace OpenMetaverse
         internal void Add(TKey key, TValue value)
         {
             lock (Dictionary)
-                Dictionary.Add(key, value);
+				Dictionary[key] = value;
         }
 
         /// <summary>

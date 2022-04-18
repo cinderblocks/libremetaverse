@@ -1,11 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>GridProxy</AssemblyName>
 	<PackageId>GridProxy</PackageId>
 	<OutputType>Library</OutputType>
     <RootNamespace>GridProxy</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-	<TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
+	<TargetFrameworks>netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
     <Platforms>x64;x86</Platforms>
     <OutputPath>..\..\bin\</OutputPath>
 	<IsPackable>false</IsPackable>

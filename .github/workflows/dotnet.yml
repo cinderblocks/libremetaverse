@@ -1,0 +1,42 @@
+# A test workflow, which seems to get good results sometimes.
+# (gwyneth 20220418)
+# See https://docs.microsoft.com/en-us/dotnet/devops/dotnet-test-github-action
+name: .NET
+
+on:
+  push:
+  pull_request:
+    branches: [ master ]
+    paths:
+    - '**.cs'
+    - '**.csproj'
+
+env:
+    # We'll stick to net6.0, as 5.0 seems not to work as well as it should
+    # - at least for testing purposes (gwyneth 20220418)
+    DOTNET_VERSION: '6.0.4'
+
+jobs:
+  build:
+
+    name: dotnet-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 6.0.x
+    - name: Restore dependencies
+      run: dotnet restore LibreMetaverse.ReleaseNoGui.sln
+    - name: Build
+      run: dotnet build --no-restore LibreMetaverse.ReleaseNoGui.sln
+# I have no idea how to pass the avatar password for the GridClientTests, so I'll have to skip this
+# or, alternatively, set up a different account for testing purposes (gwyneth 20220418)
+#    - name: Test
+#      run: dotnet test --no-build --verbosity normal LibreMetaverse.ReleaseNoGui.sln
+

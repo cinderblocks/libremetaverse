@@ -73,7 +73,9 @@ namespace LibreMetaverse.LslTools
         Console.WriteLine("about to pop {0} count is {1}", (object) this.m_depth, (object) yyps.m_stack.Count);
       yyps.Pop(ref top, this.m_depth, ns);
       if (ns.pos == 0)
+			{
         ns.pos = top.m_value.pos;
+			}
       top.m_value = ns;
     }
 
