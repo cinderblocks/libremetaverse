@@ -73,7 +73,7 @@ jobs:
         dotnet build LibreMetaverse.Rendering.Meshmerizer/LibreMetaverse.Rendering.Meshmerizer.csproj
         dotnet build LibreMetaverse.Voice/LibreMetaverse.Voice.csproj
         dotnet build LibreMetaverse.Utilities/LibreMetaverse.Utilities.csproj
-    
+
     - name: Build cross-platform example projects
       run: |
         dotnet build Programs/examples/IRCGateway/IRCGateway.csproj
@@ -97,6 +97,6 @@ jobs:
     #   run: |
     #     dotnet build Programs/GridProxy/GridProxy.csproj
     #     dotnet build Programs/GridProxy/GridProxyApp.csproj
-   
+
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1

@@ -1,3 +1,5 @@
+# A test workflow, which seems to get good results sometimes.
+# (gwyneth 20220418)
 name: .NET
 
 on:
