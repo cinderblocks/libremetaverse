@@ -52,8 +52,8 @@ jobs:
 
     # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
     # If this step fails, then you should remove it and run the build manually (see below)
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v1
+    # - name: Autobuild
+    #   uses: github/codeql-action/autobuild@v1
 
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 https://git.io/JvXDl
@@ -62,9 +62,41 @@ jobs:
     #    and modify them (or add more) to build your code if your project
     #    uses a compiled language
 
-    #- run: |
-    #   make bootstrap
-    #   make release
+    - name: Build cross-platform projects
+      run: |
+        dotnet build PrimMesher/LibreMetaverse.PrimMesher.csproj
+        dotnet build LibreMetaverse.LslTools/LibreMetaverse.LslTools.csproj
+        dotnet build LibreMetaverse.Types/LibreMetaverse.Types.csproj
+        dotnet build LibreMetaverse.StructuredData/LibreMetaverse.StructuredData.csproj
+        dotnet build LibreMetaverse/LibreMetaverse.csproj
+        dotnet build LibreMetaverse.Rendering.Simple/LibreMetaverse.Rendering.Simple.csproj
+        dotnet build LibreMetaverse.Rendering.Meshmerizer/LibreMetaverse.Rendering.Meshmerizer.csproj
+        dotnet build LibreMetaverse.Voice/LibreMetaverse.Voice.csproj
+        dotnet build LibreMetaverse.Utilities/LibreMetaverse.Utilities.csproj
+    
+    - name: Build cross-platform example projects
+      run: |
+        dotnet build Programs/examples/IRCGateway/IRCGateway.csproj
+        dotnet build Programs/examples/PacketDump/PacketDump.csproj
+        dotnet build Programs/examples/TestClient/TestClient.csproj
+        dotnet build Programs/mapgenerator/mapgenerator.csproj
+        dotnet build Programs/VoiceTest/VoiceTest.csproj
 
+    # These GUI projects fail to build. Disabled for now.
+    # - name: Build GUI projects
+    #   run: |
+    #     dotnet build LibreMetaverse.GUI/LibreMetaverse.GUI.csproj
+    #     dotnet build Programs/Baker/Baker.csproj
+    #     dotnet build Programs/examples/Dashboard/Dashboard.csproj
+    #     dotnet build Programs/examples/GridAccountant/GridAccountant.csproj
+    #     dotnet build Programs/examples/groupmanager/groupmanager.csproj
+    #     dotnet build Programs/examples/Heightmap/Heightmap.csproj
+
+    # These projects also have issues.
+    # - name: Build GridProxy projects
+    #   run: |
+    #     dotnet build Programs/GridProxy/GridProxy.csproj
+    #     dotnet build Programs/GridProxy/GridProxyApp.csproj
+   
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
