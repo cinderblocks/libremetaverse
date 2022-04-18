@@ -56,6 +56,3 @@ packages/
 .idea/
 .vs/
 /Programs/examples/TestClient/Properties/launchSettings.json
-
-# macOS
-**/.DS_Store
