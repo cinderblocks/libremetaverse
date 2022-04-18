@@ -181,8 +181,8 @@ namespace OpenMetaverse.Http
 							{
 								Logger.Log("  Extra details:",					Helpers.LogLevel.Warning);
 								foreach (DictionaryEntry de in error.Data)
-									Logger.Log(String.Format("    Key: {0,-20}      Value: {1}",
-										"'" + de.Key.ToString() + "'", de.Value),
+									Logger.Log(String.Format("    Key: {0,-20}      Value: '{1}'",
+										de.Key, de.Value),
 										Helpers.LogLevel.Warning);
 							}
 							// but we'll nevertheless close this connection (gwyneth 20220414)
