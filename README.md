@@ -4,8 +4,8 @@
 | | | '_ \ '_/ -_) |\/| | _|  | |/ _ \ V /| _||   /\__ \ _| 
 |_|_|_.__/_| \___|_|  |_|___| |_/_/ \_\_/ |___|_|_\|___/___|
 ```
-LibreMetaverse
-===============================================================================
+# LibreMetaverse
+
 LibreMetaverse is a fork of libOpenMetaverse which in turn was a fork of
 libSecondLife, a library for developing Second Life-compatible virtual world
 clients. LibreMetaverse returns the focus to up-to-date Second Life and OpenSim
@@ -14,9 +14,9 @@ compatibility with an eye to performance, multi-threading, and memory management
 The canonical source for LibreMetaverse can be found at:
 https://github.com/cinderblocks/libremetaverse
 
-# Simple installation procedure
+## Simple installation procedure
 
-## Linux/macOS
+### Linux/macOS
 
 -  Make sure you have at least `dotnet` installed, with a valid net5.0/net6.0 SDK _and_ runtime available!
 
@@ -31,15 +31,15 @@ If all goes well, you should now have all dependent packages properly installed.
 
 -  Unlike OpenSimulator, you don't need to launch the binaries with Mono, they're _directly_ executable; the `dotnet` chain already embeds the small runtime that allows .NET apps to run natively on whatever operating system you've got.
 
-## Windows
+### Windows
 
 For Windows, you should use the default `LibreMetaverse.sln`, just as before (untested). For command-line compilation under Windows, if you wish to skip the GUI applications, the instructions are the same as above. Use the default `LibreMetaverse.sln` if you wish to install those as well.
 
-## GUI support under Linux/macOS
+### GUI support under Linux/macOS
 
 Currently unavailable, although there are some reports that this might be possible using a Windows emulator, such as Mono itself, or possibly Wine. This will require some project configuration changes, and was _not_ tested!
 
-# Note: end-of-life support for .NET 5.0
+## Note: end-of-life support for .NET 5.0
 
 Microsoft is [dropping support for .NET 5.0](https://devblogs.microsoft.com/dotnet/dotnet-5-end-of-support-update/) as of May 2022, so you should consider using .NET 6.0 instead (or, if you're wild, you can test the prerelease of .NET 7.0). The code runs flawlessly on .NET 6.0 as well (Windows GUI version untested)
 
