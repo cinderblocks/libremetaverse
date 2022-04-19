@@ -1908,7 +1908,7 @@ namespace OpenMetaverse
         /// <returns>Hashed string</returns>
         private static string HashString(string str)
         {
-            MD5 sec = new MD5CryptoServiceProvider();
+            MD5 sec = MD5.Create();
             var enc = new ASCIIEncoding();
             var buf = enc.GetBytes(str);
             return GetHexString(sec.ComputeHash(buf));

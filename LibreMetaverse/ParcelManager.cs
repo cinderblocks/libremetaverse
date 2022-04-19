@@ -1352,7 +1352,7 @@ namespace OpenMetaverse
             }
             else
             {
-                request.OwnerIDs = new ParcelReturnObjectsPacket.OwnerIDsBlock[0];
+                request.OwnerIDs = Array.Empty<ParcelReturnObjectsPacket.OwnerIDsBlock>();
             }
 
             Client.Network.SendPacket(request, simulator);

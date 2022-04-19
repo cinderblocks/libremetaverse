@@ -1864,7 +1864,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    nameValues = new NameValue[0];
+                    nameValues = Array.Empty<NameValue>();
                 }
 
                 #endregion NameValue parsing

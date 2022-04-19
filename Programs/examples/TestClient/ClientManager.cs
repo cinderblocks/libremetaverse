@@ -147,6 +147,7 @@ namespace OpenMetaverse.TestClient
             ++PendingLogins;
 
             TestClient client = new TestClient(this);
+            client.Settings.MFA_ENABLED = true;
             client.Network.LoginProgress +=
                 delegate(object sender, LoginProgressEventArgs e)
                 {

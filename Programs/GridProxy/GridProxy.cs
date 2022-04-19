@@ -1914,7 +1914,7 @@ namespace GridProxy
                     if (ackCount == 0)
                     {
                         packet.Header.AppendedAcks = false;
-                        packet.Header.AckList = new uint[0];
+                        packet.Header.AckList = Array.Empty<uint>();
                     }
                 }
 

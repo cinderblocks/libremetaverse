@@ -267,8 +267,8 @@ namespace OpenMetaverse
         /// <returns>UUID</returns>
         public static UUID SecureRandom()
         {
-            var rng = new RNGCryptoServiceProvider();
-            byte[] data = new byte[16];
+	        var rng = RandomNumberGenerator.Create();
+			byte[] data = new byte[16];
             rng.GetBytes(data);
 
             // Mark as UUIDv4

@@ -82,24 +82,24 @@ namespace OpenMetaverse
         /// <summary>UNIX epoch in DateTime format</summary>
         public static readonly DateTime Epoch = new DateTime(1970, 1, 1);
 
-        public static readonly byte[] EmptyBytes = new byte[0];
+        public static readonly byte[] EmptyBytes = Array.Empty<byte>();
 
         /// <summary>
         /// Provide a single instance of the MD5 class to avoid making
         /// duplicate copies and handle thread safety
         /// </summary>
-        private static readonly System.Security.Cryptography.MD5 MD5Builder =
-            new System.Security.Cryptography.MD5CryptoServiceProvider();
+        private static readonly MD5 MD5Builder =
+            System.Security.Cryptography.MD5.Create();
 
         /// <summary>
         /// Provide a single instance of the SHA-1 class to avoid
         /// making duplicate copies and handle thread safety
         /// </summary>
-        private static readonly System.Security.Cryptography.SHA1 SHA1Builder =
-            new System.Security.Cryptography.SHA1CryptoServiceProvider();
+        private static readonly SHA1 SHA1Builder =
+            System.Security.Cryptography.SHA1.Create();
 
-        private static readonly System.Security.Cryptography.SHA256 SHA256Builder =
-            new System.Security.Cryptography.SHA256Managed();
+        private static readonly SHA256 SHA256Builder =
+            System.Security.Cryptography.SHA256.Create();
 
         /// <summary>
         /// Provide a single instance of a random number generator
@@ -262,8 +262,8 @@ namespace OpenMetaverse
             // It is expected that 0 < amount < 1
             // If amount < 0, return value1
             // If amount > 1, return value2
-            float result = Utils.Clamp(amount, 0f, 1f);
-            return Utils.Hermite(value1, 0f, value2, 0f, result);
+            float result = Clamp(amount, 0f, 1f);
+            return Hermite(value1, 0f, value2, 0f, result);
         }
 
         public static double SmoothStep(double value1, double value2, double amount)
@@ -271,8 +271,8 @@ namespace OpenMetaverse
             // It is expected that 0 < amount < 1
             // If amount < 0, return value1
             // If amount > 1, return value2
-            double result = Utils.Clamp(amount, 0f, 1f);
-            return Utils.Hermite(value1, 0f, value2, 0f, result);
+            double result = Clamp(amount, 0f, 1f);
+            return Hermite(value1, 0f, value2, 0f, result);
         }
 
         public static float ToDegrees(float radians)
@@ -325,7 +325,7 @@ namespace OpenMetaverse
 
             // Convert the hash to a hex string
             foreach (byte b in hash)
-                digest.AppendFormat(Utils.EnUsCulture, "{0:x2}", b);
+                digest.AppendFormat(EnUsCulture, "{0:x2}", b);
 
             return digest.ToString();
         }
@@ -353,7 +353,7 @@ namespace OpenMetaverse
 
             // Convert the hash to a hex string
             foreach (byte b in hash)
-                digest.AppendFormat(Utils.EnUsCulture, "{0:x2}", b);
+                digest.AppendFormat(EnUsCulture, "{0:x2}", b);
 
             return digest.ToString();
         }
@@ -366,11 +366,11 @@ namespace OpenMetaverse
         public static string MD5(string str)
         {
             StringBuilder digest = new StringBuilder(32);
-            byte[] hash = MD5(ASCIIEncoding.Default.GetBytes(str));
+            byte[] hash = MD5(Encoding.Default.GetBytes(str));
 
             // Convert the hash to a hex string
             foreach (byte b in hash)
-                digest.AppendFormat(Utils.EnUsCulture, "{0:x2}", b);
+                digest.AppendFormat(EnUsCulture, "{0:x2}", b);
 
             return "$1$" + digest;
         }
@@ -387,7 +387,7 @@ namespace OpenMetaverse
 
             // Convert the hash to a hex string
             foreach (byte b in hash)
-                digest.AppendFormat(Utils.EnUsCulture, "{0:x2}", b);
+                digest.AppendFormat(EnUsCulture, "{0:x2}", b);
 
             return digest.ToString();
         }

@@ -2924,7 +2924,7 @@ namespace OpenMetaverse
             }
 
             // TODO: Implement support for this
-            animate.PhysicalAvatarEventList = new AgentAnimationPacket.PhysicalAvatarEventListBlock[0];
+            animate.PhysicalAvatarEventList = Array.Empty<AgentAnimationPacket.PhysicalAvatarEventListBlock>();
 
             Client.Network.SendPacket(animate);
         }
