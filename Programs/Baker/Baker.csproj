@@ -6,7 +6,7 @@
 	<TargetFrameworks>net471;netcoreapp3.1;net5.0-linux;net6.0-linux</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' ">
-	<TargetFrameworks>net471;netcoreapp3.1;net5.0-osx;net6.0-osx</TargetFrameworks>
+	<TargetFrameworks>net471;netcoreapp3.1;net5.0-macos;net6.0-macos</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup>
 	<PackageId>Baker</PackageId>
