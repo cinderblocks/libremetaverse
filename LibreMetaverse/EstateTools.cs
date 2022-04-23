@@ -600,10 +600,10 @@ namespace OpenMetaverse
         public void SetRegionTerrain(UUID low, UUID midLow, UUID midHigh, UUID high)
         {
             List<string> listParams = new List<string>();
-            listParams.Add("0 " + low.ToString());
-            listParams.Add("1 " + midLow.ToString());
-            listParams.Add("2 " + midHigh.ToString());
-            listParams.Add("3 " + high.ToString());
+            listParams.Add("0 " + low);
+            listParams.Add("1 " + midLow);
+            listParams.Add("2 " + midHigh);
+            listParams.Add("3 " + high);
             EstateOwnerMessage("texturedetail", listParams);
             EstateOwnerMessage("texturecommit", "");
         }

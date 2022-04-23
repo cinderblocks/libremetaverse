@@ -337,7 +337,7 @@ namespace OpenMetaverse.Imaging
             }
 
             // Apply any alpha wearable textures to make parts of the avatar disappear
-            Logger.Log("[XBakes]: Number of alpha wearable textures: " + alphaWearableTextures.Count.ToString(), Helpers.LogLevel.Debug);
+            Logger.Log("[XBakes]: Number of alpha wearable textures: " + alphaWearableTextures.Count, Helpers.LogLevel.Debug);
             foreach (ManagedImage img in alphaWearableTextures)
                 AddAlpha(bakedTexture.Image, img);
 

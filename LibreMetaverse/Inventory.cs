@@ -420,7 +420,7 @@ namespace OpenMetaverse
 
                             if (cacheFolder.Version != server_folder.Version)
                             {
-                                Logger.DebugLog("Inventory Cache/Server version mismatch on " + node.Data.Name + " " + cacheFolder.Version.ToString() + " vs " + server_folder.Version.ToString());
+                                Logger.DebugLog("Inventory Cache/Server version mismatch on " + node.Data.Name + " " + cacheFolder.Version + " vs " + server_folder.Version);
                                 pnode.NeedsUpdate = true;
                                 dirty_folders.Add(node.Data.UUID);
                             }

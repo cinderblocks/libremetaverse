@@ -2193,7 +2193,7 @@ namespace OpenMetaverse
                         DecodeParticleUpdate(block);
                         break;
                     default:
-                        Logger.DebugLog("Got an ObjectUpdate block with an unrecognized PCode " + pcode.ToString(), Client);
+                        Logger.DebugLog("Got an ObjectUpdate block with an unrecognized PCode " + pcode, Client);
                         break;
                 }
             }
@@ -3022,7 +3022,7 @@ namespace OpenMetaverse
                     prim.PathRevolutions = 1f;
                     break;
                 default:
-                    throw new NotSupportedException("Unsupported shape: " + type.ToString());
+                    throw new NotSupportedException("Unsupported shape: " + type);
             }
 
             return prim;

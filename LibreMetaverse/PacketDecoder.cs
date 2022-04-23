@@ -883,7 +883,7 @@ namespace OpenMetaverse.Packets
             if (hasMeshFlags)
             {
                 result.AppendFormat("{0,30}", "<MeshFlags>" + Environment.NewLine);
-                result.AppendFormat("{0,30}", meshFlags.ToString() + Environment.NewLine);
+                result.AppendFormat("{0,30}", meshFlags + Environment.NewLine);
                 result.AppendFormat("{0,30}", "</MeshFlags>" + Environment.NewLine);
             }
 

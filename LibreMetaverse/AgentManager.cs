@@ -3114,7 +3114,7 @@ namespace OpenMetaverse
                 teleport.Info.Position = position;
                 teleport.Info.RegionHandle = regionHandle;
 
-                Logger.Log("Requesting teleport to region handle " + regionHandle.ToString(), Helpers.LogLevel.Info, Client);
+                Logger.Log("Requesting teleport to region handle " + regionHandle, Helpers.LogLevel.Info, Client);
 
                 Client.Network.SendPacket(teleport);
             }
@@ -4151,8 +4151,8 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("Got an AgentDataUpdate packet for avatar " + p.AgentData.AgentID.ToString() +
-                    " instead of " + Client.Self.AgentID.ToString() + ", this shouldn't happen", Helpers.LogLevel.Error, Client);
+                Logger.Log("Got an AgentDataUpdate packet for avatar " + p.AgentData.AgentID +
+                    " instead of " + Client.Self.AgentID + ", this shouldn't happen", Helpers.LogLevel.Error, Client);
             }
         }
 

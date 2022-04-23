@@ -3711,7 +3711,7 @@ namespace OpenMetaverse
 
             // Initialize the store here so we know who owns it:
             _Store = new Inventory(Client, this, Client.Self.AgentID);
-            Logger.DebugLog("Setting InventoryRoot to " + replyData.InventoryRoot.ToString(), Client);
+            Logger.DebugLog("Setting InventoryRoot to " + replyData.InventoryRoot, Client);
             InventoryFolder rootFolder = new InventoryFolder(replyData.InventoryRoot)
             {
                 Name = String.Empty,
@@ -3984,7 +3984,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("Don't have a reference to FolderID " + reply.AgentData.FolderID.ToString() +
+                Logger.Log("Don't have a reference to FolderID " + reply.AgentData.FolderID +
                     " or it is not a folder", Helpers.LogLevel.Error, Client);
                 return;
             }

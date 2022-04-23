@@ -1723,7 +1723,7 @@ namespace OpenMetaverse
                     }
                     else
                     {
-                        Logger.Log("Received a TransferInfo packet with a SourceType of " + download.Source.ToString() +
+                        Logger.Log("Received a TransferInfo packet with a SourceType of " + download.Source +
                             " and a Params field length of " + info.TransferInfo.Params.Length,
                             Helpers.LogLevel.Warning, Client);
                     }
@@ -1762,7 +1762,7 @@ namespace OpenMetaverse
                 if (download.Size == 0)
                 {
                     Logger.Log("Timed out while waiting for the asset header to download for " +
-                               download.ID.ToString(), Helpers.LogLevel.Warning, Client);
+                               download.ID, Helpers.LogLevel.Warning, Client);
 
                     // Abort the transfer
                     TransferAbortPacket abort = new TransferAbortPacket();
@@ -1818,7 +1818,7 @@ namespace OpenMetaverse
             // Check if we downloaded the full asset
             if (download.Transferred >= download.Size)
             {
-                Logger.DebugLog("Transfer for asset " + download.AssetID.ToString() + " completed", Client);
+                Logger.DebugLog("Transfer for asset " + download.AssetID + " completed", Client);
 
                 download.Success = true;
                 lock (Transfers) Transfers.Remove(download.ID);
@@ -2032,7 +2032,7 @@ namespace OpenMetaverse
                 if (!String.IsNullOrEmpty(download.Filename))
                     Logger.DebugLog("Xfer download for asset " + download.Filename + " completed", Client);
                 else
-                    Logger.DebugLog("Xfer download for asset " + download.VFileID.ToString() + " completed", Client);
+                    Logger.DebugLog("Xfer download for asset " + download.VFileID + " completed", Client);
 
                 download.Success = true;
                 lock (Transfers) Transfers.Remove(download.ID);

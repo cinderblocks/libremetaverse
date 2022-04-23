@@ -587,7 +587,7 @@ namespace OpenMetaverse.Assets
                         if (ArchiveConstants.ASSET_TYPE_TO_EXTENSION.ContainsKey(assetType))
                             extension = ArchiveConstants.ASSET_TYPE_TO_EXTENSION[assetType];
 
-                        File.WriteAllBytes(Path.Combine(assetsPath, texture.ToString() + extension), assetTexture.AssetData);
+                        File.WriteAllBytes(Path.Combine(assetsPath, texture + extension), assetTexture.AssetData);
                         remainingTextures.Remove(assetTexture.AssetID);
                         if (remainingTextures.Count == 0)
                             AllPropertiesReceived.Set();
@@ -609,7 +609,7 @@ namespace OpenMetaverse.Assets
                         if (ArchiveConstants.ASSET_TYPE_TO_EXTENSION.ContainsKey(assetType))
                             extension = ArchiveConstants.ASSET_TYPE_TO_EXTENSION[assetType];
 
-                        File.WriteAllBytes(Path.Combine(assetsPath, texture.ToString() + extension), asset.AssetData);
+                        File.WriteAllBytes(Path.Combine(assetsPath, texture + extension), asset.AssetData);
                         remainingTextures.Remove(asset.AssetID);
                         if (remainingTextures.Count == 0)
                             AllPropertiesReceived.Set();
@@ -643,7 +643,7 @@ namespace OpenMetaverse.Assets
                     AllPropertiesReceived.Set();
                     return;
                 }
-                File.WriteAllBytes(Path.Combine(assetsPath, assetID.ToString() + extension), asset.AssetData);
+                File.WriteAllBytes(Path.Combine(assetsPath, assetID + extension), asset.AssetData);
                 ++count;
                 AllPropertiesReceived.Set();
             });

@@ -201,7 +201,7 @@ namespace OpenMetaverse
             {
                 return ComputeAssetCacheFilename(Client.Settings.ASSET_CACHE_DIR, assetID);
             }
-            return Client.Settings.ASSET_CACHE_DIR + Path.DirectorySeparatorChar + assetID.ToString();
+            return Client.Settings.ASSET_CACHE_DIR + Path.DirectorySeparatorChar + assetID;
         }
 
         /// <summary>
@@ -211,7 +211,7 @@ namespace OpenMetaverse
         /// <returns>String with the file name of the static cached asset</returns>
         private string StaticFileName(UUID assetID)
         {
-            return Settings.RESOURCE_DIR + Path.DirectorySeparatorChar + "static_assets" + Path.DirectorySeparatorChar + assetID.ToString();
+            return Settings.RESOURCE_DIR + Path.DirectorySeparatorChar + "static_assets" + Path.DirectorySeparatorChar + assetID;
         }
 
         /// <summary>
@@ -412,7 +412,7 @@ namespace OpenMetaverse
             else if (byteCount >= 1024)
                 size = String.Format("{0:##.##}", byteCount / 1024) + " KB";
             else if (byteCount > 0 && byteCount < 1024)
-                size = byteCount.ToString() + " Bytes";
+                size = byteCount + " Bytes";
 
             return size;
         }

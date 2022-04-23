@@ -217,7 +217,7 @@ namespace OpenMetaverse.Imaging
 			}
 			else
             {
-                throw new NotSupportedException("Unrecognized pixel format: " + bitmap.PixelFormat.ToString());
+                throw new NotSupportedException("Unrecognized pixel format: " + bitmap.PixelFormat);
             }
         }
 #endif
