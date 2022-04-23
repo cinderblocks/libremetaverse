@@ -138,7 +138,7 @@ namespace OpenMetaverse
             AisClient = new InventoryAISClient(this);
         }
 
-        private static HttpClient SetupHttpCapsClient()
+        private HttpClient SetupHttpCapsClient()
         {
             var handler = new HttpClientHandler
             {
@@ -149,6 +149,7 @@ namespace OpenMetaverse
             HttpClient client = new HttpClient(handler);
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Add("User-Agent", $"{Settings.USER_AGENT}");
+            client.Timeout = System.TimeSpan.FromMilliseconds(Settings.CAPS_TIMEOUT);
             return client;
         }
 
