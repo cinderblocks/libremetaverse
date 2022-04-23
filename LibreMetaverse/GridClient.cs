@@ -24,6 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using System.Net;
+using System.Net.Http;
 using LibreMetaverse;
 
 namespace OpenMetaverse
@@ -95,21 +97,24 @@ namespace OpenMetaverse
         public InventoryManager Inventory;
         /// <summary>Directory searches including classifieds, people, land sales, etc</summary>
         public DirectoryManager Directory;
-        /// <summary>Handles land, wind, and cloud heightmaps</summary>
+        /// <summary>Handles land, wind, and cloud height maps</summary>
         public TerrainManager Terrain;
         /// <summary>Handles sound-related networking</summary>
         public SoundManager Sound;
         /// <summary>Throttling total bandwidth usage, or allocating bandwidth
         /// for specific data stream types</summary>
         public AgentThrottle Throttle;
-
+        /// <summary>Utilization statistics, obviously</summary>
         public Stats.UtilizationStatistics Stats;
+        /// <summary>HttpClient chiefly used for Caps</summary>
+        public HttpClient HttpCapsClient;
+
         /// <summary>
         /// Default constructor
         /// </summary>
         public GridClient()
         {
-            // These are order-dependant
+            // These are order-dependent
             Network = new NetworkManager(this);
             Settings = new Settings(this);
             Parcels = new ParcelManager(this);
@@ -121,14 +126,30 @@ namespace OpenMetaverse
             Objects = new ObjectManager(this);
             Groups = new GroupManager(this);
             Assets = new AssetManager(this);
-            AisClient = new InventoryAISClient(this);
             Appearance = new AppearanceManager(this);
             Inventory = new InventoryManager(this);
             Directory = new DirectoryManager(this);
             Terrain = new TerrainManager(this);
             Sound = new SoundManager(this);
             Throttle = new AgentThrottle(this);
-            Stats = new OpenMetaverse.Stats.UtilizationStatistics();
+            Stats = new Stats.UtilizationStatistics();
+
+            HttpCapsClient = SetupHttpCapsClient();
+            AisClient = new InventoryAISClient(this);
+        }
+
+        private static HttpClient SetupHttpCapsClient()
+        {
+            var handler = new HttpClientHandler
+            {
+                AllowAutoRedirect = true,
+                AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip,
+                MaxConnectionsPerServer = Settings.MAX_HTTP_CONNECTIONS
+            };
+            HttpClient client = new HttpClient(handler);
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Add("User-Agent", $"{Settings.USER_AGENT}");
+            return client;
         }
 
         /// <summary>

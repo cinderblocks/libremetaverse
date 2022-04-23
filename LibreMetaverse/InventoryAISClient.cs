@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -43,13 +44,9 @@ namespace LibreMetaverse
         [NonSerialized]
         private readonly GridClient Client;
 
-        private static readonly HttpClient httpClient = new HttpClient();
-
         public InventoryAISClient(GridClient client)
         {
             Client = client;
-            httpClient.DefaultRequestHeaders.Accept.Clear();
-            httpClient.DefaultRequestHeaders.Add("User-Agent", $"{Settings.USER_AGENT} AIS Client");
         }
 
         public bool IsAvailable => (Client.Network.CurrentSim.Caps != null &&
@@ -84,7 +81,7 @@ namespace LibreMetaverse
 
                 using (var content = new StringContent(payload, Encoding.UTF8, "application/llsd+xml"))
                 {
-                    using (var reply = await httpClient.PostAsync(uri, content))
+                    using (var reply = await Client.HttpCapsClient.PostAsync(uri, content))
                     {
                         success = reply.IsSuccessStatusCode;
 
@@ -145,7 +142,7 @@ namespace LibreMetaverse
 
                 using (var content = new StringContent(payload, Encoding.UTF8, "application/llsd+xml"))
                 {
-                    using (var reply = await httpClient.PutAsync(uri, content))
+                    using (var reply = await Client.HttpCapsClient.PutAsync(uri, content))
                     {
                         success = reply.IsSuccessStatusCode;
 
@@ -188,7 +185,7 @@ namespace LibreMetaverse
                     return;
                 }
 
-                using (var reply = await httpClient.DeleteAsync(uri))
+                using (var reply = await Client.HttpCapsClient.DeleteAsync(uri))
                 {
                     success = reply.IsSuccessStatusCode;
 
@@ -230,7 +227,7 @@ namespace LibreMetaverse
                     return;
                 }
 
-                using (var reply = await httpClient.DeleteAsync(uri))
+                using (var reply = await Client.HttpCapsClient.DeleteAsync(uri))
                 {
                     success = reply.IsSuccessStatusCode;
 
@@ -284,7 +281,7 @@ namespace LibreMetaverse
                     message.Method = new HttpMethod("COPY");
                     message.Headers.Add("Destination", destUuid.ToString());
 
-                    using (var reply = await httpClient.SendAsync(message))
+                    using (var reply = await Client.HttpCapsClient.SendAsync(message))
                     {
                         success = reply.IsSuccessStatusCode;
 
@@ -327,7 +324,7 @@ namespace LibreMetaverse
                     return;
                 }
 
-                using (var reply = await httpClient.DeleteAsync(uri))
+                using (var reply = await Client.HttpCapsClient.DeleteAsync(uri))
                 {
                     success = reply.IsSuccessStatusCode;
 
@@ -379,7 +376,7 @@ namespace LibreMetaverse
                     {
                         message.Content = content;
 
-                        using (var reply = await httpClient.SendAsync(message))
+                        using (var reply = await Client.HttpCapsClient.SendAsync(message))
                         {
                             success = reply.IsSuccessStatusCode;
 
@@ -434,7 +431,7 @@ namespace LibreMetaverse
                     {
                         message.Content = content;
 
-                        using (var reply = await httpClient.SendAsync(message))
+                        using (var reply = await Client.HttpCapsClient.SendAsync(message))
                         {
                             success = reply.IsSuccessStatusCode;
 
