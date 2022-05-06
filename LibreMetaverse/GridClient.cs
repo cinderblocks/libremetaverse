@@ -107,7 +107,7 @@ namespace OpenMetaverse
         /// <summary>Utilization statistics, obviously</summary>
         public Stats.UtilizationStatistics Stats;
         /// <summary>HttpClient chiefly used for Caps</summary>
-        public HttpClient HttpCapsClient;
+        public HttpCapsClient HttpCapsClient;
 
         /// <summary>
         /// Default constructor
@@ -138,7 +138,7 @@ namespace OpenMetaverse
             AisClient = new InventoryAISClient(this);
         }
 
-        private HttpClient SetupHttpCapsClient()
+        private HttpCapsClient SetupHttpCapsClient()
         {
             var handler = new HttpClientHandler
             {
@@ -146,7 +146,7 @@ namespace OpenMetaverse
                 AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip,
                 MaxConnectionsPerServer = Settings.MAX_HTTP_CONNECTIONS
             };
-            HttpClient client = new HttpClient(handler);
+            HttpCapsClient client = new HttpCapsClient(handler);
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Add("User-Agent", $"{Settings.USER_AGENT}");
             client.Timeout = System.TimeSpan.FromMilliseconds(Settings.CAPS_TIMEOUT);
