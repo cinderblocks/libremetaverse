@@ -364,10 +364,8 @@ namespace LibreMetaverse
 
                     return;
                 }
-
-                var method = new HttpMethod("PATCH");
-
-                using (var message = new HttpRequestMessage(method, uri))
+                
+                using (var message = new HttpRequestMessage(HttpMethod.Patch, uri))
                 {
                     var payload = OSDParser.SerializeLLSDXmlString(updates);
 
@@ -420,9 +418,7 @@ namespace LibreMetaverse
                     return;
                 }
 
-                var method = new HttpMethod("PATCH");
-
-                using (var message = new HttpRequestMessage(method, uri))
+                using (var message = new HttpRequestMessage(HttpMethod.Patch, uri))
                 {
                     var payload = OSDParser.SerializeLLSDXmlString(updates);
 
