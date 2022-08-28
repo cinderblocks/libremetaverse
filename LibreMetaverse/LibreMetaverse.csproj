@@ -43,9 +43,9 @@
     <Optimize>True</Optimize>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="log4net" Version="2.0.14" />
+    <PackageReference Include="log4net" Version="2.0.15" />
     <PackageReference Include="Microsoft.Experimental.Collections" Version="1.0.6-e190117-3" />
-    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="6.0.4" />
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="6.0.8" />
     <PackageReference Include="OggVorbisEncoder" Version="1.2.0" />
     <PackageReference Include="OpenJpegDotNet-LMV" Version="2.4.0.5" />
     <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
