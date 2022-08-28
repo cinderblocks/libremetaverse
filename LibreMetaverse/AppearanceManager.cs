@@ -30,12 +30,12 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Collections.Extensions;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Imaging;
 using OpenMetaverse.Assets;
 using OpenMetaverse.Http;
 using OpenMetaverse.StructuredData;
+using LibreMetaverse;
 
 namespace OpenMetaverse
 {
