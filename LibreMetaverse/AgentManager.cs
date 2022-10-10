@@ -30,6 +30,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Http;
@@ -2289,15 +2290,15 @@ namespace OpenMetaverse
             autopilot.ParamList = new GenericMessagePacket.ParamListBlock[3];
             autopilot.ParamList[0] = new GenericMessagePacket.ParamListBlock
             {
-                Parameter = Utils.StringToBytes(globalX.ToString())
+                Parameter = Utils.StringToBytes(globalX.ToString(CultureInfo.InvariantCulture))
             };
             autopilot.ParamList[1] = new GenericMessagePacket.ParamListBlock
             {
-                Parameter = Utils.StringToBytes(globalY.ToString())
+                Parameter = Utils.StringToBytes(globalY.ToString(CultureInfo.InvariantCulture))
             };
             autopilot.ParamList[2] = new GenericMessagePacket.ParamListBlock
             {
-                Parameter = Utils.StringToBytes(z.ToString())
+                Parameter = Utils.StringToBytes(z.ToString(CultureInfo.InvariantCulture))
             };
 
             Client.Network.SendPacket(autopilot);
@@ -2338,7 +2339,7 @@ namespace OpenMetaverse
             };
             autopilot.ParamList[2] = new GenericMessagePacket.ParamListBlock
             {
-                Parameter = Utils.StringToBytes(z.ToString())
+                Parameter = Utils.StringToBytes(z.ToString(CultureInfo.InvariantCulture))
             };
 
             Client.Network.SendPacket(autopilot);

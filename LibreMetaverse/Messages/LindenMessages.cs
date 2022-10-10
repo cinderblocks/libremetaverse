@@ -434,7 +434,7 @@ namespace OpenMetaverse.Messages.Linden
 
             if (TotalObjectCount < 1)
             {
-                ReportDataBlocks = new ReportDataBlock[0];
+                ReportDataBlocks = Array.Empty<ReportDataBlock>();
                 return;
             }
 
@@ -1504,7 +1504,7 @@ namespace OpenMetaverse.Messages.Linden
             }
             else
             {
-                FolderData = new FolderDataInfo[0];
+                FolderData = Array.Empty<FolderDataInfo>();
             }
 
             if (map["ItemData"] is OSDArray)
@@ -1518,7 +1518,7 @@ namespace OpenMetaverse.Messages.Linden
             }
             else
             {
-                ItemData = new ItemDataInfo[0];
+                ItemData = Array.Empty<ItemDataInfo>();
             }
         }
     }
@@ -4358,12 +4358,11 @@ namespace OpenMetaverse.Messages.Linden
                 }
                 else
                 {
-                    ExtraParams = new ExtraParam[0];
+                    ExtraParams = Array.Empty<ExtraParam>();
                 }
 
                 // Faces
-                OSDArray faces = map["facelist"] as OSDArray;
-                if (faces != null)
+                if (map["facelist"] is OSDArray faces)
                 {
                     Faces = new Face[faces.Count];
                     for (int i = 0; i < faces.Count; i++)
@@ -4375,7 +4374,7 @@ namespace OpenMetaverse.Messages.Linden
                 }
                 else
                 {
-                    Faces = new Face[0];
+                    Faces = Array.Empty<Face>();
                 }
 
                 // Shape
@@ -4444,9 +4443,8 @@ namespace OpenMetaverse.Messages.Linden
                 for (int i = 0; i < array.Count; ++i)
                 {
                     Object obj = new Object();
-                    OSDMap objMap = array[i] as OSDMap;
 
-                    if (objMap != null)
+                    if (array[i] is OSDMap objMap)
                         obj.Deserialize(objMap);
 
                     Objects[i] = obj;
@@ -4454,7 +4452,7 @@ namespace OpenMetaverse.Messages.Linden
             }
             else
             {
-                Objects = new Object[0];
+                Objects = Array.Empty<Object>();
             }
         }
     }
@@ -4504,7 +4502,7 @@ namespace OpenMetaverse.Messages.Linden
             }
             else
             {
-                ObjectPhysicsProperties = new Primitive.PhysicsProperties[0];
+                ObjectPhysicsProperties = Array.Empty<Primitive.PhysicsProperties>();
             }
         }
     }
@@ -4568,8 +4566,7 @@ namespace OpenMetaverse.Messages.Linden
         /// <param name="map">Incoming data to deserialize</param>
         public void Deserialize(OSDMap map)
         {
-            OSDArray array = map["object_ids"] as OSDArray;
-            if (array != null)
+            if (map["object_ids"] is OSDArray array)
             {
                 ObjectIDs = new UUID[array.Count];
 
@@ -4580,7 +4577,7 @@ namespace OpenMetaverse.Messages.Linden
             }
             else
             {
-                ObjectIDs = new UUID[0];
+                ObjectIDs = Array.Empty<UUID>();
             }
         }
 
@@ -5300,10 +5297,10 @@ namespace OpenMetaverse.Messages.Linden
     public class GetDisplayNamesMessage : IMessage
     {
         /// <summary> Current display name </summary>
-        public AgentDisplayName[] Agents = new AgentDisplayName[0];
+        public AgentDisplayName[] Agents = Array.Empty<AgentDisplayName>();
 
         /// <summary> Following UUIDs failed to return a valid display name </summary>
-        public UUID[] BadIDs = new UUID[0];
+        public UUID[] BadIDs = Array.Empty<UUID>();
 
         /// <summary>
         /// Serializes the message
