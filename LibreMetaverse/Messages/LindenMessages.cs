@@ -4345,8 +4345,7 @@ namespace OpenMetaverse.Messages.Linden
                 Scale = map["scale"].AsVector3();
 
                 // Extra params
-                OSDArray extraParams = map["extra_parameters"] as OSDArray;
-                if (extraParams != null)
+                if (map["extra_parameters"] is OSDArray extraParams)
                 {
                     ExtraParams = new ExtraParam[extraParams.Count];
                     for (int i = 0; i < extraParams.Count; i++)
@@ -4401,8 +4400,7 @@ namespace OpenMetaverse.Messages.Linden
                 ProfileEnd = (float)profile["end"].AsReal();
                 ProfileHollow = (float)profile["hollow"].AsReal();
 
-                OSDMap sculpt = shape["sculpt"] as OSDMap;
-                if (sculpt != null)
+                if (shape["sculpt"] is OSDMap sculpt)
                 {
                     SculptID = sculpt["id"].AsUUID();
                     SculptType = (SculptType)sculpt["type"].AsInteger();
@@ -4434,9 +4432,7 @@ namespace OpenMetaverse.Messages.Linden
 
         public void Deserialize(OSDMap map)
         {
-            OSDArray array = map["objects"] as OSDArray;
-
-            if (array != null)
+            if (map["objects"] is OSDArray array)
             {
                 Objects = new Object[array.Count];
 
@@ -4490,8 +4486,7 @@ namespace OpenMetaverse.Messages.Linden
         /// <param name="map">Incoming data to deserialize</param>
         public void Deserialize(OSDMap map)
         {
-            OSDArray array = map["ObjectData"] as OSDArray;
-            if (array != null)
+            if (map["ObjectData"] is OSDArray array)
             {
                 ObjectPhysicsProperties = new Primitive.PhysicsProperties[array.Count];
 
