@@ -68,7 +68,7 @@ namespace OpenMetaverse
 
         public InventoryNodeDictionary Nodes
         {
-            get => nodes ?? (nodes = new InventoryNodeDictionary(this));
+            get => nodes ??= new InventoryNodeDictionary(this);
             set => nodes = value;
         }
 

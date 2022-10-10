@@ -3168,7 +3168,7 @@ namespace OpenMetaverse
             if (_Store.Contains(ItemID))
                 ret = _Store[ItemID] as InventoryItem;
 
-            return ret ?? (ret = CreateInventoryItem(InvType, ItemID));
+            return ret ??= CreateInventoryItem(InvType, ItemID);
         }
 
         private static bool ParseLine(string line, out string key, out string value)

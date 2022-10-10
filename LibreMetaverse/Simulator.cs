@@ -397,7 +397,7 @@ namespace OpenMetaverse
                 {
                     return DataPool.Parcels;
                 }
-                return _Parcels ?? (_Parcels = new InternalDictionary<int, Parcel>());
+                return _Parcels ??= new InternalDictionary<int, Parcel>();
             }
         }
         private InternalDictionary<int, Parcel> _Parcels;
@@ -416,7 +416,7 @@ namespace OpenMetaverse
                     {
                         return DataPool.ParcelMap;
                     }
-                    return _parcelMap ?? (_parcelMap = new int[64, 64]);
+                    return _parcelMap ??= new int[64, 64];
                 }
             }
         }
