@@ -607,12 +607,8 @@ namespace OpenMetaverse
                 // Attempt to establish a connection to the simulator
                 if (simulator.Connect(setDefault))
                 {
-                    if (DisconnectTimer == null)
-                    {
-                        // Start a timer that checks if we've been disconnected
-                        DisconnectTimer = new Timer(DisconnectTimer_Elapsed, null,
-                            Client.Settings.SIMULATOR_TIMEOUT, Client.Settings.SIMULATOR_TIMEOUT);
-                    }
+                    DisconnectTimer ??= new Timer(DisconnectTimer_Elapsed, null,
+                        Client.Settings.SIMULATOR_TIMEOUT, Client.Settings.SIMULATOR_TIMEOUT);
 
                     if (setDefault)
                     {

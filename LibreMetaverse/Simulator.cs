@@ -588,12 +588,10 @@ namespace OpenMetaverse
             #region Start Timers
 
             // Timer for sending out queued packet acknowledgements
-            if (AckTimer == null)
-                AckTimer = new Timer(AckTimer_Elapsed, null, Settings.NETWORK_TICK_INTERVAL, Timeout.Infinite);
+            AckTimer ??= new Timer(AckTimer_Elapsed, null, Settings.NETWORK_TICK_INTERVAL, Timeout.Infinite);
 
             // Timer for recording simulator connection statistics
-            if (StatsTimer == null)
-                StatsTimer = new Timer(StatsTimer_Elapsed, null, 1000, 1000);
+            StatsTimer ??= new Timer(StatsTimer_Elapsed, null, 1000, 1000);
 
             // Timer for periodically pinging the simulator
             if (PingTimer == null && Client.Settings.SEND_PINGS)
@@ -1391,10 +1389,7 @@ namespace OpenMetaverse
         {
             lock (SimulatorDataPools)
             {
-                if (InactiveSimReaper == null)
-                {
-                    InactiveSimReaper = new Timer(RemoveOldSims, null, TimeSpan.FromMinutes(3), TimeSpan.FromMinutes(3));
-                }
+                InactiveSimReaper ??= new Timer(RemoveOldSims, null, TimeSpan.FromMinutes(3), TimeSpan.FromMinutes(3));
                 var pool = GetSimulatorData(sim.Handle);
                 if (pool.ActiveClients < 1) pool.ActiveClients = 1; else pool.ActiveClients++;
                 pool.InactiveSince = DateTime.MaxValue;

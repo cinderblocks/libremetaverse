@@ -114,7 +114,7 @@ namespace LibreMetaverse.Voice
         {
             try
             {
-                if (_Callback == null) _Callback = new AsyncCallback(OnDataReceived);
+                _Callback ??= OnDataReceived;
                 SocketPacket packet = new SocketPacket
                 {
                     TCPSocket = _TCPSocket
