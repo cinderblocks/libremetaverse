@@ -4017,10 +4017,10 @@ namespace OpenMetaverse
                         List<InventoryBase> folderContents = _Store.GetContents(search.Folder);
 
                         // Iterate over all of the inventory objects in the base search folder
-                        for (int j = 0; j < folderContents.Count; j++)
+                        foreach (var content in folderContents)
                         {
                             // Check if this inventory object matches the current path node
-                            if (folderContents[j].Name == search.Path[search.Level])
+                            if (content.Name == search.Path[search.Level])
                             {
                                 if (search.Level == search.Path.Length - 1)
                                 {
@@ -4030,7 +4030,7 @@ namespace OpenMetaverse
                                     if (m_FindObjectByPathReply != null)
                                     {
                                         OnFindObjectByPathReply(new FindObjectByPathReplyEventArgs(String.Join("/", search.Path),
-                                            folderContents[j].UUID));
+                                            content.UUID));
                                     }
 
                                     // Remove this entry and restart the loop since we are changing the collection size
@@ -4043,7 +4043,7 @@ namespace OpenMetaverse
                                     Logger.DebugLog(
                                         $"Matched level {search.Level}/{search.Path.Length - 1} in a path search of {String.Join("/", search.Path)}", Client);
 
-                                    search.Folder = folderContents[j].UUID;
+                                    search.Folder = content.UUID;
                                     search.Level++;
                                     _Searches[i] = search;
 

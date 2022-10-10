@@ -1459,21 +1459,21 @@ namespace OpenMetaverse.Packets
 
             FieldInfo[] fields = packet.GetType().GetFields();
 
-            for (int i = 0; i < fields.Length; i++)
+            foreach (var t in fields)
             {
                 // we're not interested in any of these here
-                if (fields[i].Name == "Type" || fields[i].Name == "Header" || fields[i].Name == "HasVariableBlocks")
+                if (t.Name == "Type" || t.Name == "Header" || t.Name == "HasVariableBlocks")
                     continue;
 
-                if (fields[i].FieldType.IsArray)
+                if (t.FieldType.IsArray)
                 {
-                    result.AppendFormat("{0,30} []" + Environment.NewLine, "-- " + fields[i].Name + " --");
-                    RecursePacketArray(fields[i], packet, ref result);
+                    result.AppendFormat("{0,30} []" + Environment.NewLine, "-- " + t.Name + " --");
+                    RecursePacketArray(t, packet, ref result);
                 }
                 else
                 {
-                    result.AppendFormat("{0,30}" + Environment.NewLine, "-- " + fields[i].Name + " --");
-                    RecursePacketField(fields[i], packet, ref result);
+                    result.AppendFormat("{0,30}" + Environment.NewLine, "-- " + t.Name + " --");
+                    RecursePacketField(t, packet, ref result);
                 }
             }
 

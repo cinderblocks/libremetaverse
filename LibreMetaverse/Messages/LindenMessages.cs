@@ -2957,12 +2957,14 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public override OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(3);
-            map["method"] = OSD.FromString(Method);
-            OSDArray agentsArray = new OSDArray();
-            for (int i = 0; i < AgentsBlock.Length; i++)
+            OSDMap map = new OSDMap(3)
             {
-                agentsArray.Add(OSD.FromUUID(AgentsBlock[i]));
+                ["method"] = OSD.FromString(Method)
+            };
+            OSDArray agentsArray = new OSDArray();
+            foreach (var uuid in AgentsBlock)
+            {
+                agentsArray.Add(OSD.FromUUID(uuid));
             }
             map["params"] = agentsArray;
             map["session-id"] = OSD.FromUUID(SessionID);

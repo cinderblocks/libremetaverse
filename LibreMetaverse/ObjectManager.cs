@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Http;
@@ -1805,10 +1806,8 @@ namespace OpenMetaverse
             ObjectUpdatePacket update = (ObjectUpdatePacket)packet;
             UpdateDilation(e.Simulator, update.RegionData.TimeDilation);
 
-            for (int b = 0; b < update.ObjectData.Length; b++)
+            foreach (var block in update.ObjectData)
             {
-                ObjectUpdatePacket.ObjectDataBlock block = update.ObjectData[b];
-
                 ObjectMovementUpdate objectupdate = new ObjectMovementUpdate();
                 //Vector4 collisionPlane = Vector4.Zero;
                 //Vector3 position;
@@ -2002,7 +2001,7 @@ namespace OpenMetaverse
                         break;
                     default:
                         Logger.Log("Got an ObjectUpdate block with ObjectUpdate field length of " +
-                            block.ObjectData.Length, Helpers.LogLevel.Warning, Client);
+                                   block.ObjectData.Length, Helpers.LogLevel.Warning, Client);
 
                         continue;
                 }
@@ -2112,7 +2111,7 @@ namespace OpenMetaverse
                         if (handler != null)
                         {
                             ThreadPool.QueueUserWorkItem(delegate(object o)
-                            { handler(this, new PrimEventArgs(simulator, prim, update.RegionData.TimeDilation, isNewObject, attachment)); });
+                                { handler(this, new PrimEventArgs(simulator, prim, update.RegionData.TimeDilation, isNewObject, attachment)); });
                         }
                         //OnParticleUpdate handler replacing decode particles, PCode.Particle system appears to be deprecated this is a fix
                         if (prim.ParticleSys.PartMaxAge != 0) {
@@ -2255,10 +2254,8 @@ namespace OpenMetaverse
             ImprovedTerseObjectUpdatePacket terse = (ImprovedTerseObjectUpdatePacket)packet;
             UpdateDilation(simulator, terse.RegionData.TimeDilation);
 
-            for (int i = 0; i < terse.ObjectData.Length; i++)
+            foreach (var block in terse.ObjectData)
             {
-                ImprovedTerseObjectUpdatePacket.ObjectDataBlock block = terse.ObjectData[i];
-
                 try
                 {
                     int pos = 4;
@@ -2333,7 +2330,7 @@ namespace OpenMetaverse
                     if (handler != null)
                     {
                         ThreadPool.QueueUserWorkItem(delegate(object o)
-                        { handler(this, new TerseObjectUpdateEventArgs(simulator, obj, update, terse.RegionData.TimeDilation)); });
+                            { handler(this, new TerseObjectUpdateEventArgs(simulator, obj, update, terse.RegionData.TimeDilation)); });
                     }
 
                     #region Update Client.Self
@@ -2378,9 +2375,8 @@ namespace OpenMetaverse
 
             ObjectUpdateCompressedPacket update = (ObjectUpdateCompressedPacket)packet;
 
-            for (int b = 0; b < update.ObjectData.Length; b++)
+            foreach (var block in update.ObjectData)
             {
-                ObjectUpdateCompressedPacket.ObjectDataBlock block = update.ObjectData[b];
                 int i = 0;
 
                 try
@@ -2390,7 +2386,7 @@ namespace OpenMetaverse
                     i += 16;
                     // Local ID
                     uint LocalID = (uint)(block.Data[i++] + (block.Data[i++] << 8) +
-                        (block.Data[i++] << 16) + (block.Data[i++] << 24));
+                                          (block.Data[i++] << 16) + (block.Data[i++] << 24));
                     // PCode
                     PCode pcode = (PCode)block.Data[i++];
 
@@ -2459,7 +2455,7 @@ namespace OpenMetaverse
                     if ((flags & CompressedFlags.HasParent) != 0)
                     {
                         prim.ParentID = (uint)(block.Data[i++] + (block.Data[i++] << 8) +
-                        (block.Data[i++] << 16) + (block.Data[i++] << 24));
+                                               (block.Data[i++] << 16) + (block.Data[i++] << 24));
                     }
                     else
                     {
@@ -2644,9 +2640,9 @@ namespace OpenMetaverse
                 List<uint> ids = new List<uint>(update.ObjectData.Length);
 
                 // Object caching is implemented when Client.Settings.PRIMITIVES_FACTORY is True, otherwise request updates for all of these objects
-                for (int i = 0; i < update.ObjectData.Length; i++)
+                foreach (var odb in update.ObjectData)
                 {
-                    uint localID = update.ObjectData[i].ID;
+                    uint localID = odb.ID;
 
                     if (cachedPrimitives)
                     {
@@ -2690,9 +2686,9 @@ namespace OpenMetaverse
                 if (Client.Settings.OBJECT_TRACKING)
                 {
                     uint localID;
-                    for (int i = 0; i < kill.ObjectData.Length; i++)
+                    foreach (var odb in kill.ObjectData)
                     {
-                        localID = kill.ObjectData[i].ID;
+                        localID = odb.ID;
 
                         if (simulator.ObjectsPrimitives.Dictionary.ContainsKey(localID))
                             removePrims.Add(localID);
@@ -2713,32 +2709,26 @@ namespace OpenMetaverse
                     lock (simulator.ObjectsAvatars.Dictionary)
                     {
                         uint localID;
-                        for (int i = 0; i < kill.ObjectData.Length; i++)
+                        foreach (var odb in kill.ObjectData)
                         {
-                            localID = kill.ObjectData[i].ID;
+                            localID = odb.ID;
 
                             if (simulator.ObjectsAvatars.Dictionary.ContainsKey(localID))
                                 removeAvatars.Add(localID);
 
                             List<uint> rootPrims = new List<uint>();
 
-                            foreach (KeyValuePair<uint, Primitive> prim in simulator.ObjectsPrimitives.Dictionary)
+                            foreach (var prim in simulator.ObjectsPrimitives.Dictionary.Where(prim => prim.Value.ParentID == localID))
                             {
-                                if (prim.Value.ParentID == localID)
-                                {
-                                    OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
-                                    removePrims.Add(prim.Key);
-                                    rootPrims.Add(prim.Key);
-                                }
+                                OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
+                                removePrims.Add(prim.Key);
+                                rootPrims.Add(prim.Key);
                             }
 
-                            foreach (KeyValuePair<uint, Primitive> prim in simulator.ObjectsPrimitives.Dictionary)
+                            foreach (var prim in simulator.ObjectsPrimitives.Dictionary.Where(prim => rootPrims.Contains(prim.Value.ParentID)))
                             {
-                                if (rootPrims.Contains(prim.Value.ParentID))
-                                {
-                                    OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
-                                    removePrims.Add(prim.Key);
-                                }
+                                OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
+                                removePrims.Add(prim.Key);
                             }
                         }
 
@@ -2769,34 +2759,34 @@ namespace OpenMetaverse
             ObjectPropertiesPacket op = (ObjectPropertiesPacket)packet;
             ObjectPropertiesPacket.ObjectDataBlock[] datablocks = op.ObjectData;
 
-            for (int i = 0; i < datablocks.Length; ++i)
+            foreach (var objectData in datablocks)
             {
-                ObjectPropertiesPacket.ObjectDataBlock objectData = datablocks[i];
-                Primitive.ObjectProperties props = new Primitive.ObjectProperties();
-
-                props.ObjectID = objectData.ObjectID;
-                props.AggregatePerms = objectData.AggregatePerms;
-                props.AggregatePermTextures = objectData.AggregatePermTextures;
-                props.AggregatePermTexturesOwner = objectData.AggregatePermTexturesOwner;
-                props.Permissions = new Permissions(objectData.BaseMask, objectData.EveryoneMask, objectData.GroupMask,
-                    objectData.NextOwnerMask, objectData.OwnerMask);
-                props.Category = (ObjectCategory)objectData.Category;
-                props.CreationDate = Utils.UnixTimeToDateTime((uint)objectData.CreationDate);
-                props.CreatorID = objectData.CreatorID;
-                props.Description = Utils.BytesToString(objectData.Description);
-                props.FolderID = objectData.FolderID;
-                props.FromTaskID = objectData.FromTaskID;
-                props.GroupID = objectData.GroupID;
-                props.InventorySerial = objectData.InventorySerial;
-                props.ItemID = objectData.ItemID;
-                props.LastOwnerID = objectData.LastOwnerID;
-                props.Name = Utils.BytesToString(objectData.Name);
-                props.OwnerID = objectData.OwnerID;
-                props.OwnershipCost = objectData.OwnershipCost;
-                props.SalePrice = objectData.SalePrice;
-                props.SaleType = (SaleType)objectData.SaleType;
-                props.SitName = Utils.BytesToString(objectData.SitName);
-                props.TouchName = Utils.BytesToString(objectData.TouchName);
+                Primitive.ObjectProperties props = new Primitive.ObjectProperties
+                {
+                    ObjectID = objectData.ObjectID,
+                    AggregatePerms = objectData.AggregatePerms,
+                    AggregatePermTextures = objectData.AggregatePermTextures,
+                    AggregatePermTexturesOwner = objectData.AggregatePermTexturesOwner,
+                    Permissions = new Permissions(objectData.BaseMask, objectData.EveryoneMask, objectData.GroupMask,
+                        objectData.NextOwnerMask, objectData.OwnerMask),
+                    Category = (ObjectCategory)objectData.Category,
+                    CreationDate = Utils.UnixTimeToDateTime((uint)objectData.CreationDate),
+                    CreatorID = objectData.CreatorID,
+                    Description = Utils.BytesToString(objectData.Description),
+                    FolderID = objectData.FolderID,
+                    FromTaskID = objectData.FromTaskID,
+                    GroupID = objectData.GroupID,
+                    InventorySerial = objectData.InventorySerial,
+                    ItemID = objectData.ItemID,
+                    LastOwnerID = objectData.LastOwnerID,
+                    Name = Utils.BytesToString(objectData.Name),
+                    OwnerID = objectData.OwnerID,
+                    OwnershipCost = objectData.OwnershipCost,
+                    SalePrice = objectData.SalePrice,
+                    SaleType = (SaleType)objectData.SaleType,
+                    SitName = Utils.BytesToString(objectData.SitName),
+                    TouchName = Utils.BytesToString(objectData.TouchName)
+                };
 
                 int numTextures = objectData.TextureID.Length / 16;
                 props.TextureIDs = new UUID[numTextures];
@@ -2911,13 +2901,13 @@ namespace OpenMetaverse
 
             if (Client.Settings.OBJECT_TRACKING)
             {
-                for (int i = 0; i < msg.ObjectPhysicsProperties.Length; i++)
+                foreach (var prop in msg.ObjectPhysicsProperties)
                 {
                     lock (simulator.ObjectsPrimitives.Dictionary)
                     {
-                        if (simulator.ObjectsPrimitives.Dictionary.ContainsKey(msg.ObjectPhysicsProperties[i].LocalID))
+                        if (simulator.ObjectsPrimitives.Dictionary.ContainsKey(prop.LocalID))
                         {
-                            simulator.ObjectsPrimitives.Dictionary[msg.ObjectPhysicsProperties[i].LocalID].PhysicsProps = msg.ObjectPhysicsProperties[i];
+                            simulator.ObjectsPrimitives.Dictionary[prop.LocalID].PhysicsProps = prop;
                         }
                     }
                 }
@@ -2925,9 +2915,9 @@ namespace OpenMetaverse
 
             if (m_PhysicsProperties != null)
             {
-                for (int i = 0; i < msg.ObjectPhysicsProperties.Length; i++)
+                foreach (var prop in msg.ObjectPhysicsProperties)
                 {
-                    OnPhysicsProperties(new PhysicsPropertiesEventArgs(simulator, msg.ObjectPhysicsProperties[i]));
+                    OnPhysicsProperties(new PhysicsPropertiesEventArgs(simulator, prop));
                 }
             }
         }
@@ -3244,10 +3234,8 @@ namespace OpenMetaverse
 
                 // Iterate through all of the simulators
                 Simulator[] sims = Client.Network.Simulators.ToArray();
-                for (int i = 0; i < sims.Length; i++)
+                foreach (var sim in sims)
                 {
-                    Simulator sim = sims[i];
-
                     float adjSeconds = seconds * sim.Stats.Dilation;
 
                     // Iterate through all of this sims avatars

@@ -27,6 +27,7 @@
 using System;
 using System.Threading;
 using System.Collections.Generic;
+using System.Linq;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
@@ -924,15 +925,23 @@ namespace OpenMetaverse
         public void StartLandSearch(DirFindFlags findFlags, SearchTypeFlags typeFlags, int priceLimit,
             int areaLimit, int queryStart)
         {
-            DirLandQueryPacket query = new DirLandQueryPacket();
-            query.AgentData.AgentID = Client.Self.AgentID;
-            query.AgentData.SessionID = Client.Self.SessionID;
-            query.QueryData.Area = areaLimit;
-            query.QueryData.Price = priceLimit;
-            query.QueryData.QueryStart = queryStart;
-            query.QueryData.SearchType = (uint)typeFlags;
-            query.QueryData.QueryFlags = (uint)findFlags;
-            query.QueryData.QueryID = UUID.Random();
+            DirLandQueryPacket query = new DirLandQueryPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                QueryData =
+                {
+                    Area = areaLimit,
+                    Price = priceLimit,
+                    QueryStart = queryStart,
+                    SearchType = (uint)typeFlags,
+                    QueryFlags = (uint)findFlags,
+                    QueryID = UUID.Random()
+                }
+            };
 
             Client.Network.SendPacket(query);            
         }
@@ -958,13 +967,21 @@ namespace OpenMetaverse
         /// <returns></returns>
         public UUID StartGroupSearch(string searchText, int queryStart, DirFindFlags flags)
         {
-            DirFindQueryPacket find = new DirFindQueryPacket();
-            find.AgentData.AgentID = Client.Self.AgentID;
-            find.AgentData.SessionID = Client.Self.SessionID;
-            find.QueryData.QueryFlags = (uint)flags;
-            find.QueryData.QueryText = Utils.StringToBytes(searchText);
-            find.QueryData.QueryID = UUID.Random();
-            find.QueryData.QueryStart = queryStart;
+            DirFindQueryPacket find = new DirFindQueryPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                QueryData =
+                {
+                    QueryFlags = (uint)flags,
+                    QueryText = Utils.StringToBytes(searchText),
+                    QueryID = UUID.Random(),
+                    QueryStart = queryStart
+                }
+            };
 
             Client.Network.SendPacket(find);
 
@@ -979,13 +996,21 @@ namespace OpenMetaverse
         /// <returns></returns>
         public UUID StartPeopleSearch(string searchText, int queryStart)
         {
-            DirFindQueryPacket find = new DirFindQueryPacket();
-            find.AgentData.AgentID = Client.Self.AgentID;
-            find.AgentData.SessionID = Client.Self.SessionID;
-            find.QueryData.QueryFlags = (uint)DirFindFlags.People;
-            find.QueryData.QueryText = Utils.StringToBytes(searchText);
-            find.QueryData.QueryID = UUID.Random();
-            find.QueryData.QueryStart = queryStart;
+            DirFindQueryPacket find = new DirFindQueryPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                QueryData =
+                {
+                    QueryFlags = (uint)DirFindFlags.People,
+                    QueryText = Utils.StringToBytes(searchText),
+                    QueryID = UUID.Random(),
+                    QueryStart = queryStart
+                }
+            };
 
             Client.Network.SendPacket(find);
 
@@ -1036,17 +1061,26 @@ namespace OpenMetaverse
         public UUID StartPlacesSearch(DirFindFlags findFlags, ParcelCategory searchCategory, string searchText, string simulatorName, 
             UUID groupID, UUID transactionID)
         {
-            PlacesQueryPacket find = new PlacesQueryPacket();
-            find.AgentData.AgentID = Client.Self.AgentID;
-            find.AgentData.SessionID = Client.Self.SessionID;
-            find.AgentData.QueryID = groupID;
-
-            find.TransactionData.TransactionID = transactionID;
-
-            find.QueryData.QueryText = Utils.StringToBytes(searchText);
-            find.QueryData.QueryFlags = (uint)findFlags;
-            find.QueryData.Category = (sbyte)searchCategory;
-            find.QueryData.SimName = Utils.StringToBytes(simulatorName);
+            PlacesQueryPacket find = new PlacesQueryPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    QueryID = groupID
+                },
+                TransactionData =
+                {
+                    TransactionID = transactionID
+                },
+                QueryData =
+                {
+                    QueryText = Utils.StringToBytes(searchText),
+                    QueryFlags = (uint)findFlags,
+                    Category = (sbyte)searchCategory,
+                    SimName = Utils.StringToBytes(simulatorName)
+                }
+            };
 
             Client.Network.SendPacket(find);
             return transactionID;
@@ -1083,9 +1117,14 @@ namespace OpenMetaverse
         /// <returns>UUID of query to correlate results in callback.</returns>
         public UUID StartEventsSearch(string searchText, DirFindFlags queryFlags, string eventDay, uint queryStart, EventCategories category)
         {
-            DirFindQueryPacket find = new DirFindQueryPacket();
-            find.AgentData.AgentID = Client.Self.AgentID;
-            find.AgentData.SessionID = Client.Self.SessionID;
+            DirFindQueryPacket find = new DirFindQueryPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                }
+            };
 
             UUID queryID = UUID.Random();
 
@@ -1102,11 +1141,18 @@ namespace OpenMetaverse
         /// <param name="eventID">ID of Event returned from the <see cref="StartEventsSearch"/> method</param>
         public void EventInfoRequest(uint eventID)
         {
-            EventInfoRequestPacket find = new EventInfoRequestPacket();
-            find.AgentData.AgentID = Client.Self.AgentID;
-            find.AgentData.SessionID = Client.Self.SessionID;
-
-            find.EventData.EventID = eventID;
+            EventInfoRequestPacket find = new EventInfoRequestPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                EventData =
+                {
+                    EventID = eventID
+                }
+            };
 
             Client.Network.SendPacket(find);
         }
@@ -1158,14 +1204,15 @@ namespace OpenMetaverse
 
                 foreach (DirClassifiedReplyPacket.QueryRepliesBlock block in reply.QueryReplies)
                 {
-                    Classified classified = new Classified();
-
-                    classified.CreationDate = Utils.UnixTimeToDateTime(block.CreationDate);
-                    classified.ExpirationDate = Utils.UnixTimeToDateTime(block.ExpirationDate);
-                    classified.Flags = (ClassifiedFlags)block.ClassifiedFlags;
-                    classified.ID = block.ClassifiedID;
-                    classified.Name = Utils.BytesToString(block.Name);
-                    classified.Price = block.PriceForListing;
+                    Classified classified = new Classified
+                    {
+                        CreationDate = Utils.UnixTimeToDateTime(block.CreationDate),
+                        ExpirationDate = Utils.UnixTimeToDateTime(block.ExpirationDate),
+                        Flags = (ClassifiedFlags)block.ClassifiedFlags,
+                        ID = block.ClassifiedID,
+                        Name = Utils.BytesToString(block.Name),
+                        Price = block.PriceForListing
+                    };
 
                     classifieds.Add(classified);
                 }
@@ -1186,14 +1233,15 @@ namespace OpenMetaverse
 
                 foreach (DirLandReplyPacket.QueryRepliesBlock block in reply.QueryReplies)
                 {
-                    DirectoryParcel dirParcel = new DirectoryParcel();
-
-                    dirParcel.ActualArea = block.ActualArea;
-                    dirParcel.ID = block.ParcelID;
-                    dirParcel.Name = Utils.BytesToString(block.Name);
-                    dirParcel.SalePrice = block.SalePrice;
-                    dirParcel.Auction = block.Auction;
-                    dirParcel.ForSale = block.ForSale;
+                    DirectoryParcel dirParcel = new DirectoryParcel
+                    {
+                        ActualArea = block.ActualArea,
+                        ID = block.ParcelID,
+                        Name = Utils.BytesToString(block.Name),
+                        SalePrice = block.SalePrice,
+                        Auction = block.Auction,
+                        ForSale = block.ForSale
+                    };
 
                     parcelsForSale.Add(dirParcel);
                 }
@@ -1215,14 +1263,15 @@ namespace OpenMetaverse
 
                 foreach (DirLandReplyMessage.QueryReply block in reply.QueryReplies)
                 {
-                    DirectoryParcel dirParcel = new DirectoryParcel();
-
-                    dirParcel.ActualArea = block.ActualArea;
-                    dirParcel.ID = block.ParcelID;
-                    dirParcel.Name = block.Name;
-                    dirParcel.SalePrice = block.SalePrice;
-                    dirParcel.Auction = block.Auction;
-                    dirParcel.ForSale = block.ForSale;
+                    DirectoryParcel dirParcel = new DirectoryParcel
+                    {
+                        ActualArea = block.ActualArea,
+                        ID = block.ParcelID,
+                        Name = block.Name,
+                        SalePrice = block.SalePrice,
+                        Auction = block.Auction,
+                        ForSale = block.ForSale
+                    };
 
                     parcelsForSale.Add(dirParcel);
                 }
@@ -1242,11 +1291,13 @@ namespace OpenMetaverse
                 List<AgentSearchData> matches = new List<AgentSearchData>(peopleReply.QueryReplies.Length);
                 foreach (DirPeopleReplyPacket.QueryRepliesBlock reply in peopleReply.QueryReplies)
                 {
-                    AgentSearchData searchData = new AgentSearchData();
-                    searchData.Online = reply.Online;
-                    searchData.FirstName = Utils.BytesToString(reply.FirstName);
-                    searchData.LastName = Utils.BytesToString(reply.LastName);
-                    searchData.AgentID = reply.AgentID;
+                    AgentSearchData searchData = new AgentSearchData
+                    {
+                        Online = reply.Online,
+                        FirstName = Utils.BytesToString(reply.FirstName),
+                        LastName = Utils.BytesToString(reply.LastName),
+                        AgentID = reply.AgentID
+                    };
                     matches.Add(searchData);
                 }
 
@@ -1266,10 +1317,12 @@ namespace OpenMetaverse
                 List<GroupSearchData> matches = new List<GroupSearchData>(groupsReply.QueryReplies.Length);
                 foreach (DirGroupsReplyPacket.QueryRepliesBlock reply in groupsReply.QueryReplies)
                 {
-                    GroupSearchData groupsData = new GroupSearchData();
-                    groupsData.GroupID = reply.GroupID;
-                    groupsData.GroupName = Utils.BytesToString(reply.GroupName);
-                    groupsData.Members = reply.Members;
+                    GroupSearchData groupsData = new GroupSearchData
+                    {
+                        GroupID = reply.GroupID,
+                        GroupName = Utils.BytesToString(reply.GroupName),
+                        Members = reply.Members
+                    };
                     matches.Add(groupsData);
                 }
 
@@ -1288,23 +1341,25 @@ namespace OpenMetaverse
                 PlacesReplyMessage replyMessage = (PlacesReplyMessage)message;
                 List<PlacesSearchData> places = new List<PlacesSearchData>();
 
-                for (int i = 0; i < replyMessage.QueryDataBlocks.Length; i++)
+                foreach (var query in replyMessage.QueryDataBlocks)
                 {
-                    PlacesSearchData place = new PlacesSearchData();
-                    place.ActualArea = replyMessage.QueryDataBlocks[i].ActualArea;
-                    place.BillableArea = replyMessage.QueryDataBlocks[i].BillableArea;
-                    place.Desc = replyMessage.QueryDataBlocks[i].Description;
-                    place.Dwell = replyMessage.QueryDataBlocks[i].Dwell;
-                    place.Flags = (DirectoryManager.PlacesFlags)(byte)replyMessage.QueryDataBlocks[i].Flags;
-                    place.GlobalX = replyMessage.QueryDataBlocks[i].GlobalX;
-                    place.GlobalY = replyMessage.QueryDataBlocks[i].GlobalY;
-                    place.GlobalZ = replyMessage.QueryDataBlocks[i].GlobalZ;
-                    place.Name = replyMessage.QueryDataBlocks[i].Name;
-                    place.OwnerID = replyMessage.QueryDataBlocks[i].OwnerID;
-                    place.Price = replyMessage.QueryDataBlocks[i].Price;
-                    place.SimName = replyMessage.QueryDataBlocks[i].SimName;
-                    place.SnapshotID = replyMessage.QueryDataBlocks[i].SnapShotID;
-                    place.SKU = replyMessage.QueryDataBlocks[i].ProductSku;
+                    PlacesSearchData place = new PlacesSearchData
+                    {
+                        ActualArea = query.ActualArea,
+                        BillableArea = query.BillableArea,
+                        Desc = query.Description,
+                        Dwell = query.Dwell,
+                        Flags = (DirectoryManager.PlacesFlags)(byte)query.Flags,
+                        GlobalX = query.GlobalX,
+                        GlobalY = query.GlobalY,
+                        GlobalZ = query.GlobalZ,
+                        Name = query.Name,
+                        OwnerID = query.OwnerID,
+                        Price = query.Price,
+                        SimName = query.SimName,
+                        SnapshotID = query.SnapShotID,
+                        SKU = query.ProductSku
+                    };
                     places.Add(place);
                 }
 
@@ -1325,20 +1380,22 @@ namespace OpenMetaverse
 
                 foreach (PlacesReplyPacket.QueryDataBlock block in placesReply.QueryData)
                 {
-                    PlacesSearchData place = new PlacesSearchData();
-                    place.OwnerID = block.OwnerID;
-                    place.Name = Utils.BytesToString(block.Name);
-                    place.Desc = Utils.BytesToString(block.Desc);
-                    place.ActualArea = block.ActualArea;
-                    place.BillableArea = block.BillableArea;
-                    place.Flags = (PlacesFlags)block.Flags;
-                    place.GlobalX = block.GlobalX;
-                    place.GlobalY = block.GlobalY;
-                    place.GlobalZ = block.GlobalZ;
-                    place.SimName = Utils.BytesToString(block.SimName);
-                    place.SnapshotID = block.SnapshotID;
-                    place.Dwell = block.Dwell;
-                    place.Price = block.Price;
+                    PlacesSearchData place = new PlacesSearchData
+                    {
+                        OwnerID = block.OwnerID,
+                        Name = Utils.BytesToString(block.Name),
+                        Desc = Utils.BytesToString(block.Desc),
+                        ActualArea = block.ActualArea,
+                        BillableArea = block.BillableArea,
+                        Flags = (PlacesFlags)block.Flags,
+                        GlobalX = block.GlobalX,
+                        GlobalY = block.GlobalY,
+                        GlobalZ = block.GlobalZ,
+                        SimName = Utils.BytesToString(block.SimName),
+                        SnapshotID = block.SnapshotID,
+                        Dwell = block.Dwell,
+                        Price = block.Price
+                    };
 
                     places.Add(place);
                 }
@@ -1360,13 +1417,15 @@ namespace OpenMetaverse
 
                 foreach (DirEventsReplyPacket.QueryRepliesBlock reply in eventsReply.QueryReplies)
                 {
-                    EventsSearchData eventsData = new EventsSearchData();
-                    eventsData.Owner = reply.OwnerID;
-                    eventsData.Name = Utils.BytesToString(reply.Name);
-                    eventsData.ID = reply.EventID;
-                    eventsData.Date = Utils.BytesToString(reply.Date);
-                    eventsData.Time = reply.UnixTime;
-                    eventsData.Flags = (EventFlags)reply.EventFlags;
+                    EventsSearchData eventsData = new EventsSearchData
+                    {
+                        Owner = reply.OwnerID,
+                        Name = Utils.BytesToString(reply.Name),
+                        ID = reply.EventID,
+                        Date = Utils.BytesToString(reply.Date),
+                        Time = reply.UnixTime,
+                        Flags = (EventFlags)reply.EventFlags
+                    };
                     matches.Add(eventsData);
                 }
 
@@ -1383,20 +1442,22 @@ namespace OpenMetaverse
             {
                 Packet packet = e.Packet;
                 EventInfoReplyPacket eventReply = (EventInfoReplyPacket)packet;
-                EventInfo evinfo = new EventInfo();
-                evinfo.ID = eventReply.EventData.EventID;
-                evinfo.Name = Utils.BytesToString(eventReply.EventData.Name);
-                evinfo.Desc = Utils.BytesToString(eventReply.EventData.Desc);
-                evinfo.Amount = eventReply.EventData.Amount;
-                evinfo.Category = (EventCategories)Utils.BytesToUInt(eventReply.EventData.Category);
-                evinfo.Cover = eventReply.EventData.Cover;
-                evinfo.Creator = (UUID)Utils.BytesToString(eventReply.EventData.Creator);
-                evinfo.Date = Utils.BytesToString(eventReply.EventData.Date);
-                evinfo.DateUTC = eventReply.EventData.DateUTC;
-                evinfo.Duration = eventReply.EventData.Duration;
-                evinfo.Flags = (EventFlags)eventReply.EventData.EventFlags;
-                evinfo.SimName = Utils.BytesToString(eventReply.EventData.SimName);
-                evinfo.GlobalPos = eventReply.EventData.GlobalPos;
+                EventInfo evinfo = new EventInfo
+                {
+                    ID = eventReply.EventData.EventID,
+                    Name = Utils.BytesToString(eventReply.EventData.Name),
+                    Desc = Utils.BytesToString(eventReply.EventData.Desc),
+                    Amount = eventReply.EventData.Amount,
+                    Category = (EventCategories)Utils.BytesToUInt(eventReply.EventData.Category),
+                    Cover = eventReply.EventData.Cover,
+                    Creator = (UUID)Utils.BytesToString(eventReply.EventData.Creator),
+                    Date = Utils.BytesToString(eventReply.EventData.Date),
+                    DateUTC = eventReply.EventData.DateUTC,
+                    Duration = eventReply.EventData.Duration,
+                    Flags = (EventFlags)eventReply.EventData.EventFlags,
+                    SimName = Utils.BytesToString(eventReply.EventData.SimName),
+                    GlobalPos = eventReply.EventData.GlobalPos
+                };
 
                 OnEventInfo(new EventInfoReplyEventArgs(evinfo));
             }
@@ -1411,20 +1472,15 @@ namespace OpenMetaverse
             {
                 Packet packet = e.Packet;
                 DirPlacesReplyPacket reply = (DirPlacesReplyPacket)packet;
-                List<DirectoryParcel> result = new List<DirectoryParcel>();
-
-                for (int i = 0; i < reply.QueryReplies.Length; i++)
-                {
-                    DirectoryParcel p = new DirectoryParcel();
-
-                    p.ID = reply.QueryReplies[i].ParcelID;
-                    p.Name = Utils.BytesToString(reply.QueryReplies[i].Name);
-                    p.Dwell = reply.QueryReplies[i].Dwell;
-                    p.Auction = reply.QueryReplies[i].Auction;
-                    p.ForSale = reply.QueryReplies[i].ForSale;
-
-                    result.Add(p);
-                }
+                List<DirectoryParcel> result = reply.QueryReplies.Select(t => new DirectoryParcel
+                    {
+                        ID = t.ParcelID,
+                        Name = Utils.BytesToString(t.Name),
+                        Dwell = t.Dwell,
+                        Auction = t.Auction,
+                        ForSale = t.ForSale
+                    })
+                    .ToList();
 
                 OnDirPlaces(new DirPlacesReplyEventArgs(reply.QueryData[0].QueryID, result));                
             }
