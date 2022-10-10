@@ -211,20 +211,13 @@ namespace OpenMetaverse
             double sCubed = s * s * s;
             double sSquared = s * s;
 
-            if (amount == 0f)
-						{
-                result = value1;
-						}
-            else if (amount == 1f)
-						{
-                result = value2;
-						}
-            else
-						{
-                result = (2d * v1 - 2d * v2 + t2 + t1) * sCubed +
-                    (3d * v2 - 3d * v1 - 2d * t1 - t2) * sSquared +
-                    t1 * s + v1;
-						}
+            result = amount switch
+            {
+                0f => value1,
+                1f => value2,
+                _ => (2d * v1 - 2d * v2 + t2 + t1) * sCubed + (3d * v2 - 3d * v1 - 2d * t1 - t2) * sSquared + t1 * s +
+                     v1
+            };
             return (float)result;
         }
 
