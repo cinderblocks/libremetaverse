@@ -24,6 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using System;
+
 namespace LibreMetaverse.LslTools
 {
   public class SymbolType
@@ -39,7 +41,7 @@ namespace LibreMetaverse.LslTools
     public SymbolType(SymbolsGen yyp, string name, bool defined)
     {
       Lexer lexer = yyp.m_lexer;
-      int length = name.IndexOf("+");
+      int length = name.IndexOf("+", StringComparison.Ordinal);
       int num = 0;
       if (length > 0)
       {
