@@ -36,7 +36,7 @@ namespace LibreMetaverse.LslTools
     public YyLexer m_tokens;
     private int state;
 
-    public TokensGen(ErrorHandler eh)
+    protected TokensGen(ErrorHandler eh)
       : base(eh)
     {
     }

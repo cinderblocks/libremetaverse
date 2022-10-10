@@ -91,11 +91,11 @@ namespace OpenMetaverse
 
     public class LoginCredential
     {
-        public string FirstName { get; private set; }
-        public string LastName { get; private set; }
-        public string Password { get; private set; }
-        public string Token { get; private set; }
-        public string MfaHash { get; private set; }
+        public string FirstName { get; }
+        public string LastName { get; }
+        public string Password { get; }
+        public string Token { get; }
+        public string MfaHash { get; }
 
         public LoginCredential(string first, string last, string passwd, string token, string mfaHash)
         {
@@ -1142,7 +1142,7 @@ namespace OpenMetaverse
 
         /// <summary>The raw XML-RPC reply from the login server, exactly as it
         /// was received (minus the HTTP header)</summary>
-        public string RawLoginReply { get; private set; } = string.Empty;
+        public string RawLoginReply { get; } = string.Empty;
 
         /// <summary>During login this contains a descriptive version of 
         /// LoginStatusCode. After a successful login this will contain the 

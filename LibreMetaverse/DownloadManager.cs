@@ -119,7 +119,7 @@ namespace OpenMetaverse
         /// <summary>Setup http download request</summary>
         protected virtual HttpWebRequest SetupRequest(Uri address, string acceptHeader)
         {
-            HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(address);
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(address);
             request.Method = "GET";
 
             if (!string.IsNullOrEmpty(acceptHeader))

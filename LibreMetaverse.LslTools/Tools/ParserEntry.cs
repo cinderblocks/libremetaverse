@@ -31,12 +31,12 @@ namespace LibreMetaverse.LslTools
     public ParserAction m_action;
     public int m_priority;
 
-    public ParserEntry()
+    protected ParserEntry()
     {
       this.m_action = (ParserAction) null;
     }
 
-    public ParserEntry(ParserAction action)
+    protected ParserEntry(ParserAction action)
     {
       this.m_action = action;
     }

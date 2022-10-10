@@ -160,7 +160,7 @@ namespace OpenMetaverse
         /// </summary>
         public InventoryNode LibraryRootNode { get; private set; }
 
-        public UUID Owner { get; private set; }
+        public UUID Owner { get; }
 
         private GridClient Client;
         //private InventoryManager Manager;
