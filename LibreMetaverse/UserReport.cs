@@ -79,8 +79,10 @@ namespace LibreMetaverse
                 if (lang != null)
                 {
                     // shite C# nonsense
-                    UriBuilder builder = new UriBuilder(abuseCategoriesCap);
-                    builder.Query = $"lc={lang}";
+                    UriBuilder builder = new UriBuilder(abuseCategoriesCap)
+                    {
+                        Query = $"lc={lang}"
+                    };
                     abuseCategoriesCap = builder.Uri;
                 }
 
@@ -95,10 +97,10 @@ namespace LibreMetaverse
                     }
                     if (result is OSDMap respMap && respMap.ContainsKey("categories"))
                     {
-                        var categories = respMap["categories"] as OSDArray;
-                        reportCategories = categories.Cast<OSDMap>().ToDictionary(
-                            row => row["description_localized"].AsString(), 
-                            row => row["category"].AsString());
+                        if (respMap["categories"] is OSDArray categories)
+                            reportCategories = categories.Cast<OSDMap>().ToDictionary(
+                                row => row["description_localized"].AsString(),
+                                row => row["category"].AsString());
                     }
                 };
                 request.GetRequestAsync(Client.Settings.CAPS_TIMEOUT);

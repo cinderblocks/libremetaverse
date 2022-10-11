@@ -670,7 +670,7 @@ namespace GridProxy
             }
             else
             {
-                HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(uri);
+                HttpWebRequest req = (HttpWebRequest)WebRequest.Create(uri);
                 req.KeepAlive = false;
 
                 foreach (string header in headers.Keys)

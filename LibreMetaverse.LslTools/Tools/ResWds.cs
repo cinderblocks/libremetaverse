@@ -42,7 +42,7 @@ namespace LibreMetaverse.LslTools
         resWds.m_upper = true;
         str = str.Substring(1).Trim();
       }
-      if (str[0] == '{' && str[str.Length - 1] == '}')
+      if (str[0] == '{' && str[^1] == '}')
       {
         str = str.Substring(1, str.Length - 2).Trim();
         string str1 = str;

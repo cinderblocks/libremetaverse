@@ -335,7 +335,7 @@ namespace LibreMetaverse.PrimMesher
                 }
 
             var topPole = rows[0][width / 2];
-            var bottomPole = rows[rows.Count - 1][width / 2];
+            var bottomPole = rows[^1][width / 2];
 
             if (sculptType == SculptType.sphere)
                 if (rows.Count % 2 == 0)
@@ -357,7 +357,7 @@ namespace LibreMetaverse.PrimMesher
                     var count = rows[0].Count;
 
                     var topPoleRow = rows[0];
-                    var bottomPoleRow = rows[rows.Count - 1];
+                    var bottomPoleRow = rows[^1];
 
                     for (var i = 0; i < count; i++)
                     {

@@ -665,7 +665,7 @@ namespace OpenMetaverse
         /// <returns>The decoded string</returns>
         public static string BytesToString(byte[] bytes)
         {
-            if (bytes.Length > 0 && bytes[bytes.Length - 1] == 0x00)
+            if (bytes.Length > 0 && bytes[^1] == 0x00)
                 return GetString(bytes, 0, bytes.Length - 1);
             else
                 return GetString(bytes, 0, bytes.Length);

@@ -91,11 +91,11 @@ namespace OpenMetaverse
 
     public class LoginCredential
     {
-        public string FirstName { get; private set; }
-        public string LastName { get; private set; }
-        public string Password { get; private set; }
-        public string Token { get; private set; }
-        public string MfaHash { get; private set; }
+        public string FirstName { get; }
+        public string LastName { get; }
+        public string Password { get; }
+        public string Token { get; }
+        public string MfaHash { get; }
 
         public LoginCredential(string first, string last, string passwd, string token, string mfaHash)
         {
@@ -1142,7 +1142,7 @@ namespace OpenMetaverse
 
         /// <summary>The raw XML-RPC reply from the login server, exactly as it
         /// was received (minus the HTTP header)</summary>
-        public string RawLoginReply { get; private set; } = string.Empty;
+        public string RawLoginReply { get; } = string.Empty;
 
         /// <summary>During login this contains a descriptive version of 
         /// LoginStatusCode. After a successful login this will contain the 
@@ -1330,33 +1330,20 @@ namespace OpenMetaverse
 
             #region Sanity Check loginParams
 
-            if (loginParams.Options == null)
-                loginParams.Options = new List<string>();
+            loginParams.Options ??= new List<string>();
+            loginParams.Password ??= string.Empty;
 
-            if (loginParams.Password == null)
-                loginParams.Password = string.Empty;
-
-            // *HACK: Convert the password to MD5 if it isn't already
+            // *HACK: Convert the password to MD5 if it isn't already.
+            //        Don't worry. I hate this more than you do.
             if (loginParams.Password.Length != 35 && !loginParams.Password.StartsWith("$1$"))
                 loginParams.Password = Utils.MD5(loginParams.Password);
 
-            if (loginParams.ViewerDigest == null)
-                loginParams.ViewerDigest = string.Empty;
-
-            if (loginParams.Version == null)
-                loginParams.Version = string.Empty;
-
-            if (loginParams.UserAgent == null)
-                loginParams.UserAgent = Settings.USER_AGENT;
-
-            if (loginParams.Platform == null)
-                loginParams.Platform = string.Empty;
-
-            if (loginParams.PlatformVersion == null)
-                loginParams.PlatformVersion = string.Empty;
-
-            if (loginParams.MAC == null)
-                loginParams.MAC = string.Empty;
+            loginParams.ViewerDigest ??= string.Empty;
+            loginParams.Version ??= string.Empty;
+            loginParams.UserAgent ??= Settings.USER_AGENT;
+            loginParams.Platform ??= string.Empty;
+            loginParams.PlatformVersion ??= string.Empty;
+            loginParams.MAC ??= string.Empty;
 
             if (string.IsNullOrEmpty(loginParams.Channel))
             {
@@ -1384,10 +1371,7 @@ namespace OpenMetaverse
                 }
             }
 
-            if (loginParams.Author == null)
-            {
-                loginParams.Author = string.Empty;
-            }
+            loginParams.Author ??= string.Empty;
             #endregion
 
             // TODO: Allow a user callback to be defined for handling the cert
@@ -1619,7 +1603,7 @@ namespace OpenMetaverse
                 // Remove the quotes around our first name.
                 if (reply.FirstName[0] == '"')
                     reply.FirstName = reply.FirstName.Remove(0, 1);
-                if (reply.FirstName[reply.FirstName.Length - 1] == '"')
+                if (reply.FirstName[^1] == '"')
                     reply.FirstName = reply.FirstName.Remove(reply.FirstName.Length - 1);
 
                 #region Critical Information

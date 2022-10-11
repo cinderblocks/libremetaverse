@@ -78,6 +78,6 @@ namespace LibreMetaverse.LslTools
       }
     }
 
-    public ParseState Top => this.m_states[this.m_states.Length - 1];
+    public ParseState Top => this.m_states[^1];
   }
 }

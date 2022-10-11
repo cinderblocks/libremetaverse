@@ -31,7 +31,7 @@ namespace LibreMetaverse.LslTools
     public int m_state;
     public TokensGen m_tks;
 
-    public LNode(TokensGen tks)
+    protected LNode(TokensGen tks)
     {
       this.m_tks = tks;
       this.m_state = tks.NewState();

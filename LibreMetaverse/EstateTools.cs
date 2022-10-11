@@ -28,6 +28,7 @@ using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace OpenMetaverse
 {
@@ -570,15 +571,15 @@ namespace OpenMetaverse
         public void SetRegionInfo(bool blockTerraform, bool blockFly, bool allowDamage, bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, bool mature)
         {
             List<string> listParams = new List<string>();
-            if (blockTerraform) listParams.Add("Y"); else listParams.Add("N");
-            if (blockFly) listParams.Add("Y"); else listParams.Add("N");
-            if (allowDamage) listParams.Add("Y"); else listParams.Add("N");
-            if (allowLandResell) listParams.Add("Y"); else listParams.Add("N");
-            listParams.Add(agentLimit.ToString());
-            listParams.Add(objectBonus.ToString());
-            if (mature) listParams.Add("21"); else listParams.Add("13"); //FIXME - enumerate these settings
-            if (restrictPushing) listParams.Add("Y"); else listParams.Add("N");
-            if (allowParcelJoinDivide) listParams.Add("Y"); else listParams.Add("N");
+            listParams.Add(blockTerraform ? "Y" : "N");
+            listParams.Add(blockFly ? "Y" : "N");
+            listParams.Add(allowDamage ? "Y" : "N");
+            listParams.Add(allowLandResell ? "Y" : "N");
+            listParams.Add(agentLimit.ToString(CultureInfo.InvariantCulture));
+            listParams.Add(objectBonus.ToString(CultureInfo.InvariantCulture));
+            listParams.Add(mature ? "21" : "13"); //FIXME - enumerate these settings
+            listParams.Add(restrictPushing ? "Y" : "N");
+            listParams.Add(allowParcelJoinDivide ? "Y" : "N");
             EstateOwnerMessage("setregioninfo", listParams);
         }
 
@@ -586,9 +587,9 @@ namespace OpenMetaverse
         public void SetRegionDebug(bool disableScripts, bool disableCollisions, bool disablePhysics)
         {
             List<string> listParams = new List<string>();
-            if (disableScripts) listParams.Add("Y"); else listParams.Add("N");
-            if (disableCollisions) listParams.Add("Y"); else listParams.Add("N");
-            if (disablePhysics) listParams.Add("Y"); else listParams.Add("N");
+            listParams.Add(disableScripts ? "Y" : "N");
+            listParams.Add(disableCollisions ? "Y" : "N");
+            listParams.Add(disablePhysics ? "Y" : "N");
             EstateOwnerMessage("setregiondebug", listParams);
         }
 

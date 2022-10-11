@@ -174,15 +174,11 @@ namespace OpenMetaverse
             if (_Running)
                 return;
 
-            if (downloadMaster == null)
+            downloadMaster ??= new Thread(DownloadThread)
             {
-                // Instantiate master thread that manages the request pool
-                downloadMaster = new Thread(DownloadThread)
-                {
-                    Name = "TexturePipeline",
-                    IsBackground = true
-                };
-            }
+                Name = "TexturePipeline",
+                IsBackground = true
+            };
 
             _Running = true;
 
