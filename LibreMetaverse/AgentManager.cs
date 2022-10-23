@@ -1764,6 +1764,7 @@ namespace OpenMetaverse
         public void InstantMessageGroup(string fromName, UUID groupID, string message)
         {
             lock (GroupChatSessions.Dictionary)
+            {
                 if (GroupChatSessions.ContainsKey(groupID))
                 {
                     ImprovedInstantMessagePacket im = new ImprovedInstantMessagePacket
@@ -1796,6 +1797,7 @@ namespace OpenMetaverse
                     Logger.Log("No Active group chat session appears to exist, use RequestJoinGroupChat() to join one",
                         Helpers.LogLevel.Error, Client);
                 }
+            }
         }
 
         /// <summary>
@@ -1864,8 +1866,10 @@ namespace OpenMetaverse
             Client.Network.SendPacket(im);
 
             lock (GroupChatSessions.Dictionary)
+            {
                 if (GroupChatSessions.ContainsKey(groupID))
                     GroupChatSessions.Remove(groupID);
+            }
         }
 
         /// <summary>
@@ -1917,8 +1921,10 @@ namespace OpenMetaverse
                 request.PostRequestAsync(acceptInvite.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
 
                 lock (GroupChatSessions.Dictionary)
+                {
                     if (!GroupChatSessions.ContainsKey(session_id))
                         GroupChatSessions.Add(session_id, new List<ChatSessionMember>());
+                }
             }
             else
             {
@@ -4608,8 +4614,10 @@ namespace OpenMetaverse
             if (msg.Success)
             {
                 lock (GroupChatSessions.Dictionary)
+                {
                     if (!GroupChatSessions.ContainsKey(msg.SessionID))
                         GroupChatSessions.Add(msg.SessionID, new List<ChatSessionMember>());
+                }
             }
 
             OnGroupChatJoined(new GroupChatJoinedEventArgs(msg.SessionID, msg.SessionName, msg.TempSessionID, msg.Success));
@@ -4626,8 +4634,10 @@ namespace OpenMetaverse
             ChatterBoxSessionAgentListUpdatesMessage msg = (ChatterBoxSessionAgentListUpdatesMessage)message;
 
             lock (GroupChatSessions.Dictionary)
+            {
                 if (!GroupChatSessions.ContainsKey(msg.SessionID))
                     GroupChatSessions.Add(msg.SessionID, new List<ChatSessionMember>());
+            }
 
             foreach (ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock t in msg.Updates)
             {
@@ -4657,8 +4667,10 @@ namespace OpenMetaverse
                     else if (t.Transition.Equals("LEAVE"))
                     {
                         if (fndMbr.AvatarKey != UUID.Zero)
+                        {
                             lock (GroupChatSessions.Dictionary)
                                 GroupChatSessions[msg.SessionID].Remove(fndMbr);
+                        }
 
                         if (m_ChatSessionMemberLeft != null)
                         {

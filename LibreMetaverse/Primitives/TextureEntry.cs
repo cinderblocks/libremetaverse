@@ -793,8 +793,10 @@ namespace OpenMetaverse
                     i += 16;
 
                     for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    {
                         if ((faceBits & bit) != 0)
                             CreateFace(face).TextureID = tmpUUID;
+                    }
                 }
                 #endregion Texture
 
@@ -808,8 +810,10 @@ namespace OpenMetaverse
                     i += 4;
 
                     for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    {
                         if ((faceBits & bit) != 0)
                             CreateFace(face).RGBA = tmpColor;
+                    }
                 }
                 #endregion Color
 
@@ -823,8 +827,10 @@ namespace OpenMetaverse
                     i += 4;
 
                     for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    {
                         if ((faceBits & bit) != 0)
                             CreateFace(face).RepeatU = tmpFloat;
+                    }
                 }
                 #endregion RepeatU
 
@@ -838,8 +844,10 @@ namespace OpenMetaverse
                     i += 4;
 
                     for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    {
                         if ((faceBits & bit) != 0)
                             CreateFace(face).RepeatV = tmpFloat;
+                    }
                 }
                 #endregion RepeatV
 
@@ -853,8 +861,10 @@ namespace OpenMetaverse
                     i += 2;
 
                     for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    {
                         if ((faceBits & bit) != 0)
                             CreateFace(face).OffsetU = tmpFloat;
+                    }
                 }
                 #endregion OffsetU
 
@@ -868,8 +878,10 @@ namespace OpenMetaverse
                     i += 2;
 
                     for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    {
                         if ((faceBits & bit) != 0)
                             CreateFace(face).OffsetV = tmpFloat;
+                    }
                 }
                 #endregion OffsetV
 
@@ -883,8 +895,10 @@ namespace OpenMetaverse
                     i += 2;
 
                     for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    {
                         if ((faceBits & bit) != 0)
                             CreateFace(face).Rotation = tmpFloat;
+                    }
                 }
                 #endregion Rotation
 
@@ -898,8 +912,10 @@ namespace OpenMetaverse
                     i++;
 
                     for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    {
                         if ((faceBits & bit) != 0)
                             CreateFace(face).material = tmpByte;
+                    }
                 }
                 #endregion Material
 
@@ -913,8 +929,10 @@ namespace OpenMetaverse
                     i++;
 
                     for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    {
                         if ((faceBits & bit) != 0)
                             CreateFace(face).media = tmpByte;
+                    }
                 }
                 #endregion Media
 
@@ -928,8 +946,10 @@ namespace OpenMetaverse
                     i++;
 
                     for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    {
                         if ((faceBits & bit) != 0)
                             CreateFace(face).Glow = tmpFloat;
+                    }
                 }
  	  	        #endregion Glow
 
@@ -945,8 +965,10 @@ namespace OpenMetaverse
                         i += 16;
 
                         for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                        {
                             if ((faceBits & bit) != 0)
                                 CreateFace(face).MaterialID = tmpUUID;
+                        }
                     }
                 }
                 #endregion MaterialID

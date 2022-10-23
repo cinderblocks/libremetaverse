@@ -1139,8 +1139,10 @@ namespace OpenMetaverse
             if (refresh)
             {
                     for (int y = 0; y < 64; y++)
-                        for (int x = 0; x < 64; x++)
+                {
+                    for (int x = 0; x < 64; x++)
                             simulator.ParcelMap[y, x] = 0;
+                }
             }
 
             ThreadPool.QueueUserWorkItem((_) =>
@@ -1915,8 +1917,10 @@ namespace OpenMetaverse
 
             // auto request acl, will be stored in parcel tracking dictionary if enabled
             if (Client.Settings.ALWAYS_REQUEST_PARCEL_ACL)
+            {
                 Client.Parcels.RequestParcelAccessList(simulator, parcel.LocalID,
                     AccessList.Both, sequenceID);
+            }
 
             // auto request dwell, will be stored in parcel tracking dictionary if enables
             if (Client.Settings.ALWAYS_REQUEST_PARCEL_DWELL)

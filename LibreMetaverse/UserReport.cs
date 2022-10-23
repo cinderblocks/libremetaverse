@@ -98,9 +98,11 @@ namespace LibreMetaverse
                     if (result is OSDMap respMap && respMap.ContainsKey("categories"))
                     {
                         if (respMap["categories"] is OSDArray categories)
+                        {
                             reportCategories = categories.Cast<OSDMap>().ToDictionary(
                                 row => row["description_localized"].AsString(),
                                 row => row["category"].AsString());
+                        }
                     }
                 };
                 request.GetRequestAsync(Client.Settings.CAPS_TIMEOUT);

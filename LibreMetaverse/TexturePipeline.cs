@@ -234,8 +234,11 @@ namespace OpenMetaverse
 
                     // Find the first missing packet in the download
                     ushort packet = 0;
-                    lock (download) if (download.PacketsSeen != null && download.PacketsSeen.Count > 0)
+                    lock (download)
+                    {
+                        if (download.PacketsSeen != null && download.PacketsSeen.Count > 0)
                             packet = GetFirstMissingPacket(download.PacketsSeen);
+                    }
 
                     if (download.TimeSinceLastPacket > 5000)
                     {
@@ -370,8 +373,10 @@ namespace OpenMetaverse
                             percentComplete = 0f;
 
                         if (percentComplete > 0f)
+                        {
                             Logger.DebugLog(String.Format("Updating priority on image transfer {0} to {1}, {2}% complete",
                                                           imageID, task.Transfer.Priority, Math.Round(percentComplete, 2)));
+                        }
                     }
                     else
                     {
@@ -521,8 +526,11 @@ namespace OpenMetaverse
 #endif
             // Find the first missing packet in the download
             ushort packet = 0;
-            lock (task.Transfer) if (task.Transfer.PacketsSeen != null && task.Transfer.PacketsSeen.Count > 0)
+            lock (task.Transfer)
+            {
+                if (task.Transfer.PacketsSeen != null && task.Transfer.PacketsSeen.Count > 0)
                 packet = GetFirstMissingPacket(task.Transfer.PacketsSeen);
+            }
 
             // Request the texture
             RequestImage(task.RequestID, task.Type, task.Transfer.Priority, task.Transfer.DiscardLevel, packet);
@@ -695,8 +703,10 @@ namespace OpenMetaverse
                     if (task.ReportProgress)
                     {
                         foreach (var callback in task.Callbacks)
+                        {
                             callback(TextureRequestState.Progress,
                                      new AssetTexture(task.RequestID, task.Transfer.AssetData));
+                        }
                     }
                     _Client.Assets.FireImageProgressEvent(task.RequestID, task.Transfer.Transferred,
                                                               task.Transfer.Size);
@@ -719,7 +729,9 @@ namespace OpenMetaverse
                 // reset the timeout interval since we got data
                 task.Transfer.TimeSinceLastPacket = 0;
 
-                lock (task.Transfer) if (task.Transfer.Size == 0)
+                lock (task.Transfer)
+                {
+                    if (task.Transfer.Size == 0)
                 {
                     task.Transfer.Codec = (ImageCodec)data.ImageID.Codec;
                     task.Transfer.PacketCount = data.ImageID.Packets;
@@ -730,6 +742,7 @@ namespace OpenMetaverse
                     Buffer.BlockCopy(data.ImageData.Data, 0, task.Transfer.AssetData, 0, data.ImageData.Data.Length);
                     task.Transfer.InitialDataSize = data.ImageData.Data.Length;
                     task.Transfer.Transferred += data.ImageData.Data.Length;
+                }
                 }
 
                 task.Transfer.HeaderReceivedEvent.Set();
@@ -769,8 +782,10 @@ namespace OpenMetaverse
                     if (task.ReportProgress)
                     {
                         foreach (var callback in task.Callbacks)
+                        {
                             callback(TextureRequestState.Progress,
                                       new AssetTexture(task.RequestID, task.Transfer.AssetData));
+                        }
                     }
 
                     _Client.Assets.FireImageProgressEvent(task.RequestID, task.Transfer.Transferred,

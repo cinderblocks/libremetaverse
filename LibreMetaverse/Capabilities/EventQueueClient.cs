@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2022, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -74,7 +75,8 @@ namespace OpenMetaverse.Http
 
             byte[] postData = OSDParser.SerializeLLSDXmlBytes(request);
 
-            _Request = CapsBase.PostDataAsync(_Address, null, REQUEST_CONTENT_TYPE, postData, REQUEST_TIMEOUT, OpenWriteHandler, null, RequestCompletedHandler);
+            _Request = CapsBase.PostDataAsync(_Address, null, REQUEST_CONTENT_TYPE, postData, REQUEST_TIMEOUT,
+                OpenWriteHandler, null, RequestCompletedHandler);
         }
 
         public void Stop(bool immediate)
@@ -82,7 +84,9 @@ namespace OpenMetaverse.Http
             _Dead = true;
 
             if (immediate)
+            {
                 _Running = false;
+            }
 
             _Request?.Abort();
         }
@@ -181,10 +185,12 @@ namespace OpenMetaverse.Http
 							{
 								Logger.Log("  Extra details:",					Helpers.LogLevel.Warning);
 								foreach (DictionaryEntry de in error.Data)
-									Logger.Log(String.Format("    Key: {0,-20}      Value: '{1}'",
+                                {
+                                    Logger.Log(String.Format("    Key: {0,-20}      Value: '{1}'",
 										de.Key, de.Value),
 										Helpers.LogLevel.Warning);
-							}
+                                }
+                            }
 							// but we'll nevertheless close this connection (gwyneth 20220414)
 						}
 
@@ -224,10 +230,12 @@ namespace OpenMetaverse.Http
 							{
 								Logger.Log("  Extra details:",					Helpers.LogLevel.Warning);
 								foreach (DictionaryEntry de in error.Data)
-									Logger.Log(String.Format("    Key: {0,-20}      Value: {1}",
+                                {
+                                    Logger.Log(String.Format("    Key: {0,-20}      Value: {1}",
 										"'" + de.Key + "'", de.Value),
 										Helpers.LogLevel.Warning);
-							}
+                                }
+                            }
                         }
                         else
                         {

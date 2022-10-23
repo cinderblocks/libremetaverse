@@ -1682,16 +1682,22 @@ namespace OpenMetaverse
 
                     var ret = new BannedAgentsEventArgs(groupID, true, bannedAgents);
                     OnBannedAgents(ret);
-                    if (callback != null) try { callback(this, ret); }
+                    if (callback != null)
+                    {
+                        try { callback(this, ret); }
                         catch { }
+                    }
                 }
                 catch (Exception ex)
                 {
                     Logger.Log("Failed to get a list of banned group members: " + ex.Message, Helpers.LogLevel.Warning, Client);
                     var ret = new BannedAgentsEventArgs(groupID, false, null);
                     OnBannedAgents(ret);
-                    if (callback != null) try { callback(this, ret); }
+                    if (callback != null)
+                    {
+                        try { callback(this, ret); }
                         catch { }
+                    }
                 }
 
             };
@@ -1725,8 +1731,11 @@ namespace OpenMetaverse
             CapsClient req = new CapsClient(uri, "GroupBanAction");
             req.OnComplete += (client, result, error) =>
             {
-                if (callback != null) try { callback(this, EventArgs.Empty); }
+                if (callback != null)
+                {
+                    try { callback(this, EventArgs.Empty); }
                     catch { }
+                }
             };
 
             OSDMap OSDRequest = new OSDMap {["ban_action"] = (int)action};
