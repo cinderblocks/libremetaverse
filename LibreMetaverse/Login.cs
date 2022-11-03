@@ -1131,8 +1131,8 @@ namespace OpenMetaverse
         #endregion Events
 
         #region Public Members
-        /// <summary>Seed CAPS URL returned from the login server</summary>
-        public string LoginSeedCapability = string.Empty;
+        /// <summary>Seed CAPS URI returned from the login server</summary>
+        public Uri LoginSeedCapability { get; private set; } = null;
         /// <summary>Current state of logging in</summary>
         public LoginStatus LoginStatusCode { get; private set; } = LoginStatus.None;
 
@@ -1613,7 +1613,7 @@ namespace OpenMetaverse
                     regionX = reply.RegionX;
                     regionY = reply.RegionY;
                     simPort = reply.SimPort;
-                    LoginSeedCapability = reply.SeedCapability;
+                    LoginSeedCapability = new Uri(reply.SeedCapability);
                 }
                 catch (Exception)
                 {
@@ -1701,9 +1701,9 @@ namespace OpenMetaverse
         /// <summary>
         /// Handle response from LLSD login replies
         /// </summary>
-        /// <param name="client"></param>
-        /// <param name="result"></param>
-        /// <param name="error"></param>
+        /// <param name="response">Server response as <seealso cref="HttpResponseMessage"/></param>
+        /// <param name="responseData">Payload response data</param>
+        /// <param name="error">Any <seealso cref="Exception"/> returned from the request</param>
         private void LoginReplyLLSDHandler(HttpResponseMessage response, byte[] responseData, Exception error)
         {
             if (error != null)
@@ -1760,7 +1760,7 @@ namespace OpenMetaverse
                         // These parameters are stored in NetworkManager, so instead of registering
                         // another callback for them we just set the values here
                         CircuitCode = (uint)data.CircuitCode;
-                        LoginSeedCapability = data.SeedCapability;
+                        LoginSeedCapability = new Uri(data.SeedCapability);
 
                         UpdateLoginStatus(LoginStatus.ConnectingToSim, "Connecting to simulator...");
 

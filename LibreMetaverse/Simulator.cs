@@ -677,7 +677,7 @@ namespace OpenMetaverse
             }
         }
 
-        public void SetSeedCaps(string seedcaps)
+        public void SetSeedCaps(Uri seedcaps)
         {
             if (Caps != null)
             {
@@ -691,12 +691,15 @@ namespace OpenMetaverse
             if (Client.Settings.ENABLE_CAPS)
             {
                 // Connect to the new CAPS system
-                if (!String.IsNullOrEmpty(seedcaps))
+                if (seedcaps != null)
+                {
                     Caps = new Caps(this, seedcaps);
+                }
                 else
+                {
                     Logger.Log("Setting up a sim without a valid capabilities server!", Helpers.LogLevel.Error, Client);
+                }
             }
-
         }
 
         /// <summary>

@@ -29,10 +29,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Http;
+using System.Net.Http;
 
 namespace OpenMetaverse
 {
@@ -57,25 +60,25 @@ namespace OpenMetaverse
         /// <summary>Reference to the simulator this system is connected to</summary>
         public Simulator Simulator;
 
-        internal string _SeedCapsURI;
+        internal Uri _SeedCapsURI;
         internal Dictionary<string, Uri> _Caps = new Dictionary<string, Uri>();
 
         private CapsClient _SeedRequest;
         private EventQueueClient _EventQueueCap = null;
 
         /// <summary>Capabilities URI this system was initialized with</summary>
-        public string SeedCapsURI => _SeedCapsURI;
+        public Uri SeedCapsURI => _SeedCapsURI;
 
         /// <summary>Whether the capabilities event queue is connected and
         /// listening for incoming events</summary>
-        public bool IsEventQueueRunning => _EventQueueCap != null && _EventQueueCap.Running;
+        public bool IsEventQueueRunning => _EventQueueCap is { Running: true };
 
         /// <summary>
         /// Default constructor
         /// </summary>
         /// <param name="simulator"></param>
         /// <param name="seedcaps"></param>
-        internal Caps(Simulator simulator, string seedcaps)
+        internal Caps(Simulator simulator, Uri seedcaps)
         {
             Simulator = simulator;
             _SeedCapsURI = seedcaps;
@@ -256,20 +259,34 @@ namespace OpenMetaverse
                 "LibraryAPIv3"
             };
 
-            _SeedRequest = new CapsClient(new Uri(_SeedCapsURI), "SeedCaps");
-            _SeedRequest.OnComplete += SeedRequestCompleteHandler;
-            _SeedRequest.PostRequestAsync(req, OSDFormat.Xml, Simulator.Client.Settings.CAPS_TIMEOUT);
+            Task loginReq = Simulator.Client.HttpCapsClient.PostRequestAsync(_SeedCapsURI, OSDFormat.Xml, req,
+                SeedRequestCompleteHandler, null, CancellationToken.None);
         }
 
-        private void SeedRequestCompleteHandler(CapsClient client, OSD result, Exception error)
+        private void SeedRequestCompleteHandler(HttpResponseMessage response, byte[] responseData, Exception error)
         {
-            if (result != null && result.Type == OSDType.Map)
+            if (error != null)
             {
-                OSDMap respTable = (OSDMap)result;
-
-                foreach (string cap in respTable.Keys)
+                if (response.StatusCode == HttpStatusCode.NotFound)
                 {
-                    _Caps[cap] = respTable[cap].AsUri();
+                    Logger.Log("Seed capability returned a 404, capability system is aborting",
+                        Helpers.LogLevel.Error);
+                }
+                else
+                {
+                    Logger.Log($"Seed capability returned {response.StatusCode}. Trying again.",
+                        Helpers.LogLevel.Warning);
+                    MakeSeedRequest();
+                }
+                return;
+            }
+
+            OSD result = OSDParser.Deserialize(responseData);
+            if (result is OSDMap respMap)
+            {
+                foreach (var cap in respMap.Keys)
+                {
+                    _Caps[cap] = respMap[cap].AsUri();
                 }
 
                 if (_Caps.ContainsKey("EventQueueGet"))
@@ -283,21 +300,6 @@ namespace OpenMetaverse
                 }
 
                 OnCapabilitiesReceived(Simulator);
-            }
-            else if (
-                error != null &&
-                error is WebException exception &&
-                exception.Response != null &&
-                ((HttpWebResponse)exception.Response).StatusCode == HttpStatusCode.NotFound)
-            {
-                // 404 error
-                Logger.Log("Seed capability returned a 404, capability system is aborting",
-                    Helpers.LogLevel.Error);
-            }
-            else
-            {
-                // The initial CAPS connection failed, try again
-                MakeSeedRequest();
             }
         }
 

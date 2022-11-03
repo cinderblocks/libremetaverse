@@ -538,7 +538,7 @@ namespace OpenMetaverse
         /// <param name="seedcaps">URL of the capabilities server to use for
         /// this sim connection</param>
         /// <returns>A Simulator object on success, otherwise null</returns>
-        public Simulator Connect(IPAddress ip, ushort port, ulong handle, bool setDefault, string seedcaps)
+        public Simulator Connect(IPAddress ip, ushort port, ulong handle, bool setDefault, Uri seedcaps)
         {
             IPEndPoint endPoint = new IPEndPoint(ip, port);
             return Connect(endPoint, handle, setDefault, seedcaps);
@@ -555,7 +555,7 @@ namespace OpenMetaverse
         /// <param name="seedcaps">URL of the capabilities server to use for
         /// this sim connection</param>
         /// <returns>A Simulator object on success, otherwise null</returns>
-        public Simulator Connect(IPEndPoint endPoint, ulong handle, bool setDefault, string seedcaps)
+        public Simulator Connect(IPEndPoint endPoint, ulong handle, bool setDefault, Uri seedcaps)
         {
             Simulator simulator = FindSimulator(endPoint);
 
@@ -979,7 +979,7 @@ namespace OpenMetaverse
             }
         }
 
-        private void SetCurrentSim(Simulator simulator, string seedcaps)
+        private void SetCurrentSim(Simulator simulator, Uri seedcaps)
         {
             if (simulator == CurrentSim) return;
 
@@ -1275,7 +1275,7 @@ namespace OpenMetaverse
 
                 if (Connect(ip, port, handle, false, null) == null)
                 {
-                    Logger.Log($"Unabled to connect to new sim {ip}:{port}",
+                    Logger.Log($"Unable to connect to new sim {ip}:{port}",
                         Helpers.LogLevel.Error, Client);
                 }
             }

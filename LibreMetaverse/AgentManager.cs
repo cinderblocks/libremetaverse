@@ -4242,10 +4242,10 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("Got EstablishAgentCommunication for " + sim,
+                Logger.Log($"Got EstablishAgentCommunication for {sim}",
                     Helpers.LogLevel.Info, Client);
 
-                sim.SetSeedCaps(msg.SeedCapability.ToString());
+                sim.SetSeedCaps(msg.SeedCapability);
             }
         }
 
@@ -4347,7 +4347,7 @@ namespace OpenMetaverse
                 TeleportFinishPacket finish = (TeleportFinishPacket)packet;
 
                 flags = (TeleportFlags)finish.Info.TeleportFlags;
-                string seedcaps = Utils.BytesToString(finish.Info.SeedCapability);
+                Uri seedcaps = new Uri(Utils.BytesToString(finish.Info.SeedCapability));
                 finished = true;
 
                 Logger.DebugLog($"TeleportFinish received, Flags: {flags}", Client);
@@ -4531,7 +4531,7 @@ namespace OpenMetaverse
             Logger.DebugLog($"Crossed in to new region area, attempting to connect to {endPoint}", Client);
 
             Simulator oldSim = Client.Network.CurrentSim;
-            Simulator newSim = Client.Network.Connect(endPoint, crossed.RegionHandle, true, crossed.SeedCapability.ToString());
+            Simulator newSim = Client.Network.Connect(endPoint, crossed.RegionHandle, true, crossed.SeedCapability);
 
             if (newSim != null)
             {
@@ -4559,7 +4559,7 @@ namespace OpenMetaverse
         {
             Packet packet = e.Packet;
             CrossedRegionPacket crossing = (CrossedRegionPacket)packet;
-            string seedCap = Utils.BytesToString(crossing.RegionData.SeedCapability);
+            Uri seedCap = new Uri(Utils.BytesToString(crossing.RegionData.SeedCapability));
             IPEndPoint endPoint = new IPEndPoint(crossing.RegionData.SimIP, crossing.RegionData.SimPort);
 
             Logger.DebugLog($"Crossed in to new region area, attempting to connect to {endPoint}", Client);
