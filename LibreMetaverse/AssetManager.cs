@@ -1090,56 +1090,68 @@ namespace OpenMetaverse
 
         public void RequestUploadBakedTexture(byte[] textureData, BakedTextureUploadedCallback callback)
         {
-            CapsClient request = null;
+            Uri cap = null;
             if(Client.Network.CurrentSim.Caps != null) {
-                request = Client.Network.CurrentSim.Caps.CreateCapsClient("UploadBakedTexture");
+                cap = Client.Network.CurrentSim.Caps.CapabilityURI("UploadBakedTexture");
             }
-            if (request != null)
+            if (cap != null)
             {
-                request.OnComplete +=
-                    delegate(CapsClient client, OSD result, Exception error)
+                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), (response, data, error) =>
+                {
+                    if (error == null)
                     {
-                        if (error == null && result is OSDMap map)
+                        Logger.Log("Bake upload failed during uploader retrieval", Helpers.LogLevel.Warning, Client, error);
+                        callback(UUID.Zero);
+                        return;
+                    }
+
+                    OSD result = OSDParser.Deserialize(data);
+                    if (result is OSDMap resultMap)
+                    {
+                        UploadBakedTextureMessage message = new UploadBakedTextureMessage();
+                        message.Deserialize(resultMap);
+
+                        if (message.Request.State == "upload")
                         {
-                            UploadBakedTextureMessage message = new UploadBakedTextureMessage();
-                            message.Deserialize(map);
+                            Uri uploadUrl = ((UploaderRequestUpload)message.Request).Url;
 
-                            if (message.Request.State == "upload")
+                            if (uploadUrl != null)
                             {
-                                Uri uploadUrl = ((UploaderRequestUpload)message.Request).Url;
-
-                                if (uploadUrl != null)
-                                {
-                                    // POST the asset data
-                                    CapsClient upload = new CapsClient(uploadUrl, "UploadBakedTexture");
-                                    upload.OnComplete +=
-                                        delegate(CapsClient client2, OSD result2, Exception error2)
+                                // POST the asset data
+                                _ = Client.HttpCapsClient.PostRequestAsync(uploadUrl, "application/octet-stream", textureData,
+                                    (responseMessage, responseData, except) =>
+                                    {
+                                        if (except != null)
                                         {
-                                            if (error2 == null && result2 is OSDMap osdMap)
-                                            {
-                                                UploadBakedTextureMessage message2 = new UploadBakedTextureMessage();
-                                                message2.Deserialize(osdMap);
-
-                                                if (message2.Request.State == "complete")
-                                                {
-                                                    callback(((UploaderRequestComplete)message2.Request).AssetID);
-                                                    return;
-                                                }
-                                            }
-
-                                            Logger.Log("Bake upload failed during asset upload", Helpers.LogLevel.Warning, Client);
+                                            Logger.Log("Bake upload failed during asset upload", Helpers.LogLevel.Warning, Client, except);
                                             callback(UUID.Zero);
-                                        };
-                                    upload.PostRequestAsync(textureData, "application/octet-stream", Client.Settings.CAPS_TIMEOUT);
-                                    return;
-                                }
+                                            return;
+                                        }
+
+                                        OSD d = OSDParser.Deserialize(responseData);
+                                        if (d is OSDMap map)
+                                        {
+                                            UploadBakedTextureMessage message2 = new UploadBakedTextureMessage();
+                                            message2.Deserialize(map);
+
+                                            if (message2.Request.State == "complete")
+                                            {
+                                                callback(((UploaderRequestComplete)message2.Request).AssetID);
+                                                return;
+                                            }
+                                        }
+
+                                        Logger.Log("Bake upload failed during asset upload", Helpers.LogLevel.Warning, Client);
+                                        callback(UUID.Zero);
+                                    }, null, CancellationToken.None);
+                                return;
                             }
                         }
+                    }
 
-                        Logger.Log("Bake upload failed during uploader retrieval", Helpers.LogLevel.Warning, Client);
-                        callback(UUID.Zero);
-                    };
-                request.PostRequestAsync(new OSDMap(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                    Logger.Log("Bake upload failed during uploader retrieval", Helpers.LogLevel.Warning, Client);
+                    callback(UUID.Zero);
+                }, null, CancellationToken.None);
             }
             else
             {
@@ -1179,7 +1191,9 @@ namespace OpenMetaverse
                         AssetUploaded -= UdpCallback;
 
                         if (!success)
+                        {
                             uploadCallback(UUID.Zero);
+                        }
                     }, callback
                 );
             }

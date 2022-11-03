@@ -1681,28 +1681,25 @@ namespace OpenMetaverse
         /// <param name="sim">Simulator in which prim is located</param>
         public void NavigateObjectMedia(UUID primID, int face, string newURL, Simulator sim)
         {
-            CapsClient request;
-            if (sim.Caps != null && (request = Client.Network.CurrentSim.Caps.CreateCapsClient("ObjectMediaNavigate")) != null)
-            {
-                ObjectMediaNavigateMessage req = new ObjectMediaNavigateMessage
-                {
-                    PrimID = primID, URL = newURL, Face = face
-                };
-
-                request.OnComplete += (client, result, error) =>
-                    {
-                        if (error != null)
-                        {
-                            Logger.Log("ObjectMediaNavigate: " + error.Message, Helpers.LogLevel.Error, Client);
-                        }
-                    };
-
-                request.PostRequestAsync(req.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
-            }
-            else
+            Uri cap;
+            if (sim.Caps == null || (cap = Client.Network.CurrentSim.Caps.CapabilityURI("ObjectMediaNavigate")) == null)
             {
                 Logger.Log("ObjectMediaNavigate capability not available", Helpers.LogLevel.Error, Client);
+                return;
             }
+
+            ObjectMediaNavigateMessage req = new ObjectMediaNavigateMessage
+            {
+                PrimID = primID, URL = newURL, Face = face
+            };
+
+            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(), (response, data, error) =>
+            {
+                if (error != null)
+                {
+                    Logger.Log($"ObjectMediaNavigate: {error.Message}", Helpers.LogLevel.Error, Client, error);
+                }
+            }, null, CancellationToken.None);
         }
 
         /// <summary>
@@ -1714,24 +1711,23 @@ namespace OpenMetaverse
         /// <param name="sim">Simulatior in which prim is located</param>
         public void UpdateObjectMedia(UUID primID, MediaEntry[] faceMedia, Simulator sim)
         {
-            CapsClient request;
-            if (sim.Caps != null && (request = Client.Network.CurrentSim.Caps.CreateCapsClient("ObjectMedia")) != null)
-            {
-                ObjectMediaUpdate req = new ObjectMediaUpdate {PrimID = primID, FaceMedia = faceMedia, Verb = "UPDATE"};
-
-                request.OnComplete += (client, result, error) =>
-                    {
-                        if (error != null)
-                        {
-                            Logger.Log("ObjectMediaUpdate: " + error.Message, Helpers.LogLevel.Error, Client);
-                        }
-                    };
-                request.PostRequestAsync(req.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
-            }
-            else
+            Uri cap;
+            if (sim.Caps == null || (cap = Client.Network.CurrentSim.Caps.CapabilityURI("ObjectMedia")) == null)
             {
                 Logger.Log("ObjectMedia capability not available", Helpers.LogLevel.Error, Client);
+                return;
             }
+
+            ObjectMediaUpdate req = new ObjectMediaUpdate {PrimID = primID, FaceMedia = faceMedia, Verb = "UPDATE"};
+
+            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(), (response, data, error) =>
+            {
+                if (error != null)
+                {
+                    Logger.Log($"ObjectMediaUpdate: {error.Message}", Helpers.LogLevel.Error, Client, error);
+                }
+            }, null, CancellationToken.None);
+
         }
 
         /// <summary>
@@ -1742,47 +1738,47 @@ namespace OpenMetaverse
         /// <param name="callback">Call this callback when done</param>
         public void RequestObjectMedia(UUID primID, Simulator sim, ObjectMediaCallback callback)
         {
-            CapsClient request;
-            if (sim.Caps != null && (request = Client.Network.CurrentSim.Caps.CreateCapsClient("ObjectMedia")) != null)
+            Uri cap;
+            if (sim.Caps != null && (cap = Client.Network.CurrentSim.Caps.CapabilityURI("ObjectMedia")) != null)
             {
                 ObjectMediaRequest req = new ObjectMediaRequest {PrimID = primID, Verb = "GET"};
 
-                request.OnComplete += (client, result, error) =>
+                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(), 
+                    (httpResponse, data, error) =>
+                {
+                    if (error != null)
                     {
-                        if (result == null)
-                        {
-                            Logger.Log("Failed retrieving ObjectMedia data", Helpers.LogLevel.Error, Client);
-                            try { callback(false, string.Empty, null); }
-                            catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
-                            return;
-                        }
+                        Logger.Log("Failed retrieving ObjectMedia data", Helpers.LogLevel.Error, Client, error);
+                        try { callback(false, string.Empty, null); }
+                        catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
+                        return;
+                    }
 
-                        ObjectMediaMessage msg = new ObjectMediaMessage();
-                        msg.Deserialize((OSDMap)result);
+                    ObjectMediaMessage msg = new ObjectMediaMessage();
+                    OSD result = OSDParser.Deserialize(data);
+                    msg.Deserialize((OSDMap)result);
 
-                        if (msg.Request is ObjectMediaResponse response)
+                    if (msg.Request is ObjectMediaResponse response)
+                    {
+                        if (Client.Settings.OBJECT_TRACKING)
                         {
-                            if (Client.Settings.OBJECT_TRACKING)
+                            Primitive prim = sim.ObjectsPrimitives.Find((Primitive p) => p.ID == primID);
+                            if (prim != null)
                             {
-                                Primitive prim = sim.ObjectsPrimitives.Find((Primitive p) => p.ID == primID);
-                                if (prim != null)
-                                {
-                                    prim.MediaVersion = response.Version;
-                                    prim.FaceMedia = response.FaceMedia;
-                                }
+                                prim.MediaVersion = response.Version;
+                                prim.FaceMedia = response.FaceMedia;
                             }
-
-                            try { callback(true, response.Version, response.FaceMedia); }
-                            catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
                         }
-                        else
-                        {
-                            try { callback(false, string.Empty, null); }
-                            catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
-                        }
-                    };
 
-                request.PostRequestAsync(req.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                        try { callback(true, response.Version, response.FaceMedia); }
+                        catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
+                    }
+                    else
+                    {
+                        try { callback(false, string.Empty, null); }
+                        catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
+                    }
+                }, null, CancellationToken.None);
             }
             else
             {

@@ -26,6 +26,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using OpenMetaverse.Assets;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Http;
 
@@ -206,10 +208,10 @@ namespace OpenMetaverse.ImportExport
         /// <param name="callback">Callback that will be invoke upon completion of the upload. Null is sent on request failure</param>
         public void PrepareUpload(ModelUploadCallback callback)
         {
-            CapsClient request = null;
+            Uri cap = null;
             if (Client.Network.CurrentSim == null ||
                 Client.Network.CurrentSim.Caps == null ||
-                (request = Client.Network.CurrentSim.Caps.CreateCapsClient("NewFileAgentInventory")) == null)
+                (cap = Client.Network.CurrentSim.Caps.CapabilityURI("NewFileAgentInventory")) == null)
             {
                 Logger.Log("Cannot upload mesh, no connection or NewFileAgentInventory not available", Helpers.LogLevel.Warning);
                 callback?.Invoke(null);
@@ -233,56 +235,77 @@ namespace OpenMetaverse.ImportExport
                 ["next_owner_mask"] = (int) PermissionMask.All
             };
 
-            request.OnComplete += (client, result, error) =>
+            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req, (response, data, error) =>
             {
-                if (error != null || result == null || result.Type != OSDType.Map)
+                if (error != null)
                 {
-                    Logger.Log("Mesh upload request failure", Helpers.LogLevel.Error);
-                    callback?.Invoke(null);
-                    return;
-                }
-                OSDMap res = (OSDMap)result;
-
-                if (res["state"] != "upload")
-                {
-                    Logger.Log("Mesh upload failure: " + res["message"], Helpers.LogLevel.Error);
+                    Logger.Log($"Mesh upload request failure: {error.Message}", Helpers.LogLevel.Error, Client, error);
                     callback?.Invoke(null);
                     return;
                 }
 
-                Logger.Log("Response from mesh upload prepare:" + Environment.NewLine + OSDParser.SerializeLLSDNotationFormatted(result), Helpers.LogLevel.Debug);
-                callback?.Invoke(result);
-            };
+                try
+                {
+                    OSD result = OSDParser.Deserialize(data);
+                    OSDMap res = (OSDMap)result;
 
-            request.PostRequestAsync(req, OSDFormat.Xml, 3 * 60 * 1000);
+                    if (res["state"] != "upload")
+                    {
+                        Logger.Log($"Mesh upload failure: {res["message"]}", Helpers.LogLevel.Error, Client);
+                        callback?.Invoke(null);
+                        return;
+                    }
+                    Logger.Log($"Response from mesh upload prepare: {Environment.NewLine}" +
+                               OSDParser.SerializeLLSDNotationFormatted(result), Helpers.LogLevel.Debug, Client);
+                    callback?.Invoke(result);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log($"Mesh upload request failure: {ex.Message}", Helpers.LogLevel.Error, Client, ex);
+                    callback?.Invoke(null);
+                    return;
+                }
 
+                
+            }, null, CancellationToken.None);
         }
 
         /// <summary>
-        /// Performas actual mesh and image upload
+        /// Performs actual mesh and image upload
         /// </summary>
-        /// <param name="uploader">Uri recieved in the upload prepare stage</param>
+        /// <param name="uploader">Uri received in the upload prepare stage</param>
         /// <param name="callback">Callback that will be invoke upon completion of the upload. Null is sent on request failure</param>
         public void PerformUpload(Uri uploader, ModelUploadCallback callback)
         {
-            CapsClient request = new CapsClient(uploader, "MeshUploader");
-            request.OnComplete += (client, result, error) =>
-            {
-                if (error != null || result == null || result.Type != OSDType.Map)
+            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("MeshUploader");
+
+            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, AssetResources(true), 
+                (response, data, error) =>
                 {
-                    Logger.Log("Mesh upload request failure", Helpers.LogLevel.Error);
-                    callback?.Invoke(null);
-                    return;
-                }
-                OSDMap res = (OSDMap)result;
-                Logger.Log("Response from mesh upload perform:" + Environment.NewLine 
-                    + OSDParser.SerializeLLSDNotationFormatted(result), Helpers.LogLevel.Debug);
-                callback?.Invoke(res);
-            };
+                    if (error != null)
+                    {
+                        Logger.Log($"Mesh upload request failure: {error.Message}", 
+                            Helpers.LogLevel.Error, Client, error);
+                        callback?.Invoke(null);
+                        return;
+                    }
 
-            request.PostRequestAsync(AssetResources(true), OSDFormat.Xml, 60 * 1000);
+                    try
+                    {
+                        OSD result = OSDParser.Deserialize(data);
+                        OSDMap res = (OSDMap)result;
+
+                        Logger.Log($"Response from mesh upload perform: {Environment.NewLine}" +
+                                   OSDParser.SerializeLLSDNotationFormatted(result), Helpers.LogLevel.Debug);
+                        callback?.Invoke(res);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log($"Mesh upload request failure: {ex.Message}", Helpers.LogLevel.Error, Client, ex);
+                        callback?.Invoke(null);
+                        return;
+                    }
+                }, null, CancellationToken.None);
         }
-
-
     }
 }

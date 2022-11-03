@@ -34,6 +34,7 @@ using System.Threading;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Http;
+using System.Net.Http;
 
 namespace LibreMetaverse.Voice
 {
@@ -316,12 +317,9 @@ namespace LibreMetaverse.Voice
 
         void RequestVoiceProvision(Uri cap)
         {
-            var capClient = new CapsClient(cap, "ReqVoiceProvision");
-            capClient.OnComplete += cClient_OnComplete;
-
-            // STEP 0
             Logger.Log("Requesting voice capability", Helpers.LogLevel.Info);
-            capClient.PostRequestAsync(new OSD(), OSDFormat.Xml, 10000);
+            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), 
+                cClient_OnComplete, null, CancellationToken.None);
         }
 
         /// <summary>
@@ -578,9 +576,7 @@ namespace LibreMetaverse.Voice
         /// <param name="client"></param>
         /// <param name="result"></param>
         /// <param name="error"></param>
-        void cClient_OnComplete(CapsClient client,
-            OSD result,
-            Exception error)
+        void cClient_OnComplete(HttpResponseMessage response, byte[] responseData, Exception error)
         {
             if (error != null)
             {
@@ -591,6 +587,7 @@ namespace LibreMetaverse.Voice
             Logger.Log("Voice provisioned", Helpers.LogLevel.Info);
             ReportConnectionState(ConnectionState.Provisioned);
 
+            OSD result = OSDParser.Deserialize(responseData);
             // We can get back 4 interesting values:
             //      voice_sip_uri_hostname
             //      voice_account_server_name   (actually a full URI)
@@ -831,8 +828,6 @@ namespace LibreMetaverse.Voice
             RequestParcelInfo(pCap);
         }
 
-        private CapsClient parcelCap;
-
         /// <summary>
         /// Request info from a parcel capability Uri.
         /// </summary>
@@ -842,33 +837,26 @@ namespace LibreMetaverse.Voice
         {
             Logger.Log("Requesting region voice info", Helpers.LogLevel.Info);
 
-            parcelCap = new CapsClient(cap, "RequestParcelInfo");
-            parcelCap.OnComplete +=
-                pCap_OnComplete;
-
             currentParcelCap = cap;
-            parcelCap.PostRequestAsync(new OSD(), OSDFormat.Xml, 10000);
+            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), 
+                pCap_OnComplete, null, CancellationToken.None);
         }
 
         /// <summary>
         /// Receive parcel voice cap
         /// </summary>
-        /// <param name="client"></param>
-        /// <param name="result"></param>
+        /// <param name="response"></param>
+        /// <param name="responseData"></param>
         /// <param name="error"></param>
-        void pCap_OnComplete(CapsClient client,
-            OSD result,
-            Exception error)
+        void pCap_OnComplete(HttpResponseMessage response, byte[] responseData, Exception error)
         {
-            parcelCap.OnComplete -= pCap_OnComplete;
-            parcelCap = null;
-
             if (error != null)
             {
                 Logger.Log("Region voice cap " + error.Message, Helpers.LogLevel.Error);
                 return;
             }
 
+            OSD result = OSDParser.Deserialize(responseData);
             if (result is OSDMap pMap)
             {
                 regionName = pMap["region_name"].AsString();
@@ -905,7 +893,7 @@ namespace LibreMetaverse.Voice
                 "");
             if (reqId < 0)
             {
-                Logger.Log("Voice Session ReqID " + reqId.ToString(), Helpers.LogLevel.Error);
+                Logger.Log($"Voice Session ReqID {reqId}", Helpers.LogLevel.Error);
             }
         }
 

@@ -26,6 +26,7 @@
 
 using System.Net;
 using System.Net.Http;
+using System.Net.Security;
 using LibreMetaverse;
 
 namespace OpenMetaverse
@@ -144,7 +145,17 @@ namespace OpenMetaverse
             {
                 AllowAutoRedirect = true,
                 AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip,
-                MaxConnectionsPerServer = Settings.MAX_HTTP_CONNECTIONS
+                MaxConnectionsPerServer = Settings.MAX_HTTP_CONNECTIONS,
+                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
+                {
+                    if (sslPolicyErrors == SslPolicyErrors.None)
+                    {
+                        return true;
+                    }
+
+                    // *HACK:
+                    return true;
+                }
             };
             HttpCapsClient client = new HttpCapsClient(handler);
             client.DefaultRequestHeaders.Accept.Clear();

@@ -30,9 +30,15 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.Interfaces;
-using OpenMetaverse.Rendering;
 using OpenMetaverse.StructuredData;
+
+public static class AsyncHelper
+{
+    public static void Sync(Func<Task> func) => Task.Run(func).ConfigureAwait(false);
+
+    public static T Sync<T>(Func<Task<T>> func) => Task.Run(func).Result;
+
+}
 
 namespace LibreMetaverse
 {
@@ -194,8 +200,8 @@ namespace LibreMetaverse
             try
             {
                 while (contentStream != null /* (╯°□°)╯︵ ┻━┻ */
-                       && ((!cancellationToken.HasValue && (bytesRead = await contentStream.ReadAsync(buffer, offset, buffer.Length)) != 0)
-                           || (cancellationToken.HasValue && (bytesRead = await contentStream.ReadAsync(buffer, offset, buffer.Length, cancellationToken.Value)) != 0)))
+                       && ((!cancellationToken.HasValue && (bytesRead = await contentStream.ReadAsync(buffer, offset, length)) != 0)
+                           || (cancellationToken.HasValue && (bytesRead = await contentStream.ReadAsync(buffer, offset, length, cancellationToken.Value)) != 0)))
                 {
                     totalBytesRead += bytesRead;
 

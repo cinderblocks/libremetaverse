@@ -136,7 +136,7 @@ namespace OpenMetaverse.Http
                     Logger.DebugLog($"Requesting {item.Address}");
 
                     activeDownload.cancellationToken = new CancellationTokenSource();
-                    Client.HttpCapsClient.GetRequestAsync(item.Address,
+                    _ = Client.HttpCapsClient.GetRequestAsync(item.Address,
                             (response, responseData, error)  =>
                             {
                                 activeDownloads.TryRemove(addr, out activeDownload);
@@ -162,7 +162,7 @@ namespace OpenMetaverse.Http
                             {
                                 handler(totalBytes, totalReceived, progressPercent);
                             }
-                        }, activeDownload.cancellationToken.Token).Start();
+                        }, activeDownload.cancellationToken.Token);
                     activeDownloads[addr] = activeDownload;
                 }
             }

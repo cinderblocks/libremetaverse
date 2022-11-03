@@ -27,6 +27,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
@@ -60,9 +62,9 @@ namespace LibreMetaverse
         /// Fetch a list of Abuse Report categories from the simulator
         /// </summary>
         /// <returns>Returns Dictionary of Abuse Report categories from the server</returns>
-        public Dictionary<string, string> FetchAbuseReportCategories()
+        public Task<Dictionary<string, string>> FetchAbuseReportCategories()
         {
-            return FetchAbuseReportCategories(null);
+            return FetchAbuseReportCategoriesAsync(null);
         }
 
         /// <summary>
@@ -70,31 +72,37 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="lang">language to return categories in</param>
         /// <returns>Returns Dictionary of Abuse Report categories from the server</returns>
-        public Dictionary<string, string> FetchAbuseReportCategories(string lang)
+        public async Task<Dictionary<string, string>> FetchAbuseReportCategoriesAsync(string lang)
         {
             Dictionary<string, string> reportCategories = null;
             Uri abuseCategoriesCap = Client.Network.CurrentSim.Caps.CapabilityURI("AbuseCategories");
-            if (abuseCategoriesCap != null)
+            if (abuseCategoriesCap == null)
             {
-                if (lang != null)
-                {
-                    // shite C# nonsense
-                    UriBuilder builder = new UriBuilder(abuseCategoriesCap)
-                    {
-                        Query = $"lc={lang}"
-                    };
-                    abuseCategoriesCap = builder.Uri;
-                }
+                Logger.Log("AbuseCategories capability does not exist. Could not fetch categories list.",
+                    Helpers.LogLevel.Info);
+            }
 
-                var request = new CapsClient(abuseCategoriesCap);
-                request.OnComplete += delegate (CapsClient client, OSD result, Exception error)
+            if (lang != null)
+            {
+                // shite C# nonsense
+                UriBuilder builder = new UriBuilder(abuseCategoriesCap)
+                {
+                    Query = $"lc={lang}"
+                };
+                abuseCategoriesCap = builder.Uri;
+            }
+
+            await Client.HttpCapsClient.GetRequestAsync(abuseCategoriesCap,
+                (response, data, error) =>
                 {
                     if (error != null)
                     {
-                        Logger.Log($"Could not fetch abuse categories from cap. ({error.Message}", 
+                        Logger.Log($"Could not fetch abuse categories from cap. ({error.Message}",
                             Helpers.LogLevel.Info);
                         return;
                     }
+
+                    OSD result = OSDParser.Deserialize(data);
                     if (result is OSDMap respMap && respMap.ContainsKey("categories"))
                     {
                         if (respMap["categories"] is OSDArray categories)
@@ -104,14 +112,8 @@ namespace LibreMetaverse
                                 row => row["category"].AsString());
                         }
                     }
-                };
-                request.GetRequestAsync(Client.Settings.CAPS_TIMEOUT);
-            } 
-            else
-            {
-                Logger.Log("AbuseCategories capability does not exist. Could not fetch categories list.",
-                    Helpers.LogLevel.Info);
-            }
+                }, null, CancellationToken.None);
+
             return reportCategories;
         }
 
@@ -154,20 +156,18 @@ namespace LibreMetaverse
                 : Client.Network.CurrentSim.Caps.CapabilityURI("SendUserReport");
             if (userReportCap != null)
             {
-                var request = new CapsClient(userReportCap);
-                request.OnComplete += delegate(CapsClient client, OSD result, Exception error)
-                {
-                    if (error != null)
+                _ = Client.HttpCapsClient.PostRequestAsync(userReportCap, OSDFormat.Xml, report,
+                    (response, data, error) =>
                     {
-                        Logger.Log($"Failed to send abuse report via {userReportCap}. " +
-                            $"({error.Message}) Falling back to legacy protocol.",
-                            Helpers.LogLevel.Warning);
-                        SendUserReportLegacy(reportType, category, screenshotId, objectId, abuserId,
-                            abuseRegionName, abuseRegionId, pos, summary, details);
-                    }
-
-                };
-                request.PostRequestAsync(report, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                        if (error != null)
+                        {
+                            Logger.Log($"Failed to send abuse report via {userReportCap}. " +
+                                       $"({error.Message}) Falling back to legacy protocol.",
+                                Helpers.LogLevel.Warning);
+                            SendUserReportLegacy(reportType, category, screenshotId, objectId, abuserId,
+                                abuseRegionName, abuseRegionId, pos, summary, details);
+                        }
+                    }, null, CancellationToken.None);
             }
             else
             {

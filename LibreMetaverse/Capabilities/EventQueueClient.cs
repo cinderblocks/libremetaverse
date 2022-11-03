@@ -273,7 +273,7 @@ namespace OpenMetaverse.Http
                 // Resume the connection. The event handler for the connection opening
                 // just sets class _Request variable to the current HttpWebRequest
                 CapsBase.PostDataAsync(_Address, null, REQUEST_CONTENT_TYPE, postData, REQUEST_TIMEOUT,
-                    delegate(HttpWebRequest newRequest) { _Request = newRequest; }, null, RequestCompletedHandler);
+                    (HttpWebRequest newRequest) => { _Request = newRequest; }, null, RequestCompletedHandler);
 
                 // If the event queue is dead at this point, turn it off since
                 // that was the last thing we want to do
