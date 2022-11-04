@@ -2097,9 +2097,8 @@ namespace OpenMetaverse
 
             OSD res = null;
 
-            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, request,
-                (response, data, error) => res = OSDParser.Deserialize(data),
-                null, cancellationToken);
+            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, request, cancellationToken,
+                (response, data, error) => res = OSDParser.Deserialize(data));
 
             if (res is OSDMap result)
             {

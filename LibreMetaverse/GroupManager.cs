@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Messages.Linden;
@@ -1050,14 +1051,15 @@ namespace OpenMetaverse
                 && Client.Network.CurrentSim.Caps != null
                 && (cap = Client.Network.CurrentSim.Caps.CapabilityURI("GroupMemberData")) != null)
             {
-                OSDMap requestData = new OSDMap(1) { ["group_id"] = @group };
-                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, requestData, (response, data, error) =>
+                OSDMap payload = new OSDMap(1) { ["group_id"] = @group };
+                Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None,
+                    (response, data, error) =>
                 {
                     if (error != null) { return; }
 
                     OSD result = OSDParser.Deserialize(data);
                     GroupMembersHandlerCaps(requestID, result);
-                }, null, CancellationToken.None);
+                });
             }
             else
             {
@@ -1662,7 +1664,7 @@ namespace OpenMetaverse
             if (uri == null) { return; }
 
             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("GroupReqBanned");
-            _ = Client.HttpCapsClient.GetRequestAsync(cap, (response, data, error) =>
+            _ = Client.HttpCapsClient.GetRequestAsync(cap, CancellationToken.None, (response, data, error) =>
             {
                 try
                 {
@@ -1698,7 +1700,7 @@ namespace OpenMetaverse
                         catch { }
                     }
                 }
-            }, null, CancellationToken.None);
+            });
         }
 
         /// <summary>
@@ -1735,7 +1737,8 @@ namespace OpenMetaverse
             }
             payload["ban_ids"] = banIDs;
 
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, (response, data, error) =>
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None,
+                (response, data, error) =>
             {
                 if (error != null) { return; }
                 if (callback != null)
@@ -1743,7 +1746,7 @@ namespace OpenMetaverse
                     try { callback(this, EventArgs.Empty); }
                     catch { }
                 }
-            }, null, CancellationToken.None);
+            });
         }
 
         #endregion

@@ -35,6 +35,7 @@ using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Http;
 using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace LibreMetaverse.Voice
 {
@@ -319,7 +320,7 @@ namespace LibreMetaverse.Voice
         {
             Logger.Log("Requesting voice capability", Helpers.LogLevel.Info);
             _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), 
-                cClient_OnComplete, null, CancellationToken.None);
+                CancellationToken.None, cClient_OnComplete);
         }
 
         /// <summary>
@@ -838,8 +839,8 @@ namespace LibreMetaverse.Voice
             Logger.Log("Requesting region voice info", Helpers.LogLevel.Info);
 
             currentParcelCap = cap;
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), 
-                pCap_OnComplete, null, CancellationToken.None);
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), 
+                CancellationToken.None, pCap_OnComplete);
         }
 
         /// <summary>

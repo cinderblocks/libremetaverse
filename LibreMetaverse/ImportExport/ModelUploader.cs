@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse.Assets;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Http;
@@ -221,7 +222,7 @@ namespace OpenMetaverse.ImportExport
             Images = new List<byte[]>();
             ImgIndex = new Dictionary<string, int>();
 
-            OSDMap req = new OSDMap
+            OSDMap payload = new OSDMap
             {
                 ["name"] = InvName,
                 ["description"] = InvDescription,
@@ -235,7 +236,8 @@ namespace OpenMetaverse.ImportExport
                 ["next_owner_mask"] = (int) PermissionMask.All
             };
 
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req, (response, data, error) =>
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None,
+                (response, data, error) =>
             {
                 if (error != null)
                 {
@@ -265,9 +267,7 @@ namespace OpenMetaverse.ImportExport
                     callback?.Invoke(null);
                     return;
                 }
-
-                
-            }, null, CancellationToken.None);
+            });
         }
 
         /// <summary>
@@ -279,8 +279,8 @@ namespace OpenMetaverse.ImportExport
         {
             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("MeshUploader");
 
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, AssetResources(true), 
-                (response, data, error) =>
+            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, AssetResources(true),
+                CancellationToken.None, (response, data, error) =>
                 {
                     if (error != null)
                     {
@@ -305,7 +305,7 @@ namespace OpenMetaverse.ImportExport
                         callback?.Invoke(null);
                         return;
                     }
-                }, null, CancellationToken.None);
+                });
         }
     }
 }

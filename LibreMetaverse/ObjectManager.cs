@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Http;
 using OpenMetaverse.StructuredData;
@@ -1688,18 +1689,19 @@ namespace OpenMetaverse
                 return;
             }
 
-            ObjectMediaNavigateMessage req = new ObjectMediaNavigateMessage
+            ObjectMediaNavigateMessage payload = new ObjectMediaNavigateMessage
             {
                 PrimID = primID, URL = newURL, Face = face
             };
 
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(), (response, data, error) =>
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(), 
+                CancellationToken.None, (response, data, error) =>
             {
                 if (error != null)
                 {
                     Logger.Log($"ObjectMediaNavigate: {error.Message}", Helpers.LogLevel.Error, Client, error);
                 }
-            }, null, CancellationToken.None);
+            });
         }
 
         /// <summary>
@@ -1718,15 +1720,16 @@ namespace OpenMetaverse
                 return;
             }
 
-            ObjectMediaUpdate req = new ObjectMediaUpdate {PrimID = primID, FaceMedia = faceMedia, Verb = "UPDATE"};
+            ObjectMediaUpdate payload = new ObjectMediaUpdate {PrimID = primID, FaceMedia = faceMedia, Verb = "UPDATE"};
 
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(), (response, data, error) =>
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(), 
+                CancellationToken.None, (response, data, error) =>
             {
                 if (error != null)
                 {
                     Logger.Log($"ObjectMediaUpdate: {error.Message}", Helpers.LogLevel.Error, Client, error);
                 }
-            }, null, CancellationToken.None);
+            });
 
         }
 
@@ -1741,10 +1744,10 @@ namespace OpenMetaverse
             Uri cap;
             if (sim.Caps != null && (cap = Client.Network.CurrentSim.Caps.CapabilityURI("ObjectMedia")) != null)
             {
-                ObjectMediaRequest req = new ObjectMediaRequest {PrimID = primID, Verb = "GET"};
+                ObjectMediaRequest payload = new ObjectMediaRequest {PrimID = primID, Verb = "GET"};
 
-                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(), 
-                    (httpResponse, data, error) =>
+                Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(),
+                    CancellationToken.None, (httpResponse, data, error) =>
                 {
                     if (error != null)
                     {
@@ -1778,7 +1781,7 @@ namespace OpenMetaverse
                         try { callback(false, string.Empty, null); }
                         catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
                     }
-                }, null, CancellationToken.None);
+                });
             }
             else
             {

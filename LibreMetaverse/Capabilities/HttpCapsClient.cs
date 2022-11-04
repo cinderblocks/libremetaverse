@@ -32,18 +32,19 @@ using System.Threading;
 using System.Threading.Tasks;
 using OpenMetaverse.StructuredData;
 
-public static class AsyncHelper
-{
-    public static void Sync(Func<Task> func) => Task.Run(func).ConfigureAwait(false);
-
-    public static T Sync<T>(Func<Task<T>> func) => Task.Run(func).Result;
-
-}
-
 namespace LibreMetaverse
 {
     public delegate void DownloadProgressHandler(long? totalBytes, long totalBytesRead, double? progressPercentage);
     public delegate void DownloadCompleteHandler(HttpResponseMessage response, byte[] responseData, Exception error);
+    public delegate void ConnectedHandler(HttpResponseMessage response);
+
+    public static class AsyncHelper
+    {
+        public static void Sync(Func<Task> func) => Task.Run(func).ConfigureAwait(false);
+
+        public static T Sync<T>(Func<Task<T>> func) => Task.Run(func).Result;
+
+    }
 
     public class HttpCapsClient : HttpClient
     {
@@ -53,120 +54,165 @@ namespace LibreMetaverse
 
         #region GET requests
 
-        public async Task GetRequestAsync(Uri uri, DownloadCompleteHandler completeHandler, 
-            DownloadProgressHandler progressHandler, CancellationToken? cancellationToken)
+        public async Task GetRequestAsync(Uri uri, CancellationToken? cancellationToken, 
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            await SendRequestAsync(request, completeHandler, progressHandler, cancellationToken);
+            await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+        }
+
+        public async Task GetRequestAsync(Uri uri, CancellationToken? cancellationToken, DownloadCompleteHandler completeHandler)
+        {
+            await GetRequestAsync(uri, cancellationToken, completeHandler, null, null);
         }
 
         #endregion GET requests
 
         #region POST requests
 
-        public async Task PostRequestAsync(Uri uri, string contentType, byte[] payload,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, 
-            CancellationToken? cancellationToken)
+        public async Task PostRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, uri);
             request.Content = new ByteArrayContent(payload);
             request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-            await SendRequestAsync(request, completeHandler, progressHandler, cancellationToken);
+            await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
         }
 
-        public async Task PostRequestAsync(Uri uri, OSDFormat format, OSD payload,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler,
-            CancellationToken? cancellationToken)
+        public async Task PostRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler)
+        {
+            await PostRequestAsync(uri, contentType, payload, cancellationToken, completeHandler, null, null);
+        }
+
+        public async Task PostRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
             using var request = new HttpRequestMessage(HttpMethod.Post, uri);
             request.Content = new ByteArrayContent(serialized);
             request.Content.Headers.ContentType = contentType;
-            await SendRequestAsync(request, completeHandler, progressHandler, cancellationToken);
+            await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+        }
+
+        public async Task PostRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler)
+        {
+            await PostRequestAsync(uri, format, payload, cancellationToken, completeHandler, null, null);
         }
 
         #endregion POST requests
 
         #region PUT requests
 
-        public async Task PutRequestAsync(Uri uri, string contentType, byte[] payload,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler,
-            CancellationToken? cancellationToken)
+        public async Task PutRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
         {
             using var request = new HttpRequestMessage(HttpMethod.Put, uri);
             request.Content = new ByteArrayContent(payload);
             request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-            await SendRequestAsync(request, completeHandler, progressHandler, cancellationToken);
+            await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
         }
 
-        public async Task PutRequestAsync(Uri uri, OSDFormat format, OSD payload,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler,
-            CancellationToken? cancellationToken)
+        public async Task PutRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler)
+        {
+            await PutRequestAsync(uri, contentType, payload, cancellationToken, completeHandler, null, null);
+        }
+
+        public async Task PutRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
             using var request = new HttpRequestMessage(HttpMethod.Put, uri);
             request.Content = new ByteArrayContent(serialized);
             request.Content.Headers.ContentType = contentType;
-            await SendRequestAsync(request, completeHandler, progressHandler, cancellationToken);
+            await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+        }
+
+        public async Task PutRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler)
+        {
+            await PutRequestAsync(uri, format, payload, cancellationToken, completeHandler, null, null);
         }
 
         #endregion PUT requests
 
         #region PATCH requests
 
-        public async Task PatchRequestAsync(Uri uri, string contentType, byte[] payload,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler,
-            CancellationToken? cancellationToken)
+        public async Task PatchRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
         {
             using var request = new HttpRequestMessage(HttpMethod.Patch, uri);
             request.Content = new ByteArrayContent(payload);
             request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-            await SendRequestAsync(request, completeHandler, progressHandler, cancellationToken);
+            await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
         }
 
-        public async Task PatchRequestAsync(Uri uri, OSDFormat format, OSD payload,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler,
-            CancellationToken? cancellationToken)
+        public async Task PatchRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler)
+        {
+            await PatchRequestAsync(uri, contentType, payload, cancellationToken, completeHandler, null, null);
+        }
+
+        public async Task PatchRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
             using var request = new HttpRequestMessage(HttpMethod.Patch, uri);
             request.Content = new ByteArrayContent(serialized);
             request.Content.Headers.ContentType = contentType;
-            await SendRequestAsync(request, completeHandler, progressHandler, cancellationToken);
+            await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+        }
+
+        public async Task PatchRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler)
+        {
+            await PatchRequestAsync(uri, format, payload, cancellationToken, completeHandler, null, null);
         }
 
         #endregion PATCH requests
 
         #region DELETE requests
 
-        public async Task DeleteRequestAsync(Uri uri, string contentType, byte[] payload,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler,
-            CancellationToken? cancellationToken)
+        public async Task DeleteRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
         {
             using var request = new HttpRequestMessage(HttpMethod.Delete, uri);
             request.Content = new ByteArrayContent(payload);
             request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-            await SendRequestAsync(request, completeHandler, progressHandler, cancellationToken);
+            await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
         }
 
-        public async Task DeleteRequestAsync(Uri uri, OSDFormat format, OSD payload,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler,
-            CancellationToken? cancellationToken)
+        public async Task DeleteRequestAsync(Uri uri, string contentType, byte[] payload,
+            CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler)
+        {
+            await DeleteRequestAsync(uri, contentType, payload, cancellationToken, completeHandler, null, null);
+        }
+
+        public async Task DeleteRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
             using var request = new HttpRequestMessage(HttpMethod.Delete, uri);
             request.Content = new ByteArrayContent(serialized);
             request.Content.Headers.ContentType = contentType;
-            await SendRequestAsync(request, completeHandler, progressHandler, cancellationToken);
+            await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+        }
+
+        public async Task DeleteRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler)
+        {
+            await DeleteRequestAsync(uri, format, payload, cancellationToken, completeHandler, null, null);
         }
 
         #endregion DELETE requests
 
         /// /// /// /// /// /// /// /// /// /// /// /// 
 
-        private async Task SendRequestAsync(HttpRequestMessage request,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler,
-            CancellationToken? cancellationToken)
+        private async Task SendRequestAsync(HttpRequestMessage request, CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
         {
             using var response = (cancellationToken.HasValue) 
                 ? await SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken.Value)
@@ -176,13 +222,13 @@ namespace LibreMetaverse
                 completeHandler?.Invoke(response, null,
                     new HttpRequestException(response.StatusCode + " " + response.ReasonPhrase));
             }
+            connectedHandler?.Invoke(response);
 
-            await ProcessResponseAsync(response, completeHandler, progressHandler, cancellationToken);
+            await ProcessResponseAsync(response, cancellationToken, completeHandler, progressHandler);
         }
 
-        private static async Task ProcessResponseAsync(HttpResponseMessage response,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, 
-            CancellationToken? cancellationToken)
+        private static async Task ProcessResponseAsync(HttpResponseMessage response, CancellationToken? cancellationToken,
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler)
         {
             var totalBytes = response.Content.Headers.ContentLength;
             await using var contentStream = await response.Content.ReadAsStreamAsync();

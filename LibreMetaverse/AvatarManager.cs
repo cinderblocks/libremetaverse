@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
@@ -717,7 +718,7 @@ namespace OpenMetaverse
 
             Uri uri = new Uri(Client.Network.CurrentSim.Caps.CapabilityURI("GetDisplayNames").AbsoluteUri + "/?" + query);
 
-            _ = Client.HttpCapsClient.GetRequestAsync(uri, (response, data, error) =>
+            Task req = Client.HttpCapsClient.GetRequestAsync(uri, CancellationToken.None, (response, data, error) =>
             {
                 try
                 {
@@ -736,7 +737,7 @@ namespace OpenMetaverse
                         Helpers.LogLevel.Warning, Client, ex);
                     callback(false, null, null);
                 }
-            }, null, CancellationToken.None);
+            });
         }
 
         /// <summary>

@@ -63,7 +63,7 @@ namespace OpenMetaverse
         internal Uri _SeedCapsURI;
         internal Dictionary<string, Uri> _Caps = new Dictionary<string, Uri>();
 
-        private CapsClient _SeedRequest;
+        private CancellationTokenSource _HttpCts = new CancellationTokenSource();
         private EventQueueClient _EventQueueCap = null;
 
         /// <summary>Capabilities URI this system was initialized with</summary>
@@ -91,7 +91,7 @@ namespace OpenMetaverse
             Logger.Log($"Caps system for {Simulator} is {(immediate ? "aborting" : "disconnecting")}", 
                 Helpers.LogLevel.Info, Simulator.Client);
 
-            _SeedRequest?.Cancel();
+            _HttpCts.Cancel();
 
             _EventQueueCap?.Stop(immediate);
         }
@@ -111,6 +111,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="capability">Capability name</param>
         /// <returns>Newly created CapsClient or null of capability does not exist</returns>
+        [Obsolete("CapsClient is obsolete. Use HttpCapsClient instead.")]
         public CapsClient CreateCapsClient(string capability)
         {
             return _Caps.TryGetValue(capability, out var uri) ? new CapsClient(uri, capability) : null;
@@ -154,7 +155,7 @@ namespace OpenMetaverse
             if (Simulator == null || !Simulator.Client.Network.Connected) { return; }
 
             // Create a request list
-            OSDArray req = new OSDArray
+            OSDArray payload = new OSDArray
             {
                 "AbuseCategories",
                 "AcceptFriendship",
@@ -259,8 +260,8 @@ namespace OpenMetaverse
                 "LibraryAPIv3"
             };
 
-            Task loginReq = Simulator.Client.HttpCapsClient.PostRequestAsync(_SeedCapsURI, OSDFormat.Xml, req,
-                SeedRequestCompleteHandler, null, CancellationToken.None);
+            Task loginReq = Simulator.Client.HttpCapsClient.PostRequestAsync(_SeedCapsURI, OSDFormat.Xml, payload, 
+                _HttpCts.Token, SeedRequestCompleteHandler);
         }
 
         private void SeedRequestCompleteHandler(HttpResponseMessage response, byte[] responseData, Exception error)
@@ -291,9 +292,9 @@ namespace OpenMetaverse
 
                 if (_Caps.ContainsKey("EventQueueGet"))
                 {
-                    Logger.DebugLog("Starting event queue for " + Simulator, Simulator.Client);
+                    Logger.DebugLog($"Starting event queue for {Simulator}", Simulator.Client);
 
-                    _EventQueueCap = new EventQueueClient(_Caps["EventQueueGet"]);
+                    _EventQueueCap = new EventQueueClient(_Caps["EventQueueGet"], Simulator.Client);
                     _EventQueueCap.OnConnected += EventQueueConnectedHandler;
                     _EventQueueCap.OnEvent += EventQueueEventHandler;
                     _EventQueueCap.Start();
@@ -329,7 +330,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("No Message handler exists for event " + eventName + ". Unable to decode. Will try Generic Handler next", 
+                Logger.Log($"No Message handler exists for event {eventName}. Unable to decode. Will try Generic Handler next", 
                     Helpers.LogLevel.Warning);
                 Logger.Log("Please report this information at https://radegast.life/bugs/issue-entry/: " + Environment.NewLine + body, 
                     Helpers.LogLevel.Debug);
@@ -347,14 +348,14 @@ namespace OpenMetaverse
                             Packet = packet
                         };
 
-                        Logger.DebugLog("Serializing " + packet.Type + " capability with generic handler", 
+                        Logger.DebugLog($"Serializing {packet.Type} capability with generic handler", 
                             Simulator.Client);
 
                         Simulator.Client.Network.EnqueueIncoming(incomingPacket);
                     }
                     else
                     {
-                        Logger.Log("No Packet or Message handler exists for " + eventName, 
+                        Logger.Log($"No Packet or Message handler exists for {eventName}", 
                             Helpers.LogLevel.Warning);
                     }
                 }

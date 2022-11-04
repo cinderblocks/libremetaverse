@@ -92,7 +92,7 @@ namespace LibreMetaverse
                 abuseCategoriesCap = builder.Uri;
             }
 
-            await Client.HttpCapsClient.GetRequestAsync(abuseCategoriesCap,
+            await Client.HttpCapsClient.GetRequestAsync(abuseCategoriesCap, CancellationToken.None, 
                 (response, data, error) =>
                 {
                     if (error != null)
@@ -112,7 +112,7 @@ namespace LibreMetaverse
                                 row => row["category"].AsString());
                         }
                     }
-                }, null, CancellationToken.None);
+                });
 
             return reportCategories;
         }
@@ -156,7 +156,7 @@ namespace LibreMetaverse
                 : Client.Network.CurrentSim.Caps.CapabilityURI("SendUserReport");
             if (userReportCap != null)
             {
-                _ = Client.HttpCapsClient.PostRequestAsync(userReportCap, OSDFormat.Xml, report,
+                _ = Client.HttpCapsClient.PostRequestAsync(userReportCap, OSDFormat.Xml, report, CancellationToken.None, 
                     (response, data, error) =>
                     {
                         if (error != null)
@@ -167,7 +167,7 @@ namespace LibreMetaverse
                             SendUserReportLegacy(reportType, category, screenshotId, objectId, abuserId,
                                 abuseRegionName, abuseRegionId, pos, summary, details);
                         }
-                    }, null, CancellationToken.None);
+                    });
             }
             else
             {

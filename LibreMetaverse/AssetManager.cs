@@ -28,6 +28,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using LibreMetaverse;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Assets;
@@ -1096,7 +1097,8 @@ namespace OpenMetaverse
             }
             if (cap != null)
             {
-                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), (response, data, error) =>
+                Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), CancellationToken.None,
+                    (response, data, error) =>
                 {
                     if (error == null)
                     {
@@ -1118,8 +1120,8 @@ namespace OpenMetaverse
                             if (uploadUrl != null)
                             {
                                 // POST the asset data
-                                _ = Client.HttpCapsClient.PostRequestAsync(uploadUrl, "application/octet-stream", textureData,
-                                    (responseMessage, responseData, except) =>
+                                Task req = Client.HttpCapsClient.PostRequestAsync(uploadUrl, "application/octet-stream", textureData, 
+                                    CancellationToken.None, (responseMessage, responseData, except) =>
                                     {
                                         if (except != null)
                                         {
@@ -1143,7 +1145,7 @@ namespace OpenMetaverse
 
                                         Logger.Log("Bake upload failed during asset upload", Helpers.LogLevel.Warning, Client);
                                         callback(UUID.Zero);
-                                    }, null, CancellationToken.None);
+                                    });
                                 return;
                             }
                         }
@@ -1151,7 +1153,7 @@ namespace OpenMetaverse
 
                     Logger.Log("Bake upload failed during uploader retrieval", Helpers.LogLevel.Warning, Client);
                     callback(UUID.Zero);
-                }, null, CancellationToken.None);
+                });
             }
             else
             {

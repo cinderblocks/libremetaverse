@@ -1434,8 +1434,8 @@ namespace OpenMetaverse
 
                 UpdateLoginStatus(LoginStatus.ConnectingToLogin,
                     $"Logging in as {loginParams.FirstName} {loginParams.LastName}...");
-                Task loginReq = Client.HttpCapsClient.PostRequestAsync(loginUri, OSDFormat.Xml, loginLLSD,
-                    LoginReplyLLSDHandler, null, CancellationToken.None);
+                Task loginReq = Client.HttpCapsClient.PostRequestAsync(loginUri, OSDFormat.Xml, loginLLSD, 
+                    CancellationToken.None, LoginReplyLLSDHandler);
 
                 #endregion
             }

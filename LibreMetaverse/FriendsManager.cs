@@ -529,7 +529,7 @@ namespace OpenMetaverse
             };
             acceptFriendshipCap = builder.Uri;
 
-            _ = Client.HttpCapsClient.PostRequestAsync(acceptFriendshipCap, OSDFormat.Xml, new OSD(),
+            _ = Client.HttpCapsClient.PostRequestAsync(acceptFriendshipCap, OSDFormat.Xml, new OSD(), CancellationToken.None,
                 (response, data, error) =>
                 {
                     if (error != null)
@@ -553,7 +553,7 @@ namespace OpenMetaverse
                         }
                         Client.Avatars.RequestAvatarName(fromAgentID);
                     }
-                }, null, CancellationToken.None);
+                });
         }
 
         /// <summary>
@@ -603,7 +603,7 @@ namespace OpenMetaverse
             };
             declineFriendshipCap = builder.Uri;
 
-            _ = Client.HttpCapsClient.DeleteRequestAsync(declineFriendshipCap, OSDFormat.Xml, new OSD(),
+            _ = Client.HttpCapsClient.DeleteRequestAsync(declineFriendshipCap, OSDFormat.Xml, new OSD(), CancellationToken.None,
                 (response, data, error) =>
                 {
                     if (error != null)
@@ -621,7 +621,7 @@ namespace OpenMetaverse
                             FriendRequests.Remove(fromAgentID);
                         }
                     }
-                }, null, CancellationToken.None);
+                });
         }
 
         /// <summary>

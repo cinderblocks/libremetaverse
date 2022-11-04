@@ -38,6 +38,7 @@ using OpenMetaverse.Http;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
 using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace LibreMetaverse.Voice
 {
@@ -315,8 +316,8 @@ namespace LibreMetaverse.Voice
 
                     if (cap != null)
                     {
-                        _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSDMap(),
-                            callback, null, CancellationToken.None);
+                        Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSDMap(),
+                            CancellationToken.None, callback);
 
                         return true;
                     }

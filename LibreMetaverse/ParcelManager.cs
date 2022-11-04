@@ -30,12 +30,12 @@ using System.Threading;
 using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
-using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Messages.Linden;
 using System.Threading.Tasks;
+using LibreMetaverse;
 
 namespace OpenMetaverse
 {
@@ -618,7 +618,7 @@ namespace OpenMetaverse
             Uri cap = simulator.Caps.CapabilityURI("ParcelPropertiesUpdate");
             if (cap != null)
             {
-                ParcelPropertiesUpdateMessage req = new ParcelPropertiesUpdateMessage
+                ParcelPropertiesUpdateMessage payload = new ParcelPropertiesUpdateMessage
                 {
                     AuthBuyerID = AuthBuyerID,
                     Category = Category,
@@ -649,10 +649,9 @@ namespace OpenMetaverse
                     AnyAVSounds = AnyAVSounds,
                     GroupAVSounds = GroupAVSounds
                 };
-                OSDMap body = req.Serialize();
 
-                _ = client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(), 
-                    null, null, CancellationToken.None);
+                Task req = client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(),
+                    CancellationToken.None, null);
             }
             else // lludp fallback
             {
@@ -1677,9 +1676,8 @@ namespace OpenMetaverse
                 try
                 {
                     OSD res = null;
-                    await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(),
-                            (response, data, error) => res = OSDParser.Deserialize(data),
-                            null, CancellationToken.None);
+                    await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), CancellationToken.None,
+                            (response, data, error) => res = OSDParser.Deserialize(data));
 
                     if (res is OSDMap result)
                     {
@@ -1711,7 +1709,7 @@ namespace OpenMetaverse
                 LandResourcesRequest req = new LandResourcesRequest { ParcelID = parcelID };
                 Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("LandResources");
                 Task httpReq = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(),
-                    (httpResponse, data, error) =>
+                    CancellationToken.None, (httpResponse, data, error) =>
                     {
                         try
                         {
@@ -1727,8 +1725,8 @@ namespace OpenMetaverse
                             OSD summaryResponse = null;
                             AsyncHelper.Sync(() => Client.HttpCapsClient.GetRequestAsync(
                                 Client.Network.CurrentSim.Caps.CapabilityURI("ScriptResourceSummary"),
-                                (response, data, err) => summaryResponse = OSDParser.Deserialize(data),
-                                null, CancellationToken.None));
+                                CancellationToken.None,
+                                (response, data, err) => summaryResponse = OSDParser.Deserialize(data)));
 
                             LandResourcesInfo resInfo = new LandResourcesInfo();
                             resInfo.Deserialize((OSDMap)summaryResponse);
@@ -1738,8 +1736,8 @@ namespace OpenMetaverse
                                 OSD detailResponse = null;
                                 AsyncHelper.Sync(() => Client.HttpCapsClient.GetRequestAsync(
                                     Client.Network.CurrentSim.Caps.CapabilityURI("ScriptResourceDetails"),
-                                    (response, data, err) => detailResponse = OSDParser.Deserialize(data),
-                                    null, CancellationToken.None));
+                                    CancellationToken.None,
+                                    (response, data, err) => detailResponse = OSDParser.Deserialize(data)));
 
                                 resInfo.Deserialize((OSDMap)detailResponse);
                             }
@@ -1751,7 +1749,7 @@ namespace OpenMetaverse
                             Logger.Log("Failed fetching land resources", Helpers.LogLevel.Error, Client, ex);
                             callback(false, null);
                         }
-                    }, null, CancellationToken.None);
+                    });
             }
             catch (Exception ex)
             {

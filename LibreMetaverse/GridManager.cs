@@ -31,6 +31,7 @@ using System.Threading;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Packets;
 using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace OpenMetaverse
 {
@@ -418,7 +419,7 @@ namespace OpenMetaverse
 		}
 
         /// <summary>
-        /// 
+        /// Request a map layer
         /// </summary>
         /// <param name="layer"></param>
         public void RequestMapLayer(GridLayerType layer)
@@ -426,9 +427,9 @@ namespace OpenMetaverse
             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("MapLayer");
             if (cap != null)
             {
-                OSDMap body = new OSDMap {["Flags"] = OSD.FromInteger((int) layer)};
-                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, body, MapLayerResponseHandler,
-                    null, CancellationToken.None);
+                OSDMap payload = new OSDMap {["Flags"] = OSD.FromInteger((int) layer)};
+                Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, 
+                    CancellationToken.None, MapLayerResponseHandler);
             }
         }
 

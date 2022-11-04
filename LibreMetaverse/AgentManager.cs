@@ -1621,8 +1621,7 @@ namespace OpenMetaverse
                 return;
             }
 
-            _ = Client.HttpCapsClient.GetRequestAsync(offlineMsgsCap, OfflineMessageHandlerCallback,
-                null, CancellationToken.None);
+            Task req = Client.HttpCapsClient.GetRequestAsync(offlineMsgsCap, CancellationToken.None, OfflineMessageHandlerCallback);
         }
 
         /// <summary>
@@ -1921,7 +1920,7 @@ namespace OpenMetaverse
                 ChatSessionAcceptInvitation acceptInvite = new ChatSessionAcceptInvitation {SessionID = session_id};
 
                 Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, acceptInvite.Serialize(),
-                    null, null, CancellationToken.None);
+                    CancellationToken.None, null);
                 req.ContinueWith(t =>
                 {
                     lock (GroupChatSessions.Dictionary)
@@ -1966,8 +1965,8 @@ namespace OpenMetaverse
 
                 startConference.SessionID = tmp_session_id;
 
-                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, startConference.Serialize(),
-                    null, null, CancellationToken.None);
+                Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, startConference.Serialize(), 
+                    CancellationToken.None, null);
             }
             else
             {
@@ -3722,7 +3721,8 @@ namespace OpenMetaverse
             try
             {
                 Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("AttachmentResources");
-                _ = Client.HttpCapsClient.GetRequestAsync(cap, (response, data, error) =>
+                Task req = Client.HttpCapsClient.GetRequestAsync(cap, CancellationToken.None, 
+                    (response, data, error) =>
                 {
                     if (error != null)
                     {
@@ -3740,7 +3740,7 @@ namespace OpenMetaverse
                         Logger.Log("Failed fetching AttachmentResources", Helpers.LogLevel.Error, Client, ex);
                         callback(false, null);
                     }
-                }, null, CancellationToken.None);
+                });
             }
             catch (Exception ex)
             {
@@ -3777,8 +3777,8 @@ namespace OpenMetaverse
                 NewDisplayName = newName
             };
 
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(),
-                null, null, CancellationToken.None);
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), 
+                CancellationToken.None, null);
         }
 
         /// <summary>
@@ -3797,8 +3797,8 @@ namespace OpenMetaverse
                 };
 
                 Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentLanguage");
-                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), 
-                    null, null, CancellationToken.None);
+                Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), 
+                    CancellationToken.None, null);
             }
             catch (Exception ex)
             {
@@ -3826,14 +3826,15 @@ namespace OpenMetaverse
         {
             if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim.Caps == null) { return; }
 
-            OSDMap req = new OSDMap
+            OSDMap payload = new OSDMap
             {
                 ["access_prefs"] = new OSDMap { ["max"] = access }
             };
             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentInformation");
             if (cap == null) { return; }
 
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req, (response, data, error) =>
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None,
+                (response, data, error) =>
                 {
                     bool success = true;
                     OSD result = OSDParser.Deserialize(data);
@@ -3858,7 +3859,7 @@ namespace OpenMetaverse
                         try { callback(new AgentAccessEventArgs(success, AgentAccess)); }
                         catch { } // *TODO: So gross
                     }
-                }, null, CancellationToken.None);
+                });
         }
 
         /// <summary>
@@ -3874,7 +3875,8 @@ namespace OpenMetaverse
             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("AgentPreferences");
             if (cap == null) { return; }
 
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, postData, (response, data, error) =>
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, postData, CancellationToken.None,
+                (response, data, error) =>
             {
                 OSD result = OSDParser.Deserialize(data);
 
@@ -3892,7 +3894,7 @@ namespace OpenMetaverse
                     var confirmedHeight = resultMap["hover_height"];
                     Logger.Log($"Hover height set to {confirmedHeight}", Helpers.LogLevel.Debug, Client);
                 }
-            }, null, CancellationToken.None);
+            });
         }
 
         #endregion Misc
@@ -4764,15 +4766,14 @@ namespace OpenMetaverse
                 throw new Exception("ChatSessionRequest capability is not currently available");
             }
 
-            ChatSessionRequestMuteUpdate req = new ChatSessionRequestMuteUpdate
+            ChatSessionRequestMuteUpdate payload = new ChatSessionRequestMuteUpdate
             {
                 RequestKey = key,
                 RequestValue = moderate,
                 SessionID = sessionID,
                 AgentID = memberID
             };
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(), 
-                null, null, CancellationToken.None);
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(), CancellationToken.None, null);
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
