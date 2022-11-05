@@ -18,7 +18,7 @@ https://github.com/cinderblocks/libremetaverse
 
 ### Linux/macOS
 
--  Make sure you have at least `dotnet` installed, with a valid net5.0/net6.0 SDK _and_ runtime available!
+-  Make sure you have at least `dotnet` installed, with a valid SDK _and_ runtime of at least .NET Core 3.1 available!
 
 -  This update includes a solution file to skip the GUI applications (which will run only under Windows anyway). Use `LibreMetaverse.ReleaseNoGUI.sln` instead
 
@@ -33,15 +33,18 @@ If all goes well, you should now have all dependent packages properly installed.
 
 ### Windows
 
-For Windows, you should use the default `LibreMetaverse.sln`, just as before (untested). For command-line compilation under Windows, if you wish to skip the GUI applications, the instructions are the same as above. Use the default `LibreMetaverse.sln` if you wish to install those as well.
+The `dotnet` utility is cross-platform so compilation is no different than on Linux/macOS. You may, however, opt to use Visual Studio as you would any other .NET application.
 
 ### GUI support under Linux/macOS
 
-Currently unavailable, although there are some reports that this might be possible using a Windows emulator, such as Mono itself, or possibly Wine. This will require some project configuration changes, and was _not_ tested!
+LibreMetaverse.GUI is not available on Linux/macOS due to Microsoft's lack of support for GDI/WinForms on non-Windows platforms. 
+They may work using Mono's implemention and can always be emulated using a product like Wine.
+
+The GUI library is being phased out and eventually being replaced by a more cross-platform framework like Avalonia or MAUI.
 
 ## Note: end-of-life support for .NET 5.0
 
-Microsoft is [dropping support for .NET 5.0](https://devblogs.microsoft.com/dotnet/dotnet-5-end-of-support-update/) as of May 2022, so you should consider using .NET 6.0 instead (or, if you're wild, you can test the prerelease of .NET 7.0). The code runs flawlessly on .NET 6.0 as well (Windows GUI version untested)
+Microsoft is [dropping support for .NET 5.0](https://devblogs.microsoft.com/dotnet/dotnet-5-end-of-support-update/) as of May 2022, so you should consider using .NET 6.0 instead (or, if you're wild, you can test the prerelease of .NET 7.0). The code runs flawlessly on .NET 6.0 as well.
 
 [![LibreMetaverse NuGet-Release](https://img.shields.io/nuget/v/libremetaverse.svg?label=LibreMetaverse)](https://www.nuget.org/packages/LibreMetaverse/)  
 [![NuGet Downloads](https://img.shields.io/nuget/dt/LibreMetaverse?label=NuGet%20downloads)](https://www.nuget.org/packages/LibreMetaverse/)  
