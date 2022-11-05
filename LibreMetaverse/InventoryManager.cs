@@ -31,6 +31,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Packets;
@@ -158,7 +159,7 @@ namespace OpenMetaverse
         public delegate void ItemCreatedFromAssetCallback(bool success, string status, UUID itemID, UUID assetID);
 
         /// <summary>
-        /// 
+        /// Callback for inventory item copy
         /// </summary>
         /// <param name="item"></param>
         public delegate void ItemCopiedCallback(InventoryBase item);
@@ -1597,7 +1598,7 @@ namespace OpenMetaverse
         #region Create
 
         /// <summary>
-        /// 
+        /// Send a create item request
         /// </summary>
         /// <param name="parentFolder"></param>
         /// <param name="name"></param>
@@ -1616,7 +1617,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Send a create item request
         /// </summary>
         /// <param name="parentFolder"></param>
         /// <param name="name"></param>
@@ -1803,9 +1804,9 @@ namespace OpenMetaverse
                 (response, responseData, error) =>
                 {
                     if (responseData == null) { throw error; }
-
-                    object state = new object[] { callback, data, query };
-                    CreateItemFromAssetResponse(state, OSDParser.Deserialize(responseData), error);
+                    
+                    CreateItemFromAssetResponse(callback, data, query, 
+                        OSDParser.Deserialize(responseData), error);
                 });
         }
 
@@ -1915,7 +1916,7 @@ namespace OpenMetaverse
         #region Copy
 
         /// <summary>
-        /// 
+        /// Send a copy item request
         /// </summary>
         /// <param name="item"></param>
         /// <param name="newParent"></param>
@@ -1927,7 +1928,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Send a copy item request
         /// </summary>
         /// <param name="item"></param>
         /// <param name="newParent"></param>
@@ -1945,7 +1946,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Send a copy items request
         /// </summary>
         /// <param name="items"></param>
         /// <param name="targetFolders"></param>
@@ -2049,7 +2050,7 @@ namespace OpenMetaverse
         #region Update
 
         /// <summary>
-        /// 
+        /// Send an update item request
         /// </summary>
         /// <param name="item"></param>
         public void RequestUpdateItem(InventoryItem item)
@@ -2060,7 +2061,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Send an update items request
         /// </summary>
         /// <param name="items"></param>
         public void RequestUpdateItems(List<InventoryItem> items)
@@ -2069,7 +2070,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Send an update items request
         /// </summary>
         /// <param name="items"></param>
         /// <param name="transactionID"></param>
@@ -2149,7 +2150,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Send an upload notecard request
         /// </summary>
         /// <param name="data"></param>
         /// <param name="notecardID"></param>
@@ -2170,10 +2171,9 @@ namespace OpenMetaverse
                     (response, responseData, error) =>
                     {
                         if (responseData == null) { throw error; }
-
-                        object state = new object[]
-                            { new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), notecardID };
-                        UploadInventoryAssetResponse(state, OSDParser.Deserialize(responseData), error);
+                        
+                        UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
+                            notecardID, OSDParser.Deserialize(responseData), error);
                     });
             }
             else
@@ -2212,11 +2212,8 @@ namespace OpenMetaverse
                     {
                         if (responseData == null) { throw error; }
 
-                        object state = new object[]
-                        {
-                            new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), notecardID
-                        };
-                        UploadInventoryAssetResponse(state, OSDParser.Deserialize(responseData), error);
+                        UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
+                            notecardID, OSDParser.Deserialize(responseData), error);
                     });
             }
             else
@@ -2248,11 +2245,8 @@ namespace OpenMetaverse
                     {
                         if (responseData == null) { throw error; }
 
-                        object state = new object[]
-                        {
-                            new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), gestureID
-                        };
-                        UploadInventoryAssetResponse(state, OSDParser.Deserialize(responseData), error);
+                        UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
+                            gestureID, OSDParser.Deserialize(responseData), error);
                     });
             }
             else
@@ -2285,11 +2279,8 @@ namespace OpenMetaverse
                     {
                         if (responseData == null) { throw error; }
 
-                        object state = new object[2]
-                        {
-                            new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), itemID
-                        };
-                        UpdateScriptAgentInventoryResponse(state, OSDParser.Deserialize(responseData), error);
+                        UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), 
+                            itemID, OSDParser.Deserialize(responseData), error);
                     });
             }
             else
@@ -2326,11 +2317,8 @@ namespace OpenMetaverse
                     {
                         if (responseData == null) { throw error; }
 
-                        object state = new object[2]
-                        {
-                            new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), itemID
-                        };
-                        UpdateScriptAgentInventoryResponse(state, OSDParser.Deserialize(responseData), error);
+                        UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), 
+                            itemID, OSDParser.Deserialize(responseData), error);
                     });
             }
             else
@@ -3655,13 +3643,9 @@ namespace OpenMetaverse
             }
         }
 
-        private void CreateItemFromAssetResponse(object data, OSD result, Exception error)
+        private void CreateItemFromAssetResponse(ItemCreatedFromAssetCallback callback, byte[] itemData, OSDMap request, 
+            OSD result, Exception error)
         {
-            object[] args = (object[])data;
-            ItemCreatedFromAssetCallback callback = (ItemCreatedFromAssetCallback)args[0];
-            byte[] itemData = (byte[])args[1];
-            OSDMap request = (OSDMap)args[2];
-
             if (result == null)
             {
                 try { callback(false, error.Message, UUID.Zero, UUID.Zero); }
@@ -3697,8 +3681,8 @@ namespace OpenMetaverse
                     "application/octet-stream", itemData, CancellationToken.None,
                     (response, responseData, error) =>
                     {
-                        object state = new object[] { callback, itemData, request };
-                        CreateItemFromAssetResponse(state, OSDParser.Deserialize(responseData), error);
+                        CreateItemFromAssetResponse(callback, itemData, request, 
+                            OSDParser.Deserialize(responseData), error);
                     });
             }
             else if (status == "complete")
@@ -3733,7 +3717,7 @@ namespace OpenMetaverse
 
             // Initialize the store here so we know who owns it:
             _Store = new Inventory(Client, this, Client.Self.AgentID);
-            Logger.DebugLog("Setting InventoryRoot to " + replyData.InventoryRoot, Client);
+            Logger.DebugLog($"Setting InventoryRoot to {replyData.InventoryRoot}", Client);
             InventoryFolder rootFolder = new InventoryFolder(replyData.InventoryRoot)
             {
                 Name = String.Empty,
@@ -3755,9 +3739,9 @@ namespace OpenMetaverse
                 _Store.UpdateNodeFor(folder);
         }
 
-        private void UploadInventoryAssetResponse(object data, OSD result, Exception error)
+        private void UploadInventoryAssetResponse(KeyValuePair<InventoryUploadedAssetCallback, byte[]> kvp, 
+            UUID itemId, OSD result, Exception error)
         {
-            KeyValuePair<InventoryUploadedAssetCallback, byte[]> kvp = (KeyValuePair<InventoryUploadedAssetCallback, byte[]>)(((object[])data)[0]);
             InventoryUploadedAssetCallback callback = kvp.Key;
             byte[] itemData = (byte[])kvp.Value;
 
@@ -3776,8 +3760,7 @@ namespace OpenMetaverse
                         Task req = Client.HttpCapsClient.PostRequestAsync(uploadURL, "application/octet-stream",
                             itemData, CancellationToken.None, (response, responseData, exception) =>
                             {
-                                object state = new object[2] { kvp, (UUID)(((object[])data)[1]) };
-                                UploadInventoryAssetResponse(state, OSDParser.Deserialize(responseData), exception);
+                                UploadInventoryAssetResponse(kvp, itemId, OSDParser.Deserialize(responseData), exception);
                             });
                     }
                     else
@@ -3791,9 +3774,9 @@ namespace OpenMetaverse
                     if (contents.ContainsKey("new_asset"))
                     {
                         // Request full item update so we keep store in sync
-                        RequestFetchInventory((UUID)(((object[])data)[1]), contents["new_asset"].AsUUID());
+                        RequestFetchInventory(itemId, contents["new_asset"].AsUUID());
 
-                        try { callback(true, String.Empty, (UUID)(((object[])data)[1]), contents["new_asset"].AsUUID()); }
+                        try { callback(true, string.Empty, itemId, contents["new_asset"].AsUUID()); }
                         catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
                     }
                     else
@@ -3826,15 +3809,16 @@ namespace OpenMetaverse
             }
         }
 
-        private void UpdateScriptAgentInventoryResponse(object data, OSD result, Exception error)
+        private void UpdateScriptAgentInventoryResponse(KeyValuePair<ScriptUpdatedCallback, byte[]> kvpCb, 
+            UUID itemId, OSD result, Exception error)
         {
-            KeyValuePair<ScriptUpdatedCallback, byte[]> kvp = (KeyValuePair<ScriptUpdatedCallback, byte[]>)(((object[])data)[0]);
-            ScriptUpdatedCallback callback = kvp.Key;
-            byte[] itemData = (byte[])kvp.Value;
+            ScriptUpdatedCallback callback = kvpCb.Key;
+            byte[] itemData = (byte[])kvpCb.Value;
 
             if (result == null)
             {
-                try { callback(false, error.Message, false, null, UUID.Zero, UUID.Zero); }
+                try { callback(false, error.Message, false, 
+                    null, UUID.Zero, UUID.Zero); }
                 catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
                 return;
             }
@@ -3849,8 +3833,8 @@ namespace OpenMetaverse
                 Task req = Client.HttpCapsClient.PostRequestAsync(new Uri(uploadURL), "application/octet-stream",
                     itemData, CancellationToken.None, (response, responseData, exception) =>
                     {
-                        object state = new object[2] { kvp, (UUID)(((object[])data)[1]) };
-                        UpdateScriptAgentInventoryResponse(state, OSDParser.Deserialize(responseData), exception);
+                        UpdateScriptAgentInventoryResponse(kvpCb, itemId, 
+                            OSDParser.Deserialize(responseData), exception);
                     });
             }
             else if (status == "complete" && callback != null)
@@ -3858,7 +3842,7 @@ namespace OpenMetaverse
                 if (contents.ContainsKey("new_asset"))
                 {
                     // Request full item update so we keep store in sync
-                    RequestFetchInventory((UUID)(((object[])data)[1]), contents["new_asset"].AsUUID());
+                    RequestFetchInventory(itemId, contents["new_asset"].AsUUID());
 
                     try
                     {
@@ -3875,20 +3859,22 @@ namespace OpenMetaverse
                             status,
                             contents["compiled"].AsBoolean(),
                             compileErrors,
-                            (UUID)(((object[])data)[1]),
+                            itemId,
                             contents["new_asset"].AsUUID());
                     }
                     catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
                 }
                 else
                 {
-                    try { callback(false, "Failed to parse asset UUID", false, null, UUID.Zero, UUID.Zero); }
+                    try { callback(false, "Failed to parse asset UUID", 
+                        false, null, UUID.Zero, UUID.Zero); }
                     catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
                 }
             }
             else if (callback != null)
             {
-                try { callback(false, status, false, null, UUID.Zero, UUID.Zero); }
+                try { callback(false, status, false, 
+                    null, UUID.Zero, UUID.Zero); }
                 catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
             }
         }
