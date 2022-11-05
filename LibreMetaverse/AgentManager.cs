@@ -38,6 +38,8 @@ using OpenMetaverse.Assets;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace OpenMetaverse
 {
@@ -1619,9 +1621,7 @@ namespace OpenMetaverse
                 return;
             }
 
-            var request = new CapsClient(offlineMsgsCap);
-            request.OnComplete += OfflineMessageHandlerCallback;
-            request.GetRequestAsync(Client.Settings.CAPS_TIMEOUT);
+            Task req = Client.HttpCapsClient.GetRequestAsync(offlineMsgsCap, CancellationToken.None, OfflineMessageHandlerCallback);
         }
 
         /// <summary>
@@ -1764,6 +1764,7 @@ namespace OpenMetaverse
         public void InstantMessageGroup(string fromName, UUID groupID, string message)
         {
             lock (GroupChatSessions.Dictionary)
+            {
                 if (GroupChatSessions.ContainsKey(groupID))
                 {
                     ImprovedInstantMessagePacket im = new ImprovedInstantMessagePacket
@@ -1796,6 +1797,7 @@ namespace OpenMetaverse
                     Logger.Log("No Active group chat session appears to exist, use RequestJoinGroupChat() to join one",
                         Helpers.LogLevel.Error, Client);
                 }
+            }
         }
 
         /// <summary>
@@ -1864,8 +1866,10 @@ namespace OpenMetaverse
             Client.Network.SendPacket(im);
 
             lock (GroupChatSessions.Dictionary)
+            {
                 if (GroupChatSessions.ContainsKey(groupID))
                     GroupChatSessions.Remove(groupID);
+            }
         }
 
         /// <summary>
@@ -1910,15 +1914,22 @@ namespace OpenMetaverse
                 throw new Exception("ChatSessionRequest capability is not currently available");
             }
 
-            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("ChatSessionRequest");
-            if (request != null)
+            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("ChatSessionRequest");
+            if (cap != null)
             {
                 ChatSessionAcceptInvitation acceptInvite = new ChatSessionAcceptInvitation {SessionID = session_id};
-                request.PostRequestAsync(acceptInvite.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
 
-                lock (GroupChatSessions.Dictionary)
-                    if (!GroupChatSessions.ContainsKey(session_id))
-                        GroupChatSessions.Add(session_id, new List<ChatSessionMember>());
+                Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, acceptInvite.Serialize(),
+                    CancellationToken.None, null);
+                req.ContinueWith(t =>
+                {
+                    lock (GroupChatSessions.Dictionary)
+                    {
+                        if (!GroupChatSessions.ContainsKey(session_id))
+                            GroupChatSessions.Add(session_id, new List<ChatSessionMember>());
+                    }
+                });
+
             }
             else
             {
@@ -1938,22 +1949,24 @@ namespace OpenMetaverse
             {
                 throw new Exception("ChatSessionRequest capability is not currently available");
             }
-            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("ChatSessionRequest");
-            if (request != null)
+
+            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("ChatSessionRequest");
+            if (cap != null)
             {
                 ChatSessionRequestStartConference startConference = new ChatSessionRequestStartConference
                 {
                     AgentsBlock = new UUID[participants.Count]
                 };
 
-                for (int i = 0; i < participants.Count; i++)
+                for (var i = 0; i < participants.Count; i++)
                 {
                     startConference.AgentsBlock[i] = participants[i];
                 }
 
                 startConference.SessionID = tmp_session_id;
 
-                request.PostRequestAsync(startConference.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, startConference.Serialize(), 
+                    CancellationToken.None, null);
             }
             else
             {
@@ -3684,7 +3697,7 @@ namespace OpenMetaverse
         /// Delete a classified ad
         /// </summary>
         /// <param name="classifiedID">The classified ads ID</param>
-        public void DeleteClassfied(UUID classifiedID)
+        public void DeleteClassified(UUID classifiedID)
         {
             ClassifiedDeletePacket classified = new ClassifiedDeletePacket
             {
@@ -3707,16 +3720,17 @@ namespace OpenMetaverse
         {
             try
             {
-                CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("AttachmentResources");
-
-                request.OnComplete += delegate(CapsClient client, OSD result, Exception error)
+                Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("AttachmentResources");
+                Task req = Client.HttpCapsClient.GetRequestAsync(cap, CancellationToken.None, 
+                    (response, data, error) =>
                 {
+                    if (error != null)
+                    {
+                        callback(false, null);
+                    }
                     try
                     {
-                        if (result == null || error != null)
-                        {
-                            callback(false, null);
-                        }
+                        OSD result = OSDParser.Deserialize(data);
                         AttachmentResourcesMessage info = AttachmentResourcesMessage.FromOSD(result);
                         callback(true, info);
 
@@ -3726,9 +3740,7 @@ namespace OpenMetaverse
                         Logger.Log("Failed fetching AttachmentResources", Helpers.LogLevel.Error, Client, ex);
                         callback(false, null);
                     }
-                };
-
-                request.GetRequestAsync(Client.Settings.CAPS_TIMEOUT);
+                });
             }
             catch (Exception ex)
             {
@@ -3746,16 +3758,15 @@ namespace OpenMetaverse
         {
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
             {
-                Logger.Log("Not connected to simulator. " +
-                           "Unable to set display name.",
+                Logger.Log("Not connected to simulator to set display name.",
                     Helpers.LogLevel.Warning, Client);
                 return;
             }
 
-            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("SetDisplayName");
-            if (request == null)
+            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("SetDisplayName");
+            if (cap == null)
             {
-                Logger.Log("Unable to obtain capability. Unable to set display name.", 
+                Logger.Log("Unable to obtain capability to set display name.",
                     Helpers.LogLevel.Warning, Client);
                 return;
             }
@@ -3766,7 +3777,8 @@ namespace OpenMetaverse
                 NewDisplayName = newName
             };
 
-            request.PostRequestAsync(msg.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), 
+                CancellationToken.None, null);
         }
 
         /// <summary>
@@ -3784,8 +3796,9 @@ namespace OpenMetaverse
                     LanguagePublic = isPublic
                 };
 
-                CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("UpdateAgentLanguage");
-                request?.PostRequestAsync(msg.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentLanguage");
+                Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), 
+                    CancellationToken.None, null);
             }
             catch (Exception ex)
             {
@@ -3811,44 +3824,42 @@ namespace OpenMetaverse
         /// <param name="callback">Callback function</param>
         public void SetAgentAccess(string access, AgentAccessCallback callback)
         {
-            if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim.Caps == null) return;
+            if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim.Caps == null) { return; }
 
-            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("UpdateAgentInformation");
-            if (request == null) return;
-
-            request.OnComplete += (client, result, error) =>
-            {
-                bool success = true;
-
-                if (error == null && result is OSDMap osdMap)
-                {
-                    var map = osdMap["access_prefs"];
-                    AgentAccess = ((OSDMap)map)["max"];
-                    Logger.Log($"Max maturity access set to {AgentAccess}", Helpers.LogLevel.Info, Client );
-                }
-                else if (error == null)
-                {
-                    Logger.Log($"Max maturity unchanged at {AgentAccess}", Helpers.LogLevel.Info, Client);
-                }
-                else
-                {
-                    Logger.Log("Failed setting max maturity access.", Helpers.LogLevel.Warning, Client);
-                    success = false;
-                }
-                
-                if (callback != null)
-                {
-                    try { callback(new AgentAccessEventArgs(success, AgentAccess)); }
-                    catch { } // *TODO: So gross
-                }
-
-            };
-            OSDMap req = new OSDMap
+            OSDMap payload = new OSDMap
             {
                 ["access_prefs"] = new OSDMap { ["max"] = access }
             };
+            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentInformation");
+            if (cap == null) { return; }
 
-            request.PostRequestAsync(req, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None,
+                (response, data, error) =>
+                {
+                    bool success = true;
+                    OSD result = OSDParser.Deserialize(data);
+                    if (error == null && result is OSDMap osdMap)
+                    {
+                        var map = osdMap["access_prefs"];
+                        AgentAccess = ((OSDMap)map)["max"];
+                        Logger.Log($"Max maturity access set to {AgentAccess}", Helpers.LogLevel.Info, Client);
+                    }
+                    else if (error == null)
+                    {
+                        Logger.Log($"Max maturity unchanged at {AgentAccess}", Helpers.LogLevel.Info, Client);
+                    }
+                    else
+                    {
+                        Logger.Log("Failed setting max maturity access.", Helpers.LogLevel.Warning, Client);
+                        success = false;
+                    }
+
+                    if (callback != null)
+                    {
+                        try { callback(new AgentAccessEventArgs(success, AgentAccess)); }
+                        catch { } // *TODO: So gross
+                    }
+                });
         }
 
         /// <summary>
@@ -3857,37 +3868,33 @@ namespace OpenMetaverse
         /// <param name="hoverHeight">Hover height [-2.0, 2.0]</param>
         public void SetHoverHeight(double hoverHeight)
         {
-            if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim.Caps == null)
+            if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim.Caps == null) { return; }
+
+            var postData = new OSDMap { ["hover_height"] = hoverHeight };
+
+            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("AgentPreferences");
+            if (cap == null) { return; }
+
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, postData, CancellationToken.None,
+                (response, data, error) =>
             {
-                return;
-            }
+                OSD result = OSDParser.Deserialize(data);
 
-            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("AgentPreferences");
-            if (request == null) { return; }
-
-            request.OnComplete += (client, result, error) =>
-            {
-                var resultMap = result as OSDMap;
-
-                if(error != null)
+                if (error != null)
                 {
                     Logger.Log($"Failed to set hover height: {error}.", Helpers.LogLevel.Warning, Client);
                 }
-                else if (resultMap == null)
+                else if (!(result is OSDMap resultMap))
                 {
-                    Logger.Log($"Failed to set hover height: Expected {nameof(OSDMap)} response, but got {result.Type}", Helpers.LogLevel.Warning, Client);
+                    Logger.Log($"Failed to set hover height: Expected {nameof(OSDMap)} response, but got {result.Type}",
+                        Helpers.LogLevel.Warning, Client);
                 }
                 else
                 {
                     var confirmedHeight = resultMap["hover_height"];
-                    Logger.Log($"Hover height set to {confirmedHeight}", Helpers.LogLevel.Info, Client);
+                    Logger.Log($"Hover height set to {confirmedHeight}", Helpers.LogLevel.Debug, Client);
                 }
-            };
-
-            var postData = new OSDMap {
-                ["hover_height"] = hoverHeight
-            };
-            request.PostRequestAsync(postData, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+            });
         }
 
         #endregion Misc
@@ -3930,20 +3937,21 @@ namespace OpenMetaverse
             }
         }
 
-        protected void OfflineMessageHandlerCallback(CapsClient client, OSD response, Exception error)
+        protected void OfflineMessageHandlerCallback(HttpResponseMessage response, byte[] data, Exception error)
         {
             if (error != null) {
                 Logger.Log($"Failed to retrieve offline messages from the simulator: {error.Message}",
                     Helpers.LogLevel.Warning);
                 RetrieveInstantMessagesLegacy();
-                return; 
+                return;
             }
 
-            if (m_InstantMessage == null) return; // don't bother if we don't have any listeners
+            if (m_InstantMessage == null) { return; } // don't bother if we don't have any listeners
 
-            if (!(response is OSDMap respMap) || respMap.Count == 0 || respMap.ContainsKey("messages"))
+            OSD result = OSDParser.Deserialize(data);
+            if (!(result is OSDMap respMap) || respMap.Count == 0 || respMap.ContainsKey("messages"))
             {
-                Logger.Log("Failed to retrieve offline messages because the capability returned some goofy shit.",
+                Logger.Log("Failed to retrieve offline messages because the capability returned invalid shiz.",
                     Helpers.LogLevel.Warning);
                 RetrieveInstantMessagesLegacy();
                 return;
@@ -3977,7 +3985,7 @@ namespace OpenMetaverse
                     message.GroupIM = msg.ContainsKey("from_group") && msg["from_group"].AsBoolean();
 
                     OnInstantMessage(new InstantMessageEventArgs(message, null));
-                }                
+                }
             }
         }
 
@@ -4236,10 +4244,10 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("Got EstablishAgentCommunication for " + sim,
+                Logger.Log($"Got EstablishAgentCommunication for {sim}",
                     Helpers.LogLevel.Info, Client);
 
-                sim.SetSeedCaps(msg.SeedCapability.ToString());
+                sim.SetSeedCaps(msg.SeedCapability);
             }
         }
 
@@ -4341,7 +4349,7 @@ namespace OpenMetaverse
                 TeleportFinishPacket finish = (TeleportFinishPacket)packet;
 
                 flags = (TeleportFlags)finish.Info.TeleportFlags;
-                string seedcaps = Utils.BytesToString(finish.Info.SeedCapability);
+                Uri seedcaps = new Uri(Utils.BytesToString(finish.Info.SeedCapability));
                 finished = true;
 
                 Logger.DebugLog($"TeleportFinish received, Flags: {flags}", Client);
@@ -4525,7 +4533,7 @@ namespace OpenMetaverse
             Logger.DebugLog($"Crossed in to new region area, attempting to connect to {endPoint}", Client);
 
             Simulator oldSim = Client.Network.CurrentSim;
-            Simulator newSim = Client.Network.Connect(endPoint, crossed.RegionHandle, true, crossed.SeedCapability.ToString());
+            Simulator newSim = Client.Network.Connect(endPoint, crossed.RegionHandle, true, crossed.SeedCapability);
 
             if (newSim != null)
             {
@@ -4553,7 +4561,7 @@ namespace OpenMetaverse
         {
             Packet packet = e.Packet;
             CrossedRegionPacket crossing = (CrossedRegionPacket)packet;
-            string seedCap = Utils.BytesToString(crossing.RegionData.SeedCapability);
+            Uri seedCap = new Uri(Utils.BytesToString(crossing.RegionData.SeedCapability));
             IPEndPoint endPoint = new IPEndPoint(crossing.RegionData.SimIP, crossing.RegionData.SimPort);
 
             Logger.DebugLog($"Crossed in to new region area, attempting to connect to {endPoint}", Client);
@@ -4608,8 +4616,10 @@ namespace OpenMetaverse
             if (msg.Success)
             {
                 lock (GroupChatSessions.Dictionary)
+                {
                     if (!GroupChatSessions.ContainsKey(msg.SessionID))
                         GroupChatSessions.Add(msg.SessionID, new List<ChatSessionMember>());
+                }
             }
 
             OnGroupChatJoined(new GroupChatJoinedEventArgs(msg.SessionID, msg.SessionName, msg.TempSessionID, msg.Success));
@@ -4626,8 +4636,10 @@ namespace OpenMetaverse
             ChatterBoxSessionAgentListUpdatesMessage msg = (ChatterBoxSessionAgentListUpdatesMessage)message;
 
             lock (GroupChatSessions.Dictionary)
+            {
                 if (!GroupChatSessions.ContainsKey(msg.SessionID))
                     GroupChatSessions.Add(msg.SessionID, new List<ChatSessionMember>());
+            }
 
             foreach (ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock t in msg.Updates)
             {
@@ -4657,8 +4669,10 @@ namespace OpenMetaverse
                     else if (t.Transition.Equals("LEAVE"))
                     {
                         if (fndMbr.AvatarKey != UUID.Zero)
+                        {
                             lock (GroupChatSessions.Dictionary)
                                 GroupChatSessions[msg.SessionID].Remove(fndMbr);
+                        }
 
                         if (m_ChatSessionMemberLeft != null)
                         {
@@ -4745,24 +4759,21 @@ namespace OpenMetaverse
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
                 throw new Exception("ChatSessionRequest capability is not currently available");
 
-            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("ChatSessionRequest");
+            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("ChatSessionRequest");
 
-            if (request != null)
-            {
-                ChatSessionRequestMuteUpdate req = new ChatSessionRequestMuteUpdate
-                {
-                    RequestKey = key,
-                    RequestValue = moderate,
-                    SessionID = sessionID,
-                    AgentID = memberID
-                };
-
-                request.PostRequestAsync(req.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
-            }
-            else
+            if (cap == null)
             {
                 throw new Exception("ChatSessionRequest capability is not currently available");
             }
+
+            ChatSessionRequestMuteUpdate payload = new ChatSessionRequestMuteUpdate
+            {
+                RequestKey = key,
+                RequestValue = moderate,
+                SessionID = sessionID,
+                AgentID = memberID
+            };
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(), CancellationToken.None, null);
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>

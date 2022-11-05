@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2022, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -27,18 +28,15 @@
 using System;
 using System.Collections;
 using System.Net;
+using System.Net.Http;
 using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.Http
 {
     public class EventQueueClient
     {
-        private const string REQUEST_CONTENT_TYPE = "application/llsd+xml";
-
-        /// <summary>Viewer defauls to 30 for main grid, 60 for others</summary>
-        public const int REQUEST_TIMEOUT = 60 * 1000;
-
         /// <summary>For exponential backoff on error.</summary>
         public const int REQUEST_BACKOFF_SECONDS = 15 * 1000; // 15 seconds start
         public const int REQUEST_BACKOFF_SECONDS_INC = 5 * 1000; // 5 seconds increase
@@ -55,26 +53,29 @@ namespace OpenMetaverse.Http
         protected Uri _Address;
         protected bool _Dead;
         protected bool _Running;
-        protected HttpWebRequest _Request;
+        private GridClient _Client;
+        private CancellationTokenSource _HttpCts;
 
         /// <summary>Number of times we've received an unknown CAPS exception in series.</summary>
         private int _errorCount;
 
-        public EventQueueClient(Uri eventQueueLocation)
+        public EventQueueClient(Uri eventQueueLocation, GridClient client)
         {
             _Address = eventQueueLocation;
+            _Client = client;
         }
 
         public void Start()
         {
             _Dead = false;
+            _Running = true;
 
             // Create an EventQueueGet request
-            OSDMap request = new OSDMap {["ack"] = new OSD(), ["done"] = OSD.FromBoolean(false)};
+            OSDMap payload = new OSDMap {["ack"] = new OSD(), ["done"] = OSD.FromBoolean(false)};
 
-            byte[] postData = OSDParser.SerializeLLSDXmlBytes(request);
-
-            _Request = CapsBase.PostDataAsync(_Address, null, REQUEST_CONTENT_TYPE, postData, REQUEST_TIMEOUT, OpenWriteHandler, null, RequestCompletedHandler);
+            _HttpCts = new CancellationTokenSource();
+            Task req = _Client.HttpCapsClient.PostRequestAsync(_Address, OSDFormat.Xml, payload, _HttpCts.Token,
+                RequestCompletedHandler, null, ConnectedResponseHandler);
         }
 
         public void Stop(bool immediate)
@@ -82,17 +83,18 @@ namespace OpenMetaverse.Http
             _Dead = true;
 
             if (immediate)
+            {
                 _Running = false;
+            }
 
-            _Request?.Abort();
+            _HttpCts.Cancel();
         }
 
-        void OpenWriteHandler(HttpWebRequest request)
+        void ConnectedResponseHandler(HttpResponseMessage response)
         {
-            _Running = true;
-            _Request = request;
+            if (!response.IsSuccessStatusCode) { return; }
 
-            Logger.DebugLog("Capabilities event queue connected");
+            _Running = true;
 
             // The event queue is starting up for the first time
             if (OnConnected != null)
@@ -102,11 +104,8 @@ namespace OpenMetaverse.Http
             }
         }
 
-        void RequestCompletedHandler(HttpWebRequest request, HttpWebResponse response, byte[] responseData, Exception error)
+        void RequestCompletedHandler(HttpResponseMessage response, byte[] responseData, Exception error)
         {
-            // We don't care about this request now that it has completed
-            _Request = null;
-
             OSDArray events = null;
             int ack = 0;
 
@@ -128,24 +127,8 @@ namespace OpenMetaverse.Http
             else if (error != null)
             {
                 #region Error handling
-
-                HttpStatusCode code = HttpStatusCode.OK;
-
-                if (error is WebException webException)
-                {
-                    // Filter out some of the status requests to skip handling
-                    switch (webException.Status)
-                    {
-                        case WebExceptionStatus.RequestCanceled:
-                        case WebExceptionStatus.KeepAliveFailure:
-                            goto HandlingDone;
-                    }
-
-                    if (webException.Response != null)
-                        code = ((HttpWebResponse)webException.Response).StatusCode;
-                }
-
-                switch (code)
+                
+                switch (response.StatusCode)
                 {
                     case HttpStatusCode.NotFound:
                     case HttpStatusCode.Gone:
@@ -164,7 +147,7 @@ namespace OpenMetaverse.Http
 					case HttpStatusCode.InternalServerError:
 						// As per LL's instructions, we ought to consider this a
 						// 'request to close client' (gwyneth 20220413)
-						Logger.Log($"Grid sent a {code} at {_Address}, closing connection", Helpers.LogLevel.Debug);
+						Logger.Log($"Grid sent a {response.StatusCode} at {_Address}, closing connection", Helpers.LogLevel.Debug);
 
 						// ... but do we happen to have an InnerException? Log it!
 						if (error.InnerException != null)
@@ -181,10 +164,12 @@ namespace OpenMetaverse.Http
 							{
 								Logger.Log("  Extra details:",					Helpers.LogLevel.Warning);
 								foreach (DictionaryEntry de in error.Data)
-									Logger.Log(String.Format("    Key: {0,-20}      Value: '{1}'",
+                                {
+                                    Logger.Log(String.Format("    Key: {0,-20}      Value: '{1}'",
 										de.Key, de.Value),
 										Helpers.LogLevel.Warning);
-							}
+                                }
+                            }
 							// but we'll nevertheless close this connection (gwyneth 20220414)
 						}
 
@@ -206,9 +191,9 @@ namespace OpenMetaverse.Http
                         ++_errorCount;
 
                         // Try to log a meaningful error message
-                        if (code != HttpStatusCode.OK)
+                        if (response.StatusCode != HttpStatusCode.OK)
                         {
-                            Logger.Log($"Unrecognized caps connection problem from {_Address}: {code}",
+                            Logger.Log($"Unrecognized caps connection problem from {_Address}: {response.StatusCode} {response.ReasonPhrase}",
                                 Helpers.LogLevel.Warning);
                         }
                         else if (error.InnerException != null)
@@ -224,10 +209,12 @@ namespace OpenMetaverse.Http
 							{
 								Logger.Log("  Extra details:",					Helpers.LogLevel.Warning);
 								foreach (DictionaryEntry de in error.Data)
-									Logger.Log(String.Format("    Key: {0,-20}      Value: {1}",
+                                {
+                                    Logger.Log(string.Format("    Key: {0,-20}      Value: {1}",
 										"'" + de.Key + "'", de.Value),
 										Helpers.LogLevel.Warning);
-							}
+                                }
+                            }
                         }
                         else
                         {
@@ -246,26 +233,25 @@ namespace OpenMetaverse.Http
                 Logger.Log("No response from the event queue but no reported error either", Helpers.LogLevel.Warning);
             }
 
+#pragma warning disable CS0164 // This label has not been referenced
         HandlingDone:
 
             #region Resume the connection
 
             if (_Running)
             {
-                OSDMap osdRequest = new OSDMap();
-                if (ack != 0) osdRequest["ack"] = OSD.FromInteger(ack);
-                else osdRequest["ack"] = new OSD();
-                osdRequest["done"] = OSD.FromBoolean(_Dead);
-
-                byte[] postData = OSDParser.SerializeLLSDXmlBytes(osdRequest);
+                OSDMap payload = new OSDMap();
+                if (ack != 0) payload["ack"] = OSD.FromInteger(ack);
+                else payload["ack"] = new OSD();
+                payload["done"] = OSD.FromBoolean(_Dead);
 
                 if (_errorCount > 0) // Exponentially back off, so we don't hammer the CPU
                     Thread.Sleep(Math.Min(REQUEST_BACKOFF_SECONDS + _errorCount * REQUEST_BACKOFF_SECONDS_INC, REQUEST_BACKOFF_SECONDS_MAX));
 
                 // Resume the connection. The event handler for the connection opening
                 // just sets class _Request variable to the current HttpWebRequest
-                CapsBase.PostDataAsync(_Address, null, REQUEST_CONTENT_TYPE, postData, REQUEST_TIMEOUT,
-                    delegate(HttpWebRequest newRequest) { _Request = newRequest; }, null, RequestCompletedHandler);
+                Task req = _Client.HttpCapsClient.PostRequestAsync(_Address, OSDFormat.Xml, payload, _HttpCts.Token,
+                    RequestCompletedHandler);
 
                 // If the event queue is dead at this point, turn it off since
                 // that was the last thing we want to do
@@ -275,6 +261,7 @@ namespace OpenMetaverse.Http
                     Logger.DebugLog("Sent event queue shutdown message");
                 }
             }
+#pragma warning restore CS0164 // This label has not been referenced
 
             #endregion Resume the connection
 

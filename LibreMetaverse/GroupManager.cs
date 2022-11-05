@@ -27,6 +27,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Messages.Linden;
@@ -1043,44 +1045,44 @@ namespace OpenMetaverse
         public UUID RequestGroupMembers(UUID group)
         {
             UUID requestID = UUID.Random();
-            CapsClient req = null;
+            Uri cap = null;
 
             if (Client.Network.CurrentSim != null 
                 && Client.Network.CurrentSim.Caps != null
-                && (req = Client.Network.CurrentSim.Caps.CreateCapsClient("GroupMemberData")) != null)
+                && (cap = Client.Network.CurrentSim.Caps.CapabilityURI("GroupMemberData")) != null)
             {
-                req.OnComplete += (client, result, error) =>
+                OSDMap payload = new OSDMap(1) { ["group_id"] = @group };
+                Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None,
+                    (response, data, error) =>
                 {
-                    if (error == null)
+                    if (error != null) { return; }
+
+                    OSD result = OSDParser.Deserialize(data);
+                    GroupMembersHandlerCaps(requestID, result);
+                });
+            }
+            else
+            {
+                lock (GroupMembersRequests) GroupMembersRequests.Add(requestID);
+
+                GroupMembersRequestPacket request =
+                    new GroupMembersRequestPacket
                     {
-                        GroupMembersHandlerCaps(requestID, result);
-                    }
-                };
+                        AgentData =
+                        {
+                            AgentID = Client.Self.AgentID,
+                            SessionID = Client.Self.SessionID
+                        },
+                        GroupData =
+                        {
+                            GroupID = @group,
+                            RequestID = requestID
+                        }
+                    };
 
-                OSDMap requestData = new OSDMap(1) {["group_id"] = @group};
-                req.PostRequestAsync(requestData, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT * 4);
-
-                return requestID;
+                Client.Network.SendPacket(request);
             }
 
-            lock (GroupMembersRequests) GroupMembersRequests.Add(requestID);
-
-            GroupMembersRequestPacket request =
-                new GroupMembersRequestPacket
-                {
-                    AgentData =
-                    {
-                        AgentID = Client.Self.AgentID,
-                        SessionID = Client.Self.SessionID
-                    },
-                    GroupData =
-                    {
-                        GroupID = @group,
-                        RequestID = requestID
-                    }
-                };
-
-            Client.Network.SendPacket(request);
             return requestID;
         }
 
@@ -1659,18 +1661,17 @@ namespace OpenMetaverse
         public void RequestBannedAgents(UUID groupID, EventHandler<BannedAgentsEventArgs> callback)
         {
             Uri uri = GetGroupAPIUri(groupID);
-            if (uri == null) return;
+            if (uri == null) { return; }
 
-            CapsClient req = new CapsClient(uri, "GroupReqBanned");
-            req.OnComplete += (client, result, error) =>
+            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("GroupReqBanned");
+            _ = Client.HttpCapsClient.GetRequestAsync(cap, CancellationToken.None, (response, data, error) =>
             {
                 try
                 {
 
-                    if (error != null)
-                    {
-                        throw error;
-                    }
+                    if (error != null) { throw error; }
+
+                    OSD result = OSDParser.Deserialize(data);
                     UUID gid = ((OSDMap)result)["group_id"];
                     var banList = (OSDMap)((OSDMap)result)["ban_list"];
                     var bannedAgents = new Dictionary<UUID, DateTime>(banList.Count);
@@ -1682,21 +1683,24 @@ namespace OpenMetaverse
 
                     var ret = new BannedAgentsEventArgs(groupID, true, bannedAgents);
                     OnBannedAgents(ret);
-                    if (callback != null) try { callback(this, ret); }
+                    if (callback != null)
+                    {
+                        try { callback(this, ret); }
                         catch { }
+                    }
                 }
                 catch (Exception ex)
                 {
                     Logger.Log("Failed to get a list of banned group members: " + ex.Message, Helpers.LogLevel.Warning, Client);
                     var ret = new BannedAgentsEventArgs(groupID, false, null);
                     OnBannedAgents(ret);
-                    if (callback != null) try { callback(this, ret); }
+                    if (callback != null)
+                    {
+                        try { callback(this, ret); }
                         catch { }
+                    }
                 }
-
-            };
-
-            req.GetRequestAsync(Client.Settings.CAPS_TIMEOUT);
+            });
         }
 
         /// <summary>
@@ -1720,27 +1724,30 @@ namespace OpenMetaverse
         public void RequestBanAction(UUID groupID, GroupBanAction action, UUID[] agents, EventHandler<EventArgs> callback)
         {
             Uri uri = GetGroupAPIUri(groupID);
-            if (uri == null) return;
+            if (uri == null) { return; }
 
-            CapsClient req = new CapsClient(uri, "GroupBanAction");
-            req.OnComplete += (client, result, error) =>
-            {
-                if (callback != null) try { callback(this, EventArgs.Empty); }
-                    catch { }
-            };
+            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("GroupBanAction");
+            if (cap == null) { return; }
 
-            OSDMap OSDRequest = new OSDMap {["ban_action"] = (int)action};
+            OSDMap payload = new OSDMap { ["ban_action"] = (int)action };
             OSDArray banIDs = new OSDArray(agents.Length);
             foreach (var agent in agents)
             {
                 banIDs.Add(agent);
             }
-            OSDRequest["ban_ids"] = banIDs;
+            payload["ban_ids"] = banIDs;
 
-            req.PostRequestAsync(OSDRequest, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None,
+                (response, data, error) =>
+            {
+                if (error != null) { return; }
+                if (callback != null)
+                {
+                    try { callback(this, EventArgs.Empty); }
+                    catch { }
+                }
+            });
         }
-
-
 
         #endregion
 

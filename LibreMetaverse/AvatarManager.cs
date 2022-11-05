@@ -29,6 +29,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
@@ -716,25 +718,26 @@ namespace OpenMetaverse
 
             Uri uri = new Uri(Client.Network.CurrentSim.Caps.CapabilityURI("GetDisplayNames").AbsoluteUri + "/?" + query);
 
-            CapsClient cap = new CapsClient(uri, "GetDisplayNames");
-            cap.OnComplete += (CapsClient client, OSD result, Exception error) =>
-                                  {
-                                      try
-                                      {
-                                          if (error != null)
-                                              throw error;
-                                          GetDisplayNamesMessage msg = new GetDisplayNamesMessage();
-                                          msg.Deserialize((OSDMap)result);
-                                          callback(true, msg.Agents, msg.BadIDs);
-                                      }
-                                      catch (Exception ex)
-                                      {
-                                          Logger.Log("Failed to call GetDisplayNames capability: ",
-                                                     Helpers.LogLevel.Warning, Client, ex);
-                                          callback(false, null, null);
-                                      }
-                                  };
-            cap.GetRequestAsync(Client.Settings.CAPS_TIMEOUT);
+            Task req = Client.HttpCapsClient.GetRequestAsync(uri, CancellationToken.None, (response, data, error) =>
+            {
+                try
+                {
+                    if (error != null) { throw error; }
+                    GetDisplayNamesMessage msg = new GetDisplayNamesMessage();
+                    OSD result = OSDParser.Deserialize(data);
+                    if (result is OSDMap respMap)
+                    {
+                        msg.Deserialize(respMap);
+                        callback(true, msg.Agents, msg.BadIDs);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Failed to call GetDisplayNames capability: ",
+                        Helpers.LogLevel.Warning, Client, ex);
+                    callback(false, null, null);
+                }
+            });
         }
 
         /// <summary>

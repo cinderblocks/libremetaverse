@@ -29,10 +29,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Http;
+using System.Net.Http;
 
 namespace OpenMetaverse
 {
@@ -57,25 +60,25 @@ namespace OpenMetaverse
         /// <summary>Reference to the simulator this system is connected to</summary>
         public Simulator Simulator;
 
-        internal string _SeedCapsURI;
+        internal Uri _SeedCapsURI;
         internal Dictionary<string, Uri> _Caps = new Dictionary<string, Uri>();
 
-        private CapsClient _SeedRequest;
+        private CancellationTokenSource _HttpCts = new CancellationTokenSource();
         private EventQueueClient _EventQueueCap = null;
 
         /// <summary>Capabilities URI this system was initialized with</summary>
-        public string SeedCapsURI => _SeedCapsURI;
+        public Uri SeedCapsURI => _SeedCapsURI;
 
         /// <summary>Whether the capabilities event queue is connected and
         /// listening for incoming events</summary>
-        public bool IsEventQueueRunning => _EventQueueCap != null && _EventQueueCap.Running;
+        public bool IsEventQueueRunning => _EventQueueCap is { Running: true };
 
         /// <summary>
         /// Default constructor
         /// </summary>
         /// <param name="simulator"></param>
         /// <param name="seedcaps"></param>
-        internal Caps(Simulator simulator, string seedcaps)
+        internal Caps(Simulator simulator, Uri seedcaps)
         {
             Simulator = simulator;
             _SeedCapsURI = seedcaps;
@@ -88,7 +91,7 @@ namespace OpenMetaverse
             Logger.Log($"Caps system for {Simulator} is {(immediate ? "aborting" : "disconnecting")}", 
                 Helpers.LogLevel.Info, Simulator.Client);
 
-            _SeedRequest?.Cancel();
+            _HttpCts.Cancel();
 
             _EventQueueCap?.Stop(immediate);
         }
@@ -108,6 +111,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="capability">Capability name</param>
         /// <returns>Newly created CapsClient or null of capability does not exist</returns>
+        [Obsolete("CapsClient is obsolete. Use HttpCapsClient instead.")]
         public CapsClient CreateCapsClient(string capability)
         {
             return _Caps.TryGetValue(capability, out var uri) ? new CapsClient(uri, capability) : null;
@@ -151,7 +155,7 @@ namespace OpenMetaverse
             if (Simulator == null || !Simulator.Client.Network.Connected) { return; }
 
             // Create a request list
-            OSDArray req = new OSDArray
+            OSDArray payload = new OSDArray
             {
                 "AbuseCategories",
                 "AcceptFriendship",
@@ -256,27 +260,41 @@ namespace OpenMetaverse
                 "LibraryAPIv3"
             };
 
-            _SeedRequest = new CapsClient(new Uri(_SeedCapsURI), "SeedCaps");
-            _SeedRequest.OnComplete += SeedRequestCompleteHandler;
-            _SeedRequest.PostRequestAsync(req, OSDFormat.Xml, Simulator.Client.Settings.CAPS_TIMEOUT);
+            Task loginReq = Simulator.Client.HttpCapsClient.PostRequestAsync(_SeedCapsURI, OSDFormat.Xml, payload, 
+                _HttpCts.Token, SeedRequestCompleteHandler);
         }
 
-        private void SeedRequestCompleteHandler(CapsClient client, OSD result, Exception error)
+        private void SeedRequestCompleteHandler(HttpResponseMessage response, byte[] responseData, Exception error)
         {
-            if (result != null && result.Type == OSDType.Map)
+            if (error != null)
             {
-                OSDMap respTable = (OSDMap)result;
-
-                foreach (string cap in respTable.Keys)
+                if (response.StatusCode == HttpStatusCode.NotFound)
                 {
-                    _Caps[cap] = respTable[cap].AsUri();
+                    Logger.Log("Seed capability returned a 404, capability system is aborting",
+                        Helpers.LogLevel.Error);
+                }
+                else
+                {
+                    Logger.Log($"Seed capability returned {response.StatusCode}. Trying again.",
+                        Helpers.LogLevel.Warning);
+                    MakeSeedRequest();
+                }
+                return;
+            }
+
+            OSD result = OSDParser.Deserialize(responseData);
+            if (result is OSDMap respMap)
+            {
+                foreach (var cap in respMap.Keys)
+                {
+                    _Caps[cap] = respMap[cap].AsUri();
                 }
 
                 if (_Caps.ContainsKey("EventQueueGet"))
                 {
-                    Logger.DebugLog("Starting event queue for " + Simulator, Simulator.Client);
+                    Logger.DebugLog($"Starting event queue for {Simulator}", Simulator.Client);
 
-                    _EventQueueCap = new EventQueueClient(_Caps["EventQueueGet"]);
+                    _EventQueueCap = new EventQueueClient(_Caps["EventQueueGet"], Simulator.Client);
                     _EventQueueCap.OnConnected += EventQueueConnectedHandler;
                     _EventQueueCap.OnEvent += EventQueueEventHandler;
                     _EventQueueCap.Start();
@@ -284,25 +302,11 @@ namespace OpenMetaverse
 
                 OnCapabilitiesReceived(Simulator);
             }
-            else if (
-                error != null &&
-                error is WebException exception &&
-                exception.Response != null &&
-                ((HttpWebResponse)exception.Response).StatusCode == HttpStatusCode.NotFound)
-            {
-                // 404 error
-                Logger.Log("Seed capability returned a 404, capability system is aborting",
-                    Helpers.LogLevel.Error);
-            }
-            else
-            {
-                // The initial CAPS connection failed, try again
-                MakeSeedRequest();
-            }
         }
 
         private void EventQueueConnectedHandler()
         {
+            Logger.DebugLog($"Event queue for {Simulator} is connected", Simulator.Client);
             Simulator.Client.Network.RaiseConnectedEvent(Simulator);
         }
 
@@ -327,7 +331,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("No Message handler exists for event " + eventName + ". Unable to decode. Will try Generic Handler next", 
+                Logger.Log($"No Message handler exists for event {eventName}. Unable to decode. Will try Generic Handler next", 
                     Helpers.LogLevel.Warning);
                 Logger.Log("Please report this information at https://radegast.life/bugs/issue-entry/: " + Environment.NewLine + body, 
                     Helpers.LogLevel.Debug);
@@ -345,14 +349,14 @@ namespace OpenMetaverse
                             Packet = packet
                         };
 
-                        Logger.DebugLog("Serializing " + packet.Type + " capability with generic handler", 
+                        Logger.DebugLog($"Serializing {packet.Type} capability with generic handler", 
                             Simulator.Client);
 
                         Simulator.Client.Network.EnqueueIncoming(incomingPacket);
                     }
                     else
                     {
-                        Logger.Log("No Packet or Message handler exists for " + eventName, 
+                        Logger.Log($"No Packet or Message handler exists for {eventName}", 
                             Helpers.LogLevel.Warning);
                     }
                 }

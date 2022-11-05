@@ -145,8 +145,10 @@ namespace OpenMetaverse
         public static VisualParam Find(string name, string wearable)
         {
             foreach (KeyValuePair<int, VisualParam> param in Params)
+            {
                 if (param.Value.Name == name && param.Value.Wearable == wearable)
                     return param.Value;
+            }
 
             return new VisualParam();
         }

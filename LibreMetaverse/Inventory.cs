@@ -294,8 +294,11 @@ namespace OpenMetaverse
                 if (Items.TryGetValue(item.UUID, out node))
                 {
                     if (node.Parent != null)
+                    {
                         lock (node.Parent.Nodes.SyncRoot)
                             node.Parent.Nodes.Remove(item.UUID);
+                    }
+
                     Items.Remove(item.UUID);
                     if (m_InventoryObjectRemoved != null)
                     {

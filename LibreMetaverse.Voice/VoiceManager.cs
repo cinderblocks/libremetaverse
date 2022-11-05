@@ -30,12 +30,15 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
 using System.IO;
+using System.Threading;
 using System.Xml;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse;
 using OpenMetaverse.Http;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace LibreMetaverse.Voice
 {
@@ -303,24 +306,22 @@ namespace LibreMetaverse.Voice
             }
         }
 
-        private bool RequestVoiceInternal(string me, CapsClient.CompleteCallback callback, string capsName)
+        private bool RequestVoiceInternal(string me, DownloadCompleteHandler callback, string capsName)
         {
             if (Enabled && Client.Network.Connected)
             {
                 if (Client.Network.CurrentSim != null && Client.Network.CurrentSim.Caps != null)
                 {
-                    var url = Client.Network.CurrentSim.Caps.CapabilityURI(capsName);
+                    var cap = Client.Network.CurrentSim.Caps.CapabilityURI(capsName);
 
-                    if (url != null)
+                    if (cap != null)
                     {
-                        var request = new CapsClient(url);
-                        var body = new OSDMap();
-                        request.OnComplete += callback;
-                        request.PostRequestAsync(body, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                        Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSDMap(),
+                            CancellationToken.None, callback);
 
                         return true;
                     }
-                    Logger.Log("VoiceManager." + me + "(): " + capsName + " capability is missing",
+                    Logger.Log($"VoiceManager.{me}(): {capsName} capability is missing",
                         Helpers.LogLevel.Info, Client);
                     return false;
                 }
@@ -342,13 +343,13 @@ namespace LibreMetaverse.Voice
             return RequestVoiceInternal("RequestParcelVoiceInfo", ParcelVoiceInfoResponse, "ParcelVoiceInfoRequest");
         }
 
-        public int RequestLogin(string accountName, string password, string connectorHandle)
+        public int RequestLogin(string accountName, string password, string connHandle)
         {
             if (_DaemonPipe.Connected)
             {
                 var request = new StringBuilder();
                 request.Append($"<Request requestId=\"{_CommandCookie++}\" action=\"Account.Login.1\">");
-                request.Append($"<ConnectorHandle>{connectorHandle}</ConnectorHandle>");
+                request.Append($"<ConnectorHandle>{connHandle}</ConnectorHandle>");
                 request.Append($"<AccountName>{accountName}</AccountName>");
                 request.Append($"<AccountPassword>{password}</AccountPassword>");
                 request.Append("<AudioSessionAnswerMode>VerifyAnswer</AudioSessionAnswerMode>");
@@ -364,7 +365,8 @@ namespace LibreMetaverse.Voice
             }
             else
             {
-                Logger.Log("VoiceManager.Login() called when the daemon pipe is disconnected", Helpers.LogLevel.Error, Client);
+                Logger.Log("VoiceManager.Login() called when the daemon pipe is disconnected", 
+                    Helpers.LogLevel.Error, Client);
                 return -1;
             }
         }
@@ -396,7 +398,8 @@ namespace LibreMetaverse.Voice
             }
             else
             {
-                Logger.Log("VoiceManager.RequestStartTuningMode() called when the daemon pipe is disconnected", Helpers.LogLevel.Error, Client);
+                Logger.Log("VoiceManager.RequestStartTuningMode() called when the daemon pipe is disconnected",
+                    Helpers.LogLevel.Error, Client);
                 return -1;
             }
         }
@@ -412,7 +415,8 @@ namespace LibreMetaverse.Voice
             }
             else
             {
-                Logger.Log("VoiceManager.RequestStopTuningMode() called when the daemon pipe is disconnected", Helpers.LogLevel.Error, Client);
+                Logger.Log("VoiceManager.RequestStopTuningMode() called when the daemon pipe is disconnected", 
+                    Helpers.LogLevel.Error, Client);
                 return _CommandCookie - 1;
             }
         }
@@ -431,7 +435,8 @@ namespace LibreMetaverse.Voice
             }
             else
             {
-                Logger.Log("VoiceManager.RequestSetSpeakerVolume() called when the daemon pipe is disconnected", Helpers.LogLevel.Error, Client);
+                Logger.Log("VoiceManager.RequestSetSpeakerVolume() called when the daemon pipe is disconnected",
+                    Helpers.LogLevel.Error, Client);
                 return -1;
             }
         }
@@ -450,7 +455,8 @@ namespace LibreMetaverse.Voice
             }
             else
             {
-                Logger.Log("VoiceManager.RequestSetCaptureVolume() called when the daemon pipe is disconnected", Helpers.LogLevel.Error, Client);
+                Logger.Log("VoiceManager.RequestSetCaptureVolume() called when the daemon pipe is disconnected",
+                    Helpers.LogLevel.Error, Client);
                 return -1;
             }
         }
@@ -473,7 +479,8 @@ namespace LibreMetaverse.Voice
             }
             else
             {
-                Logger.Log("VoiceManager.RequestRenderAudioStart() called when the daemon pipe is disconnected", Helpers.LogLevel.Error, Client);
+                Logger.Log("VoiceManager.RequestRenderAudioStart() called when the daemon pipe is disconnected", 
+                    Helpers.LogLevel.Error, Client);
                 return -1;
             }
         }
@@ -489,7 +496,8 @@ namespace LibreMetaverse.Voice
             }
             else
             {
-                Logger.Log("VoiceManager.RequestRenderAudioStop() called when the daemon pipe is disconnected", Helpers.LogLevel.Error, Client);
+                Logger.Log("VoiceManager.RequestRenderAudioStop() called when the daemon pipe is disconnected", 
+                    Helpers.LogLevel.Error, Client);
                 return -1;
             }
         }
@@ -512,8 +520,14 @@ namespace LibreMetaverse.Voice
             }
         }
 
-        private void ProvisionCapsResponse(CapsClient client, OSD response, Exception error)
+        private void ProvisionCapsResponse(HttpResponseMessage httpResponse, byte[] responseData, Exception error)
         {
+            if (error != null)
+            {
+                Logger.Log("Failed to provision voice capability", Helpers.LogLevel.Warning, Client, error);
+                return;
+            }
+            OSD response = OSDParser.Deserialize(responseData);
             if (!(response is OSDMap respMap)) return;
 
             if (OnProvisionAccount == null) return;
@@ -521,8 +535,14 @@ namespace LibreMetaverse.Voice
             catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
         }
 
-        private void ParcelVoiceInfoResponse(CapsClient client, OSD response, Exception error)
+        private void ParcelVoiceInfoResponse(HttpResponseMessage httpResponse, byte[] responseData, Exception error)
         {
+            if (error != null)
+            {
+                Logger.Log("Failed to retrieve voice info", Helpers.LogLevel.Warning, Client, error);
+                return;
+            }
+            OSD response = OSDParser.Deserialize(responseData);
             if (!(response is OSDMap respMap)) return;
 
             var regionName = respMap["region_name"].AsString();

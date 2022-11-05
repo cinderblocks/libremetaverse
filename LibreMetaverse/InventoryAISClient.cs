@@ -27,7 +27,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -365,10 +364,8 @@ namespace LibreMetaverse
 
                     return;
                 }
-
-                var method = new HttpMethod("PATCH");
-
-                using (var message = new HttpRequestMessage(method, uri))
+                
+                using (var message = new HttpRequestMessage(HttpMethod.Patch, uri))
                 {
                     var payload = OSDParser.SerializeLLSDXmlString(updates);
 
@@ -421,9 +418,7 @@ namespace LibreMetaverse
                     return;
                 }
 
-                var method = new HttpMethod("PATCH");
-
-                using (var message = new HttpRequestMessage(method, uri))
+                using (var message = new HttpRequestMessage(HttpMethod.Patch, uri))
                 {
                     var payload = OSDParser.SerializeLLSDXmlString(updates);
 

@@ -1131,8 +1131,8 @@ namespace OpenMetaverse
         #endregion Events
 
         #region Public Members
-        /// <summary>Seed CAPS URL returned from the login server</summary>
-        public string LoginSeedCapability = string.Empty;
+        /// <summary>Seed CAPS URI returned from the login server</summary>
+        public Uri LoginSeedCapability { get; private set; } = null;
         /// <summary>Current state of logging in</summary>
         public LoginStatus LoginStatusCode { get; private set; } = LoginStatus.None;
 
@@ -1432,12 +1432,10 @@ namespace OpenMetaverse
                     return;
                 }
 
-                var loginRequest = new CapsClient(loginUri, "LoginRequest");
-                loginRequest.OnComplete += LoginReplyLLSDHandler;
-                loginRequest.UserData = CurrentContext;
                 UpdateLoginStatus(LoginStatus.ConnectingToLogin,
                     $"Logging in as {loginParams.FirstName} {loginParams.LastName}...");
-                loginRequest.PostRequestAsync(loginLLSD, OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
+                Task loginReq = Client.HttpCapsClient.PostRequestAsync(loginUri, OSDFormat.Xml, loginLLSD, 
+                    CancellationToken.None, LoginReplyLLSDHandler);
 
                 #endregion
             }
@@ -1576,10 +1574,10 @@ namespace OpenMetaverse
                     return;
                 }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                UpdateLoginStatus(LoginStatus.Failed, "Error retrieving the login response from the server: " + e.Message);
-                Logger.Log("Login response failure: " + e.Message + " " + e.StackTrace, Helpers.LogLevel.Warning);
+                UpdateLoginStatus(LoginStatus.Failed, $"Error retrieving the login response from the server: {ex.Message}");
+                Logger.Log($"Login response failure: {ex.Message} ", Helpers.LogLevel.Warning, ex);
                 return;
             }
             LoginReplyXmlRpcHandler(reply, context);
@@ -1615,7 +1613,7 @@ namespace OpenMetaverse
                     regionX = reply.RegionX;
                     regionY = reply.RegionY;
                     simPort = reply.SimPort;
-                    LoginSeedCapability = reply.SeedCapability;
+                    LoginSeedCapability = new Uri(reply.SeedCapability);
                 }
                 catch (Exception)
                 {
@@ -1703,119 +1701,115 @@ namespace OpenMetaverse
         /// <summary>
         /// Handle response from LLSD login replies
         /// </summary>
-        /// <param name="client"></param>
-        /// <param name="result"></param>
-        /// <param name="error"></param>
-        private void LoginReplyLLSDHandler(CapsClient client, OSD result, Exception error)
+        /// <param name="response">Server response as <seealso cref="HttpResponseMessage"/></param>
+        /// <param name="responseData">Payload response data</param>
+        /// <param name="error">Any <seealso cref="Exception"/> returned from the request</param>
+        private void LoginReplyLLSDHandler(HttpResponseMessage response, byte[] responseData, Exception error)
         {
-            if (error == null)
-            {
-                if (result != null && result.Type == OSDType.Map)
-                {
-                    var map = (OSDMap)result;
-                    OSD osd;
-
-                    var data = new LoginResponseData();
-                    data.Parse(map);
-
-                    if (map.TryGetValue("login", out osd))
-                    {
-                        var loginSuccess = osd.AsBoolean();
-                        var redirect = (osd.AsString() == "indeterminate");
-
-                        if (redirect)
-                        {
-                            // Login redirected
-
-                            // Make the next login URL jump
-                            UpdateLoginStatus(LoginStatus.Redirecting, data.Message);
-
-                            var loginParams = CurrentContext;
-                            loginParams.URI = LoginResponseData.ParseString("next_url", map);
-                            //CurrentContext.Params.MethodName = LoginResponseData.ParseString("next_method", map);
-
-                            // Sleep for some amount of time while the servers work
-                            var seconds = (int)LoginResponseData.ParseUInt("next_duration", map);
-                            Logger.Log("Sleeping for " + seconds + " seconds during a login redirect",
-                                Helpers.LogLevel.Info);
-                            Thread.Sleep(seconds * 1000);
-
-                            // Ignore next_options for now
-                            CurrentContext = loginParams;
-
-                            BeginLogin();
-                        }
-                        else if (loginSuccess)
-                        {
-                            // Login succeeded
-
-                            // Fire the login callback
-                            if (OnLoginResponse != null)
-                            {
-                                try { OnLoginResponse(loginSuccess, redirect, data.Message, data.Reason, data); }
-                                catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
-                            }
-
-                            // These parameters are stored in NetworkManager, so instead of registering
-                            // another callback for them we just set the values here
-                            CircuitCode = (uint)data.CircuitCode;
-                            LoginSeedCapability = data.SeedCapability;
-
-                            UpdateLoginStatus(LoginStatus.ConnectingToSim, "Connecting to simulator...");
-
-                            var handle = Utils.UIntsToLong(data.RegionX, data.RegionY);
-
-                            if (data.SimIP != null && data.SimPort != 0)
-                            {
-                                // Connect to the sim given in the login reply
-                                if (Connect(data.SimIP, data.SimPort, handle, true, LoginSeedCapability) != null)
-                                {
-                                    // Request the economy data right after login
-                                    SendPacket(new EconomyDataRequestPacket());
-
-                                    // Update the login message with the MOTD returned from the server
-                                    UpdateLoginStatus(LoginStatus.Success, data.Message);
-                                }
-                                else
-                                {
-                                    UpdateLoginStatus(LoginStatus.Failed,
-                                        "Unable to establish a UDP connection to the simulator");
-                                }
-                            }
-                            else
-                            {
-                                UpdateLoginStatus(LoginStatus.Failed,
-                                    "Login server did not return a simulator address");
-                            }
-                        }
-                        else
-                        {
-                            // Login failed
-
-                            // Make sure a usable error key is set
-                            LoginErrorKey = data.Reason != string.Empty ? data.Reason : "unknown";
-
-                            UpdateLoginStatus(LoginStatus.Failed, data.Message);
-                        }
-                    }
-                    else
-                    {
-                        // Got an LLSD map but no login value
-                        UpdateLoginStatus(LoginStatus.Failed, "Login parameter missing in the response");
-                    }
-                }
-                else
-                {
-                    // No LLSD response
-                    LoginErrorKey = "bad response";
-                    UpdateLoginStatus(LoginStatus.Failed, "Empty or corrupt login response");
-                }
-            }
-            else
+            if (error != null)
             {
                 // Connection error
                 LoginErrorKey = "no connection";
                 UpdateLoginStatus(LoginStatus.Failed, error.Message);
+                return;
+            }
+
+            OSD result = OSDParser.Deserialize(responseData);
+            if (result is OSDMap resMap)
+            {
+                var data = new LoginResponseData();
+                data.Parse(resMap);
+
+                if (resMap.TryGetValue("login", out OSD osd))
+                {
+                    var loginSuccess = osd.AsBoolean();
+                    var redirect = (osd.AsString() == "indeterminate");
+
+                    if (redirect)
+                    {
+                        // Login redirected
+
+                        // Make the next login URL jump
+                        UpdateLoginStatus(LoginStatus.Redirecting, data.Message);
+
+                        var loginParams = CurrentContext;
+                        loginParams.URI = LoginResponseData.ParseString("next_url", resMap);
+
+                        // Sleep for some amount of time while the servers work
+                        var seconds = (int)LoginResponseData.ParseUInt("next_duration", resMap);
+                        Logger.Log($"Sleeping for {seconds} seconds during a login redirect",
+                            Helpers.LogLevel.Info);
+                        Thread.Sleep(seconds * 1000);
+
+                        // Ignore next_options for now
+                        CurrentContext = loginParams;
+
+                        BeginLogin();
+                    }
+                    else if (loginSuccess)
+                    {
+                        // Login succeeded
+
+                        // Fire the login callback
+                        if (OnLoginResponse != null)
+                        {
+                            try { OnLoginResponse(loginSuccess, redirect, data.Message, data.Reason, data); }
+                            catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                        }
+
+                        // These parameters are stored in NetworkManager, so instead of registering
+                        // another callback for them we just set the values here
+                        CircuitCode = (uint)data.CircuitCode;
+                        LoginSeedCapability = new Uri(data.SeedCapability);
+
+                        UpdateLoginStatus(LoginStatus.ConnectingToSim, "Connecting to simulator...");
+
+                        var handle = Utils.UIntsToLong(data.RegionX, data.RegionY);
+
+                        if (data.SimIP != null && data.SimPort != 0)
+                        {
+                            // Connect to the sim given in the login reply
+                            if (Connect(data.SimIP, data.SimPort, handle, true, LoginSeedCapability) != null)
+                            {
+                                // Request the economy data right after login
+                                SendPacket(new EconomyDataRequestPacket());
+
+                                // Update the login message with the MOTD returned from the server
+                                UpdateLoginStatus(LoginStatus.Success, data.Message);
+                            }
+                            else
+                            {
+                                UpdateLoginStatus(LoginStatus.Failed,
+                                    "Unable to establish a UDP connection to the simulator");
+                            }
+                        }
+                        else
+                        {
+                            UpdateLoginStatus(LoginStatus.Failed,
+                                "Login server did not return a simulator address");
+                        }
+                    }
+                    else
+                    {
+                        // Login failed
+
+                        // Make sure a usable error key is set
+                        LoginErrorKey = data.Reason != string.Empty ? data.Reason : "unknown";
+
+                        UpdateLoginStatus(LoginStatus.Failed, data.Message);
+                    }
+                }
+                else
+                {
+                    // Got an LLSD map but no login value
+                    UpdateLoginStatus(LoginStatus.Failed, "Login parameter missing in the response");
+                }
+            }
+            else
+            {
+                // No LLSD response
+                LoginErrorKey = "bad response";
+                UpdateLoginStatus(LoginStatus.Failed, "Empty or corrupt login response");
             }
         }
 
