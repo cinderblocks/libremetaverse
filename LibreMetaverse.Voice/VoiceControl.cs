@@ -33,7 +33,6 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
-using OpenMetaverse.Http;
 using System.Net.Http;
 using System.Threading.Tasks;
 
@@ -137,7 +136,7 @@ namespace LibreMetaverse.Voice
         public void Start()
         {
             // Start the background thread
-            if (posThread != null && posThread.IsAlive)
+            if (posThread is { IsAlive: true })
             {
                 posRestart.Set();
                 posTokenSource.Cancel();
@@ -187,8 +186,9 @@ namespace LibreMetaverse.Voice
             // event will do it.
             var vCap = Client.Network.CurrentSim.Caps.CapabilityURI("ProvisionVoiceAccountRequest");
             if (vCap != null)
+            {
                 RequestVoiceProvision(vCap);
-
+            }
         }
 
         /// <summary>
@@ -266,7 +266,7 @@ namespace LibreMetaverse.Voice
         }
 
         /// <summary>
-        /// Cleanup oject resources
+        /// Cleanup object resources
         /// </summary>
         public void Dispose()
         {
@@ -319,8 +319,8 @@ namespace LibreMetaverse.Voice
         void RequestVoiceProvision(Uri cap)
         {
             Logger.Log("Requesting voice capability", Helpers.LogLevel.Info);
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), 
-                CancellationToken.None, cClient_OnComplete);
+            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(),
+                posTokenSource.Token, cClient_OnComplete);
         }
 
         /// <summary>
@@ -839,8 +839,8 @@ namespace LibreMetaverse.Voice
             Logger.Log("Requesting region voice info", Helpers.LogLevel.Info);
 
             currentParcelCap = cap;
-            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), 
-                CancellationToken.None, pCap_OnComplete);
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(),
+                posTokenSource.Token, pCap_OnComplete);
         }
 
         /// <summary>
