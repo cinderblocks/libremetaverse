@@ -154,15 +154,11 @@ namespace OpenMetaverse.Http
 						{
 							// unravel the whole inner error message, so we finally figure out what it is!
 							// (gwyneth 20220414)
-							Logger.Log($"Unrecognized internal caps exception from {_Address}: '{error.InnerException.Message}'",																					Helpers.LogLevel.Warning);
-							Logger.Log("\nMessage ---\n{error.Message}",		Helpers.LogLevel.Warning);
-							Logger.Log("\nHelpLink ---\n{ex.HelpLink}",			Helpers.LogLevel.Warning);
-							Logger.Log("\nSource ---\n{error.Source}",			Helpers.LogLevel.Warning);
-							Logger.Log("\nStackTrace ---\n{error.StackTrace}",  Helpers.LogLevel.Warning);
-							Logger.Log("\nTargetSite ---\n{error.TargetSite}",  Helpers.LogLevel.Warning);
+							Logger.Log($"Unrecognized internal caps exception from {_Simulator}: '{error.InnerException.Message}'",	 Helpers.LogLevel.Warning);
+							Logger.Log($"\nMessage ---\n{error.Message}", Helpers.LogLevel.Warning);
 							if (error.Data.Count > 0)
 							{
-								Logger.Log("  Extra details:",					Helpers.LogLevel.Warning);
+								Logger.Log("  Extra details:", Helpers.LogLevel.Warning);
 								foreach (DictionaryEntry de in error.Data)
                                 {
                                     Logger.Log(String.Format("    Key: {0,-20}      Value: '{1}'",
@@ -200,15 +196,11 @@ namespace OpenMetaverse.Http
                         else if (error.InnerException != null)
                         {
 							// see comment above (gwyneth 20220414)
-							Logger.Log($"Unrecognized internal caps exception from {_Address}: '{error.InnerException.Message}'",							Helpers.LogLevel.Warning);
-							Logger.Log("\nMessage ---\n{error.Message}",		Helpers.LogLevel.Warning);
-							Logger.Log("\nHelpLink ---\n{ex.HelpLink}",			Helpers.LogLevel.Warning);
-							Logger.Log("\nSource ---\n{error.Source}",			Helpers.LogLevel.Warning);
-							Logger.Log("\nStackTrace ---\n{error.StackTrace}",  Helpers.LogLevel.Warning);
-							Logger.Log("\nTargetSite ---\n{error.TargetSite}",	Helpers.LogLevel.Warning);
+							Logger.Log($"Unrecognized internal caps exception from {_Simulator}: '{error.InnerException.Message}'", Helpers.LogLevel.Warning);
+							Logger.Log($"Message ---\n{error.Message}", Helpers.LogLevel.Warning);
 							if (error.Data.Count > 0)
 							{
-								Logger.Log("  Extra details:",					Helpers.LogLevel.Warning);
+								Logger.Log("  Extra details:", Helpers.LogLevel.Warning);
 								foreach (DictionaryEntry de in error.Data)
                                 {
                                     Logger.Log(string.Format("    Key: {0,-20}      Value: {1}",
