@@ -53,16 +53,16 @@ namespace OpenMetaverse.Http
         protected Uri _Address;
         protected bool _Dead;
         protected bool _Running;
-        private GridClient _Client;
+        private Simulator _Simulator;
         private CancellationTokenSource _HttpCts;
 
         /// <summary>Number of times we've received an unknown CAPS exception in series.</summary>
         private int _errorCount;
 
-        public EventQueueClient(Uri eventQueueLocation, GridClient client)
+        public EventQueueClient(Uri eventQueueLocation, Simulator sim)
         {
             _Address = eventQueueLocation;
-            _Client = client;
+            _Simulator = sim;
         }
 
         public void Start()
@@ -74,7 +74,7 @@ namespace OpenMetaverse.Http
             OSDMap payload = new OSDMap {["ack"] = new OSD(), ["done"] = OSD.FromBoolean(false)};
 
             _HttpCts = new CancellationTokenSource();
-            Task req = _Client.HttpCapsClient.PostRequestAsync(_Address, OSDFormat.Xml, payload, _HttpCts.Token,
+            Task req = _Simulator.Client.HttpCapsClient.PostRequestAsync(_Address, OSDFormat.Xml, payload, _HttpCts.Token,
                 RequestCompletedHandler, null, ConnectedResponseHandler);
         }
 
@@ -120,7 +120,7 @@ namespace OpenMetaverse.Http
                 }
                 else
                 {
-                    Logger.Log("Got an unparseable response from the event queue: \"" +
+                    Logger.Log($"Got an unparseable response from {_Simulator} event queue: \"" +
                         System.Text.Encoding.UTF8.GetString(responseData) + "\"", Helpers.LogLevel.Warning);
                 }
             }
@@ -132,14 +132,14 @@ namespace OpenMetaverse.Http
                 {
                     case HttpStatusCode.NotFound:
                     case HttpStatusCode.Gone:
-                        Logger.Log($"Closing event queue at {_Address} due to missing caps URI", Helpers.LogLevel.Info);
+                        Logger.Log($"Closing event queue at {_Simulator} due to missing caps URI", Helpers.LogLevel.Info);
 
                         _Running = false;
                         _Dead = true;
                         break;
                     case (HttpStatusCode)499: // weird error returned occasionally, ignore for now
 						// I believe this is the timeout error invented by LL for LSL HTTP-out requests (gwyneth 20220413)
-						Logger.Log($"Possible HTTP-out timeout error from {_Address}, no need to continue", Helpers.LogLevel.Debug);
+						Logger.Log($"Possible HTTP-out timeout error from {_Simulator}, no need to continue", Helpers.LogLevel.Debug);
 
 						_Running = false;
 						_Dead = true;
@@ -147,7 +147,7 @@ namespace OpenMetaverse.Http
 					case HttpStatusCode.InternalServerError:
 						// As per LL's instructions, we ought to consider this a
 						// 'request to close client' (gwyneth 20220413)
-						Logger.Log($"Grid sent a {response.StatusCode} at {_Address}, closing connection", Helpers.LogLevel.Debug);
+						Logger.Log($"Grid sent a {response.StatusCode} at {_Simulator}, closing connection", Helpers.LogLevel.Debug);
 
 						// ... but do we happen to have an InnerException? Log it!
 						if (error.InnerException != null)
@@ -185,7 +185,8 @@ namespace OpenMetaverse.Http
 						//
 						// Note: if this condition persists, it _might_ be the grid trying to request
 						// that the client closes the connection, as per LL's specs (gwyneth 20220414)
-						Logger.Log($"Grid sent a Bad Gateway Error at {_Address}; probably a time-out from the grid's EventQueue server (normal) -- ignoring and continuing", Helpers.LogLevel.Debug);
+						Logger.Log($"Grid sent a Bad Gateway Error at {_Simulator}; " +
+                                   $"probably a time-out from the grid's EventQueue server (normal) -- ignoring and continuing", Helpers.LogLevel.Debug);
                         break;
                     default:
                         ++_errorCount;
@@ -193,7 +194,7 @@ namespace OpenMetaverse.Http
                         // Try to log a meaningful error message
                         if (response.StatusCode != HttpStatusCode.OK)
                         {
-                            Logger.Log($"Unrecognized caps connection problem from {_Address}: {response.StatusCode} {response.ReasonPhrase}",
+                            Logger.Log($"Unrecognized caps connection problem from {_Simulator}: {response.StatusCode} {response.ReasonPhrase}",
                                 Helpers.LogLevel.Warning);
                         }
                         else if (error.InnerException != null)
@@ -218,7 +219,7 @@ namespace OpenMetaverse.Http
                         }
                         else
                         {
-                            Logger.Log($"Unrecognized caps exception from {_Address}: {error.Message}",
+                            Logger.Log($"Unrecognized caps exception from {_Simulator}: {error.Message}",
                                 Helpers.LogLevel.Warning);
                         }
                         break;
@@ -230,7 +231,7 @@ namespace OpenMetaverse.Http
             {
                 ++_errorCount;
 
-                Logger.Log("No response from the event queue but no reported error either", Helpers.LogLevel.Warning);
+                Logger.Log($"No response from {_Simulator} event queue but no reported error either", Helpers.LogLevel.Warning);
             }
 
 #pragma warning disable CS0164 // This label has not been referenced
@@ -241,16 +242,16 @@ namespace OpenMetaverse.Http
             if (_Running)
             {
                 OSDMap payload = new OSDMap();
-                if (ack != 0) payload["ack"] = OSD.FromInteger(ack);
-                else payload["ack"] = new OSD();
+                if (ack != 0) { payload["ack"] = OSD.FromInteger(ack); }
+                else { payload["ack"] = new OSD(); }
                 payload["done"] = OSD.FromBoolean(_Dead);
 
-                if (_errorCount > 0) // Exponentially back off, so we don't hammer the CPU
+                if (_errorCount > 0) { // Exponentially back off, so we don't hammer the CPU
                     Thread.Sleep(Math.Min(REQUEST_BACKOFF_SECONDS + _errorCount * REQUEST_BACKOFF_SECONDS_INC, REQUEST_BACKOFF_SECONDS_MAX));
-
+                }
                 // Resume the connection. The event handler for the connection opening
                 // just sets class _Request variable to the current HttpWebRequest
-                Task req = _Client.HttpCapsClient.PostRequestAsync(_Address, OSDFormat.Xml, payload, _HttpCts.Token,
+                Task req = _Simulator.Client.HttpCapsClient.PostRequestAsync(_Address, OSDFormat.Xml, payload, _HttpCts.Token,
                     RequestCompletedHandler);
 
                 // If the event queue is dead at this point, turn it off since
@@ -258,7 +259,7 @@ namespace OpenMetaverse.Http
                 if (_Dead)
                 {
                     _Running = false;
-                    Logger.DebugLog("Sent event queue shutdown message");
+                    Logger.DebugLog($"Sent event queue shutdown message for {_Simulator}");
                 }
             }
 #pragma warning restore CS0164 // This label has not been referenced
