@@ -241,8 +241,7 @@ namespace OpenMetaverse.Http
                 if (_errorCount > 0) { // Exponentially back off, so we don't hammer the CPU
                     Thread.Sleep(Math.Min(REQUEST_BACKOFF_SECONDS + _errorCount * REQUEST_BACKOFF_SECONDS_INC, REQUEST_BACKOFF_SECONDS_MAX));
                 }
-                // Resume the connection. The event handler for the connection opening
-                // just sets class _Request variable to the current HttpWebRequest
+                // Resume the connection.
                 Task req = _Simulator.Client.HttpCapsClient.PostRequestAsync(_Address, OSDFormat.Xml, payload, _HttpCts.Token,
                     RequestCompletedHandler);
 
