@@ -50,10 +50,10 @@ namespace OpenMetaverse.Http
 
         public bool Running => _Running;
 
-        protected Uri _Address;
+        protected readonly Uri _Address;
+        protected readonly Simulator _Simulator;
         protected bool _Dead;
         protected bool _Running;
-        private Simulator _Simulator;
         private CancellationTokenSource _HttpCts;
 
         /// <summary>Number of times we've received an unknown CAPS exception in series.</summary>
