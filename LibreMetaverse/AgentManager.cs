@@ -33,7 +33,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using OpenMetaverse.StructuredData;
-using OpenMetaverse.Http;
 using OpenMetaverse.Assets;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
@@ -139,11 +138,11 @@ namespace OpenMetaverse
         ConsoleAndChatHistory = 21,
         /// <summary>Send a teleport lure</summary>
         RequestTeleport = 22,
-        /// <summary>Response sent to the agent which inititiated a teleport invitation</summary>
+        /// <summary>Response sent to the agent who initiated a teleport invitation</summary>
         AcceptTeleport = 23,
-        /// <summary>Response sent to the agent which inititiated a teleport invitation</summary>
+        /// <summary>Response sent to the agent who initiated a teleport invitation</summary>
         DenyTeleport = 24,
-        /// <summary>Only useful if you have Linden permissions</summary>
+        /// <summary>Forceful admin teleport</summary>
         GodLikeRequestTeleport = 25,
         /// <summary>Request a teleport lure</summary>
         RequestLure = 26,
@@ -767,7 +766,7 @@ namespace OpenMetaverse
 
         #region Event Delegates
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ChatEventArgs> m_Chat;
 
         /// <summary>Raises the ChatFromSimulator event</summary>
@@ -789,7 +788,7 @@ namespace OpenMetaverse
             remove { lock (m_ChatLock) { m_Chat -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ScriptDialogEventArgs> m_ScriptDialog;
 
         /// <summary>Raises the ScriptDialog event</summary>
@@ -811,7 +810,7 @@ namespace OpenMetaverse
             remove { lock (m_ScriptDialogLock) { m_ScriptDialog -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ScriptQuestionEventArgs> m_ScriptQuestion;
 
         /// <summary>Raises the ScriptQuestion event</summary>
@@ -832,7 +831,7 @@ namespace OpenMetaverse
             remove { lock (m_ScriptQuestionLock) { m_ScriptQuestion -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<LoadUrlEventArgs> m_LoadURL;
 
         /// <summary>Raises the LoadURL event</summary>
@@ -853,7 +852,7 @@ namespace OpenMetaverse
             remove { lock (m_LoadUrlLock) { m_LoadURL -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<BalanceEventArgs> m_Balance;
 
         /// <summary>Raises the MoneyBalance event</summary>
@@ -875,7 +874,7 @@ namespace OpenMetaverse
             remove { lock (m_BalanceLock) { m_Balance -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<MoneyBalanceReplyEventArgs> m_MoneyBalance;
 
         /// <summary>Raises the MoneyBalanceReply event</summary>
@@ -897,7 +896,7 @@ namespace OpenMetaverse
             remove { lock (m_MoneyBalanceReplyLock) { m_MoneyBalance -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<InstantMessageEventArgs> m_InstantMessage;
 
         /// <summary>Raises the IM event</summary>
@@ -919,7 +918,7 @@ namespace OpenMetaverse
             remove { lock (m_InstantMessageLock) { m_InstantMessage -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<TeleportEventArgs> m_Teleport;
 
         /// <summary>Raises the TeleportProgress event</summary>
@@ -941,7 +940,7 @@ namespace OpenMetaverse
             remove { lock (m_TeleportLock) { m_Teleport += value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<AgentDataReplyEventArgs> m_AgentData;
 
         /// <summary>Raises the AgentDataReply event</summary>
@@ -963,7 +962,7 @@ namespace OpenMetaverse
             remove { lock (m_AgentDataLock) { m_AgentData -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<AnimationsChangedEventArgs> m_AnimationsChanged;
 
         /// <summary>Raises the AnimationsChanged event</summary>
@@ -985,7 +984,7 @@ namespace OpenMetaverse
             remove { lock (m_AnimationsChangedLock) { m_AnimationsChanged -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<MeanCollisionEventArgs> m_MeanCollision;
 
         /// <summary>Raises the MeanCollision event</summary>
@@ -1007,7 +1006,7 @@ namespace OpenMetaverse
             remove { lock (m_MeanCollisionLock) { m_MeanCollision -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<RegionCrossedEventArgs> m_RegionCrossed;
 
         /// <summary>Raises the RegionCrossed event</summary>
@@ -1029,7 +1028,7 @@ namespace OpenMetaverse
             remove { lock (m_RegionCrossedLock) { m_RegionCrossed -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<GroupChatJoinedEventArgs> m_GroupChatJoined;
 
         /// <summary>Raises the GroupChatJoined event</summary>
@@ -1074,7 +1073,7 @@ namespace OpenMetaverse
             remove { lock (m_AlertMessageLock) { m_AlertMessage -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ScriptControlEventArgs> m_ScriptControl;
 
         /// <summary>Raises the ScriptControlChange event</summary>
@@ -1096,7 +1095,7 @@ namespace OpenMetaverse
             remove { lock (m_ScriptControlLock) { m_ScriptControl -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<CameraConstraintEventArgs> m_CameraConstraint;
 
         /// <summary>Raises the CameraConstraint event</summary>
@@ -1120,7 +1119,7 @@ namespace OpenMetaverse
             remove { lock (m_CameraConstraintLock) { m_CameraConstraint -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ScriptSensorReplyEventArgs> m_ScriptSensorReply;
 
         /// <summary>Raises the ScriptSensorReply event</summary>
@@ -1143,7 +1142,7 @@ namespace OpenMetaverse
             remove { lock (m_ScriptSensorReplyLock) { m_ScriptSensorReply -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<AvatarSitResponseEventArgs> m_AvatarSitResponse;
 
         /// <summary>Raises the AvatarSitResponse event</summary>
@@ -1166,7 +1165,7 @@ namespace OpenMetaverse
             remove { lock (m_AvatarSitResponseLock) { m_AvatarSitResponse -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ChatSessionMemberAddedEventArgs> m_ChatSessionMemberAdded;
 
         /// <summary>Raises the ChatSessionMemberAdded event</summary>
@@ -1188,7 +1187,7 @@ namespace OpenMetaverse
             remove { lock (m_ChatSessionMemberAddedLock) { m_ChatSessionMemberAdded -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ChatSessionMemberLeftEventArgs> m_ChatSessionMemberLeft;
 
         /// <summary>Raises the ChatSessionMemberLeft event</summary>
@@ -1233,7 +1232,7 @@ namespace OpenMetaverse
             remove { lock (m_SetDisplayNameReplyLock) { m_SetDisplayNameReply -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EventArgs> m_MuteListUpdated;
 
         /// <summary>Raises the MuteListUpdated event</summary>
@@ -1357,10 +1356,14 @@ namespace OpenMetaverse
 
         /// <summary>Current position of the agent as a relative offset from
         /// the simulator, or the parent object if we are sitting on something</summary>
-        public Vector3 RelativePosition { get { return relativePosition; } set { relativePosition = value; } }
+        public Vector3 RelativePosition { get => relativePosition;
+            set => relativePosition = value;
+        }
         /// <summary>Current rotation of the agent as a relative rotation from
         /// the simulator, or the parent object if we are sitting on something</summary>
-        public Quaternion RelativeRotation { get { return relativeRotation; } set { relativeRotation = value; } }
+        public Quaternion RelativeRotation { get => relativeRotation;
+            set => relativeRotation = value;
+        }
         /// <summary>Current position of the agent in the simulator</summary>
         public Vector3 SimPosition
         {
@@ -3013,23 +3016,20 @@ namespace OpenMetaverse
         /// false</returns>
         public bool Teleport(string simName, Vector3 position, Vector3 lookAt)
         {
-            if (Client.Network.CurrentSim == null)
-                return false;
+            if (Client.Network.CurrentSim == null) { return false; }
 
             teleportStat = TeleportStatus.None;
 
             if (simName != Client.Network.CurrentSim.Name)
             {
                 // Teleporting to a foreign sim
-                GridRegion region;
-
-                if (Client.Grid.GetGridRegion(simName, GridLayerType.Objects, out region))
+                if (Client.Grid.GetGridRegion(simName, GridLayerType.Objects, out var region))
                 {
                     return Teleport(region.RegionHandle, position, lookAt);
                 }
                 else
                 {
-                    TeleportMessage = "Unable to resolve name: " + simName;
+                    TeleportMessage = $"Unable to resolve simulator named: {simName}";
                     teleportStat = TeleportStatus.Failed;
                     return false;
                 }
@@ -3110,7 +3110,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Request teleport to a another simulator
+        /// Request teleport to another region
         /// </summary>
         /// <param name="regionHandle">handle of region to teleport agent to</param>
         /// <param name="position"><seealso cref="Vector3"/> position in destination sim to teleport to</param>
@@ -3118,17 +3118,24 @@ namespace OpenMetaverse
         public void RequestTeleport(ulong regionHandle, Vector3 position, Vector3 lookAt)
         {
             if (Client.Network.CurrentSim != null &&
-                Client.Network.CurrentSim.Caps != null &&
-                Client.Network.CurrentSim.Caps.IsEventQueueRunning)
+                Client.Network.CurrentSim.Caps is { IsEventQueueRunning: true })
             {
-                TeleportLocationRequestPacket teleport = new TeleportLocationRequestPacket();
-                teleport.AgentData.AgentID = Client.Self.AgentID;
-                teleport.AgentData.SessionID = Client.Self.SessionID;
-                teleport.Info.LookAt = lookAt;
-                teleport.Info.Position = position;
-                teleport.Info.RegionHandle = regionHandle;
+                TeleportLocationRequestPacket teleport = new TeleportLocationRequestPacket
+                {
+                    AgentData =
+                    {
+                        AgentID = Client.Self.AgentID,
+                        SessionID = Client.Self.SessionID
+                    },
+                    Info =
+                    {
+                        LookAt = lookAt,
+                        Position = position,
+                        RegionHandle = regionHandle
+                    }
+                };
 
-                Logger.Log("Requesting teleport to region handle " + regionHandle, Helpers.LogLevel.Info, Client);
+                Logger.Log($"Requesting teleport to region handle {regionHandle}", Helpers.LogLevel.Info, Client);
 
                 Client.Network.SendPacket(teleport);
             }
@@ -3164,7 +3171,7 @@ namespace OpenMetaverse
         /// <param name="targetID">target avatars <seealso cref="UUID"/> to lure</param>
         public void SendTeleportLure(UUID targetID)
         {
-            SendTeleportLure(targetID, "Join me in " + Client.Network.CurrentSim.Name + "!");
+            SendTeleportLure(targetID, $"Join me in {Client.Network.CurrentSim.Name}!");
         }
 
         /// <summary>
@@ -4231,7 +4238,7 @@ namespace OpenMetaverse
         {
             EstablishAgentCommunicationMessage msg = (EstablishAgentCommunicationMessage)message;
 
-            if (!Client.Settings.MULTIPLE_SIMS) return;
+            if (!Client.Settings.MULTIPLE_SIMS) { return; }
             IPEndPoint endPoint = new IPEndPoint(msg.Address, msg.Port);
             Simulator sim = Client.Network.FindSimulator(endPoint);
 
@@ -4255,7 +4262,7 @@ namespace OpenMetaverse
         /// Process TeleportFailed message sent via EventQueue, informs agent its last teleport has failed and why.
         /// </summary>
         /// <param name="messageKey">The Message Key</param>
-        /// <param name="message">An IMessage object Deserialized from the recieved message event</param>
+        /// <param name="message">An IMessage object Deserialized from the received message event</param>
         /// <param name="simulator">The simulator originating the event message</param>
         public void TeleportFailedEventHandler(string messageKey, IMessage message, Simulator simulator)
         {
@@ -5179,14 +5186,14 @@ namespace OpenMetaverse
         /// <summary>Get the InstantMessage object</summary>
         public InstantMessage IM { get; }
 
-        /// <summary>Get the simulator where the InstantMessage origniated</summary>
+        /// <summary>Get the simulator where the InstantMessage originated</summary>
         public Simulator Simulator { get; }
 
         /// <summary>
         /// Construct a new instance of the InstantMessageEventArgs object
         /// </summary>
         /// <param name="im">the InstantMessage object</param>
-        /// <param name="simulator">the simulator where the InstantMessage origniated</param>
+        /// <param name="simulator">the simulator where the InstantMessage originated</param>
         public InstantMessageEventArgs(InstantMessage im, Simulator simulator)
         {
             IM = im;
@@ -5198,21 +5205,21 @@ namespace OpenMetaverse
     public class BalanceEventArgs : EventArgs
     {
         /// <summary>
-        /// Get the currenct balance
+        /// Get current balance
         /// </summary>
         public int Balance { get; }
 
         /// <summary>
         /// Construct a new BalanceEventArgs object
         /// </summary>
-        /// <param name="balance">The currenct balance</param>
+        /// <param name="balance">The current balance</param>
         public BalanceEventArgs(int balance)
         {
             Balance = balance;
         }
     }
 
-    /// <summary>Contains the transaction summary when an item is purchased, 
+    /// <summary>Contains the transaction summary when an item is purchased,
     /// money is given, or land is purchased</summary>
     public class MoneyBalanceReplyEventArgs : EventArgs
     {
@@ -5244,7 +5251,7 @@ namespace OpenMetaverse
         /// <param name="transactionSuccess">True of the transaction was successful</param>
         /// <param name="balance">The current currency balance</param>
         /// <param name="metersCredit">The meters credited</param>
-        /// <param name="metersCommitted">The meters comitted</param>
+        /// <param name="metersCommitted">The meters committed</param>
         /// <param name="description">A brief description of the transaction</param>
         /// <param name="transactionInfo">Transaction info</param>
         public MoneyBalanceReplyEventArgs(UUID transactionID, bool transactionSuccess, int balance, int metersCredit, int metersCommitted, string description, TransactionInfo transactionInfo)
