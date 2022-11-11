@@ -1697,6 +1697,18 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Requests the UUID of the parcel in a remote region at a specified location
+        /// </summary>
+        /// <param name="location">Location of the parcel in the remote region</param>
+        /// <param name="regionHandle">Remote region handle</param>
+        /// <param name="regionID">Remote region UUID</param>
+        /// <returns>If successful UUID of the remote parcel, UUID.Zero otherwise</returns>
+        public UUID RequestRemoteParcelID(Vector3 location, ulong regionHandle, UUID regionID)
+        {
+            return RequestRemoteParcelIDAsync(location, regionHandle, regionID).Result;
+        }
+
+        /// <summary>
         /// Retrieves information on resources used by the parcel
         /// </summary>
         /// <param name="parcelID">UUID of the parcel</param>
