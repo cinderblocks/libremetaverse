@@ -79,7 +79,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Start UPD connection
         /// </summary>
         public void Start()
         {
@@ -124,7 +124,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Stop UPD connection
         /// </summary>
         public void Stop()
         {
@@ -139,7 +139,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Is UDP connection up and running
         /// </summary>
         public bool IsRunning => !shutdownFlag;
 

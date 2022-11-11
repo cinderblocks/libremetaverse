@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2022, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -148,7 +149,7 @@ namespace OpenMetaverse
     #endregion Enums
     
     /// <summary>
-    /// 
+    /// Simulator class encapsulates the idea of what Linden Lab calls a "Region" not a "Simulator", per se.
     /// </summary>
     public class Simulator : UDPBase, IDisposable
     {
@@ -251,18 +252,17 @@ namespace OpenMetaverse
         #endregion Structs
 
         #region Public Members        
-        /// <summary>A public reference to the client that this Simulator object
-        /// is attached to</summary>
+        /// <summary>A public reference to the client that this Simulator object is attached to</summary>
         public GridClient Client;
         /// <summary>A Unique Cache identifier for this simulator</summary>
         public UUID ID = UUID.Zero;
         /// <summary>The capabilities for this simulator</summary>
         public Caps Caps;
-        /// <summary></summary>
+        /// <summary>Unique identified for this region generated via it's coordinates on the world map</summary>
         public ulong Handle;
         /// <summary>The current version of software this simulator is running</summary>
         public string SimVersion = String.Empty;
-        /// <summary></summary>
+        /// <summary>Human readable name given to the simulator</summary>
         public string Name = String.Empty;
         /// <summary>A 64x64 grid of parcel coloring values. The values stored 
         /// in this array are of the <seealso cref="ParcelArrayType"/> type</summary>
@@ -287,7 +287,7 @@ namespace OpenMetaverse
         public float TerrainStartHeight11;
         /// <summary></summary>
         public float WaterHeight;
-        /// <summary></summary>
+        /// <summary>UUID identifier of the owner of this Region</summary>
         public UUID SimOwner = UUID.Zero;
         /// <summary></summary>
         public UUID TerrainBase0 = UUID.Zero;
@@ -309,7 +309,7 @@ namespace OpenMetaverse
         public bool IsEstateManager;
         /// <summary></summary>
         public RegionFlags Flags;
-        /// <summary></summary>
+        /// <summary>Access level</summary>
         public SimAccess Access;
         /// <summary></summary>
         public float BillableFactor;
@@ -515,11 +515,11 @@ namespace OpenMetaverse
         #endregion Internal/Private Members
 
         /// <summary>
-        /// 
+        /// Constructor
         /// </summary>
-        /// <param name="client">Reference to the GridClient object</param>
+        /// <param name="client">Reference to the <seealso cref="GridClient"/> object</param>
         /// <param name="address">IPEndPoint of the simulator</param>
-        /// <param name="handle">handle of the simulator</param>
+        /// <param name="handle">Region handle for the simulator</param>
         public Simulator(GridClient client, IPEndPoint address, ulong handle)
             : base(address)
         {
@@ -569,8 +569,8 @@ namespace OpenMetaverse
         /// Attempt to connect to this simulator
         /// </summary>
         /// <param name="moveToSim">Whether to move our agent in to this sim or not</param>
-        /// <returns>True if the connection succeeded or connection status is
-        /// unknown, false if there was a failure</returns>
+        /// <returns>True if the connection succeeded or  unknown, false if there
+        /// was a failure</returns>
         public bool Connect(bool moveToSim)
         {
             handshakeComplete = false;
@@ -587,7 +587,7 @@ namespace OpenMetaverse
 
             #region Start Timers
 
-            // Timer for sending out queued packet acknowledgements
+            // Timer for sending out queued packet acknowledgments
             AckTimer ??= new Timer(AckTimer_Elapsed, null, Settings.NETWORK_TICK_INTERVAL, Timeout.Infinite);
 
             // Timer for recording simulator connection statistics
@@ -599,7 +599,7 @@ namespace OpenMetaverse
 
             #endregion Start Timers
 
-            Logger.Log("Connecting to " + this, Helpers.LogLevel.Info, Client);
+            Logger.Log($"Connecting to {this}", Helpers.LogLevel.Info, Client);
 
             try
             {
@@ -619,9 +619,9 @@ namespace OpenMetaverse
 
                 if (!ConnectedEvent.WaitOne(Client.Settings.LOGIN_TIMEOUT, false))
                 {
-                    Logger.Log("Giving up on waiting for RegionHandshake for " + this,
+                    Logger.Log($"Giving up waiting for RegionHandshake for {this}",
                         Helpers.LogLevel.Warning, Client);
-                    //Remove the simulator from the list, not useful if we haven't recieved the RegionHandshake
+                    //Remove the simulator from the list, not useful if we haven't received the RegionHandshake
                     lock (Client.Network.Simulators) {
                         Client.Network.Simulators.Remove(this);
                     }

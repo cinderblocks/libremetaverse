@@ -644,7 +644,7 @@ namespace OpenMetaverse
     {
         /// <summary>Object muted by name</summary>
         ByName = 0,
-        /// <summary>Muted residet</summary>
+        /// <summary>Muted resident</summary>
         Resident = 1,
         /// <summary>Object muted by UUID</summary>
         Object = 2,
@@ -792,7 +792,7 @@ namespace OpenMetaverse
         private EventHandler<ScriptDialogEventArgs> m_ScriptDialog;
 
         /// <summary>Raises the ScriptDialog event</summary>
-        /// <param name="e">A SctriptDialogEventArgs object containing the
+        /// <param name="e">A ScriptDialogEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnScriptDialog(ScriptDialogEventArgs e)
         {
@@ -1265,7 +1265,7 @@ namespace OpenMetaverse
         public InternalDictionary<UUID, int> SignaledAnimations = new InternalDictionary<UUID, int>();
         /// <summary>Dictionary containing current Group Chat sessions and members</summary>
         public InternalDictionary<UUID, List<ChatSessionMember>> GroupChatSessions = new InternalDictionary<UUID, List<ChatSessionMember>>();
-        /// <summary>Dictionary containing mute list keyead on mute name and key</summary>
+        /// <summary>Dictionary containing mute list keyed on mute name and key</summary>
         public InternalDictionary<string, MuteEntry> MuteList = new InternalDictionary<string, MuteEntry>();
         public InternalDictionary<UUID, UUID> ActiveGestures { get; } = new InternalDictionary<UUID, UUID>();
 
@@ -1375,7 +1375,7 @@ namespace OpenMetaverse
                     return relativePosition;
                 }
 
-                // a bit more complicatated, agent sitting on a prim
+                // a bit more complicated, agent sitting on a prim
                 Primitive p;
                 Vector3 fullPosition = relativePosition;
 
@@ -1384,7 +1384,7 @@ namespace OpenMetaverse
                     fullPosition = p.Position + relativePosition * p.Rotation;
                 }
 
-                // go up the hiearchy trying to find the root prim
+                // go up the hierarchy trying to find the root prim
                 while (p != null && p.ParentID != 0)
                 {
                     Avatar av;
@@ -1407,13 +1407,13 @@ namespace OpenMetaverse
                     return fullPosition;
                 }
 
-                // Didn't find the seat's root prim, try returning coarse loaction
+                // Didn't find the seat's root prim, try returning coarse location
                 if (Client.Network.CurrentSim.avatarPositions.TryGetValue(AgentID, out fullPosition))
                 {
                     return fullPosition;
                 }
 
-                Logger.Log("Failed to determine agents sim position", Helpers.LogLevel.Warning, Client);
+                Logger.Log("Failed to determine agent sim position", Helpers.LogLevel.Warning, Client);
                 return relativePosition;
             }
         }
@@ -4413,7 +4413,7 @@ namespace OpenMetaverse
                 OnTeleport(new TeleportEventArgs(TeleportMessage, teleportStat, flags));
             }
 
-            if (finished) teleportEvent.Set();
+            if (finished) { teleportEvent.Set(); }
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>

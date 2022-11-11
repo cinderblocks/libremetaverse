@@ -342,7 +342,7 @@ namespace OpenMetaverse
 
         private int _packetOutboxCount = 0;
 
-        private GridClient Client;
+        private readonly GridClient Client;
         private Timer DisconnectTimer;
 
         private long lastpacketwarning = 0;
