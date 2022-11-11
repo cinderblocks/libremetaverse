@@ -388,8 +388,10 @@ namespace OpenMetaverse
         /// <summary>
         /// Calculates a PBKDF2 hash of a given string
         /// </summary>
+        /// <remarks>Rfc2989 is outdated and insecure. Use at your own risk!</remarks>
         /// <param name="str">The string to hash</param>
         /// <returns>The PBKDF2 hash of the supplied string</returns>
+        [Obsolete("Rfc2989 is outdated and insecure. Use at your own risk!")]
         public static string PBKDF2(string str)
         {
             var derivebytes = new Rfc2898DeriveBytes(str, 32) {IterationCount = 10000};
