@@ -1,12 +1,12 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
-	<TargetFrameworks>netcoreapp3.1;net5.0-windows;net6.0-windows</TargetFrameworks>
+	<TargetFrameworks>net6.0-windows;net7.0-windows</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' ">
-	<TargetFrameworks>netcoreapp3.1;net5.0-linux;net6.0-linux</TargetFrameworks>
+	<TargetFrameworks>net6.0-linux;net7.0-linux</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' ">
-	<TargetFrameworks>netcoreapp3.1;net5.0-macos;net6.0-macos</TargetFrameworks>
+	<TargetFrameworks>net6.0-macos;net7.0-macos</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup>
 	<PackageId>Baker</PackageId>

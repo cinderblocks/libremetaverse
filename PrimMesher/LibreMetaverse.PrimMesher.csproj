@@ -4,7 +4,7 @@
     <AssemblyName>LibreMetaverse.PrimMesher</AssemblyName>
 	<PackageId>LibreMetaverse.PrimMesher</PackageId>
 	<OutputType>Library</OutputType>
-    <TargetFrameworks>netstandard2.1;net5.0;net6.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;net6.0;net7.0</TargetFrameworks>
     <Authors>Dhalia Trimble, Sjofn LLC, OpenMetaverse Developers</Authors>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	<IncludeSymbols>true</IncludeSymbols>
@@ -47,7 +47,7 @@
     <DefineConstants>TRACE;VERTEX_INDEXER</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
+    <PackageReference Include="System.Drawing.Common" Version="7.0.0" />
   </ItemGroup>
   <ItemGroup>
 	<None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />

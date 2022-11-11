@@ -4,7 +4,7 @@
 	<PackageId>LibreMetaverse.Rendering.Meshmerizer</PackageId>
 	<Description>Meshmerizer library for rendering mesh assets in LibreMetaverse</Description>
 	<RootNamespace>LibreMetaverse.Rendering.Meshmerizer</RootNamespace>
-    <TargetFrameworks>netstandard2.1;net5.0;net6.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;net6.0;net7.0</TargetFrameworks>
     <OutputType>Library</OutputType>
 	<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	<IncludeSymbols>true</IncludeSymbols>
@@ -50,7 +50,7 @@
     <ProjectReference Include="..\PrimMesher\LibreMetaverse.PrimMesher.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
+    <PackageReference Include="System.Drawing.Common" Version="7.0.0" />
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
   </ItemGroup>
   <ItemGroup>
