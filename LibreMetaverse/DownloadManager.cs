@@ -29,6 +29,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 using LibreMetaverse;
 
 namespace OpenMetaverse.Http
@@ -67,7 +68,7 @@ namespace OpenMetaverse.Http
     {
         public List<DownloadProgressHandler> ProgressHandlers = new List<DownloadProgressHandler>();
         public List<DownloadCompleteHandler> CompletedHandlers = new List<DownloadCompleteHandler>();
-        public CancellationTokenSource cancellationToken;
+        public CancellationTokenSource CancellationToken = new CancellationTokenSource();
     }
 
     /// <summary>
@@ -96,8 +97,8 @@ namespace OpenMetaverse.Http
         {
             foreach (var download in activeDownloads.Values)
             {
-                download.cancellationToken.Cancel();
-                download.cancellationToken.Dispose();
+                download.CancellationToken.Cancel();
+                download.CancellationToken.Dispose();
             }
             activeDownloads.Clear();
         }
@@ -134,28 +135,26 @@ namespace OpenMetaverse.Http
                     }
 
                     Logger.DebugLog($"Requesting {item.Address}");
-
-                    activeDownload.cancellationToken = new CancellationTokenSource();
-                    _ = Client.HttpCapsClient.GetRequestAsync(item.Address, activeDownload.cancellationToken.Token,
+                    
+                    Task req = Client.HttpCapsClient.GetRequestAsync(item.Address, activeDownload.CancellationToken.Token,
                             (response, responseData, error)  =>
                             {
-                                activeDownloads.TryRemove(addr, out activeDownload);
-                            if (error == null || item.Attempt >= item.Retries || response.StatusCode == HttpStatusCode.NotFound)
-                            {
-                                foreach (var handler in activeDownload.CompletedHandlers)
+                                activeDownloads.TryRemove(addr, out _);
+                                if (error == null || item.Attempt >= item.Retries || response.StatusCode == HttpStatusCode.NotFound)
                                 {
-                                    handler(response, responseData, error);
+                                    foreach (var handler in activeDownload.CompletedHandlers)
+                                    {
+                                        handler(response, responseData, error);
+                                    }
                                 }
-                            }
-                            else
-                            {
-                                item.Attempt++;
-                                Logger.Log($"{item.Address} HTTP download failed, trying again retry {item.Attempt}/{item.Retries}", 
-                                    Helpers.LogLevel.Warning);
-                                lock (queue) queue.Enqueue(item);
-                            }
-
-                            EnqueuePending();
+                                else
+                                {
+                                    item.Attempt++;
+                                    Logger.Log($"{item.Address} HTTP download failed, trying again retry {item.Attempt}/{item.Retries}",
+                                        Helpers.LogLevel.Warning);
+                                    lock (queue) queue.Enqueue(item);
+                                }
+                                EnqueuePending();
                         }, (totalBytes, totalReceived, progressPercent) =>
                         {
                             foreach (var handler in activeDownload.ProgressHandlers)

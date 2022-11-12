@@ -465,10 +465,10 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.UpdateCreateInventoryItem, UpdateCreateInventoryItemHandler);
             Client.Network.RegisterCallback(PacketType.SaveAssetIntoInventory, SaveAssetIntoInventoryHandler);
             Client.Network.RegisterCallback(PacketType.BulkUpdateInventory, BulkUpdateInventoryHandler);
-            Client.Network.RegisterEventCallback("BulkUpdateInventory", new Caps.EventQueueCallback(BulkUpdateInventoryCapHandler));
+            Client.Network.RegisterEventCallback("BulkUpdateInventory", BulkUpdateInventoryCapHandler);
             Client.Network.RegisterCallback(PacketType.MoveInventoryItem, MoveInventoryItemHandler);
             Client.Network.RegisterCallback(PacketType.ReplyTaskInventory, ReplyTaskInventoryHandler);
-            Client.Network.RegisterEventCallback("ScriptRunningReply", new Caps.EventQueueCallback(ScriptRunningReplyMessageHandler));
+            Client.Network.RegisterEventCallback("ScriptRunningReply", ScriptRunningReplyMessageHandler);
 
             // Deprecated and removed now in Second Life
             Client.Network.RegisterCallback(PacketType.InventoryDescendents, InventoryDescendentsHandler);
@@ -627,7 +627,6 @@ namespace OpenMetaverse
             }
         }
         /// <summary>
-        /// FolderContentsWithReply
         /// Get contents of a folder
         /// </summary>
         /// <param name="folder">The <seealso cref="UUID"/> of the folder to search</param>
