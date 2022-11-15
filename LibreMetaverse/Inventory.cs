@@ -55,7 +55,7 @@ namespace OpenMetaverse
     /// </summary>
     public class Inventory
     {
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<InventoryObjectUpdatedEventArgs> m_InventoryObjectUpdated;
 
         ///<summary>Raises the InventoryObjectUpdated Event</summary>
@@ -78,7 +78,7 @@ namespace OpenMetaverse
             remove { lock (m_InventoryObjectUpdatedLock) { m_InventoryObjectUpdated -= value; } }
         }
        
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<InventoryObjectRemovedEventArgs> m_InventoryObjectRemoved;
 
         ///<summary>Raises the InventoryObjectRemoved Event</summary>
@@ -101,7 +101,7 @@ namespace OpenMetaverse
             remove { lock (m_InventoryObjectRemovedLock) { m_InventoryObjectRemoved -= value; } }
         }
         
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<InventoryObjectAddedEventArgs> m_InventoryObjectAdded;
 
         ///<summary>Raises the InventoryObjectAdded Event</summary>

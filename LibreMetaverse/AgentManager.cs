@@ -1209,7 +1209,7 @@ namespace OpenMetaverse
             remove { lock (m_ChatSessionMemberLeftLock) { m_ChatSessionMemberLeft -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<SetDisplayNameReplyEventArgs> m_SetDisplayNameReply;
 
         ///<summary>Raises the SetDisplayNameReply Event</summary>

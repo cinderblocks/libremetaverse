@@ -164,7 +164,7 @@ namespace OpenMetaverse
         /// <param name="item"></param>
         public delegate void ItemCopiedCallback(InventoryBase item);
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<ItemReceivedEventArgs> m_ItemReceived;
 
         ///<summary>Raises the ItemReceived Event</summary>
@@ -187,7 +187,7 @@ namespace OpenMetaverse
             remove { lock (m_ItemReceivedLock) { m_ItemReceived -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<FolderUpdatedEventArgs> m_FolderUpdated;
 
         ///<summary>Raises the FolderUpdated Event</summary>
@@ -210,7 +210,7 @@ namespace OpenMetaverse
             remove { lock (m_FolderUpdatedLock) { m_FolderUpdated -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<InventoryObjectOfferedEventArgs> m_InventoryObjectOffered;
 
         ///<summary>Raises the InventoryObjectOffered Event</summary>
@@ -233,7 +233,7 @@ namespace OpenMetaverse
             remove { lock (m_InventoryObjectOfferedLock) { m_InventoryObjectOffered -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<TaskItemReceivedEventArgs> m_TaskItemReceived;
 
         ///<summary>Raises the TaskItemReceived Event</summary>
@@ -256,7 +256,7 @@ namespace OpenMetaverse
             remove { lock (m_TaskItemReceivedLock) { m_TaskItemReceived -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<FindObjectByPathReplyEventArgs> m_FindObjectByPathReply;
 
         ///<summary>Raises the FindObjectByPath Event</summary>
@@ -279,7 +279,7 @@ namespace OpenMetaverse
             remove { lock (m_FindObjectByPathReplyLock) { m_FindObjectByPathReply -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<TaskInventoryReplyEventArgs> m_TaskInventoryReply;
 
         ///<summary>Raises the TaskInventoryReply Event</summary>
@@ -311,7 +311,7 @@ namespace OpenMetaverse
         /// <param name="assetID">New asset UUID</param>
         public delegate void InventoryUploadedAssetCallback(bool success, string status, UUID itemID, UUID assetID);
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<SaveAssetToInventoryEventArgs> m_SaveAssetToInventory;
 
         ///<summary>Raises the SaveAssetToInventory Event</summary>
@@ -345,7 +345,7 @@ namespace OpenMetaverse
         /// <param name="assetID">Script's new asset UUID</param>
         public delegate void ScriptUpdatedCallback(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string> compileMessages, UUID itemID, UUID assetID);
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<ScriptRunningReplyEventArgs> m_ScriptRunningReply;
 
         ///<summary>Raises the ScriptRunningReply Event</summary>

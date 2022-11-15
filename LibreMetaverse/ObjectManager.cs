@@ -171,7 +171,7 @@ namespace OpenMetaverse
         #region Delegates
 
         #region ObjectUpdate event
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<PrimEventArgs> m_ObjectUpdate;
 
         /// <summary>Thread sync lock object</summary>
@@ -189,7 +189,7 @@ namespace OpenMetaverse
         #endregion ObjectUpdate event
 
         #region ObjectProperties event
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<ObjectPropertiesEventArgs> m_ObjectProperties;
 
         ///<summary>Raises the ObjectProperties Event</summary>
@@ -215,7 +215,7 @@ namespace OpenMetaverse
             remove { lock (m_ObjectPropertiesLock) { m_ObjectProperties -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<ObjectPropertiesUpdatedEventArgs> m_ObjectPropertiesUpdated;
 
         ///<summary>Raises the ObjectPropertiesUpdated Event</summary>
@@ -241,7 +241,7 @@ namespace OpenMetaverse
         #endregion ObjectProperties event
 
         #region ObjectPropertiesFamily event
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<ObjectPropertiesFamilyEventArgs> m_ObjectPropertiesFamily;
 
         ///<summary>Raises the ObjectPropertiesFamily Event</summary>
@@ -268,7 +268,7 @@ namespace OpenMetaverse
         #endregion ObjectPropertiesFamily
 
         #region AvatarUpdate event
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<AvatarUpdateEventArgs> m_AvatarUpdate;
         private EventHandler<ParticleUpdateEventArgs> m_ParticleUpdate;
 
@@ -312,7 +312,7 @@ namespace OpenMetaverse
             remove { lock (m_ParticleUpdateLock) { m_ParticleUpdate -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<TerseObjectUpdateEventArgs> m_TerseObjectUpdate;
 
         /// <summary>Thread sync lock object</summary>
@@ -328,7 +328,7 @@ namespace OpenMetaverse
         #endregion TerseObjectUpdate event
 
         #region ObjectDataBlockUpdate event
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<ObjectDataBlockUpdateEventArgs> m_ObjectDataBlockUpdate;
 
         ///<summary>Raises the ObjectDataBlockUpdate Event</summary>
@@ -354,7 +354,7 @@ namespace OpenMetaverse
         #endregion ObjectDataBlockUpdate event
 
         #region KillObject event
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<KillObjectEventArgs> m_KillObject;
 
         ///<summary>Raises the KillObject Event</summary>
@@ -380,7 +380,7 @@ namespace OpenMetaverse
         #endregion KillObject event
 
         #region KillObjects event
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<KillObjectsEventArgs> m_KillObjects;
 
         ///<summary>Raises the KillObjects Event</summary>
@@ -406,7 +406,7 @@ namespace OpenMetaverse
         #endregion KillObjects event
 
         #region AvatarSitChanged event
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<AvatarSitChangedEventArgs> m_AvatarSitChanged;
 
         ///<summary>Raises the AvatarSitChanged Event</summary>
@@ -432,7 +432,7 @@ namespace OpenMetaverse
         #endregion AvatarSitChanged event
 
         #region PayPriceReply event
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<PayPriceReplyEventArgs> m_PayPriceReply;
 
         ///<summary>Raises the PayPriceReply Event</summary>
@@ -466,7 +466,7 @@ namespace OpenMetaverse
         /// <param name="faceMedia">Array indexed on prim face of media entry data</param>
         public delegate void ObjectMediaCallback(bool success, string version, MediaEntry[] faceMedia);
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<PhysicsPropertiesEventArgs> m_PhysicsProperties;
 
         ///<summary>Raises the PhysicsProperties Event</summary>

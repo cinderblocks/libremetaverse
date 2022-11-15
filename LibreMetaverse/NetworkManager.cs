@@ -116,7 +116,7 @@ namespace OpenMetaverse
 
         #region Delegates
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<PacketSentEventArgs> m_PacketSent;
 
         ///<summary>Raises the PacketSent Event</summary>
@@ -139,7 +139,7 @@ namespace OpenMetaverse
             remove { lock (m_PacketSentLock) { m_PacketSent -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<LoggedOutEventArgs> m_LoggedOut;
 
         ///<summary>Raises the LoggedOut Event</summary>
@@ -162,7 +162,7 @@ namespace OpenMetaverse
             remove { lock (m_LoggedOutLock) { m_LoggedOut -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<SimConnectingEventArgs> m_SimConnecting;
 
         ///<summary>Raises the SimConnecting Event</summary>
@@ -185,7 +185,7 @@ namespace OpenMetaverse
             remove { lock (m_SimConnectingLock) { m_SimConnecting -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<SimConnectedEventArgs> m_SimConnected;
 
         ///<summary>Raises the SimConnected Event</summary>
@@ -208,7 +208,7 @@ namespace OpenMetaverse
             remove { lock (m_SimConnectedLock) { m_SimConnected -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<SimDisconnectedEventArgs> m_SimDisconnected;
 
         ///<summary>Raises the SimDisconnected Event</summary>
@@ -231,7 +231,7 @@ namespace OpenMetaverse
             remove { lock (m_SimDisconnectedLock) { m_SimDisconnected -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<DisconnectedEventArgs> m_Disconnected;
 
         ///<summary>Raises the Disconnected Event</summary>
@@ -254,7 +254,7 @@ namespace OpenMetaverse
             remove { lock (m_DisconnectedLock) { m_Disconnected -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<SimChangedEventArgs> m_SimChanged;
 
         ///<summary>Raises the SimChanged Event</summary>
@@ -277,7 +277,7 @@ namespace OpenMetaverse
             remove { lock (m_SimChangedLock) { m_SimChanged -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<EventQueueRunningEventArgs> m_EventQueueRunning;
 
         ///<summary>Raises the EventQueueRunning Event</summary>

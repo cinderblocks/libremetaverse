@@ -1063,7 +1063,7 @@ namespace OpenMetaverse
 
         //////LoginProgress
         //// LoginProgress
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<LoginProgressEventArgs> m_LoginProgress;
 
         ///<summary>Raises the LoginProgress Event</summary>
@@ -1086,7 +1086,7 @@ namespace OpenMetaverse
             remove { lock (m_LoginProgressLock) { m_LoginProgress -= value; } }
         }
 
-        ///// <summary>The event subscribers, null of no subscribers</summary>
+        ///// <summary>The event subscribers, null if no subscribers</summary>
         //private EventHandler<LoggedInEventArgs> m_LoggedIn;
 
         /////<summary>Raises the LoggedIn Event</summary>

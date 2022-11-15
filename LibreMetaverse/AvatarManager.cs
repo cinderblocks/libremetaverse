@@ -190,7 +190,7 @@ namespace OpenMetaverse
         const int MAX_UUIDS_PER_PACKET = 100;
 
         #region Events
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<AvatarAnimationEventArgs> m_AvatarAnimation;
 
         ///<summary>Raises the AvatarAnimation Event</summary>
@@ -213,7 +213,7 @@ namespace OpenMetaverse
             remove { lock (m_AvatarAnimationLock) { m_AvatarAnimation -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<AvatarAppearanceEventArgs> m_AvatarAppearance;
 
         ///<summary>Raises the AvatarAppearance Event</summary>
@@ -236,7 +236,7 @@ namespace OpenMetaverse
             remove { lock (m_AvatarAppearanceLock) { m_AvatarAppearance -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<UUIDNameReplyEventArgs> m_UUIDNameReply;
 
         ///<summary>Raises the UUIDNameReply Event</summary>
@@ -259,7 +259,7 @@ namespace OpenMetaverse
             remove { lock (m_UUIDNameReplyLock) { m_UUIDNameReply -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<AvatarInterestsReplyEventArgs> m_AvatarInterestsReply;
 
         ///<summary>Raises the AvatarInterestsReply Event</summary>
@@ -282,7 +282,7 @@ namespace OpenMetaverse
             remove { lock (m_AvatarInterestsReplyLock) { m_AvatarInterestsReply -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<AvatarNotesReplyEventArgs> m_AvatarNotesReply;
 
         ///<summary>Raises the AvatarNotesReply Event</summary>
@@ -305,7 +305,7 @@ namespace OpenMetaverse
             remove { lock (m_AvatarNotesReplyLock) { m_AvatarNotesReply -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<AvatarPropertiesReplyEventArgs> m_AvatarPropertiesReply;
 
         ///<summary>Raises the AvatarPropertiesReply Event</summary>
@@ -328,7 +328,7 @@ namespace OpenMetaverse
             remove { lock (m_AvatarPropertiesReplyLock) { m_AvatarPropertiesReply -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<AvatarGroupsReplyEventArgs> m_AvatarGroupsReply;
 
         ///<summary>Raises the AvatarGroupsReply Event</summary>
@@ -351,7 +351,7 @@ namespace OpenMetaverse
             remove { lock (m_AvatarGroupsReplyLock) { m_AvatarGroupsReply -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<AvatarPickerReplyEventArgs> m_AvatarPickerReply;
 
         ///<summary>Raises the AvatarPickerReply Event</summary>
@@ -374,7 +374,7 @@ namespace OpenMetaverse
             remove { lock (m_AvatarPickerReplyLock) { m_AvatarPickerReply -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<ViewerEffectPointAtEventArgs> m_ViewerEffectPointAt;
 
         ///<summary>Raises the ViewerEffectPointAt Event</summary>
@@ -397,7 +397,7 @@ namespace OpenMetaverse
             remove { lock (m_ViewerEffectPointAtLock) { m_ViewerEffectPointAt -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<ViewerEffectLookAtEventArgs> m_ViewerEffectLookAt;
 
         ///<summary>Raises the ViewerEffectLookAt Event</summary>
@@ -420,7 +420,7 @@ namespace OpenMetaverse
             remove { lock (m_ViewerEffectLookAtLock) { m_ViewerEffectLookAt -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<ViewerEffectEventArgs> m_ViewerEffect;
 
         ///<summary>Raises the ViewerEffect Event</summary>
@@ -443,7 +443,7 @@ namespace OpenMetaverse
             remove { lock (m_ViewerEffectLock) { m_ViewerEffect -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<AvatarPicksReplyEventArgs> m_AvatarPicksReply;
 
         ///<summary>Raises the AvatarPicksReply Event</summary>
@@ -466,7 +466,7 @@ namespace OpenMetaverse
             remove { lock (m_AvatarPicksReplyLock) { m_AvatarPicksReply -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<PickInfoReplyEventArgs> m_PickInfoReply;
 
         ///<summary>Raises the PickInfoReply Event</summary>
@@ -489,7 +489,7 @@ namespace OpenMetaverse
             remove { lock (m_PickInfoReplyLock) { m_PickInfoReply -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<AvatarClassifiedReplyEventArgs> m_AvatarClassifiedReply;
 
         ///<summary>Raises the AvatarClassifiedReply Event</summary>
@@ -512,7 +512,7 @@ namespace OpenMetaverse
             remove { lock (m_AvatarClassifiedReplyLock) { m_AvatarClassifiedReply -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<ClassifiedInfoReplyEventArgs> m_ClassifiedInfoReply;
 
         ///<summary>Raises the ClassifiedInfoReply Event</summary>
@@ -535,7 +535,7 @@ namespace OpenMetaverse
             remove { lock (m_ClassifiedInfoReplyLock) { m_ClassifiedInfoReply -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<DisplayNameUpdateEventArgs> m_DisplayNameUpdate;
 
         ///<summary>Raises the DisplayNameUpdate Event</summary>
