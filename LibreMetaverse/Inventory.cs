@@ -28,6 +28,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 
 namespace OpenMetaverse
@@ -198,10 +199,7 @@ namespace OpenMetaverse
             lock (folderNode.Nodes.SyncRoot)
             {
                 List<InventoryBase> contents = new List<InventoryBase>(folderNode.Nodes.Count);
-                foreach (InventoryNode node in folderNode.Nodes.Values)
-                {
-                    contents.Add(node.Data);
-                }
+                contents.AddRange(folderNode.Nodes.Values.Select(node => node.Data));
                 return contents;
             }
         }
