@@ -259,7 +259,7 @@ public class ClientAO : ProxyPlugin
     public void RequestFolderContents(UUID folder, bool folders, bool items,
         InventorySortOrder order)
     {
-        //empty the dictionnary containing current folder items by name
+        //empty the dictionary containing current folder items by name
         currentFolderItems = new Dictionary<string, InventoryItem>();
         //reset the number of descendants received
         nbdescendantsreceived = 0;
