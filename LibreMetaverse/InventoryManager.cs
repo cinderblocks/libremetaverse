@@ -759,24 +759,33 @@ namespace OpenMetaverse
             }
             else // Legacy UDP - REMOVED FROM SECOND LIFE
             {
-                var fetch = new FetchInventoryDescendentsPacket
-                {
-                    AgentData =
-                        {
-                            AgentID = Client.Self.AgentID,
-                            SessionID = Client.Self.SessionID
-                        },
-                    InventoryData =
-                        {
-                            FetchFolders = folders,
-                            FetchItems = items,
-                            FolderID = folder,
-                            OwnerID = owner,
-                            SortOrder = (int) order
-                        }
-                };
-                Client.Network.SendPacket(fetch);
+#pragma warning disable CS0618 // Type or member is obsolete
+                RequestFolderContentsLegacy(folder, owner, folders, items, order);
+#pragma warning restore CS0618 // Type or member is obsolete
             }
+        }
+
+        [Obsolete("Support removed from most simulators")]
+        public void RequestFolderContentsLegacy(UUID folder, UUID owner, bool folders, bool items,
+            InventorySortOrder order)
+        {
+            var fetch = new FetchInventoryDescendentsPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                InventoryData =
+                {
+                    FetchFolders = folders,
+                    FetchItems = items,
+                    FolderID = folder,
+                    OwnerID = owner,
+                    SortOrder = (int) order
+                }
+            };
+            Client.Network.SendPacket(fetch);
         }
 
         /// <summary>
@@ -796,7 +805,7 @@ namespace OpenMetaverse
             if (Client.Network.CurrentSim.Caps == null ||
                 (url = Client.Network.CurrentSim.Caps.CapabilityURI(cap)) == null)
             {
-                Logger.Log(cap + " capability not available in the current sim", Helpers.LogLevel.Warning, Client);
+                Logger.Log($"{cap} capability not available on this sim", Helpers.LogLevel.Warning, Client);
                 OnFolderUpdated(new FolderUpdatedEventArgs(folderID, false));
             }
             else
@@ -810,7 +819,7 @@ namespace OpenMetaverse
             }
         }
 
-        public void RequestFolderContentsCap(List<InventoryFolder> batch, Uri url, bool fetchFolders, bool fetchItems, InventorySortOrder order)
+        public void RequestFolderContentsCap(List<InventoryFolder> batch, Uri capabilityUri, bool fetchFolders, bool fetchItems, InventorySortOrder order)
         {
 
             try
@@ -828,9 +837,8 @@ namespace OpenMetaverse
                     requestedFolders.Add(requestedFolder);
                 }
                 OSDMap payload = new OSDMap(1) { ["folders"] = requestedFolders };
-
-                Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("ReqFolderContents");
-                Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, 
+                
+                Task req = Client.HttpCapsClient.PostRequestAsync(capabilityUri, OSDFormat.Xml, payload, 
                     CancellationToken.None, (response, data, error) => 
                 {
                     try
@@ -988,12 +996,9 @@ namespace OpenMetaverse
             }
 
             List<InventoryBase> contents = _Store.GetContents(_Store.RootFolder.UUID);
-            foreach (InventoryBase inv in contents)
+            foreach (var folder in contents.Select(inv => inv as InventoryFolder).Where(folder => folder?.PreferredType == type))
             {
-                InventoryFolder folder = inv as InventoryFolder;
-
-                if (folder?.PreferredType == type)
-                    return folder.UUID;
+                return folder.UUID;
             }
 
             // No match found, return Root Folder ID
