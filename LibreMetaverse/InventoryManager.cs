@@ -666,7 +666,9 @@ namespace OpenMetaverse
 
             RequestFolderContents(folder, owner, folders, items, order);
             if (fetchEvent.WaitOne(timeoutMS, false))
+            {
                 objects = _Store.GetContents(folder);
+            }
 
             FolderUpdated -= FolderUpdatedCB;
 
@@ -676,27 +678,23 @@ namespace OpenMetaverse
             List<UUID> owner_ids = new List<UUID>();
             if (objects != null)
             {
-                foreach (InventoryBase o in objects)
+                foreach (var ob in objects.Where(o => o.GetType() != typeof(InventoryFolder)).Cast<InventoryItem>())
                 {
-                    if (o.GetType() != typeof(InventoryFolder))
+                    if (ob.IsLink() && !fast_loading)
                     {
-                        InventoryItem ob = (InventoryItem)o;
-                        if ((ob.IsLink() == true) && (fast_loading == false))
+                        if (Store.Items.ContainsKey(ob.AssetUUID))
                         {
-                            if (Store.Items.ContainsKey(ob.AssetUUID) == false)
-                            {
-                                load_items.Add(ob.AssetUUID);
-                                owner_ids.Add(Client.Self.AgentID);
-                            }
-                            else
-                            {
-                                cleaned_list.Add(Client.Inventory.FetchItem(ob.AssetUUID, Client.Self.AgentID, 1000 * 5));
-                            }
+                            cleaned_list.Add(Client.Inventory.FetchItem(ob.AssetUUID, Client.Self.AgentID, 1000 * 5));
                         }
                         else
                         {
-                            cleaned_list.Add(ob);
+                            load_items.Add(ob.AssetUUID);
+                            owner_ids.Add(Client.Self.AgentID);
                         }
+                    }
+                    else
+                    {
+                        cleaned_list.Add(ob);
                     }
                 }
             }
