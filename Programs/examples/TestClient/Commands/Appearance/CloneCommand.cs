@@ -1,19 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using LibreMetaverse;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse.TestClient
 {
     public class CloneCommand : Command
     {
-        uint SerialNum = 2;
+        uint _serialNum = 2;
+        readonly CacheDictionary<UUID, AvatarAppearancePacket> Appearances = new(100, new LruRemovalStrategy<UUID>());
 
         public CloneCommand(TestClient testClient)
         {
             Name = "clone";
             Description = "Clone the appearance of a nearby avatar. Usage: clone [name]";
             Category = CommandCategory.Appearance;
+
+            testClient.Network.RegisterCallback(PacketType.AvatarAppearance, AvatarAppearanceHandler);
         }
 
         public override string Execute(string[] args, UUID fromAgentID)
@@ -35,11 +39,11 @@ namespace OpenMetaverse.TestClient
                 UUID target = matches[0].AgentID;
                 targetName += $" ({target})";
 
-                if (Client.Appearances.ContainsKey(target))
+                if (Appearances.ContainsKey(target))
                 {
                     #region AvatarAppearance to AgentSetAppearance
 
-                    AvatarAppearancePacket appearance = Client.Appearances[target];
+                    AvatarAppearancePacket appearance = Appearances[target];
 
                     AgentSetAppearancePacket set = new AgentSetAppearancePacket
                     {
@@ -47,14 +51,14 @@ namespace OpenMetaverse.TestClient
                         {
                             AgentID = Client.Self.AgentID,
                             SessionID = Client.Self.SessionID,
-                            SerialNum = SerialNum++,
+                            SerialNum = _serialNum++,
                             Size = new Vector3(2f, 2f, 2f) // HACK
                         },
                         WearableData = Array.Empty<AgentSetAppearancePacket.WearableDataBlock>(),
                         VisualParam = new AgentSetAppearancePacket.VisualParamBlock[appearance.VisualParam.Length]
                     };
 
-                    for (int i = 0; i < appearance.VisualParam.Length; i++)
+                    for (var i = 0; i < appearance.VisualParam.Length; ++i)
                     {
                         set.VisualParam[i] = new AgentSetAppearancePacket.VisualParamBlock
                         {
@@ -72,16 +76,26 @@ namespace OpenMetaverse.TestClient
                     // Send the new appearance packet
                     Client.Network.SendPacket(set);
 
-                    return "Cloned " + targetName;
+                    return $"Cloned {targetName}";
                 }
                 else
                 {
-                    return "Don't know the appearance of avatar " + targetName;
+                    return $"Don't have an appearance cached for {targetName}";
                 }
             }
             else
             {
-                return "Couldn't find avatar " + targetName;
+                return $"Could not find {targetName}";
+            }
+        }
+
+        private void AvatarAppearanceHandler(object sender, PacketReceivedEventArgs e)
+        {
+            AvatarAppearancePacket appearance = (AvatarAppearancePacket)e.Packet;
+
+            lock (Appearances)
+            {
+                Appearances[appearance.Sender.ID] = appearance;
             }
         }
     }

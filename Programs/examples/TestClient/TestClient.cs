@@ -11,7 +11,6 @@ namespace OpenMetaverse.TestClient
     {
         public UUID GroupID = UUID.Zero;
         public Dictionary<UUID, GroupMember> GroupMembers;
-        public Dictionary<UUID, AvatarAppearancePacket> Appearances = new Dictionary<UUID, AvatarAppearancePacket>();
         public Dictionary<string, Command> Commands = new Dictionary<string, Command>();
         public bool Running = true;
         public bool GroupCommands = false;
@@ -27,13 +26,15 @@ namespace OpenMetaverse.TestClient
         private UUID GroupMembersRequestID;
         public Dictionary<UUID, Group> GroupsCache = null;
         private readonly ManualResetEvent GroupsEvent = new ManualResetEvent(false);
+        private CloneCommand CloneManager;
 
         /// <summary>
-        /// 
+        /// Constructor
         /// </summary>
         public TestClient(ClientManager manager)
         {
             ClientManager = manager;
+            CloneManager = new CloneCommand(this);
 
             updateTimer = new System.Timers.Timer(500);
             updateTimer.Elapsed += updateTimer_Elapsed;
@@ -57,7 +58,6 @@ namespace OpenMetaverse.TestClient
             Groups.GroupMembersReply += GroupMembersHandler;
             Inventory.InventoryObjectOffered += Inventory_OnInventoryObjectReceived;            
 
-            Network.RegisterCallback(PacketType.AvatarAppearance, AvatarAppearanceHandler);
             Network.RegisterCallback(PacketType.AlertMessage, AlertMessageHandler);
 
             VoiceManager = new VoiceManager(this);
@@ -231,15 +231,6 @@ namespace OpenMetaverse.TestClient
             if (e.RequestID != GroupMembersRequestID) return;
 
             GroupMembers = e.Members;
-        }
-
-        private void AvatarAppearanceHandler(object sender, PacketReceivedEventArgs e)
-        {
-            Packet packet = e.Packet;
-            
-            AvatarAppearancePacket appearance = (AvatarAppearancePacket)packet;
-
-            lock (Appearances) Appearances[appearance.Sender.ID] = appearance;
         }
 
         private void AlertMessageHandler(object sender, PacketReceivedEventArgs e)
