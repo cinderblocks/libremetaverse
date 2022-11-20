@@ -4,7 +4,7 @@
 	<OutputType>Exe</OutputType>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <OutputPath>..\..\bin\</OutputPath>
-    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
+    <TargetFrameworks>net48;net6.0;net7.0</TargetFrameworks>
     <Platforms>x64;x86;AnyCPU</Platforms>
 	<IsPackable>false</IsPackable>
   </PropertyGroup>

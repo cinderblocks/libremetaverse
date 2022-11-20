@@ -4,7 +4,7 @@
     <AssemblyName>LibreMetaverse.PrimMesher</AssemblyName>
 	<PackageId>LibreMetaverse.PrimMesher</PackageId>
 	<OutputType>Library</OutputType>
-    <TargetFrameworks>netstandard2.1;net6.0;net7.0</TargetFrameworks>
+    <TargetFrameworks>net48;netstandard2.1;net6.0;net7.0</TargetFrameworks>
     <Authors>Dhalia Trimble, Sjofn LLC, OpenMetaverse Developers</Authors>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	<IncludeSymbols>true</IncludeSymbols>
