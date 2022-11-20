@@ -1120,7 +1120,7 @@ namespace OpenMetaverse
                             if (uploadUrl != null)
                             {
                                 // POST the asset data
-                                Task req = Client.HttpCapsClient.PostRequestAsync(uploadUrl, "application/octet-stream", textureData, 
+                                Task postReq = Client.HttpCapsClient.PostRequestAsync(uploadUrl, "application/octet-stream", textureData, 
                                     CancellationToken.None, (responseMessage, responseData, except) =>
                                     {
                                         if (except != null)

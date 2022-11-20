@@ -211,13 +211,20 @@ namespace OpenMetaverse
             double sCubed = s * s * s;
             double sSquared = s * s;
 
-            result = amount switch
+            if (amount == 0f)
             {
-                0f => value1,
-                1f => value2,
-                _ => (2d * v1 - 2d * v2 + t2 + t1) * sCubed + (3d * v2 - 3d * v1 - 2d * t1 - t2) * sSquared + t1 * s +
-                     v1
-            };
+                result = value1;
+            }
+            else if (amount == 1f)
+            {
+                result = value2;
+            }
+            else
+            {
+                result = (2d * v1 - 2d * v2 + t2 + t1) * sCubed +
+                         (3d * v2 - 3d * v1 - 2d * t1 - t2) * sSquared +
+                         t1 * s + v1;
+            }
             return (float)result;
         }
 
@@ -388,10 +395,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Calculates a PBKDF2 hash of a given string
         /// </summary>
-        /// <remarks>Rfc2989 is outdated and insecure. Use at your own risk!</remarks>
         /// <param name="str">The string to hash</param>
         /// <returns>The PBKDF2 hash of the supplied string</returns>
-        [Obsolete("Rfc2989 is outdated and insecure. Use at your own risk!")]
         public static string PBKDF2(string str)
         {
             var derivebytes = new Rfc2898DeriveBytes(str, 32) {IterationCount = 10000};

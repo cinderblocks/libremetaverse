@@ -9,7 +9,8 @@ namespace OpenMetaverse.TestClient
     public class CloneCommand : Command
     {
         uint _serialNum = 2;
-        readonly CacheDictionary<UUID, AvatarAppearancePacket> Appearances = new(100, new LruRemovalStrategy<UUID>());
+        readonly CacheDictionary<UUID, AvatarAppearancePacket> Appearances = 
+            new CacheDictionary<UUID, AvatarAppearancePacket>(100, new LruRemovalStrategy<UUID>());
 
         public CloneCommand(TestClient testClient)
         {

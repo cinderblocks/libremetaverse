@@ -71,7 +71,7 @@ namespace OpenMetaverse
 
         /// <summary>Whether the capabilities event queue is connected and
         /// listening for incoming events</summary>
-        public bool IsEventQueueRunning => _EventQueueCap is { Running: true };
+        public bool IsEventQueueRunning => _EventQueueCap != null && _EventQueueCap.Running;
 
         /// <summary>
         /// Default constructor

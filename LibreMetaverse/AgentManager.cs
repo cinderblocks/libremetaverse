@@ -3118,7 +3118,8 @@ namespace OpenMetaverse
         public void RequestTeleport(ulong regionHandle, Vector3 position, Vector3 lookAt)
         {
             if (Client.Network.CurrentSim != null &&
-                Client.Network.CurrentSim.Caps is { IsEventQueueRunning: true })
+                Client.Network.CurrentSim.Caps != null &&
+                Client.Network.CurrentSim.Caps.IsEventQueueRunning)
             {
                 TeleportLocationRequestPacket teleport = new TeleportLocationRequestPacket
                 {

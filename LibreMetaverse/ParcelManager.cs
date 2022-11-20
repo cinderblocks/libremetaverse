@@ -1738,7 +1738,7 @@ namespace OpenMetaverse
                             AsyncHelper.Sync(() => Client.HttpCapsClient.GetRequestAsync(
                                 Client.Network.CurrentSim.Caps.CapabilityURI("ScriptResourceSummary"),
                                 CancellationToken.None,
-                                (response, data, err) => summaryResponse = OSDParser.Deserialize(data)));
+                                (response, respData, err) => summaryResponse = OSDParser.Deserialize(respData)));
 
                             LandResourcesInfo resInfo = new LandResourcesInfo();
                             resInfo.Deserialize((OSDMap)summaryResponse);
@@ -1749,7 +1749,7 @@ namespace OpenMetaverse
                                 AsyncHelper.Sync(() => Client.HttpCapsClient.GetRequestAsync(
                                     Client.Network.CurrentSim.Caps.CapabilityURI("ScriptResourceDetails"),
                                     CancellationToken.None,
-                                    (response, data, err) => detailResponse = OSDParser.Deserialize(data)));
+                                    (response, respData, err) => detailResponse = OSDParser.Deserialize(respData)));
 
                                 resInfo.Deserialize((OSDMap)detailResponse);
                             }

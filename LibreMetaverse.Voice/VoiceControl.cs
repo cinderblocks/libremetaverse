@@ -136,7 +136,7 @@ namespace LibreMetaverse.Voice
         public void Start()
         {
             // Start the background thread
-            if (posThread is { IsAlive: true })
+            if (posThread != null && posThread.IsAlive)
             {
                 posRestart.Set();
                 posTokenSource.Cancel();

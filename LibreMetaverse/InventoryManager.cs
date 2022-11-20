@@ -3681,10 +3681,10 @@ namespace OpenMetaverse
                 // the problem of HttpRequestState not knowing anything about simulators
                 Task req = Client.HttpCapsClient.PostRequestAsync(new Uri(uploadURL),
                     "application/octet-stream", itemData, CancellationToken.None,
-                    (response, responseData, error) =>
+                    (response, responseData, err) =>
                     {
                         CreateItemFromAssetResponse(callback, itemData, request, 
-                            OSDParser.Deserialize(responseData), error);
+                            OSDParser.Deserialize(responseData), err);
                     });
             }
             else if (status == "complete")

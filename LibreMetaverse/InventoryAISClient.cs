@@ -364,8 +364,8 @@ namespace LibreMetaverse
 
                     return;
                 }
-                
-                using (var message = new HttpRequestMessage(HttpMethod.Patch, uri))
+                // TODO: 2.1 Standard has built in HttpMethod.Patch. Fix when the time comes we can utilize it.
+                using (var message = new HttpRequestMessage(new HttpMethod("PATCH"), uri))
                 {
                     var payload = OSDParser.SerializeLLSDXmlString(updates);
 
@@ -417,8 +417,8 @@ namespace LibreMetaverse
 
                     return;
                 }
-
-                using (var message = new HttpRequestMessage(HttpMethod.Patch, uri))
+                // TODO: 2.1 Standard has built in HttpMethod.Patch. Fix when the time comes we can utilize it.
+                using (var message = new HttpRequestMessage(new HttpMethod("PATCH"), uri))
                 {
                     var payload = OSDParser.SerializeLLSDXmlString(updates);
 
