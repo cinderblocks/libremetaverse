@@ -181,11 +181,11 @@ namespace OpenMetaverse
                 return ".00";
 
             // Trim trailing zeroes
-            while (s[^1] == '0')
+            while (s[s.Length - 1] == '0')
                 s = s.Remove(s.Length - 1, 1);
 
             // Remove superfluous decimal places after the trim
-            if (s[^1] == '.')
+            if (s[s.Length - 1] == '.')
                 s = s.Remove(s.Length - 1, 1);
             // Remove leading zeroes after a negative sign
             else if (s[0] == '-' && s[1] == '0')
@@ -232,7 +232,7 @@ namespace OpenMetaverse
                     output.Append(": ");
                 }
 
-                output.Append(bytes[^1] == 0x00
+                output.Append(bytes[bytes.Length - 1] == 0x00
                     ? Encoding.UTF8.GetString(bytes, 0, bytes.Length - 1)
                     : Encoding.UTF8.GetString(bytes, 0, bytes.Length));
             }

@@ -120,7 +120,7 @@ namespace OpenMetaverse.Rendering
             if (enumerable.Contains(currentJoint.name))
             {
                 if (expandedJointList.Count > 0 && parentJoint != null &&
-                    parentJoint.name == expandedJointList[^1])
+                    parentJoint.name == expandedJointList[expandedJointList.Count - 1])
                     expandedJointList.Add(currentJoint.name);
                 else
                 {

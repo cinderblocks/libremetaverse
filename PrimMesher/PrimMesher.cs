@@ -961,8 +961,8 @@ namespace LibreMetaverse.PrimMesher
                     cut2CoordIndices.Add(lastOuterVertIndex + 1);
                     cut2CoordIndices.Add(lastOuterVertIndex);
 
-                    cutNormal1.X = coords[0].Y - coords[^1].Y;
-                    cutNormal1.Y = -(coords[0].X - coords[^1].X);
+                    cutNormal1.X = coords[0].Y - coords[coords.Count - 1].Y;
+                    cutNormal1.Y = -(coords[0].X - coords[coords.Count - 1].X);
 
                     cutNormal2.X = coords[lastOuterVertIndex + 1].Y - coords[lastOuterVertIndex].Y;
                     cutNormal2.Y = -(coords[lastOuterVertIndex + 1].X - coords[lastOuterVertIndex].X);
@@ -979,8 +979,8 @@ namespace LibreMetaverse.PrimMesher
                     cutNormal1.X = vertexNormals[1].Y;
                     cutNormal1.Y = -vertexNormals[1].X;
 
-                    cutNormal2.X = -vertexNormals[^2].Y;
-                    cutNormal2.Y = vertexNormals[^2].X;
+                    cutNormal2.X = -vertexNormals[vertexNormals.Count - 2].Y;
+                    cutNormal2.Y = vertexNormals[vertexNormals.Count - 2].X;
                 }
                 cutNormal1.Normalize();
                 cutNormal2.Normalize();

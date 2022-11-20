@@ -1601,7 +1601,7 @@ namespace OpenMetaverse
                 // Remove the quotes around our first name.
                 if (reply.FirstName[0] == '"')
                     reply.FirstName = reply.FirstName.Remove(0, 1);
-                if (reply.FirstName[^1] == '"')
+                if (reply.FirstName[reply.FirstName.Length - 1] == '"')
                     reply.FirstName = reply.FirstName.Remove(reply.FirstName.Length - 1);
 
                 #region Critical Information
