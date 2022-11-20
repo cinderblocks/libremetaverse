@@ -1330,20 +1330,33 @@ namespace OpenMetaverse
 
             #region Sanity Check loginParams
 
-            loginParams.Options ??= new List<string>();
-            loginParams.Password ??= string.Empty;
+            if (loginParams.Options == null)
+                loginParams.Options = new List<string>();
 
-            // *HACK: Convert the password to MD5 if it isn't already.
-            //        Don't worry. I hate this more than you do.
+            if (loginParams.Password == null)
+                loginParams.Password = string.Empty;
+
+            // *HACK: Convert the password to MD5 if it isn't already
             if (loginParams.Password.Length != 35 && !loginParams.Password.StartsWith("$1$"))
                 loginParams.Password = Utils.MD5(loginParams.Password);
 
-            loginParams.ViewerDigest ??= string.Empty;
-            loginParams.Version ??= string.Empty;
-            loginParams.UserAgent ??= Settings.USER_AGENT;
-            loginParams.Platform ??= string.Empty;
-            loginParams.PlatformVersion ??= string.Empty;
-            loginParams.MAC ??= string.Empty;
+            if (loginParams.ViewerDigest == null)
+                loginParams.ViewerDigest = string.Empty;
+
+            if (loginParams.Version == null)
+                loginParams.Version = string.Empty;
+
+            if (loginParams.UserAgent == null)
+                loginParams.UserAgent = Settings.USER_AGENT;
+
+            if (loginParams.Platform == null)
+                loginParams.Platform = string.Empty;
+
+            if (loginParams.PlatformVersion == null)
+                loginParams.PlatformVersion = string.Empty;
+
+            if (loginParams.MAC == null)
+                loginParams.MAC = string.Empty;
 
             if (string.IsNullOrEmpty(loginParams.Channel))
             {
@@ -1371,7 +1384,10 @@ namespace OpenMetaverse
                 }
             }
 
-            loginParams.Author ??= string.Empty;
+            if (loginParams.Author == null)
+            {
+                loginParams.Author = string.Empty;
+            }
             #endregion
 
             // TODO: Allow a user callback to be defined for handling the cert

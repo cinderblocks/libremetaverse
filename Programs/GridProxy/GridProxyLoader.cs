@@ -50,7 +50,10 @@ namespace GridProxy
             //bool externalPlugin = false;
             this.Args = args;
 
-            proxyConfig ??= new ProxyConfig("GridProxy", "Austin Jennings / Andrew Ortman", args, true);
+            if (proxyConfig == null)
+            {
+                proxyConfig = new ProxyConfig("GridProxy", "Austin Jennings / Andrew Ortman", args, true);
+            }
             proxy = new Proxy(proxyConfig);
 
             // add delegates for login

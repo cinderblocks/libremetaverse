@@ -2361,7 +2361,10 @@ namespace OpenMetaverse
 
         private void DelayedRequestSetAppearance()
         {
-            RebakeScheduleTimer ??= new Timer(RebakeScheduleTimerTick);
+            if (RebakeScheduleTimer == null)
+            {
+                RebakeScheduleTimer = new Timer(RebakeScheduleTimerTick);
+            }
             try { RebakeScheduleTimer.Change(REBAKE_DELAY, Timeout.Infinite); }
             catch { }
         }

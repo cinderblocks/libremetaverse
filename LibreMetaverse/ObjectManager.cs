@@ -2853,7 +2853,8 @@ namespace OpenMetaverse
                     {
                         if (simulator.ObjectsPrimitives.Dictionary.ContainsKey(findPrim.LocalID))
                         {
-                            simulator.ObjectsPrimitives.Dictionary[findPrim.LocalID].Properties ??= new Primitive.ObjectProperties();
+                            if (simulator.ObjectsPrimitives.Dictionary[findPrim.LocalID].Properties == null)
+                                simulator.ObjectsPrimitives.Dictionary[findPrim.LocalID].Properties = new Primitive.ObjectProperties();
                             simulator.ObjectsPrimitives.Dictionary[findPrim.LocalID].Properties.SetFamilyProperties(props);
                         }
                     }
@@ -2888,7 +2889,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// This is a great place for a summary. Good job, dummy.
+        /// 
         /// </summary>
         /// <param name="capsKey"></param>
         /// <param name="message"></param>

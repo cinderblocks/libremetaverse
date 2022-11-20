@@ -67,7 +67,8 @@ namespace OpenMetaverse.Rendering
         /// <returns>A valid recursive skeleton</returns>
         public static LindenSkeleton Load(string fileName)
         {
-            fileName ??= System.IO.Path.Combine(Settings.RESOURCE_DIR, "avatar_skeleton.xml");
+            if (fileName == null)
+                fileName = System.IO.Path.Combine(Settings.RESOURCE_DIR, "avatar_skeleton.xml");
 
             LindenSkeleton result;
 

@@ -72,7 +72,10 @@ namespace OpenMetaverse.ImportExport
             try
             {
                 // Create an instance of the XmlSerializer specifying type and namespace.
-                Serializer ??= new XmlSerializer(typeof(COLLADA));
+                if (Serializer == null)
+                {
+                    Serializer = new XmlSerializer(typeof(COLLADA));
+                }
 
                 this.FileName = filename;
 

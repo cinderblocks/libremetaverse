@@ -294,7 +294,8 @@ namespace OpenMetaverse.Rendering
             Skeleton = skeleton;
             LodMeshes = new SortedList<int, object>();
 
-            Skeleton ??= LindenSkeleton.Load();
+            if (Skeleton == null)
+                Skeleton = LindenSkeleton.Load();
         }
 
         /// <summary>
