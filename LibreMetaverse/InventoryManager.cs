@@ -2160,11 +2160,11 @@ namespace OpenMetaverse
         public void RequestUploadNotecardAsset(byte[] data, UUID notecardID, InventoryUploadedAssetCallback callback)
         {
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
-                throw new Exception("UpdateNotecardAgentInventory capability is not currently available");
+                throw new Exception("Capability system not initialized to send asset");
 
             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateNotecardAgentInventory");
 
-            if (cap == null)
+            if (cap != null)
             {
                 OSDMap query = new OSDMap { { "item_id", OSD.FromUUID(notecardID) } };
 
