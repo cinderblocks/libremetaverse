@@ -18,7 +18,7 @@ https://github.com/cinderblocks/libremetaverse
 
 ### Linux/macOS
 
--  Make sure you have at least `dotnet` installed, with a valid net5.0/net6.0/net7.0 SDK _and_ runtime available!
+-  Make sure you have at least `dotnet` installed, with a valid net5.0/net6.0/net7.0 SDK _and_ runtime available! (use `dotnet --list-runtimes` and `dotnet --list-sdks` to confirm)
 
 -  This update includes a solution file to skip the GUI applications (which will run only under Windows anyway). Use `LibreMetaverse.ReleaseNoGUI.sln` instead
 
@@ -41,7 +41,7 @@ Currently unavailable, although there are some reports that this might be possib
 
 ## Note: end-of-life support for .NET 5.0
 
-Microsoft is [dropping support for .NET 5.0](https://devblogs.microsoft.com/dotnet/dotnet-5-end-of-support-update/) as of May 2022, so you should consider using .NET 6.0 instead (or, if you're wild, you can test the prerelease of .NET 7.0). The code runs flawlessly on .NET 6.0 as well (Windows GUI version untested)
+Microsoft is [dropping support for .NET 5.0](https://devblogs.microsoft.com/dotnet/dotnet-5-end-of-support-update/) as of May 2022, so you should consider using .NET 6.0 or 7.0 instead. The code runs flawlessly on .NET 6.0 (Windows GUI version untested) and the first tests on 7.0 also compiled and ran cleanly.
 
 [![LibreMetaverse NuGet-Release](https://img.shields.io/nuget/v/libremetaverse.svg?label=LibreMetaverse)](https://www.nuget.org/packages/LibreMetaverse/)  
 [![NuGet Downloads](https://img.shields.io/nuget/dt/LibreMetaverse?label=NuGet%20downloads)](https://www.nuget.org/packages/LibreMetaverse/)  
