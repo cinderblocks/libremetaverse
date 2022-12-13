@@ -18,7 +18,7 @@ https://github.com/cinderblocks/libremetaverse
 
 ### Linux/macOS
 
--  Make sure you have at least `dotnet` installed, with a valid net5.0/net6.0/net7.0 SDK _and_ runtime available! (use `dotnet --list-runtimes` and `dotnet --list-sdks` to confirm)
+-  Make sure you have at least `dotnet` installed, with a valid net6.0/net7.0 SDK _and_ runtime available! (use `dotnet --list-runtimes` and `dotnet --list-sdks` to confirm)
 
 -  This update includes a solution file to skip the GUI applications (which will run only under Windows anyway). Use `LibreMetaverse.ReleaseNoGUI.sln` instead
 
@@ -27,13 +27,15 @@ If all goes well, you should now have all dependent packages properly installed.
 
 -  From the root, run `dotnet msbuild LibreMetaverse.ReleaseNoGUI.sln`, and enjoy the superfast Roslyn compiler at work 😄 It should finish after a few minutes, depending on the speed of your machine.
 
--  Your binaries will be under `../bin/net5.0` and/or `../bin/net6.0` and/or `../bin/net7.0` (there might be a few more directories under `../bin`), depending on what runtimes you have installed on your system. Make sure you `cd` to the correct directory depending on the runtime you have, and then search for all your binaries there: they should be normal-looking executable files (with the `x` attribute set) and having the name of the appropriate test application (e.g. `TestClient` for the interactive testing tool).
+-  Your binaries will be under `../bin/net6.0` and/or `../bin/net7.0` (there might be a few more directories under `../bin`), depending on what runtimes you have installed on your system. Make sure you `cd` to the correct directory depending on the runtime you have, and then search for all your binaries there: they should be normal-looking executable files (with the `x` attribute set) and having the name of the appropriate test application (e.g. `TestClient` for the interactive testing tool).
 
 -  Unlike OpenSimulator, you don't need to launch the binaries with Mono, they're _directly_ executable; the `dotnet` chain already embeds the small runtime that allows .NET apps to run natively on whatever operating system you've got.
 
 ### Windows
 
-For Windows, you should use the default `LibreMetaverse.sln`, just as before (untested). For command-line compilation under Windows, if you wish to skip the GUI applications, the instructions are the same as above. Use the default `LibreMetaverse.sln` if you wish to install those as well.
+The `dotnet` utility is cross-platform so compilation is no different than on Linux/macOS; if you wish to skip the GUI applications, the instructions are the same as above.
+
+You may, however, opt to use Visual Studio as you would any other .NET application, using the default `LibreMetaverse.sln`.
 
 ### GUI support under Linux/macOS
 
@@ -41,7 +43,7 @@ Currently unavailable, although there are some reports that this might be possib
 
 ## Note: end-of-life support for .NET 5.0
 
-Microsoft is [dropping support for .NET 5.0](https://devblogs.microsoft.com/dotnet/dotnet-5-end-of-support-update/) as of May 2022, so you should consider using .NET 6.0 or 7.0 instead. The code runs flawlessly on .NET 6.0 (Windows GUI version untested) and the first tests on 7.0 also compiled and ran cleanly.
+Microsoft has [dropped support for .NET 5.0](https://devblogs.microsoft.com/dotnet/dotnet-5-end-of-support-update/) as of May 2022, so you will have to use .NET 6.0 or 7.0 instead. The code runs flawlessly on .NET 6.0 (Windows GUI version untested) and the first tests on 7.0 also compiled and ran cleanly.
 
 [![LibreMetaverse NuGet-Release](https://img.shields.io/nuget/v/libremetaverse.svg?label=LibreMetaverse)](https://www.nuget.org/packages/LibreMetaverse/)  
 [![NuGet Downloads](https://img.shields.io/nuget/dt/LibreMetaverse?label=NuGet%20downloads)](https://www.nuget.org/packages/LibreMetaverse/)  
