@@ -3,10 +3,10 @@
 	<TargetFrameworks>net48;net6.0-windows;net7.0-windows</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' ">
-	<TargetFrameworks>net6.0-linux;net7.0-linux</TargetFrameworks>
+	<TargetFrameworks>net48;net6.0-linux;net7.0-linux</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' ">
-	<TargetFrameworks>net6.0-macos;net7.0-macos</TargetFrameworks>
+	<TargetFrameworks>net48;net6.0-macos;net7.0-macos</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup>
     <AssemblyName>LibreMetaverse.GUI</AssemblyName>

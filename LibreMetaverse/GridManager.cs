@@ -109,8 +109,7 @@ namespace OpenMetaverse
         /// <returns></returns>
         public override string ToString()
         {
-            return String.Format("{0} ({1}/{2}), Handle: {3}, MapImage: {4}, Access: {5}, Flags: {6}",
-                Name, X, Y, RegionHandle, MapImageID, Access, RegionFlags);
+						return $"{Name} ({X}/{Y}), Handle: {RegionHandle}, MapImage: {MapImageID}, Access: {Access}";
         }
 
         /// <summary>
