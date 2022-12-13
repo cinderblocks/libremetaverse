@@ -96,7 +96,7 @@ namespace OpenMetaverse
             AGENT_CONTROL_TURN_LEFT = 0x1 << CONTROL_TURN_LEFT_INDEX,
             /// <summary></summary>
             AGENT_CONTROL_TURN_RIGHT = 0x1 << CONTROL_TURN_RIGHT_INDEX,
-            /// <summary>Set when the avatar is idled or set to away. Note that the away animation is 
+            /// <summary>Set when the avatar is idled or set to away. Note that the away animation is
             /// activated separately from setting this flag</summary>
             AGENT_CONTROL_AWAY = 0x1 << CONTROL_AWAY_INDEX,
             /// <summary></summary>
@@ -149,18 +149,18 @@ namespace OpenMetaverse
 
         #endregion AgentUpdate Constants
 
-        /// <summary> 
+        /// <summary>
         /// Agent movement and camera control
-        /// 
+        ///
         /// Agent movement is controlled by setting specific <seealso cref="T:AgentManager.ControlFlags"/>
         /// After the control flags are set, An AgentUpdate is required to update the simulator of the specified flags
         /// This is most easily accomplished by setting one or more of the AgentMovement properties
-        /// 
-        /// Movement of an avatar is always based on a compass direction, for example AtPos will move the 
-        /// agent from West to East or forward on the X Axis, AtNeg will of course move agent from 
+        ///
+        /// Movement of an avatar is always based on a compass direction, for example AtPos will move the
+        /// agent from West to East or forward on the X Axis, AtNeg will of course move agent from
         /// East to West or backward on the X Axis, LeftPos will be South to North or forward on the Y Axis
         /// The Z axis is Up, finer grained control of movements can be done using the Nudge properties
-        /// </summary> 
+        /// </summary>
         public partial class AgentMovement
         {
             #region Properties
@@ -463,7 +463,7 @@ namespace OpenMetaverse
             {
                 Client = client;
                 Camera = new AgentCamera();
-                Client.Network.LoginProgress += Network_OnConnected;                
+                Client.Network.LoginProgress += Network_OnConnected;
                 Client.Network.Disconnected += Network_OnDisconnected;
                 updateInterval = Settings.DEFAULT_AGENT_UPDATE_INTERVAL;
             }
@@ -502,7 +502,7 @@ namespace OpenMetaverse
             {
                 Camera.Position = Client.Self.SimPosition;
                 Camera.LookDirection(heading);
-                
+
                 BodyRotation.Z = (float)Math.Sin(heading / 2.0d);
                 BodyRotation.W = (float)Math.Cos(heading / 2.0d);
                 HeadRotation = BodyRotation;
@@ -561,7 +561,7 @@ namespace OpenMetaverse
             }
 
             /// <summary>
-            /// Send new AgentUpdate packet to update our current camera 
+            /// Send new AgentUpdate packet to update our current camera
             /// position and rotation
             /// </summary>
             public void SendUpdate()
@@ -570,7 +570,7 @@ namespace OpenMetaverse
             }
 
             /// <summary>
-            /// Send new AgentUpdate packet to update our current camera 
+            /// Send new AgentUpdate packet to update our current camera
             /// position and rotation
             /// </summary>
             /// <param name="reliable">Whether to require server acknowledgement
@@ -581,7 +581,7 @@ namespace OpenMetaverse
             }
 
             /// <summary>
-            /// Send new AgentUpdate packet to update our current camera 
+            /// Send new AgentUpdate packet to update our current camera
             /// position and rotation
             /// </summary>
             /// <param name="reliable">Whether to require server acknowledgement
