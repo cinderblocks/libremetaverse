@@ -689,9 +689,7 @@ namespace OpenMetaverse
         /// <returns>True if Display name functionality is available</returns>
         public bool DisplayNamesAvailable()
         {
-            return (Client.Network.CurrentSim != null 
-                    && Client.Network.CurrentSim.Caps != null) 
-                    && Client.Network.CurrentSim.Caps.CapabilityURI("GetDisplayNames") != null;
+            return (Client.Network.CurrentSim?.Caps?.CapabilityURI("GetDisplayNames") != null;
         }
 
         /// <summary>

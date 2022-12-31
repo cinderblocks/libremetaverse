@@ -48,8 +48,7 @@ namespace LibreMetaverse
             Client = client;
         }
 
-        public bool IsAvailable => (Client.Network.CurrentSim.Caps != null &&
-                                    Client.Network.CurrentSim.Caps.CapabilityURI(INVENTORY_CAP_NAME) != null);
+        public bool IsAvailable => (Client.Network.CurrentSim.Caps?.CapabilityURI(INVENTORY_CAP_NAME) != null);
 
         public async Task CreateInventory(UUID parentUuid, OSD newInventory, bool createLink, InventoryManager.ItemCreatedCallback callback)
         {

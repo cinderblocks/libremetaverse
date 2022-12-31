@@ -310,7 +310,7 @@ namespace LibreMetaverse.Voice
         {
             if (Enabled && Client.Network.Connected)
             {
-                if (Client.Network.CurrentSim != null && Client.Network.CurrentSim.Caps != null)
+                if (Client.Network.CurrentSim?.Caps != null)
                 {
                     var cap = Client.Network.CurrentSim.Caps.CapabilityURI(capsName);
 

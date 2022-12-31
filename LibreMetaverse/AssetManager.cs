@@ -640,8 +640,7 @@ namespace OpenMetaverse
             }
 
             // If ViewerAsset capability exists, use that, if not, fallback to UDP (which is obsoleted on Second Life.)
-            if (Client.Network.CurrentSim.Caps != null
-                && Client.Network.CurrentSim.Caps.CapabilityURI("ViewerAsset") != null)
+            if (Client.Network.CurrentSim?.Caps?.CapabilityURI("ViewerAsset") != null)
             {
                 RequestAssetHTTP(assetID, transfer, callback);
             }
@@ -827,8 +826,7 @@ namespace OpenMetaverse
             }
             
             // If ViewerAsset capability exists, use that, if not, fallback to UDP
-            if (Client.Network.CurrentSim.Caps != null
-                && Client.Network.CurrentSim.Caps.CapabilityURI("ViewerAsset") != null)
+            if (Client.Network.CurrentSim?.Caps?.CapabilityURI("ViewerAsset") != null)
             {
                 RequestInventoryAssetHTTP(assetID, transfer, callback);
             }
@@ -1213,8 +1211,7 @@ namespace OpenMetaverse
             if (meshID == UUID.Zero || callback == null)
                 return;
 
-            if (Client.Network.CurrentSim.Caps != null &&
-                Client.Network.CurrentSim.Caps.GetMeshCapURI() != null)
+            if (Client.Network.CurrentSim?.Caps?.GetMeshCapURI() != null)
             {
                 // Do we have this mesh asset in the cache?
                 if (Client.Assets.Cache.HasAsset(meshID))
@@ -1329,8 +1326,7 @@ namespace OpenMetaverse
             uint packetStart, TextureDownloadCallback callback, bool progress)
         {
             if (Client.Settings.USE_HTTP_TEXTURES
-                && Client.Network.CurrentSim.Caps != null
-                && Client.Network.CurrentSim.Caps.GetTextureCapURI() != null)
+                && Client.Network.CurrentSim?.Caps?.GetTextureCapURI() != null)
             {
                 HttpRequestTexture(textureID, imageType, priority, discardLevel, packetStart, callback, progress);
             }

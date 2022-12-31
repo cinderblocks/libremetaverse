@@ -582,8 +582,7 @@ namespace OpenMetaverse
             }
 
             Uri cap;
-            if (Client.Network.CurrentSim.Caps != null &&
-                (cap = Client.Network.CurrentSim.Caps.CapabilityURI("FetchInventory2")) != null)
+            if ((cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("FetchInventory2")) != null)
             {
                 OSDMap payload = new OSDMap { ["agent_id"] = Client.Self.AgentID };
 

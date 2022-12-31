@@ -1047,9 +1047,7 @@ namespace OpenMetaverse
             UUID requestID = UUID.Random();
             Uri cap = null;
 
-            if (Client.Network.CurrentSim != null 
-                && Client.Network.CurrentSim.Caps != null
-                && (cap = Client.Network.CurrentSim.Caps.CapabilityURI("GroupMemberData")) != null)
+            if ((cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("GroupMemberData")) != null)
             {
                 OSDMap payload = new OSDMap(1) { ["group_id"] = @group };
                 Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None,
@@ -1630,11 +1628,9 @@ namespace OpenMetaverse
         {
             Uri ret = null;
 
-            if (Client.Network.Connected
-                && Client.Network.CurrentSim != null
-                && Client.Network.CurrentSim.Caps != null)
+            if (Client.Network.Connected)
             {
-                ret = Client.Network.CurrentSim.Caps.CapabilityURI("GroupAPIv1");
+                ret = Client.Network.CurrentSim?.Caps?.CapabilityURI("GroupAPIv1");
                 if (ret != null)
                 {
                     ret = new Uri($"{ret}?group_id={groupID.ToString()}");
