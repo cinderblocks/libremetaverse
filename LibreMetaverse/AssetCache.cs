@@ -219,7 +219,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="assetID">UUID of the asset</param>
         /// <param name="assetData">Raw bytes the asset consists of</param>
-        /// <returns>Weather the operation was successfull</returns>
+        /// <returns>Whether the operation was successful</returns>
         public bool SaveAssetToCache(UUID assetID, byte[] assetData)
         {
             if (!Operational())
