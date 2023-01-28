@@ -504,7 +504,7 @@ namespace OpenMetaverse
             if (dif > 10)
             {
                 lastpacketwarning = now;
-                Logger.Log(source+" is null (Are we disconnected?) - from: "+ function,
+                Logger.Log(source+" is null (Are we disconnected?) - from: " + function,
                     Helpers.LogLevel.Debug);
             }
         }
@@ -797,10 +797,13 @@ namespace OpenMetaverse
 
 
         /// <summary>
-        /// Shutdown will disconnect all the sims except for the current sim
-        /// first, and then kill the connection to CurrentSim. This should only
-        /// be called if the logout process times out on <code>RequestLogout</code>
+        /// This method disconnects Client from all simulators leaving CurrentSim
+        /// last to disconnect.
         /// </summary>
+        /// <remarks>
+        /// This should only be called if the logout process times out on
+        /// <code>RequestLogout</code>
+        /// </remarks>
         /// <param name="type">Type of shutdown</param>
         public void Shutdown(DisconnectType type)
         {
@@ -808,10 +811,13 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Shutdown will disconnect all the sims except for the current sim
-        /// first, and then kill the connection to CurrentSim. This should only
-        /// be called if the logout process times out on <code>RequestLogout</code>
+        /// This method disconnects Client from all simulators leaving CurrentSim
+        /// last to disconnect.
         /// </summary>
+        /// <remarks>
+        /// This should only be called if the logout process times out on
+        /// <code>RequestLogout</code>
+        /// </remarks>
         /// <param name="type">Type of shutdown</param>
         /// <param name="message">Shutdown message</param>
         public void Shutdown(DisconnectType type, string message)
@@ -840,7 +846,7 @@ namespace OpenMetaverse
 
             if (CurrentSim != null)
             {
-                // Kill the connection to the curent simulator
+                // Kill the connection to the current simulator
                 CurrentSim.Disconnect(sendCloseCircuit);
 
                 // Fire the SimDisconnected event if a handler is registered
