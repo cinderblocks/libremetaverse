@@ -21,7 +21,7 @@ namespace OpenMetaverse.TestClient
             UUID landmark = new UUID();
             if (!UUID.TryParse(args[0], out landmark))
             {
-                return "Invalid LLUID";
+                return "Invalid UUID";
             }
             else
             {
@@ -29,7 +29,7 @@ namespace OpenMetaverse.TestClient
             }
             if (Client.Self.Teleport(landmark))
             {
-                return "Teleport Succesful";
+                return "Teleport Successful";
             }
             else
             {
