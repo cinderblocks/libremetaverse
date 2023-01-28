@@ -1029,7 +1029,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Searches Places for land owned by the specified group
         /// </summary>
-        /// <param name="groupID">ID of the group you want to recieve land list for (You must be a member of the group)</param>
+        /// <param name="groupID">ID of the group you want to receive land list for (You must be a member of the group)</param>
         /// <returns>Transaction (Query) ID which can be associated with results from your request.</returns>
         public UUID StartPlacesSearch(UUID groupID)
         {
@@ -1055,7 +1055,7 @@ namespace OpenMetaverse
         /// <param name="searchCategory">One of the values from the SearchCategory Struct, ie: Any, Linden, Newcomer</param>
         /// <param name="searchText">A string containing a list of keywords to search for separated by a space character</param>
         /// <param name="simulatorName">String Simulator Name to search in</param>
-        /// <param name="groupID">LLUID of group you want to recieve results for</param>
+        /// <param name="groupID">LLUID of group you want to receive results for</param>
         /// <param name="transactionID">Transaction (Query) ID which can be associated with results from your request.</param>
         /// <returns>Transaction (Query) ID which can be associated with results from your request.</returns>
         public UUID StartPlacesSearch(DirFindFlags findFlags, ParcelCategory searchCategory, string searchText, string simulatorName, 

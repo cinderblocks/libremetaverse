@@ -171,7 +171,7 @@ namespace OpenMetaverse
             public int ConnectTime;
             /// <summary>Total number of packets that have been resent</summary>
             public int ResentPackets;
-            /// <summary>Total number of resent packets recieved</summary>
+            /// <summary>Total number of resent packets received</summary>
             public int ReceivedResends;
             /// <summary>Total number of pings sent to this simulator by this agent</summary>
             public int SentPings;
@@ -180,7 +180,7 @@ namespace OpenMetaverse
             /// <summary>
             /// Incoming bytes per second
             /// </summary>
-            /// <remarks>It would be nice to have this claculated on the fly, but
+            /// <remarks>It would be nice to have this calculated on the fly, but
             /// this is far, far easier</remarks>
             public int IncomingBPS;
             /// <summary>
@@ -648,7 +648,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Initiates connection to the simulator
         /// </summary>
-        /// <param name="waitForAck">Should we block until ack for this packet is recieved</param>
+        /// <param name="waitForAck">Should we block until ack for this packet is received</param>
         public void UseCircuitCode(bool waitForAck)
         {
             // Send the UseCircuitCode packet to initiate the connection

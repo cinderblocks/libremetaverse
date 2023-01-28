@@ -5395,7 +5395,7 @@ namespace OpenMetaverse.Messages.Linden
     }
 
     /// <summary>
-    /// Message recieved in response to request to change display name
+    /// Message received in response to request to change display name
     /// </summary>
     public class SetDisplayNameReplyMessage : IMessage
     {
@@ -5434,7 +5434,7 @@ namespace OpenMetaverse.Messages.Linden
     }
 
     /// <summary>
-    /// Message recieved when someone nearby changes their display name
+    /// Message received when someone nearby changes their display name
     /// </summary>
     public class DisplayNameUpdateMessage : IMessage
     {

@@ -910,7 +910,7 @@ namespace OpenMetaverse
 
         /// <summary>Thread sync lock object</summary>
         private readonly object m_InstantMessageLock = new object();
-        /// <summary>Raised when an ImprovedInstantMessage packet is recieved from the simulator, this is used for everything from
+        /// <summary>Raised when an ImprovedInstantMessage packet is received from the simulator, this is used for everything from
         /// private messaging to friendship offers. The Dialog field defines what type of message has arrived</summary>
         public event EventHandler<InstantMessageEventArgs> IM
         {
