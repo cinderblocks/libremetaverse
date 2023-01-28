@@ -1104,8 +1104,7 @@ namespace OpenMetaverse
         protected virtual void OnCameraConstraint(CameraConstraintEventArgs e)
         {
             EventHandler<CameraConstraintEventArgs> handler = m_CameraConstraint;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1128,8 +1127,7 @@ namespace OpenMetaverse
         protected virtual void OnScriptSensorReply(ScriptSensorReplyEventArgs e)
         {
             EventHandler<ScriptSensorReplyEventArgs> handler = m_ScriptSensorReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1151,8 +1149,7 @@ namespace OpenMetaverse
         protected virtual void OnAvatarSitResponse(AvatarSitResponseEventArgs e)
         {
             EventHandler<AvatarSitResponseEventArgs> handler = m_AvatarSitResponse;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>

@@ -218,8 +218,7 @@ namespace OpenMetaverse
         protected virtual void OnfriendsListReady(FriendsReadyEventArgs e)
         {
             EventHandler<FriendsReadyEventArgs> handler = m_FriendsListReadyResponse;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -240,8 +239,7 @@ namespace OpenMetaverse
         protected virtual void OnFriendOnline(FriendInfoEventArgs e)
         {
             EventHandler<FriendInfoEventArgs> handler = m_FriendOnline;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -263,8 +261,7 @@ namespace OpenMetaverse
         protected virtual void OnFriendOffline(FriendInfoEventArgs e)
         {
             EventHandler<FriendInfoEventArgs> handler = m_FriendOffline;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -286,8 +283,7 @@ namespace OpenMetaverse
         protected virtual void OnFriendRights(FriendInfoEventArgs e)
         {
             EventHandler<FriendInfoEventArgs> handler = m_FriendRights;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -309,8 +305,7 @@ namespace OpenMetaverse
         protected virtual void OnFriendNames(FriendNamesEventArgs e)
         {
             EventHandler<FriendNamesEventArgs> handler = m_FriendNames;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -332,8 +327,7 @@ namespace OpenMetaverse
         protected virtual void OnFriendshipOffered(FriendshipOfferedEventArgs e)
         {
             EventHandler<FriendshipOfferedEventArgs> handler = m_FriendshipOffered;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -355,8 +349,7 @@ namespace OpenMetaverse
         protected virtual void OnFriendshipResponse(FriendshipResponseEventArgs e)
         {
             EventHandler<FriendshipResponseEventArgs> handler = m_FriendshipResponse;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -378,8 +371,7 @@ namespace OpenMetaverse
         protected virtual void OnFriendshipTerminated(FriendshipTerminatedEventArgs e)
         {
             EventHandler<FriendshipTerminatedEventArgs> handler = m_FriendshipTerminated;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -402,8 +394,7 @@ namespace OpenMetaverse
         protected virtual void OnFriendFoundReply(FriendFoundReplyEventArgs e)
         {
             EventHandler<FriendFoundReplyEventArgs> handler = m_FriendFound;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>

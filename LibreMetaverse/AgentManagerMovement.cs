@@ -393,18 +393,12 @@ namespace OpenMetaverse
                 {
                     if (value > 0)
                     {
-                        if (updateTimer != null)
-                        {
-                            updateTimer.Change(value, value);
-                        }
+                        updateTimer?.Change(value, value);
                         updateInterval = value;
                     }
                     else
                     {
-                        if (updateTimer != null)
-                        {
-                            updateTimer.Change(Timeout.Infinite, Timeout.Infinite);
-                        }
+                        updateTimer?.Change(Timeout.Infinite, Timeout.Infinite);
                         updateInterval = 0;
                     }
                 }

@@ -824,17 +824,14 @@ namespace OpenMetaverse
             lock (Simulators)
             {
                 // Disconnect all simulators except the current one
-                foreach (Simulator t in Simulators)
+                foreach (var sim in Simulators.Where(t => t != null && t != CurrentSim))
                 {
-                    if (t != null && t != CurrentSim)
-                    {
-                        t.Disconnect(sendCloseCircuit);
+                    sim.Disconnect(sendCloseCircuit);
 
-                        // Fire the SimDisconnected event if a handler is registered
-                        if (m_SimDisconnected != null)
-                        {
-                            OnSimDisconnected(new SimDisconnectedEventArgs(t, type));
-                        }
+                    // Fire the SimDisconnected event if a handler is registered
+                    if (m_SimDisconnected != null)
+                    {
+                        OnSimDisconnected(new SimDisconnectedEventArgs(sim, type));
                     }
                 }
 
@@ -881,10 +878,9 @@ namespace OpenMetaverse
         {
             lock (Simulators)
             {
-                foreach (Simulator t in Simulators)
+                foreach (var sim in Simulators.Where(t => t.IPEndPoint.Equals(endPoint)))
                 {
-                    if (t.IPEndPoint.Equals(endPoint))
-                        return t;
+                    return sim;
                 }
             }
 

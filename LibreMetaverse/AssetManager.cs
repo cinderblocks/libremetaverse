@@ -319,8 +319,7 @@ namespace OpenMetaverse
         protected virtual void OnXferReceived(XferReceivedEventArgs e)
         {
             EventHandler<XferReceivedEventArgs> handler = m_XferReceivedEvent;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -344,8 +343,7 @@ namespace OpenMetaverse
         protected virtual void OnAssetUploaded(AssetUploadEventArgs e)
         {
             EventHandler<AssetUploadEventArgs> handler = m_AssetUploadedEvent;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -369,8 +367,7 @@ namespace OpenMetaverse
         protected virtual void OnUploadProgress(AssetUploadEventArgs e)
         {
             EventHandler<AssetUploadEventArgs> handler = m_UploadProgressEvent;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -394,8 +391,7 @@ namespace OpenMetaverse
         protected virtual void OnInitiateDownload(InitiateDownloadEventArgs e)
         {
             EventHandler<InitiateDownloadEventArgs> handler = m_InitiateDownloadEvent;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -419,8 +415,7 @@ namespace OpenMetaverse
         protected virtual void OnImageReceiveProgress(ImageReceiveProgressEventArgs e)
         {
             EventHandler<ImageReceiveProgressEventArgs> handler = m_ImageReceiveProgressEvent;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>

@@ -198,8 +198,7 @@ namespace OpenMetaverse
         protected virtual void OnObjectProperties(ObjectPropertiesEventArgs e)
         {
             EventHandler<ObjectPropertiesEventArgs> handler = m_ObjectProperties;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -224,8 +223,7 @@ namespace OpenMetaverse
         protected virtual void OnObjectPropertiesUpdated(ObjectPropertiesUpdatedEventArgs e)
         {
             EventHandler<ObjectPropertiesUpdatedEventArgs> handler = m_ObjectPropertiesUpdated;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -250,8 +248,7 @@ namespace OpenMetaverse
         protected virtual void OnObjectPropertiesFamily(ObjectPropertiesFamilyEventArgs e)
         {
             EventHandler<ObjectPropertiesFamilyEventArgs> handler = m_ObjectPropertiesFamily;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -278,8 +275,7 @@ namespace OpenMetaverse
         protected virtual void OnAvatarUpdate(AvatarUpdateEventArgs e)
         {
             EventHandler<AvatarUpdateEventArgs> handler = m_AvatarUpdate;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
         /// <summary>
         /// Raises the ParticleUpdate Event
@@ -288,8 +284,7 @@ namespace OpenMetaverse
         /// the data sent from the simulator</param>
         protected virtual void OnParticleUpdate(ParticleUpdateEventArgs e) {
             EventHandler<ParticleUpdateEventArgs> handler = m_ParticleUpdate;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -337,8 +332,7 @@ namespace OpenMetaverse
         protected virtual void OnObjectDataBlockUpdate(ObjectDataBlockUpdateEventArgs e)
         {
             EventHandler<ObjectDataBlockUpdateEventArgs> handler = m_ObjectDataBlockUpdate;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -363,8 +357,7 @@ namespace OpenMetaverse
         protected virtual void OnKillObject(KillObjectEventArgs e)
         {
             EventHandler<KillObjectEventArgs> handler = m_KillObject;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -389,8 +382,7 @@ namespace OpenMetaverse
         protected virtual void OnKillObjects(KillObjectsEventArgs e)
         {
             EventHandler<KillObjectsEventArgs> handler = m_KillObjects;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -415,8 +407,7 @@ namespace OpenMetaverse
         protected virtual void OnAvatarSitChanged(AvatarSitChangedEventArgs e)
         {
             EventHandler<AvatarSitChangedEventArgs> handler = m_AvatarSitChanged;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -441,8 +432,7 @@ namespace OpenMetaverse
         protected virtual void OnPayPriceReply(PayPriceReplyEventArgs e)
         {
             EventHandler<PayPriceReplyEventArgs> handler = m_PayPriceReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -475,8 +465,7 @@ namespace OpenMetaverse
         protected virtual void OnPhysicsProperties(PhysicsPropertiesEventArgs e)
         {
             EventHandler<PhysicsPropertiesEventArgs> handler = m_PhysicsProperties;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -2611,8 +2600,7 @@ namespace OpenMetaverse
                     #region Raise Events
 
                     EventHandler<PrimEventArgs> handler = m_ObjectUpdate;
-                    if (handler != null)
-                        handler(this, new PrimEventArgs(simulator, prim, update.RegionData.TimeDilation, isNew, prim.IsAttachment));
+                    handler?.Invoke(this, new PrimEventArgs(simulator, prim, update.RegionData.TimeDilation, isNew, prim.IsAttachment));
 
                     #endregion
                 }
@@ -3310,10 +3298,7 @@ namespace OpenMetaverse
 
             // Start the timer again. Use a minimum of a 50ms pause in between calculations
             int delay = Math.Max(50, Settings.INTERPOLATION_INTERVAL - elapsed);
-            if (InterpolationTimer != null)
-            {
-                InterpolationTimer.Change(delay, Timeout.Infinite);
-            }
+            InterpolationTimer?.Change(delay, Timeout.Infinite);
 
         }
     }

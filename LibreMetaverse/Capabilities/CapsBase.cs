@@ -296,8 +296,7 @@ namespace OpenMetaverse.Http
                             }
 
                             // Fire the download progress callback for each chunk of received data
-                            if (state.DownloadProgressCallback != null)
-                                state.DownloadProgressCallback(state.Request, response, totalBytesRead, totalSize);
+                            state.DownloadProgressCallback?.Invoke(state.Request, response, totalBytesRead, totalSize);
                         }
 
                         if (nolength)
