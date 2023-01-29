@@ -793,7 +793,10 @@ namespace OpenMetaverse
                     simulatorsCount = Simulators.Count;
                 }
 
-                if (simulatorsCount == 0) { Shutdown(DisconnectType.SimShutdown); }
+                if (simulatorsCount == 0)
+                {
+                    Shutdown(DisconnectType.SimShutdown, $"You have disconnected from {simulator.Name}.");
+                }
             }
             else
             {
