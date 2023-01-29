@@ -307,6 +307,7 @@ namespace OpenMetaverse
         private void EventQueueConnectedHandler()
         {
             Logger.DebugLog($"Event queue for {Simulator} is connected", Simulator.Client);
+            Simulator.DisconnectCandidate = false;
             Simulator.Client.Network.RaiseConnectedEvent(Simulator);
         }
 
