@@ -1677,7 +1677,17 @@ namespace OpenMetaverse
                 {
                     OSD res = null;
                     await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), CancellationToken.None,
-                            (response, data, error) => res = OSDParser.Deserialize(data));
+                        (response, data, error) =>
+                        {
+                            if (data != null)
+                            {
+                                res = OSDParser.Deserialize(data);
+                            }
+                            else if (error != null)
+                            {
+                                Logger.Log("Did not receive response from RemoteParcelRequest: " + error.Message, Helpers.LogLevel.Warning, Client);
+                            }
+                        });
 
                     if (res is OSDMap result)
                     {
