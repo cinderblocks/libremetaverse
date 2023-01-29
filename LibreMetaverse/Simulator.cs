@@ -497,10 +497,7 @@ namespace OpenMetaverse
         public readonly SimulatorDataPool DataPool;
         internal bool DownloadingParcelMap
         {
-            get
-            {
-                return Client.Settings.POOL_PARCEL_DATA ? DataPool.DownloadingParcelMap : _DownloadingParcelMap;
-            }
+            get => Client.Settings.POOL_PARCEL_DATA ? DataPool.DownloadingParcelMap : _DownloadingParcelMap;
             set
             {
                 if (Client.Settings.POOL_PARCEL_DATA) DataPool.DownloadingParcelMap = value;
@@ -697,7 +694,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("Setting up a sim without a valid capabilities server!", Helpers.LogLevel.Error, Client);
+                Logger.Log("Setting up a sim without valid http capabilities", Helpers.LogLevel.Error, Client);
             }
         }
 
@@ -706,6 +703,8 @@ namespace OpenMetaverse
         /// </summary>
         public void Disconnect(bool sendCloseCircuit)
         {
+            DisconnectCandidate = false;
+
             if (!connected) return;
 
             connected = false;
@@ -999,7 +998,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Returns Simulator Name as a String
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Simulator name as String</returns>
         public override string ToString()
         {
             return !String.IsNullOrEmpty(Name)
@@ -1056,8 +1055,8 @@ namespace OpenMetaverse
             // Check if this packet came from the server we expected it to come from
             if (!remoteEndPoint.Address.Equals(((IPEndPoint)buffer.RemoteEndPoint).Address))
             {
-                Logger.Log("Received " + buffer.DataLength + " bytes of data from unrecognized source " +
-                    ((IPEndPoint)buffer.RemoteEndPoint), Helpers.LogLevel.Warning, Client);
+                Logger.Log($"Received {buffer.DataLength} bytes of data from unrecognized source {(IPEndPoint)buffer.RemoteEndPoint}",
+                    Helpers.LogLevel.Warning, Client);
                 return;
             }
 
@@ -1198,7 +1197,7 @@ namespace OpenMetaverse
 
         
         /// <summary>
-        /// Sends out pending acknowledgements
+        /// Sends out pending acknowledgments
         /// </summary>
         /// <returns>Number of ACKs sent</returns>
         private int SendAcks()
