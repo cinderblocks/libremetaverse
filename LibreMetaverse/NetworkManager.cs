@@ -639,7 +639,7 @@ namespace OpenMetaverse
                     lock (Simulators)
                     {
                         Simulators.Remove(simulator);
-                    }                    
+                    }                 
 
                     return null;
                 }
@@ -682,13 +682,13 @@ namespace OpenMetaverse
             // Otherwise we fire it manually with a NetworkTimeout type after LOGOUT_TIMEOUT
             System.Timers.Timer timeout = new System.Timers.Timer();
 
-            EventHandler<LoggedOutEventArgs> callback = delegate
+            void Callback(object sender, LoggedOutEventArgs e)
             {
                 Shutdown(DisconnectType.ClientInitiated);
                 timeout.Stop();
-            };
+            }
 
-            LoggedOut += callback;
+            LoggedOut += Callback;
 
             timeout.Interval = Client.Settings.LOGOUT_TIMEOUT;
             timeout.Elapsed += delegate
@@ -702,7 +702,7 @@ namespace OpenMetaverse
             // Send the packet requesting a clean logout
             RequestLogout();
 
-            LoggedOut -= callback;
+            LoggedOut -= Callback;
         }
 
         /// <summary>
@@ -713,9 +713,13 @@ namespace OpenMetaverse
         public void Logout()
         {
             AutoResetEvent logoutEvent = new AutoResetEvent(false);
-            EventHandler<LoggedOutEventArgs> callback = delegate { logoutEvent.Set(); };
 
-            LoggedOut += callback;
+            void Callback(object sender, LoggedOutEventArgs e)
+            {
+                logoutEvent.Set();
+            }
+
+            LoggedOut += Callback;
 
             // Send the packet requesting a clean logout
             RequestLogout();
@@ -724,9 +728,11 @@ namespace OpenMetaverse
             // will be fired in the callback. Otherwise we fire it manually with
             // a NetworkTimeout type
             if (!logoutEvent.WaitOne(Client.Settings.LOGOUT_TIMEOUT, false))
+            {
                 Shutdown(DisconnectType.NetworkTimeout);
+            }
 
-            LoggedOut -= callback;
+            LoggedOut -= Callback;
         }
 
         /// <summary>
@@ -787,7 +793,7 @@ namespace OpenMetaverse
                     simulatorsCount = Simulators.Count;
                 }
 
-                if (simulatorsCount == 0) Shutdown(DisconnectType.SimShutdown);
+                if (simulatorsCount == 0) { Shutdown(DisconnectType.SimShutdown); }
             }
             else
             {

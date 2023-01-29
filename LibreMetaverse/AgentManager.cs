@@ -3066,16 +3066,15 @@ namespace OpenMetaverse
             {
                 // Wait a bit to see if the event queue comes online
                 AutoResetEvent queueEvent = new AutoResetEvent(false);
-                EventHandler<EventQueueRunningEventArgs> queueCallback =
-                    delegate(object sender, EventQueueRunningEventArgs e)
-                    {
-                        if (e.Simulator == Client.Network.CurrentSim)
-                            queueEvent.Set();
-                    };
 
-                Client.Network.EventQueueRunning += queueCallback;
+                void QueueCallback(object sender, EventQueueRunningEventArgs e)
+                {
+                    if (e.Simulator == Client.Network.CurrentSim) { queueEvent.Set(); }
+                }
+
+                Client.Network.EventQueueRunning += QueueCallback;
                 queueEvent.WaitOne(10 * 1000, false);
-                Client.Network.EventQueueRunning -= queueCallback;
+                Client.Network.EventQueueRunning -= QueueCallback;
             }
 
             teleportStat = TeleportStatus.None;
