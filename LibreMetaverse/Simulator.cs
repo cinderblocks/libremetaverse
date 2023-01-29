@@ -690,17 +690,14 @@ namespace OpenMetaverse
                 Caps = null;
             }
 
-            if (Client.Settings.ENABLE_CAPS)
+            // Connect to the CAPS system
+            if (seedcaps != null)
             {
-                // Connect to the new CAPS system
-                if (seedcaps != null)
-                {
-                    Caps = new Caps(this, seedcaps);
-                }
-                else
-                {
-                    Logger.Log("Setting up a sim without a valid capabilities server!", Helpers.LogLevel.Error, Client);
-                }
+                Caps = new Caps(this, seedcaps);
+            }
+            else
+            {
+                Logger.Log("Setting up a sim without a valid capabilities server!", Helpers.LogLevel.Error, Client);
             }
         }
 
