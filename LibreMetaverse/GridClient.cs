@@ -24,6 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.Security;
@@ -141,25 +142,32 @@ namespace OpenMetaverse
 
         private HttpCapsClient SetupHttpCapsClient()
         {
-            var handler = new HttpClientHandler
+            var handler = new SocketsHttpHandler
             {
                 AllowAutoRedirect = true,
                 AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip,
                 MaxConnectionsPerServer = Settings.MAX_HTTP_CONNECTIONS,
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
+                KeepAlivePingPolicy = HttpKeepAlivePingPolicy.Always,
+                KeepAlivePingDelay = TimeSpan.FromMinutes(2),
+                SslOptions = new SslClientAuthenticationOptions
                 {
-                    if (sslPolicyErrors == SslPolicyErrors.None)
+                    RemoteCertificateValidationCallback = (message, cert, chain, sslPolicyErrors) =>
                     {
+                        if (sslPolicyErrors == SslPolicyErrors.None)
+                        {
+                            return true;
+                        }
+
+                        // *HACK:
                         return true;
                     }
-
-                    // *HACK:
-                    return true;
                 }
             };
+
             HttpCapsClient client = new HttpCapsClient(handler);
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Add("User-Agent", $"{Settings.USER_AGENT}");
+            client.DefaultRequestHeaders.ExpectContinue = false;
             client.Timeout = System.TimeSpan.FromMilliseconds(Settings.CAPS_TIMEOUT);
             return client;
         }

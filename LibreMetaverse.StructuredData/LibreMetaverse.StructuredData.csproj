@@ -1,9 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>LibreMetaverse.StructuredData</AssemblyName>
 	<Description>LibreMetaverse structured data library</Description>
 	<PackageId>LibreMetaverse.StructuredData</PackageId>
-    <TargetFrameworks>netstandard2.1;net6.0;net7.0</TargetFrameworks>
+    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse.StructuredData</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
