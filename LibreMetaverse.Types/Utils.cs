@@ -366,7 +366,7 @@ namespace OpenMetaverse
         public static string MD5(string str)
         {
             StringBuilder digest = new StringBuilder(32);
-            byte[] hash = MD5(Encoding.Default.GetBytes(str));
+            byte[] hash = MD5(Encoding.UTF8.GetBytes(str));
 
             // Convert the hash to a hex string
             foreach (byte b in hash)
