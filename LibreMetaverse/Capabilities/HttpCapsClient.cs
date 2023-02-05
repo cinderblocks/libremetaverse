@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2022, Sjofn, LLC.
+ * Copyright (c) 2022-2023, Sjofn, LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -234,19 +234,26 @@ namespace LibreMetaverse
         private async Task SendRequestAsync(HttpRequestMessage request, CancellationToken? cancellationToken,
             DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
         {
-            using (var response = (cancellationToken.HasValue)
-                       ? await SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken.Value)
-                       : await SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
+            try
             {
-                if (!response.IsSuccessStatusCode)
+                using (var response = (cancellationToken.HasValue)
+                           ? await SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken.Value)
+                           : await SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
                 {
-                    completeHandler?.Invoke(response, null,
-                        new HttpRequestException(response.StatusCode + " " + response.ReasonPhrase));
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        completeHandler?.Invoke(response, null,
+                            new HttpRequestException(response.StatusCode + " " + response.ReasonPhrase));
+                    }
+
+                    connectedHandler?.Invoke(response);
+
+                    await ProcessResponseAsync(response, cancellationToken, completeHandler, progressHandler);
                 }
-
-                connectedHandler?.Invoke(response);
-
-                await ProcessResponseAsync(response, cancellationToken, completeHandler, progressHandler);
+            }
+            catch (HttpRequestException ex)
+            {
+                completeHandler?.Invoke(null, null, ex);
             }
         }
 
