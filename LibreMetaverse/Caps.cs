@@ -334,7 +334,7 @@ namespace OpenMetaverse
             {
                 Logger.Log($"No Message handler exists for event {eventName}. Unable to decode. Will try Generic Handler next", 
                     Helpers.LogLevel.Warning);
-                Logger.Log("Please report this information at https://radegast.life/bugs/issue-entry/: " + Environment.NewLine + body, 
+                Logger.Log("Please report this information at https://github.com/cinderblocks/libremetaverse/issues: " + Environment.NewLine + body, 
                     Helpers.LogLevel.Debug);
 
                 // try generic decoder next which takes a caps event and tries to match it to an existing packet
