@@ -18,6 +18,10 @@ environment:
     platform: x64
     appveyor_build_worker_image: Ubuntu
     configuration: ReleaseNoGui
+  - job_name: Mac Build
+    platform: x64
+    appveyor_build_worker_image: macos-monterey
+    configuration: ReleaseNoGui
 
   LMVTestAgentUsername: SecretAgentTest Resident
   LMVTestAgentPassword:
@@ -31,7 +35,7 @@ environment:
 
 matrix:
   allow_failures:
-  - image: macos-mojave
+  - image: macos-monterey
   - image: Ubuntu
 
 pull_requests:
