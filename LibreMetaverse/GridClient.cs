@@ -145,7 +145,7 @@ namespace OpenMetaverse
             {
                 AllowAutoRedirect = true,
                 AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip,
-                MaxConnectionsPerServer = Settings.MAX_HTTP_CONNECTIONS,
+                //MaxConnectionsPerServer = Settings.MAX_HTTP_CONNECTIONS,
                 ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
                 {
                     if (sslPolicyErrors == SslPolicyErrors.None)
