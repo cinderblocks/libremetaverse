@@ -768,16 +768,11 @@ namespace OpenMetaverse
 
             private void FromBytes(byte[] data, int pos, int length)
             {
+                DefaultTexture = new TextureEntryFace(null);
+
                 if (length < 16)
-                {
                     // No TextureEntry to process
-                    DefaultTexture = null;
                     return;
-                }
-                else
-                {
-                    DefaultTexture = new TextureEntryFace(null);
-                }
 
                 uint bitfieldSize = 0;
                 uint faceBits = 0;
