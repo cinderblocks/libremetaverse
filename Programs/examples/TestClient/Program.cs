@@ -8,6 +8,17 @@ namespace OpenMetaverse.TestClient
     [Serializable]
     public class CommandLineArgumentsException : Exception
     {
+        public CommandLineArgumentsException() : base()
+        {
+        }
+
+        public CommandLineArgumentsException(string message) : base(message)
+        {
+        }
+
+        public CommandLineArgumentsException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
     }
 
     public class Program

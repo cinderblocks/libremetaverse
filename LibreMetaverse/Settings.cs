@@ -202,9 +202,9 @@ namespace OpenMetaverse
         public bool SEND_PINGS = true;
 
         /// <summary>Should we connect to multiple sims? This will allow
-        /// viewing in to neighboring simulators and sim crossings
+        /// viewing into neighboring simulators and sim crossings
         /// (Experimental)</summary>
-        public bool MULTIPLE_SIMS = true;
+        public bool MULTIPLE_SIMS = false;
 
         /// <summary>If true, all object update packets will be decoded in to
         /// native objects. If false, only updates for our own agent will be
@@ -216,10 +216,6 @@ namespace OpenMetaverse
         /// <summary>If true, when a cached object check is received from the
         /// server the full object info will automatically be requested</summary>
         public bool ALWAYS_REQUEST_OBJECTS = true;
-
-        /// <summary>Whether to establish connections to HTTP capabilities
-        /// servers for simulators</summary>
-        public bool ENABLE_CAPS = true;
 
         /// <summary>Whether to decode sim stats</summary>
         public bool ENABLE_SIMSTATS = true;

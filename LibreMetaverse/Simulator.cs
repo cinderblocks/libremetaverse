@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2022, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -148,7 +149,7 @@ namespace OpenMetaverse
     #endregion Enums
     
     /// <summary>
-    /// 
+    /// Simulator class encapsulates the idea of what Linden Lab calls a "Region" not a "Simulator", per se.
     /// </summary>
     public class Simulator : UDPBase, IDisposable
     {
@@ -170,7 +171,7 @@ namespace OpenMetaverse
             public int ConnectTime;
             /// <summary>Total number of packets that have been resent</summary>
             public int ResentPackets;
-            /// <summary>Total number of resent packets recieved</summary>
+            /// <summary>Total number of resent packets received</summary>
             public int ReceivedResends;
             /// <summary>Total number of pings sent to this simulator by this agent</summary>
             public int SentPings;
@@ -179,7 +180,7 @@ namespace OpenMetaverse
             /// <summary>
             /// Incoming bytes per second
             /// </summary>
-            /// <remarks>It would be nice to have this claculated on the fly, but
+            /// <remarks>It would be nice to have this calculated on the fly, but
             /// this is far, far easier</remarks>
             public int IncomingBPS;
             /// <summary>
@@ -251,18 +252,17 @@ namespace OpenMetaverse
         #endregion Structs
 
         #region Public Members        
-        /// <summary>A public reference to the client that this Simulator object
-        /// is attached to</summary>
+        /// <summary>A public reference to the client that this Simulator object is attached to</summary>
         public GridClient Client;
         /// <summary>A Unique Cache identifier for this simulator</summary>
         public UUID ID = UUID.Zero;
         /// <summary>The capabilities for this simulator</summary>
         public Caps Caps;
-        /// <summary></summary>
+        /// <summary>Unique identified for this region generated via it's coordinates on the world map</summary>
         public ulong Handle;
         /// <summary>The current version of software this simulator is running</summary>
         public string SimVersion = String.Empty;
-        /// <summary></summary>
+        /// <summary>Human readable name given to the simulator</summary>
         public string Name = String.Empty;
         /// <summary>A 64x64 grid of parcel coloring values. The values stored 
         /// in this array are of the <seealso cref="ParcelArrayType"/> type</summary>
@@ -287,7 +287,7 @@ namespace OpenMetaverse
         public float TerrainStartHeight11;
         /// <summary></summary>
         public float WaterHeight;
-        /// <summary></summary>
+        /// <summary>UUID identifier of the owner of this Region</summary>
         public UUID SimOwner = UUID.Zero;
         /// <summary></summary>
         public UUID TerrainBase0 = UUID.Zero;
@@ -309,7 +309,7 @@ namespace OpenMetaverse
         public bool IsEstateManager;
         /// <summary></summary>
         public RegionFlags Flags;
-        /// <summary></summary>
+        /// <summary>Access level</summary>
         public SimAccess Access;
         /// <summary></summary>
         public float BillableFactor;
@@ -497,10 +497,7 @@ namespace OpenMetaverse
         public readonly SimulatorDataPool DataPool;
         internal bool DownloadingParcelMap
         {
-            get
-            {
-                return Client.Settings.POOL_PARCEL_DATA ? DataPool.DownloadingParcelMap : _DownloadingParcelMap;
-            }
+            get => Client.Settings.POOL_PARCEL_DATA ? DataPool.DownloadingParcelMap : _DownloadingParcelMap;
             set
             {
                 if (Client.Settings.POOL_PARCEL_DATA) DataPool.DownloadingParcelMap = value;
@@ -515,11 +512,11 @@ namespace OpenMetaverse
         #endregion Internal/Private Members
 
         /// <summary>
-        /// 
+        /// Constructor
         /// </summary>
-        /// <param name="client">Reference to the GridClient object</param>
+        /// <param name="client">Reference to the <seealso cref="GridClient"/> object</param>
         /// <param name="address">IPEndPoint of the simulator</param>
-        /// <param name="handle">handle of the simulator</param>
+        /// <param name="handle">Region handle for the simulator</param>
         public Simulator(GridClient client, IPEndPoint address, ulong handle)
             : base(address)
         {
@@ -569,8 +566,8 @@ namespace OpenMetaverse
         /// Attempt to connect to this simulator
         /// </summary>
         /// <param name="moveToSim">Whether to move our agent in to this sim or not</param>
-        /// <returns>True if the connection succeeded or connection status is
-        /// unknown, false if there was a failure</returns>
+        /// <returns>True if the connection succeeded or  unknown, false if there
+        /// was a failure</returns>
         public bool Connect(bool moveToSim)
         {
             handshakeComplete = false;
@@ -601,7 +598,7 @@ namespace OpenMetaverse
 
             #endregion Start Timers
 
-            Logger.Log("Connecting to " + this, Helpers.LogLevel.Info, Client);
+            Logger.Log($"Connecting to {this}", Helpers.LogLevel.Info, Client);
 
             try
             {
@@ -621,9 +618,9 @@ namespace OpenMetaverse
 
                 if (!ConnectedEvent.WaitOne(Client.Settings.LOGIN_TIMEOUT, false))
                 {
-                    Logger.Log("Giving up on waiting for RegionHandshake for " + this,
+                    Logger.Log($"Giving up waiting for RegionHandshake for {this}",
                         Helpers.LogLevel.Warning, Client);
-                    //Remove the simulator from the list, not useful if we haven't recieved the RegionHandshake
+                    //Remove the simulator from the list, not useful if we haven't received the RegionHandshake
                     lock (Client.Network.Simulators) {
                         Client.Network.Simulators.Remove(this);
                     }
@@ -648,7 +645,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Initiates connection to the simulator
         /// </summary>
-        /// <param name="waitForAck">Should we block until ack for this packet is recieved</param>
+        /// <param name="waitForAck">Should we block until ack for this packet is received</param>
         public void UseCircuitCode(bool waitForAck)
         {
             // Send the UseCircuitCode packet to initiate the connection
@@ -679,7 +676,7 @@ namespace OpenMetaverse
             }
         }
 
-        public void SetSeedCaps(string seedcaps)
+        public void SetSeedCaps(Uri seedcaps)
         {
             if (Caps != null)
             {
@@ -690,15 +687,15 @@ namespace OpenMetaverse
                 Caps = null;
             }
 
-            if (Client.Settings.ENABLE_CAPS)
+            // Connect to the CAPS system
+            if (seedcaps != null)
             {
-                // Connect to the new CAPS system
-                if (!String.IsNullOrEmpty(seedcaps))
-                    Caps = new Caps(this, seedcaps);
-                else
-                    Logger.Log("Setting up a sim without a valid capabilities server!", Helpers.LogLevel.Error, Client);
+                Caps = new Caps(this, seedcaps);
             }
-
+            else
+            {
+                Logger.Log("Setting up a sim without valid http capabilities", Helpers.LogLevel.Error, Client);
+            }
         }
 
         /// <summary>
@@ -706,6 +703,8 @@ namespace OpenMetaverse
         /// </summary>
         public void Disconnect(bool sendCloseCircuit)
         {
+            DisconnectCandidate = false;
+
             if (!connected) return;
 
             connected = false;
@@ -999,7 +998,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Returns Simulator Name as a String
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Simulator name as String</returns>
         public override string ToString()
         {
             return !String.IsNullOrEmpty(Name)
@@ -1056,8 +1055,8 @@ namespace OpenMetaverse
             // Check if this packet came from the server we expected it to come from
             if (!remoteEndPoint.Address.Equals(((IPEndPoint)buffer.RemoteEndPoint).Address))
             {
-                Logger.Log("Received " + buffer.DataLength + " bytes of data from unrecognized source " +
-                    ((IPEndPoint)buffer.RemoteEndPoint), Helpers.LogLevel.Warning, Client);
+                Logger.Log($"Received {buffer.DataLength} bytes of data from unrecognized source {(IPEndPoint)buffer.RemoteEndPoint}",
+                    Helpers.LogLevel.Warning, Client);
                 return;
             }
 
@@ -1198,7 +1197,7 @@ namespace OpenMetaverse
 
         
         /// <summary>
-        /// Sends out pending acknowledgements
+        /// Sends out pending acknowledgments
         /// </summary>
         /// <returns>Number of ACKs sent</returns>
         private int SendAcks()

@@ -30,11 +30,12 @@ using System.Threading;
 using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
-using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Messages.Linden;
+using System.Threading.Tasks;
+using LibreMetaverse;
 
 namespace OpenMetaverse
 {
@@ -551,7 +552,7 @@ namespace OpenMetaverse
         public Vector3 UserLookAt;
         /// <summary>The type of landing enforced from the <see cref="LandingType"/> enum</summary>
         public LandingType Landing;
-        /// <summary></summary>
+        /// <summary>Traffic count</summary>
         public float Dwell;
         /// <summary></summary>
         public bool RegionDenyAnonymous;
@@ -589,7 +590,7 @@ namespace OpenMetaverse
             return fields.Aggregate("", (current, field) => current + (field.Name + " = " + field.GetValue(this) + " "));
         }
         /// <summary>
-        /// Defalt constructor
+        /// Default constructor
         /// </summary>
         /// <param name="localID">Local ID of this parcel</param>
         public Parcel(int localID)
@@ -597,9 +598,9 @@ namespace OpenMetaverse
             LocalID = localID;
             ClaimDate = Utils.Epoch;
             Bitmap = Utils.EmptyBytes;
-            Name = String.Empty;
-            Desc = String.Empty;
-            MusicURL = String.Empty;
+            Name = string.Empty;
+            Desc = string.Empty;
+            MusicURL = string.Empty;
             AccessWhiteList = new List<ParcelManager.ParcelAccessEntry>(0);
             AccessBlackList = new List<ParcelManager.ParcelAccessEntry>(0);
             Media = new ParcelMedia();
@@ -608,15 +609,16 @@ namespace OpenMetaverse
         /// <summary>
         /// Update the simulator with any local changes to this Parcel object
         /// </summary>
+        /// <param name="client">Client message originates from</param>
         /// <param name="simulator">Simulator to send updates to</param>
         /// <param name="wantReply">Whether we want the simulator to confirm
         /// the update with a reply packet or not</param>
-        public void Update(Simulator simulator, bool wantReply)
+        public void Update(GridClient client, Simulator simulator, bool wantReply)
         {
-            CapsClient request = simulator.Caps.CreateCapsClient("ParcelPropertiesUpdate");
-            if (request != null)
+            Uri cap = simulator.Caps.CapabilityURI("ParcelPropertiesUpdate");
+            if (cap != null)
             {
-                ParcelPropertiesUpdateMessage req = new ParcelPropertiesUpdateMessage
+                ParcelPropertiesUpdateMessage payload = new ParcelPropertiesUpdateMessage
                 {
                     AuthBuyerID = AuthBuyerID,
                     Category = Category,
@@ -648,11 +650,10 @@ namespace OpenMetaverse
                     GroupAVSounds = GroupAVSounds
                 };
 
-                OSDMap body = req.Serialize();
-
-                request.PostRequestAsync(body, OSDFormat.Xml, simulator.Client.Settings.CAPS_TIMEOUT);
+                Task req = client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(),
+                    CancellationToken.None, null);
             }
-            else
+            else // lludp fallback
             {
                 ParcelPropertiesUpdatePacket updatePacket = new ParcelPropertiesUpdatePacket
                 {
@@ -677,9 +678,10 @@ namespace OpenMetaverse
                     }
                 };
 
-
-
-                if (wantReply) updatePacket.ParcelData.Flags = 1;
+                if (wantReply)
+                {
+                    updatePacket.ParcelData.Flags = 1;
+                }
                 updatePacket.ParcelData.ParcelFlags = (uint)Flags;
                 updatePacket.ParcelData.PassHours = PassHours;
                 updatePacket.ParcelData.PassPrice = PassPrice;
@@ -1138,9 +1140,11 @@ namespace OpenMetaverse
 
             if (refresh)
             {
-                    for (int y = 0; y < 64; y++)
-                        for (int x = 0; x < 64; x++)
+                for (int y = 0; y < 64; y++)
+                {
+                    for (int x = 0; x < 64; x++)
                             simulator.ParcelMap[y, x] = 0;
+                }
             }
 
             ThreadPool.QueueUserWorkItem((_) =>
@@ -1352,7 +1356,7 @@ namespace OpenMetaverse
             }
             else
             {
-                request.OwnerIDs = new ParcelReturnObjectsPacket.OwnerIDsBlock[0];
+                request.OwnerIDs = Array.Empty<ParcelReturnObjectsPacket.OwnerIDsBlock>();
             }
 
             Client.Network.SendPacket(request, simulator);
@@ -1653,14 +1657,14 @@ namespace OpenMetaverse
         /// <param name="regionHandle">Remote region handle</param>
         /// <param name="regionID">Remote region UUID</param>
         /// <returns>If successful UUID of the remote parcel, UUID.Zero otherwise</returns>
-        public UUID RequestRemoteParcelID(Vector3 location, ulong regionHandle, UUID regionID)
+        public async Task<UUID> RequestRemoteParcelIDAsync(Vector3 location, ulong regionHandle, UUID regionID)
         {
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
                 return UUID.Zero;
 
-            CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("RemoteParcelRequest");
+            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("RemoteParcelRequest");
 
-            if (request != null)
+            if (cap != null)
             {
                 RemoteParcelRequestRequest msg = new RemoteParcelRequestRequest
                 {
@@ -1671,14 +1675,30 @@ namespace OpenMetaverse
 
                 try
                 {
-                    OSDMap result = request.PostRequest(msg.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT) as OSDMap;
-                    RemoteParcelRequestReply response = new RemoteParcelRequestReply();
-                    response.Deserialize(result);
-                    return response.ParcelID;
+                    OSD res = null;
+                    await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), CancellationToken.None,
+                        (response, data, error) =>
+                        {
+                            if (data != null)
+                            {
+                                res = OSDParser.Deserialize(data);
+                            }
+                            else if (error != null)
+                            {
+                                Logger.Log("Did not receive response from RemoteParcelRequest: " + error.Message, Helpers.LogLevel.Warning, Client);
+                            }
+                        });
+
+                    if (res is OSDMap result)
+                    {
+                        RemoteParcelRequestReply response = new RemoteParcelRequestReply();
+                        response.Deserialize(result);
+                        return response.ParcelID;
+                    }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    Logger.Log("Failed to fetch remote parcel ID", Helpers.LogLevel.Debug, Client);
+                    Logger.Log("Failed to fetch remote parcel ID", Helpers.LogLevel.Debug, Client, ex);
                 }
             }
             
@@ -1687,52 +1707,71 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Requests the UUID of the parcel in a remote region at a specified location
+        /// </summary>
+        /// <param name="location">Location of the parcel in the remote region</param>
+        /// <param name="regionHandle">Remote region handle</param>
+        /// <param name="regionID">Remote region UUID</param>
+        /// <returns>If successful UUID of the remote parcel, UUID.Zero otherwise</returns>
+        public UUID RequestRemoteParcelID(Vector3 location, ulong regionHandle, UUID regionID)
+        {
+            return RequestRemoteParcelIDAsync(location, regionHandle, regionID).Result;
+        }
+
+        /// <summary>
         /// Retrieves information on resources used by the parcel
         /// </summary>
         /// <param name="parcelID">UUID of the parcel</param>
         /// <param name="getDetails">Should per object resource usage be requested</param>
         /// <param name="callback">Callback invoked when the request is complete</param>
-        public void GetParcelResouces(UUID parcelID, bool getDetails, LandResourcesCallback callback)
+        public void GetParcelResources(UUID parcelID, bool getDetails, LandResourcesCallback callback)
         {
             try
             {
-                CapsClient request = Client.Network.CurrentSim.Caps.CreateCapsClient("LandResources");
-
-                request.OnComplete += delegate(CapsClient client, OSD result, Exception error)
-                {
-                    try
+                LandResourcesRequest req = new LandResourcesRequest { ParcelID = parcelID };
+                Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("LandResources");
+                Task httpReq = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(),
+                    CancellationToken.None, (httpResponse, data, error) =>
                     {
-                        if (result == null || error != null)
+                        try
                         {
+                            if (error != null)
+                            {
+                                callback(false, null);
+                            }
+
+                            OSD result = OSDParser.Deserialize(data);
+                            LandResourcesMessage landResourcesMessage = new LandResourcesMessage();
+                            landResourcesMessage.Deserialize((OSDMap)result);
+
+                            OSD summaryResponse = null;
+                            AsyncHelper.Sync(() => Client.HttpCapsClient.GetRequestAsync(
+                                Client.Network.CurrentSim.Caps.CapabilityURI("ScriptResourceSummary"),
+                                CancellationToken.None,
+                                (response, respData, err) => summaryResponse = OSDParser.Deserialize(respData)));
+
+                            LandResourcesInfo resInfo = new LandResourcesInfo();
+                            resInfo.Deserialize((OSDMap)summaryResponse);
+
+                            if (landResourcesMessage.ScriptResourceDetails != null && getDetails)
+                            {
+                                OSD detailResponse = null;
+                                AsyncHelper.Sync(() => Client.HttpCapsClient.GetRequestAsync(
+                                    Client.Network.CurrentSim.Caps.CapabilityURI("ScriptResourceDetails"),
+                                    CancellationToken.None,
+                                    (response, respData, err) => detailResponse = OSDParser.Deserialize(respData)));
+
+                                resInfo.Deserialize((OSDMap)detailResponse);
+                            }
+
+                            callback(true, resInfo);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Log("Failed fetching land resources", Helpers.LogLevel.Error, Client, ex);
                             callback(false, null);
                         }
-                        LandResourcesMessage response = new LandResourcesMessage();
-                        response.Deserialize((OSDMap)result);
-
-                        CapsClient summaryRequest = new CapsClient(response.ScriptResourceSummary, "ScriptResourceSummary");
-                        OSD summaryResponse = summaryRequest.GetRequest(Client.Settings.CAPS_TIMEOUT);
-
-                        LandResourcesInfo res = new LandResourcesInfo();
-                        res.Deserialize((OSDMap)summaryResponse);
-
-                        if (response.ScriptResourceDetails != null && getDetails)
-                        {
-                            CapsClient detailRequest = new CapsClient(response.ScriptResourceDetails, "ScriptResourceDetails");
-                            OSD detailResponse = detailRequest.GetRequest(Client.Settings.CAPS_TIMEOUT);
-                            res.Deserialize((OSDMap)detailResponse);
-                        }
-                        callback(true, res);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Log("Failed fetching land resources", Helpers.LogLevel.Error, Client, ex);
-                        callback(false, null);
-                    }
-                };
-
-                LandResourcesRequest param = new LandResourcesRequest {ParcelID = parcelID};
-                request.PostRequestAsync(param.Serialize(), OSDFormat.Xml, Client.Settings.CAPS_TIMEOUT);
-
+                    });
             }
             catch (Exception ex)
             {
@@ -1915,8 +1954,10 @@ namespace OpenMetaverse
 
             // auto request acl, will be stored in parcel tracking dictionary if enabled
             if (Client.Settings.ALWAYS_REQUEST_PARCEL_ACL)
+            {
                 Client.Parcels.RequestParcelAccessList(simulator, parcel.LocalID,
                     AccessList.Both, sequenceID);
+            }
 
             // auto request dwell, will be stored in parcel tracking dictionary if enables
             if (Client.Settings.ALWAYS_REQUEST_PARCEL_DWELL)

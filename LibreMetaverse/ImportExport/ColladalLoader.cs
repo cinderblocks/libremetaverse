@@ -326,18 +326,22 @@ namespace OpenMetaverse.ImportExport
             Node n = new Node {Name = node.name, ID = node.id};
 
             if (node.Items != null)
+            {
                 // Try finding matrix
                 foreach (var i in node.Items)
                 {
                     if (i is matrix mtx)
                     {
                         for (int a = 0; a < 4; a++)
+                        {
                             for (int b = 0; b < 4; b++)
                             {
                                 n.Transform[b, a] = (float)mtx.Values[a * 4 + b];
                             }
+                        }
                     }
                 }
+            }
 
             // Find geometry and material
             if (node.instance_geometry != null && node.instance_geometry.Length > 0)
@@ -365,8 +369,10 @@ namespace OpenMetaverse.ImportExport
 
             // Recurse if the scene is hierarchical
             if (node.node1 != null)
+            {
                 foreach (node nd in node.node1)
                     ProcessNode(nd);
+            }
         }
 
         void ParseVisualScene()

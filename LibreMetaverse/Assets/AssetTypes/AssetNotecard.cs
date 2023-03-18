@@ -146,7 +146,7 @@ namespace OpenMetaverse.Assets
             }
 
             output.Append("}\n");
-            output.Append("Text length " + (Utils.StringToBytes(body).Length - 1).ToString() + "\n");
+            output.Append("Text length " + (Utils.StringToBytes(body).Length - 1) + "\n");
             output.Append(body + "}\n");
 
             AssetData = Utils.StringToBytes(output.ToString());

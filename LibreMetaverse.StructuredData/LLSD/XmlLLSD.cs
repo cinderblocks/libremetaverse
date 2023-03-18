@@ -28,6 +28,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Xml;
 using System.Text;
 
@@ -48,15 +49,7 @@ namespace OpenMetaverse.StructuredData
         public static OSD DeserializeLLSDXml(Stream xmlStream)
         {
             // XmlReader don't take no shit from nobody. Parse out Linden Lab's bad PI.
-            bool match = true;
-            for (int i = 0; i < linden_lab_loves_bad_pi.Length; ++i)
-            {
-                if (xmlStream.ReadByte() != linden_lab_loves_bad_pi[i])
-                {
-                    match = false;
-                    break;
-                }
-            }
+            bool match = linden_lab_loves_bad_pi.All(t => xmlStream.ReadByte() == t);
             if (match)
             {
                 // read until the linebreak >

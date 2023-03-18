@@ -365,7 +365,7 @@ namespace OpenMetaverse.Rendering
                 else
                 {
                     NumSkinJoints = 0;
-                    SkinJoints = new string[0];
+                    SkinJoints = Array.Empty<string>();
                 }
 
                 // Grab morphs
@@ -414,7 +414,7 @@ namespace OpenMetaverse.Rendering
                 else
                 {
                     NumRemaps = 0;
-                    VertexRemaps = new VertexRemap[0];
+                    VertexRemaps = Array.Empty<VertexRemap>();
                 }
             }
 

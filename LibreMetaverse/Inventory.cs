@@ -28,6 +28,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 
 namespace OpenMetaverse
@@ -55,7 +56,7 @@ namespace OpenMetaverse
     /// </summary>
     public class Inventory
     {
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<InventoryObjectUpdatedEventArgs> m_InventoryObjectUpdated;
 
         ///<summary>Raises the InventoryObjectUpdated Event</summary>
@@ -78,7 +79,7 @@ namespace OpenMetaverse
             remove { lock (m_InventoryObjectUpdatedLock) { m_InventoryObjectUpdated -= value; } }
         }
        
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<InventoryObjectRemovedEventArgs> m_InventoryObjectRemoved;
 
         ///<summary>Raises the InventoryObjectRemoved Event</summary>
@@ -101,7 +102,7 @@ namespace OpenMetaverse
             remove { lock (m_InventoryObjectRemovedLock) { m_InventoryObjectRemoved -= value; } }
         }
         
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<InventoryObjectAddedEventArgs> m_InventoryObjectAdded;
 
         ///<summary>Raises the InventoryObjectAdded Event</summary>
@@ -160,7 +161,7 @@ namespace OpenMetaverse
         /// </summary>
         public InventoryNode LibraryRootNode { get; private set; }
 
-        public UUID Owner { get; private set; }
+        public UUID Owner { get; }
 
         private GridClient Client;
         //private InventoryManager Manager;
@@ -198,10 +199,7 @@ namespace OpenMetaverse
             lock (folderNode.Nodes.SyncRoot)
             {
                 List<InventoryBase> contents = new List<InventoryBase>(folderNode.Nodes.Count);
-                foreach (InventoryNode node in folderNode.Nodes.Values)
-                {
-                    contents.Add(node.Data);
-                }
+                contents.AddRange(folderNode.Nodes.Values.Select(node => node.Data));
                 return contents;
             }
         }
@@ -294,8 +292,11 @@ namespace OpenMetaverse
                 if (Items.TryGetValue(item.UUID, out node))
                 {
                     if (node.Parent != null)
+                    {
                         lock (node.Parent.Nodes.SyncRoot)
                             node.Parent.Nodes.Remove(item.UUID);
+                    }
+
                     Items.Remove(item.UUID);
                     if (m_InventoryObjectRemoved != null)
                     {
@@ -420,7 +421,7 @@ namespace OpenMetaverse
 
                             if (cacheFolder.Version != server_folder.Version)
                             {
-                                Logger.DebugLog("Inventory Cache/Server version mismatch on " + node.Data.Name + " " + cacheFolder.Version.ToString() + " vs " + server_folder.Version.ToString());
+                                Logger.DebugLog("Inventory Cache/Server version mismatch on " + node.Data.Name + " " + cacheFolder.Version + " vs " + server_folder.Version);
                                 pnode.NeedsUpdate = true;
                                 dirty_folders.Add(node.Data.UUID);
                             }

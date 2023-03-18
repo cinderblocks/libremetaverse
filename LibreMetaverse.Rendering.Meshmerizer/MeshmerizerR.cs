@@ -466,8 +466,7 @@ namespace OpenMetaverse.Rendering
             FacetedMesh ret = null;
             OSD meshOSD = Helpers.DecompressOSD(compressedMeshData);
 
-            OSDArray meshFaces = meshOSD as OSDArray;
-            if (meshFaces != null)
+            if (meshOSD is OSDArray meshFaces)
             {
                 ret = new FacetedMesh {Faces = new List<Face>()};
                 for (int faceIndex = 0; faceIndex < meshFaces.Count; faceIndex++)

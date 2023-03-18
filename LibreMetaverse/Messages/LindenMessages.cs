@@ -434,7 +434,7 @@ namespace OpenMetaverse.Messages.Linden
 
             if (TotalObjectCount < 1)
             {
-                ReportDataBlocks = new ReportDataBlock[0];
+                ReportDataBlocks = Array.Empty<ReportDataBlock>();
                 return;
             }
 
@@ -1504,7 +1504,7 @@ namespace OpenMetaverse.Messages.Linden
             }
             else
             {
-                FolderData = new FolderDataInfo[0];
+                FolderData = Array.Empty<FolderDataInfo>();
             }
 
             if (map["ItemData"] is OSDArray)
@@ -1518,7 +1518,7 @@ namespace OpenMetaverse.Messages.Linden
             }
             else
             {
-                ItemData = new ItemDataInfo[0];
+                ItemData = Array.Empty<ItemDataInfo>();
             }
         }
     }
@@ -2957,12 +2957,14 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public override OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(3);
-            map["method"] = OSD.FromString(Method);
-            OSDArray agentsArray = new OSDArray();
-            for (int i = 0; i < AgentsBlock.Length; i++)
+            OSDMap map = new OSDMap(3)
             {
-                agentsArray.Add(OSD.FromUUID(AgentsBlock[i]));
+                ["method"] = OSD.FromString(Method)
+            };
+            OSDArray agentsArray = new OSDArray();
+            foreach (var uuid in AgentsBlock)
+            {
+                agentsArray.Add(OSD.FromUUID(uuid));
             }
             map["params"] = agentsArray;
             map["session-id"] = OSD.FromUUID(SessionID);
@@ -4343,8 +4345,7 @@ namespace OpenMetaverse.Messages.Linden
                 Scale = map["scale"].AsVector3();
 
                 // Extra params
-                OSDArray extraParams = map["extra_parameters"] as OSDArray;
-                if (extraParams != null)
+                if (map["extra_parameters"] is OSDArray extraParams)
                 {
                     ExtraParams = new ExtraParam[extraParams.Count];
                     for (int i = 0; i < extraParams.Count; i++)
@@ -4356,12 +4357,11 @@ namespace OpenMetaverse.Messages.Linden
                 }
                 else
                 {
-                    ExtraParams = new ExtraParam[0];
+                    ExtraParams = Array.Empty<ExtraParam>();
                 }
 
                 // Faces
-                OSDArray faces = map["facelist"] as OSDArray;
-                if (faces != null)
+                if (map["facelist"] is OSDArray faces)
                 {
                     Faces = new Face[faces.Count];
                     for (int i = 0; i < faces.Count; i++)
@@ -4373,7 +4373,7 @@ namespace OpenMetaverse.Messages.Linden
                 }
                 else
                 {
-                    Faces = new Face[0];
+                    Faces = Array.Empty<Face>();
                 }
 
                 // Shape
@@ -4400,8 +4400,7 @@ namespace OpenMetaverse.Messages.Linden
                 ProfileEnd = (float)profile["end"].AsReal();
                 ProfileHollow = (float)profile["hollow"].AsReal();
 
-                OSDMap sculpt = shape["sculpt"] as OSDMap;
-                if (sculpt != null)
+                if (shape["sculpt"] is OSDMap sculpt)
                 {
                     SculptID = sculpt["id"].AsUUID();
                     SculptType = (SculptType)sculpt["type"].AsInteger();
@@ -4433,18 +4432,15 @@ namespace OpenMetaverse.Messages.Linden
 
         public void Deserialize(OSDMap map)
         {
-            OSDArray array = map["objects"] as OSDArray;
-
-            if (array != null)
+            if (map["objects"] is OSDArray array)
             {
                 Objects = new Object[array.Count];
 
                 for (int i = 0; i < array.Count; ++i)
                 {
                     Object obj = new Object();
-                    OSDMap objMap = array[i] as OSDMap;
 
-                    if (objMap != null)
+                    if (array[i] is OSDMap objMap)
                         obj.Deserialize(objMap);
 
                     Objects[i] = obj;
@@ -4452,7 +4448,7 @@ namespace OpenMetaverse.Messages.Linden
             }
             else
             {
-                Objects = new Object[0];
+                Objects = Array.Empty<Object>();
             }
         }
     }
@@ -4490,8 +4486,7 @@ namespace OpenMetaverse.Messages.Linden
         /// <param name="map">Incoming data to deserialize</param>
         public void Deserialize(OSDMap map)
         {
-            OSDArray array = map["ObjectData"] as OSDArray;
-            if (array != null)
+            if (map["ObjectData"] is OSDArray array)
             {
                 ObjectPhysicsProperties = new Primitive.PhysicsProperties[array.Count];
 
@@ -4502,7 +4497,7 @@ namespace OpenMetaverse.Messages.Linden
             }
             else
             {
-                ObjectPhysicsProperties = new Primitive.PhysicsProperties[0];
+                ObjectPhysicsProperties = Array.Empty<Primitive.PhysicsProperties>();
             }
         }
     }
@@ -4566,8 +4561,7 @@ namespace OpenMetaverse.Messages.Linden
         /// <param name="map">Incoming data to deserialize</param>
         public void Deserialize(OSDMap map)
         {
-            OSDArray array = map["object_ids"] as OSDArray;
-            if (array != null)
+            if (map["object_ids"] is OSDArray array)
             {
                 ObjectIDs = new UUID[array.Count];
 
@@ -4578,7 +4572,7 @@ namespace OpenMetaverse.Messages.Linden
             }
             else
             {
-                ObjectIDs = new UUID[0];
+                ObjectIDs = Array.Empty<UUID>();
             }
         }
 
@@ -5298,10 +5292,10 @@ namespace OpenMetaverse.Messages.Linden
     public class GetDisplayNamesMessage : IMessage
     {
         /// <summary> Current display name </summary>
-        public AgentDisplayName[] Agents = new AgentDisplayName[0];
+        public AgentDisplayName[] Agents = Array.Empty<AgentDisplayName>();
 
         /// <summary> Following UUIDs failed to return a valid display name </summary>
-        public UUID[] BadIDs = new UUID[0];
+        public UUID[] BadIDs = Array.Empty<UUID>();
 
         /// <summary>
         /// Serializes the message
@@ -5401,7 +5395,7 @@ namespace OpenMetaverse.Messages.Linden
     }
 
     /// <summary>
-    /// Message recieved in response to request to change display name
+    /// Message received in response to request to change display name
     /// </summary>
     public class SetDisplayNameReplyMessage : IMessage
     {
@@ -5440,7 +5434,7 @@ namespace OpenMetaverse.Messages.Linden
     }
 
     /// <summary>
-    /// Message recieved when someone nearby changes their display name
+    /// Message received when someone nearby changes their display name
     /// </summary>
     public class DisplayNameUpdateMessage : IMessage
     {

@@ -1,5 +1,5 @@
 init:
-  - ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { $env:TAG_VERSION = "$env:APPVEYOR_REPO_TAG_NAME.$env:APPVEYOR_BUILD_NUMBER" } else { $env:TAG_VERSION = "v1.9.0.$env:APPVEYOR_BUILD_NUMBER-alpha" }
+  - ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { $env:TAG_VERSION = "$env:APPVEYOR_REPO_TAG_NAME.$env:APPVEYOR_BUILD_NUMBER" } else { $env:TAG_VERSION = "v2.0.0.$env:APPVEYOR_BUILD_NUMBER-alpha" }
   - ps: $env:TAG_VERSION = $env:TAG_VERSION -replace 'v',''
   - ps: Write-Host "Setting version to '$env:TAG_VERSION'"
   - ps: Update-AppveyorBuild -Version "$env:TAG_VERSION"
@@ -23,15 +23,14 @@ environment:
   LMVTestAgentPassword:
     secure: bOoXrGfLiHjZlCG1tJ+nDQ==
   PfxDownloadUrl:
-    secure: 6zETilPjqhwgznp0rOyu2uOUI4whFbLT3QUXdaTQSH/FqOXIKwj/qz3d4Xo2rrgo
+    secure: T8uKu+tTR2G7LDE1zPGNOi+prl4YaKXP6DOC5eU6A14FEQkd8PFR3nQ1WMwryphJ
   PfxDownloadPasswd:
-    secure: qzHJldnavMFT8+Cm2eXndg==
+    secure: nAIqrjhaoamhiuAcae/xNw==
   PfxPassword:
     secure: +vWSGzLkiBGVIxfPb+iRtD+/maQjI2d92hN4PoNAxMc=
 
 matrix:
   allow_failures:
-  - image: macos-mojave
   - image: Ubuntu
 
 pull_requests:
@@ -71,7 +70,7 @@ deploy:
   - provider: NuGet
     name: nuget_release
     api_key:
-      secure: Mvs+45lPmiSYC9hv3AqdKWJVEzA5B5w0iU2IUCRz2/cxow/s00suGcO326h4Gjt7
+      secure: A0kUKZQCzVX2Wt/pUgN18oYV83YNbRiMBxKczUFE+i0z6x3+CkJKzdYO15npvoKA
     artifact: /.*LibreMetaverse.*(\.|\.s)nupkg/
     skip_symbols: false
     draft: false

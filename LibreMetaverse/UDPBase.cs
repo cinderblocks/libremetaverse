@@ -79,7 +79,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Start UPD connection
         /// </summary>
         public void Start()
         {
@@ -119,12 +119,12 @@ namespace OpenMetaverse
 
             // kick off an async receive.  The Start() method will return, the
             // actual receives will occur asynchronously and will be caught in
-            // AsyncEndRecieve().
+            // AsyncEndReceive().
             AsyncBeginReceive();
         }
 
         /// <summary>
-        /// 
+        /// Stop UPD connection
         /// </summary>
         public void Stop()
         {
@@ -139,7 +139,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Is UDP connection up and running
         /// </summary>
         public bool IsRunning => !shutdownFlag;
 

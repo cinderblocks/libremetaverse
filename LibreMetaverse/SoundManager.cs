@@ -39,7 +39,7 @@ namespace OpenMetaverse
         #endregion
 
         #region Event Handling
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<AttachedSoundEventArgs> _mAttachedSound;
 
         ///<summary>Raises the AttachedSound Event</summary>
@@ -62,7 +62,7 @@ namespace OpenMetaverse
             remove { lock (_mAttachedSoundLock) { _mAttachedSound -= value; } }
         }
                 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<AttachedSoundGainChangeEventArgs> m_AttachedSoundGainChange;
 
         ///<summary>Raises the AttachedSoundGainChange Event</summary>
@@ -85,7 +85,7 @@ namespace OpenMetaverse
             remove { lock (m_AttachedSoundGainChangeLock) { m_AttachedSoundGainChange -= value; } }
         }
         
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<SoundTriggerEventArgs> m_SoundTrigger;
 
         ///<summary>Raises the SoundTrigger Event</summary>
@@ -108,7 +108,7 @@ namespace OpenMetaverse
             remove { lock (m_SoundTriggerLock) { m_SoundTrigger -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<PreloadSoundEventArgs> m_PreloadSound;
 
         ///<summary>Raises the PreloadSound Event</summary>

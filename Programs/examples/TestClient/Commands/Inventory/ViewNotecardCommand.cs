@@ -16,7 +16,7 @@ namespace OpenMetaverse.TestClient
         }
 
         /// <summary>
-        /// Exectute the command
+        /// Execute the command
         /// </summary>
         /// <param name="args"></param>
         /// <param name="fromAgentID"></param>

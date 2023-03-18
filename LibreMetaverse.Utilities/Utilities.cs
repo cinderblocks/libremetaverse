@@ -90,7 +90,7 @@ namespace OpenMetaverse.Utilities
         }
 
         /// <summary>
-        ///  A psuedo-realistic chat function that uses the typing sound and
+        ///  A pseudo-realistic chat function that uses the typing sound and
         /// animation, types at three characters per second, and randomly 
         /// pauses. This function will block until the message has been sent
         /// </summary>
@@ -102,7 +102,7 @@ namespace OpenMetaverse.Utilities
         }
 
         /// <summary>
-        /// A psuedo-realistic chat function that uses the typing sound and
+        /// A pseudo-realistic chat function that uses the typing sound and
         /// animation, types at a given rate, and randomly pauses. This 
         /// function will block until the message has been sent
         /// </summary>

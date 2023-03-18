@@ -113,7 +113,10 @@ namespace OpenMetaverse.TestClient
                     }
 
                     // Otherwise, use the center of the named region
-                    account.StartLocation ??= NetworkManager.StartLocation(args[3], 128, 128, 40);
+                    if (account.StartLocation == null)
+                    {
+                        account.StartLocation = NetworkManager.StartLocation(args[3], 128, 128, 40);
+                    }
                 }
             }
 
@@ -137,8 +140,8 @@ namespace OpenMetaverse.TestClient
         {
             // Check if this client is already logged in
             foreach (var c in Clients.Values.Where(
-                         client => client.Self.FirstName == account.FirstName
-                                   && client.Self.LastName == account.LastName))
+                         tc => tc.Self.FirstName == account.FirstName
+                                   && tc.Self.LastName == account.LastName))
             {
                 Logout(c);
                 break;
@@ -146,7 +149,10 @@ namespace OpenMetaverse.TestClient
 
             ++PendingLogins;
 
-            TestClient client = new TestClient(this);
+            TestClient client = new TestClient(this)
+            {
+                Settings = { MFA_ENABLED = true }
+            };
             client.Network.LoginProgress +=
                 delegate(object sender, LoginProgressEventArgs e)
                 {

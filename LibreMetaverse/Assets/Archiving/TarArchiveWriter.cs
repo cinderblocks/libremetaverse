@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2006-2016, openmetaverse.co
  * All rights reserved.
  *
@@ -57,7 +57,7 @@ namespace OpenMetaverse.Assets
             if (!dirName.EndsWith("/"))
                 dirName += "/";
 
-            WriteFile(dirName, new byte[0]);
+            WriteFile(dirName, Array.Empty<byte>());
         }
 
         /// <summary>

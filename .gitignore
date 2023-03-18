@@ -39,6 +39,8 @@ package-lock.json
 .eslintrc.yml
 .prettierrc.json
 
+.editorconfig
+
 # Original LibreMetaverse .gitignore follows
 compile.bat
 *.user

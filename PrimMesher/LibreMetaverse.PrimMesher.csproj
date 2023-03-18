@@ -47,7 +47,7 @@
     <DefineConstants>TRACE;VERTEX_INDEXER</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
+    <PackageReference Include="System.Drawing.Common" Version="7.0.0" />
   </ItemGroup>
   <ItemGroup>
 	<None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />

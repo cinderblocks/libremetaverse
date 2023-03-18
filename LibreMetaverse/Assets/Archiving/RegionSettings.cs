@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using System.Xml;
 
@@ -191,7 +192,7 @@ namespace OpenMetaverse.Assets
             writer.WriteElementString("MaturityRating", MaturityRating.ToString());
             WriteBoolean(writer, "RestrictPushing", RestrictPushing);
             writer.WriteElementString("AgentLimit", AgentLimit.ToString());
-            writer.WriteElementString("ObjectBonus", ObjectBonus.ToString());
+            writer.WriteElementString("ObjectBonus", ObjectBonus.ToString(CultureInfo.InvariantCulture));
             writer.WriteEndElement();
 
             writer.WriteStartElement(String.Empty, "GroundTextures", String.Empty);
@@ -200,21 +201,21 @@ namespace OpenMetaverse.Assets
             writer.WriteElementString("Texture2", TerrainDetail1.ToString());
             writer.WriteElementString("Texture3", TerrainDetail2.ToString());
             writer.WriteElementString("Texture4", TerrainDetail3.ToString());
-            writer.WriteElementString("ElevationLowSW", TerrainStartHeight00.ToString());
-            writer.WriteElementString("ElevationLowNW", TerrainStartHeight01.ToString());
-            writer.WriteElementString("ElevationLowSE", TerrainStartHeight10.ToString());
-            writer.WriteElementString("ElevationLowNE", TerrainStartHeight11.ToString());
-            writer.WriteElementString("ElevationHighSW", TerrainHeightRange00.ToString());
-            writer.WriteElementString("ElevationHighNW", TerrainHeightRange01.ToString());
-            writer.WriteElementString("ElevationHighSE", TerrainHeightRange10.ToString());
-            writer.WriteElementString("ElevationHighNE", TerrainHeightRange11.ToString());
+            writer.WriteElementString("ElevationLowSW", TerrainStartHeight00.ToString(CultureInfo.InvariantCulture));
+            writer.WriteElementString("ElevationLowNW", TerrainStartHeight01.ToString(CultureInfo.InvariantCulture));
+            writer.WriteElementString("ElevationLowSE", TerrainStartHeight10.ToString(CultureInfo.InvariantCulture));
+            writer.WriteElementString("ElevationLowNE", TerrainStartHeight11.ToString(CultureInfo.InvariantCulture));
+            writer.WriteElementString("ElevationHighSW", TerrainHeightRange00.ToString(CultureInfo.InvariantCulture));
+            writer.WriteElementString("ElevationHighNW", TerrainHeightRange01.ToString(CultureInfo.InvariantCulture));
+            writer.WriteElementString("ElevationHighSE", TerrainHeightRange10.ToString(CultureInfo.InvariantCulture));
+            writer.WriteElementString("ElevationHighNE", TerrainHeightRange11.ToString(CultureInfo.InvariantCulture));
             writer.WriteEndElement();
                 
             writer.WriteStartElement(String.Empty, "Terrain", String.Empty);
 
-            writer.WriteElementString("WaterHeight", WaterHeight.ToString());
-            writer.WriteElementString("TerrainRaiseLimit", TerrainRaiseLimit.ToString());
-            writer.WriteElementString("TerrainLowerLimit", TerrainLowerLimit.ToString());
+            writer.WriteElementString("WaterHeight", WaterHeight.ToString(CultureInfo.InvariantCulture));
+            writer.WriteElementString("TerrainRaiseLimit", TerrainRaiseLimit.ToString(CultureInfo.InvariantCulture));
+            writer.WriteElementString("TerrainLowerLimit", TerrainLowerLimit.ToString(CultureInfo.InvariantCulture));
             WriteBoolean(writer, "UseEstateSun", UseEstateSun);
             WriteBoolean(writer, "FixedSun", FixedSun);
 

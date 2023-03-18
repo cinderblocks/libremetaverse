@@ -106,45 +106,15 @@ public class ClientAO : ProxyPlugin
 
     #region Packet delegates members
     private PacketDelegate _packetDelegate;
-    private PacketDelegate packetDelegate 
-    {
-        get
-        {
-            if (_packetDelegate == null) 
-            {
-                _packetDelegate = new PacketDelegate(AnimationPacketHandler);
-            }
-            return _packetDelegate;
-        }
-    }
+    private PacketDelegate packetDelegate => _packetDelegate ??= AnimationPacketHandler;
 
     private PacketDelegate _inventoryPacketDelegate;
-    private PacketDelegate inventoryPacketDelegate
-    {
-        get
-        {
-            if (_inventoryPacketDelegate == null)
-            {
-                _inventoryPacketDelegate = new PacketDelegate(InventoryDescendentsHandler);
-            }
-            return _inventoryPacketDelegate;
-        }
-    }
+    private PacketDelegate inventoryPacketDelegate => _inventoryPacketDelegate ??= InventoryDescendentsHandler;
 
     private PacketDelegate _transferPacketDelegate;
-    private PacketDelegate transferPacketDelegate
-    {
-        get
-        {
-            if (_transferPacketDelegate == null)
-            {
-                _transferPacketDelegate = new PacketDelegate(TransferPacketHandler);
-            }
-            return _transferPacketDelegate;
-        }
-    }
+    private PacketDelegate transferPacketDelegate => _transferPacketDelegate ??= TransferPacketHandler;
 
-//     private PacketDelegate _transferInfoDelegate;
+    //     private PacketDelegate _transferInfoDelegate;
 //     private PacketDelegate transferInfoDelegate
 //     {
 //         get
@@ -289,20 +259,27 @@ public class ClientAO : ProxyPlugin
     public void RequestFolderContents(UUID folder, bool folders, bool items,
         InventorySortOrder order)
     {
-        //empty the dictionnary containing current folder items by name
+        //empty the dictionary containing current folder items by name
         currentFolderItems = new Dictionary<string, InventoryItem>();
         //reset the number of descendants received
         nbdescendantsreceived = 0;
         //build a packet to request the content
-        FetchInventoryDescendentsPacket fetch = new FetchInventoryDescendentsPacket();
-        fetch.AgentData.AgentID = frame.AgentID;
-        fetch.AgentData.SessionID = frame.SessionID;
-
-        fetch.InventoryData.FetchFolders = folders;
-        fetch.InventoryData.FetchItems = items;
-        fetch.InventoryData.FolderID = folder;
-        fetch.InventoryData.OwnerID = frame.AgentID; //is it correct?
-        fetch.InventoryData.SortOrder = (int)order;
+        FetchInventoryDescendentsPacket fetch = new FetchInventoryDescendentsPacket
+        {
+            AgentData =
+            {
+                AgentID = frame.AgentID,
+                SessionID = frame.SessionID
+            },
+            InventoryData =
+            {
+                FetchFolders = folders,
+                FetchItems = items,
+                FolderID = folder,
+                OwnerID = frame.AgentID, //is it correct?
+                SortOrder = (int)order
+            }
+        };
 
         //send packet to SL
         proxy.InjectPacket(fetch, Direction.Outgoing);
@@ -546,7 +523,7 @@ public class ClientAO : ProxyPlugin
         animate.AnimationList[0].AnimID = animationuuid;
         animate.AnimationList[0].StartAnim = run;
 
-        animate.PhysicalAvatarEventList = new AgentAnimationPacket.PhysicalAvatarEventListBlock[0];
+        animate.PhysicalAvatarEventList = Array.Empty<AgentAnimationPacket.PhysicalAvatarEventListBlock>();
 
         //SayToUser("anim " + animname(animationuuid) + " " + run);
         proxy.InjectPacket(animate, Direction.Outgoing);

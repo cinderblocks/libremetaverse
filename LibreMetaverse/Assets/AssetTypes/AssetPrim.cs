@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2006-2016, openmetaverse.co
  * All rights reserved.
  *
@@ -808,7 +808,7 @@ namespace OpenMetaverse.Assets
                 }
                 else
                 {
-                    Items = new ItemBlock[0];
+                    Items = Array.Empty<ItemBlock>();
                 }
             }
         }

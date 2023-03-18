@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Xml;
@@ -427,13 +428,13 @@ namespace OpenMetaverse.Assets
             }
             xtw.WriteEndElement();
 
-            xtw.WriteElementString("PassHours", Convert.ToString(parcel.PassHours));
+            xtw.WriteElementString("PassHours", Convert.ToString(parcel.PassHours, CultureInfo.InvariantCulture));
             xtw.WriteElementString("PassPrice", Convert.ToString(parcel.PassPrice));
             xtw.WriteElementString("SalePrice", Convert.ToString(parcel.SalePrice));
             xtw.WriteElementString("SnapshotID", parcel.SnapshotID.ToString());
             xtw.WriteElementString("UserLocation", parcel.UserLocation.ToString());
             xtw.WriteElementString("UserLookAt", parcel.UserLookAt.ToString());
-            xtw.WriteElementString("Dwell", parcel.Dwell.ToString());
+            xtw.WriteElementString("Dwell", parcel.Dwell.ToString(CultureInfo.InvariantCulture));
             xtw.WriteElementString("SeeAVs", parcel.SeeAVs.ToString());
             xtw.WriteElementString("AnyAVSounds", parcel.AnyAVSounds.ToString());
             xtw.WriteElementString("GroupAVSounds", parcel.GroupAVSounds.ToString());
@@ -587,7 +588,7 @@ namespace OpenMetaverse.Assets
                         if (ArchiveConstants.ASSET_TYPE_TO_EXTENSION.ContainsKey(assetType))
                             extension = ArchiveConstants.ASSET_TYPE_TO_EXTENSION[assetType];
 
-                        File.WriteAllBytes(Path.Combine(assetsPath, texture.ToString() + extension), assetTexture.AssetData);
+                        File.WriteAllBytes(Path.Combine(assetsPath, texture + extension), assetTexture.AssetData);
                         remainingTextures.Remove(assetTexture.AssetID);
                         if (remainingTextures.Count == 0)
                             AllPropertiesReceived.Set();
@@ -609,7 +610,7 @@ namespace OpenMetaverse.Assets
                         if (ArchiveConstants.ASSET_TYPE_TO_EXTENSION.ContainsKey(assetType))
                             extension = ArchiveConstants.ASSET_TYPE_TO_EXTENSION[assetType];
 
-                        File.WriteAllBytes(Path.Combine(assetsPath, texture.ToString() + extension), asset.AssetData);
+                        File.WriteAllBytes(Path.Combine(assetsPath, texture + extension), asset.AssetData);
                         remainingTextures.Remove(asset.AssetID);
                         if (remainingTextures.Count == 0)
                             AllPropertiesReceived.Set();
@@ -643,7 +644,7 @@ namespace OpenMetaverse.Assets
                     AllPropertiesReceived.Set();
                     return;
                 }
-                File.WriteAllBytes(Path.Combine(assetsPath, assetID.ToString() + extension), asset.AssetData);
+                File.WriteAllBytes(Path.Combine(assetsPath, assetID + extension), asset.AssetData);
                 ++count;
                 AllPropertiesReceived.Set();
             });
@@ -705,7 +706,7 @@ namespace OpenMetaverse.Assets
 
                     WriteUUID(writer, "AssetID", item.AssetID);
                     writer.WriteElementString("BasePermissions", item.PermsBase.ToString());
-                    writer.WriteElementString("CreationDate", (item.CreationDate.ToUniversalTime() - Utils.Epoch).TotalSeconds.ToString());
+                    writer.WriteElementString("CreationDate", (item.CreationDate.ToUniversalTime() - Utils.Epoch).TotalSeconds.ToString(CultureInfo.InvariantCulture));
                     WriteUUID(writer, "CreatorID", item.CreatorID);
                     writer.WriteElementString("Description", item.Description);
                     writer.WriteElementString("EveryonePermissions", item.PermsEveryone.ToString());

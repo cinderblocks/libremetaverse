@@ -460,9 +460,8 @@ namespace OpenMetaverse
             public static ParticleSystem FromOSD(OSD osd)
             {
                 ParticleSystem partSys = new ParticleSystem();
-                OSDMap map = osd as OSDMap;
 
-                if (map != null)
+                if (osd is OSDMap map)
                 {
                     partSys.CRC = map["crc"].AsUInteger();
                     partSys.PartFlags = map["part_flags"].AsUInteger();

@@ -670,7 +670,7 @@ namespace GridProxy
             }
             else
             {
-                HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(uri);
+                HttpWebRequest req = (HttpWebRequest)WebRequest.Create(uri);
                 req.KeepAlive = false;
 
                 foreach (string header in headers.Keys)
@@ -1914,7 +1914,7 @@ namespace GridProxy
                     if (ackCount == 0)
                     {
                         packet.Header.AppendedAcks = false;
-                        packet.Header.AckList = new uint[0];
+                        packet.Header.AckList = Array.Empty<uint>();
                     }
                 }
 

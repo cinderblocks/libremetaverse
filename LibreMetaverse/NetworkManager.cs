@@ -116,7 +116,7 @@ namespace OpenMetaverse
 
         #region Delegates
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<PacketSentEventArgs> m_PacketSent;
 
         ///<summary>Raises the PacketSent Event</summary>
@@ -139,7 +139,7 @@ namespace OpenMetaverse
             remove { lock (m_PacketSentLock) { m_PacketSent -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<LoggedOutEventArgs> m_LoggedOut;
 
         ///<summary>Raises the LoggedOut Event</summary>
@@ -162,7 +162,7 @@ namespace OpenMetaverse
             remove { lock (m_LoggedOutLock) { m_LoggedOut -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<SimConnectingEventArgs> m_SimConnecting;
 
         ///<summary>Raises the SimConnecting Event</summary>
@@ -185,7 +185,7 @@ namespace OpenMetaverse
             remove { lock (m_SimConnectingLock) { m_SimConnecting -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<SimConnectedEventArgs> m_SimConnected;
 
         ///<summary>Raises the SimConnected Event</summary>
@@ -208,7 +208,7 @@ namespace OpenMetaverse
             remove { lock (m_SimConnectedLock) { m_SimConnected -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<SimDisconnectedEventArgs> m_SimDisconnected;
 
         ///<summary>Raises the SimDisconnected Event</summary>
@@ -231,7 +231,7 @@ namespace OpenMetaverse
             remove { lock (m_SimDisconnectedLock) { m_SimDisconnected -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<DisconnectedEventArgs> m_Disconnected;
 
         ///<summary>Raises the Disconnected Event</summary>
@@ -254,7 +254,7 @@ namespace OpenMetaverse
             remove { lock (m_DisconnectedLock) { m_Disconnected -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<SimChangedEventArgs> m_SimChanged;
 
         ///<summary>Raises the SimChanged Event</summary>
@@ -277,7 +277,7 @@ namespace OpenMetaverse
             remove { lock (m_SimChangedLock) { m_SimChanged -= value; } }
         }
 
-        /// <summary>The event subscribers, null of no subscribers</summary>
+        /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<EventQueueRunningEventArgs> m_EventQueueRunning;
 
         ///<summary>Raises the EventQueueRunning Event</summary>
@@ -342,7 +342,7 @@ namespace OpenMetaverse
 
         private int _packetOutboxCount = 0;
 
-        private GridClient Client;
+        private readonly GridClient Client;
         private Timer DisconnectTimer;
 
         private long lastpacketwarning = 0;
@@ -504,7 +504,7 @@ namespace OpenMetaverse
             if (dif > 10)
             {
                 lastpacketwarning = now;
-                Logger.Log(source+" is null (Are we disconnected?) - from: "+ function,
+                Logger.Log(source+" is null (Are we disconnected?) - from: " + function,
                     Helpers.LogLevel.Debug);
             }
         }
@@ -538,7 +538,7 @@ namespace OpenMetaverse
         /// <param name="seedcaps">URL of the capabilities server to use for
         /// this sim connection</param>
         /// <returns>A Simulator object on success, otherwise null</returns>
-        public Simulator Connect(IPAddress ip, ushort port, ulong handle, bool setDefault, string seedcaps)
+        public Simulator Connect(IPAddress ip, ushort port, ulong handle, bool setDefault, Uri seedcaps)
         {
             IPEndPoint endPoint = new IPEndPoint(ip, port);
             return Connect(endPoint, handle, setDefault, seedcaps);
@@ -555,7 +555,7 @@ namespace OpenMetaverse
         /// <param name="seedcaps">URL of the capabilities server to use for
         /// this sim connection</param>
         /// <returns>A Simulator object on success, otherwise null</returns>
-        public Simulator Connect(IPEndPoint endPoint, ulong handle, bool setDefault, string seedcaps)
+        public Simulator Connect(IPEndPoint endPoint, ulong handle, bool setDefault, Uri seedcaps)
         {
             Simulator simulator = FindSimulator(endPoint);
 
@@ -639,7 +639,7 @@ namespace OpenMetaverse
                     lock (Simulators)
                     {
                         Simulators.Remove(simulator);
-                    }                    
+                    }                 
 
                     return null;
                 }
@@ -682,13 +682,13 @@ namespace OpenMetaverse
             // Otherwise we fire it manually with a NetworkTimeout type after LOGOUT_TIMEOUT
             System.Timers.Timer timeout = new System.Timers.Timer();
 
-            EventHandler<LoggedOutEventArgs> callback = delegate
+            void Callback(object sender, LoggedOutEventArgs e)
             {
                 Shutdown(DisconnectType.ClientInitiated);
                 timeout.Stop();
-            };
+            }
 
-            LoggedOut += callback;
+            LoggedOut += Callback;
 
             timeout.Interval = Client.Settings.LOGOUT_TIMEOUT;
             timeout.Elapsed += delegate
@@ -702,7 +702,7 @@ namespace OpenMetaverse
             // Send the packet requesting a clean logout
             RequestLogout();
 
-            LoggedOut -= callback;
+            LoggedOut -= Callback;
         }
 
         /// <summary>
@@ -713,9 +713,13 @@ namespace OpenMetaverse
         public void Logout()
         {
             AutoResetEvent logoutEvent = new AutoResetEvent(false);
-            EventHandler<LoggedOutEventArgs> callback = delegate { logoutEvent.Set(); };
 
-            LoggedOut += callback;
+            void Callback(object sender, LoggedOutEventArgs e)
+            {
+                logoutEvent.Set();
+            }
+
+            LoggedOut += Callback;
 
             // Send the packet requesting a clean logout
             RequestLogout();
@@ -724,9 +728,11 @@ namespace OpenMetaverse
             // will be fired in the callback. Otherwise we fire it manually with
             // a NetworkTimeout type
             if (!logoutEvent.WaitOne(Client.Settings.LOGOUT_TIMEOUT, false))
+            {
                 Shutdown(DisconnectType.NetworkTimeout);
+            }
 
-            LoggedOut -= callback;
+            LoggedOut -= Callback;
         }
 
         /// <summary>
@@ -787,7 +793,10 @@ namespace OpenMetaverse
                     simulatorsCount = Simulators.Count;
                 }
 
-                if (simulatorsCount == 0) Shutdown(DisconnectType.SimShutdown);
+                if (simulatorsCount == 0)
+                {
+                    Shutdown(DisconnectType.SimShutdown, $"You have disconnected from {simulator.Name}.");
+                }
             }
             else
             {
@@ -797,10 +806,13 @@ namespace OpenMetaverse
 
 
         /// <summary>
-        /// Shutdown will disconnect all the sims except for the current sim
-        /// first, and then kill the connection to CurrentSim. This should only
-        /// be called if the logout process times out on <code>RequestLogout</code>
+        /// This method disconnects Client from all simulators leaving CurrentSim
+        /// last to disconnect.
         /// </summary>
+        /// <remarks>
+        /// This should only be called if the logout process times out on
+        /// <code>RequestLogout</code>
+        /// </remarks>
         /// <param name="type">Type of shutdown</param>
         public void Shutdown(DisconnectType type)
         {
@@ -808,10 +820,13 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Shutdown will disconnect all the sims except for the current sim
-        /// first, and then kill the connection to CurrentSim. This should only
-        /// be called if the logout process times out on <code>RequestLogout</code>
+        /// This method disconnects Client from all simulators leaving CurrentSim
+        /// last to disconnect.
         /// </summary>
+        /// <remarks>
+        /// This should only be called if the logout process times out on
+        /// <code>RequestLogout</code>
+        /// </remarks>
         /// <param name="type">Type of shutdown</param>
         /// <param name="message">Shutdown message</param>
         public void Shutdown(DisconnectType type, string message)
@@ -824,17 +839,14 @@ namespace OpenMetaverse
             lock (Simulators)
             {
                 // Disconnect all simulators except the current one
-                foreach (Simulator t in Simulators)
+                foreach (var sim in Simulators.Where(t => t != null && t != CurrentSim))
                 {
-                    if (t != null && t != CurrentSim)
-                    {
-                        t.Disconnect(sendCloseCircuit);
+                    sim.Disconnect(sendCloseCircuit);
 
-                        // Fire the SimDisconnected event if a handler is registered
-                        if (m_SimDisconnected != null)
-                        {
-                            OnSimDisconnected(new SimDisconnectedEventArgs(t, type));
-                        }
+                    // Fire the SimDisconnected event if a handler is registered
+                    if (m_SimDisconnected != null)
+                    {
+                        OnSimDisconnected(new SimDisconnectedEventArgs(sim, type));
                     }
                 }
 
@@ -843,7 +855,7 @@ namespace OpenMetaverse
 
             if (CurrentSim != null)
             {
-                // Kill the connection to the curent simulator
+                // Kill the connection to the current simulator
                 CurrentSim.Disconnect(sendCloseCircuit);
 
                 // Fire the SimDisconnected event if a handler is registered
@@ -881,10 +893,9 @@ namespace OpenMetaverse
         {
             lock (Simulators)
             {
-                foreach (Simulator t in Simulators)
+                foreach (var sim in Simulators.Where(t => t.IPEndPoint.Equals(endPoint)))
                 {
-                    if (t.IPEndPoint.Equals(endPoint))
-                        return t;
+                    return sim;
                 }
             }
 
@@ -983,7 +994,7 @@ namespace OpenMetaverse
             }
         }
 
-        private void SetCurrentSim(Simulator simulator, string seedcaps)
+        private void SetCurrentSim(Simulator simulator, Uri seedcaps)
         {
             if (simulator == CurrentSim) return;
 
@@ -1279,7 +1290,7 @@ namespace OpenMetaverse
 
                 if (Connect(ip, port, handle, false, null) == null)
                 {
-                    Logger.Log($"Unabled to connect to new sim {ip}:{port}",
+                    Logger.Log($"Unable to connect to new sim {ip}:{port}",
                         Helpers.LogLevel.Error, Client);
                 }
             }
