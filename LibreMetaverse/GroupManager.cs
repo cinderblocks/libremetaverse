@@ -1986,9 +1986,13 @@ namespace OpenMetaverse
 
                 OnGroupMembersReply(new GroupMembersReplyEventArgs(requestID, groupID, groupMembers));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Logger.Log("Failed to decode result of GroupMemberData capability: ", Helpers.LogLevel.Error, Client, ex);
+                // Groups that do not exist will fail to decode.
+                // Handle this gracefully and give an empty reply to notify that the caller that we have
+                // received the response.
+                Logger.Log("Failed to decode result of GroupMemberData capability. Group does not exist.", Helpers.LogLevel.Warning, Client);
+                OnGroupMembersReply(new GroupMembersReplyEventArgs(requestID, UUID.Zero, new Dictionary<UUID, GroupMember>()));
             }
         }
 
