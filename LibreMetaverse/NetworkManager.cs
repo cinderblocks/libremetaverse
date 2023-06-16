@@ -538,10 +538,11 @@ namespace OpenMetaverse
         /// <param name="seedcaps">URL of the capabilities server to use for
         /// this sim connection</param>
         /// <returns>A Simulator object on success, otherwise null</returns>
-        public Simulator Connect(IPAddress ip, ushort port, ulong handle, bool setDefault, Uri seedcaps)
+        public Simulator Connect(IPAddress ip, ushort port, ulong handle, bool setDefault, Uri seedcaps,
+                uint sizeX = Simulator.DefaultRegionSizeX, uint sizeY = Simulator.DefaultRegionSizeY)
         {
             IPEndPoint endPoint = new IPEndPoint(ip, port);
-            return Connect(endPoint, handle, setDefault, seedcaps);
+            return Connect(endPoint, handle, setDefault, seedcaps, sizeX, sizeY);
         }
 
         /// <summary>
@@ -555,14 +556,15 @@ namespace OpenMetaverse
         /// <param name="seedcaps">URL of the capabilities server to use for
         /// this sim connection</param>
         /// <returns>A Simulator object on success, otherwise null</returns>
-        public Simulator Connect(IPEndPoint endPoint, ulong handle, bool setDefault, Uri seedcaps)
+        public Simulator Connect(IPEndPoint endPoint, ulong handle, bool setDefault, Uri seedcaps,
+                uint sizeX = Simulator.DefaultRegionSizeX, uint sizeY = Simulator.DefaultRegionSizeY)
         {
             Simulator simulator = FindSimulator(endPoint);
 
             if (simulator == null)
             {
                 // We're not tracking this sim, create a new Simulator object
-                simulator = new Simulator(Client, endPoint, handle);
+                simulator = new Simulator(Client, endPoint, handle, sizeX, sizeY);
 
                 // Immediately add this simulator to the list of current sims. It will be removed if the
                 // connection fails
@@ -1288,10 +1290,10 @@ namespace OpenMetaverse
 
                 if (FindSimulator(endPoint) != null) return;
 
-                if (Connect(ip, port, handle, false, null) == null)
+                if (Connect(ip, port, handle, false, null, t.RegionSizeX, t.RegionSizeY) == null)
                 {
                     Logger.Log($"Unable to connect to new sim {ip}:{port}",
-                        Helpers.LogLevel.Error, Client);
+                            Helpers.LogLevel.Error, Client);
                 }
             }
         }

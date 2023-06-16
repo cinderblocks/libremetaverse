@@ -10023,6 +10023,9 @@ namespace OpenMetaverse.Packets
             public byte[] SeedCapability;
             public byte SimAccess;
             public uint TeleportFlags;
+            // Sim/region size information sent in TeleportFinishMesssage
+            public uint RegionSizeX = Simulator.DefaultRegionSizeX;
+            public uint RegionSizeY = Simulator.DefaultRegionSizeY;
 
             public override int Length
             {
@@ -10075,6 +10078,7 @@ namespace OpenMetaverse.Packets
                 Buffer.BlockCopy(SeedCapability, 0, bytes, i, SeedCapability.Length); i += SeedCapability.Length;
                 bytes[i++] = SimAccess;
                 Utils.UIntToBytes(TeleportFlags, bytes, i); i += 4;
+                // size information is not sent in the UDP packet
             }
 
         }

@@ -252,6 +252,11 @@ namespace OpenMetaverse
         #endregion Structs
 
         #region Public Members        
+
+        // Default legacy simulator/region size
+        public const uint DefaultRegionSizeX = 256;
+        public const uint DefaultRegionSizeY = 256;
+
         /// <summary>A public reference to the client that this Simulator object is attached to</summary>
         public GridClient Client;
         /// <summary>A Unique Cache identifier for this simulator</summary>
@@ -260,6 +265,10 @@ namespace OpenMetaverse
         public Caps Caps;
         /// <summary>Unique identified for this region generated via it's coordinates on the world map</summary>
         public ulong Handle;
+        /// <summary>Simulator land size in X direction in meters</summary>
+        public uint SizeX;
+        /// <summary>Simulator land size in Y direction in meters</summary>
+        public uint SizeY;
         /// <summary>The current version of software this simulator is running</summary>
         public string SimVersion = String.Empty;
         /// <summary>Human readable name given to the simulator</summary>
@@ -517,7 +526,7 @@ namespace OpenMetaverse
         /// <param name="client">Reference to the <seealso cref="GridClient"/> object</param>
         /// <param name="address">IPEndPoint of the simulator</param>
         /// <param name="handle">Region handle for the simulator</param>
-        public Simulator(GridClient client, IPEndPoint address, ulong handle)
+        public Simulator(GridClient client, IPEndPoint address, ulong handle, uint sizeX = DefaultRegionSizeX, uint sizeY = DefaultRegionSizeY)
             : base(address)
         {
             Client = client;            
@@ -529,6 +538,8 @@ namespace OpenMetaverse
 
             Handle = handle;
             Network = Client.Network;
+            SizeX = sizeX;
+            SizeY = sizeY;
             PacketArchive = new IncomingPacketIDCollection(Settings.PACKET_ARCHIVE_SIZE);
             InBytes = new Queue<long>(Client.Settings.STATS_QUEUE_SIZE);
             OutBytes = new Queue<long>(Client.Settings.STATS_QUEUE_SIZE);
@@ -791,7 +802,7 @@ namespace OpenMetaverse
         /// <returns>True if the lookup was successful, otherwise false</returns>
         public bool TerrainHeightAtPoint(int x, int y, out float height)
         {
-            if (Terrain != null && x >= 0 && x < 256 && y >= 0 && y < 256)
+            if (Terrain != null && x >= 0 && x < SizeX && y >= 0 && y < SizeY)
             {
                 int patchX = x / 16;
                 int patchY = y / 16;

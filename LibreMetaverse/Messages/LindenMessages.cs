@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2006-2016, openmetaverse.co
  * Copyright (c) 2021-2022, Sjofn LLC
  * All rights reserved.
@@ -61,6 +61,10 @@ namespace OpenMetaverse.Messages.Linden
         /// <summary>Status flags indicating the state of the Agent upon arrival, Flying, etc.</summary>
         public TeleportFlags Flags;
 
+        /// <summary> The size of the region teleporting into </summary>
+        public uint RegionSizeX;
+        public uint RegionSizeY;
+
         /// <summary>
         /// Serialize the object
         /// </summary>
@@ -80,7 +84,9 @@ namespace OpenMetaverse.Messages.Linden
                 {"SimAccess", OSD.FromInteger((byte) SimAccess)},
                 {"SimIP", MessageUtils.FromIP(IP)},
                 {"SimPort", OSD.FromInteger(Port)},
-                {"TeleportFlags", OSD.FromUInteger((uint) Flags)}
+                {"TeleportFlags", OSD.FromUInteger((uint) Flags)},
+                {"RegionSizeX", OSD.FromUInteger((uint) RegionSizeX)},
+                {"RegionSizeY", OSD.FromUInteger((uint) RegionSizeY)}
             };
             // Unused by the client
 
@@ -108,6 +114,8 @@ namespace OpenMetaverse.Messages.Linden
             IP = MessageUtils.ToIP(blockMap["SimIP"]);
             Port = blockMap["SimPort"].AsInteger();
             Flags = (TeleportFlags)blockMap["TeleportFlags"].AsUInteger();
+            RegionSizeX = blockMap.ContainsKey("RegionSizeX") ? blockMap["RegionSizeX"].AsUInteger() : Simulator.DefaultRegionSizeX;
+            RegionSizeY = blockMap.ContainsKey("RegionSizeY") ? blockMap["RegionSizeY"].AsUInteger() : Simulator.DefaultRegionSizeY;
         }
     }
 
@@ -162,6 +170,8 @@ namespace OpenMetaverse.Messages.Linden
         public Uri SeedCapability;
         public IPAddress IP;
         public int Port;
+        public uint RegionSizeX;
+        public uint RegionSizeY;
 
         /// <summary>
         /// Serialize the object
@@ -195,7 +205,9 @@ namespace OpenMetaverse.Messages.Linden
                 ["RegionHandle"] = OSD.FromULong(RegionHandle),
                 ["SeedCapability"] = OSD.FromUri(SeedCapability),
                 ["SimIP"] = MessageUtils.FromIP(IP),
-                ["SimPort"] = OSD.FromInteger(Port)
+                ["SimPort"] = OSD.FromInteger(Port),
+                ["RegionSizeX"] = OSD.FromUInteger(RegionSizeX),
+                ["RegionSizeY"] = OSD.FromUInteger(RegionSizeY)
             };
             regionDataArray.Add(regionDataMap);
             map["RegionData"] = regionDataArray;
@@ -222,6 +234,8 @@ namespace OpenMetaverse.Messages.Linden
             SeedCapability = regionDataMap["SeedCapability"].AsUri();
             IP = MessageUtils.ToIP(regionDataMap["SimIP"]);
             Port = regionDataMap["SimPort"].AsInteger();
+            RegionSizeX = regionDataMap.ContainsKey("RegionSizeX") ? regionDataMap["RegionSizeX"].AsUInteger() : Simulator.DefaultRegionSizeX;
+            RegionSizeY = regionDataMap.ContainsKey("RegionSizeY") ? regionDataMap["RegionSizeY"].AsUInteger() : Simulator.DefaultRegionSizeY;
         }
     }
 
@@ -232,6 +246,8 @@ namespace OpenMetaverse.Messages.Linden
             public ulong RegionHandle;
             public IPAddress IP;
             public int Port;
+            public uint RegionSizeX;
+            public uint RegionSizeY;
         }
 
         public SimulatorInfoBlock[] Simulators;
@@ -251,7 +267,9 @@ namespace OpenMetaverse.Messages.Linden
                 {
                     ["Handle"] = OSD.FromULong(block.RegionHandle),
                     ["IP"] = MessageUtils.FromIP(block.IP),
-                    ["Port"] = OSD.FromInteger(block.Port)
+                    ["Port"] = OSD.FromInteger(block.Port),
+                    ["RegionSizeX"] = OSD.FromUInteger(block.RegionSizeX),
+                    ["RegionSizeY"] = OSD.FromUInteger(block.RegionSizeY),
                 };
                 array.Add(blockMap);
             }
@@ -277,7 +295,9 @@ namespace OpenMetaverse.Messages.Linden
                 {
                     RegionHandle = blockMap["Handle"].AsULong(),
                     IP = MessageUtils.ToIP(blockMap["IP"]),
-                    Port = blockMap["Port"].AsInteger()
+                    Port = blockMap["Port"].AsInteger(),
+                    RegionSizeX = blockMap.ContainsKey("RegionSizeX") ? blockMap["RegionSizeX"].AsUInteger() : Simulator.DefaultRegionSizeX,
+                    RegionSizeY = blockMap.ContainsKey("RegionSizeY") ? blockMap["RegionSizeY"].AsUInteger() : Simulator.DefaultRegionSizeY,
                 };
                 Simulators[i] = block;
             }
