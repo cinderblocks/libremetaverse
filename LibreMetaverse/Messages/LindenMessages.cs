@@ -75,7 +75,7 @@ namespace OpenMetaverse.Messages.Linden
 
             OSDArray infoArray = new OSDArray(1);
 
-            OSDMap info = new OSDMap(8)
+            OSDMap info = new OSDMap(10)
             {
                 {"AgentID", OSD.FromUUID(AgentID)},
                 {"LocationID", OSD.FromInteger(LocationID)},
@@ -200,7 +200,7 @@ namespace OpenMetaverse.Messages.Linden
             map["AgentData"] = agentDataArray;
 
             OSDArray regionDataArray = new OSDArray(1);
-            OSDMap regionDataMap = new OSDMap(4)
+            OSDMap regionDataMap = new OSDMap(6)
             {
                 ["RegionHandle"] = OSD.FromULong(RegionHandle),
                 ["SeedCapability"] = OSD.FromUri(SeedCapability),
@@ -263,7 +263,7 @@ namespace OpenMetaverse.Messages.Linden
             OSDArray array = new OSDArray(Simulators.Length);
             foreach (SimulatorInfoBlock block in Simulators)
             {
-                OSDMap blockMap = new OSDMap(3)
+                OSDMap blockMap = new OSDMap(5)
                 {
                     ["Handle"] = OSD.FromULong(block.RegionHandle),
                     ["IP"] = MessageUtils.FromIP(block.IP),
