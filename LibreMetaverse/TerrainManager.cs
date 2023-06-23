@@ -67,7 +67,7 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.LayerData, LayerDataHandler);
         }
 
-        private void DecompressLand(Simulator simulator, BitPack bitpack, TerrainPatch.GroupHeader group)
+        private void DecompressLand(Simulator simulator, BitPack bitpack, TerrainPatch.GroupHeader group, bool largeRegion = false)
         {
             int x;
             int y;
@@ -76,7 +76,7 @@ namespace OpenMetaverse
 
             while (true)
             {
-                TerrainPatch.Header header = TerrainCompressor.DecodePatchHeader(bitpack);
+                TerrainPatch.Header header = TerrainCompressor.DecodePatchHeader(bitpack, largeRegion);
 
                 if (header.QuantWBits == TerrainCompressor.END_OF_PATCHES)
                     break;
@@ -84,7 +84,7 @@ namespace OpenMetaverse
                 x = header.X;
                 y = header.Y;
 
-                if (x >= TerrainCompressor.PATCHES_PER_EDGE || y >= TerrainCompressor.PATCHES_PER_EDGE)
+                if (!largeRegion && (x >= TerrainCompressor.PATCHES_PER_EDGE || y >= TerrainCompressor.PATCHES_PER_EDGE))
                 {
                     Logger.Log(String.Format(
                         "Invalid LayerData land packet, x={0}, y={1}, dc_offset={2}, range={3}, quant_wbits={4}, patchids={5}, count={6}",
@@ -117,7 +117,7 @@ namespace OpenMetaverse
             }
         }
 
-        private void DecompressWind(Simulator simulator, BitPack bitpack, TerrainPatch.GroupHeader group)
+        private void DecompressWind(Simulator simulator, BitPack bitpack, TerrainPatch.GroupHeader group, bool largeRegion = false)
         {
             int[] patches = new int[32 * 32];
 
@@ -131,12 +131,12 @@ namespace OpenMetaverse
             // wind_direction = vec2(x,y)
 
             // X values
-            TerrainPatch.Header header = TerrainCompressor.DecodePatchHeader(bitpack);
+            TerrainPatch.Header header = TerrainCompressor.DecodePatchHeader(bitpack, largeRegion);
             TerrainCompressor.DecodePatch(patches, bitpack, header, group.PatchSize);
             float[] xvalues = TerrainCompressor.DecompressPatch(patches, header, group);
 
             // Y values
-            header = TerrainCompressor.DecodePatchHeader(bitpack);
+            header = TerrainCompressor.DecodePatchHeader(bitpack, largeRegion);
             TerrainCompressor.DecodePatch(patches, bitpack, header, group.PatchSize);
             float[] yvalues = TerrainCompressor.DecompressPatch(patches, header, group);
 
@@ -171,6 +171,10 @@ namespace OpenMetaverse
                 case TerrainPatch.LayerType.Land:
                     if (m_LandPatchReceivedEvent != null || Client.Settings.STORE_LAND_PATCHES)
                         DecompressLand(e.Simulator, bitpack, header);
+                    break;
+                case TerrainPatch.LayerType.LandExtended:
+                    if (m_LandPatchReceivedEvent != null || Client.Settings.STORE_LAND_PATCHES)
+                        DecompressLand(e.Simulator, bitpack, header, true);
                     break;
                 case TerrainPatch.LayerType.Water:
                     Logger.Log("Got a Water LayerData packet, implement me!", Helpers.LogLevel.Error, Client);

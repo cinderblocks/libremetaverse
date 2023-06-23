@@ -546,8 +546,8 @@ namespace OpenMetaverse
 
             if (client.Settings.STORE_LAND_PATCHES)
             {
-                Terrain = new TerrainPatch[16 * 16];
-                WindSpeeds = new Vector2[16 * 16];
+                Terrain = new TerrainPatch[sizeX/16 * sizeY/16];
+                WindSpeeds = new Vector2[sizeX/16 * sizeY/16];
             }
         }
 
