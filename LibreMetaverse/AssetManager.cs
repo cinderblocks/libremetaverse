@@ -823,7 +823,18 @@ namespace OpenMetaverse
             // If ViewerAsset capability exists, use that, if not, fallback to UDP
             if (Client.Network.CurrentSim?.Caps?.CapabilityURI("ViewerAsset") != null)
             {
-                RequestInventoryAssetHTTP(assetID, transfer, callback);
+                RequestInventoryAssetHTTP(assetID, transfer,
+                (AssetDownload transferResult, Asset assetResult) =>
+                {
+                    if (transferResult.Success == false)
+                    {
+                        Logger.Log($"HTTP transfer has failed trying UDP", Helpers.LogLevel.Warning, Client);
+                        RequestInventoryAssetUDP(assetID, itemID, taskID, ownerID, transfer, callback);
+                        return;
+                    }
+                    callback(transferResult, assetResult);
+                }
+                );
             }
             else
             {
@@ -842,6 +853,7 @@ namespace OpenMetaverse
         /// <param name="callback"></param>
         private void RequestInventoryAssetHTTP(UUID assetID, AssetDownload transfer, AssetReceivedCallback callback)
         {
+            int attempts = 0;
             DownloadRequest req = new DownloadRequest(
                 BuildFetchRequestUri(transfer.AssetType, assetID),
                 null,
@@ -866,6 +878,7 @@ namespace OpenMetaverse
                     }
                     else // download failed
                     {
+                        attempts++;
                         Logger.Log($"Failed to fetch asset {assetID}: {((error == null) ? "" : error.Message)}",
                             Helpers.LogLevel.Warning, Client);
                         if (callback != null)
@@ -873,6 +886,11 @@ namespace OpenMetaverse
                             transfer.Success = false;
                             transfer.Status = StatusCode.Error;
                         }
+                        if (attempts == 5)
+                        {
+                            callback(transfer, null);
+                        }
+
 
                     }
                 }
