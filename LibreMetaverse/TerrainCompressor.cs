@@ -59,8 +59,10 @@ namespace OpenMetaverse
             public int Range;
             public int QuantWBits;
             public int PatchIDs;
-            public bool LargeRegion;    // true if PatchIDs are 32 bits and not 10
             public uint WordBits;
+
+            // true if PatchIDs are 32 bits and not 10
+            public bool LargeRegion { get; set; }
 
             public int X
             {
@@ -240,7 +242,11 @@ namespace OpenMetaverse
             return layer;
         }
 
-        public static void CreatePatch(BitPack output, float[] patchData, int x, int y, bool largeRegion = false)
+        public static void CreatePatch(BitPack output, float[] patchData, int x, int y)
+        {
+            CreatePatch(output, patchData, x, y, false);
+        }
+        public static void CreatePatch(BitPack output, float[] patchData, int x, int y, bool largeRegion)
         {
             if (patchData.Length != 16 * 16)
                 throw new ArgumentException("Patch data must be a 16x16 array");
@@ -259,7 +265,11 @@ namespace OpenMetaverse
             EncodePatch(output, patch, 0, wbits);
         }
 
-        public static void CreatePatch(BitPack output, float[,] patchData, int x, int y, bool largeRegion = false)
+        public static void CreatePatch(BitPack output, float[,] patchData, int x, int y)
+        {
+            CreatePatch(output, patchData, x, y, false);
+        }
+        public static void CreatePatch(BitPack output, float[,] patchData, int x, int y, bool largeRegion)
         {
             if (patchData.Length != 16 * 16)
                 throw new ArgumentException("Patch data must be a 16x16 array");
@@ -288,7 +298,11 @@ namespace OpenMetaverse
         /// from 0 to 15</param>
         /// <param name="y">Y offset of the patch to create, valid values are
         /// from 0 to 15</param>
-        public static void CreatePatchFromHeightmap(BitPack output, float[] heightmap, int x, int y, bool largeRegion = false)
+        public static void CreatePatchFromHeightmap(BitPack output, float[] heightmap, int x, int y)
+        {
+            CreatePatchFromHeightmap(output, heightmap, x, y, false);
+        }
+        public static void CreatePatchFromHeightmap(BitPack output, float[] heightmap, int x, int y, bool largeRegion)
         {
             if (heightmap.Length != 256 * 256)
                 throw new ArgumentException("Heightmap data must be 256x256");
@@ -382,7 +396,12 @@ namespace OpenMetaverse
             return header;
         }
 
-        public static TerrainPatch.Header DecodePatchHeader(BitPack bitpack, bool largeRegion = false)
+        public static TerrainPatch.Header DecodePatchHeader(BitPack bitpack)
+        {
+            return DecodePatchHeader(bitpack, false);
+
+        }
+        public static TerrainPatch.Header DecodePatchHeader(BitPack bitpack, bool largeRegion)
         {
             TerrainPatch.Header header = new TerrainPatch.Header {QuantWBits = bitpack.UnpackBits(8)};
 
