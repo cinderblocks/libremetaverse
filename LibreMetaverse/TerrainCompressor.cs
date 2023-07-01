@@ -75,6 +75,14 @@ namespace OpenMetaverse
                 get { return PatchIDs & (LargeRegion ? 0xffff : 0x1F); }
                 set { PatchIDs |= value & (LargeRegion ? 0xffff : 0x1F); }
             }
+
+            public int setPatchIDs(int xx, int yy) {
+                if (LargeRegion)
+                    PatchIDs = (xx << 16) | (yy & 0xffff);
+                else
+                    PatchIDs = (xx << 5) | (yy & 0x1f);
+                return PatchIDs;
+            }
         }
 
         #endregion Enums and Structs
@@ -242,11 +250,11 @@ namespace OpenMetaverse
             return layer;
         }
 
-        public static void CreatePatch(BitPack output, float[] patchData, int x, int y)
+        private static void CreatePatch(BitPack output, float[] patchData, int x, int y)
         {
             CreatePatch(output, patchData, x, y, false);
         }
-        public static void CreatePatch(BitPack output, float[] patchData, int x, int y, bool largeRegion)
+        private static void CreatePatch(BitPack output, float[] patchData, int x, int y, bool largeRegion)
         {
             if (patchData.Length != 16 * 16)
                 throw new ArgumentException("Patch data must be a 16x16 array");
@@ -254,10 +262,7 @@ namespace OpenMetaverse
             TerrainPatch.Header header = PrescanPatch(patchData);
             header.LargeRegion = largeRegion;
             header.QuantWBits = 136;
-            if (largeRegion)
-                header.PatchIDs = (x << 16) | (y & 0xffff);
-            else
-                header.PatchIDs = (x << 5) | (y & 0x1f);
+            header.setPatchIDs(x, y);
 
             // NOTE: No idea what prequant and postquant should be or what they do
             int[] patch = CompressPatch(patchData, header, 10);
@@ -277,10 +282,7 @@ namespace OpenMetaverse
             var header = PrescanPatch(patchData);
             header.LargeRegion = largeRegion;
             header.QuantWBits = 136;
-            if (largeRegion)
-                header.PatchIDs = (x << 16) | (y & 0xffff);
-            else
-                header.PatchIDs = (x << 5) | (y & 0x1f);
+            header.setPatchIDs(x, y);
 
             // NOTE: No idea what prequant and postquant should be or what they do
             int[] patch = CompressPatch(patchData, header, 10);
@@ -313,10 +315,7 @@ namespace OpenMetaverse
             var header = PrescanPatch(heightmap, x, y);
             header.LargeRegion = largeRegion;
             header.QuantWBits = 136;
-            if (largeRegion)
-                header.PatchIDs = (x << 16) | (y & 0xffff);
-            else
-                header.PatchIDs = (x << 5) | (y & 0x1f);
+            header.setPatchIDs(x, y);
 
             // NOTE: No idea what prequant and postquant should be or what they do
             int[] patch = CompressPatch(heightmap, x, y, header, 10);

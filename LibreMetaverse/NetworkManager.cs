@@ -527,6 +527,19 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Connect to simulator assuming legacy region size
+        /// </summary>
+        /// <param name="ip">IP address to connect to</param>
+        /// <param name="port">Port to connect to</param>
+        /// <param name="handle"></param>
+        /// <param name="setDefault"></param>
+        /// <param name="seedcaps"></param>
+        /// <returns></returns>
+        public Simulator Connect(IPAddress ip, ushort port, ulong handle, bool setDefault, Uri seedcaps)
+        {
+            return Connect(ip, port, handle, setDefault, seedcaps, Simulator.DefaultRegionSizeX, Simulator.DefaultRegionSizeY);
+        }
+        /// <summary>
         /// Connect to a simulator
         /// </summary>
         /// <param name="ip">IP address to connect to</param>
@@ -537,9 +550,10 @@ namespace OpenMetaverse
         /// connection, use this if the avatar is moving in to this simulator</param>
         /// <param name="seedcaps">URL of the capabilities server to use for
         /// this sim connection</param>
+        /// <param name="sizeX">Size of the region in X meters</param>
+        /// <param name="sizeY">Size of the region in Y meters</param>
         /// <returns>A Simulator object on success, otherwise null</returns>
-        public Simulator Connect(IPAddress ip, ushort port, ulong handle, bool setDefault, Uri seedcaps,
-                uint sizeX = Simulator.DefaultRegionSizeX, uint sizeY = Simulator.DefaultRegionSizeY)
+        public Simulator Connect(IPAddress ip, ushort port, ulong handle, bool setDefault, Uri seedcaps, uint sizeX, uint sizeY)
         {
             IPEndPoint endPoint = new IPEndPoint(ip, port);
             return Connect(endPoint, handle, setDefault, seedcaps, sizeX, sizeY);
