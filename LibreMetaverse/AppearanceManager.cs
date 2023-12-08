@@ -2155,6 +2155,11 @@ namespace OpenMetaverse
                     break;
                 }
             }
+            if (Settings.FORCELOAD_MULTI_ATTACHMENTS)
+            {
+                GetFolderWearables(COF.UUID, out List<InventoryWearable> wearables, out List<InventoryItem> attachments);
+                Client.Appearance.AddAttachments(attachments, false, false);
+            }
             return COF;
         }
 
@@ -2396,40 +2401,33 @@ namespace OpenMetaverse
         {
             wearables = new List<InventoryWearable>();
             attachments = new List<InventoryItem>();
-            var objects = Client.Inventory.FolderContents(folder, Client.Self.AgentID, false, true,
-                InventorySortOrder.ByName, INVENTORY_TIMEOUT);
-
-            if (objects != null)
+            KeyValuePair<string, List<InventoryBase>> reply = Client.Inventory.FolderContentsWithReply(folder, Client.Self.AgentID, true, true, InventorySortOrder.ByName, INVENTORY_TIMEOUT, false);
+            foreach (InventoryBase entry in reply.Value)
             {
-                foreach (var ib in objects)
+                if (entry == null)
                 {
-                    if (ib is InventoryWearable wearable)
-                    {
-                        Logger.DebugLog("Adding wearable " + wearable.Name, Client);
-                        wearables.Add(wearable);
-                    }
-                    else if (ib is InventoryAttachment attachment)
-                    {
-                        Logger.DebugLog("Adding attachment (attachment) " + attachment.Name, Client);
-                        attachments.Add(attachment);
-                    }
-                    else if (ib is InventoryObject inventoryObject)
-                    {
-                        Logger.DebugLog("Adding attachment (object) " + inventoryObject.Name, Client);
-                        attachments.Add(inventoryObject);
-                    }
-                    else
-                    {
-                        Logger.DebugLog("Ignoring inventory item " + ib.Name, Client);
-                    }
+                    continue;
+                }
+                if (entry is InventoryWearable wearable)
+                {
+                    if(entry.Name != null) Logger.DebugLog("Adding wearable " + wearable.Name, Client);
+                    wearables.Add(wearable);
+                }
+                else if (entry is InventoryAttachment attachment)
+                {
+                    if (entry.Name != null) Logger.DebugLog("Adding attachment (attachment) " + attachment.Name, Client);
+                    attachments.Add(attachment);
+                }
+                else if (entry is InventoryObject inventoryObject)
+                {
+                    if (entry.Name != null) Logger.DebugLog("Adding attachment (object) " + inventoryObject.Name, Client);
+                    attachments.Add(inventoryObject);
+                }
+                else
+                {
+                    if (entry.Name != null) Logger.DebugLog("Ignoring inventory item " + entry.Name, Client);
                 }
             }
-            else
-            {
-                Logger.Log("Failed to download folder contents of + " + folder, Helpers.LogLevel.Error, Client);
-                return false;
-            }
-
             return true;
         }
 
