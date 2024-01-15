@@ -5,7 +5,7 @@
 	<OutputType>Library</OutputType>
     <RootNamespace>GridProxy</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-	<TargetFrameworks>net6.0;net7.0</TargetFrameworks>
+	<TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
     <Platforms>x64;x86</Platforms>
     <OutputPath>..\..\bin\</OutputPath>
 	<IsPackable>false</IsPackable>
