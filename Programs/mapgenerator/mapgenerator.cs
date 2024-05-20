@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace mapgenerator
+namespace Mapgenerator
 {
-    class mapgenerator
+    class Mapgenerator
     {
         static void WriteFieldMember(TextWriter writer, MapField field)
         {

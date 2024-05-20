@@ -61,16 +61,27 @@ namespace OpenMetaverse
             public int PatchIDs;
             public uint WordBits;
 
+            // true if PatchIDs are 32 bits and not 10
+            public bool LargeRegion { get; set; }
+
             public int X
             {
-                get { return PatchIDs >> 5; }
-                set { PatchIDs += (value << 5); }
+                get { return PatchIDs >> (LargeRegion ? 16 : 5); }
+                set { PatchIDs += (value << (LargeRegion ? 16 : 5)); }
             }
 
             public int Y
             {
-                get { return PatchIDs & 0x1F; }
-                set { PatchIDs |= value & 0x1F; }
+                get { return PatchIDs & (LargeRegion ? 0xffff : 0x1F); }
+                set { PatchIDs |= value & (LargeRegion ? 0xffff : 0x1F); }
+            }
+
+            public int setPatchIDs(int xx, int yy) {
+                if (LargeRegion)
+                    PatchIDs = (xx << 16) | (yy & 0xffff);
+                else
+                    PatchIDs = (xx << 5) | (yy & 0x1f);
+                return PatchIDs;
             }
         }
 
@@ -148,14 +159,18 @@ namespace OpenMetaverse
         /// simulator heightmap and an array of indices of patches to compress
         /// </summary>
         /// <param name="heightmap">A 256 * 256 array of floating point values
-        /// specifying the height at each meter in the simulator</param>
+        /// specifying the height at each meter in the simulator.
+        /// This can be larger if it is a varregion.</param>
         /// <param name="patches">Array of indexes in the 16x16 grid of patches
         /// for this simulator. For example if 1 and 17 are specified, patches
         /// x=1,y=0 and x=1,y=1 are sent</param>
         /// <returns></returns>
         public static LayerDataPacket CreateLandPacket(float[] heightmap, int[] patches)
         {
-            LayerDataPacket layer = new LayerDataPacket {LayerID = {Type = (byte) TerrainPatch.LayerType.Land}};
+            var layerType = TerrainPatch.LayerType.Land;
+            if (heightmap.Length > Simulator.DefaultRegionSizeY *  Simulator.DefaultRegionSizeY)
+                layerType = TerrainPatch.LayerType.LandExtended;
+            LayerDataPacket layer = new LayerDataPacket {LayerID = {Type = (byte) layerType}};
 
             TerrainPatch.GroupHeader header = new TerrainPatch.GroupHeader
             {
@@ -235,15 +250,19 @@ namespace OpenMetaverse
             return layer;
         }
 
-        public static void CreatePatch(BitPack output, float[] patchData, int x, int y)
+        private static void CreatePatch(BitPack output, float[] patchData, int x, int y)
+        {
+            CreatePatch(output, patchData, x, y, false);
+        }
+        private static void CreatePatch(BitPack output, float[] patchData, int x, int y, bool largeRegion)
         {
             if (patchData.Length != 16 * 16)
                 throw new ArgumentException("Patch data must be a 16x16 array");
 
             TerrainPatch.Header header = PrescanPatch(patchData);
+            header.LargeRegion = largeRegion;
             header.QuantWBits = 136;
-            header.PatchIDs = (y & 0x1F);
-            header.PatchIDs += (x << 5);
+            header.setPatchIDs(x, y);
 
             // NOTE: No idea what prequant and postquant should be or what they do
             int[] patch = CompressPatch(patchData, header, 10);
@@ -253,13 +272,17 @@ namespace OpenMetaverse
 
         public static void CreatePatch(BitPack output, float[,] patchData, int x, int y)
         {
+            CreatePatch(output, patchData, x, y, false);
+        }
+        public static void CreatePatch(BitPack output, float[,] patchData, int x, int y, bool largeRegion)
+        {
             if (patchData.Length != 16 * 16)
                 throw new ArgumentException("Patch data must be a 16x16 array");
 
             var header = PrescanPatch(patchData);
+            header.LargeRegion = largeRegion;
             header.QuantWBits = 136;
-            header.PatchIDs = (y & 0x1F);
-            header.PatchIDs += (x << 5);
+            header.setPatchIDs(x, y);
 
             // NOTE: No idea what prequant and postquant should be or what they do
             int[] patch = CompressPatch(patchData, header, 10);
@@ -279,6 +302,10 @@ namespace OpenMetaverse
         /// from 0 to 15</param>
         public static void CreatePatchFromHeightmap(BitPack output, float[] heightmap, int x, int y)
         {
+            CreatePatchFromHeightmap(output, heightmap, x, y, false);
+        }
+        public static void CreatePatchFromHeightmap(BitPack output, float[] heightmap, int x, int y, bool largeRegion)
+        {
             if (heightmap.Length != 256 * 256)
                 throw new ArgumentException("Heightmap data must be 256x256");
 
@@ -286,9 +313,9 @@ namespace OpenMetaverse
                 throw new ArgumentException("X and Y patch offsets must be from 0 to 15");
 
             var header = PrescanPatch(heightmap, x, y);
+            header.LargeRegion = largeRegion;
             header.QuantWBits = 136;
-            header.PatchIDs = (y & 0x1F);
-            header.PatchIDs += (x << 5);
+            header.setPatchIDs(x, y);
 
             // NOTE: No idea what prequant and postquant should be or what they do
             int[] patch = CompressPatch(heightmap, x, y, header, 10);
@@ -296,6 +323,8 @@ namespace OpenMetaverse
             EncodePatch(output, patch, 0, wbits);
         }
 
+        // Scan the height map to get the range of values so the values can be compressed.
+        // Returns a TerrainPatch.Header with  the range information filled in.
         private static TerrainPatch.Header PrescanPatch(float[] patch)
         {
             TerrainPatch.Header header = new TerrainPatch.Header();
@@ -318,6 +347,8 @@ namespace OpenMetaverse
             return header;
         }
 
+        // Scan the height map to get the range of values so the values can be compressed.
+        // Returns a TerrainPatch.Header with  the range information filled in.
         private static TerrainPatch.Header PrescanPatch(float[,] patch)
         {
             TerrainPatch.Header header = new TerrainPatch.Header();
@@ -340,6 +371,8 @@ namespace OpenMetaverse
             return header;
         }
 
+        // Scan the height map to get the range of values so the values can be compressed.
+        // Returns a TerrainPatch.Header with  the range information filled in.
         private static TerrainPatch.Header PrescanPatch(float[] heightmap, int patchX, int patchY)
         {
             TerrainPatch.Header header = new TerrainPatch.Header();
@@ -364,6 +397,11 @@ namespace OpenMetaverse
 
         public static TerrainPatch.Header DecodePatchHeader(BitPack bitpack)
         {
+            return DecodePatchHeader(bitpack, false);
+
+        }
+        public static TerrainPatch.Header DecodePatchHeader(BitPack bitpack, bool largeRegion)
+        {
             TerrainPatch.Header header = new TerrainPatch.Header {QuantWBits = bitpack.UnpackBits(8)};
 
             // Quantized word bits
@@ -377,7 +415,9 @@ namespace OpenMetaverse
             header.Range = bitpack.UnpackBits(16);
 
             // Patch IDs (10 bits)
-            header.PatchIDs = bitpack.UnpackBits(10);
+
+            header.LargeRegion = largeRegion;
+            header.PatchIDs = bitpack.UnpackBits(largeRegion ? 32 : 10);
 
             // Word bits
             header.WordBits = (uint)((header.QuantWBits & 0x0f) + 2);
@@ -428,7 +468,7 @@ namespace OpenMetaverse
             output.PackBits(header.QuantWBits, 8);
             output.PackFloat(header.DCOffset);
             output.PackBits(header.Range, 16);
-            output.PackBits(header.PatchIDs, 10);
+            output.PackBits(header.PatchIDs, header.LargeRegion ? 32 : 10); // the IDs are larger for large regions
 
             return wbits;
         }

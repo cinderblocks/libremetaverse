@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
-	<TargetFrameworks>net48;net6.0-windows;net7.0-windows</TargetFrameworks>
+	<TargetFrameworks>net48;net6.0-windows;net7.0-windows;net8.0-windows</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' ">
-	<TargetFrameworks>net48;net6.0-linux;net7.0-linux</TargetFrameworks>
+	<TargetFrameworks>net48;net6.0-linux;net7.0-linux;net8.0-linux</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' ">
-	<TargetFrameworks>net48;net6.0-macos;net7.0-macos</TargetFrameworks>
+	<TargetFrameworks>net48;net6.0-macos;net7.0-macos;net8.0-macos</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup>
     <AssemblyName>LibreMetaverse.GUI</AssemblyName>

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2019-2022, Sjofn, LLC
+ * Copyright (c) 2019-2024, Sjofn, LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -369,6 +369,8 @@ namespace OpenMetaverse
         public int CircuitCode;
         public uint RegionX;
         public uint RegionY;
+        public uint RegionSizeX;
+        public uint RegionSizeY;
         public ushort SimPort;
         public IPAddress SimIP;
         public string SeedCapability;
@@ -488,6 +490,9 @@ namespace OpenMetaverse
             CircuitCode = (int)ParseUInt("circuit_code", reply);
             RegionX = ParseUInt("region_x", reply);
             RegionY = ParseUInt("region_y", reply);
+            // Region size is returned by OpenSimulator derived systems but not SL
+            RegionSizeX = reply.ContainsKey("region_size_x") ? ParseUInt("region_size_x", reply) : Simulator.DefaultRegionSizeX;
+            RegionSizeY = reply.ContainsKey("region_size_y") ? ParseUInt("region_size_y", reply) : Simulator.DefaultRegionSizeY;
             SimPort = (ushort)ParseUInt("sim_port", reply);
             var simIP = ParseString("sim_ip", reply);
             IPAddress.TryParse(simIP, out SimIP);
@@ -693,6 +698,9 @@ namespace OpenMetaverse
             CircuitCode = (int)ParseUInt("circuit_code", reply);
             RegionX = ParseUInt("region_x", reply);
             RegionY = ParseUInt("region_y", reply);
+            // Region size is returned by OpenSimulator derived systems but not SL
+            RegionSizeX = reply.ContainsKey("region_size_x") ? ParseUInt("region_size_x", reply) : Simulator.DefaultRegionSizeX;
+            RegionSizeY = reply.ContainsKey("region_size_y") ? ParseUInt("region_size_y", reply) : Simulator.DefaultRegionSizeY;
             SimPort = (ushort)ParseUInt("sim_port", reply);
             var simIP = ParseString("sim_ip", reply);
             IPAddress.TryParse(simIP, out SimIP);
@@ -1691,7 +1699,7 @@ namespace OpenMetaverse
                 var handle = Utils.UIntsToLong(regionX, regionY);
 
                 // Connect to the sim given in the login reply
-                if (Connect(reply.SimIP, simPort, handle, true, LoginSeedCapability) != null)
+                if (Connect(reply.SimIP, simPort, handle, true, LoginSeedCapability, reply.RegionSizeX, reply.RegionSizeY) != null)
                 {
                     // Request the economy data right after login
                     SendPacket(new EconomyDataRequestPacket());

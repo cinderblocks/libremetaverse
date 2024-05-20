@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2019-2022, Sjofn LLC
+ * Copyright (c) 2019-2024, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -4317,7 +4317,9 @@ namespace OpenMetaverse
                     SimAccess = (byte) msg.SimAccess,
                     SimIP = Utils.IPToUInt(msg.IP),
                     SimPort = (ushort) msg.Port,
-                    TeleportFlags = (uint) msg.Flags
+                    TeleportFlags = (uint) msg.Flags,
+                    RegionSizeX = msg.RegionSizeX,
+                    RegionSizeY = msg.RegionSizeY
                 }
             };
             // FIXME: Check This
@@ -4380,7 +4382,8 @@ namespace OpenMetaverse
                 // Connect to the new sim
                 Client.Network.CurrentSim.AgentMovementComplete = false; // we're not there anymore
                 Simulator newSimulator = Client.Network.Connect(new IPAddress(finish.Info.SimIP),
-                    finish.Info.SimPort, finish.Info.RegionHandle, true, seedcaps);
+                    finish.Info.SimPort, finish.Info.RegionHandle, true, seedcaps,
+                    finish.Info.RegionSizeX, finish.Info.RegionSizeY);
 
                 if (newSimulator != null)
                 {
@@ -4556,7 +4559,8 @@ namespace OpenMetaverse
             Logger.DebugLog($"Crossed in to new region area, attempting to connect to {endPoint}", Client);
 
             Simulator oldSim = Client.Network.CurrentSim;
-            Simulator newSim = Client.Network.Connect(endPoint, crossed.RegionHandle, true, crossed.SeedCapability);
+            Simulator newSim = Client.Network.Connect(endPoint, crossed.RegionHandle, true, crossed.SeedCapability,
+                        crossed.RegionSizeX, crossed.RegionSizeY);
 
             if (newSim != null)
             {
