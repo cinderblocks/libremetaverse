@@ -39,6 +39,7 @@ using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Collections;
 
 namespace OpenMetaverse
 {
@@ -3962,7 +3963,8 @@ namespace OpenMetaverse
 
         protected void OfflineMessageHandlerCallback(HttpResponseMessage response, byte[] data, Exception error)
         {
-            if (error != null) {
+            if (error != null)
+            {
                 Logger.Log($"Failed to retrieve offline messages from the simulator: {error.Message}",
                     Helpers.LogLevel.Warning);
                 RetrieveInstantMessagesLegacy();
@@ -3972,43 +3974,60 @@ namespace OpenMetaverse
             if (m_InstantMessage == null) { return; } // don't bother if we don't have any listeners
 
             OSD result = OSDParser.Deserialize(data);
-            if (!(result is OSDMap respMap) || respMap.Count == 0 || respMap.ContainsKey("messages"))
+            if (result == null)
             {
-                Logger.Log("Failed to retrieve offline messages because the capability returned invalid shiz.",
-                    Helpers.LogLevel.Warning);
+                Logger.Log("Failed to decode offline messages from data, trying legacy method (Null reply)",
+                  Helpers.LogLevel.Warning);
                 RetrieveInstantMessagesLegacy();
                 return;
             }
-
-            if (respMap["messages"] is OSDArray msgArray)
+            if (result.Type != OSDType.Array)
             {
-                foreach (var osd in msgArray)
+                Logger.Log("Failed to decode offline messages from data trying legacy method (Wrong unpack type expected array)",
+                  Helpers.LogLevel.Warning);
+                RetrieveInstantMessagesLegacy();
+                return;
+            }
+            try
+            {
+                OSDArray respMap = (OSDArray)result;
+                ArrayList listEntrys = respMap.ToArrayList();
+                foreach (OSDArray listEntry in listEntrys)
                 {
-                    var msg = (OSDMap)osd;
+                    foreach (OSDMap msg in listEntry)
+                    {
 
-                    InstantMessage message;
-                    message.FromAgentID = msg["from_agent_id"].AsUUID();
-                    message.FromAgentName = msg["from_agent_name"].AsString();
-                    message.ToAgentID = msg["to_agent_id"].AsUUID();
-                    message.RegionID = msg["region_id"].AsUUID();
-                    message.Dialog = (InstantMessageDialog)msg["dialog"].AsInteger();
-                    message.IMSessionID = msg["transaction-id"].AsUUID();
-                    message.Timestamp = new DateTime(msg["timestamp"].AsInteger());
-                    message.Message = msg["message"].AsString();
-                    message.Offline = msg.ContainsKey("offline")
-                        ? (InstantMessageOnline)msg["offline"].AsInteger() 
-                        : InstantMessageOnline.Offline;
-                    message.ParentEstateID = msg.ContainsKey("parent_estate_id")
-                        ? msg["parent_estate_id"].AsUInteger() : 1;
-                    message.Position = msg.ContainsKey("position")
-                        ? msg["position"].AsVector3()
-                        : new Vector3(msg["local_x"], msg["local_y"], msg["local_z"]);
-                    message.BinaryBucket = msg.ContainsKey("binary_bucket")
-                        ? msg["binary_bucket"].AsBinary() : new byte[] { 0 };
-                    message.GroupIM = msg.ContainsKey("from_group") && msg["from_group"].AsBoolean();
+                        InstantMessage message;
+                        message.FromAgentID = msg["from_agent_id"].AsUUID();
+                        message.FromAgentName = msg["from_agent_name"].AsString();
+                        message.ToAgentID = msg["to_agent_id"].AsUUID();
+                        message.RegionID = msg["region_id"].AsUUID();
+                        message.Dialog = (InstantMessageDialog)msg["dialog"].AsInteger();
+                        message.IMSessionID = msg["transaction-id"].AsUUID();
+                        message.Timestamp = new DateTime(msg["timestamp"].AsInteger());
+                        message.Message = msg["message"].AsString();
+                        message.Offline = msg.ContainsKey("offline")
+                            ? (InstantMessageOnline)msg["offline"].AsInteger()
+                            : InstantMessageOnline.Offline;
+                        message.ParentEstateID = msg.ContainsKey("parent_estate_id")
+                            ? msg["parent_estate_id"].AsUInteger() : 1;
+                        message.Position = msg.ContainsKey("position")
+                            ? msg["position"].AsVector3()
+                            : new Vector3(msg["local_x"], msg["local_y"], msg["local_z"]);
+                        message.BinaryBucket = msg.ContainsKey("binary_bucket")
+                            ? msg["binary_bucket"].AsBinary() : new byte[] { 0 };
+                        message.GroupIM = msg.ContainsKey("from_group") && msg["from_group"].AsBoolean();
 
-                    OnInstantMessage(new InstantMessageEventArgs(message, null));
+                        OnInstantMessage(new InstantMessageEventArgs(message, null));
+                    }
                 }
+            }
+            catch
+            {
+                Logger.Log("Failed to decode offline messages from data trying legacy method (Switch from OSD to OSDMap failed)",
+                  Helpers.LogLevel.Warning);
+                RetrieveInstantMessagesLegacy();
+                return;
             }
         }
 
