@@ -72,8 +72,16 @@ namespace OpenMetaverse.Rendering
 
             LindenSkeleton result;
 
+            XmlReaderSettings readerSettings = new XmlReaderSettings
+            {
+                ValidationType = ValidationType.None,
+                CheckCharacters = false,
+                IgnoreComments = true,
+                IgnoreProcessingInstructions = false,
+                DtdProcessing = DtdProcessing.Ignore
+            };
             using (FileStream skeletonData = new FileStream(fileName, FileMode.Open, FileAccess.Read))
-            using (XmlReader reader = XmlReader.Create(skeletonData))
+            using (XmlReader reader = XmlReader.Create(skeletonData, readerSettings))
             {
                 XmlSerializer ser = new XmlSerializer(typeof(LindenSkeleton));
                 result = (LindenSkeleton)ser.Deserialize(reader);
