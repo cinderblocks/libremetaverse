@@ -107,7 +107,7 @@ namespace OpenMetaverse.Assets
 
         public string EncodeXml()
         {
-            TextWriter textWriter = new StringWriter();
+            var textWriter = new StringWriter();
             using (XmlTextWriter xmlWriter = new XmlTextWriter(textWriter))
             {
                 OarFile.SOGToXml2(xmlWriter, this);

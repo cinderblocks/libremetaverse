@@ -32,7 +32,7 @@ namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
                 // Use '/' as a path seperator.
             }
             InventoryFolder currentFolder = Client.CurrentDirectory;
-            if (pathStr.StartsWith("/"))
+            if (pathStr.StartsWith('/'))
                 currentFolder = Inventory.RootFolder;
 
             if (currentFolder == null) // We need this to be set to something. 

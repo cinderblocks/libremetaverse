@@ -341,11 +341,11 @@ namespace OpenMetaverse.Assets
                         }
                         else if (key == "name")
                         {
-                            name = val.Remove(val.LastIndexOf("|", StringComparison.Ordinal));
+                            name = val.Remove(val.LastIndexOf('|'));
                         }
                         else if (key == "desc")
                         {
-                            description = val.Remove(val.LastIndexOf("|", StringComparison.Ordinal));
+                            description = val.Remove(val.LastIndexOf('|'));
                         }
                         else if (key == "creation_date")
                         {
@@ -387,7 +387,7 @@ namespace OpenMetaverse.Assets
                 {
                     BodyText += lines[i++] + "\n";
                 }
-                BodyText = BodyText.Remove(BodyText.LastIndexOf("}", StringComparison.Ordinal));
+                BodyText = BodyText.Remove(BodyText.LastIndexOf('}'));
                 return true;
             }
             catch (Exception ex)

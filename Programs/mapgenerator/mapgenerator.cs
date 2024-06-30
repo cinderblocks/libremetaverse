@@ -924,7 +924,7 @@ namespace Mapgenerator
         {
             ProtocolManager protocol;
             List<string> unused = new List<string>();
-            TextWriter writer;
+            StreamWriter writer;
 
             try
             {
@@ -947,7 +947,7 @@ namespace Mapgenerator
                 }
 
                 // Read in the template.cs file and write it to our output
-                TextReader reader = new StreamReader(args[1]);
+                var reader = new StreamReader(args[1]);
                 writer.WriteLine(reader.ReadToEnd());
                 reader.Close();
             }

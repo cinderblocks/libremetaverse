@@ -52,7 +52,7 @@ namespace LibreMetaverse.LslTools
 
     protected bool Error(ref ParseStackEntry top, string str)
     {
-      SYMBOL ns = (SYMBOL) new error(this, top);
+      var ns = (SYMBOL) new error(this, top);
       if (this.m_debug)
         Console.WriteLine("Error encountered: " + str);
       ns.pos = top.m_value.pos;

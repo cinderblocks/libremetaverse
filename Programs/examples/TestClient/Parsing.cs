@@ -38,7 +38,7 @@ namespace OpenMetaverse.TestClient
                     else
                     {
                         trimmed = current.Trim();
-                        if (trimmed.StartsWith("\"") && trimmed.EndsWith("\""))
+                        if (trimmed.StartsWith('\"') && trimmed.EndsWith('\"'))
                         {
                             trimmed = trimmed.Remove(0, 1);
                             trimmed = trimmed.Remove(trimmed.Length - 1);
@@ -71,7 +71,7 @@ namespace OpenMetaverse.TestClient
 
             trimmed = current.Trim();
 
-            if (trimmed.StartsWith("\"") && trimmed.EndsWith("\""))
+            if (trimmed.StartsWith('\"') && trimmed.EndsWith('\"'))
             {
                 trimmed = trimmed.Remove(0, 1);
                 trimmed = trimmed.Remove(trimmed.Length - 1);
