@@ -372,7 +372,7 @@ namespace OpenMetaverse.Assets
             Thread.Sleep(100);
             Directory.CreateDirectory(parcelPath);
             Thread.Sleep(100);
-            sim.Parcels.ForEach((Parcel parcel) =>
+            sim.Parcels.ForEach(parcel =>
                 {
                     UUID globalID = UUID.Random();
                     SerializeParcel(parcel, globalID, Path.Combine(parcelPath, globalID + ".xml"));

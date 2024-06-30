@@ -1754,7 +1754,7 @@ namespace OpenMetaverse
                     {
                         if (Client.Settings.OBJECT_TRACKING)
                         {
-                            Primitive prim = sim.ObjectsPrimitives.Find((Primitive p) => p.ID == primID);
+                            Primitive prim = sim.ObjectsPrimitives.Find(p => p.ID == primID);
                             if (prim != null)
                             {
                                 prim.MediaVersion = response.Version;

@@ -852,7 +852,7 @@ namespace OpenMetaverse
 
             if (m_CoarseLocationUpdate != null)
             {
-                ThreadPool.QueueUserWorkItem((object o) =>
+                ThreadPool.QueueUserWorkItem(o =>
                 { OnCoarseLocationUpdate(new CoarseLocationUpdateEventArgs(e.Simulator, newEntries, removedEntries)); });
             }
         }

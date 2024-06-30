@@ -1012,7 +1012,7 @@ namespace OpenMetaverse
                     appearanceFlags = (AppearanceFlags)appearance.AppearanceData[0].Flags;
                 }
 
-                Avatar av = simulator.ObjectsAvatars.Find((Avatar a) => a.ID == appearance.Sender.ID);
+                Avatar av = simulator.ObjectsAvatars.Find(a => a.ID == appearance.Sender.ID);
                 if (av != null)
                 {
                     av.Textures = textureEntry;
