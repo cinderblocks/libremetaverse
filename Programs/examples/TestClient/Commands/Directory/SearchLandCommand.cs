@@ -79,9 +79,9 @@ namespace OpenMetaverse.TestClient.Commands
 
             if (searchType.StartsWith("au"))
                 searchTypeFlags = DirectoryManager.SearchTypeFlags.Auction;
-            else if (searchType.StartsWith('m'))
+            else if (searchType.StartsWith("m"))
                 searchTypeFlags = DirectoryManager.SearchTypeFlags.Mainland;
-            else if (searchType.StartsWith('e'))
+            else if (searchType.StartsWith("e"))
                 searchTypeFlags = DirectoryManager.SearchTypeFlags.Estate;
             else if (searchType.StartsWith("al"))
                 searchTypeFlags = DirectoryManager.SearchTypeFlags.Any;
