@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace OpenMetaverse.TestClient
@@ -56,14 +57,11 @@ namespace OpenMetaverse.TestClient
 
         void Avatars_AvatarPickerReply(object sender, AvatarPickerReplyEventArgs e)
         {
-            foreach (KeyValuePair<UUID, string> kvp in e.Avatars)
+            foreach (var kvp in e.Avatars.Where(kvp => string.Equals(kvp.Value, ToAvatarName, StringComparison.CurrentCultureIgnoreCase)))
             {
-                if (kvp.Value.ToLower() == ToAvatarName.ToLower())
-                {
-                    Name2Key[ToAvatarName.ToLower()] = kvp.Key;
-                    NameSearchEvent.Set();
-                    return;
-                }
+                Name2Key[ToAvatarName.ToLower()] = kvp.Key;
+                NameSearchEvent.Set();
+                return;
             }
         }
     }
