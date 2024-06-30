@@ -39,7 +39,7 @@ namespace OpenMetaverse.Imaging
             Color = 2,
             Alpha = 4,
             Bump = 8
-        };
+        }
 
         public enum ImageResizeAlgorithm
         {

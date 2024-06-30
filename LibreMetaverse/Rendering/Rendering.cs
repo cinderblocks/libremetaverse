@@ -138,7 +138,7 @@ namespace OpenMetaverse.Rendering
         {
             return Type.ToString();
         }
-    };
+    }
 
     public struct Profile
     {

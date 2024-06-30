@@ -72,7 +72,7 @@ namespace OpenMetaverse
             /// pass this to the Log() function, use DebugLog() instead.
             /// </summary>
             Debug
-        };
+        }
 
         /// <summary>
         /// 
