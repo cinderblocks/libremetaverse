@@ -94,7 +94,7 @@ namespace LibreMetaverse.Tests
             a = new Vector3(0f, 0f, 0.00001f);
             b = new Vector3(0f, 0f, 0f);
 
-            Assert.IsFalse(b.ApproxEquals(a, Single.Epsilon), "ApproxEquals failed (6)");
+            Assert.IsFalse(b.ApproxEquals(a, float.Epsilon), "ApproxEquals failed (6)");
             Assert.IsTrue(b.ApproxEquals(a, 0.0001f), "ApproxEquals failed (7)");
         }
 
@@ -225,7 +225,7 @@ namespace LibreMetaverse.Tests
         public void FloatsToTerseStrings()
         {
             float f = 1.20f;
-            string a = String.Empty;
+            string a = string.Empty;
             string b = "1.2";
             
             a = Helpers.FloatToTerseString(f);
@@ -310,7 +310,7 @@ namespace LibreMetaverse.Tests
             b = bitpacker.UnpackBits(1);
             Assert.IsTrue(b == 1, "Unpacked " + b + " instead of 1");
 
-            packedBytes = new byte[1] { Byte.MaxValue };
+            packedBytes = new byte[1] { byte.MaxValue };
             bitpacker = new BitPack(packedBytes, 0);
             bitpacker.PackBit(false);
 

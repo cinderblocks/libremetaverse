@@ -61,7 +61,7 @@ namespace OpenMetaverse.Assets
         {
             string temp = "Landmark version 2\n";
             temp += "region_id " + RegionID + "\n";
-            temp += String.Format(Utils.EnUsCulture, "local_pos {0:0.00} {1:0.00} {2:0.00}\n", Position.X, Position.Y, Position.Z);
+            temp += string.Format(Utils.EnUsCulture, "local_pos {0:0.00} {1:0.00} {2:0.00}\n", Position.X, Position.Y, Position.Z);
             AssetData = Utils.StringToBytes(temp);
         }
 
@@ -71,12 +71,12 @@ namespace OpenMetaverse.Assets
         /// <returns>true if the AssetData was successfully decoded to a UUID and Vector</returns>
         public override bool Decode()
         {
-            String text = Utils.BytesToString(AssetData);
+            string text = Utils.BytesToString(AssetData);
             if (text.ToLower().Contains("landmark version 2"))
             {
                 RegionID = new UUID(text.Substring(text.IndexOf("region_id", StringComparison.Ordinal) + 10, 36));
-                String vecDelim = " ";
-                String[] vecStrings = text.Substring(text.IndexOf("local_pos", StringComparison.Ordinal) + 10).Split(vecDelim.ToCharArray());
+                string vecDelim = " ";
+                string[] vecStrings = text.Substring(text.IndexOf("local_pos", StringComparison.Ordinal) + 10).Split(vecDelim.ToCharArray());
                 if (vecStrings.Length == 3)
                 {
                     Position = new Vector3(float.Parse(vecStrings[0], System.Globalization.CultureInfo.InvariantCulture), float.Parse(vecStrings[1], System.Globalization.CultureInfo.InvariantCulture), float.Parse(vecStrings[2], System.Globalization.CultureInfo.InvariantCulture));

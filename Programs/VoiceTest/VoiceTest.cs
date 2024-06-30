@@ -52,11 +52,11 @@ namespace VoiceTest
         static AutoResetEvent EventQueueRunningEvent = new AutoResetEvent(false);
         static AutoResetEvent ProvisionEvent = new AutoResetEvent(false);
         static AutoResetEvent ParcelVoiceInfoEvent = new AutoResetEvent(false);
-        static string VoiceAccount = String.Empty;
-        static string VoicePassword = String.Empty;
-        static string VoiceRegionName = String.Empty;
+        static string VoiceAccount = string.Empty;
+        static string VoicePassword = string.Empty;
+        static string VoiceRegionName = string.Empty;
         static int VoiceLocalID = 0;
-        static string VoiceChannelURI = String.Empty;
+        static string VoiceChannelURI = string.Empty;
 
         static void Main(string[] args)
         {
@@ -122,7 +122,7 @@ namespace VoiceTest
                 Console.WriteLine("Creating voice connector...");
                 int status;
                 string connectorHandle = voice.CreateConnector(out status);
-                if (String.IsNullOrEmpty(connectorHandle)) 
+                if (string.IsNullOrEmpty(connectorHandle)) 
                     throw new VoiceException("Failed to create a voice connector, error code: " + status, true);
                 Console.WriteLine("Voice connector handle: " + connectorHandle);
 
@@ -144,7 +144,7 @@ namespace VoiceTest
 
                 Console.WriteLine("Logging in to voice server " + voice.VoiceServer);
                 string accountHandle = voice.Login(VoiceAccount, VoicePassword, connectorHandle, out status);
-                if (String.IsNullOrEmpty(accountHandle)) 
+                if (string.IsNullOrEmpty(accountHandle)) 
                     throw new VoiceException("Login failed, error code: " + status, true);
                 Console.WriteLine("Login succeeded, account handle: " + accountHandle);
 

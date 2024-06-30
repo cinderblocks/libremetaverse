@@ -452,8 +452,8 @@ namespace OpenMetaverse.Imaging
 
             addSourceAlpha = (addSourceAlpha && sourceHasAlpha);
 
-            byte alpha = Byte.MaxValue;
-            byte alphaInv = (byte)(Byte.MaxValue - alpha);
+            byte alpha = byte.MaxValue;
+            byte alphaInv = (byte)(byte.MaxValue - alpha);
 
             byte[] bakedRed = bakedTexture.Image.Red;
             byte[] bakedGreen = bakedTexture.Image.Green;
@@ -482,7 +482,7 @@ namespace OpenMetaverse.Imaging
                         {
                             loadedAlpha = true;
                             alpha = sourceAlpha[i];
-                            alphaInv = (byte)(Byte.MaxValue - alpha);
+                            alphaInv = (byte)(byte.MaxValue - alpha);
                         }
                     }
 

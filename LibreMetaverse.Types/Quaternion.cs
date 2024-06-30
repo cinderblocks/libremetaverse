@@ -645,7 +645,7 @@ namespace OpenMetaverse
         public static Quaternion Parse(string val)
         {
             char[] splitChar = { ',' };
-            string[] split = val.Replace("<", String.Empty).Replace(">", String.Empty).Split(splitChar);
+            string[] split = val.Replace("<", string.Empty).Replace(">", string.Empty).Split(splitChar);
             if (split.Length == 3)
             {
                 return new Quaternion(
@@ -701,7 +701,7 @@ namespace OpenMetaverse
 
         public override string ToString()
         {
-            return String.Format(Utils.EnUsCulture, "<{0}, {1}, {2}, {3}>", X, Y, Z, W);
+            return string.Format(Utils.EnUsCulture, "<{0}, {1}, {2}, {3}>", X, Y, Z, W);
         }
 
         /// <summary>
@@ -714,7 +714,7 @@ namespace OpenMetaverse
             CultureInfo enUs = new CultureInfo("en-us");
             enUs.NumberFormat.NumberDecimalDigits = 3;
 
-            return String.Format(enUs, "{0} {1} {2} {3}", X, Y, Z, W);
+            return string.Format(enUs, "{0} {1} {2} {3}", X, Y, Z, W);
         }
 
         #endregion Overrides

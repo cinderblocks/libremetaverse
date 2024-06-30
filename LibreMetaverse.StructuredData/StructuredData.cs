@@ -507,10 +507,10 @@ namespace OpenMetaverse.StructuredData
         {
             if (double.IsNaN(_mReal))
                 return 0;
-            if (_mReal > Int32.MaxValue)
-                return Int32.MaxValue;
-            if (_mReal < Int32.MinValue)
-                return Int32.MinValue;
+            if (_mReal > int.MaxValue)
+                return int.MaxValue;
+            if (_mReal < int.MinValue)
+                return int.MinValue;
             return (int)Math.Round(_mReal);
         }
 
@@ -518,10 +518,10 @@ namespace OpenMetaverse.StructuredData
         {
             if (double.IsNaN(_mReal))
                 return 0;
-            if (_mReal > UInt32.MaxValue)
-                return UInt32.MaxValue;
-            if (_mReal < UInt32.MinValue)
-                return UInt32.MinValue;
+            if (_mReal > uint.MaxValue)
+                return uint.MaxValue;
+            if (_mReal < uint.MinValue)
+                return uint.MinValue;
             return (uint)Math.Round(_mReal);
         }
 
@@ -529,10 +529,10 @@ namespace OpenMetaverse.StructuredData
         {
             if (double.IsNaN(_mReal))
                 return 0;
-            if (_mReal > Int64.MaxValue)
-                return Int64.MaxValue;
-            if (_mReal < Int64.MinValue)
-                return Int64.MinValue;
+            if (_mReal > long.MaxValue)
+                return long.MaxValue;
+            if (_mReal < long.MinValue)
+                return long.MinValue;
             return (long)Math.Round(_mReal);
         }
 
@@ -540,10 +540,10 @@ namespace OpenMetaverse.StructuredData
         {
             if (double.IsNaN(_mReal))
                 return 0;
-            if (_mReal > UInt64.MaxValue)
-                return Int32.MaxValue;
-            if (_mReal < UInt64.MinValue)
-                return UInt64.MinValue;
+            if (_mReal > ulong.MaxValue)
+                return int.MaxValue;
+            if (_mReal < ulong.MinValue)
+                return ulong.MinValue;
             return (ulong)Math.Round(_mReal);
         }
 
@@ -635,7 +635,7 @@ namespace OpenMetaverse.StructuredData
         public override double AsReal()
         {
             double dbl;
-            return Double.TryParse(_mString, out dbl) ? dbl : 0d;
+            return double.TryParse(_mString, out dbl) ? dbl : 0d;
         }
 
         public override string AsString() { return _mString; }

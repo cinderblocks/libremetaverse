@@ -353,7 +353,7 @@ namespace OpenMetaverse.Imaging
                             raw[pos * 4 + 0] = Alpha[srcPos];
                             raw[pos * 4 + 1] = Alpha[srcPos];
                             raw[pos * 4 + 2] = Alpha[srcPos];
-                            raw[pos * 4 + 3] = Byte.MaxValue;
+                            raw[pos * 4 + 3] = byte.MaxValue;
                         }
                     }
                 }
@@ -371,7 +371,7 @@ namespace OpenMetaverse.Imaging
                         raw[pos * 4 + 0] = Red[srcPos];
                         raw[pos * 4 + 1] = Green[srcPos];
                         raw[pos * 4 + 2] = Blue[srcPos];
-                        raw[pos * 4 + 3] = Byte.MaxValue;
+                        raw[pos * 4 + 3] = byte.MaxValue;
                     }
                 }
             }
@@ -409,7 +409,7 @@ namespace OpenMetaverse.Imaging
                         raw[pos * 4 + 0] = Alpha[pos];
                         raw[pos * 4 + 1] = Alpha[pos];
                         raw[pos * 4 + 2] = Alpha[pos];
-                        raw[pos * 4 + 3] = Byte.MaxValue;
+                        raw[pos * 4 + 3] = byte.MaxValue;
                     }
                 }
             }
@@ -421,7 +421,7 @@ namespace OpenMetaverse.Imaging
                     raw[pos * 4 + 0] = Blue[pos];
                     raw[pos * 4 + 1] = Green[pos];
                     raw[pos * 4 + 2] = Red[pos];
-                    raw[pos * 4 + 3] = Byte.MaxValue;
+                    raw[pos * 4 + 3] = byte.MaxValue;
                 }
             }
 
@@ -487,7 +487,7 @@ namespace OpenMetaverse.Imaging
                         tga[di++] = Alpha[i];
                         tga[di++] = Alpha[i];
                         tga[di++] = Alpha[i];
-                        tga[di++] = Byte.MaxValue;
+                        tga[di++] = byte.MaxValue;
                     }
                 }
             }

@@ -336,7 +336,7 @@ namespace LibreMetaverse.Tests
             s.SystemGPU = "Vesa VGA+";
             s.SystemGPUClass = 4;
             s.SystemGPUVendor = "China";
-            s.SystemGPUVersion = String.Empty;
+            s.SystemGPUVersion = string.Empty;
             s.InCompressedPackets = 5000;
             s.InKbytes = 6000;
             s.InPackets = 22000;
@@ -1011,7 +1011,7 @@ namespace LibreMetaverse.Tests
             s.AgentID = UUID.Random();
             s.MessageKey = "Key";
             s.Reason = "Unable To Teleport for some unspecified reason";
-            s.ExtraParams = String.Empty;
+            s.ExtraParams = string.Empty;
 
             OSDMap map = s.Serialize();
 

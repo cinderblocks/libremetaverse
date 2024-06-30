@@ -287,7 +287,7 @@ namespace OpenMetaverse
         public static Vector2 Parse(string val)
         {
             char[] splitChar = { ',' };
-            string[] split = val.Replace("<", String.Empty).Replace(">", String.Empty).Split(splitChar);
+            string[] split = val.Replace("<", string.Empty).Replace(">", string.Empty).Split(splitChar);
             return new Vector2(
                 float.Parse(split[0].Trim(), Utils.EnUsCulture),
                 float.Parse(split[1].Trim(), Utils.EnUsCulture));
@@ -365,7 +365,7 @@ namespace OpenMetaverse
         /// <returns>A string representation of the vector</returns>
         public override string ToString()
         {
-            return String.Format(Utils.EnUsCulture, "<{0}, {1}>", X, Y);
+            return string.Format(Utils.EnUsCulture, "<{0}, {1}>", X, Y);
         }
 
         /// <summary>
@@ -378,7 +378,7 @@ namespace OpenMetaverse
             CultureInfo enUs = new CultureInfo("en-us");
             enUs.NumberFormat.NumberDecimalDigits = 3;
 
-            return String.Format(enUs, "{0} {1}", X, Y);
+            return string.Format(enUs, "{0} {1}", X, Y);
         }
 
         #endregion Overrides

@@ -2005,7 +2005,7 @@ namespace OpenMetaverse
             {
                 AgentID = Client.Self.AgentID,
                 Color = new byte[4],
-                Duration = (type == PointAtType.Clear) ? 0.0f : Single.MaxValue / 4.0f,
+                Duration = (type == PointAtType.Clear) ? 0.0f : float.MaxValue / 4.0f,
                 ID = effectID,
                 Type = (byte) EffectType.PointAt
             };
@@ -2068,7 +2068,7 @@ namespace OpenMetaverse
                 case LookAtType.Select:
                 case LookAtType.Focus:
                 case LookAtType.Mouselook:
-                    duration = Single.MaxValue / 2.0f;
+                    duration = float.MaxValue / 2.0f;
                     break;
                 default:
                     duration = 0.0f;
@@ -3505,7 +3505,7 @@ namespace OpenMetaverse
             {
                 LocationPos = Client.Self.SimPosition,
                 LocationID = 1,
-                SimName = Utils.StringToBytes(String.Empty),
+                SimName = Utils.StringToBytes(string.Empty),
                 LocationLookAt = Movement.Camera.AtAxis
             };
             Client.Network.SendPacket(s);

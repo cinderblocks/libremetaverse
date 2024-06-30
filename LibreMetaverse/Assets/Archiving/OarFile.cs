@@ -676,9 +676,9 @@ namespace OpenMetaverse.Assets
 
         public static void SOGToXml2(XmlTextWriter writer, AssetPrim prim)
         {
-            writer.WriteStartElement(String.Empty, "SceneObjectGroup", String.Empty);
+            writer.WriteStartElement(string.Empty, "SceneObjectGroup", string.Empty);
             SOPToXml(writer, prim.Parent, null);
-            writer.WriteStartElement(String.Empty, "OtherParts", String.Empty);
+            writer.WriteStartElement(string.Empty, "OtherParts", string.Empty);
 
             foreach (PrimObject child in prim.Children)
                 SOPToXml(writer, child, prim.Parent);

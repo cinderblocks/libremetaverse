@@ -55,7 +55,7 @@ namespace LibreMetaverse.Tests
             OSDString tempStr = null;
             OSDReal tempReal = null;
 
-            String testSD = @"<?xml version='1.0' encoding='UTF-8'?>
+            string testSD = @"<?xml version='1.0' encoding='UTF-8'?>
             <llsd>
                 <map>
 	                <key>region_id</key>
@@ -130,7 +130,7 @@ namespace LibreMetaverse.Tests
             Assert.IsTrue(tempSD is OSDReal);
             Assert.IsTrue(tempSD.Type == OSDType.Real);
             tempReal = (OSDReal)tempSD;
-            Assert.AreEqual(Double.NaN, tempSD.AsReal());
+            Assert.AreEqual(double.NaN, tempSD.AsReal());
 
             tempSD = map["total task count"];
             Assert.IsNotNull(tempSD);
@@ -216,7 +216,7 @@ namespace LibreMetaverse.Tests
             OSDArray array = null;
             OSDReal tempReal = null;
 
-            String testSD = @"<?xml version='1.0' encoding='UTF-8'?>
+            string testSD = @"<?xml version='1.0' encoding='UTF-8'?>
             <llsd>
                 <array>
                     <real>44.38898</real>
@@ -239,7 +239,7 @@ namespace LibreMetaverse.Tests
 
             Assert.AreEqual(OSDType.Real, array[1].Type);
             tempReal = (OSDReal)array[1];
-            Assert.AreEqual(Double.NaN, tempReal.AsReal());
+            Assert.AreEqual(double.NaN, tempReal.AsReal());
 
             Assert.AreEqual(OSDType.Real, array[2].Type);
             tempReal = (OSDReal)array[2];
@@ -264,7 +264,7 @@ namespace LibreMetaverse.Tests
             OSDArray array = null;
             OSDString tempStr = null;
 
-            String testSD = @"<?xml version='1.0' encoding='UTF-8'?>
+            string testSD = @"<?xml version='1.0' encoding='UTF-8'?>
             <llsd>
                 <array>
                     <string>Kissling</string>
@@ -313,7 +313,7 @@ namespace LibreMetaverse.Tests
             OSDArray array = null;
             OSDInteger tempInt = null;
 
-            String testSD = @"<?xml version='1.0' encoding='UTF-8'?>
+            string testSD = @"<?xml version='1.0' encoding='UTF-8'?>
             <llsd>
                 <array>
                     <integer>2147483647</integer>
@@ -361,7 +361,7 @@ namespace LibreMetaverse.Tests
             OSDArray array = null;
             OSDUUID tempUUID = null;
 
-            String testSD = @"<?xml version='1.0' encoding='UTF-8'?>
+            string testSD = @"<?xml version='1.0' encoding='UTF-8'?>
             <llsd>
                 <array>
                     <uuid>d7f4aeca-88f1-42a1-b385-b9db18abb255</uuid>
@@ -395,7 +395,7 @@ namespace LibreMetaverse.Tests
             OSDDate tempDate = null;
             DateTime testDate;
 
-            String testSD = @"<?xml version='1.0' encoding='UTF-8'?>
+            string testSD = @"<?xml version='1.0' encoding='UTF-8'?>
             <llsd>
                 <array>
                     <date>2006-02-01T14:29:53Z</date>
@@ -435,7 +435,7 @@ namespace LibreMetaverse.Tests
             OSDArray array = null;
             OSDBoolean tempBool = null;
 
-            String testSD = @"<?xml version='1.0' encoding='UTF-8'?>
+            string testSD = @"<?xml version='1.0' encoding='UTF-8'?>
             <llsd>
                 <array>
                     <boolean>1</boolean>
@@ -483,7 +483,7 @@ namespace LibreMetaverse.Tests
             OSDArray array = null;
             OSDBinary tempBinary = null;
 
-            String testSD = @"<?xml version='1.0' encoding='UTF-8'?>
+            string testSD = @"<?xml version='1.0' encoding='UTF-8'?>
             <llsd>
                 <array>
                     <binary encoding='base64'>cmFuZG9t</binary>
@@ -526,7 +526,7 @@ namespace LibreMetaverse.Tests
         {
             OSD theSD = null;
 
-            String testSD = @"<?xml version='1.0' encoding='UTF-8'?>
+            string testSD = @"<?xml version='1.0' encoding='UTF-8'?>
             <llsd>
                 <undef/>
             </llsd>";
@@ -547,7 +547,7 @@ namespace LibreMetaverse.Tests
             OSDArray array = null;
             OSDUri tempURI = null;
 
-            String testSD = @"<?xml version='1.0' encoding='UTF-8'?>
+            string testSD = @"<?xml version='1.0' encoding='UTF-8'?>
             <llsd>
                 <array>
                     <uri>http://sim956.agni.lindenlab.com:12035/runtime/agents</uri>
@@ -583,7 +583,7 @@ namespace LibreMetaverse.Tests
             OSDMap map = null;
             OSD tempSD = null;
 
-            String testSD = @"<?xml version='1.0' encoding='UTF-8'?>
+            string testSD = @"<?xml version='1.0' encoding='UTF-8'?>
             <llsd>
                 <array>
                     <map>

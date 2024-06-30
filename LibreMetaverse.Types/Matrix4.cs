@@ -235,7 +235,7 @@ namespace OpenMetaverse
             Quaternion quat = new Quaternion();
             float trace = Trace() + 1f;
 
-            if (trace > Single.Epsilon)
+            if (trace > float.Epsilon)
             {
                 float s = 0.5f / (float)Math.Sqrt(trace);
 

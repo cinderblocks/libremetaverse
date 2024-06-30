@@ -43,8 +43,8 @@ namespace OpenMetaverse
         /// </summary>
         private int positionkeys;
 
-        public UInt16 unknown0; // Always 1
-        public UInt16 unknown1; // Always 0
+        public ushort unknown0; // Always 1
+        public ushort unknown1; // Always 0
 
         /// <summary>
         /// Animation Priority
@@ -54,7 +54,7 @@ namespace OpenMetaverse
         /// <summary>
         /// The animation length in seconds.
         /// </summary>
-        public Single Length;
+        public float Length;
 
         /// <summary>
         /// Expression set in the client.  Null if [None] is selected
@@ -64,12 +64,12 @@ namespace OpenMetaverse
         /// <summary>
         /// The time in seconds to start the animation
         /// </summary>
-        public Single InPoint;
+        public float InPoint;
 
         /// <summary>
         /// The time in seconds to end the animation
         /// </summary>
-        public Single OutPoint;
+        public float OutPoint;
 
         /// <summary>
         /// Loop the animation
@@ -79,12 +79,12 @@ namespace OpenMetaverse
         /// <summary>
         /// Meta data. Ease in Seconds.
         /// </summary>
-        public Single EaseInTime;
+        public float EaseInTime;
 
         /// <summary>
         /// Meta data. Ease out seconds.
         /// </summary>
-        public Single EaseOutTime;
+        public float EaseOutTime;
 
         /// <summary>
         /// Meta Data for the Hand Pose

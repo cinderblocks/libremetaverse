@@ -8,7 +8,7 @@ namespace Mapgenerator
     {
         static void WriteFieldMember(TextWriter writer, MapField field)
         {
-            string type = String.Empty;
+            string type = string.Empty;
 
             switch (field.Type)
             {

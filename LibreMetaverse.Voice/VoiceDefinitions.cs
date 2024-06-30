@@ -132,7 +132,7 @@ namespace LibreMetaverse.Voice
             public VoiceLoggingSettings()
             {
                 Enabled = false;
-                Folder = String.Empty;
+                Folder = string.Empty;
                 FileNamePrefix = "Connector";
                 FileNameSuffix = ".log";
                 LogLevel = 0;

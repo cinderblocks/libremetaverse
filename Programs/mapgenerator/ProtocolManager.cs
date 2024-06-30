@@ -503,9 +503,9 @@ namespace Mapgenerator
 								if (tokens[2].Length > 2 && tokens[2].Substring(0, 2) == "0x")
 								{
 									tokens[2] = tokens[2].Substring(2, tokens[2].Length - 2);
-									packetID = UInt32.Parse(tokens[2], System.Globalization.NumberStyles.HexNumber);
+									packetID = uint.Parse(tokens[2], System.Globalization.NumberStyles.HexNumber);
 								} else {
-									packetID = UInt32.Parse(tokens[2]);	
+									packetID = uint.Parse(tokens[2]);	
 								}
 										
 
@@ -597,7 +597,7 @@ namespace Mapgenerator
 							field.KeywordPosition = KeywordPosition(field.Name);
 							field.Type = (FieldType)Enum.Parse(typeof(FieldType), tokens[2], true);
 
-							field.Count = tokens[3] != "}" ? Int32.Parse(tokens[3]) : 1;
+							field.Count = tokens[3] != "}" ? int.Parse(tokens[3]) : 1;
 
 							// Save this field to the current block
 							currentBlock.Fields.Add(field);
@@ -630,7 +630,7 @@ namespace Mapgenerator
 							}
 							else if (tokens[1] == "Multiple")
 							{
-								currentBlock.Count = Int32.Parse(tokens[2]);
+								currentBlock.Count = int.Parse(tokens[2]);
 							}
 							else if (tokens[1] == "Variable")
 							{

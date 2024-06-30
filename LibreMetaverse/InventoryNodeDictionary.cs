@@ -57,7 +57,7 @@ namespace OpenMetaverse
                 if (d1.Name != null)
                 {
                     // both are not null.. due to NullCompare code
-                    diff = String.Compare(d1.Name, d2.Name, StringComparison.Ordinal);
+                    diff = string.Compare(d1.Name, d2.Name, StringComparison.Ordinal);
                     if (diff != 0) return diff;
                 }
             }

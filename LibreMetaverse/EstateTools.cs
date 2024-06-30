@@ -640,7 +640,7 @@ namespace OpenMetaverse
             Client.Assets.SetPendingAssetUploadData(upload);
 
             // Create and populate a list with commands specific to uploading a raw terrain file
-            List<String> paramList = new List<string>();
+            List<string> paramList = new List<string>();
             paramList.Add("upload filename");
             paramList.Add(fileName);
 
@@ -1156,7 +1156,7 @@ namespace OpenMetaverse
         /// <summary>
         /// The Estate name
         /// </summary>
-        public String EstateName { get; }
+        public string EstateName { get; }
 
         /// <summary>
         /// The Estate Owner's ID (can be a GroupID)
@@ -1185,7 +1185,7 @@ namespace OpenMetaverse
         /// <summary>
         /// The estate's name
         /// </summary>
-        public String EstateName { get; }
+        public string EstateName { get; }
 
         /// <summary>
         /// The Estate Owner's ID (can be a GroupID)

@@ -117,7 +117,7 @@ namespace OpenMetaverse.StructuredData
         {
             StringWriter writer = new StringWriter();
 
-            string indent = String.Empty;
+            string indent = string.Empty;
             SerializeLLSDNotationElementFormatted(writer, indent, osd);
             return writer;
         }
@@ -181,7 +181,7 @@ namespace OpenMetaverse.StructuredData
                     if (reader.Read(uuidBuf, 0, 36) < 36)
                         throw new OSDException("Notation LLSD parsing: Unexpected end of stream in UUID.");
                     UUID lluuid;
-                    if (!UUID.TryParse(new String(uuidBuf), out lluuid))
+                    if (!UUID.TryParse(new string(uuidBuf), out lluuid))
                         throw new OSDException("Notation LLSD parsing: Invalid UUID discovered.");
                     osd = OSD.FromUUID(lluuid);
                     break;
@@ -194,13 +194,13 @@ namespace OpenMetaverse.StructuredData
                     {
                         throw new OSDException("Notation LLSD parsing: Raw binary encoding not supported.");
                     }
-                    else if (Char.IsDigit((char)bChar))
+                    else if (char.IsDigit((char)bChar))
                     {
                         char[] charsBaseEncoding = new char[2];
                         if (reader.Read(charsBaseEncoding, 0, 2) < 2)
                             throw new OSDException("Notation LLSD parsing: Unexpected end of stream in binary.");
                         int baseEncoding;
-                        if (!Int32.TryParse(new String(charsBaseEncoding), out baseEncoding))
+                        if (!int.TryParse(new string(charsBaseEncoding), out baseEncoding))
                             throw new OSDException("Notation LLSD parsing: Invalid binary encoding base.");
                         if (baseEncoding == 64)
                         {
@@ -225,7 +225,7 @@ namespace OpenMetaverse.StructuredData
                         throw new OSDException("Notation LLSD parsing: Unexpected end of stream in string.");
                     if (reader.Read() < 0)
                         throw new OSDException("Notation LLSD parsing: Unexpected end of stream in string.");
-                    osd = OSD.FromString(new String(chars));
+                    osd = OSD.FromString(new string(chars));
                     break;
                 case singleQuotesNotationMarker:
                     string sOne = GetStringDelimitedBy(reader, singleQuotesNotationMarker);
@@ -283,13 +283,13 @@ namespace OpenMetaverse.StructuredData
             }
 
             while ((character = reader.Peek()) > 0 &&
-                           Char.IsDigit((char)character))
+                           char.IsDigit((char)character))
             {
                 s.Append((char)character);
                 reader.Read();
             }
             int integer;
-            if (!Int32.TryParse(s.ToString(), out integer))
+            if (!int.TryParse(s.ToString(), out integer))
                 throw new OSDException("Notation LLSD parsing: Can't parse integer value." + s);
 
             return OSD.FromInteger(integer);
@@ -306,7 +306,7 @@ namespace OpenMetaverse.StructuredData
                 reader.Read();
             }
             while (((character = reader.Peek()) > 0) &&
-                   (Char.IsDigit((char)character) || (char)character == '.' ||
+                   (char.IsDigit((char)character) || (char)character == '.' ||
                     (char)character == 'e' || (char)character == 'E' ||
                     (char)character == '+' || (char)character == '-'))
             {
@@ -636,7 +636,7 @@ namespace OpenMetaverse.StructuredData
                 reader.Read();
             }
             while (((character = reader.Read()) > 0) &&
-                    Char.IsDigit((char)character) &&
+                    char.IsDigit((char)character) &&
                   ((char)character != sizeEndNotationMarker))
             {
                 s.Append((char)character);
@@ -644,7 +644,7 @@ namespace OpenMetaverse.StructuredData
             if (character < 0)
                 throw new OSDException("Notation LLSD parsing: Can't parse length value cause unexpected end of stream.");
             int length;
-            if (!Int32.TryParse(s.ToString(), out length))
+            if (!int.TryParse(s.ToString(), out length))
                 throw new OSDException("Notation LLSD parsing: Can't parse length value.");
 
             return length;
@@ -747,12 +747,12 @@ namespace OpenMetaverse.StructuredData
         /// <param name="s"></param>
         /// <param name="c"></param>
         /// <returns></returns>
-        public static string UnescapeCharacter(String s, char c)
+        public static string UnescapeCharacter(string s, char c)
         {
             string oldOne = "\\" + c;
-            string newOne = new String(c, 1);
+            string newOne = new string(c, 1);
 
-            String sOne = s.Replace(@"\\", "\\").Replace(oldOne, newOne);
+            string sOne = s.Replace(@"\\", "\\").Replace(oldOne, newOne);
             return sOne;
         }
 
@@ -762,12 +762,12 @@ namespace OpenMetaverse.StructuredData
         /// <param name="s"></param>
         /// <param name="c"></param>
         /// <returns></returns>
-        public static string EscapeCharacter(String s, char c)
+        public static string EscapeCharacter(string s, char c)
         {
-            string oldOne = new String(c, 1);
+            string oldOne = new string(c, 1);
             string newOne = "\\" + c;
 
-            String sOne = s.Replace("\\", @"\\").Replace(oldOne, newOne);
+            string sOne = s.Replace("\\", @"\\").Replace(oldOne, newOne);
             return sOne;
         }
     }

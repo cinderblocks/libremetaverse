@@ -214,7 +214,7 @@ public class ClientAO : ProxyPlugin
             }            
             // add a delegate to monitor inventory infos
             proxy.AddDelegate(PacketType.InventoryDescendents, Direction.Incoming, this.inventoryPacketDelegate);            
-            RequestFindObjectByPath(frame.InventoryRoot, String.Join(" ", tmp));
+            RequestFindObjectByPath(frame.InventoryRoot, string.Join(" ", tmp));
         }
     }
 
@@ -642,7 +642,7 @@ public class ClientAO : ProxyPlugin
         byte[] tmp = new byte[downloadedbytes];
         Buffer.BlockCopy(buffer, 0, tmp, 0, downloadedbytes);
         buffer = tmp;       
-        String notecardtext = getNotecardText(Utils.BytesToString(buffer));        
+        string notecardtext = getNotecardText(Utils.BytesToString(buffer));        
 
         //Load config, wetikon format
         loadWetIkon(notecardtext);

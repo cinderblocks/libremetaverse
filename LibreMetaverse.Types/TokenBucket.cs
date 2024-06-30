@@ -113,7 +113,7 @@ namespace OpenMetaverse
             this.parent = parent;
             MaxBurst = maxBurst;
             DripRate = dripRate;
-            lastDrip = Environment.TickCount & Int32.MaxValue;
+            lastDrip = Environment.TickCount & int.MaxValue;
         }
 
         /// <summary>
@@ -175,7 +175,7 @@ namespace OpenMetaverse
             }
             else
             {
-                int now = Environment.TickCount & Int32.MaxValue;
+                int now = Environment.TickCount & int.MaxValue;
                 int deltaMS = now - lastDrip;
 
                 if (deltaMS <= 0)

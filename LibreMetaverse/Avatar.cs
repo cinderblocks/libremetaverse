@@ -381,8 +381,8 @@ namespace OpenMetaverse
                 {
                     lock (NameValues)
                     {
-                        string firstName = String.Empty;
-                        string lastName = String.Empty;
+                        string firstName = string.Empty;
+                        string lastName = string.Empty;
 
                         for (int i = 0; i < NameValues.Length; i++)
                         {
@@ -392,7 +392,7 @@ namespace OpenMetaverse
                                 lastName = (string)NameValues[i].Value;
                         }
 
-                        if (firstName != string.Empty && lastName != String.Empty)
+                        if (firstName != string.Empty && lastName != string.Empty)
                         {
                             name = $"{firstName} {lastName}";
                             return name;

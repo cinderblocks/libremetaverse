@@ -311,7 +311,7 @@ namespace OpenMetaverse
         public static Vector3d Normalize(Vector3d value)
         {
             double factor = Distance(value, Zero);
-            if (factor > Double.Epsilon)
+            if (factor > double.Epsilon)
             {
                 factor = 1d / factor;
                 value.X *= factor;
@@ -335,11 +335,11 @@ namespace OpenMetaverse
         public static Vector3d Parse(string val)
         {
             char[] splitChar = { ',' };
-            string[] split = val.Replace("<", String.Empty).Replace(">", String.Empty).Split(splitChar);
+            string[] split = val.Replace("<", string.Empty).Replace(">", string.Empty).Split(splitChar);
             return new Vector3d(
-                Double.Parse(split[0].Trim(), Utils.EnUsCulture),
-                Double.Parse(split[1].Trim(), Utils.EnUsCulture),
-                Double.Parse(split[2].Trim(), Utils.EnUsCulture));
+                double.Parse(split[0].Trim(), Utils.EnUsCulture),
+                double.Parse(split[1].Trim(), Utils.EnUsCulture),
+                double.Parse(split[2].Trim(), Utils.EnUsCulture));
         }
 
         public static bool TryParse(string val, out Vector3d result)
@@ -400,7 +400,7 @@ namespace OpenMetaverse
         /// <returns>A string representation of the vector</returns>
         public override string ToString()
         {
-            return String.Format(Utils.EnUsCulture, "<{0}, {1}, {2}>", X, Y, Z);
+            return string.Format(Utils.EnUsCulture, "<{0}, {1}, {2}>", X, Y, Z);
         }
 
         /// <summary>
@@ -413,7 +413,7 @@ namespace OpenMetaverse
             CultureInfo enUs = new CultureInfo("en-us");
             enUs.NumberFormat.NumberDecimalDigits = 3;
 
-            return String.Format(enUs, "{0} {1} {2}", X, Y, Z);
+            return string.Format(enUs, "{0} {1} {2}", X, Y, Z);
         }
 
         #endregion Overrides

@@ -188,7 +188,7 @@ namespace OpenMetaverse.Rendering
                 using (EndianAwareBinaryReader reader = new EndianAwareBinaryReader(meshStream))
                 {
                     Header = TrimAt0(reader.ReadString(24));
-                    if (!String.Equals(Header, MeshHeader))
+                    if (!string.Equals(Header, MeshHeader))
                         throw new FileLoadException("Unrecognized mesh format");
 
                     // Populate base mesh parameters
@@ -232,7 +232,7 @@ namespace OpenMetaverse.Rendering
                 BitPack input = new BitPack(buffer, 0);
 
                 _header = TrimAt0(input.UnpackString(24));
-                if (!String.Equals(_header, MeshHeader))
+                if (!string.Equals(_header, MeshHeader))
                     return;
 
                 // Populate base mesh variables
@@ -309,7 +309,7 @@ namespace OpenMetaverse.Rendering
             using (EndianAwareBinaryReader reader = new EndianAwareBinaryReader(meshData))
             {
                 Header = TrimAt0(reader.ReadString(24));
-                if (!String.Equals(Header, MeshHeader))
+                if (!string.Equals(Header, MeshHeader))
                     throw new FileLoadException("Unrecognized mesh format");
 
                 // Populate base mesh parameters

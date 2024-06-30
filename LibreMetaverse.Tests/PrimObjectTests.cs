@@ -123,7 +123,7 @@ namespace LibreMetaverse.Tests
                 float foffset = Helpers.TEOffsetFloat(BitConverter.GetBytes(offset), 0);
                 foffset = (float)Math.Round(foffset, 3);
 
-                Assert.IsTrue(foffset - i < Single.Epsilon, foffset + " is not equal to " + i);
+                Assert.IsTrue(foffset - i < float.Epsilon, foffset + " is not equal to " + i);
             }
         }
 

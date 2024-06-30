@@ -36,9 +36,9 @@ namespace OpenMetaverse.Assets
     public abstract class AssetWearable : Asset
     {
         /// <summary>A string containing the name of the asset</summary>
-        public string Name = String.Empty;
+        public string Name = string.Empty;
         /// <summary>A string containing a short description of the asset</summary>
-        public string Description = String.Empty;
+        public string Description = string.Empty;
         /// <summary>The Assets WearableType</summary>
         public WearableType WearableType = WearableType.Shape;
         /// <summary>The For-Sale status of the object</summary>
@@ -86,7 +86,7 @@ namespace OpenMetaverse.Assets
             {
                 string data = Utils.BytesToString(AssetData);
 
-                data = data.Replace("\r", String.Empty);
+                data = data.Replace("\r", string.Empty);
                 string[] lines = data.Split('\n');
                 for (int stri = 0; stri < lines.Length; stri++)
                 {
@@ -94,9 +94,9 @@ namespace OpenMetaverse.Assets
                     {
                         string versionstring = lines[stri];
                         if (versionstring.Split(' ').Length == 1)
-                            version = Int32.Parse(versionstring);
+                            version = int.Parse(versionstring);
                         else
-                            version = Int32.Parse(versionstring.Split(' ')[2]);
+                            version = int.Parse(versionstring.Split(' ')[2]);
                         if (version != 22 && version != 18 && version != 16 && version != 15)
                             return false;
                     }
@@ -118,7 +118,7 @@ namespace OpenMetaverse.Assets
                             fields = line.Split(' ');
                             if (fields[0] == "parameters")
                             {
-                                int count = Int32.Parse(fields[1]) + stri;
+                                int count = int.Parse(fields[1]) + stri;
                                 for (; stri < count; )
                                 {
                                     stri++;
@@ -129,7 +129,7 @@ namespace OpenMetaverse.Assets
 
                                     // Special handling for -0 edge case
                                     if (fields[0] != "-0")
-                                        id = Int32.Parse(fields[0]);
+                                        id = int.Parse(fields[0]);
 
                                     if (fields[1] == ",")
                                         fields[1] = "0";
@@ -144,14 +144,14 @@ namespace OpenMetaverse.Assets
                             }
                             else if (fields[0] == "textures")
                             {
-                                int count = Int32.Parse(fields[1]) + stri;
+                                int count = int.Parse(fields[1]) + stri;
                                 for (; stri < count; )
                                 {
                                     stri++;
                                     line = lines[stri].Trim();
                                     fields = line.Split(' ');
 
-                                    AvatarTextureIndex id = (AvatarTextureIndex)Int32.Parse(fields[0]);
+                                    AvatarTextureIndex id = (AvatarTextureIndex)int.Parse(fields[0]);
                                     UUID texture = new UUID(fields[1]);
 
                                     Textures[id] = texture;
@@ -159,7 +159,7 @@ namespace OpenMetaverse.Assets
                             }
                             else if (fields[0] == "type")
                             {
-                                WearableType = (WearableType)Int32.Parse(fields[1]);
+                                WearableType = (WearableType)int.Parse(fields[1]);
                             }
 
                         }
@@ -169,22 +169,22 @@ namespace OpenMetaverse.Assets
                             {
                                 case "creator_mask":
                                     // Deprecated, apply this as the base mask
-                                    Permissions.BaseMask = (PermissionMask)UInt32.Parse(fields[1], System.Globalization.NumberStyles.HexNumber);
+                                    Permissions.BaseMask = (PermissionMask)uint.Parse(fields[1], System.Globalization.NumberStyles.HexNumber);
                                     break;
                                 case "base_mask":
-                                    Permissions.BaseMask = (PermissionMask)UInt32.Parse(fields[1], System.Globalization.NumberStyles.HexNumber);
+                                    Permissions.BaseMask = (PermissionMask)uint.Parse(fields[1], System.Globalization.NumberStyles.HexNumber);
                                     break;
                                 case "owner_mask":
-                                    Permissions.OwnerMask = (PermissionMask)UInt32.Parse(fields[1], System.Globalization.NumberStyles.HexNumber);
+                                    Permissions.OwnerMask = (PermissionMask)uint.Parse(fields[1], System.Globalization.NumberStyles.HexNumber);
                                     break;
                                 case "group_mask":
-                                    Permissions.GroupMask = (PermissionMask)UInt32.Parse(fields[1], System.Globalization.NumberStyles.HexNumber);
+                                    Permissions.GroupMask = (PermissionMask)uint.Parse(fields[1], System.Globalization.NumberStyles.HexNumber);
                                     break;
                                 case "everyone_mask":
-                                    Permissions.EveryoneMask = (PermissionMask)UInt32.Parse(fields[1], System.Globalization.NumberStyles.HexNumber);
+                                    Permissions.EveryoneMask = (PermissionMask)uint.Parse(fields[1], System.Globalization.NumberStyles.HexNumber);
                                     break;
                                 case "next_owner_mask":
-                                    Permissions.NextOwnerMask = (PermissionMask)UInt32.Parse(fields[1], System.Globalization.NumberStyles.HexNumber);
+                                    Permissions.NextOwnerMask = (PermissionMask)uint.Parse(fields[1], System.Globalization.NumberStyles.HexNumber);
                                     break;
                                 case "creator_id":
                                     Creator = new UUID(fields[1]);
@@ -199,20 +199,20 @@ namespace OpenMetaverse.Assets
                                     Group = new UUID(fields[1]);
                                     break;
                                 case "group_owned":
-                                    GroupOwned = (Int32.Parse(fields[1]) != 0);
+                                    GroupOwned = (int.Parse(fields[1]) != 0);
                                     break;
                                 case "sale_type":
                                     ForSale = Utils.StringToSaleType(fields[1]);
                                     break;
                                 case "sale_price":
-                                    SalePrice = Int32.Parse(fields[1]);
+                                    SalePrice = int.Parse(fields[1]);
                                     break;
                                 case "sale_info":
                                     // Container for sale_type and sale_price, ignore
                                     break;
                                 case "perm_mask":
                                     // Deprecated, apply this as the next owner mask
-                                    Permissions.NextOwnerMask = (PermissionMask)UInt32.Parse(fields[1], System.Globalization.NumberStyles.HexNumber);
+                                    Permissions.NextOwnerMask = (PermissionMask)uint.Parse(fields[1], System.Globalization.NumberStyles.HexNumber);
                                     break;
                                 default:
                                     return false;

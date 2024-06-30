@@ -763,7 +763,7 @@ namespace OpenMetaverse
         {
             if (handleDirty)
             {
-                if (String.IsNullOrEmpty(hexString))
+                if (string.IsNullOrEmpty(hexString))
                     return EmptyBytes;
 
                 StringBuilder stripped = new StringBuilder(hexString.Length);

@@ -81,7 +81,7 @@ namespace LibreMetaverse.Tests
         [Test()]
         public void DeserializeUndef()
         {
-            String s = "!";
+            string s = "!";
             OSD llsd = OSDParser.DeserializeLLSDNotation(s);
             Assert.AreEqual(OSDType.Unknown, llsd.Type);
         }
@@ -99,52 +99,52 @@ namespace LibreMetaverse.Tests
         [Test()]
         public void DeserializeBoolean()
         {
-            String t = "true";
+            string t = "true";
             OSD llsdT = OSDParser.DeserializeLLSDNotation(t);
             Assert.AreEqual(OSDType.Boolean, llsdT.Type);
             Assert.AreEqual(true, llsdT.AsBoolean());
 
-            String tTwo = "t";
+            string tTwo = "t";
             OSD llsdTTwo = OSDParser.DeserializeLLSDNotation(tTwo);
             Assert.AreEqual(OSDType.Boolean, llsdTTwo.Type);
             Assert.AreEqual(true, llsdTTwo.AsBoolean());
 
-            String tThree = "TRUE";
+            string tThree = "TRUE";
             OSD llsdTThree = OSDParser.DeserializeLLSDNotation(tThree);
             Assert.AreEqual(OSDType.Boolean, llsdTThree.Type);
             Assert.AreEqual(true, llsdTThree.AsBoolean());
 
-            String tFour = "T";
+            string tFour = "T";
             OSD llsdTFour = OSDParser.DeserializeLLSDNotation(tFour);
             Assert.AreEqual(OSDType.Boolean, llsdTFour.Type);
             Assert.AreEqual(true, llsdTFour.AsBoolean());
 
-            String tFive = "1";
+            string tFive = "1";
             OSD llsdTFive = OSDParser.DeserializeLLSDNotation(tFive);
             Assert.AreEqual(OSDType.Boolean, llsdTFive.Type);
             Assert.AreEqual(true, llsdTFive.AsBoolean());
 
-            String f = "false";
+            string f = "false";
             OSD llsdF = OSDParser.DeserializeLLSDNotation(f);
             Assert.AreEqual(OSDType.Boolean, llsdF.Type);
             Assert.AreEqual(false, llsdF.AsBoolean());
 
-            String fTwo = "f";
+            string fTwo = "f";
             OSD llsdFTwo = OSDParser.DeserializeLLSDNotation(fTwo);
             Assert.AreEqual(OSDType.Boolean, llsdFTwo.Type);
             Assert.AreEqual(false, llsdFTwo.AsBoolean());
 
-            String fThree = "FALSE";
+            string fThree = "FALSE";
             OSD llsdFThree = OSDParser.DeserializeLLSDNotation(fThree);
             Assert.AreEqual(OSDType.Boolean, llsdFThree.Type);
             Assert.AreEqual(false, llsdFThree.AsBoolean());
 
-            String fFour = "F";
+            string fFour = "F";
             OSD llsdFFour = OSDParser.DeserializeLLSDNotation(fFour);
             Assert.AreEqual(OSDType.Boolean, llsdFFour.Type);
             Assert.AreEqual(false, llsdFFour.AsBoolean());
 
-            String fFive = "0";
+            string fFive = "0";
             OSD llsdFFive = OSDParser.DeserializeLLSDNotation(fFive);
             Assert.AreEqual(OSDType.Boolean, llsdFFive.Type);
             Assert.AreEqual(false, llsdFFive.AsBoolean());
@@ -199,27 +199,27 @@ namespace LibreMetaverse.Tests
         [Test()]
         public void DeserializeReal()
         {
-            String realOne = "r1123412345.465711";
+            string realOne = "r1123412345.465711";
             OSD llsdOne = OSDParser.DeserializeLLSDNotation(realOne);
             Assert.AreEqual(OSDType.Real, llsdOne.Type);
             Assert.AreEqual(1123412345.465711d, llsdOne.AsReal());
 
-            String realTwo = "r-11234684.923411";
+            string realTwo = "r-11234684.923411";
             OSD llsdTwo = OSDParser.DeserializeLLSDNotation(realTwo);
             Assert.AreEqual(OSDType.Real, llsdTwo.Type);
             Assert.AreEqual(-11234684.923411d, llsdTwo.AsReal());
 
-            String realThree = "r1";
+            string realThree = "r1";
             OSD llsdThree = OSDParser.DeserializeLLSDNotation(realThree);
             Assert.AreEqual(OSDType.Real, llsdThree.Type);
             Assert.AreEqual(1d, llsdThree.AsReal());
 
-            String realFour = "r2.0193899999999998204e-06";
+            string realFour = "r2.0193899999999998204e-06";
             OSD llsdFour = OSDParser.DeserializeLLSDNotation(realFour);
             Assert.AreEqual(OSDType.Real, llsdFour.Type);
             Assert.AreEqual(2.0193899999999998204e-06d, llsdFour.AsReal());
 
-            String realFive = "r0";
+            string realFive = "r0";
             OSD llsdFive = OSDParser.DeserializeLLSDNotation(realFive);
             Assert.AreEqual(OSDType.Real, llsdFive.Type);
             Assert.AreEqual(0d, llsdFive.AsReal());
@@ -240,17 +240,17 @@ namespace LibreMetaverse.Tests
             Assert.AreEqual(OSDType.Real, llsdTwoDS.Type);
             Assert.AreEqual(-32347892.234234d, llsdTwoDS.AsReal());
 
-            OSD llsdThree = OSD.FromReal( Double.MaxValue );
+            OSD llsdThree = OSD.FromReal( double.MaxValue );
             string sThree = OSDParser.SerializeLLSDNotation( llsdThree );
             OSD llsdThreeDS = OSDParser.DeserializeLLSDNotation( sThree );
             Assert.AreEqual( OSDType.Real, llsdThreeDS.Type );
-            Assert.AreEqual( Double.MaxValue, llsdThreeDS.AsReal());
+            Assert.AreEqual( double.MaxValue, llsdThreeDS.AsReal());
         
-            OSD llsdFour = OSD.FromReal(Double.MinValue);
+            OSD llsdFour = OSD.FromReal(double.MinValue);
             string sFour = OSDParser.SerializeLLSDNotation(llsdFour);
             OSD llsdFourDS = OSDParser.DeserializeLLSDNotation(sFour);
             Assert.AreEqual(OSDType.Real, llsdFourDS.Type);
-            Assert.AreEqual(Double.MinValue, llsdFourDS.AsReal());
+            Assert.AreEqual(double.MinValue, llsdFourDS.AsReal());
 
             OSD llsdFive = OSD.FromReal(-1.1123123E+50d);
             string sFive = OSDParser.SerializeLLSDNotation(llsdFive);
@@ -268,12 +268,12 @@ namespace LibreMetaverse.Tests
         [Test()]
         public void DeserializeUUID()
         {
-            String uuidOne = "u97f4aeca-88a1-42a1-b385-b97b18abb255";
+            string uuidOne = "u97f4aeca-88a1-42a1-b385-b97b18abb255";
             OSD llsdOne = OSDParser.DeserializeLLSDNotation(uuidOne);
             Assert.AreEqual(OSDType.UUID, llsdOne.Type);
             Assert.AreEqual("97f4aeca-88a1-42a1-b385-b97b18abb255", llsdOne.AsString());
 
-            String uuidTwo = "u00000000-0000-0000-0000-000000000000";
+            string uuidTwo = "u00000000-0000-0000-0000-000000000000";
             OSD llsdTwo = OSDParser.DeserializeLLSDNotation(uuidTwo);
             Assert.AreEqual(OSDType.UUID, llsdTwo.Type);
             Assert.AreEqual("00000000-0000-0000-0000-000000000000", llsdTwo.AsString());
@@ -323,7 +323,7 @@ namespace LibreMetaverse.Tests
             Assert.AreEqual("aa\t la", llsdFour.AsString());
 
             char[] cFive = { (char)0x27, (char)0x5c, (char)0x5c, (char)0x27 };
-            string sFive = new String(cFive);
+            string sFive = new string(cFive);
             OSD llsdFive = OSDParser.DeserializeLLSDNotation(sFive);
             Assert.AreEqual(OSDType.String, llsdFive.Type);
             Assert.AreEqual("\\", llsdFive.AsString());

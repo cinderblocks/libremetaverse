@@ -63,7 +63,7 @@ namespace OpenMetaverse.Assets
         /// </summary>
         public override void Encode()
         {
-            string body = BodyText ?? String.Empty;
+            string body = BodyText ?? string.Empty;
 
             StringBuilder output = new StringBuilder();
             output.Append("Linden text version 2\n");

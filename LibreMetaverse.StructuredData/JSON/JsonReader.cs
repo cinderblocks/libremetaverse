@@ -246,7 +246,7 @@ namespace LitJson
                 number.IndexOf ('E') != -1) {
 
                 double n_double;
-                if (Double.TryParse (number, out n_double)) {
+                if (double.TryParse (number, out n_double)) {
                     Token = JsonToken.Double;
                     Value = n_double;
 
@@ -255,7 +255,7 @@ namespace LitJson
             }
 
             int n_int32;
-            if (Int32.TryParse (number, out n_int32)) {
+            if (int.TryParse (number, out n_int32)) {
                 Token = JsonToken.Int;
                 Value = n_int32;
 
@@ -263,7 +263,7 @@ namespace LitJson
             }
 
             long n_int64;
-            if (Int64.TryParse (number, out n_int64)) {
+            if (long.TryParse (number, out n_int64)) {
                 Token = JsonToken.Long;
                 Value = n_int64;
 

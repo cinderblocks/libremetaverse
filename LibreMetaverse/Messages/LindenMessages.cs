@@ -155,7 +155,7 @@ namespace OpenMetaverse.Messages.Linden
 
             AgentID = map["agent-id"].AsUUID();
             Address = IPAddress.Parse(ipAndPort.Substring(0, i));
-            Port = Int32.Parse(ipAndPort.Substring(i + 1));
+            Port = int.Parse(ipAndPort.Substring(i + 1));
             SeedCapability = map["seed-capability"].AsUri();
         }
     }

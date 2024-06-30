@@ -658,7 +658,7 @@ namespace GridProxy
             }
 
             byte[] respBuf = null;
-            string consoleMsg = String.Empty;
+            string consoleMsg = string.Empty;
 
             if (shortCircuit)
             {
@@ -910,7 +910,7 @@ namespace GridProxy
                 {
                     string val = m[key].AsString();
 
-                    if (!String.IsNullOrEmpty(val))
+                    if (!string.IsNullOrEmpty(val))
                     {
                         if (!KnownCaps.ContainsKey(val))
                         {

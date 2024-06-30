@@ -378,28 +378,28 @@ namespace OpenMetaverse
             "Sounds",           //  1
             "Calling Cards",    //  2
             "Landmarks",        //  3
-            String.Empty,       //  4
+            string.Empty,       //  4
             "Clothing",         //  5
             "Objects",          //  6
             "Notecards",        //  7
             "My Inventory",     //  8
-            String.Empty,       //  9
+            string.Empty,       //  9
             "Scripts",          // 10
-            String.Empty,       // 11
-            String.Empty,       // 12
+            string.Empty,       // 11
+            string.Empty,       // 12
             "Body Parts",       // 13
             "Trash",            // 14
             "Photo Album",      // 15
             "Lost And Found",   // 16
-            String.Empty,       // 17
-            String.Empty,       // 18
-            String.Empty,       // 19
+            string.Empty,       // 17
+            string.Empty,       // 18
+            string.Empty,       // 19
             "Animations",       // 20
             "Gestures",         // 21
-            String.Empty,       // 22
+            string.Empty,       // 22
             "Favorites",        // 23
-            String.Empty,       // 24
-            String.Empty,       // 25
+            string.Empty,       // 24
+            string.Empty,       // 25
             "New Folder",       // 26
             "New Folder",       // 27
             "New Folder",       // 28
@@ -1292,7 +1292,7 @@ namespace OpenMetaverse
         /// <param name="folderID">The <seealso cref="UUID"/> of the destination folder</param>
         public void MoveItem(UUID itemID, UUID folderID)
         {
-            MoveItem(itemID, folderID, String.Empty);
+            MoveItem(itemID, folderID, string.Empty);
         }
 
         /// <summary>
@@ -1685,7 +1685,7 @@ namespace OpenMetaverse
             UUID id = UUID.Random();
 
             // Assign a folder name if one is not already set
-            if (String.IsNullOrEmpty(name))
+            if (string.IsNullOrEmpty(name))
             {
                 if (preferredType >= FolderType.Texture && preferredType <= FolderType.MarkplaceStock)
                 {
@@ -1980,7 +1980,7 @@ namespace OpenMetaverse
                     NewFolderID = targetFolders[i],
                     OldAgentID = oldOwnerID,
                     OldItemID = items[i],
-                    NewName = !String.IsNullOrEmpty(newNames?[i])
+                    NewName = !string.IsNullOrEmpty(newNames?[i])
                         ? Utils.StringToBytes(newNames[i])
                         : Utils.EmptyBytes
                 };
@@ -2772,7 +2772,7 @@ namespace OpenMetaverse
         /// if a timeout occurs</returns>
         /// <remarks>This request blocks until the response from the simulator arrives 
         /// or timeoutMS is exceeded</remarks>
-        public List<InventoryBase> GetTaskInventory(UUID objectID, UInt32 objectLocalID, Int32 timeoutMS)
+        public List<InventoryBase> GetTaskInventory(UUID objectID, uint objectLocalID, int timeoutMS)
         {
             string filename = null;
             AutoResetEvent taskReplyEvent = new AutoResetEvent(false);
@@ -2794,7 +2794,7 @@ namespace OpenMetaverse
             {
                 TaskInventoryReply -= Callback;
 
-                if (!String.IsNullOrEmpty(filename))
+                if (!string.IsNullOrEmpty(filename))
                 {
                     byte[] assetData = null;
                     ulong xferID = 0;
@@ -2818,7 +2818,7 @@ namespace OpenMetaverse
                     {
                         Client.Assets.XferReceived -= XferCallback;
 
-                        String taskList = Utils.BytesToString(assetData);
+                        string taskList = Utils.BytesToString(assetData);
                         return ParseTaskInventory(taskList);
                     }
                     else
@@ -3057,7 +3057,7 @@ namespace OpenMetaverse
         {
             lock (_CallbacksLock)
             {
-                if (_CallbackPos == UInt32.MaxValue)
+                if (_CallbackPos == uint.MaxValue)
                     _CallbackPos = 0;
 
                 _CallbackPos++;
@@ -3075,7 +3075,7 @@ namespace OpenMetaverse
         {
             lock (_CallbacksLock)
             {
-                if (_CallbackPos == UInt32.MaxValue)
+                if (_CallbackPos == uint.MaxValue)
                     _CallbackPos = 0;
 
                 _CallbackPos++;
@@ -3206,7 +3206,7 @@ namespace OpenMetaverse
             else if (line.Length == 1)
             {
                 key = line;
-                value = String.Empty;
+                value = string.Empty;
                 return true;
             }
 
@@ -3238,7 +3238,7 @@ namespace OpenMetaverse
                         // In practice this appears to only be used for folders
                         UUID itemID = UUID.Zero;
                         UUID parentID = UUID.Zero;
-                        string name = String.Empty;
+                        string name = string.Empty;
                         AssetType assetType = AssetType.Unknown;
 
                         while (lineNum < lines.Length)
@@ -3309,8 +3309,8 @@ namespace OpenMetaverse
                         UUID lastOwnerID = UUID.Zero;
                         UUID groupID = UUID.Zero;
                         bool groupOwned = false;
-                        string name = String.Empty;
-                        string desc = String.Empty;
+                        string name = string.Empty;
+                        string desc = string.Empty;
                         AssetType assetType = AssetType.Unknown;
                         InventoryType inventoryType = InventoryType.Unknown;
                         DateTime creationDate = Utils.Epoch;
@@ -3411,7 +3411,7 @@ namespace OpenMetaverse
                                             else if (key == "group_owned")
                                             {
                                                 uint val;
-                                                if (UInt32.TryParse(value, out val))
+                                                if (uint.TryParse(value, out val))
                                                     groupOwned = (val != 0);
                                             }
                                         }
@@ -3441,7 +3441,7 @@ namespace OpenMetaverse
                                             }
                                             else if (key == "sale_price")
                                             {
-                                                Int32.TryParse(value, out salePrice);
+                                                int.TryParse(value, out salePrice);
                                             }
                                         }
                                     }
@@ -3468,7 +3468,7 @@ namespace OpenMetaverse
                                 }
                                 else if (key == "flags")
                                 {
-                                    UInt32.TryParse(value, out flags);
+                                    uint.TryParse(value, out flags);
                                 }
                                 else if (key == "name")
                                 {
@@ -3721,7 +3721,7 @@ namespace OpenMetaverse
             Logger.DebugLog($"Setting InventoryRoot to {replyData.InventoryRoot}", Client);
             InventoryFolder rootFolder = new InventoryFolder(replyData.InventoryRoot)
             {
-                Name = String.Empty,
+                Name = string.Empty,
                 ParentUUID = UUID.Zero
             };
             _Store.RootFolder = rootFolder;
@@ -4510,7 +4510,7 @@ namespace OpenMetaverse
 
     public class FindObjectByPathReplyEventArgs : EventArgs
     {
-        public String Path { get; }
+        public string Path { get; }
 
         public UUID InventoryObjectID { get; }
 
@@ -4553,9 +4553,9 @@ namespace OpenMetaverse
     {
         public UUID ItemID { get; }
 
-        public Int16 Serial { get; }
+        public short Serial { get; }
 
-        public String AssetFilename { get; }
+        public string AssetFilename { get; }
 
         public TaskInventoryReplyEventArgs(UUID itemID, short serial, string assetFilename)
         {

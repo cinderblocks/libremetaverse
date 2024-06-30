@@ -1022,7 +1022,7 @@ namespace OpenMetaverse
         /// </summary>
         public UUID StartPlacesSearch()
         {
-            return StartPlacesSearch(DirFindFlags.AgentOwned, ParcelCategory.Any, String.Empty, String.Empty,
+            return StartPlacesSearch(DirFindFlags.AgentOwned, ParcelCategory.Any, string.Empty, string.Empty,
                 UUID.Zero, UUID.Random());
         }
 
@@ -1033,7 +1033,7 @@ namespace OpenMetaverse
         /// <returns>Transaction (Query) ID which can be associated with results from your request.</returns>
         public UUID StartPlacesSearch(UUID groupID)
         {
-            return StartPlacesSearch(DirFindFlags.GroupOwned, ParcelCategory.Any, String.Empty, String.Empty, 
+            return StartPlacesSearch(DirFindFlags.GroupOwned, ParcelCategory.Any, string.Empty, string.Empty, 
                 groupID, UUID.Random());
         }
 
@@ -1045,7 +1045,7 @@ namespace OpenMetaverse
         public UUID StartPlacesSearch(string searchText)
         {
             return StartPlacesSearch(DirFindFlags.DwellSort | DirFindFlags.IncludePG | DirFindFlags.IncludeMature | DirFindFlags.IncludeAdult, 
-                ParcelCategory.Any, searchText, String.Empty, UUID.Zero, UUID.Random());
+                ParcelCategory.Any, searchText, string.Empty, UUID.Zero, UUID.Random());
         }
 
         /// <summary>

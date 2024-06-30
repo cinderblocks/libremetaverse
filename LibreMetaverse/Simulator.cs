@@ -270,9 +270,9 @@ namespace OpenMetaverse
         /// <summary>Simulator land size in Y direction in meters</summary>
         public uint SizeY;
         /// <summary>The current version of software this simulator is running</summary>
-        public string SimVersion = String.Empty;
+        public string SimVersion = string.Empty;
         /// <summary>Human readable name given to the simulator</summary>
-        public string Name = String.Empty;
+        public string Name = string.Empty;
         /// <summary>A 64x64 grid of parcel coloring values. The values stored 
         /// in this array are of the <seealso cref="ParcelArrayType"/> type</summary>
         public byte[] ParcelOverlay = new byte[4096];
@@ -1012,7 +1012,7 @@ namespace OpenMetaverse
         /// <returns>Simulator name as String</returns>
         public override string ToString()
         {
-            return !String.IsNullOrEmpty(Name)
+            return !string.IsNullOrEmpty(Name)
                 ? $"{Name} ({remoteEndPoint})"
                 : $"({remoteEndPoint})";
         }
@@ -1267,7 +1267,7 @@ namespace OpenMetaverse
                 {
                     if (Client.Settings.LOG_RESENDS)
                     {
-                        Logger.DebugLog(String.Format("Resending {2} packet #{0}, {1}ms have passed",
+                        Logger.DebugLog(string.Format("Resending {2} packet #{0}, {1}ms have passed",
                             outgoing.SequenceNumber, now - outgoing.TickCount, outgoing.Type), Client);
                     }
 
@@ -1286,7 +1286,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    Logger.DebugLog(String.Format("Dropping packet #{0} after {1} failed attempts",
+                    Logger.DebugLog(string.Format("Dropping packet #{0} after {1} failed attempts",
                         outgoing.SequenceNumber, outgoing.ResendCount));
 
                     lock (NeedAck) NeedAck.Remove(outgoing.SequenceNumber);

@@ -96,21 +96,21 @@ namespace LitJson
                 IDictionary<Type, ImporterFunc>> custom_importers_table;
 
         private static IDictionary<Type, ArrayMetadata> array_metadata;
-        private static readonly object array_metadata_lock = new Object ();
+        private static readonly object array_metadata_lock = new object ();
 
         private static IDictionary<Type,
                 IDictionary<Type, MethodInfo>> conv_ops;
-        private static readonly object conv_ops_lock = new Object ();
+        private static readonly object conv_ops_lock = new object ();
 
         private static IDictionary<Type, ObjectMetadata> object_metadata;
-        private static readonly object object_metadata_lock = new Object ();
+        private static readonly object object_metadata_lock = new object ();
 
         private static IDictionary<Type,
                 IList<PropertyMetadata>> type_properties;
-        private static readonly object type_properties_lock = new Object ();
+        private static readonly object type_properties_lock = new object ();
 
         private static JsonWriter      static_writer;
-        private static readonly object static_writer_lock = new Object ();
+        private static readonly object static_writer_lock = new object ();
         #endregion
 
 
@@ -346,7 +346,7 @@ namespace LitJson
                                            new object[] { reader.Value });
 
                 // No luck
-                throw new JsonException (String.Format (
+                throw new JsonException (string.Format (
                         "Can't assign value '{0}' (type {1}) to type {2}",
                         reader.Value, json_type, inst_type));
             }

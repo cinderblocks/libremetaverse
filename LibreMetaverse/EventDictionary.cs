@@ -182,7 +182,7 @@ namespace OpenMetaverse
             }
         }
 
-        private void ThreadPoolDelegate(Object state)
+        private void ThreadPoolDelegate(object state)
         {
             PacketCallbackWrapper wrapper = (PacketCallbackWrapper)state;
 
@@ -300,7 +300,7 @@ namespace OpenMetaverse
             Caps.EventQueueCallback callback;
 
             // Default handler first, if one exists
-            if (_EventTable.TryGetValue(String.Empty, out callback))
+            if (_EventTable.TryGetValue(string.Empty, out callback))
             {
                 callback?.Invoke(capsEvent, message, simulator);
             }

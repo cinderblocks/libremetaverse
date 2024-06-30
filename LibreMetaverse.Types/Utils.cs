@@ -181,7 +181,7 @@ namespace OpenMetaverse
         /// </summary>
         public static bool IsFinite(float value)
         {
-            return !(Single.IsNaN(value) || Single.IsInfinity(value));
+            return !(float.IsNaN(value) || float.IsInfinity(value));
         }
 
         /// <summary>
@@ -189,7 +189,7 @@ namespace OpenMetaverse
         /// </summary>
         public static bool IsFinite(double value)
         {
-            return !(Double.IsNaN(value) || Double.IsInfinity(value));
+            return !(double.IsNaN(value) || double.IsInfinity(value));
         }
 
         /// <summary>

@@ -78,7 +78,7 @@ namespace PacketDump
 
                     // Determine how long to run for
                     int start = Environment.TickCount;
-                    int milliseconds = Int32.Parse(args[3]) * 1000;
+                    int milliseconds = int.Parse(args[3]) * 1000;
                     bool forever = (milliseconds <= 0);
 
                     // Packet handling is done with asynchronous callbacks. Run a sleeping loop in the main

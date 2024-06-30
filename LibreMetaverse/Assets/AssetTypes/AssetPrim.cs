@@ -179,46 +179,46 @@ namespace OpenMetaverse.Assets
             reader.ReadStartElement("SceneObjectPart");
 
             if (reader.Name == "AllowedDrop")
-                obj.AllowedDrop = reader.ReadElementContentAsBoolean("AllowedDrop", String.Empty);
+                obj.AllowedDrop = reader.ReadElementContentAsBoolean("AllowedDrop", string.Empty);
             else
                 obj.AllowedDrop = true;
 
             obj.CreatorID = ReadUUID(reader, "CreatorID");
             obj.FolderID = ReadUUID(reader, "FolderID");
-            obj.Inventory.Serial = reader.ReadElementContentAsInt("InventorySerial", String.Empty);
+            obj.Inventory.Serial = reader.ReadElementContentAsInt("InventorySerial", string.Empty);
 
             #region Task Inventory
 
             List<PrimObject.InventoryBlock.ItemBlock> invItems = new List<PrimObject.InventoryBlock.ItemBlock>();
 
-            reader.ReadStartElement("TaskInventory", String.Empty);
+            reader.ReadStartElement("TaskInventory", string.Empty);
             while (reader.Name == "TaskInventoryItem")
             {
                 PrimObject.InventoryBlock.ItemBlock item = new PrimObject.InventoryBlock.ItemBlock();
-                reader.ReadStartElement("TaskInventoryItem", String.Empty);
+                reader.ReadStartElement("TaskInventoryItem", string.Empty);
 
                 item.AssetID = ReadUUID(reader, "AssetID");
-                item.PermsBase = (uint)reader.ReadElementContentAsInt("BasePermissions", String.Empty);
-                item.CreationDate = Utils.UnixTimeToDateTime((uint)reader.ReadElementContentAsInt("CreationDate", String.Empty));
+                item.PermsBase = (uint)reader.ReadElementContentAsInt("BasePermissions", string.Empty);
+                item.CreationDate = Utils.UnixTimeToDateTime((uint)reader.ReadElementContentAsInt("CreationDate", string.Empty));
                 item.CreatorID = ReadUUID(reader, "CreatorID");
-                item.Description = reader.ReadElementContentAsString("Description", String.Empty);
-                item.PermsEveryone = (uint)reader.ReadElementContentAsInt("EveryonePermissions", String.Empty);
-                item.Flags = reader.ReadElementContentAsInt("Flags", String.Empty);
+                item.Description = reader.ReadElementContentAsString("Description", string.Empty);
+                item.PermsEveryone = (uint)reader.ReadElementContentAsInt("EveryonePermissions", string.Empty);
+                item.Flags = reader.ReadElementContentAsInt("Flags", string.Empty);
                 item.GroupID = ReadUUID(reader, "GroupID");
-                item.PermsGroup = (uint)reader.ReadElementContentAsInt("GroupPermissions", String.Empty);
-                item.InvType = (InventoryType)reader.ReadElementContentAsInt("InvType", String.Empty);
+                item.PermsGroup = (uint)reader.ReadElementContentAsInt("GroupPermissions", string.Empty);
+                item.InvType = (InventoryType)reader.ReadElementContentAsInt("InvType", string.Empty);
                 item.ID = ReadUUID(reader, "ItemID");
                 UUID oldItemID = ReadUUID(reader, "OldItemID"); // TODO: Is this useful?
                 item.LastOwnerID = ReadUUID(reader, "LastOwnerID");
-                item.Name = reader.ReadElementContentAsString("Name", String.Empty);
-                item.PermsNextOwner = (uint)reader.ReadElementContentAsInt("NextPermissions", String.Empty);
+                item.Name = reader.ReadElementContentAsString("Name", string.Empty);
+                item.PermsNextOwner = (uint)reader.ReadElementContentAsInt("NextPermissions", string.Empty);
                 item.OwnerID = ReadUUID(reader, "OwnerID");
-                item.PermsOwner = (uint)reader.ReadElementContentAsInt("CurrentPermissions", String.Empty);
+                item.PermsOwner = (uint)reader.ReadElementContentAsInt("CurrentPermissions", string.Empty);
                 UUID parentID = ReadUUID(reader, "ParentID");
                 UUID parentPartID = ReadUUID(reader, "ParentPartID");
                 item.PermsGranterID = ReadUUID(reader, "PermsGranter");
-                item.PermsBase = (uint)reader.ReadElementContentAsInt("PermsMask", String.Empty);
-                item.Type = (AssetType)reader.ReadElementContentAsInt("Type", String.Empty);
+                item.PermsBase = (uint)reader.ReadElementContentAsInt("PermsMask", string.Empty);
+                item.Type = (AssetType)reader.ReadElementContentAsInt("Type", string.Empty);
 
                 reader.ReadEndElement();
                 invItems.Add(item);
@@ -230,7 +230,7 @@ namespace OpenMetaverse.Assets
 
             #endregion Task Inventory
 
-            PrimFlags flags = (PrimFlags)reader.ReadElementContentAsInt("ObjectFlags", String.Empty);
+            PrimFlags flags = (PrimFlags)reader.ReadElementContentAsInt("ObjectFlags", string.Empty);
             obj.UsePhysics = (flags & PrimFlags.Physics) != 0;
             obj.Phantom = (flags & PrimFlags.Phantom) != 0;
             obj.DieAtEdge = (flags & PrimFlags.DieAtEdge) != 0;
@@ -239,17 +239,17 @@ namespace OpenMetaverse.Assets
             obj.Sandbox = (flags & PrimFlags.Sandbox) != 0;
 
             obj.ID = ReadUUID(reader, "UUID");
-            obj.LocalID = (uint)reader.ReadElementContentAsLong("LocalId", String.Empty);
+            obj.LocalID = (uint)reader.ReadElementContentAsLong("LocalId", string.Empty);
             obj.Name = reader.ReadElementString("Name");
-            obj.Material = reader.ReadElementContentAsInt("Material", String.Empty);
+            obj.Material = reader.ReadElementContentAsInt("Material", string.Empty);
 
             if (reader.Name == "PassTouches")
-                obj.PassTouches = reader.ReadElementContentAsBoolean("PassTouches", String.Empty);
+                obj.PassTouches = reader.ReadElementContentAsBoolean("PassTouches", string.Empty);
             else
                 obj.PassTouches = false;
 
-            obj.RegionHandle = (ulong)reader.ReadElementContentAsLong("RegionHandle", String.Empty);
-            obj.RemoteScriptAccessPIN = reader.ReadElementContentAsInt("ScriptAccessPin", String.Empty);
+            obj.RegionHandle = (ulong)reader.ReadElementContentAsLong("RegionHandle", string.Empty);
+            obj.RemoteScriptAccessPIN = reader.ReadElementContentAsInt("ScriptAccessPin", string.Empty);
             
             if (reader.Name == "PlaySoundSlavePrims")
                 reader.ReadInnerXml();
@@ -268,54 +268,54 @@ namespace OpenMetaverse.Assets
             reader.ReadStartElement("Color");
             if (reader.Name == "R")
             {
-                obj.TextColor.R = reader.ReadElementContentAsFloat("R", String.Empty);
-                obj.TextColor.G = reader.ReadElementContentAsFloat("G", String.Empty);
-                obj.TextColor.B = reader.ReadElementContentAsFloat("B", String.Empty);
-                obj.TextColor.A = reader.ReadElementContentAsFloat("A", String.Empty);
+                obj.TextColor.R = reader.ReadElementContentAsFloat("R", string.Empty);
+                obj.TextColor.G = reader.ReadElementContentAsFloat("G", string.Empty);
+                obj.TextColor.B = reader.ReadElementContentAsFloat("B", string.Empty);
+                obj.TextColor.A = reader.ReadElementContentAsFloat("A", string.Empty);
                 reader.ReadEndElement();
             }
-            obj.Text = reader.ReadElementString("Text", String.Empty);
-            obj.SitName = reader.ReadElementString("SitName", String.Empty);
-            obj.TouchName = reader.ReadElementString("TouchName", String.Empty);
+            obj.Text = reader.ReadElementString("Text", string.Empty);
+            obj.SitName = reader.ReadElementString("SitName", string.Empty);
+            obj.TouchName = reader.ReadElementString("TouchName", string.Empty);
 
-            obj.LinkNumber = reader.ReadElementContentAsInt("LinkNum", String.Empty);
-            obj.ClickAction = reader.ReadElementContentAsInt("ClickAction", String.Empty);
+            obj.LinkNumber = reader.ReadElementContentAsInt("LinkNum", string.Empty);
+            obj.ClickAction = reader.ReadElementContentAsInt("ClickAction", string.Empty);
             
             reader.ReadStartElement("Shape");
-            obj.Shape.ProfileCurve = reader.ReadElementContentAsInt("ProfileCurve", String.Empty);
+            obj.Shape.ProfileCurve = reader.ReadElementContentAsInt("ProfileCurve", string.Empty);
 
             byte[] teData = Convert.FromBase64String(reader.ReadElementString("TextureEntry"));
             obj.Textures = new Primitive.TextureEntry(teData, 0, teData.Length);
 
             reader.ReadInnerXml(); // ExtraParams
 
-            obj.Shape.PathBegin = Primitive.UnpackBeginCut((ushort)reader.ReadElementContentAsInt("PathBegin", String.Empty));
-            obj.Shape.PathCurve = reader.ReadElementContentAsInt("PathCurve", String.Empty);
-            obj.Shape.PathEnd = Primitive.UnpackEndCut((ushort)reader.ReadElementContentAsInt("PathEnd", String.Empty));
-            obj.Shape.PathRadiusOffset = Primitive.UnpackPathTwist((sbyte)reader.ReadElementContentAsInt("PathRadiusOffset", String.Empty));
-            obj.Shape.PathRevolutions = Primitive.UnpackPathRevolutions((byte)reader.ReadElementContentAsInt("PathRevolutions", String.Empty));
-            obj.Shape.PathScaleX = Primitive.UnpackPathScale((byte)reader.ReadElementContentAsInt("PathScaleX", String.Empty));
-            obj.Shape.PathScaleY = Primitive.UnpackPathScale((byte)reader.ReadElementContentAsInt("PathScaleY", String.Empty));
-            obj.Shape.PathShearX = Primitive.UnpackPathShear((sbyte)reader.ReadElementContentAsInt("PathShearX", String.Empty));
-            obj.Shape.PathShearY = Primitive.UnpackPathShear((sbyte)reader.ReadElementContentAsInt("PathShearY", String.Empty));
-            obj.Shape.PathSkew = Primitive.UnpackPathTwist((sbyte)reader.ReadElementContentAsInt("PathSkew", String.Empty));
-            obj.Shape.PathTaperX = Primitive.UnpackPathTaper((sbyte)reader.ReadElementContentAsInt("PathTaperX", String.Empty));
-            obj.Shape.PathTaperY = Primitive.UnpackPathShear((sbyte)reader.ReadElementContentAsInt("PathTaperY", String.Empty));
-            obj.Shape.PathTwist = Primitive.UnpackPathTwist((sbyte)reader.ReadElementContentAsInt("PathTwist", String.Empty));
-            obj.Shape.PathTwistBegin = Primitive.UnpackPathTwist((sbyte)reader.ReadElementContentAsInt("PathTwistBegin", String.Empty));
-            obj.PCode = reader.ReadElementContentAsInt("PCode", String.Empty);
-            obj.Shape.ProfileBegin = Primitive.UnpackBeginCut((ushort)reader.ReadElementContentAsInt("ProfileBegin", String.Empty));
-            obj.Shape.ProfileEnd = Primitive.UnpackEndCut((ushort)reader.ReadElementContentAsInt("ProfileEnd", String.Empty));
-            obj.Shape.ProfileHollow = Primitive.UnpackProfileHollow((ushort)reader.ReadElementContentAsInt("ProfileHollow", String.Empty));
+            obj.Shape.PathBegin = Primitive.UnpackBeginCut((ushort)reader.ReadElementContentAsInt("PathBegin", string.Empty));
+            obj.Shape.PathCurve = reader.ReadElementContentAsInt("PathCurve", string.Empty);
+            obj.Shape.PathEnd = Primitive.UnpackEndCut((ushort)reader.ReadElementContentAsInt("PathEnd", string.Empty));
+            obj.Shape.PathRadiusOffset = Primitive.UnpackPathTwist((sbyte)reader.ReadElementContentAsInt("PathRadiusOffset", string.Empty));
+            obj.Shape.PathRevolutions = Primitive.UnpackPathRevolutions((byte)reader.ReadElementContentAsInt("PathRevolutions", string.Empty));
+            obj.Shape.PathScaleX = Primitive.UnpackPathScale((byte)reader.ReadElementContentAsInt("PathScaleX", string.Empty));
+            obj.Shape.PathScaleY = Primitive.UnpackPathScale((byte)reader.ReadElementContentAsInt("PathScaleY", string.Empty));
+            obj.Shape.PathShearX = Primitive.UnpackPathShear((sbyte)reader.ReadElementContentAsInt("PathShearX", string.Empty));
+            obj.Shape.PathShearY = Primitive.UnpackPathShear((sbyte)reader.ReadElementContentAsInt("PathShearY", string.Empty));
+            obj.Shape.PathSkew = Primitive.UnpackPathTwist((sbyte)reader.ReadElementContentAsInt("PathSkew", string.Empty));
+            obj.Shape.PathTaperX = Primitive.UnpackPathTaper((sbyte)reader.ReadElementContentAsInt("PathTaperX", string.Empty));
+            obj.Shape.PathTaperY = Primitive.UnpackPathShear((sbyte)reader.ReadElementContentAsInt("PathTaperY", string.Empty));
+            obj.Shape.PathTwist = Primitive.UnpackPathTwist((sbyte)reader.ReadElementContentAsInt("PathTwist", string.Empty));
+            obj.Shape.PathTwistBegin = Primitive.UnpackPathTwist((sbyte)reader.ReadElementContentAsInt("PathTwistBegin", string.Empty));
+            obj.PCode = reader.ReadElementContentAsInt("PCode", string.Empty);
+            obj.Shape.ProfileBegin = Primitive.UnpackBeginCut((ushort)reader.ReadElementContentAsInt("ProfileBegin", string.Empty));
+            obj.Shape.ProfileEnd = Primitive.UnpackEndCut((ushort)reader.ReadElementContentAsInt("ProfileEnd", string.Empty));
+            obj.Shape.ProfileHollow = Primitive.UnpackProfileHollow((ushort)reader.ReadElementContentAsInt("ProfileHollow", string.Empty));
             obj.Scale = ReadVector(reader, "Scale");
-            obj.State = (byte)reader.ReadElementContentAsInt("State", String.Empty);
+            obj.State = (byte)reader.ReadElementContentAsInt("State", string.Empty);
 
             ProfileShape profileShape = (ProfileShape)Enum.Parse(typeof(ProfileShape), reader.ReadElementString("ProfileShape"));
             HoleType holeType = (HoleType)Enum.Parse(typeof(HoleType), reader.ReadElementString("HollowShape"));
             obj.Shape.ProfileCurve = (int)profileShape | (int)holeType;
 
             UUID sculptTexture = ReadUUID(reader, "SculptTexture");
-            SculptType sculptType = (SculptType)reader.ReadElementContentAsInt("SculptType", String.Empty);
+            SculptType sculptType = (SculptType)reader.ReadElementContentAsInt("SculptType", string.Empty);
             if (sculptTexture != UUID.Zero)
             {
                 obj.Sculpt = new PrimObject.SculptBlock
@@ -330,26 +330,26 @@ namespace OpenMetaverse.Assets
 
             reader.ReadInnerXml(); // SculptData
 
-            flexible.Softness = reader.ReadElementContentAsInt("FlexiSoftness", String.Empty);
-            flexible.Tension = reader.ReadElementContentAsFloat("FlexiTension", String.Empty);
-            flexible.Drag = reader.ReadElementContentAsFloat("FlexiDrag", String.Empty);
-            flexible.Gravity = reader.ReadElementContentAsFloat("FlexiGravity", String.Empty);
-            flexible.Wind = reader.ReadElementContentAsFloat("FlexiWind", String.Empty);
-            flexible.Force.X = reader.ReadElementContentAsFloat("FlexiForceX", String.Empty);
-            flexible.Force.Y = reader.ReadElementContentAsFloat("FlexiForceY", String.Empty);
-            flexible.Force.Z = reader.ReadElementContentAsFloat("FlexiForceZ", String.Empty);
+            flexible.Softness = reader.ReadElementContentAsInt("FlexiSoftness", string.Empty);
+            flexible.Tension = reader.ReadElementContentAsFloat("FlexiTension", string.Empty);
+            flexible.Drag = reader.ReadElementContentAsFloat("FlexiDrag", string.Empty);
+            flexible.Gravity = reader.ReadElementContentAsFloat("FlexiGravity", string.Empty);
+            flexible.Wind = reader.ReadElementContentAsFloat("FlexiWind", string.Empty);
+            flexible.Force.X = reader.ReadElementContentAsFloat("FlexiForceX", string.Empty);
+            flexible.Force.Y = reader.ReadElementContentAsFloat("FlexiForceY", string.Empty);
+            flexible.Force.Z = reader.ReadElementContentAsFloat("FlexiForceZ", string.Empty);
 
-            light.Color.R = reader.ReadElementContentAsFloat("LightColorR", String.Empty);
-            light.Color.G = reader.ReadElementContentAsFloat("LightColorG", String.Empty);
-            light.Color.B = reader.ReadElementContentAsFloat("LightColorB", String.Empty);
-            light.Color.A = reader.ReadElementContentAsFloat("LightColorA", String.Empty);
-            light.Radius = reader.ReadElementContentAsFloat("LightRadius", String.Empty);
-            light.Cutoff = reader.ReadElementContentAsFloat("LightCutoff", String.Empty);
-            light.Falloff = reader.ReadElementContentAsFloat("LightFalloff", String.Empty);
-            light.Intensity = reader.ReadElementContentAsFloat("LightIntensity", String.Empty);
+            light.Color.R = reader.ReadElementContentAsFloat("LightColorR", string.Empty);
+            light.Color.G = reader.ReadElementContentAsFloat("LightColorG", string.Empty);
+            light.Color.B = reader.ReadElementContentAsFloat("LightColorB", string.Empty);
+            light.Color.A = reader.ReadElementContentAsFloat("LightColorA", string.Empty);
+            light.Radius = reader.ReadElementContentAsFloat("LightRadius", string.Empty);
+            light.Cutoff = reader.ReadElementContentAsFloat("LightCutoff", string.Empty);
+            light.Falloff = reader.ReadElementContentAsFloat("LightFalloff", string.Empty);
+            light.Intensity = reader.ReadElementContentAsFloat("LightIntensity", string.Empty);
 
-            bool hasFlexi = reader.ReadElementContentAsBoolean("FlexiEntry", String.Empty);
-            bool hasLight = reader.ReadElementContentAsBoolean("LightEntry", String.Empty);
+            bool hasFlexi = reader.ReadElementContentAsBoolean("FlexiEntry", string.Empty);
+            bool hasLight = reader.ReadElementContentAsBoolean("LightEntry", string.Empty);
             reader.ReadInnerXml(); // SculptEntry
 
             if (hasFlexi)
@@ -366,25 +366,25 @@ namespace OpenMetaverse.Assets
             reader.ReadInnerXml(); // SitTargetPosition
             obj.SitOffset = ReadVector(reader, "SitTargetPositionLL");
             obj.SitRotation = ReadQuaternion(reader, "SitTargetOrientationLL");
-            obj.ParentID = (uint)reader.ReadElementContentAsLong("ParentID", String.Empty);
-            obj.CreationDate = Utils.UnixTimeToDateTime(reader.ReadElementContentAsInt("CreationDate", String.Empty));
-            int category = reader.ReadElementContentAsInt("Category", String.Empty);
-            obj.SalePrice = reader.ReadElementContentAsInt("SalePrice", String.Empty);
-            obj.SaleType = reader.ReadElementContentAsInt("ObjectSaleType", String.Empty);
-            int ownershipCost = reader.ReadElementContentAsInt("OwnershipCost", String.Empty);
+            obj.ParentID = (uint)reader.ReadElementContentAsLong("ParentID", string.Empty);
+            obj.CreationDate = Utils.UnixTimeToDateTime(reader.ReadElementContentAsInt("CreationDate", string.Empty));
+            int category = reader.ReadElementContentAsInt("Category", string.Empty);
+            obj.SalePrice = reader.ReadElementContentAsInt("SalePrice", string.Empty);
+            obj.SaleType = reader.ReadElementContentAsInt("ObjectSaleType", string.Empty);
+            int ownershipCost = reader.ReadElementContentAsInt("OwnershipCost", string.Empty);
             obj.GroupID = ReadUUID(reader, "GroupID");
             obj.OwnerID = ReadUUID(reader, "OwnerID");
             obj.LastOwnerID = ReadUUID(reader, "LastOwnerID");
-            obj.PermsBase = (uint)reader.ReadElementContentAsInt("BaseMask", String.Empty);
-            obj.PermsOwner = (uint)reader.ReadElementContentAsInt("OwnerMask", String.Empty);
-            obj.PermsGroup = (uint)reader.ReadElementContentAsInt("GroupMask", String.Empty);
-            obj.PermsEveryone = (uint)reader.ReadElementContentAsInt("EveryoneMask", String.Empty);
-            obj.PermsNextOwner = (uint)reader.ReadElementContentAsInt("NextOwnerMask", String.Empty);
+            obj.PermsBase = (uint)reader.ReadElementContentAsInt("BaseMask", string.Empty);
+            obj.PermsOwner = (uint)reader.ReadElementContentAsInt("OwnerMask", string.Empty);
+            obj.PermsGroup = (uint)reader.ReadElementContentAsInt("GroupMask", string.Empty);
+            obj.PermsEveryone = (uint)reader.ReadElementContentAsInt("EveryoneMask", string.Empty);
+            obj.PermsNextOwner = (uint)reader.ReadElementContentAsInt("NextOwnerMask", string.Empty);
 
             reader.ReadInnerXml(); // Flags
 
             obj.CollisionSound = ReadUUID(reader, "CollisionSound");
-            obj.CollisionSoundVolume = reader.ReadElementContentAsFloat("CollisionSoundVolume", String.Empty);
+            obj.CollisionSoundVolume = reader.ReadElementContentAsFloat("CollisionSoundVolume", string.Empty);
 
             reader.ReadEndElement();
 
@@ -419,9 +419,9 @@ namespace OpenMetaverse.Assets
             Vector3 vec;
 
             reader.ReadStartElement(name);
-            vec.X = reader.ReadElementContentAsFloat("X", String.Empty);
-            vec.Y = reader.ReadElementContentAsFloat("Y", String.Empty);
-            vec.Z = reader.ReadElementContentAsFloat("Z", String.Empty);
+            vec.X = reader.ReadElementContentAsFloat("X", string.Empty);
+            vec.Y = reader.ReadElementContentAsFloat("Y", string.Empty);
+            vec.Z = reader.ReadElementContentAsFloat("Z", string.Empty);
             reader.ReadEndElement();
 
             return vec;
@@ -432,10 +432,10 @@ namespace OpenMetaverse.Assets
             Quaternion quat;
 
             reader.ReadStartElement(name);
-            quat.X = reader.ReadElementContentAsFloat("X", String.Empty);
-            quat.Y = reader.ReadElementContentAsFloat("Y", String.Empty);
-            quat.Z = reader.ReadElementContentAsFloat("Z", String.Empty);
-            quat.W = reader.ReadElementContentAsFloat("W", String.Empty);
+            quat.X = reader.ReadElementContentAsFloat("X", string.Empty);
+            quat.Y = reader.ReadElementContentAsFloat("Y", string.Empty);
+            quat.Z = reader.ReadElementContentAsFloat("Z", string.Empty);
+            quat.W = reader.ReadElementContentAsFloat("W", string.Empty);
             reader.ReadEndElement();
 
             return quat;
