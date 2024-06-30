@@ -126,7 +126,7 @@ namespace LibreMetaverse.Voice
             oldAt = new Vector3d(1, 0, 0);
 
             slvoiceArgs = " -ll -1";    // Min logging
-            slvoiceArgs += " -i 127.0.0.1:" + daemonPort.ToString();
+            slvoiceArgs += " -i 127.0.0.1:" + daemonPort;
             //            slvoiceArgs += " -lf " + control.instance.ClientDir;
         }
 

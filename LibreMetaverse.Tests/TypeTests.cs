@@ -51,8 +51,8 @@ namespace LibreMetaverse.Tests
             UUID b = new UUID(new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
                 0x0B, 0x0C, 0x0D, 0x0E, 0x0F }, 0);
 
-            Assert.IsTrue(a == b, "UUID comparison operator failed, " + a.ToString() + " should equal " + 
-                b.ToString());
+            Assert.IsTrue(a == b, "UUID comparison operator failed, " + a + " should equal " + 
+                b);
 
             // From string
             a = new UUID(new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
@@ -60,8 +60,8 @@ namespace LibreMetaverse.Tests
             string zeroonetwo = "00010203-0405-0607-0809-0a0b0c0d0e0f";
             b = new UUID(zeroonetwo);
 
-            Assert.IsTrue(a == b, "UUID hyphenated string constructor failed, should have " + a.ToString() + 
-                " but we got " + b.ToString());
+            Assert.IsTrue(a == b, "UUID hyphenated string constructor failed, should have " + a + 
+                " but we got " + b);
 
             // ToString()            
             Assert.IsTrue(a == b);                        
@@ -169,24 +169,24 @@ namespace LibreMetaverse.Tests
             Quaternion expected = new Quaternion(0, 0, 0, -1);
             Quaternion result = a * b;
 
-            Assert.IsTrue(result == expected, a.ToString() + " * " + b.ToString() + " produced " + result.ToString() +
-                " instead of " + expected.ToString());
+            Assert.IsTrue(result == expected, a + " * " + b + " produced " + result +
+                " instead of " + expected);
 
             a = new Quaternion(1, 0, 0, 0);
             b = new Quaternion(0, 1, 0, 0);
             expected = new Quaternion(0, 0, 1, 0);
             result = a * b;
 
-            Assert.IsTrue(result == expected, a.ToString() + " * " + b.ToString() + " produced " + result.ToString() +
-                " instead of " + expected.ToString());
+            Assert.IsTrue(result == expected, a + " * " + b + " produced " + result +
+                " instead of " + expected);
 
             a = new Quaternion(0, 0, 1, 0);
             b = new Quaternion(0, 1, 0, 0);
             expected = new Quaternion(-1, 0, 0, 0);
             result = a * b;
 
-            Assert.IsTrue(result == expected, a.ToString() + " * " + b.ToString() + " produced " + result.ToString() +
-                " instead of " + expected.ToString());
+            Assert.IsTrue(result == expected, a + " * " + b + " produced " + result +
+                " instead of " + expected);
         }
         
         [Test]
@@ -235,25 +235,25 @@ namespace LibreMetaverse.Tests
             string b = "1.2";
             
             a = Helpers.FloatToTerseString(f);
-            Assert.IsTrue(a == b, f.ToString() + " converted to " + a + ", expecting " + b);
+            Assert.IsTrue(a == b, f + " converted to " + a + ", expecting " + b);
 
             f = 24.00f;
             b = "24";
 
             a = Helpers.FloatToTerseString(f);
-            Assert.IsTrue(a == b, f.ToString() + " converted to " + a + ", expecting " + b);
+            Assert.IsTrue(a == b, f + " converted to " + a + ", expecting " + b);
 
             f = -0.59f;
             b = "-.59";
 
             a = Helpers.FloatToTerseString(f);
-            Assert.IsTrue(a == b, f.ToString() + " converted to " + a + ", expecting " + b);
+            Assert.IsTrue(a == b, f + " converted to " + a + ", expecting " + b);
 
             f = 0.59f;
             b = ".59";
 
             a = Helpers.FloatToTerseString(f);
-            Assert.IsTrue(a == b, f.ToString() + " converted to " + a + ", expecting " + b);
+            Assert.IsTrue(a == b, f + " converted to " + a + ", expecting " + b);
         }
 
         [Test]
@@ -333,7 +333,7 @@ namespace LibreMetaverse.Tests
             string testThree = "{'region_handle':[r255232, r256512], 'position':[r33.6, r33.71, r43.13], 'look_at':[r34.6, r33.71, r43.13]}";
 
             OSD obj = OSDParser.DeserializeLLSDNotation(testOne);
-            Assert.IsInstanceOf<OSDArray>(obj, "Expected SDArray, got " + obj.GetType().ToString());
+            Assert.IsInstanceOf<OSDArray>(obj, "Expected SDArray, got " + obj.GetType());
             OSDArray array = (OSDArray)obj;
             Assert.IsTrue(array.Count == 3, "Expected three contained objects, got " + array.Count);
             Assert.IsTrue(array[0].AsReal() > 0.9d && array[0].AsReal() < 1.0d, "Unexpected value for first real " + array[0].AsReal());
@@ -341,19 +341,19 @@ namespace LibreMetaverse.Tests
             Assert.IsTrue(array[2].AsReal() == 0.0d, "Unexpected value for third real " + array[2].AsReal());
 
             obj = OSDParser.DeserializeLLSDNotation(testTwo);
-            Assert.IsInstanceOf<OSDArray>(obj, "Expected SDArray, got " + obj.GetType().ToString());
+            Assert.IsInstanceOf<OSDArray>(obj, "Expected SDArray, got " + obj.GetType());
             array = (OSDArray)obj;
             Assert.IsTrue(array.Count == 2, "Expected two contained objects, got " + array.Count);
             Assert.IsTrue(array[1].AsReal() == 0.0d, "Unexpected value for real " + array[1].AsReal());
             obj = array[0];
-            Assert.IsInstanceOf<OSDArray>(obj, "Expected ArrayList, got " + obj.GetType().ToString());
+            Assert.IsInstanceOf<OSDArray>(obj, "Expected ArrayList, got " + obj.GetType());
             array = (OSDArray)obj;
             Assert.IsTrue(array[0].AsReal() == 1.0d && array[1].AsReal() == 1.0d && array[2].AsReal() == 1.0d,
                 "Unexpected value(s) for nested array: " + array[0].AsReal() + ", " + array[1].AsReal() + ", " +
                 array[2].AsReal());
 
             obj = OSDParser.DeserializeLLSDNotation(testThree);
-            Assert.IsInstanceOf<OSDMap>(obj, "Expected LLSDMap, got " + obj.GetType().ToString());
+            Assert.IsInstanceOf<OSDMap>(obj, "Expected LLSDMap, got " + obj.GetType());
             OSDMap hashtable = (OSDMap)obj;
             Assert.IsTrue(hashtable.Count == 3, "Expected three contained objects, got " + hashtable.Count);
             Assert.IsInstanceOf<OSDArray>(hashtable["region_handle"]);

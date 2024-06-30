@@ -175,7 +175,7 @@ namespace Mapgenerator
                     writer.WriteLine("                    Buffer.BlockCopy(bytes, i, " + field.Name + ", 0, length); i += length;");
                     break;
                 default:
-                    writer.WriteLine("!!! ERROR: Unhandled FieldType: " + field.Type.ToString() + " !!!");
+                    writer.WriteLine("!!! ERROR: Unhandled FieldType: " + field.Type + " !!!");
                     break;
             }
         }
@@ -253,7 +253,7 @@ namespace Mapgenerator
                         field.Name + ".Length); " + "i += " + field.Name + ".Length;");
                     break;
                 default:
-                    writer.WriteLine("!!! ERROR: Unhandled FieldType: " + field.Type.ToString() + " !!!");
+                    writer.WriteLine("!!! ERROR: Unhandled FieldType: " + field.Type + " !!!");
                     break;
             }
         }
@@ -291,7 +291,7 @@ namespace Mapgenerator
                 case FieldType.Variable:
                     return 0;
                 default:
-                    writer.WriteLine("!!! ERROR: Unhandled FieldType " + field.Type.ToString() + " !!!");
+                    writer.WriteLine("!!! ERROR: Unhandled FieldType " + field.Type + " !!!");
                     return 0;
             }
         }

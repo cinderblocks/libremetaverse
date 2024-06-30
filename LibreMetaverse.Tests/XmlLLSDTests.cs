@@ -660,8 +660,8 @@ namespace LibreMetaverse.Tests
             {
                 if (inExpected[i] != binary[i])
                 {
-                    Assert.Fail("Expected " + inExpected[i].ToString() + " at position " + i.ToString() +
-                        " but saw " + binary[i].ToString());
+                    Assert.Fail("Expected " + inExpected[i] + " at position " + i +
+                        " but saw " + binary[i]);
                 }
             }
         }

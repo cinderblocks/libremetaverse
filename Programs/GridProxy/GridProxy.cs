@@ -748,7 +748,7 @@ namespace GridProxy
                     }
                     else if (cap == null)
                     {
-                        OpenMetaverse.Logger.Log(string.Format("{0} {1}", req.Method, req.Address.ToString()), Helpers.LogLevel.Info);
+                        OpenMetaverse.Logger.Log(string.Format("{0} {1}", req.Method, req.Address), Helpers.LogLevel.Info);
                     }
                     resp = (HttpWebResponse)req.GetResponse();
                 }
@@ -848,7 +848,7 @@ namespace GridProxy
                     }
                     catch (InvalidCastException ex)
                     {
-                        OpenMetaverse.Logger.Log("Invalid Cast thrown trying to cast OSD to OSDMap: \n'" + capReq.Response.AsString() + "' Length=" + capReq.RawResponse.Length.ToString() + "\n",
+                        OpenMetaverse.Logger.Log("Invalid Cast thrown trying to cast OSD to OSDMap: \n'" + capReq.Response.AsString() + "' Length=" + capReq.RawResponse.Length + "\n",
                             Helpers.LogLevel.Error, ex);
                     }
                     catch (Exception ex)
@@ -1240,7 +1240,7 @@ namespace GridProxy
                 {
                     if (map != null)
                     {
-                        OpenMetaverse.Logger.Log("Connection to server failed, returned LLSD error follows:\n" + map.ToString(), Helpers.LogLevel.Error);
+                        OpenMetaverse.Logger.Log("Connection to server failed, returned LLSD error follows:\n" + map, Helpers.LogLevel.Error);
                     }
                     byte[] wr = Encoding.ASCII.GetBytes("HTTP/1.0 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n");
                     netStream.Write(wr, 0, wr.Length);
