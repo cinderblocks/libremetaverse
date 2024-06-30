@@ -33,7 +33,6 @@ namespace LibreMetaverse
     {
         private ObjectList.Link head;
         private ObjectList.Link last;
-        private int count;
 
         private void Add0(ObjectList.Link a)
         {
@@ -55,26 +54,26 @@ namespace LibreMetaverse
         public void Add(object o)
         {
             this.Add0(new ObjectList.Link(o, (ObjectList.Link)null));
-            ++this.count;
+            ++this.Count;
         }
 
         public void Push(object o)
         {
             this.head = new ObjectList.Link(o, this.head);
-            ++this.count;
+            ++this.Count;
         }
 
         public object Pop()
         {
             object it = this.head.it;
             this.head = this.head.next;
-            --this.count;
+            --this.Count;
             return it;
         }
 
         public object Top => this.head.it;
 
-        public int Count => this.count;
+        public int Count { get; private set; }
 
         public object this[int ix] => this.Get0(this.head, ix);
 

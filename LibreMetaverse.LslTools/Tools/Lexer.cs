@@ -303,21 +303,20 @@ namespace LibreMetaverse.LslTools
     public class _Enumerator
     {
       private Lexer lxr;
-      private TOKEN t;
 
       public _Enumerator(Lexer x)
       {
         this.lxr = x;
-        this.t = (TOKEN) null;
+        this.Current = (TOKEN) null;
       }
 
       public bool MoveNext()
       {
-        this.t = this.lxr.Next();
-        return this.t != null;
+        this.Current = this.lxr.Next();
+        return this.Current != null;
       }
 
-      public TOKEN Current => this.t;
+      public TOKEN Current { get; private set; }
 
       public void Reset()
       {
