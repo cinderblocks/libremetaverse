@@ -440,15 +440,12 @@ namespace OpenMetaverse.Imaging
         {
             if (source == null) return false;
 
-            bool sourceHasColor;
-            bool sourceHasAlpha;
-            bool sourceHasBump;
             int i = 0;
 
-            sourceHasColor = ((source.Channels & ManagedImage.ImageChannels.Color) != 0 &&
-                    source.Red != null && source.Green != null && source.Blue != null);
-            sourceHasAlpha = ((source.Channels & ManagedImage.ImageChannels.Alpha) != 0 && source.Alpha != null);
-            sourceHasBump = ((source.Channels & ManagedImage.ImageChannels.Bump) != 0 && source.Bump != null);
+            var sourceHasColor = ((source.Channels & ManagedImage.ImageChannels.Color) != 0 &&
+                                  source.Red != null && source.Green != null && source.Blue != null);
+            var sourceHasAlpha = ((source.Channels & ManagedImage.ImageChannels.Alpha) != 0 && source.Alpha != null);
+            var sourceHasBump = ((source.Channels & ManagedImage.ImageChannels.Bump) != 0 && source.Bump != null);
 
             addSourceAlpha = (addSourceAlpha && sourceHasAlpha);
 

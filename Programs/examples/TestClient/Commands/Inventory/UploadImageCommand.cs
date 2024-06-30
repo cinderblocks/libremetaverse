@@ -48,16 +48,14 @@ namespace OpenMetaverse.TestClient
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            string inventoryName;
             uint timeout;
-            string fileName;
 
             if (args.Length != 3)
                 return "Usage: uploadimage [inventoryname] [timeout] [filename]";
 
             TextureID = UUID.Zero;
-            inventoryName = args[0];
-            fileName = args[2];
+            var inventoryName = args[0];
+            var fileName = args[2];
             if (!uint.TryParse(args[1], out timeout))
                 return "Usage: uploadimage [inventoryname] [timeout] [filename]";
 

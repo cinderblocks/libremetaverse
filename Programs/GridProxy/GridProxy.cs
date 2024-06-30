@@ -487,9 +487,6 @@ namespace GridProxy
             int reqNo;
             int contentLength = 0;
             string contentType = "";
-            Match match;
-            string uri;
-            string meth;
             Dictionary<string, string> headers = new Dictionary<string, string>();
 
             lock (this)
@@ -512,7 +509,7 @@ namespace GridProxy
             if (line == null)
                 throw new Exception("EOF in client HTTP header");
 
-            match = new Regex(@"^(\S+)\s+(\S+)\s+(HTTP/\d\.\d)$").Match(line);
+            var match = new Regex(@"^(\S+)\s+(\S+)\s+(HTTP/\d\.\d)$").Match(line);
 
             if (!match.Success)
             {
@@ -523,8 +520,8 @@ namespace GridProxy
                 return;
             }
 
-            meth = match.Groups[1].Captures[0].ToString();
-            uri = match.Groups[2].Captures[0].ToString();
+            var meth = match.Groups[1].Captures[0].ToString();
+            var uri = match.Groups[2].Captures[0].ToString();
 
             OpenMetaverse.Logger.Log($"[{reqNo}] {meth}:{uri}", Helpers.LogLevel.Debug);
 
@@ -1324,8 +1321,7 @@ namespace GridProxy
                     // pause listening and fetch the packet
                     bool needsZero = false;
                     bool needsCopy = true;
-                    int length;
-                    length = simFacingSocket.EndReceiveFrom(ar, ref remoteEndPoint);
+                    var length = simFacingSocket.EndReceiveFrom(ar, ref remoteEndPoint);
 
                     if (proxyHandlers.ContainsKey(remoteEndPoint))
                     {
@@ -1333,10 +1329,9 @@ namespace GridProxy
                         SimProxy simProxy = (SimProxy)proxyHandlers[remoteEndPoint];
 
                         // interpret the packet according to the SL protocol
-                        Packet packet;
                         int end = length - 1;
 
-                        packet = Packet.BuildPacket(receiveBuffer, ref end, zeroBuffer);
+                        var packet = Packet.BuildPacket(receiveBuffer, ref end, zeroBuffer);
 
                         // check for ACKs we're waiting for
                         packet = simProxy.CheckAcks(packet, Direction.Incoming, ref length, ref needsCopy);

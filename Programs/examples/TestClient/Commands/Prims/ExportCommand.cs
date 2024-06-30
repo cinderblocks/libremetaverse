@@ -61,9 +61,7 @@ namespace OpenMetaverse.TestClient
                 id = SelectedObject;
             }
 
-            Primitive exportPrim;
-
-            exportPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(
+            var exportPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(
                 prim => prim.ID == id
             );
 

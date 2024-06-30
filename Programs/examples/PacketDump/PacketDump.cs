@@ -42,15 +42,13 @@ namespace PacketDump
 		[STAThread]
 		static void Main(string[] args)
 		{
-			GridClient client;
-
-			if (args.Length != 4)
+            if (args.Length != 4)
 			{
 				Console.WriteLine("Usage: PacketDump [firstname] [lastname] [password] [seconds (0 for infinite)]");
 				return;
 			}
 
-            client = new GridClient();
+            var client = new GridClient();
             // Turn off some unnecessary things
             client.Settings.MULTIPLE_SIMS = false;
             // Throttle packets that we don't want all the way down

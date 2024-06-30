@@ -101,8 +101,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void VectorCasting()
         {
-            Dictionary<string, double> testNumbers;
-            testNumbers = new Dictionary<string, double>();
+            var testNumbers = new Dictionary<string, double>();
             testNumbers["1.0"] = 1.0;
             testNumbers["1.1"] = 1.1;
             testNumbers["1.01"] = 1.01;

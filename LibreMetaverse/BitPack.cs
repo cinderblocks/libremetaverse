@@ -129,7 +129,7 @@ namespace OpenMetaverse
         {
             int unsignedBits = intBits + fracBits;
             int totalBits = unsignedBits;
-            int min, max;
+            int min;
 
             if (isSigned)
             {
@@ -142,7 +142,7 @@ namespace OpenMetaverse
                 min = 0;
             }
 
-            max = 1 << intBits;
+            var max = 1 << intBits;
 
             float fixedVal = Utils.Clamp(data, (float)min, (float)max);
             if (isSigned) fixedVal += max;
@@ -268,7 +268,6 @@ namespace OpenMetaverse
         public float UnpackFixed(bool signed, int intBits, int fracBits)
         {
             int minVal;
-            int maxVal;
             int unsignedBits = intBits + fracBits;
             int totalBits = unsignedBits;
             float fixedVal;
@@ -280,7 +279,7 @@ namespace OpenMetaverse
                 minVal = 1 << intBits;
                 minVal *= -1;
             }
-            maxVal = 1 << intBits;
+            var maxVal = 1 << intBits;
 
             if (totalBits <= 8)
                 fixedVal = (float)UnpackByte();

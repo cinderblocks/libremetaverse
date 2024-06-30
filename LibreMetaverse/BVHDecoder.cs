@@ -222,10 +222,6 @@ namespace OpenMetaverse
         /// <returns>The Joint data serialized into the binBVHJoint structure</returns>
         public binBVHJoint readJoint(byte[] data, ref int i)
         {
-
-            binBVHJointKey[] positions;
-            binBVHJointKey[] rotations;
-
             binBVHJoint pJoint = new binBVHJoint();
 
             /*
@@ -279,7 +275,7 @@ namespace OpenMetaverse
                 rotationkeys = 0;
             }
 
-            rotations = readKeys(data, ref i, rotationkeys, -1.0f, 1.0f);
+            var rotations = readKeys(data, ref i, rotationkeys, -1.0f, 1.0f);
             
             if (!BitConverter.IsLittleEndian)
             {
@@ -297,7 +293,7 @@ namespace OpenMetaverse
             }
 
             // Read in position keyframes
-            positions = readKeys(data, ref i, positionkeys, -0.5f, 1.5f);
+            var positions = readKeys(data, ref i, positionkeys, -0.5f, 1.5f);
 
             pJoint.rotationkeys = rotations;
             pJoint.positionkeys = positions;
