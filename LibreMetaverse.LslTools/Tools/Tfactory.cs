@@ -39,7 +39,7 @@ namespace LibreMetaverse.LslTools
     {
       TCreator type1 = (TCreator) yyl.tokens.types[(object) cls_name];
       if (type1 == null)
-        yyl.tokens.erh.Error(new CSToolsException(6, yyl, cls_name, string.Format("no factory for {0}", (object) cls_name)));
+        yyl.tokens.erh.Error(new CSToolsException(6, yyl, cls_name, $"no factory for {(object)cls_name}"));
       try
       {
         return type1(yyl);
@@ -50,7 +50,8 @@ namespace LibreMetaverse.LslTools
       }
       catch (Exception ex)
       {
-        yyl.tokens.erh.Error(new CSToolsException(7, yyl, cls_name, string.Format("Line {0}: Create of {1} failed ({2})", (object) yyl.Saypos(yyl.m_pch), (object) cls_name, (object) ex.Message)));
+        yyl.tokens.erh.Error(new CSToolsException(7, yyl, cls_name,
+          $"Line {(object)yyl.Saypos(yyl.m_pch)}: Create of {(object)cls_name} failed ({(object)ex.Message})"));
       }
       int length = cls_name.LastIndexOf('_');
       if (length > 0)

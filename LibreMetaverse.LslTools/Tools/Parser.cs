@@ -138,9 +138,10 @@ namespace LibreMetaverse.LslTools
             if (this.m_debug)
             {
               if (yyname.Equals("TOKEN"))
-                Console.WriteLine(string.Format("State {0} with {1} \"{2}\"", (object) s.m_state, (object) yyname, (object) ((TOKEN) s.m_value).yytext));
+                Console.WriteLine(
+                  $"State {(object)s.m_state} with {(object)yyname} \"{(object)((TOKEN)s.m_value).yytext}\"");
               else
-                Console.WriteLine(string.Format("State {0} with {1}", (object) s.m_state, (object) yyname));
+                Console.WriteLine($"State {(object)s.m_state} with {(object)yyname}");
             }
             ParserEntry entry;
             if (s.m_value != null && s.m_value.Pass(this.m_symbols, s.m_state, out entry))

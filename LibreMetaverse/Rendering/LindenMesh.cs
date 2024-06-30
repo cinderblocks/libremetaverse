@@ -90,7 +90,8 @@ namespace OpenMetaverse.Rendering
             /// <returns>Vertex definition as a string</returns>
             public override string ToString()
             {
-                return String.Format("Coord: {0} Norm: {1} BiNorm: {2} TexCoord: {3} DetailTexCoord: {4}", Coord, Normal, BiNormal, TexCoord, DetailTexCoord);
+                return
+                    $"Coord: {Coord} Norm: {Normal} BiNorm: {BiNormal} TexCoord: {TexCoord} DetailTexCoord: {DetailTexCoord}";
             }
         }
 
@@ -111,7 +112,7 @@ namespace OpenMetaverse.Rendering
             /// <returns>MorphVertex definition as a string</returns>
             public override string ToString()
             {
-                return String.Format("Index: {0} Coord: {1} Norm: {2} BiNorm: {3} TexCoord: {4}", VertexIndex, Coord, Normal, BiNormal, TexCoord);
+                return $"Index: {VertexIndex} Coord: {Coord} Norm: {Normal} BiNorm: {BiNormal} TexCoord: {TexCoord}";
             }
         }
 
@@ -148,7 +149,7 @@ namespace OpenMetaverse.Rendering
             /// <returns>Human friendly format</returns>
             public override string ToString()
             {
-                return String.Format("{0} -> {1}", RemapSource, RemapDestination);
+                return $"{RemapSource} -> {RemapDestination}";
             }
         }
         #endregion Mesh Structs

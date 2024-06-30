@@ -247,8 +247,7 @@ namespace OpenMetaverse
             }
             else
             {
-                throw new InvalidOperationException(String.Format(
-                    "Quaternion {0} normalized to zero", ToString()));
+                throw new InvalidOperationException($"Quaternion {ToString()} normalized to zero");
             }
         }
 

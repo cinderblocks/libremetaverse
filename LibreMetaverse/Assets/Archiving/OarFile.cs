@@ -102,7 +102,7 @@ namespace OpenMetaverse.Assets
             }
 
             if (failedAssetRestores > 0)
-                Logger.Log(String.Format("[OarFile]: Failed to load {0} assets", failedAssetRestores), Helpers.LogLevel.Warning);
+                Logger.Log($"[OarFile]: Failed to load {failedAssetRestores} assets", Helpers.LogLevel.Warning);
         }
 
         private static bool LoadAsset(string assetPath, byte[] data, AssetLoadedCallback assetCallback, long bytesRead, long totalBytes)

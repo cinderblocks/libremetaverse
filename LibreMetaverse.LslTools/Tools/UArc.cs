@@ -46,7 +46,7 @@ namespace LibreMetaverse.LslTools
 
     public override void Print(TextWriter s)
     {
-      s.WriteLine(string.Format("  U'{0}' {1}", (object) this.m_ch, (object) this.m_next.m_state));
+      s.WriteLine($"  U'{(object)this.m_ch}' {(object)this.m_next.m_state}");
     }
   }
 }

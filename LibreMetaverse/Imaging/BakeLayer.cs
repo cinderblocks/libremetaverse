@@ -369,7 +369,7 @@ namespace OpenMetaverse.Imaging
                 }
                 if (bitmap == null)
                 {
-                    Logger.Log(String.Format("Failed loading resource file: {0}", fileName), Helpers.LogLevel.Error);
+                    Logger.Log($"Failed loading resource file: {fileName}", Helpers.LogLevel.Error);
                     return null;
                 }
                 else
@@ -379,7 +379,7 @@ namespace OpenMetaverse.Imaging
             }
             catch (Exception e)
             {
-                Logger.Log(String.Format("Failed loading resource file: {0} ({1})", fileName, e.Message),
+                Logger.Log($"Failed loading resource file: {fileName} ({e.Message})",
                     Helpers.LogLevel.Error, e);
                 return null;
             }

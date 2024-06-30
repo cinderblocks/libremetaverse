@@ -135,26 +135,20 @@ namespace LibreMetaverse.Tests
                 }
                 else
                 {
-                    Assert.IsFalse(a == b, string.Format(
-                            "Vector casting failed, precision loss should" +
-                            " have occurred. " +
-                            "{0}: {1}, {2}", kvp.Key, a.X, b.X));
-                    Assert.IsFalse(b == d, string.Format(
-                            "Vector casting failed, explicit cast of double" +
-                            " to float should result in precision loss" +
-                            " whichwas should not magically disappear when" +
-                            " Vector3 is implicitly cast to Vector3d." +
-                            " {0}: {1}, {2}", kvp.Key, b.X, d.X));
+                    Assert.IsFalse(a == b,
+                        "Vector casting failed, precision loss should" + " have occurred. " +
+                        $"{kvp.Key}: {a.X}, {b.X}");
+                    Assert.IsFalse(b == d,
+                        "Vector casting failed, explicit cast of double" + " to float should result in precision loss" +
+                        " whichwas should not magically disappear when" + " Vector3 is implicitly cast to Vector3d." +
+                        $" {kvp.Key}: {b.X}, {d.X}");
                 }
-                Assert.IsTrue(a == c, string.Format(
-                        "Vector casting failed, Vector3 compared to" +
-                        " explicit cast of Vector3d to Vector3 should" +
-                        " result in identical precision loss." +
-                        " {0}: {1}, {2}", kvp.Key, a.X, c.X));
-                Assert.IsTrue(a == d, string.Format(
-                        "Vector casting failed, implicit cast of Vector3" +
-                        " to Vector3d should not result in precision loss." +
-                        " {0}: {1}, {2}", kvp.Key, a.X, d.X));
+                Assert.IsTrue(a == c,
+                    "Vector casting failed, Vector3 compared to" + " explicit cast of Vector3d to Vector3 should" +
+                    " result in identical precision loss." + $" {kvp.Key}: {a.X}, {c.X}");
+                Assert.IsTrue(a == d,
+                    "Vector casting failed, implicit cast of Vector3" +
+                    " to Vector3d should not result in precision loss." + $" {kvp.Key}: {a.X}, {d.X}");
             }
         }
 

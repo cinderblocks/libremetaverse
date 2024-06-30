@@ -1428,7 +1428,8 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log(String.Format("ParcelMap returned an default/invalid value for location {0}/{1} Did you use RequestAllSimParcels() to populate the dictionaries?", (byte)position.Y / 4, (byte)position.X / 4 ), Helpers.LogLevel.Warning);
+                Logger.Log(
+                    $"ParcelMap returned an default/invalid value for location {(byte)position.Y / 4}/{(byte)position.X / 4} Did you use RequestAllSimParcels() to populate the dictionaries?", Helpers.LogLevel.Warning);
                 return 0;
             }
         }
@@ -1497,7 +1498,7 @@ namespace OpenMetaverse
                 Parcel p;
                 if (!simulator.Parcels.TryGetValue(localID, out p))
                 {
-                    Logger.Log(String.Format("Can't find parcel {0} in simulator {1}", localID, simulator),
+                    Logger.Log($"Can't find parcel {localID} in simulator {simulator}",
                         Helpers.LogLevel.Warning, Client);
                     return false;
                 }

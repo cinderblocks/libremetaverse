@@ -272,7 +272,7 @@ namespace LibreMetaverse.Voice
         public static string MakeXML(string name, string text)
         {
             return string.IsNullOrEmpty(text) 
-                ? string.Format("<{0} />", name) 
+                ? $"<{name} />"
                 : string.Format("<{0}>{1}</{0}>", name, text);
         }
 

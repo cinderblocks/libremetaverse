@@ -50,7 +50,8 @@ namespace LibreMetaverse.LslTools
       }
       catch (Exception ex)
       {
-        yyp.m_symbols.erh.Error(new CSToolsException(17, yyp.m_lexer, string.Format("Create of {0} failed ({1})", (object) cls_name, (object) ex.Message)));
+        yyp.m_symbols.erh.Error(new CSToolsException(17, yyp.m_lexer,
+          $"Create of {(object)cls_name} failed ({(object)ex.Message})"));
       }
       int length = cls_name.LastIndexOf('_');
       if (length > 0)

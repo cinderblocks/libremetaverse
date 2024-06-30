@@ -519,7 +519,7 @@ namespace OpenMetaverse
             /// <returns></returns>
             public override string ToString()
             {
-                return String.Format("LightTexture: {0} Params; {1}", LightTexture, Params);
+                return $"LightTexture: {LightTexture} Params; {Params}";
             }
         }
 
@@ -1328,9 +1328,9 @@ namespace OpenMetaverse
             switch (PrimData.PCode)
             {
                 case PCode.Prim:
-                    return String.Format("{0} ({1})", Type, ID);
+                    return $"{Type} ({ID})";
                 default:
-                    return String.Format("{0} ({1})", PrimData.PCode, ID);
+                    return $"{PrimData.PCode} ({ID})";
             }
         }
 

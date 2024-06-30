@@ -107,7 +107,7 @@ namespace PacketDump
 
         static void LoginHandler(object sender, LoginProgressEventArgs e)
         {
-            Logger.Log(String.Format("Login: {0} ({1})", e.Status, e.Message), Helpers.LogLevel.Info);
+            Logger.Log($"Login: {e.Status} ({e.Message})", Helpers.LogLevel.Info);
 
             switch (e.Status)
             {

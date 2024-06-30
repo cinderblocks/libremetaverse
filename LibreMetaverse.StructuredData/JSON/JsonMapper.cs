@@ -296,9 +296,7 @@ namespace LitJson
             if (reader.Token == JsonToken.Null) {
 
                 if (! inst_type.IsClass)
-                    throw new JsonException (String.Format (
-                            "Can't assign null to an instance of type {0}",
-                            inst_type));
+                    throw new JsonException ($"Can't assign null to an instance of type {inst_type}");
 
                 return null;
             }
@@ -361,9 +359,7 @@ namespace LitJson
                 ArrayMetadata t_data = array_metadata[inst_type];
 
                 if (! t_data.IsArray && ! t_data.IsList)
-                    throw new JsonException (String.Format (
-                            "Type {0} can't act as an array",
-                            inst_type));
+                    throw new JsonException ($"Type {inst_type} can't act as an array");
 
                 IList list;
                 Type elem_type;
@@ -430,9 +426,8 @@ namespace LitJson
 
                     } else {
                         if (! t_data.IsDictionary)
-                            throw new JsonException (String.Format (
-                                    "The type {0} doesn't have the " +
-                                    "property '{1}'", inst_type, property));
+                            throw new JsonException ($"The type {inst_type} doesn't have the " +
+                                                     $"property '{property}'");
 
                         ((IDictionary) instance).Add (
                             property, ReadValue (
@@ -620,9 +615,7 @@ namespace LitJson
         {
             if (depth > max_nesting_depth)
                 throw new JsonException (
-                    String.Format ("Max allowed object depth reached while " +
-                                   "trying to export from type {0}",
-                                   obj.GetType ()));
+                    "Max allowed object depth reached while " + $"trying to export from type {obj.GetType()}");
 
             if (obj == null) {
                 writer.Write (null);

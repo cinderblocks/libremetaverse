@@ -529,7 +529,7 @@ namespace GridProxy
             meth = match.Groups[1].Captures[0].ToString();
             uri = match.Groups[2].Captures[0].ToString();
 
-            OpenMetaverse.Logger.Log(String.Format("[{0}] {1}:{2}", reqNo, meth, uri), Helpers.LogLevel.Debug);
+            OpenMetaverse.Logger.Log($"[{reqNo}] {meth}:{uri}", Helpers.LogLevel.Debug);
 
             // read HTTP header
             do
@@ -547,7 +547,7 @@ namespace GridProxy
 
                 if (!match.Success)
                 {
-                    OpenMetaverse.Logger.Log(String.Format("[{0}] Bad Header: '{1}'", reqNo, line), Helpers.LogLevel.Warning);
+                    OpenMetaverse.Logger.Log($"[{reqNo}] Bad Header: '{line}'", Helpers.LogLevel.Warning);
                     byte[] wr = Encoding.ASCII.GetBytes("HTTP/1.0 400 Bad Request\r\nContent-Length: 0\r\n\r\n");
                     netStream.Write(wr, 0, wr.Length);
                     netStream.Close(); client.Close();
@@ -574,7 +574,7 @@ namespace GridProxy
             reader.Read(content, 0, contentLength);
 
             if (contentLength < 8192)
-                OpenMetaverse.Logger.Log(String.Format("[{0}] request length={1}:\n{2}", reqNo, contentLength, Utils.BytesToString(content)), Helpers.LogLevel.Debug);
+                OpenMetaverse.Logger.Log($"[{reqNo}] request length={contentLength}:\n{Utils.BytesToString(content)}", Helpers.LogLevel.Debug);
 
             if (uri == "/")
             {
@@ -748,7 +748,7 @@ namespace GridProxy
                     }
                     else if (cap == null)
                     {
-                        OpenMetaverse.Logger.Log(string.Format("{0} {1}", req.Method, req.Address), Helpers.LogLevel.Info);
+                        OpenMetaverse.Logger.Log($"{req.Method} {req.Address}", Helpers.LogLevel.Info);
                     }
                     resp = (HttpWebResponse)req.GetResponse();
                 }
