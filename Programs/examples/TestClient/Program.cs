@@ -8,7 +8,7 @@ namespace OpenMetaverse.TestClient
     [Serializable]
     public class CommandLineArgumentsException : Exception
     {
-        public CommandLineArgumentsException() : base()
+        public CommandLineArgumentsException()
         {
         }
 

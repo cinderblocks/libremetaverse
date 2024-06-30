@@ -264,7 +264,6 @@ namespace OpenMetaverse.TestClient
         /// </summary>
         /// <param name="cmd"></param>
         /// <param name="fromAgentID"></param>
-        /// <param name="imSessionID"></param>
         public void DoCommandAll(string cmd, UUID fromAgentID)
         {
             if (cmd == null)

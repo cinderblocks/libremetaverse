@@ -96,6 +96,7 @@ namespace GridProxy
         /// <param name="author">Email address of the proxy application's author</param>
         /// <param name="args">An array containing the parameters to use to override the proxy
         /// servers default settings</param>
+        /// <param name="exitOnError">Does what it says on the tin</param>
         public ProxyConfig(string userAgent, string author, string[] args, bool exitOnError)
             : this(userAgent, author)
         {
