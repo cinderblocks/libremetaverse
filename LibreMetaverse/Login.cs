@@ -686,7 +686,7 @@ namespace OpenMetaverse
                     }
                     else
                     {
-                        throw new Exception("Could not parse 'home' in Login Response");
+                        throw new LoginException("Could not parse 'home' in Login Response");
                     }
                 }
             } catch (Exception ex)
@@ -1061,6 +1061,18 @@ namespace OpenMetaverse
 
     #endregion Structs
 
+    [Serializable]
+    public class LoginException : Exception
+    {
+        public LoginException(string message) 
+            : base(message)
+        {}
+
+        public LoginException(string message, Exception innerException)
+            : base (message, innerException)
+        {}
+    }
+    
     /// <summary>
     /// Login Routines
     /// </summary>
@@ -1270,7 +1282,7 @@ namespace OpenMetaverse
         public void BeginLogin(LoginParams loginParams)
         {
             // FIXME: Now that we're using CAPS we could cancel the current login and start a new one
-            if (CurrentContext != null) {throw new Exception("Login already in progress");}
+            if (CurrentContext != null) {throw new LoginException("Login already in progress");}
 
             LoginEvent.Reset();
             CurrentContext = loginParams;
