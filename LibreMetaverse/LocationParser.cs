@@ -37,7 +37,7 @@ namespace OpenMetaverse
 
         public LocationParser(string location)
         {
-            if (location == null ) { throw new ArgumentNullException("Location cannot be null."); }
+            if (location == null ) { throw new ArgumentNullException(nameof(location), "Location cannot be null."); }
             if (location.Length == 0) { throw new ArgumentException("Location cannot be empty."); }
 
             string toParse;
