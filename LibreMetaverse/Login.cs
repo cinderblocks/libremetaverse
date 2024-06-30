@@ -1192,7 +1192,7 @@ namespace OpenMetaverse
         /// <param name="lastName">Account last name</param>
         /// <param name="password">Account password</param>
         /// <param name="channel">Client application name (channel)</param>
-        /// <param name="version">Client application name + version</param>
+        /// <param name="version">Version string (typically x.x.x)</param>
         /// <returns>A populated <seealso cref="LoginParams"/> object containing sane defaults</returns>
         public LoginParams DefaultLoginParams(string firstName, string lastName, string password,
             string channel, string version)
@@ -1207,7 +1207,7 @@ namespace OpenMetaverse
         /// <param name="lastName">Account last name</param>
         /// <param name="password">Account password</param>
         /// <param name="channel">Client application name (channel)</param>
-        /// <param name="version">Client application name + version</param>
+        /// <param name="version">Version string (typically x.x.x)</param>
         /// <returns>Whether the login was successful or not. On failure the
         /// LoginErrorKey string will contain the error code and LoginMessage
         /// will contain a description of the error</returns>
@@ -1228,7 +1228,7 @@ namespace OpenMetaverse
         /// <param name="channel">Client application name (channel)</param>
         /// <param name="start">Starting location URI that can be built with
         /// StartLocation()</param>
-        /// <param name="version">Client application name + version</param>
+        /// <param name="version">Version string (typically x.x.x)</param>
         /// <returns>Whether the login was successful or not. On failure the
         /// LoginErrorKey string will contain the error code and LoginMessage
         /// will contain a description of the error</returns>
