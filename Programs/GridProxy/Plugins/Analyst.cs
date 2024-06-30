@@ -557,9 +557,9 @@ public class Analyst : ProxyPlugin
             }
             else if (fieldClass == typeof(bool))
             {
-                if (value.ToLower() == "true")
+                if (value.Equals("true", StringComparison.CurrentCultureIgnoreCase))
                     return true;
-                else if (value.ToLower() == "false")
+                else if (value.Equals("false", StringComparison.CurrentCultureIgnoreCase))
                     return false;
                 else
                     throw new Exception();

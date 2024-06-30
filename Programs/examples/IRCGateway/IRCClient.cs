@@ -124,7 +124,7 @@ public class IRCClient
 
                 if (words.Length < 2) return;
 
-                if (words[0].ToUpper() == "PING")
+                if (words[0].Equals("PING", StringComparison.CurrentCultureIgnoreCase))
                     ircClient.Client.Send(Encoding.ASCII.GetBytes("PONG " + words[1] + "\r\n"));
 
                 else if (words[1] == "001")
@@ -133,7 +133,7 @@ public class IRCClient
                         OnConnected();
                 }
 
-                else if (words[1].ToUpper() == "PRIVMSG")
+                else if (words[1].Equals("PRIVMSG", StringComparison.CurrentCultureIgnoreCase))
                 {
                     if (OnMessage != null)
                     {
