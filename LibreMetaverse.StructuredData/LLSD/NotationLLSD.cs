@@ -752,7 +752,7 @@ namespace OpenMetaverse.StructuredData
             string oldOne = "\\" + c;
             string newOne = new String(c, 1);
 
-            String sOne = s.Replace("\\\\", "\\").Replace(oldOne, newOne);
+            String sOne = s.Replace(@"\\", "\\").Replace(oldOne, newOne);
             return sOne;
         }
 
@@ -767,7 +767,7 @@ namespace OpenMetaverse.StructuredData
             string oldOne = new String(c, 1);
             string newOne = "\\" + c;
 
-            String sOne = s.Replace("\\", "\\\\").Replace(oldOne, newOne);
+            String sOne = s.Replace("\\", @"\\").Replace(oldOne, newOne);
             return sOne;
         }
     }

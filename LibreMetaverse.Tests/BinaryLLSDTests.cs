@@ -679,7 +679,7 @@ namespace LibreMetaverse.Tests
         {
             // each 80 chars
             string sOne = "asdklfjasadlfkjaerotiudfgjkhsdklgjhsdklfghasdfklhjasdfkjhasdfkljahsdfjklaasdfkj8";
-            string sTwo = "asdfkjlaaweoiugsdfjkhsdfg,.mnasdgfkljhrtuiohfglökajsdfoiwghjkdlaaaaseldkfjgheus9";
+            string sTwo = "asdfkjlaaweoiugsdfjkhsdfg,.mnasdgfkljhrtuiohfglï¿½kajsdfoiwghjkdlaaaaseldkfjgheus9";
             
             OSD stringOne = OSD.FromString( sOne );
             OSD stringTwo = OSD.FromString(sTwo);

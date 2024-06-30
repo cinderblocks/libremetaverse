@@ -337,7 +337,7 @@ namespace LibreMetaverse.Tests
             string sSeven = "s(5)\"\\\\\\\\\\\"";
             OSD llsdSeven = OSDParser.DeserializeLLSDNotation(sSeven);
             Assert.AreEqual(OSDType.String, llsdSeven.Type);
-            Assert.AreEqual("\\\\\\\\\\", llsdSeven.AsString());
+            Assert.AreEqual(@"\\\\\", llsdSeven.AsString());
 
             string sEight = "\"aouAOUhsdjklfghskldjfghqeiurtzwieortzaslxfjkgh\"";
             OSD llsdEight = OSDParser.DeserializeLLSDNotation(sEight);
@@ -367,7 +367,7 @@ namespace LibreMetaverse.Tests
 
             DoSomeStringSerializingActionsAndAsserts("\"\"");
 
-            DoSomeStringSerializingActionsAndAsserts("ÄÖÜäöü-these-should-be-some-german-umlauts");
+            DoSomeStringSerializingActionsAndAsserts("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½-these-should-be-some-german-umlauts");
 
             DoSomeStringSerializingActionsAndAsserts("\t\n\r");
 
