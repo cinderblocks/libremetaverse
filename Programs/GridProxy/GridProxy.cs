@@ -296,10 +296,7 @@ namespace GridProxy
                     return;
                 }
                 List<PacketDelegate> delegateArray = delegates[packetType];
-                if (delegateArray.Contains(packetDelegate))
-                {
-                    delegateArray.Remove(packetDelegate);
-                }
+                delegateArray.Remove(packetDelegate);
             }
         }
 
@@ -971,10 +968,7 @@ namespace GridProxy
                     return;
                 }
                 List<CapsDelegate> delegateArray = KnownCapsDelegates[CapName];
-                if (delegateArray.Contains(capsDelegate))
-                {
-                    delegateArray.Remove(capsDelegate);
-                }
+                delegateArray.Remove(capsDelegate);
             }
         }
 
@@ -2147,10 +2141,7 @@ namespace GridProxy
         {
             lock (this)
             {
-                if (Delegates.Contains(deleg))
-                {
-                    Delegates.Remove(deleg);
-                }
+                Delegates.Remove(deleg);
             }
         }
 
