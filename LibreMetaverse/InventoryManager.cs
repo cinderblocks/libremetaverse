@@ -1158,7 +1158,7 @@ namespace OpenMetaverse
             {
                 if (inv != null)
                 {
-                    Client.AisClient.UpdateCategory(folderID, inv.GetOSD(), (success) =>
+                    Client.AisClient.UpdateCategory(folderID, inv.GetOSD(), success =>
                     {
                         if (success)
                         {

@@ -364,7 +364,7 @@ namespace OpenMetaverse
             if (!cleanerEvent.IsSet)
             {
                 cleanerEvent.Set();
-                ThreadPool.QueueUserWorkItem((_) => Prune());
+                ThreadPool.QueueUserWorkItem(_ => Prune());
             }
         }
 

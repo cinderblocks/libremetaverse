@@ -1147,7 +1147,7 @@ namespace OpenMetaverse
                 }
             }
 
-            ThreadPool.QueueUserWorkItem((_) =>
+            ThreadPool.QueueUserWorkItem(_ =>
             {
                 int count = 0, timeouts = 0, y, x;
 
