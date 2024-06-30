@@ -1350,39 +1350,29 @@ namespace OpenMetaverse
 
             #region Sanity Check loginParams
 
-            if (loginParams.Options == null)
-                loginParams.Options = new List<string>();
-
-            if (loginParams.Password == null)
-                loginParams.Password = string.Empty;
+            loginParams.Options ??= new List<string>();
+            loginParams.Password ??= string.Empty;
+            loginParams.ViewerDigest ??= string.Empty;
+            loginParams.UserAgent ??= Settings.USER_AGENT;
+            loginParams.Platform ??= string.Empty;
+            loginParams.PlatformVersion ??= string.Empty;
+            loginParams.MAC ??= string.Empty;
+            loginParams.Author ??= string.Empty;
 
             // *HACK: Convert the password to MD5 if it isn't already
             if (loginParams.Password.Length != 35 && !loginParams.Password.StartsWith("$1$"))
                 loginParams.Password = Utils.MD5(loginParams.Password);
-
-            if (loginParams.ViewerDigest == null)
-                loginParams.ViewerDigest = string.Empty;
-
-            if (loginParams.Version == null)
-                loginParams.Version = string.Empty;
-
-            if (loginParams.UserAgent == null)
-                loginParams.UserAgent = Settings.USER_AGENT;
-
-            if (loginParams.Platform == null)
-                loginParams.Platform = string.Empty;
-
-            if (loginParams.PlatformVersion == null)
-                loginParams.PlatformVersion = string.Empty;
-
-            if (loginParams.MAC == null)
-                loginParams.MAC = string.Empty;
-
+            
             if (string.IsNullOrEmpty(loginParams.Channel))
             {
-                Logger.Log("Viewer channel not set.", 
-                    Helpers.LogLevel.Warning);
+                Logger.Log("Viewer channel not set.", Helpers.LogLevel.Warning);
                 loginParams.Channel = $"{Settings.USER_AGENT}";
+            }
+
+            if (string.IsNullOrEmpty((loginParams.Version)))
+            {
+                Logger.Log("Viewer version not set.", Helpers.LogLevel.Warning);
+                loginParams.Version = "?.?.?";
             }
 
             if (!string.IsNullOrEmpty(loginParams.LoginLocation))
@@ -1403,11 +1393,7 @@ namespace OpenMetaverse
                         break;
                 }
             }
-
-            if (loginParams.Author == null)
-            {
-                loginParams.Author = string.Empty;
-            }
+            
             #endregion
 
             // TODO: Allow a user callback to be defined for handling the cert
