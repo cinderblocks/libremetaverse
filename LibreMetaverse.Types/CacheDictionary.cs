@@ -79,7 +79,7 @@ namespace LibreMetaverse
             if (maxSize == 0)
                 throw new ArgumentException("maxSize must be a positive integer value");
             _maxSize = maxSize;
-            _removalStrategy = removalStrategy ?? throw new ArgumentNullException("removalStrategy");
+            _removalStrategy = removalStrategy ?? throw new ArgumentNullException(nameof(removalStrategy));
             _data = new Dictionary<TKey, TValue>();
 
             _removalStrategy.Initialize(maxSize);
@@ -196,8 +196,8 @@ namespace LibreMetaverse
 
             internal CacheDictionaryEnumerator(IEnumerator<KeyValuePair<TKey, TValue>> innerEnumerator, ICacheDictionaryRemovalStrategy<TKey> removalStrategy)
             {
-                _innerEnumerator = innerEnumerator ?? throw new ArgumentNullException("innerEnumerator");
-                _removalStrategy = removalStrategy ?? throw new ArgumentNullException("removalStrategy");
+                _innerEnumerator = innerEnumerator ?? throw new ArgumentNullException(nameof(innerEnumerator));
+                _removalStrategy = removalStrategy ?? throw new ArgumentNullException(nameof(removalStrategy));
             }
 
             public KeyValuePair<TKey, TValue> Current
