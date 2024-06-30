@@ -3994,8 +3994,9 @@ namespace OpenMetaverse
                 ArrayList listEntrys = respMap.ToArrayList();
                 foreach (OSDArray listEntry in listEntrys)
                 {
-                    foreach (OSDMap msg in listEntry)
+                    foreach (var osd in listEntry)
                     {
+                        var msg = (OSDMap)osd;
 
                         InstantMessage message;
                         message.FromAgentID = msg["from_agent_id"].AsUUID();
