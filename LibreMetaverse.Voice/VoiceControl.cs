@@ -574,8 +574,8 @@ namespace LibreMetaverse.Voice
         /// <summary>
         /// Handle completion of main voice cap request.
         /// </summary>
-        /// <param name="client"></param>
-        /// <param name="result"></param>
+        /// <param name="response"></param>
+        /// <param name="responseData"></param>
         /// <param name="error"></param>
         void cClient_OnComplete(HttpResponseMessage response, byte[] responseData, Exception error)
         {
