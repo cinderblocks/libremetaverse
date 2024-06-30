@@ -1059,28 +1059,30 @@ namespace Mapgenerator
             writer.WriteLine("        }");
 
             // Write the Packet.BuildPacket() function
-            writer.WriteLine(@"
-        public static Packet BuildPacket(byte[] packetBuffer, ref int packetEnd, byte[] zeroBuffer)
-        {
-            byte[] bytes;
-            int i = 0;
-            Header header = Header.BuildHeader(packetBuffer, ref i, ref packetEnd);
-            if (header.Zerocoded)
-            {
-                packetEnd = Helpers.ZeroDecode(packetBuffer, packetEnd + 1, zeroBuffer) - 1;
-                bytes = zeroBuffer;
-            }
-            else
-            {
-                bytes = packetBuffer;
-            }
-            Array.Clear(bytes, packetEnd + 1, bytes.Length - packetEnd - 1);
-
-            switch (header.Frequency)
-            {
-                case PacketFrequency.Low:
-                    switch (header.ID)
-                    {");
+            writer.WriteLine("""
+                             
+                                     public static Packet BuildPacket(byte[] packetBuffer, ref int packetEnd, byte[] zeroBuffer)
+                                     {
+                                         byte[] bytes;
+                                         int i = 0;
+                                         Header header = Header.BuildHeader(packetBuffer, ref i, ref packetEnd);
+                                         if (header.Zerocoded)
+                                         {
+                                             packetEnd = Helpers.ZeroDecode(packetBuffer, packetEnd + 1, zeroBuffer) - 1;
+                                             bytes = zeroBuffer;
+                                         }
+                                         else
+                                         {
+                                             bytes = packetBuffer;
+                                         }
+                                         Array.Clear(bytes, packetEnd + 1, bytes.Length - packetEnd - 1);
+                             
+                                         switch (header.Frequency)
+                                         {
+                                             case PacketFrequency.Low:
+                                                 switch (header.ID)
+                                                 {
+                             """);
             foreach (MapPacket packet in protocol.LowMaps)
                 if (packet != null)
                     writer.WriteLine("                        case " + packet.ID + ": return new " + packet.Name + "Packet(header, bytes, ref i);");

@@ -122,7 +122,7 @@ namespace LibreMetaverse.LslTools
 
     private void ConcreteSyntaxTree(string n)
     {
-      if (this is error)
+      if (this is Error)
         Console.WriteLine(n + " " + this.ToString());
       else
         Console.WriteLine(n + "-" + this.ToString());

@@ -6662,7 +6662,7 @@ namespace YYClass
 
     public static object error_factory(Parser yyp)
     {
-      return (object) new error(yyp);
+      return (object) new Error(yyp);
     }
 
     public static object Item_20_factory(Parser yyp)

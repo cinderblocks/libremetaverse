@@ -28,7 +28,7 @@ using System;
 
 namespace LibreMetaverse.LslTools
 {
-  public class recoveredError : error
+  public class recoveredError : Error
   {
     public recoveredError(Parser yyp, ParseStackEntry s)
       : base(yyp, s)

@@ -26,24 +26,24 @@
 
 namespace LibreMetaverse.LslTools
 {
-  public class error : SYMBOL
+  public class Error : SYMBOL
   {
     public int state;
     public SYMBOL sym;
 
-    public error(Parser yyp, ParseStackEntry s)
+    public Error(Parser yyp, ParseStackEntry s)
       : base(yyp)
     {
       this.state = s.m_state;
       this.sym = s.m_value;
     }
 
-    public error(Parser yyp)
+    public Error(Parser yyp)
       : base(yyp)
     {
     }
 
-    public override string yyname => nameof (error);
+    public override string yyname => nameof (Error);
 
     public override string ToString()
     {
