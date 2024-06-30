@@ -302,9 +302,9 @@ namespace LibreMetaverse.Voice
                     !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ProgramFiles(x86)")) 
                         ? "ProgramFiles(x86)" : "ProgramFiles");
 
-                return progFiles != null && File.Exists(Path.Combine(progFiles, @"SecondLife" + Path.DirectorySeparatorChar + @"SLVoice.exe")) 
-                    ? Path.Combine(progFiles, @"SecondLife" + Path.DirectorySeparatorChar + @"SLVoice.exe") 
-                    : Path.Combine(myDir, @"SLVoice.exe");
+                return progFiles != null && File.Exists(Path.Combine(progFiles, "SecondLife" + Path.DirectorySeparatorChar + "SLVoice.exe")) 
+                    ? Path.Combine(progFiles, "SecondLife" + Path.DirectorySeparatorChar + "SLVoice.exe") 
+                    : Path.Combine(myDir, "SLVoice.exe");
             }
 
             if (myDir != null)

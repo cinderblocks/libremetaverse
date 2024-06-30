@@ -15,7 +15,7 @@ namespace CommandLine.Utility
         public Arguments(string[] Args)
         {
             Parameters = new StringDictionary();
-            Regex Splitter = new Regex(@"^-{1,2}|=",
+            Regex Splitter = new Regex("^-{1,2}|=",
                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
             Regex Remover = new Regex(@"^['""]?(.*?)['""]?$",

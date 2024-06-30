@@ -563,7 +563,7 @@ namespace LibreMetaverse.Tests
 
             Assert.AreEqual(OSDType.URI, array[0].Type);
             tempURI = (OSDUri)array[0];
-            Uri testURI = new Uri(@"http://sim956.agni.lindenlab.com:12035/runtime/agents");
+            Uri testURI = new Uri("http://sim956.agni.lindenlab.com:12035/runtime/agents");
             Assert.AreEqual(testURI, tempURI.AsUri());
 
             Assert.AreEqual(OSDType.URI, array[1].Type);

@@ -587,11 +587,11 @@ namespace GridProxy
                     ProxyLogin(netStream, content);
                 }
             }
-            else if (new Regex(@"^/https?://.*$").Match(uri).Success)
+            else if (new Regex("^/https?://.*$").Match(uri).Success)
             {
                 ProxyCaps(netStream, meth, uri.Substring(1), headers, content, reqNo);
             }
-            else if (new Regex(@"^/https?:/.*$").Match(uri).Success)
+            else if (new Regex("^/https?:/.*$").Match(uri).Success)
             {
                 //This is a libomv client and the proxy CAPS URI has been munged by the C# URI class
                 //Part of the LIBOMV-457 work around, TODO make this much nicer.
