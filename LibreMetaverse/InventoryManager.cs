@@ -4020,7 +4020,7 @@ namespace OpenMetaverse
             {
                 if (_Searches.Count > 0)
                 {
-                StartSearch:
+                    StartSearch:
                     // Iterate over all of the outstanding searches
                     for (var i = 0; i < _Searches.Count; ++i)
                     {

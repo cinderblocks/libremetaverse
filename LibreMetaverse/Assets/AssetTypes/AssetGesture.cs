@@ -348,7 +348,7 @@ namespace OpenMetaverse.Assets
                         break;
                 }
             }
-        Finish:
+            Finish:
 
             AssetData = Utils.StringToBytes(sb.ToString());
         }
@@ -449,7 +449,7 @@ namespace OpenMetaverse.Assets
 
                     }
                 }
-            Finish:
+                Finish:
 
                 return true;
             }

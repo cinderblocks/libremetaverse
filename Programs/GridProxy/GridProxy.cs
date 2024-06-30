@@ -1579,54 +1579,54 @@ namespace GridProxy
                     int outgoingSeenAcksPoint = 0;
 
                     for (; ; Thread.Sleep(1000)) lock (proxy)
+                    {
+                        if ((tick = (tick + 1) % 60) == 0)
                         {
-                            if ((tick = (tick + 1) % 60) == 0)
+                            for (int i = 0; i < incomingInjectionsPoint; ++i)
                             {
-                                for (int i = 0; i < incomingInjectionsPoint; ++i)
-                                {
-                                    incomingInjections.RemoveAt(0);
-                                    ++incomingOffset;
-                                }
-                                incomingInjectionsPoint = incomingInjections.Count;
+                                incomingInjections.RemoveAt(0);
+                                ++incomingOffset;
+                            }
+                            incomingInjectionsPoint = incomingInjections.Count;
 
-                                for (int i = 0; i < outgoingInjectionsPoint; ++i)
-                                {
-                                    outgoingInjections.RemoveAt(0);
-                                    ++outgoingOffset;
-                                }
-                                outgoingInjectionsPoint = outgoingInjections.Count;
+                            for (int i = 0; i < outgoingInjectionsPoint; ++i)
+                            {
+                                outgoingInjections.RemoveAt(0);
+                                ++outgoingOffset;
+                            }
+                            outgoingInjectionsPoint = outgoingInjections.Count;
 
-                                for (int i = 0; i < incomingSeenAcksPoint; ++i)
-                                {
-                                    incomingAcks.Remove(incomingSeenAcks[0]);
-                                    incomingSeenAcks.RemoveAt(0);
-                                }
-                                incomingSeenAcksPoint = incomingSeenAcks.Count;
+                            for (int i = 0; i < incomingSeenAcksPoint; ++i)
+                            {
+                                incomingAcks.Remove(incomingSeenAcks[0]);
+                                incomingSeenAcks.RemoveAt(0);
+                            }
+                            incomingSeenAcksPoint = incomingSeenAcks.Count;
 
-                                for (int i = 0; i < outgoingSeenAcksPoint; ++i)
-                                {
-                                    outgoingAcks.Remove(outgoingSeenAcks[0]);
-                                    outgoingSeenAcks.RemoveAt(0);
-                                }
-                                outgoingSeenAcksPoint = outgoingSeenAcks.Count;
+                            for (int i = 0; i < outgoingSeenAcksPoint; ++i)
+                            {
+                                outgoingAcks.Remove(outgoingSeenAcks[0]);
+                                outgoingSeenAcks.RemoveAt(0);
+                            }
+                            outgoingSeenAcksPoint = outgoingSeenAcks.Count;
+                        }
+
+                        foreach (uint id in incomingAcks.Keys)
+                            if (!incomingSeenAcks.Contains(id))
+                            {
+                                Packet packet = (Packet)incomingAcks[id];
+                                packet.Header.Resent = true;
+                                SendPacket(packet, false);
                             }
 
-                            foreach (uint id in incomingAcks.Keys)
-                                if (!incomingSeenAcks.Contains(id))
-                                {
-                                    Packet packet = (Packet)incomingAcks[id];
-                                    packet.Header.Resent = true;
-                                    SendPacket(packet, false);
-                                }
-
-                            foreach (uint id in outgoingAcks.Keys)
-                                if (!outgoingSeenAcks.Contains(id))
-                                {
-                                    Packet packet = (Packet)outgoingAcks[id];
-                                    packet.Header.Resent = true;
-                                    proxy.SendPacket(packet, remoteEndPoint, false);
-                                }
-                        }
+                        foreach (uint id in outgoingAcks.Keys)
+                            if (!outgoingSeenAcks.Contains(id))
+                            {
+                                Packet packet = (Packet)outgoingAcks[id];
+                                packet.Header.Resent = true;
+                                proxy.SendPacket(packet, remoteEndPoint, false);
+                            }
+                    }
                 }
                 catch (Exception e)
                 {

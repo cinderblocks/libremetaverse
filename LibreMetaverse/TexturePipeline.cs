@@ -533,7 +533,7 @@ namespace OpenMetaverse
             lock (task.Transfer)
             {
                 if (task.Transfer.PacketsSeen != null && task.Transfer.PacketsSeen.Count > 0)
-                packet = GetFirstMissingPacket(task.Transfer.PacketsSeen);
+                    packet = GetFirstMissingPacket(task.Transfer.PacketsSeen);
             }
 
             // Request the texture
@@ -736,17 +736,17 @@ namespace OpenMetaverse
                 lock (task.Transfer)
                 {
                     if (task.Transfer.Size == 0)
-                {
-                    task.Transfer.Codec = (ImageCodec)data.ImageID.Codec;
-                    task.Transfer.PacketCount = data.ImageID.Packets;
-                    task.Transfer.Size = (int)data.ImageID.Size;
-                    task.Transfer.AssetData = new byte[task.Transfer.Size];
-                    task.Transfer.AssetType = AssetType.Texture;
-                    task.Transfer.PacketsSeen = new SortedList<ushort, ushort>();
-                    Buffer.BlockCopy(data.ImageData.Data, 0, task.Transfer.AssetData, 0, data.ImageData.Data.Length);
-                    task.Transfer.InitialDataSize = data.ImageData.Data.Length;
-                    task.Transfer.Transferred += data.ImageData.Data.Length;
-                }
+                    {
+                        task.Transfer.Codec = (ImageCodec)data.ImageID.Codec;
+                        task.Transfer.PacketCount = data.ImageID.Packets;
+                        task.Transfer.Size = (int)data.ImageID.Size;
+                        task.Transfer.AssetData = new byte[task.Transfer.Size];
+                        task.Transfer.AssetType = AssetType.Texture;
+                        task.Transfer.PacketsSeen = new SortedList<ushort, ushort>();
+                        Buffer.BlockCopy(data.ImageData.Data, 0, task.Transfer.AssetData, 0, data.ImageData.Data.Length);
+                        task.Transfer.InitialDataSize = data.ImageData.Data.Length;
+                        task.Transfer.Transferred += data.ImageData.Data.Length;
+                    }
                 }
 
                 task.Transfer.HeaderReceivedEvent.Set();
