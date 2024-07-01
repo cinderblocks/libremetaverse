@@ -156,21 +156,21 @@ namespace LibreMetaverse.Voice
         /// <summary>
         /// Create a Session
         /// Sessions typically represent a connection to a media session with one or more
-        /// participants. This is used to generate an ‘outbound’ call to another user or
+        /// participants. This is used to generate an ï¿½outboundï¿½ call to another user or
         /// channel. The specifics depend on the media types involved. A session handle is
         /// required to control the local user functions within the session (or remote
         /// users if the current account has rights to do so). Currently creating a
         /// session automatically connects to the audio media, there is no need to call
         /// Session.Connect at this time, this is reserved for future use.
         /// </summary>
-        /// <param name="AccountHandle">Handle returned from successful Connector ‘create’ request</param>
+        /// <param name="AccountHandle">Handle returned from successful Connector ï¿½createï¿½ request</param>
         /// <param name="URI">This is the URI of the terminating point of the session (ie who/what is being called)</param>
         /// <param name="Name">This is the display name of the entity being called (user or channel)</param>
         /// <param name="Password">Only needs to be supplied when the target URI is password protected</param>
         /// <param name="PasswordHashAlgorithm">This indicates the format of the password as passed in. This can either be
-        /// “ClearText” or “SHA1UserName”. If this element does not exist, it is assumed to be “ClearText”. If it is
-        /// “SHA1UserName”, the password as passed in is the SHA1 hash of the password and username concatenated together,
-        /// then base64 encoded, with the final “=” character stripped off.</param>
+        /// ï¿½ClearTextï¿½ or ï¿½SHA1UserNameï¿½. If this element does not exist, it is assumed to be ï¿½ClearTextï¿½. If it is
+        /// ï¿½SHA1UserNameï¿½, the password as passed in is the SHA1 hash of the password and username concatenated together,
+        /// then base64 encoded, with the final ï¿½=ï¿½ character stripped off.</param>
         /// <param name="JoinAudio"></param>
         /// <param name="JoinText"></param>
         /// <returns></returns>
@@ -237,9 +237,9 @@ namespace LibreMetaverse.Voice
         }
 
         /// <summary>
-        /// This is used to ‘end’ an established session (i.e. hang-up or disconnect).
+        /// This is used to ï¿½endï¿½ an established session (i.e. hang-up or disconnect).
         /// </summary>
-        /// <param name="SessionHandle">Handle returned from successful Session ‘create’ request or a SessionNewEvent</param>
+        /// <param name="SessionHandle">Handle returned from successful Session ï¿½createï¿½ request or a SessionNewEvent</param>
         /// <returns></returns>
         public int SessionTerminate(string SessionHandle)
         {
@@ -250,7 +250,7 @@ namespace LibreMetaverse.Voice
         /// <summary>
         /// Set the combined speaking and listening position in 3D space.
         /// </summary>
-        /// <param name="SessionHandle">Handle returned from successful Session ‘create’ request or a SessionNewEvent</param>
+        /// <param name="SessionHandle">Handle returned from successful Session ï¿½createï¿½ request or a SessionNewEvent</param>
         /// <param name="SpeakerPosition">Speaking position</param>
         /// <param name="ListenerPosition">Listening position</param>
         /// <returns></returns>
@@ -318,9 +318,9 @@ namespace LibreMetaverse.Voice
         /// <summary>
         /// Set User Volume for a particular user. Does not affect how other users hear that user.
         /// </summary>
-        /// <param name="SessionHandle">Handle returned from successful Session ‘create’ request or a SessionNewEvent</param>
+        /// <param name="SessionHandle">Handle returned from successful Session ï¿½createï¿½ request or a SessionNewEvent</param>
         /// <param name="ParticipantURI"></param>
-        /// <param name="Volume">The level of the audio, a number between -100 and 100 where 0 represents ‘normal’ speaking volume</param>
+        /// <param name="Volume">The level of the audio, a number between -100 and 100 where 0 represents ï¿½normalï¿½ speaking volume</param>
         /// <returns></returns>
         public int SessionSetParticipantVolumeForMe(string SessionHandle, string ParticipantURI, int Volume)
         {

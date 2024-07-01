@@ -65,7 +65,7 @@ namespace LibreMetaverse.Voice
         /// Shutdown Connector -- Should be called when the application is shutting down
         /// to gracefully release resources
         /// </summary>
-        /// <param name="ConnectorHandle">Handle returned from successful Connector ‘create’ request</param>
+        /// <param name="ConnectorHandle">Handle returned from successful Connector ï¿½createï¿½ request</param>
         public int ConnectorInitiateShutdown(string ConnectorHandle)
         {
             string RequestXML = VoiceGateway.MakeXML("ConnectorHandle", ConnectorHandle);
@@ -75,7 +75,7 @@ namespace LibreMetaverse.Voice
         /// <summary>
         /// Mute or unmute the microphone
         /// </summary>
-        /// <param name="ConnectorHandle">Handle returned from successful Connector ‘create’ request</param>
+        /// <param name="ConnectorHandle">Handle returned from successful Connector ï¿½createï¿½ request</param>
         /// <param name="Mute">true (mute) or false (unmute)</param>
         public int ConnectorMuteLocalMic(string ConnectorHandle, bool Mute)
         {
@@ -88,7 +88,7 @@ namespace LibreMetaverse.Voice
         /// <summary>
         /// Mute or unmute the speaker
         /// </summary>
-        /// <param name="ConnectorHandle">Handle returned from successful Connector ‘create’ request</param>
+        /// <param name="ConnectorHandle">Handle returned from successful Connector ï¿½createï¿½ request</param>
         /// <param name="Mute">true (mute) or false (unmute)</param>
         public int ConnectorMuteLocalSpeaker(string ConnectorHandle, bool Mute)
         {
@@ -101,9 +101,9 @@ namespace LibreMetaverse.Voice
         /// <summary>
         /// Set microphone volume
         /// </summary>
-        /// <param name="ConnectorHandle">Handle returned from successful Connector ‘create’ request</param>
+        /// <param name="ConnectorHandle">Handle returned from successful Connector ï¿½createï¿½ request</param>
         /// <param name="Value">The level of the audio, a number between -100 and 100 where
-        /// 0 represents ‘normal’ speaking volume</param>
+        /// 0 represents ï¿½normalï¿½ speaking volume</param>
         public int ConnectorSetLocalMicVolume(string ConnectorHandle, int Value)
         {
             StringBuilder sb = new StringBuilder();
@@ -115,9 +115,9 @@ namespace LibreMetaverse.Voice
         /// <summary>
         /// Set local speaker volume
         /// </summary>
-        /// <param name="ConnectorHandle">Handle returned from successful Connector ‘create’ request</param>
+        /// <param name="ConnectorHandle">Handle returned from successful Connector ï¿½createï¿½ request</param>
         /// <param name="Value">The level of the audio, a number between -100 and 100 where
-        /// 0 represents ‘normal’ speaking volume</param>
+        /// 0 represents ï¿½normalï¿½ speaking volume</param>
         public int ConnectorSetLocalSpeakerVolume(string ConnectorHandle, int Value)
         {
             StringBuilder sb = new StringBuilder();
