@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -117,7 +117,7 @@ namespace LibreMetaverse.Voice
 
         protected Voice.TCPPipe _DaemonPipe;
         protected VoiceStatus _Status;
-        protected int _CommandCookie = 0;
+        protected int _CommandCookie;
         protected string _TuningSoundFile = string.Empty;
         protected Dictionary<string, string> _ChannelMap = new Dictionary<string, string>();
         protected List<string> _CaptureDevices = new List<string>();
@@ -316,7 +316,7 @@ namespace LibreMetaverse.Voice
 
                     if (cap != null)
                     {
-                        Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSDMap(),
+                        var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSDMap(),
                             CancellationToken.None, callback);
 
                         return true;
@@ -527,7 +527,7 @@ namespace LibreMetaverse.Voice
                 Logger.Log("Failed to provision voice capability", Helpers.LogLevel.Warning, Client, error);
                 return;
             }
-            OSD response = OSDParser.Deserialize(responseData);
+            var response = OSDParser.Deserialize(responseData);
             if (!(response is OSDMap respMap)) return;
 
             if (OnProvisionAccount == null) return;
@@ -542,7 +542,7 @@ namespace LibreMetaverse.Voice
                 Logger.Log("Failed to retrieve voice info", Helpers.LogLevel.Warning, Client, error);
                 return;
             }
-            OSD response = OSDParser.Deserialize(responseData);
+            var response = OSDParser.Deserialize(responseData);
             if (!(response is OSDMap respMap)) return;
 
             var regionName = respMap["region_name"].AsString();

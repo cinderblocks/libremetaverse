@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,7 @@
  */
 
 using System;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 
@@ -33,10 +34,10 @@ namespace LibreMetaverse.Voice
 {
     public class TCPPipe
     {
-        protected class SocketPacket
+        private class SocketPacket
         {
-            public Socket TCPSocket;
-            public byte[] DataBuffer = new byte[1];
+            public Socket TcpSocket;
+            public readonly byte[] DataBuffer = new byte[1];
         }
 
         public delegate void OnReceiveLineCallback(string line);
@@ -45,16 +46,16 @@ namespace LibreMetaverse.Voice
         public event OnReceiveLineCallback OnReceiveLine;
         public event OnDisconnectedCallback OnDisconnected;
 
-        protected Socket _TCPSocket;
-        protected IAsyncResult _Result;
-        protected AsyncCallback _Callback;
-        protected string _Buffer = string.Empty;
+        private Socket _tcpSocket;
+        protected IAsyncResult _result;
+        private AsyncCallback _callback;
+        private string _buffer = string.Empty;
 
-        public bool Connected => _TCPSocket != null && _TCPSocket.Connected;
+        public bool Connected => _tcpSocket != null && _tcpSocket.Connected;
 
         public SocketException Connect(string address, int port)
         {
-            if (_TCPSocket != null && _TCPSocket.Connected)
+            if (_tcpSocket != null && _tcpSocket.Connected)
                 Disconnect();
 
             try
@@ -62,13 +63,13 @@ namespace LibreMetaverse.Voice
                 IPAddress ip;
                 if (!IPAddress.TryParse(address, out ip))
                 {
-                    IPAddress[] ips = Dns.GetHostAddresses(address);
+                    var ips = Dns.GetHostAddresses(address);
                     ip = ips[0];
                 }
-                _TCPSocket = new Socket(ip.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                IPEndPoint ipEndPoint = new IPEndPoint(ip, port);
-                _TCPSocket.Connect(ipEndPoint);
-                if (_TCPSocket.Connected)
+                _tcpSocket = new Socket(ip.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                var ipEndPoint = new IPEndPoint(ip, port);
+                _tcpSocket.Connect(ipEndPoint);
+                if (_tcpSocket.Connected)
                 {
                     WaitForData();
                     return null;
@@ -86,13 +87,13 @@ namespace LibreMetaverse.Voice
 
         public void Disconnect()
         {
-            _TCPSocket.Disconnect(true);
+            _tcpSocket.Disconnect(true);
         }
 
         public void SendData(byte[] data)
         {
             if (Connected)
-                _TCPSocket.Send(data);
+                _tcpSocket.Send(data);
             else
                 throw new InvalidOperationException("socket is not connected");
         }
@@ -101,8 +102,8 @@ namespace LibreMetaverse.Voice
         {
             if (Connected)
             {
-                byte[] byData = System.Text.Encoding.ASCII.GetBytes(message + "\n");
-                _TCPSocket.Send(byData);
+                var byData = System.Text.Encoding.ASCII.GetBytes(message + "\n");
+                _tcpSocket.Send(byData);
             }
             else
             {
@@ -114,12 +115,12 @@ namespace LibreMetaverse.Voice
         {
             try
             {
-                if (_Callback == null) _Callback = new AsyncCallback(OnDataReceived);
-                SocketPacket packet = new SocketPacket
+                if (_callback == null) _callback = new AsyncCallback(OnDataReceived);
+                var packet = new SocketPacket
                 {
-                    TCPSocket = _TCPSocket
+                    TcpSocket = _tcpSocket
                 };
-                _Result = _TCPSocket.BeginReceive(packet.DataBuffer, 0, packet.DataBuffer.Length, SocketFlags.None, _Callback, packet);
+                _result = _tcpSocket.BeginReceive(packet.DataBuffer, 0, packet.DataBuffer.Length, SocketFlags.None, _callback, packet);
             }
             catch (SocketException se)
             {
@@ -127,18 +128,18 @@ namespace LibreMetaverse.Voice
             }
         }
 
-        static readonly char[] splitNull = { '\0' };
-        static readonly string[] splitLines = { "\r", "\n", "\r\n" };
+        static readonly char[] SplitNull = { '\0' };
+        static readonly string[] SplitLines = { "\r", "\n", "\r\n" };
 
-        void ReceiveData(string data)
+        private void ReceiveData(string data)
         {
             if (OnReceiveLine == null) return;
 
             //string[] splitNull = { "\0" };
-            string[] line = data.Split(splitNull, StringSplitOptions.None);
-            _Buffer += line[0];
+            var line = data.Split(SplitNull, StringSplitOptions.None);
+            _buffer += line[0];
             //string[] splitLines = { "\r\n", "\r", "\n" };
-            string[] lines = _Buffer.Split(splitLines, StringSplitOptions.None);
+            var lines = _buffer.Split(SplitLines, StringSplitOptions.None);
             if (lines.Length > 1)
             {
                 int i;
@@ -146,20 +147,21 @@ namespace LibreMetaverse.Voice
                 {
                     if (lines[i].Trim().Length > 0) OnReceiveLine(lines[i]);
                 }
-                _Buffer = lines[i];
+                _buffer = lines[i];
             }
         }
 
-        void OnDataReceived(IAsyncResult asyn)
+        private void OnDataReceived(IAsyncResult asyn)
         {
             try
             {
-                SocketPacket packet = (SocketPacket)asyn.AsyncState;
-                int end = packet.TCPSocket.EndReceive(asyn);
-                char[] chars = new char[end + 1];
-                System.Text.Decoder d = System.Text.Encoding.UTF8.GetDecoder();
+                var packet = (SocketPacket)asyn.AsyncState;
+                Debug.Assert(packet != null, nameof(packet) + " != null");
+                var end = packet.TcpSocket.EndReceive(asyn);
+                var chars = new char[end + 1];
+                var d = System.Text.Encoding.UTF8.GetDecoder();
                 d.GetChars(packet.DataBuffer, 0, end, chars, 0);
-                string data = new string(chars);
+                var data = new string(chars);
                 ReceiveData(data);
                 WaitForData();
             }
@@ -169,7 +171,7 @@ namespace LibreMetaverse.Voice
             }
             catch (SocketException se)
             {
-                if (!_TCPSocket.Connected)
+                if (!_tcpSocket.Connected)
                 {
                     OnDisconnected?.Invoke(se);
                 }

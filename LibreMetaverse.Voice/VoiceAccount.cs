@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -54,7 +54,7 @@ namespace LibreMetaverse.Voice
         /// <returns></returns>
         public int AccountLogin(string ConnectorHandle, string AccountName, string AccountPassword, string AudioSessionAnswerMode, string AccountURI, int ParticipantPropertyFrequency, bool EnableBuddiesAndPresence)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             sb.Append(VoiceGateway.MakeXML("ConnectorHandle", ConnectorHandle));
             sb.Append(VoiceGateway.MakeXML("AccountName", AccountName));
             sb.Append(VoiceGateway.MakeXML("AccountPassword", AccountPassword));
@@ -73,8 +73,8 @@ namespace LibreMetaverse.Voice
         /// <returns></returns>
         public int AccountLogout(string AccountHandle)
         {
-            string RequestXML = VoiceGateway.MakeXML("AccountHandle", AccountHandle);
-            return Request("Account.Logout.1", RequestXML);
+            var requestXml = VoiceGateway.MakeXML("AccountHandle", AccountHandle);
+            return Request("Account.Logout.1", requestXml);
         }
     }
 }

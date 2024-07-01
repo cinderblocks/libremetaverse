@@ -52,16 +52,16 @@ namespace LibreMetaverse.Voice
         public event DaemonDisconnectedCallback OnDaemonDisconnected;
         public event DaemonCouldntConnectCallback OnDaemonCouldntConnect;
 
-        public bool DaemonIsRunning => daemonIsRunning;
-        public bool DaemonIsConnected => daemonIsConnected;
-        public int RequestId => requestId;
+        public bool DaemonIsRunning => _daemonIsRunning;
+        public bool DaemonIsConnected => _daemonIsConnected;
+        public int RequestId => _requestId;
 
-        protected Process daemonProcess;
-        protected ManualResetEvent daemonLoopSignal = new ManualResetEvent(false);
-        protected TCPPipe daemonPipe;
-        protected bool daemonIsRunning = false;
-        protected bool daemonIsConnected = false;
-        protected int requestId = 0;
+        private Process _daemonProcess;
+        private readonly ManualResetEvent _daemonLoopSignal = new ManualResetEvent(false);
+        private TCPPipe _daemonPipe;
+        private bool _daemonIsRunning;
+        private bool _daemonIsConnected;
+        private int _requestId;
 
         #region Daemon Management
 
@@ -73,47 +73,47 @@ namespace LibreMetaverse.Voice
         public void StartDaemon(string path, string args)
         {
             StopDaemon();
-            daemonLoopSignal.Set();
+            _daemonLoopSignal.Set();
 
-            Thread thread = new Thread(new ThreadStart(delegate()
+            var thread = new Thread(new ThreadStart(delegate()
             {
-                while (daemonLoopSignal.WaitOne(500, false))
+                while (_daemonLoopSignal.WaitOne(500, false))
                 {
-                    daemonProcess = new Process();
-                    daemonProcess.StartInfo.FileName = path;
-                    daemonProcess.StartInfo.WorkingDirectory = Path.GetDirectoryName(path);
-                    daemonProcess.StartInfo.Arguments = args;
-                    daemonProcess.StartInfo.UseShellExecute = false;
+                    _daemonProcess = new Process();
+                    _daemonProcess.StartInfo.FileName = path;
+                    _daemonProcess.StartInfo.WorkingDirectory = Path.GetDirectoryName(path);
+                    _daemonProcess.StartInfo.Arguments = args;
+                    _daemonProcess.StartInfo.UseShellExecute = false;
                     
                     if (Environment.OSVersion.Platform == PlatformID.Unix)
                     {
-                        string ldPath = string.Empty;
-                        try
+                        var ldPath = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH");
+                        if (ldPath == null)
                         {
-                            ldPath = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH");
+                            ldPath = string.Empty;
                         }
-                        catch { }
-                        string newLdPath = daemonProcess.StartInfo.WorkingDirectory;
+
+                        var newLdPath = _daemonProcess.StartInfo.WorkingDirectory;
                         if (!string.IsNullOrEmpty(ldPath))
                             newLdPath += ":" + ldPath;
-                        daemonProcess.StartInfo.EnvironmentVariables.Add("LD_LIBRARY_PATH", newLdPath);
+                        _daemonProcess.StartInfo.EnvironmentVariables.Add("LD_LIBRARY_PATH", newLdPath);
                     }
 
-                    Logger.DebugLog("Voice folder: " + daemonProcess.StartInfo.WorkingDirectory);
+                    Logger.DebugLog("Voice folder: " + _daemonProcess.StartInfo.WorkingDirectory);
                     Logger.DebugLog(path + " " + args);
-                    bool ok = File.Exists(path);
+                    var ok = File.Exists(path);
 
                     if (ok)
                     {
                         // Attempt to start the process
-                        if (!daemonProcess.Start())
+                        if (!_daemonProcess.Start())
                             ok = false;
                     }
 
                     if (!ok)
                     {
-                        daemonIsRunning = false;
-                        daemonLoopSignal.Reset();
+                        _daemonIsRunning = false;
+                        _daemonLoopSignal.Reset();
 
                         if (OnDaemonCouldntRun != null)
                         {
@@ -126,7 +126,7 @@ namespace LibreMetaverse.Voice
                     else
                     {
                         Thread.Sleep(2000);
-                        daemonIsRunning = true;
+                        _daemonIsRunning = true;
                         if (OnDaemonRunning != null)
                         {
                             try { OnDaemonRunning(); }
@@ -134,9 +134,9 @@ namespace LibreMetaverse.Voice
                         }
 
                         Logger.DebugLog("Started voice daemon, waiting for exit...");
-                        daemonProcess.WaitForExit();
+                        _daemonProcess.WaitForExit();
                         Logger.DebugLog("Voice daemon exited");
-                        daemonIsRunning = false;
+                        _daemonIsRunning = false;
 
                         if (OnDaemonExited != null)
                         {
@@ -159,17 +159,16 @@ namespace LibreMetaverse.Voice
         /// </summary>
         public void StopDaemon()
         {
-            daemonLoopSignal.Reset();
-            if (daemonProcess != null)
+            _daemonLoopSignal.Reset();
+            if (_daemonProcess == null) { return; }
+            
+            try
             {
-                try
-                {
-                    daemonProcess.Kill();
-                }
-                catch (InvalidOperationException ex)
-                {
-                    Logger.Log("Failed to stop the voice daemon", Helpers.LogLevel.Error, ex);
-                }
+                _daemonProcess.Kill();
+            }
+            catch (InvalidOperationException ex)
+            {
+                Logger.Log("Failed to stop the voice daemon", Helpers.LogLevel.Error, ex);
             }
         }
 
@@ -181,24 +180,23 @@ namespace LibreMetaverse.Voice
         /// <returns></returns>
         public bool ConnectToDaemon(string address, int port)
         {
-            daemonIsConnected = false;
+            _daemonIsConnected = false;
 
-            daemonPipe = new TCPPipe();
-            daemonPipe.OnDisconnected +=
+            _daemonPipe = new TCPPipe();
+            _daemonPipe.OnDisconnected +=
                 delegate(SocketException e)
                 {
-                    if (OnDaemonDisconnected != null)
-                    {
-                        try { OnDaemonDisconnected(); }
-                        catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, null, ex); }
-                    }
+                    if (OnDaemonDisconnected == null) { return; }
+                    
+                    try { OnDaemonDisconnected(); }
+                    catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, null, ex); }
                 };
-            daemonPipe.OnReceiveLine += new TCPPipe.OnReceiveLineCallback(daemonPipe_OnReceiveLine);
+            _daemonPipe.OnReceiveLine += new TCPPipe.OnReceiveLineCallback(daemonPipe_OnReceiveLine);
 
-            SocketException se = daemonPipe.Connect(address, port);
+            var se = _daemonPipe.Connect(address, port);
             if (se == null)
             {
-                daemonIsConnected = true;
+                _daemonIsConnected = true;
 
                 if (OnDaemonConnected != null)
                 {
@@ -210,7 +208,7 @@ namespace LibreMetaverse.Voice
             }
             else
             {
-                daemonIsConnected = false;
+                _daemonIsConnected = false;
 
                 if (OnDaemonCouldntConnect != null)
                 {
@@ -232,11 +230,11 @@ namespace LibreMetaverse.Voice
 
         public int Request(string action, string requestXML)
         {
-            int returnId = requestId;
-            if (daemonIsConnected)
+            var returnId = _requestId;
+            if (_daemonIsConnected)
             {
-                StringBuilder sb = new StringBuilder();
-                sb.Append($"<Request requestId=\"{requestId++}\" action=\"{action}\"");
+                var sb = new StringBuilder();
+                sb.Append($"<Request requestId=\"{_requestId++}\" action=\"{action}\"");
                 if (string.IsNullOrEmpty(requestXML))
                 {
                     sb.Append(" />");
@@ -254,7 +252,7 @@ namespace LibreMetaverse.Voice
 #endif
                 try
                 {
-                    daemonPipe.SendData(Encoding.ASCII.GetBytes(sb.ToString()));
+                    _daemonPipe.SendData(Encoding.ASCII.GetBytes(sb.ToString()));
                 }
                 catch
                 {
@@ -295,60 +293,61 @@ namespace LibreMetaverse.Voice
                     return;
                 }
 
-                ResponseType genericResponse = ResponseType.None;
+                var genericResponse = ResponseType.None;
 
-                switch (rsp.Action)
+                if (rsp != null)
                 {
-                    // These first responses carry useful information beyond simple status,
-                    // so they each have a specific Event.
-                    case "Connector.Create.1":
-                        OnConnectorCreateResponse?.Invoke(
-                            rsp.InputXml.Request,
-                            new VoiceConnectorEventArgs(
-                                rsp.ReturnCode,
-                                rsp.Results.StatusCode,
-                                rsp.Results.StatusString,
-                                rsp.Results.VersionID,
-                                rsp.Results.ConnectorHandle));
-                        break;
-                    case "Aux.GetCaptureDevices.1":
-                        CaptureDevices = new List<string>();
-
-                        if (rsp.Results.CaptureDevices.Count == 0 || rsp.Results.CurrentCaptureDevice == null)
-                            break;
-
-                        foreach (CaptureDevice device in rsp.Results.CaptureDevices)
-                            CaptureDevices.Add(device.Device);
-                        currentCaptureDevice = rsp.Results.CurrentCaptureDevice.Device;
- 
-                        if (OnAuxGetCaptureDevicesResponse != null && rsp.Results.CaptureDevices.Count > 0)
-                        {
-                            OnAuxGetCaptureDevicesResponse(
+                    switch (rsp.Action)
+                    {
+                        // These first responses carry useful information beyond simple status,
+                        // so they each have a specific Event.
+                        case "Connector.Create.1":
+                            OnConnectorCreateResponse?.Invoke(
                                 rsp.InputXml.Request,
-                                new VoiceDevicesEventArgs(
-                                    ResponseType.GetCaptureDevices,
+                                new VoiceConnectorEventArgs(
                                     rsp.ReturnCode,
                                     rsp.Results.StatusCode,
                                     rsp.Results.StatusString,
-                                    rsp.Results.CurrentCaptureDevice.Device,
-                                    CaptureDevices));
-                        }
-                        break;
-                    case "Aux.GetRenderDevices.1":
-                        PlaybackDevices = new List<string>();
-
-                        if (rsp.Results.RenderDevices.Count == 0 || rsp.Results.CurrentRenderDevice == null)
+                                    rsp.Results.VersionID,
+                                    rsp.Results.ConnectorHandle));
                             break;
-						
-                        foreach (RenderDevice device in rsp.Results.RenderDevices)
-                            PlaybackDevices.Add(device.Device);
+                        case "Aux.GetCaptureDevices.1":
+                            CaptureDevices = new List<string>();
+
+                            if (rsp.Results.CaptureDevices.Count == 0 || rsp.Results.CurrentCaptureDevice == null)
+                                break;
+
+                            foreach (var device in rsp.Results.CaptureDevices)
+                                CaptureDevices.Add(device.Device);
+                            _currentCaptureDevice = rsp.Results.CurrentCaptureDevice.Device;
+
+                            if (OnAuxGetCaptureDevicesResponse != null && rsp.Results.CaptureDevices.Count > 0)
+                            {
+                                OnAuxGetCaptureDevicesResponse(
+                                    rsp.InputXml.Request,
+                                    new VoiceDevicesEventArgs(
+                                        ResponseType.GetCaptureDevices,
+                                        rsp.ReturnCode,
+                                        rsp.Results.StatusCode,
+                                        rsp.Results.StatusString,
+                                        rsp.Results.CurrentCaptureDevice.Device,
+                                        CaptureDevices));
+                            }
+
+                            break;
+                        case "Aux.GetRenderDevices.1":
+                            PlaybackDevices = new List<string>();
+
+                            if (rsp.Results.RenderDevices.Count == 0 || rsp.Results.CurrentRenderDevice == null)
+                                break;
+
+                            foreach (var device in rsp.Results.RenderDevices)
+                                PlaybackDevices.Add(device.Device);
 
 
-                        currentPlaybackDevice = rsp.Results.CurrentRenderDevice.Device;
+                            _currentPlaybackDevice = rsp.Results.CurrentRenderDevice.Device;
 
-                        if (OnAuxGetRenderDevicesResponse != null)
-                        {
-                            OnAuxGetRenderDevicesResponse(
+                            OnAuxGetRenderDevicesResponse?.Invoke(
                                 rsp.InputXml.Request,
                                 new VoiceDevicesEventArgs(
                                     ResponseType.GetCaptureDevices,
@@ -357,108 +356,105 @@ namespace LibreMetaverse.Voice
                                     rsp.Results.StatusString,
                                     rsp.Results.CurrentRenderDevice.Device,
                                     PlaybackDevices));
-                        }
-                        break;
 
-                    case "Account.Login.1":
-                        if (OnAccountLoginResponse != null)
-                        {
-                            OnAccountLoginResponse(rsp.InputXml.Request,
+                            break;
+
+                        case "Account.Login.1":
+                            OnAccountLoginResponse?.Invoke(rsp.InputXml.Request,
                                 new VoiceAccountEventArgs(
                                     rsp.ReturnCode,
                                     rsp.Results.StatusCode,
                                     rsp.Results.StatusString,
                                     rsp.Results.AccountHandle));
-                        }
-                        break;
 
-                    case "Session.Create.1":
-                        if (OnSessionCreateResponse != null)
-                        {
-                            OnSessionCreateResponse(
+                            break;
+
+                        case "Session.Create.1":
+                            OnSessionCreateResponse?.Invoke(
                                 rsp.InputXml.Request,
                                 new VoiceSessionEventArgs(
                                     rsp.ReturnCode,
                                     rsp.Results.StatusCode,
                                     rsp.Results.StatusString,
                                     rsp.Results.SessionHandle));
-                        }
-                        break;
 
-                    // All the remaining responses below this point just report status,
-                    // so they all share the same Event.  Most are useful only for
-                    // detecting coding errors.
-                    case "Connector.InitiateShutdown.1":
-                        genericResponse = ResponseType.ConnectorInitiateShutdown;
-                        break;
-                    case "Aux.SetRenderDevice.1":
-                        genericResponse = ResponseType.SetRenderDevice;
-                        break;
-                    case "Connector.MuteLocalMic.1":
-                        genericResponse = ResponseType.MuteLocalMic;
-                        break;
-                    case "Connector.MuteLocalSpeaker.1":
-                        genericResponse = ResponseType.MuteLocalSpeaker;
-                        break;
-                    case "Connector.SetLocalMicVolume.1":
-                        genericResponse = ResponseType.SetLocalMicVolume;
-                        break;
-                    case "Connector.SetLocalSpeakerVolume.1":
-                        genericResponse = ResponseType.SetLocalSpeakerVolume;
-                        break;
-                    case "Aux.SetCaptureDevice.1":
-                        genericResponse = ResponseType.SetCaptureDevice;
-                        break;
-                    case "Session.RenderAudioStart.1":
-                        genericResponse = ResponseType.RenderAudioStart;
-                        break;
-                    case "Session.RenderAudioStop.1":
-                        genericResponse = ResponseType.RenderAudioStop;
-                        break;
-                    case "Aux.CaptureAudioStart.1":
-                        genericResponse = ResponseType.CaptureAudioStart;
-                        break;
-                    case "Aux.CaptureAudioStop.1":
-                        genericResponse = ResponseType.CaptureAudioStop;
-                        break;
-                    case "Aux.SetMicLevel.1":
-                        genericResponse = ResponseType.SetMicLevel;
-                        break;
-                    case "Aux.SetSpeakerLevel.1":
-                        genericResponse = ResponseType.SetSpeakerLevel;
-                        break;
-                    case "Account.Logout.1":
-                        genericResponse = ResponseType.AccountLogout;
-                        break;
-                    case "Session.Connect.1":
-                        genericResponse = ResponseType.SessionConnect;
-                        break;
-                    case "Session.Terminate.1":
-                        genericResponse = ResponseType.SessionTerminate;
-                        break;
-                    case "Session.SetParticipantVolumeForMe.1":
-                        genericResponse = ResponseType.SetParticipantVolumeForMe;
-                        break;
-                    case "Session.SetParticipantMuteForMe.1":
-                        genericResponse = ResponseType.SetParticipantMuteForMe;
-                        break;
-                    case "Session.Set3DPosition.1":
-                        genericResponse = ResponseType.Set3DPosition;
-                        break;
-                    default:
-                        Logger.Log("Unimplemented response from the voice daemon: " + line, Helpers.LogLevel.Error);
-                        break;
-                }
+                            break;
 
-                // Send the Response Event for all the simple cases.
-                if (genericResponse != ResponseType.None && OnVoiceResponse != null)
-                {
-                    OnVoiceResponse(rsp.InputXml.Request,
-                        new VoiceResponseEventArgs(
-                            genericResponse,
-                            rsp.ReturnCode,
-                            rsp.Results.StatusCode,
-                            rsp.Results.StatusString));
+                        // All the remaining responses below this point just report status,
+                        // so they all share the same Event.  Most are useful only for
+                        // detecting coding errors.
+                        case "Connector.InitiateShutdown.1":
+                            genericResponse = ResponseType.ConnectorInitiateShutdown;
+                            break;
+                        case "Aux.SetRenderDevice.1":
+                            genericResponse = ResponseType.SetRenderDevice;
+                            break;
+                        case "Connector.MuteLocalMic.1":
+                            genericResponse = ResponseType.MuteLocalMic;
+                            break;
+                        case "Connector.MuteLocalSpeaker.1":
+                            genericResponse = ResponseType.MuteLocalSpeaker;
+                            break;
+                        case "Connector.SetLocalMicVolume.1":
+                            genericResponse = ResponseType.SetLocalMicVolume;
+                            break;
+                        case "Connector.SetLocalSpeakerVolume.1":
+                            genericResponse = ResponseType.SetLocalSpeakerVolume;
+                            break;
+                        case "Aux.SetCaptureDevice.1":
+                            genericResponse = ResponseType.SetCaptureDevice;
+                            break;
+                        case "Session.RenderAudioStart.1":
+                            genericResponse = ResponseType.RenderAudioStart;
+                            break;
+                        case "Session.RenderAudioStop.1":
+                            genericResponse = ResponseType.RenderAudioStop;
+                            break;
+                        case "Aux.CaptureAudioStart.1":
+                            genericResponse = ResponseType.CaptureAudioStart;
+                            break;
+                        case "Aux.CaptureAudioStop.1":
+                            genericResponse = ResponseType.CaptureAudioStop;
+                            break;
+                        case "Aux.SetMicLevel.1":
+                            genericResponse = ResponseType.SetMicLevel;
+                            break;
+                        case "Aux.SetSpeakerLevel.1":
+                            genericResponse = ResponseType.SetSpeakerLevel;
+                            break;
+                        case "Account.Logout.1":
+                            genericResponse = ResponseType.AccountLogout;
+                            break;
+                        case "Session.Connect.1":
+                            genericResponse = ResponseType.SessionConnect;
+                            break;
+                        case "Session.Terminate.1":
+                            genericResponse = ResponseType.SessionTerminate;
+                            break;
+                        case "Session.SetParticipantVolumeForMe.1":
+                            genericResponse = ResponseType.SetParticipantVolumeForMe;
+                            break;
+                        case "Session.SetParticipantMuteForMe.1":
+                            genericResponse = ResponseType.SetParticipantMuteForMe;
+                            break;
+                        case "Session.Set3DPosition.1":
+                            genericResponse = ResponseType.Set3DPosition;
+                            break;
+                        default:
+                            Logger.Log("Unimplemented response from the voice daemon: " + line, Helpers.LogLevel.Error);
+                            break;
+                    }
+
+                    // Send the Response Event for all the simple cases.
+                    if (genericResponse != ResponseType.None && OnVoiceResponse != null)
+                    {
+                        OnVoiceResponse(rsp.InputXml.Request,
+                            new VoiceResponseEventArgs(
+                                genericResponse,
+                                rsp.ReturnCode,
+                                rsp.Results.StatusCode,
+                                rsp.Results.StatusString));
+                    }
                 }
             }
             else if (line.Substring(0, 7) == "<Event ")
@@ -474,22 +470,21 @@ namespace LibreMetaverse.Voice
                     return;
                 }
 
-                switch (evt.Type)
-                {
-                    case "LoginStateChangeEvent":
-                    case "AccountLoginStateChangeEvent":
-                        OnAccountLoginStateChangeEvent?.Invoke(this,
-                            new AccountLoginStateChangeEventArgs(
-                                evt.AccountHandle,
-                                int.Parse(evt.StatusCode),
-                                evt.StatusString,
-                                (LoginState)int.Parse(evt.State)));
-                        break;
+                if (evt != null)
+                    switch (evt.Type)
+                    {
+                        case "LoginStateChangeEvent":
+                        case "AccountLoginStateChangeEvent":
+                            OnAccountLoginStateChangeEvent?.Invoke(this,
+                                new AccountLoginStateChangeEventArgs(
+                                    evt.AccountHandle,
+                                    int.Parse(evt.StatusCode),
+                                    evt.StatusString,
+                                    (LoginState)int.Parse(evt.State)));
+                            break;
 
-                    case "SessionNewEvent":
-                        if (OnSessionNewEvent != null)
-                        {
-                            OnSessionNewEvent(this,
+                        case "SessionNewEvent":
+                            OnSessionNewEvent?.Invoke(this,
                                 new NewSessionEventArgs(
                                     evt.AccountHandle,
                                     evt.SessionHandle,
@@ -497,13 +492,11 @@ namespace LibreMetaverse.Voice
                                     bool.Parse(evt.IsChannel),
                                     evt.Name,
                                     evt.AudioMedia));
-                        }
-                        break;
 
-                    case "SessionStateChangeEvent":
-                        if (OnSessionStateChangeEvent != null)
-                        {
-                            OnSessionStateChangeEvent(this,
+                            break;
+
+                        case "SessionStateChangeEvent":
+                            OnSessionStateChangeEvent?.Invoke(this,
                                 new SessionStateChangeEventArgs(
                                     evt.SessionHandle,
                                     int.Parse(evt.StatusCode),
@@ -512,14 +505,12 @@ namespace LibreMetaverse.Voice
                                     evt.URI,
                                     bool.Parse(evt.IsChannel),
                                     evt.ChannelName));
-                        }
-                        break;
 
-                    case "ParticipantAddedEvent":
-                        Logger.Log("Add participant " + evt.ParticipantUri, Helpers.LogLevel.Debug);
-                        if (OnSessionParticipantAddedEvent != null)
-                        {
-                            OnSessionParticipantAddedEvent(this,
+                            break;
+
+                        case "ParticipantAddedEvent":
+                            Logger.Log("Add participant " + evt.ParticipantUri, Helpers.LogLevel.Debug);
+                            OnSessionParticipantAddedEvent?.Invoke(this,
                                 new ParticipantAddedEventArgs(
                                     evt.SessionGroupHandle,
                                     evt.SessionHandle,
@@ -528,27 +519,23 @@ namespace LibreMetaverse.Voice
                                     evt.DisplayName,
                                     (ParticipantType)int.Parse(evt.ParticipantType),
                                     evt.Application));
-                        }
-                        break;
 
-                    case "ParticipantRemovedEvent":
-                        if (OnSessionParticipantRemovedEvent != null)
-                        {
-                            OnSessionParticipantRemovedEvent(this,
+                            break;
+
+                        case "ParticipantRemovedEvent":
+                            OnSessionParticipantRemovedEvent?.Invoke(this,
                                 new ParticipantRemovedEventArgs(
                                     evt.SessionGroupHandle,
                                     evt.SessionHandle,
                                     evt.ParticipantUri,
                                     evt.AccountName,
                                     evt.Reason));
-                        }
-                        break;
 
-                    case "ParticipantStateChangeEvent":
-                        // Useful in person-to-person calls
-                        if (OnSessionParticipantStateChangeEvent != null)
-                        {
-                            OnSessionParticipantStateChangeEvent(this,
+                            break;
+
+                        case "ParticipantStateChangeEvent":
+                            // Useful in person-to-person calls
+                            OnSessionParticipantStateChangeEvent?.Invoke(this,
                                 new ParticipantStateChangeEventArgs(
                                     evt.SessionHandle,
                                     int.Parse(evt.StatusCode),
@@ -558,13 +545,11 @@ namespace LibreMetaverse.Voice
                                     evt.AccountName,
                                     evt.DisplayName,
                                     (ParticipantType)int.Parse(evt.ParticipantType)));
-                        }
-                        break;
 
-                    case "ParticipantPropertiesEvent":
-                        if (OnSessionParticipantPropertiesEvent != null)
-                        {
-                            OnSessionParticipantPropertiesEvent(this,
+                            break;
+
+                        case "ParticipantPropertiesEvent":
+                            OnSessionParticipantPropertiesEvent?.Invoke(this,
                                 new ParticipantPropertiesEventArgs(
                                     evt.SessionHandle,
                                     evt.ParticipantUri,
@@ -573,13 +558,11 @@ namespace LibreMetaverse.Voice
                                     bool.Parse(evt.IsSpeaking),
                                     int.Parse(evt.Volume),
                                     float.Parse(evt.Energy)));
-                        }
-                        break;
 
-                    case "ParticipantUpdatedEvent":
-                        if (OnSessionParticipantUpdatedEvent != null)
-                        {
-                            OnSessionParticipantUpdatedEvent(this,
+                            break;
+
+                        case "ParticipantUpdatedEvent":
+                            OnSessionParticipantUpdatedEvent?.Invoke(this,
                                 new ParticipantUpdatedEventArgs(
                                     evt.SessionHandle,
                                     evt.ParticipantUri,
@@ -587,99 +570,90 @@ namespace LibreMetaverse.Voice
                                     bool.Parse(evt.IsSpeaking),
                                     int.Parse(evt.Volume),
                                     float.Parse(evt.Energy)));
-                        }
-                        break;
 
-                    case "SessionGroupAddedEvent":
-                        if (OnSessionGroupAddedEvent != null)
-                        {
-                            OnSessionGroupAddedEvent(this,
+                            break;
+
+                        case "SessionGroupAddedEvent":
+                            OnSessionGroupAddedEvent?.Invoke(this,
                                 new SessionGroupAddedEventArgs(
                                     evt.AccountHandle,
                                     evt.SessionGroupHandle,
                                     evt.Type));
-                        }
-                        break;
 
-                    case "SessionAddedEvent":
-                        if (OnSessionAddedEvent != null)
-                        {
-                            OnSessionAddedEvent(this,
+                            break;
+
+                        case "SessionAddedEvent":
+                            OnSessionAddedEvent?.Invoke(this,
                                 new SessionAddedEventArgs(
                                     evt.SessionGroupHandle,
                                     evt.SessionHandle,
                                     evt.Uri,
                                     bool.Parse(evt.IsChannel),
                                     bool.Parse(evt.Incoming)));
-                        }
-                        break;
 
-                    case "SessionRemovedEvent":
-                        if (OnSessionRemovedEvent != null)
-                        {
-                            OnSessionRemovedEvent(this,
+                            break;
+
+                        case "SessionRemovedEvent":
+                            OnSessionRemovedEvent?.Invoke(this,
                                 new SessionRemovedEventArgs(
                                     evt.SessionGroupHandle,
                                     evt.SessionHandle,
                                     evt.Uri));
-                        }
-                        break;
 
-                    case "SessionUpdatedEvent":
-                        if (OnSessionRemovedEvent != null)
-                        {
-                            OnSessionUpdatedEvent(this,
-                                new SessionUpdatedEventArgs(
-                                    evt.SessionGroupHandle,
-                                    evt.SessionHandle,
-                                    evt.Uri,
-                                    int.Parse(evt.IsMuted) != 0,
-                                    int.Parse(evt.Volume),
-                                    int.Parse(evt.TransmitEnabled) != 0,
-+                                   int.Parse(evt.IsFocused) != 0));
-                        }
-                        break;
+                            break;
 
-                    case "AuxAudioPropertiesEvent":
-                        if (OnAuxAudioPropertiesEvent != null)
-                        {
-                            OnAuxAudioPropertiesEvent(this,
+                        case "SessionUpdatedEvent":
+                            if (OnSessionRemovedEvent != null)
+                            {
+                                OnSessionUpdatedEvent(this,
+                                    new SessionUpdatedEventArgs(
+                                        evt.SessionGroupHandle,
+                                        evt.SessionHandle,
+                                        evt.Uri,
+                                        int.Parse(evt.IsMuted) != 0,
+                                        int.Parse(evt.Volume),
+                                        int.Parse(evt.TransmitEnabled) != 0,
+                                        +int.Parse(evt.IsFocused) != 0));
+                            }
+
+                            break;
+
+                        case "AuxAudioPropertiesEvent":
+                            OnAuxAudioPropertiesEvent?.Invoke(this,
                                 new AudioPropertiesEventArgs(
                                     bool.Parse(evt.MicIsActive),
                                     float.Parse(evt.MicEnergy),
                                     int.Parse(evt.MicVolume),
                                     int.Parse(evt.SpeakerVolume)));
-                        }
-                        break;
 
-                    case "SessionMediaEvent":
-                        if (OnSessionMediaEvent != null)
-                        {
-                            OnSessionMediaEvent(this,
+                            break;
+
+                        case "SessionMediaEvent":
+                            OnSessionMediaEvent?.Invoke(this,
                                 new SessionMediaEventArgs(
                                     evt.SessionHandle,
                                     bool.Parse(evt.HasText),
                                     bool.Parse(evt.HasAudio),
                                     bool.Parse(evt.HasVideo),
                                     bool.Parse(evt.Terminated)));
-                        }
-                        break;
 
-                    case "BuddyAndGroupListChangedEvent":
-                        // TODO   * <AccountHandle>c1_m1000xrjiQgi95QhCzH_D6ZJ8c5A==</AccountHandle><Buddies /><Groups />
-                        break;
+                            break;
 
-                    case "MediaStreamUpdatedEvent":
-                        // TODO <SessionGroupHandle>c1_m1000xrjiQgi95QhCzH_D6ZJ8c5A==_sg0</SessionGroupHandle>
-                        // <SessionHandle>c1_m1000xrjiQgi95QhCzH_D6ZJ8c5A==0</SessionHandle>
-                        //<StatusCode>0</StatusCode><StatusString /><State>1</State><Incoming>false</Incoming>
+                        case "BuddyAndGroupListChangedEvent":
+                            // TODO   * <AccountHandle>c1_m1000xrjiQgi95QhCzH_D6ZJ8c5A==</AccountHandle><Buddies /><Groups />
+                            break;
 
-                        break;
+                        case "MediaStreamUpdatedEvent":
+                            // TODO <SessionGroupHandle>c1_m1000xrjiQgi95QhCzH_D6ZJ8c5A==_sg0</SessionGroupHandle>
+                            // <SessionHandle>c1_m1000xrjiQgi95QhCzH_D6ZJ8c5A==0</SessionHandle>
+                            //<StatusCode>0</StatusCode><StatusString /><State>1</State><Incoming>false</Incoming>
 
-                    default:
-                        Logger.Log("Unimplemented event from the voice daemon: " + line, Helpers.LogLevel.Error);
-                        break;
-                }
+                            break;
+
+                        default:
+                            Logger.Log("Unimplemented event from the voice daemon: " + line, Helpers.LogLevel.Error);
+                            break;
+                    }
             }
             else
             {
