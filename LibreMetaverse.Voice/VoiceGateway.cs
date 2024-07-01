@@ -52,16 +52,13 @@ namespace LibreMetaverse.Voice
         public event DaemonDisconnectedCallback OnDaemonDisconnected;
         public event DaemonCouldntConnectCallback OnDaemonCouldntConnect;
 
-        public bool DaemonIsRunning => _daemonIsRunning;
-        public bool DaemonIsConnected => _daemonIsConnected;
-        public int RequestId => _requestId;
+        public bool DaemonIsRunning { get; private set; }
+        public bool DaemonIsConnected { get; private set; }
+        public int RequestId { get; private set; }
 
         private Process _daemonProcess;
         private readonly ManualResetEvent _daemonLoopSignal = new ManualResetEvent(false);
         private TCPPipe _daemonPipe;
-        private bool _daemonIsRunning;
-        private bool _daemonIsConnected;
-        private int _requestId;
 
         #region Daemon Management
 
@@ -87,11 +84,7 @@ namespace LibreMetaverse.Voice
                     
                     if (Environment.OSVersion.Platform == PlatformID.Unix)
                     {
-                        var ldPath = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH");
-                        if (ldPath == null)
-                        {
-                            ldPath = string.Empty;
-                        }
+                        var ldPath = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH") ?? string.Empty;
 
                         var newLdPath = _daemonProcess.StartInfo.WorkingDirectory;
                         if (!string.IsNullOrEmpty(ldPath))
@@ -112,7 +105,7 @@ namespace LibreMetaverse.Voice
 
                     if (!ok)
                     {
-                        _daemonIsRunning = false;
+                        DaemonIsRunning = false;
                         _daemonLoopSignal.Reset();
 
                         if (OnDaemonCouldntRun != null)
@@ -126,7 +119,7 @@ namespace LibreMetaverse.Voice
                     else
                     {
                         Thread.Sleep(2000);
-                        _daemonIsRunning = true;
+                        DaemonIsRunning = true;
                         if (OnDaemonRunning != null)
                         {
                             try { OnDaemonRunning(); }
@@ -136,7 +129,7 @@ namespace LibreMetaverse.Voice
                         Logger.DebugLog("Started voice daemon, waiting for exit...");
                         _daemonProcess.WaitForExit();
                         Logger.DebugLog("Voice daemon exited");
-                        _daemonIsRunning = false;
+                        DaemonIsRunning = false;
 
                         if (OnDaemonExited != null)
                         {
@@ -180,7 +173,7 @@ namespace LibreMetaverse.Voice
         /// <returns></returns>
         public bool ConnectToDaemon(string address, int port)
         {
-            _daemonIsConnected = false;
+            DaemonIsConnected = false;
 
             _daemonPipe = new TCPPipe();
             _daemonPipe.OnDisconnected +=
@@ -196,7 +189,7 @@ namespace LibreMetaverse.Voice
             var se = _daemonPipe.Connect(address, port);
             if (se == null)
             {
-                _daemonIsConnected = true;
+                DaemonIsConnected = true;
 
                 if (OnDaemonConnected != null)
                 {
@@ -208,7 +201,7 @@ namespace LibreMetaverse.Voice
             }
             else
             {
-                _daemonIsConnected = false;
+                DaemonIsConnected = false;
 
                 if (OnDaemonCouldntConnect != null)
                 {
@@ -230,11 +223,11 @@ namespace LibreMetaverse.Voice
 
         public int Request(string action, string requestXML)
         {
-            var returnId = _requestId;
-            if (_daemonIsConnected)
+            var returnId = RequestId;
+            if (DaemonIsConnected)
             {
                 var sb = new StringBuilder();
-                sb.Append($"<Request requestId=\"{_requestId++}\" action=\"{action}\"");
+                sb.Append($"<Request requestId=\"{RequestId++}\" action=\"{action}\"");
                 if (string.IsNullOrEmpty(requestXML))
                 {
                     sb.Append(" />");
