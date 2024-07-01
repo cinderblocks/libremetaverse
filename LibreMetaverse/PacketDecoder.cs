@@ -757,14 +757,9 @@ namespace OpenMetaverse.Packets
         {
             byte[] bytes = (byte[]) fieldData;
 
-            if (bytes.Length == 17)
-            {
-                return $"{fieldName,30}: {new UUID((byte[]) fieldData, 0),-40} [UUID]";
-            }
-            else
-            {
-                return $"{fieldName,30}: {Utils.BytesToString((byte[]) fieldData),-40} [Byte[]]";
-            }
+            return bytes.Length == 17 
+                ? $"{fieldName,30}: {new UUID((byte[]) fieldData, 0),-40} [UUID]" 
+                : $"{fieldName,30}: {Utils.BytesToString((byte[]) fieldData),-40} [Byte[]]";
         }
 
         private static string DecodeNameValue(string fieldName, object fieldData)

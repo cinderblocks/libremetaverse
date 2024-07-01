@@ -67,11 +67,7 @@ namespace OpenMetaverse
         private InventoryNode Get(UUID uuid)
         {
             InventoryNode val;
-            if (Dictionary.TryGetValue(uuid, out val))
-            {
-                return val;
-            }
-            return null;
+            return Dictionary.TryGetValue(uuid, out val) ? val : null;
         }
 
         static int NullCompare(object o1, object o2)

@@ -67,14 +67,9 @@ namespace OpenMetaverse.TestClient
             start = DateTime.Now;
             DoUpload(jpeg2k, inventoryName);
 
-            if (UploadCompleteEvent.WaitOne((int)timeout, false))
-            {
-                return $"Texture upload {((TextureID != UUID.Zero) ? "succeeded" : "failed")}: {TextureID}";
-            }
-            else
-            {
-                return "Texture upload timed out";
-            }
+            return UploadCompleteEvent.WaitOne((int)timeout, false) 
+                ? $"Texture upload {((TextureID != UUID.Zero) ? "succeeded" : "failed")}: {TextureID}" 
+                : "Texture upload timed out";
         }
 
         private void DoUpload(byte[] UploadData, string FileName)

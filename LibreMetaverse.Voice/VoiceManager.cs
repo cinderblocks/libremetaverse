@@ -180,9 +180,7 @@ namespace LibreMetaverse.Voice
 
         public bool ConnectToDaemon()
         {
-            if (!Enabled) return false;
-
-            return ConnectToDaemon("127.0.0.1", DAEMON_PORT);
+            return Enabled && ConnectToDaemon("127.0.0.1", DAEMON_PORT);
         }
 
         public bool ConnectToDaemon(string address, int port)

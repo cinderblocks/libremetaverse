@@ -265,10 +265,7 @@ namespace OpenMetaverse
 
         protected bool IsFinite()
         {
-            if (xAxis.IsFinite() && yAxis.IsFinite() && zAxis.IsFinite())
-                return true;
-            else
-                return false;
+            return xAxis.IsFinite() && yAxis.IsFinite() && zAxis.IsFinite();
         }
 
         protected void Orthonormalize()

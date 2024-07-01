@@ -412,10 +412,7 @@ namespace LitJson
                             throw new JsonException (
                                 "Input doesn't evaluate to proper JSON text");
 
-                        if (parser_return)
-                            return true;
-
-                        return false;
+                        return parser_return;
                     }
 
                     continue;

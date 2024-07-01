@@ -138,10 +138,7 @@ namespace LibreMetaverse.Voice
         /// <returns></returns>
         private VoiceParticipant FindParticipant(string puri)
         {
-            if (_knownParticipants.ContainsKey(puri))
-                return _knownParticipants[puri];
-
-            return null;
+            return _knownParticipants.ContainsKey(puri) ? _knownParticipants[puri] : null;
         }
 
         public void Set3DPosition(VoicePosition speakerPosition, VoicePosition listenerPosition)

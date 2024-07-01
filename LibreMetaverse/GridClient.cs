@@ -147,10 +147,7 @@ namespace OpenMetaverse
                 AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip,
                 ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
                 {
-                    if (sslPolicyErrors == SslPolicyErrors.None)
-                    {
-                        return true;
-                    }
+                    if (sslPolicyErrors == SslPolicyErrors.None) { return true; }
 
                     // *HACK:
                     return true;

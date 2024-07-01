@@ -46,9 +46,7 @@ namespace LibreMetaverse
         {
             if (a == null || x < 0)
                 return (object)null;
-            if (x == 0)
-                return a.it;
-            return this.Get0(a.next, x - 1);
+            return x == 0 ? a.it : this.Get0(a.next, x - 1);
         }
 
         public void Add(object o)

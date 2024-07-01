@@ -296,21 +296,15 @@ namespace OpenMetaverse.StructuredData
             }
             if (type == typeof(Vector3))
             {
-                if (value.Type == OSDType.Array)
-                    return ((OSDArray)value).AsVector3();
-                return Vector3.Zero;
+                return value.Type == OSDType.Array ? ((OSDArray)value).AsVector3() : Vector3.Zero;
             }
             if (type == typeof(Vector4))
             {
-                if (value.Type == OSDType.Array)
-                    return ((OSDArray)value).AsVector4();
-                return Vector4.Zero;
+                return value.Type == OSDType.Array ? ((OSDArray)value).AsVector4() : Vector4.Zero;
             }
             if (type == typeof(Quaternion))
             {
-                if (value.Type == OSDType.Array)
-                    return ((OSDArray)value).AsQuaternion();
-                return Quaternion.Identity;
+                return value.Type == OSDType.Array ? ((OSDArray)value).AsQuaternion() : Quaternion.Identity;
             }
             if (type == typeof(OSDArray))
             {

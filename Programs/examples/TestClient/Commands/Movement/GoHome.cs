@@ -11,11 +11,7 @@ namespace OpenMetaverse.TestClient
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-			if ( Client.Self.GoHome() ) {
-				return "Teleport Home Succesful";
-			} else {
-				return "Teleport Home Failed";
-			}
+	        return Client.Self.GoHome() ? "Teleport Home Succesful" : "Teleport Home Failed";
         }
     }
 }

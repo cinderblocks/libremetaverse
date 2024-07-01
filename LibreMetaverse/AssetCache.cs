@@ -266,10 +266,7 @@ namespace OpenMetaverse
 
             string fileName = FileName(assetID);
 
-            if (File.Exists(fileName))
-                return fileName;
-            else
-                return null;
+            return File.Exists(fileName) ? fileName : null;
         }
 
         /// <summary>

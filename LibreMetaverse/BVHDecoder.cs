@@ -373,9 +373,8 @@ namespace OpenMetaverse
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != typeof(BinBVHAnimationReader)) return false;
-            return Equals((BinBVHAnimationReader)obj);
-    }
+            return obj.GetType() == typeof(BinBVHAnimationReader) && Equals((BinBVHAnimationReader)obj);
+        }
 
     /// <summary>
         /// Serves as a hash function for a particular type.  
@@ -464,8 +463,7 @@ namespace OpenMetaverse
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj)) return false;
-            if (obj.GetType() != typeof(binBVHJoint)) return false;
-            return Equals((binBVHJoint)obj);
+            return obj.GetType() == typeof(binBVHJoint) && Equals((binBVHJoint)obj);
         }
 
         /// <summary> 
