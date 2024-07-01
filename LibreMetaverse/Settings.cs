@@ -87,6 +87,14 @@ namespace OpenMetaverse
         /// </summary>
         public const bool ENABLE_LIBRARY_STORE = true;
 
+        /// <summary>
+        /// Have the AppearanceManager force reload
+        /// attachments after UpdateAvatarAppearanceAsync
+        /// is called, allowing multiple attachments on
+        /// one attachment point.
+        /// </summary>
+        public const bool FORCELOAD_MULTI_ATTACHMENTS = true;
+
         #endregion
 
         #region Timeouts and Intervals
