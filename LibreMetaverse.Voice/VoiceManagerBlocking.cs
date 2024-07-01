@@ -35,36 +35,34 @@ namespace LibreMetaverse.Voice
         /// <summary>Amount of time to wait for the voice daemon to respond.
         /// The value needs to stay relatively high because some of the calls
         /// require the voice daemon to make remote queries before replying</summary>
-        public int BlockingTimeout = 30 * 1000;
+        public readonly int BlockingTimeout = 30 * 1000;
 
-        protected Dictionary<int, AutoResetEvent> Events = new Dictionary<int, AutoResetEvent>();
+        private readonly Dictionary<int, AutoResetEvent> _events = new Dictionary<int, AutoResetEvent>();
 
         public List<string> CaptureDevices()
         {
             var evt = new AutoResetEvent(false);
-            Events[_CommandCookie] = evt;
+            _events[_commandCookie] = evt;
 
-            if (RequestCaptureDevices() == -1)
-            {
-                Events.Remove(_CommandCookie);
-                return new List<string>();
-            }
+            if (RequestCaptureDevices() != -1)
+                return evt.WaitOne(BlockingTimeout, false) ? CurrentCaptureDevices() : new List<string>();
+            
+            _events.Remove(_commandCookie);
+            return new List<string>();
 
-            return evt.WaitOne(BlockingTimeout, false) ? CurrentCaptureDevices() : new List<string>();
         }
 
         public List<string> RenderDevices()
         {
             var evt = new AutoResetEvent(false);
-            Events[_CommandCookie] = evt;
+            _events[_commandCookie] = evt;
 
-            if (RequestRenderDevices() == -1)
-            {
-                Events.Remove(_CommandCookie);
-                return new List<string>();
-            }
+            if (RequestRenderDevices() != -1)
+                return evt.WaitOne(BlockingTimeout, false) ? CurrentRenderDevices() : new List<string>();
+            
+            _events.Remove(_commandCookie);
+            return new List<string>();
 
-            return evt.WaitOne(BlockingTimeout, false) ? CurrentRenderDevices() : new List<string>();
         }
 
         public string CreateConnector(out int status)
@@ -72,18 +70,18 @@ namespace LibreMetaverse.Voice
             status = 0;
 
             var evt = new AutoResetEvent(false);
-            Events[_CommandCookie] = evt;
+            _events[_commandCookie] = evt;
 
             if (RequestCreateConnector() == -1)
             {
-                Events.Remove(_CommandCookie);
+                _events.Remove(_commandCookie);
                 return string.Empty;
             }
 
             var success = evt.WaitOne(BlockingTimeout, false);
-            status = statusCode;
+            status = _statusCode;
 
-            return success && statusCode == 0 ? connectorHandle : string.Empty;
+            return success && _statusCode == 0 ? _connectorHandle : string.Empty;
         }
 
         public string Login(string accountName, string password, string connectorHandle, out int status)
@@ -91,21 +89,21 @@ namespace LibreMetaverse.Voice
             status = 0;
 
             var evt = new AutoResetEvent(false);
-            Events[_CommandCookie] = evt;
+            _events[_commandCookie] = evt;
 
             if (RequestLogin(accountName, password, connectorHandle) == -1)
             {
-                Events.Remove(_CommandCookie);
+                _events.Remove(_commandCookie);
                 return string.Empty;
             }
 
             var success = evt.WaitOne(BlockingTimeout, false);
-            status = statusCode;
+            status = _statusCode;
 
-            return success && statusCode == 0 ? accountHandle : string.Empty;
+            return success && _statusCode == 0 ? _accountHandle : string.Empty;
         }
 
-        protected void RegisterCallbacks()
+        private void RegisterCallbacks()
         {
             OnCaptureDevices += VoiceManager_OnCaptureDevices;
             OnRenderDevices += VoiceManager_OnRenderDevices;
@@ -117,26 +115,26 @@ namespace LibreMetaverse.Voice
 
         private void VoiceManager_OnCaptureDevices(int cookie, int statusCode, string statusString, string currentDevice)
         {
-            if (Events.ContainsKey(cookie))
-                Events[cookie].Set();
+            if (_events.TryGetValue(cookie, out AutoResetEvent value))
+                value.Set();
         }
 
         private void VoiceManager_OnRenderDevices(int cookie, int statusCode, string statusString, string currentDevice)
         {
-            if (Events.ContainsKey(cookie))
-                Events[cookie].Set();
+            if (_events.TryGetValue(cookie, out AutoResetEvent value))
+                value.Set();
         }
 
         private void VoiceManager_OnConnectorCreated(int cookie, int statusCode, string statusString, string connectorHandle)
         {
-            if (Events.ContainsKey(cookie))
-                Events[cookie].Set();
+            if (_events.TryGetValue(cookie, out AutoResetEvent value))
+                value.Set();
         }
 
         private void VoiceManager_OnLogin(int cookie, int statusCode, string statusString, string accountHandle)
         {
-            if (Events.ContainsKey(cookie))
-                Events[cookie].Set();
+            if (_events.TryGetValue(cookie, out AutoResetEvent value))
+                value.Set();
         }
 
         #endregion Callbacks
