@@ -301,12 +301,12 @@ namespace GridProxy
             }
         }
 
-        private Packet callDelegates(Dictionary<PacketType, List<PacketDelegate>> delegates, Packet packet, IPEndPoint remoteEndPoint)
+        private Packet callDelegates(Dictionary<PacketType, List<PacketDelegate>> delegates, Packet packet, IPEndPoint endpoint)
         {
             PacketType origType = packet.Type;
             foreach (PacketDelegate del in delegates[origType])
             {
-                try { packet = del(packet, remoteEndPoint); }
+                try { packet = del(packet, endpoint); }
                 catch (Exception ex) { OpenMetaverse.Logger.Log("Error in packet delegate", Helpers.LogLevel.Warning, ex); }
 
                 // FIXME: how should we handle the packet type changing?

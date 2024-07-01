@@ -771,12 +771,12 @@ namespace LitJson
             return type;
         }
 
-        public void SetJsonType (JsonType type)
+        public void SetJsonType (JsonType jtype)
         {
-            if (this.type == type)
+            if (this.type == jtype)
                 return;
 
-            switch (type) {
+            switch (jtype) {
             case JsonType.None:
                 break;
 
@@ -810,7 +810,7 @@ namespace LitJson
                 break;
             }
 
-            this.type = type;
+            this.type = jtype;
         }
 
         public string ToJson ()
