@@ -36,7 +36,7 @@ namespace OpenMetaverse.Assets
     public class AssetMesh : Asset
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.Mesh; } }
+        public override AssetType AssetType => AssetType.Mesh;
 
         /// <summary>
         /// Decoded mesh data

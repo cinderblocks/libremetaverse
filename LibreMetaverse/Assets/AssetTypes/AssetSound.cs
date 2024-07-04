@@ -36,7 +36,7 @@ namespace OpenMetaverse.Assets
     public class AssetSound : Asset
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.Sound; } }
+        public override AssetType AssetType => AssetType.Sound;
 
         /// <summary>Initializes a new instance of an AssetSound object</summary>
         public AssetSound() { }

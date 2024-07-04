@@ -32,7 +32,7 @@ namespace OpenMetaverse.Assets
     public class AssetScriptText : Asset
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.LSLText; } }
+        public override AssetType AssetType => AssetType.LSLText;
 
         /// <summary>A string of characters represting the script contents</summary>
         public string Source;

@@ -34,7 +34,7 @@ namespace OpenMetaverse.Assets
     public class AssetCallingCard : Asset
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.CallingCard; } }
+        public override AssetType AssetType => AssetType.CallingCard;
 
         /// <summary>UUID of the Callingcard target avatar</summary>
         public UUID AvatarID = UUID.Zero;

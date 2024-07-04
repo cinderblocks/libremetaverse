@@ -54,7 +54,7 @@ namespace OpenMetaverse.Assets
         public List<PrimObject> Children;
 
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.Object; } }
+        public override AssetType AssetType => AssetType.Object;
 
         /// <summary>Initializes a new instance of an AssetPrim object</summary>
         public AssetPrim() { }

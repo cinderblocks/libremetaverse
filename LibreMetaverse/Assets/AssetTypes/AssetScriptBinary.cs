@@ -33,7 +33,7 @@ namespace OpenMetaverse.Assets
     public class AssetScriptBinary : Asset
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.LSLBytecode; } }
+        public override AssetType AssetType => AssetType.LSLBytecode;
 
         /// <summary>Initializes a new instance of an AssetScriptBinary object</summary>
         public AssetScriptBinary() { }

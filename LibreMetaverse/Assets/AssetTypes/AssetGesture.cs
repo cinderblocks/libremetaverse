@@ -64,10 +64,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Returns what kind of gesture step this is
         /// </summary>
-        public override GestureStepType GestureStepType
-        {
-            get { return GestureStepType.Animation; }
-        }
+        public override GestureStepType GestureStepType => GestureStepType.Animation;
 
         /// <summary>
         /// If true, this step represents start of animation, otherwise animation stop
@@ -105,10 +102,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Returns what kind of gesture step this is
         /// </summary>
-        public override GestureStepType GestureStepType
-        {
-            get { return GestureStepType.Sound; }
-        }
+        public override GestureStepType GestureStepType => GestureStepType.Sound;
 
         /// <summary>
         /// Sound asset <see cref="UUID"/>
@@ -135,10 +129,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Returns what kind of gesture step this is
         /// </summary>
-        public override GestureStepType GestureStepType
-        {
-            get { return GestureStepType.Chat; }
-        }
+        public override GestureStepType GestureStepType => GestureStepType.Chat;
 
         /// <summary>
         /// Text to output in chat
@@ -159,10 +150,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Returns what kind of gesture step this is
         /// </summary>
-        public override GestureStepType GestureStepType
-        {
-            get { return GestureStepType.Wait; }
-        }
+        public override GestureStepType GestureStepType => GestureStepType.Wait;
 
         /// <summary>
         /// If true in this step we wait for all animations to finish
@@ -205,10 +193,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Returns what kind of gesture step this is
         /// </summary>
-        public override GestureStepType GestureStepType
-        {
-            get { return GestureStepType.EOF; }
-        }
+        public override GestureStepType GestureStepType => GestureStepType.EOF;
 
         public override string ToString()
         {
@@ -226,10 +211,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Returns asset type
         /// </summary>
-        public override AssetType AssetType
-        {
-            get { return AssetType.Gesture; }
-        }
+        public override AssetType AssetType => AssetType.Gesture;
 
         /// <summary>
         /// Keyboard key that triggers the gestyre

@@ -32,7 +32,7 @@ namespace OpenMetaverse.Assets
     public class AssetBodypart : AssetWearable
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.Bodypart; } }
+        public override AssetType AssetType => AssetType.Bodypart;
 
         /// <summary>Initializes a new instance of an AssetBodyPart object</summary>
         public AssetBodypart() { }

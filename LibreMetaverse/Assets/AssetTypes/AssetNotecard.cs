@@ -37,7 +37,7 @@ namespace OpenMetaverse.Assets
     public class AssetNotecard : Asset
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.Notecard; } }
+        public override AssetType AssetType => AssetType.Notecard;
 
         /// <summary>A text string containing main text of the notecard</summary>
         public string BodyText;

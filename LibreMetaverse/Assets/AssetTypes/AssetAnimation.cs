@@ -32,7 +32,7 @@ namespace OpenMetaverse.Assets
     public class AssetAnimation : Asset
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.Animation; } }
+        public override AssetType AssetType => AssetType.Animation;
 
         /// <summary>Default Constructor</summary>
         public AssetAnimation() { }

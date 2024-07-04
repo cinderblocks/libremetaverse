@@ -34,7 +34,7 @@ namespace OpenMetaverse.Assets
     public class AssetLandmark : Asset
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.Landmark; } }
+        public override AssetType AssetType => AssetType.Landmark;
 
         /// <summary>UUID of the Landmark target region</summary>
         public UUID RegionID = UUID.Zero;

@@ -35,7 +35,7 @@ namespace OpenMetaverse.Assets
     public class AssetTexture : Asset
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.Texture; } }
+        public override AssetType AssetType => AssetType.Texture;
 
         /// <summary>A <seealso cref="ManagedImage"/> object containing image data</summary>
         public ManagedImage Image;
