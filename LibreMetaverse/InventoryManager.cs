@@ -128,7 +128,7 @@ namespace OpenMetaverse
         public static readonly UUID MAGIC_ID = new UUID("3c115e51-04f4-523c-9fa6-98aff1034730");
 
         /// <summary>Maximum items allowed to give</summary>
-        public static readonly int MAX_GIVE_ITEMS = 66; // viewer code says 66, but 42 in the notification
+        public const int MAX_GIVE_ITEMS = 66; // viewer code says 66, but 42 in the notification
 
         protected struct InventorySearch
         {

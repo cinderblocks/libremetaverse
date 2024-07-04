@@ -102,7 +102,7 @@ namespace OpenMetaverse.TestClient
                 {
                     if (args[3].IndexOf('/') >= 0)
                     {
-                        char sep = '/';
+                        const char sep = '/';
                         string[] startbits = args[3].Split(sep);
                         try
                         {

@@ -81,7 +81,7 @@ namespace OpenMetaverse.Assets
 
             int numOutputSamples = (int)(pcmDuraton * outputSampleRate);
             //Ensure that samble buffer is aligned to write chunk size
-            numOutputSamples = (numOutputSamples / WriteBufferSize) * WriteBufferSize;
+            numOutputSamples = (numOutputSamples / WRITE_BUFFER_SIZE) * WRITE_BUFFER_SIZE;
 
             float[][] outSamples = new float[outputChannels][];
 
@@ -127,7 +127,8 @@ namespace OpenMetaverse.Assets
             return pcmValue / 32768f;
         }
 
-        private static readonly int WriteBufferSize = 512;
+        private const int WRITE_BUFFER_SIZE = 512;
+
         private static byte[] GenerateFile(float[][] floatSamples, int sampleRate, int channels)
         {
             MemoryStream outputData = new MemoryStream();
@@ -166,7 +167,7 @@ namespace OpenMetaverse.Assets
             // =========================================================
             var processingState = ProcessingState.Create(info);
 
-            for (int readIndex = 0; readIndex <= floatSamples[0].Length; readIndex += WriteBufferSize)
+            for (int readIndex = 0; readIndex <= floatSamples[0].Length; readIndex += WRITE_BUFFER_SIZE)
             {
                 if (readIndex == floatSamples[0].Length)
                 {
@@ -174,7 +175,7 @@ namespace OpenMetaverse.Assets
                 }
                 else
                 {
-                    processingState.WriteData(floatSamples, WriteBufferSize, readIndex);
+                    processingState.WriteData(floatSamples, WRITE_BUFFER_SIZE, readIndex);
                 }
 
                 while (!oggStream.Finished && processingState.PacketOut(out OggPacket packet))

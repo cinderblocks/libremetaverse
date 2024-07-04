@@ -913,7 +913,7 @@ namespace GridProxy
                         if (!KnownCaps.ContainsKey(val))
                         {
                             CapsDataFormat resFmt = BinaryResponseCaps.Contains(key) ? CapsDataFormat.Binary : CapsDataFormat.OSD;
-                            CapsDataFormat reqFmt = CapsDataFormat.OSD;
+                            const CapsDataFormat reqFmt = CapsDataFormat.OSD;
                             CapInfo newCap = new CapInfo(val, capReq.Info.Sim, key, reqFmt, resFmt);
                             newCap.AddDelegate(new CapsDelegate(KnownCapDelegate));
                             lock (this) { KnownCaps[val] = newCap; }

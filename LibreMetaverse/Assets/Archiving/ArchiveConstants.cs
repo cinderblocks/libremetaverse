@@ -36,27 +36,27 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// The location of the archive control file
         /// </summary>
-        public static readonly string CONTROL_FILE_PATH = "archive.xml";
+        public const string CONTROL_FILE_PATH = "archive.xml";
 
         /// <summary>
         /// Path for the assets held in an archive
         /// </summary>
-        public static readonly string ASSETS_PATH = "assets/";
+        public const string ASSETS_PATH = "assets/";
 
         /// <summary>
         /// Path for the prims file
         /// </summary>
-        public static readonly string OBJECTS_PATH = "objects/";
+        public const string OBJECTS_PATH = "objects/";
 
         /// <summary>
         /// Path for terrains.  Technically these may be assets, but I think it's quite nice to split them out.
         /// </summary>
-        public static readonly string TERRAINS_PATH = "terrains/";
+        public const string TERRAINS_PATH = "terrains/";
 
         /// <summary>
         /// Path for region settings.
         /// </summary>
-        public static readonly string SETTINGS_PATH = "settings/";
+        public const string SETTINGS_PATH = "settings/";
 
         /// <value>
         ///   Path for region settings.
@@ -66,7 +66,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// The character the separates the uuid from extension information in an archived asset filename
         /// </summary>
-        public static readonly string ASSET_EXTENSION_SEPARATOR = "_";
+        public const string ASSET_EXTENSION_SEPARATOR = "_";
 
         /// <summary>
         /// Extensions used for asset types in the archive

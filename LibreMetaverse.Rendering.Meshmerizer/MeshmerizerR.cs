@@ -266,7 +266,7 @@ namespace OpenMetaverse.Rendering
             SculptMesh newMesh =
                 new SculptMesh(scupltTexture, smSculptType, mesherLod, true, prim.Sculpt.Mirror, prim.Sculpt.Invert);
 
-            int numPrimFaces = 1;       // a scuplty has only one face
+            const int numPrimFaces = 1; // a scuplty has only one face
 
             // copy the vertex information into IRendering structures
             FacetedMesh omvrmesh = new FacetedMesh

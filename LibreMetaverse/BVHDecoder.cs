@@ -174,15 +174,14 @@ namespace OpenMetaverse
         /// <returns>a string</returns>
         public string ReadBytesUntilNull(byte[] data, ref int i)
         {
-            char nterm = '\0'; // Null terminator
             int endpos = i;
             int startpos = i;
 
             // Find the null character
-            for (int j = i; j < data.Length; j++)
+            for (var j = i; j < data.Length; j++)
             {
                 char spot = Convert.ToChar(data[j]);
-                if (spot == nterm)
+                if (spot == '\n')
                 {
                     endpos = j;
                     break;

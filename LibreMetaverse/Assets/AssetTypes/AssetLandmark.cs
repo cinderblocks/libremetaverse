@@ -75,7 +75,7 @@ namespace OpenMetaverse.Assets
             if (text.ToLower().Contains("landmark version 2"))
             {
                 RegionID = new UUID(text.Substring(text.IndexOf("region_id", StringComparison.Ordinal) + 10, 36));
-                string vecDelim = " ";
+                const string vecDelim = " ";
                 string[] vecStrings = text.Substring(text.IndexOf("local_pos", StringComparison.Ordinal) + 10).Split(vecDelim.ToCharArray());
                 if (vecStrings.Length == 3)
                 {

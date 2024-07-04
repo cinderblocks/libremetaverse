@@ -113,7 +113,7 @@ namespace OpenMetaverse.TestClient
 
                                 if (tokens.Length >= 4) // Optional starting position
                                 {
-                                    char sep = '/';
+                                    const char sep = '/';
                                     string[] startbits = tokens[3].Split(sep);
                                     account.StartLocation = NetworkManager.StartLocation(startbits[0],
                                         int.Parse(startbits[1]),
@@ -164,7 +164,7 @@ namespace OpenMetaverse.TestClient
 
                 if (arguments["startpos"] != null)
                 {
-                    char sep = '/';
+                    const char sep = '/';
                     string[] startbits = arguments["startpos"].Split(sep);
                     a.StartLocation = NetworkManager.StartLocation(startbits[0], int.Parse(startbits[1]),
                             int.Parse(startbits[2]), int.Parse(startbits[3]));

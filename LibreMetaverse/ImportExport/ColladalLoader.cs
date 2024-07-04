@@ -709,7 +709,7 @@ namespace OpenMetaverse.ImportExport
                 p = triangles.p
             };
 
-            string str = "3 ";
+            const string str = "3 ";
             System.Text.StringBuilder builder = new System.Text.StringBuilder(str.Length * (int)poly.count);
             for (int i = 0; i < (int)poly.count; i++) builder.Append(str);
             poly.vcount = builder.ToString();
