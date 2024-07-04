@@ -126,7 +126,13 @@ namespace OpenMetaverse
         Widget = 40,
         /// <summary>Person?</summary>
         [EnumInfo(Text = "person")]
-        Person = 45
+        Person = 45,
+        /// <summary> Settings blob </summary>
+        [EnumInfo(Text = "settings")]
+        Settings,
+        /// <summary> Render material </summary>
+        [EnumInfo(Text = "material")]
+        Material,
     }
 
     /// <summary>

@@ -591,7 +591,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Request an asset download
         /// </summary>
         /// <param name="assetID"></param>
         /// <param name="itemID"></param>
@@ -634,8 +634,9 @@ namespace OpenMetaverse
                 return;
             }
 
-            // If ViewerAsset capability exists, use that, if not, fallback to UDP (which is obsoleted on Second Life.)
-            if (Client.Network.CurrentSim?.Caps?.CapabilityURI("ViewerAsset") != null)
+            // If ViewerAsset capability exists and asset is directly fetchable, use that,
+            // if not, fallback to UDP (which is obsoleted on Second Life.)
+            if (CanFetchAsset(assetType) && Client.Network.CurrentSim?.Caps?.CapabilityURI("ViewerAsset") != null)
             {
                 RequestAssetHTTP(assetID, transfer, callback);
             }
@@ -647,7 +648,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Request an asset download via HTTP
         /// </summary>
         /// <param name="assetID"></param>
         /// <param name="transfer"></param>
@@ -834,7 +835,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Request Inventory Asset from UDP
+        /// Request Inventory Asset via HTTP
         /// </summary>
         /// <param name="assetID">Use UUID.Zero if you do not have the 
         /// asset ID but have all the necessary permissions</param>
@@ -1671,6 +1672,53 @@ namespace OpenMetaverse
             Client.Network.SendPacket(confirm);
         }
 
+        /// <summary>
+        /// Returns whether asset type can be fetched directly from the asset server endpoint
+        /// </summary>
+        /// <param name="assetType">The asset's type</param>
+        /// <returns>Whether this type can be fetched directly</returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        private static bool CanFetchAsset(AssetType assetType)
+        {
+            switch (assetType)
+            {
+                case AssetType.Texture:
+                case AssetType.Sound:
+                case AssetType.Landmark:
+                case AssetType.Clothing:
+                case AssetType.Bodypart:
+                case AssetType.Animation:
+                case AssetType.Gesture:
+                case AssetType.Settings: 
+                case AssetType.Material:
+                    return true;
+                
+                case AssetType.Unknown:
+                case AssetType.CallingCard:
+#pragma warning disable CS0618 // Type or member is obsolete
+                case AssetType.Script:
+#pragma warning restore CS0618 // Type or member is obsolete
+                case AssetType.Object:
+                case AssetType.Notecard:
+                case AssetType.Folder:
+                case AssetType.LSLText:
+                case AssetType.LSLBytecode:
+                case AssetType.TextureTGA:
+                case AssetType.SoundWAV:
+                case AssetType.ImageTGA:
+                case AssetType.ImageJPEG:
+                case AssetType.Simstate:
+                case AssetType.Link:
+                case AssetType.LinkFolder:
+                case AssetType.Mesh:
+                case AssetType.Widget:
+                case AssetType.Person:
+                    return false;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(assetType), assetType, null);
+            }
+        }
+        
 #endregion Helpers
 
 #region Transfer Callbacks
