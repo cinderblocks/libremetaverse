@@ -50,7 +50,7 @@
     <ProjectReference Include="..\PrimMesher\LibreMetaverse.PrimMesher.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="7.0.0" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.6" />
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
   </ItemGroup>
   <ItemGroup>
