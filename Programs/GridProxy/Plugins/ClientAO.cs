@@ -360,7 +360,7 @@ public class ClientAO : ProxyPlugin
                     //configuration notecard
                     if (d.ItemID != UUID.Zero)
                     {
-                        InventoryItem item = CreateInventoryItem((InventoryType)d.InvType, d.ItemID);
+                        InventoryItem item = InventoryManager.CreateInventoryItem((InventoryType)d.InvType, d.ItemID);
                         item.ParentUUID = d.FolderID;
                         item.CreatorID = d.CreatorID;
                         item.AssetType = (AssetType)d.Type;
@@ -434,27 +434,6 @@ public class ClientAO : ProxyPlugin
         {
             //let packet go to client
             return packet;
-        }
-    }
-
-    public static InventoryItem CreateInventoryItem(InventoryType type, UUID id)
-    {
-        switch (type)
-        {
-            case InventoryType.Texture: return new InventoryTexture(id);
-            case InventoryType.Sound: return new InventorySound(id);
-            case InventoryType.CallingCard: return new InventoryCallingCard(id);
-            case InventoryType.Landmark: return new InventoryLandmark(id);
-            case InventoryType.Object: return new InventoryObject(id);
-            case InventoryType.Notecard: return new InventoryNotecard(id);
-            case InventoryType.Category: return new InventoryCategory(id);
-            case InventoryType.LSL: return new InventoryLSL(id);
-            case InventoryType.Snapshot: return new InventorySnapshot(id);
-            case InventoryType.Attachment: return new InventoryAttachment(id);
-            case InventoryType.Wearable: return new InventoryWearable(id);
-            case InventoryType.Animation: return new InventoryAnimation(id);
-            case InventoryType.Gesture: return new InventoryGesture(id);
-            default: return new InventoryItem(type, id);
         }
     }
 
