@@ -222,11 +222,11 @@ namespace OpenMetaverse
         Landmark = 3,
         /*
         /// <summary>Script</summary>
-        //[Obsolete("See LSL")] Script = 4,
+        [Obsolete("See LSL")] Script = 4,
         /// <summary>Clothing</summary>
-        //[Obsolete("See Wearable")] Clothing = 5,
+        [Obsolete("See Wearable")] Clothing = 5,
+        */
         /// <summary>Object, both single and coalesced</summary>
-         */
         Object = 6,
         /// <summary>Notecard</summary>
         Notecard = 7,
@@ -265,6 +265,8 @@ namespace OpenMetaverse
 
         /// <summary></summary>
         Mesh = 22,
+        /// <summary></summary>
+        Settings = 23,
     }
 
     /// <summary>

@@ -1587,6 +1587,9 @@ namespace OpenMetaverse
                 case AssetType.CallingCard:
                     asset = new AssetCallingCard();
                     break;
+                case AssetType.Settings:
+                    asset = new AssetSettings();
+                    break;
                 default:
                     asset = new AssetMutable(type);
                     Logger.Log("Unimplemented asset type: " + type, Helpers.LogLevel.Error);
