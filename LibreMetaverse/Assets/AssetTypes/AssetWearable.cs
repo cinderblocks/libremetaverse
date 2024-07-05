@@ -74,7 +74,7 @@ namespace OpenMetaverse.Assets
         /// Decode an assets byte encoded data to a string
         /// </summary>
         /// <returns>true if the asset data was decoded successfully</returns>
-        public override bool Decode()
+        public sealed override bool Decode()
         {
             if (AssetData == null || AssetData.Length == 0)
                 return false;
@@ -234,7 +234,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Encode the assets string represantion into a format consumable by the asset server
         /// </summary>
-        public override void Encode()
+        public sealed override void Encode()
         {
             const string NL = "\n";
 

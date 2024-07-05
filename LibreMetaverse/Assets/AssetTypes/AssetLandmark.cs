@@ -57,7 +57,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Encode the raw contents of a string with the specific Landmark format
         /// </summary>
-        public override void Encode()
+        public sealed override void Encode()
         {
             string temp = "Landmark version 2\n";
             temp += "region_id " + RegionID + "\n";
@@ -69,7 +69,7 @@ namespace OpenMetaverse.Assets
         /// Decode the raw asset data, populating the RegionID and Position
         /// </summary>
         /// <returns>true if the AssetData was successfully decoded to a UUID and Vector</returns>
-        public override bool Decode()
+        public sealed override bool Decode()
         {
             string text = Utils.BytesToString(AssetData);
             if (text.ToLower().Contains("landmark version 2"))

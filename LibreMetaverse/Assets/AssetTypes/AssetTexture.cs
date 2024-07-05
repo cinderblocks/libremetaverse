@@ -75,7 +75,7 @@ namespace OpenMetaverse.Assets
         /// Populates the <seealso cref="AssetData"/> byte array with a JPEG2000
         /// encoded image created from the data in <seealso cref="Image"/>
         /// </summary>
-        public override void Encode()
+        public sealed override void Encode()
         {
             using (var writer = new OpenJpegDotNet.IO.Writer(Image.ExportBitmap()))
             {
@@ -88,7 +88,7 @@ namespace OpenMetaverse.Assets
         /// <seealso cref="ManagedImage"/> object <seealso cref="Image"/>
         /// </summary>
         /// <returns>True if the decoding was successful, otherwise false</returns>
-        public override bool Decode()
+        public sealed override bool Decode()
         {
             if (AssetData == null || AssetData.Length <= 0) { return false; }
 

@@ -58,7 +58,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Converts a byte data for a wave PCM file @ 44100 to a OGG encoding
         /// </summary>
-        public override void Encode()
+        public sealed override void Encode()
         {
             if (encodedAudio == false)
             {
@@ -71,7 +71,7 @@ namespace OpenMetaverse.Assets
         /// its already ogg just play it or convert it yourself
         /// </summary>
         /// <returns>true</returns>
-        public override bool Decode() { return true; }
+        public sealed override bool Decode() { return true; }
 
 
         private static byte[] ConvertRawPCMFile(int outputSampleRate, int outputChannels, byte[] pcmSamples, PcmSample pcmSampleSize, int pcmSampleRate, int pcmChannels)

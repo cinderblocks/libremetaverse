@@ -80,7 +80,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// 
         /// </summary>
-        public override void Encode()
+        public sealed override void Encode()
         {
             AssetData = System.Text.Encoding.UTF8.GetBytes(EncodeXml());
         }
@@ -89,7 +89,7 @@ namespace OpenMetaverse.Assets
         /// 
         /// </summary>
         /// <returns></returns>
-        public override bool Decode()
+        public sealed override bool Decode()
         {
             if (AssetData != null && AssetData.Length > 0)
             {

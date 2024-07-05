@@ -57,13 +57,13 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// TODO: Encodes Collada file into LLMesh format
         /// </summary>
-        public override void Encode() { }
+        public sealed override void Encode() { }
 
         /// <summary>
         /// Decodes mesh asset. See <see cref="OpenMetaverse.Rendering.FacetedMesh.TryDecodeFromAsset"/>
         /// to furter decode it for rendering</summary>
         /// <returns>true</returns>
-        public override bool Decode()
+        public sealed override bool Decode()
         {
             try
             {

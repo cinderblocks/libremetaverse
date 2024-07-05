@@ -47,7 +47,7 @@ namespace OpenMetaverse.Assets
         {
         }
 
-        public override void Encode() { }
-        public override bool Decode() { return true; }
+        public sealed override void Encode() { }
+        public sealed override bool Decode() { return true; }
     }
 }
