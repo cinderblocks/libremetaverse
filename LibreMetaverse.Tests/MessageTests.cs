@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC
+ * Copyright (c) 2021-2024, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -46,169 +46,189 @@ namespace LibreMetaverse.Tests
     [TestFixture]
     public class MessageTests : Assert
     {
-        private Uri testURI = new Uri("https://sim3187.agni.lindenlab.com:12043/cap/6028fc44-c1e5-80a1-f902-19bde114458b");
-        private IPAddress testIP = IPAddress.Parse("127.0.0.1");
-        private ulong testHandle = 1106108697797888;
+        private readonly Uri _testUri = new Uri("https://sim3187.agni.lindenlab.com:12043/cap/6028fc44-c1e5-80a1-f902-19bde114458b");
+        private readonly IPAddress _testIp = IPAddress.Parse("127.0.0.1");
+        private const ulong TEST_HANDLE = 1106108697797888;
 
         [Test]
         public void AgentGroupDataUpdateMessage()
         {
-            AgentGroupDataUpdateMessage s = new AgentGroupDataUpdateMessage();
-            s.AgentID = UUID.Random();
+            var s = new AgentGroupDataUpdateMessage
+            {
+                AgentID = UUID.Random()
+            };
 
+            var blocks = new AgentGroupDataUpdateMessage.GroupData[2];
+            var g1 = new AgentGroupDataUpdateMessage.GroupData
+            {
+                AcceptNotices = false,
+                Contribution = 1024,
+                GroupID = UUID.Random(),
+                GroupInsigniaID = UUID.Random(),
+                GroupName = "Group Name Test 1",
+                GroupPowers = GroupPowers.Accountable | GroupPowers.AllowLandmark | GroupPowers.AllowSetHome
+            };
 
-
-            AgentGroupDataUpdateMessage.GroupData[] blocks = new AgentGroupDataUpdateMessage.GroupData[2];
-            AgentGroupDataUpdateMessage.GroupData g1 = new AgentGroupDataUpdateMessage.GroupData();
-
-            g1.AcceptNotices = false;
-            g1.Contribution = 1024;
-            g1.GroupID = UUID.Random();
-            g1.GroupInsigniaID = UUID.Random();
-            g1.GroupName = "Group Name Test 1";
-            g1.GroupPowers = GroupPowers.Accountable | GroupPowers.AllowLandmark | GroupPowers.AllowSetHome;
             blocks[0] = g1;
 
-            AgentGroupDataUpdateMessage.GroupData g2 = new AgentGroupDataUpdateMessage.GroupData();
-            g2.AcceptNotices = false;
-            g2.Contribution = 16;
-            g2.GroupID = UUID.Random();
-            g2.GroupInsigniaID = UUID.Random();
-            g2.GroupName = "Group Name Test 2";
-            g2.GroupPowers = GroupPowers.ChangeActions | GroupPowers.DeedObject;
+            var g2 = new AgentGroupDataUpdateMessage.GroupData
+            {
+                AcceptNotices = false,
+                Contribution = 16,
+                GroupID = UUID.Random(),
+                GroupInsigniaID = UUID.Random(),
+                GroupName = "Group Name Test 2",
+                GroupPowers = GroupPowers.ChangeActions | GroupPowers.DeedObject
+            };
             blocks[1] = g2;
 
             s.GroupDataBlock = blocks;
 
-            AgentGroupDataUpdateMessage.NewGroupData[] nblocks = new AgentGroupDataUpdateMessage.NewGroupData[2];
+            var nblocks = new AgentGroupDataUpdateMessage.NewGroupData[2];
 
-            AgentGroupDataUpdateMessage.NewGroupData ng1 = new AgentGroupDataUpdateMessage.NewGroupData();
-            ng1.ListInProfile = false;
+            var ng1 = new AgentGroupDataUpdateMessage.NewGroupData
+                {
+                    ListInProfile = false
+                };
             nblocks[0] = ng1;
 
-            AgentGroupDataUpdateMessage.NewGroupData ng2 = new AgentGroupDataUpdateMessage.NewGroupData();
-            ng2.ListInProfile = true;
+            var ng2 = new AgentGroupDataUpdateMessage.NewGroupData
+                {
+                    ListInProfile = true
+                };
             nblocks[1] = ng2;
 
             s.NewGroupDataBlock = nblocks;
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            AgentGroupDataUpdateMessage t = new AgentGroupDataUpdateMessage();
+            var t = new AgentGroupDataUpdateMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AgentID, t.AgentID);
+            Assert.That(s.AgentID, Is.EqualTo(t.AgentID));
 
-            for (int i = 0; i < t.GroupDataBlock.Length; i++)
+            for (var i = 0; i < t.GroupDataBlock.Length; i++)
             {
-                Assert.AreEqual(s.GroupDataBlock[i].AcceptNotices, t.GroupDataBlock[i].AcceptNotices);
-                Assert.AreEqual(s.GroupDataBlock[i].Contribution, t.GroupDataBlock[i].Contribution);
-                Assert.AreEqual(s.GroupDataBlock[i].GroupID, t.GroupDataBlock[i].GroupID);
-                Assert.AreEqual(s.GroupDataBlock[i].GroupInsigniaID, t.GroupDataBlock[i].GroupInsigniaID);
-                Assert.AreEqual(s.GroupDataBlock[i].GroupName, t.GroupDataBlock[i].GroupName);
-                Assert.AreEqual(s.GroupDataBlock[i].GroupPowers, t.GroupDataBlock[i].GroupPowers);
+                Assert.That(s.GroupDataBlock[i].AcceptNotices, Is.EqualTo(t.GroupDataBlock[1].AcceptNotices));
+                Assert.That(s.GroupDataBlock[i].Contribution, Is.EqualTo(t.GroupDataBlock[1].Contribution));
+                Assert.That(s.GroupDataBlock[i].GroupID, Is.EqualTo(t.GroupDataBlock[1].GroupID));
+                Assert.That(s.GroupDataBlock[i].GroupInsigniaID, Is.EqualTo(t.GroupDataBlock[1].GroupInsigniaID));
+                Assert.That(s.GroupDataBlock[i].GroupName, Is.EqualTo(t.GroupDataBlock[1].GroupName));
+                Assert.That(s.GroupDataBlock[i].GroupPowers, Is.EqualTo(t.GroupDataBlock[1].GroupPowers));
             }
 
-            for (int i = 0; i < t.NewGroupDataBlock.Length; i++)
+            for (var i = 0; i < t.NewGroupDataBlock.Length; i++)
             {
-                Assert.AreEqual(s.NewGroupDataBlock[i].ListInProfile, t.NewGroupDataBlock[i].ListInProfile);
+                Assert.That(s.NewGroupDataBlock[i].ListInProfile, Is.EqualTo(t.NewGroupDataBlock[i].ListInProfile));
             }
         }
 
         [Test]
         public void TeleportFinishMessage()
         {
-            TeleportFinishMessage s = new TeleportFinishMessage();
-            s.AgentID = UUID.Random();
-            s.Flags = TeleportFlags.ViaLocation | TeleportFlags.IsFlying;
-            s.IP = testIP;
-            s.LocationID = 32767;
-            s.Port = 3000;
-            s.RegionHandle = testHandle;
-            s.SeedCapability = testURI;
-            s.SimAccess = SimAccess.Mature;
+            var s = new TeleportFinishMessage
+            {
+                AgentID = UUID.Random(),
+                Flags = TeleportFlags.ViaLocation | TeleportFlags.IsFlying,
+                IP = _testIp,
+                LocationID = 32767,
+                Port = 3000,
+                RegionHandle = TEST_HANDLE,
+                SeedCapability = _testUri,
+                SimAccess = SimAccess.Mature
+            };
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            TeleportFinishMessage t = new TeleportFinishMessage();
+            var t = new TeleportFinishMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AgentID, t.AgentID);
-            Assert.AreEqual(s.Flags, t.Flags);
-            Assert.AreEqual(s.IP, t.IP);
-            Assert.AreEqual(s.LocationID, t.LocationID);
-            Assert.AreEqual(s.Port, t.Port);
-            Assert.AreEqual(s.RegionHandle, t.RegionHandle);
-            Assert.AreEqual(s.SeedCapability, t.SeedCapability);
-            Assert.AreEqual(s.SimAccess, t.SimAccess);
+            Assert.That(s.AgentID, Is.EqualTo(t.AgentID));
+            Assert.That(s.Flags, Is.EqualTo(t.Flags));
+            Assert.That(s.IP, Is.EqualTo(t.IP));
+            Assert.That(s.LocationID, Is.EqualTo(t.LocationID));
+            Assert.That(s.Port, Is.EqualTo(t.Port));
+            Assert.That(s.RegionHandle, Is.EqualTo(t.RegionHandle));
+            Assert.That(s.SeedCapability, Is.EqualTo(t.SeedCapability));
+            Assert.That(s.SimAccess, Is.EqualTo(t.SimAccess));
         }
 
         [Test]
         public void EstablishAgentCommunicationMessage()
         {
-            EstablishAgentCommunicationMessage s = new EstablishAgentCommunicationMessage();
-            s.Address = testIP;
-            s.AgentID = UUID.Random();
-            s.Port = 3000;
-            s.SeedCapability = testURI;
+            var s = new EstablishAgentCommunicationMessage
+            {
+                Address = _testIp,
+                AgentID = UUID.Random(),
+                Port = 3000,
+                SeedCapability = _testUri
+            };
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            EstablishAgentCommunicationMessage t = new EstablishAgentCommunicationMessage();
+            var t = new EstablishAgentCommunicationMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.Address, t.Address);
-            Assert.AreEqual(s.AgentID, t.AgentID);
-            Assert.AreEqual(s.Port, t.Port);
-            Assert.AreEqual(s.SeedCapability, t.SeedCapability);
+            Assert.That(s.Address, Is.EqualTo(t.Address));
+            Assert.That(s.AgentID, Is.EqualTo(t.AgentID));
+            Assert.That(s.Port, Is.EqualTo(t.Port));
+            Assert.That(s.SeedCapability, Is.EqualTo(t.SeedCapability));
         }
 
         [Test]
         public void ParcelObjectOwnersMessage()
         {
-            ParcelObjectOwnersReplyMessage s = new ParcelObjectOwnersReplyMessage();
-            s.PrimOwnersBlock = new ParcelObjectOwnersReplyMessage.PrimOwner[2];
+            var s = new ParcelObjectOwnersReplyMessage
+            {
+                PrimOwnersBlock = new ParcelObjectOwnersReplyMessage.PrimOwner[2]
+            };
 
-            ParcelObjectOwnersReplyMessage.PrimOwner obj = new ParcelObjectOwnersReplyMessage.PrimOwner();
-            obj.OwnerID = UUID.Random();
-            obj.Count = 10;
-            obj.IsGroupOwned = true;
-            obj.OnlineStatus = false;
-            obj.TimeStamp = new DateTime(2010, 4, 13, 7, 19, 43);
+            var obj = new ParcelObjectOwnersReplyMessage.PrimOwner
+                {
+                    OwnerID = UUID.Random(),
+                    Count = 10,
+                    IsGroupOwned = true,
+                    OnlineStatus = false,
+                    TimeStamp = new DateTime(2010, 4, 13, 7, 19, 43)
+                };
             s.PrimOwnersBlock[0] = obj;
 
-            ParcelObjectOwnersReplyMessage.PrimOwner obj1 = new ParcelObjectOwnersReplyMessage.PrimOwner();
-            obj1.OwnerID = UUID.Random();
-            obj1.Count = 0;
-            obj1.IsGroupOwned = false;
-            obj1.OnlineStatus = false;
-            obj1.TimeStamp = new DateTime(1991, 1, 31, 3, 13, 31);
+            var obj1 = new ParcelObjectOwnersReplyMessage.PrimOwner
+                {
+                    OwnerID = UUID.Random(),
+                    Count = 0,
+                    IsGroupOwned = false,
+                    OnlineStatus = false,
+                    TimeStamp = new DateTime(1991, 1, 31, 3, 13, 31)
+                };
             s.PrimOwnersBlock[1] = obj1;
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            ParcelObjectOwnersReplyMessage t = new ParcelObjectOwnersReplyMessage();
+            var t = new ParcelObjectOwnersReplyMessage();
             t.Deserialize(map);
 
-            for (int i = 0; i < t.PrimOwnersBlock.Length; i++)
+            for (var i = 0; i < t.PrimOwnersBlock.Length; i++)
             {
-                Assert.AreEqual(s.PrimOwnersBlock[i].Count, t.PrimOwnersBlock[i].Count);
-                Assert.AreEqual(s.PrimOwnersBlock[i].IsGroupOwned, t.PrimOwnersBlock[i].IsGroupOwned);
-                Assert.AreEqual(s.PrimOwnersBlock[i].OnlineStatus, t.PrimOwnersBlock[i].OnlineStatus);
-                Assert.AreEqual(s.PrimOwnersBlock[i].OwnerID, t.PrimOwnersBlock[i].OwnerID);
-                Assert.AreEqual(s.PrimOwnersBlock[i].TimeStamp, t.PrimOwnersBlock[i].TimeStamp);
+                Assert.That(s.PrimOwnersBlock[i].Count, Is.EqualTo(t.PrimOwnersBlock[i].Count));
+                Assert.That(s.PrimOwnersBlock[i].IsGroupOwned, Is.EqualTo(t.PrimOwnersBlock[i].IsGroupOwned));
+                Assert.That(s.PrimOwnersBlock[i].OnlineStatus, Is.EqualTo(t.PrimOwnersBlock[i].OnlineStatus));
+                Assert.That(s.PrimOwnersBlock[i].OwnerID, Is.EqualTo(t.PrimOwnersBlock[i].OwnerID));
+                Assert.That(s.PrimOwnersBlock[i].TimeStamp, Is.EqualTo(t.PrimOwnersBlock[i].TimeStamp));
             }
         }
 
         [Test]
         public void ChatterBoxInvitationMessage()
         {
-            ChatterBoxInvitationMessage s = new ChatterBoxInvitationMessage();
-            s.BinaryBucket = Utils.EmptyBytes;
-            s.Dialog = InstantMessageDialog.InventoryOffered;
-            s.FromAgentID = UUID.Random();
-            s.FromAgentName = "Prokofy Neva";
-            s.GroupIM = false;
+            var s = new ChatterBoxInvitationMessage
+            {
+                BinaryBucket = Utils.EmptyBytes,
+                Dialog = InstantMessageDialog.InventoryOffered,
+                FromAgentID = UUID.Random(),
+                FromAgentName = "Prokofy Neva",
+                GroupIM = false
+            };
             s.IMSessionID = s.FromAgentID ^ UUID.Random();
             s.Message = "Test Test Test";
             s.Offline = InstantMessageOnline.Online;
@@ -218,203 +238,214 @@ namespace LibreMetaverse.Tests
             s.Timestamp = DateTime.UtcNow;
             s.ToAgentID = UUID.Random();
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            ChatterBoxInvitationMessage t = new ChatterBoxInvitationMessage();
+            var t = new ChatterBoxInvitationMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.BinaryBucket, t.BinaryBucket);
-            Assert.AreEqual(s.Dialog, t.Dialog);
-            Assert.AreEqual(s.FromAgentID, t.FromAgentID);
-            Assert.AreEqual(s.FromAgentName, t.FromAgentName);
-            Assert.AreEqual(s.GroupIM, t.GroupIM);
-            Assert.AreEqual(s.IMSessionID, t.IMSessionID);
-            Assert.AreEqual(s.Message, t.Message);
-            Assert.AreEqual(s.Offline, t.Offline);
-            Assert.AreEqual(s.ParentEstateID, t.ParentEstateID);
-            Assert.AreEqual(s.Position, t.Position);
-            Assert.AreEqual(s.RegionID, t.RegionID);
-            Assert.AreEqual(s.Timestamp, t.Timestamp);
-            Assert.AreEqual(s.ToAgentID, t.ToAgentID);
+            Assert.That(s.BinaryBucket, Is.EqualTo(t.BinaryBucket));
+            Assert.That(s.Dialog, Is.EqualTo(t.Dialog));
+            Assert.That(s.FromAgentID, Is.EqualTo(t.FromAgentID));
+            Assert.That(s.FromAgentName, Is.EqualTo(t.FromAgentName));
+            Assert.That(s.GroupIM, Is.EqualTo(t.GroupIM));
+            Assert.That(s.IMSessionID, Is.EqualTo(t.IMSessionID));
+            Assert.That(s.Message, Is.EqualTo(t.Message));
+            Assert.That(s.Offline, Is.EqualTo(t.Offline));
+            Assert.That(s.ParentEstateID, Is.EqualTo(t.ParentEstateID));
+            Assert.That(s.Position, Is.EqualTo(t.Position));
+            Assert.That(s.RegionID, Is.EqualTo(t.RegionID));
+            Assert.That(s.Timestamp, Is.EqualTo(t.Timestamp));
+            Assert.That(s.ToAgentID, Is.EqualTo(t.ToAgentID));
         }
 
         [Test]
         public void ChatterboxSessionEventReplyMessage()
         {
-            ChatterboxSessionEventReplyMessage s = new ChatterboxSessionEventReplyMessage();
-            s.SessionID = UUID.Random();
-            s.Success = true;
+            var s = new ChatterboxSessionEventReplyMessage
+            {
+                SessionID = UUID.Random(),
+                Success = true
+            };
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            ChatterboxSessionEventReplyMessage t = new ChatterboxSessionEventReplyMessage();
+            var t = new ChatterboxSessionEventReplyMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.SessionID, t.SessionID);
-            Assert.AreEqual(s.Success, t.Success);
+            Assert.That(s.SessionID, Is.EqualTo(t.SessionID));
+            Assert.That(s.Success, Is.EqualTo(t.Success));
         }
 
         [Test]
         public void ChatterBoxSessionStartReplyMessage()
         {
-            ChatterBoxSessionStartReplyMessage s = new ChatterBoxSessionStartReplyMessage();
-            s.ModeratedVoice = true;
-            s.SessionID = UUID.Random();
-            s.SessionName = "Test Session";
-            s.Success = true;
-            s.TempSessionID = UUID.Random();
-            s.Type = 1;
-            s.VoiceEnabled = true;
+            var s = new ChatterBoxSessionStartReplyMessage
+            {
+                ModeratedVoice = true,
+                SessionID = UUID.Random(),
+                SessionName = "Test Session",
+                Success = true,
+                TempSessionID = UUID.Random(),
+                Type = 1,
+                VoiceEnabled = true
+            };
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            ChatterBoxSessionStartReplyMessage t = new ChatterBoxSessionStartReplyMessage();
+            var t = new ChatterBoxSessionStartReplyMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.ModeratedVoice, t.ModeratedVoice);
-            Assert.AreEqual(s.SessionID, t.SessionID);
-            Assert.AreEqual(s.SessionName, t.SessionName);
-            Assert.AreEqual(s.Success, t.Success);
-            Assert.AreEqual(s.TempSessionID, t.TempSessionID);
-            Assert.AreEqual(s.Type, t.Type);
-            Assert.AreEqual(s.VoiceEnabled, t.VoiceEnabled);
+            Assert.That(s.ModeratedVoice, Is.EqualTo(t.ModeratedVoice));
+            Assert.That(s.SessionID, Is.EqualTo(t.SessionID));
+            Assert.That(s.SessionName, Is.EqualTo(t.SessionName));
+            Assert.That(s.Success, Is.EqualTo(t.Success));
+            Assert.That(s.TempSessionID, Is.EqualTo(t.TempSessionID));
+            Assert.That(s.Type, Is.EqualTo(t.Type));
+            Assert.That(s.VoiceEnabled, Is.EqualTo(t.VoiceEnabled));
         }
 
         [Test]
         public void ChatterBoxSessionAgentListUpdatesMessage()
         {
-            ChatterBoxSessionAgentListUpdatesMessage s = new ChatterBoxSessionAgentListUpdatesMessage();
-            s.SessionID = UUID.Random();
-            s.Updates = new ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock[1];
+            var s = new ChatterBoxSessionAgentListUpdatesMessage
+                {
+                    SessionID = UUID.Random(),
+                    Updates = new ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock[1]
+                };
 
-            ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock block1 = new ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock();
-            block1.AgentID = UUID.Random();
-            block1.CanVoiceChat = true;
-            block1.IsModerator = true;
-            block1.MuteText = true;
-            block1.MuteVoice = true;
-            block1.Transition = "ENTER";
+            var block1 = new ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock
+                {
+                    AgentID = UUID.Random(),
+                    CanVoiceChat = true,
+                    IsModerator = true,
+                    MuteText = true,
+                    MuteVoice = true,
+                    Transition = "ENTER"
+                };
 
-            ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock block2 = new ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock();
-            block2.AgentID = UUID.Random();
-            block2.CanVoiceChat = true;
-            block2.IsModerator = true;
-            block2.MuteText = true;
-            block2.MuteVoice = true;
-            block2.Transition = "LEAVE";
+            var block2 = new ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock
+                {
+                    AgentID = UUID.Random(),
+                    CanVoiceChat = true,
+                    IsModerator = true,
+                    MuteText = true,
+                    MuteVoice = true,
+                    Transition = "LEAVE"
+                };
 
             s.Updates[0] = block1;
             // s.Updates[1] = block2;
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            ChatterBoxSessionAgentListUpdatesMessage t = new ChatterBoxSessionAgentListUpdatesMessage();
+            var t = new ChatterBoxSessionAgentListUpdatesMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.SessionID, t.SessionID);
-            for (int i = 0; i < t.Updates.Length; i++)
+            Assert.That(s.SessionID, Is.EqualTo(t.SessionID));
+            for (var i = 0; i < t.Updates.Length; i++)
             {
-                Assert.AreEqual(s.Updates[i].AgentID, t.Updates[i].AgentID);
-                Assert.AreEqual(s.Updates[i].CanVoiceChat, t.Updates[i].CanVoiceChat);
-                Assert.AreEqual(s.Updates[i].IsModerator, t.Updates[i].IsModerator);
-                Assert.AreEqual(s.Updates[i].MuteText, t.Updates[i].MuteText);
-                Assert.AreEqual(s.Updates[i].MuteVoice, t.Updates[i].MuteVoice);
-                Assert.AreEqual(s.Updates[i].Transition, t.Updates[i].Transition);
+                Assert.That(s.Updates[i].AgentID, Is.EqualTo(t.Updates[i].AgentID));
+                Assert.That(s.Updates[i].CanVoiceChat, Is.EqualTo(t.Updates[i].CanVoiceChat));
+                Assert.That(s.Updates[i].IsModerator, Is.EqualTo(t.Updates[i].IsModerator));
+                Assert.That(s.Updates[i].MuteText, Is.EqualTo(t.Updates[i].MuteText));
+                Assert.That(s.Updates[i].MuteVoice, Is.EqualTo(t.Updates[i].MuteVoice));
+                Assert.That(s.Updates[i].Transition, Is.EqualTo(t.Updates[i].Transition));
             }
         }
 
         [Test]
         public void ViewerStatsMessage()
         {
-            ViewerStatsMessage s = new ViewerStatsMessage();
+            var s = new ViewerStatsMessage
+            {
+                AgentFPS = 45.5f,
+                AgentsInView = 1,
+                SystemCPU = "Intel 80286",
+                StatsDropped = 2,
+                StatsFailedResends = 3,
+                SystemGPU = "Vesa VGA+",
+                SystemGPUClass = 4,
+                SystemGPUVendor = "China",
+                SystemGPUVersion = string.Empty,
+                InCompressedPackets = 5000,
+                InKbytes = 6000,
+                InPackets = 22000,
+                InSavings = 19,
+                MiscInt1 = 5,
+                MiscInt2 = 6,
+                FailuresInvalid = 20,
+                AgentLanguage = "en",
+                AgentMemoryUsed = 12878728,
+                MetersTraveled = 9999123,
+                object_kbytes = 70001,
+                FailuresOffCircuit = 201,
+                SystemOS = "Palm OS 3.1",
+                OutCompressedPackets = 8000,
+                OutKbytes = 9000999,
+                OutPackets = 21000210,
+                OutSavings = 181,
+                AgentPing = 135579,
+                SystemInstalledRam = 4000000,
+                RegionsVisited = 4579,
+                FailuresResent = 9,
+                AgentRuntime = 360023,
+                FailuresSendPacket = 565,
+                SessionID = UUID.Random(),
+                SimulatorFPS = 454,
+                AgentStartTime = new DateTime(1973, 1, 16, 5, 23, 33),
+                MiscString1 = "Unused String",
+                texture_kbytes = 9367498382,
+                AgentVersion = "1",
+                MiscVersion = 1,
+                VertexBuffersEnabled = true,
+                world_kbytes = 232344439
+            };
 
-            s.AgentFPS = 45.5f;
-            s.AgentsInView = 1;
-            s.SystemCPU = "Intel 80286";
-            s.StatsDropped = 2;
-            s.StatsFailedResends = 3;
-            s.SystemGPU = "Vesa VGA+";
-            s.SystemGPUClass = 4;
-            s.SystemGPUVendor = "China";
-            s.SystemGPUVersion = string.Empty;
-            s.InCompressedPackets = 5000;
-            s.InKbytes = 6000;
-            s.InPackets = 22000;
-            s.InSavings = 19;
-            s.MiscInt1 = 5;
-            s.MiscInt2 = 6;
-            s.FailuresInvalid = 20;
-            s.AgentLanguage = "en";
-            s.AgentMemoryUsed = 12878728;
-            s.MetersTraveled = 9999123;
-            s.object_kbytes = 70001;
-            s.FailuresOffCircuit = 201;
-            s.SystemOS = "Palm OS 3.1";
-            s.OutCompressedPackets = 8000;
-            s.OutKbytes = 9000999;
-            s.OutPackets = 21000210;
-            s.OutSavings = 181;
-            s.AgentPing = 135579;
-            s.SystemInstalledRam = 4000000;
-            s.RegionsVisited = 4579;
-            s.FailuresResent = 9;
-            s.AgentRuntime = 360023;
-            s.FailuresSendPacket = 565;
-            s.SessionID = UUID.Random();
-            s.SimulatorFPS = 454;
-            s.AgentStartTime = new DateTime(1973, 1, 16, 5, 23, 33);
-            s.MiscString1 = "Unused String";
-            s.texture_kbytes = 9367498382;
-            s.AgentVersion = "1";
-            s.MiscVersion = 1;
-            s.VertexBuffersEnabled = true;
-            s.world_kbytes = 232344439;
-
-            OSDMap map = s.Serialize();
-            ViewerStatsMessage t = new ViewerStatsMessage();
+            var map = s.Serialize();
+            var t = new ViewerStatsMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AgentFPS, t.AgentFPS);
-            Assert.AreEqual(s.AgentsInView, t.AgentsInView);
-            Assert.AreEqual(s.SystemCPU, t.SystemCPU);
-            Assert.AreEqual(s.StatsDropped, t.StatsDropped);
-            Assert.AreEqual(s.StatsFailedResends, t.StatsFailedResends);
-            Assert.AreEqual(s.SystemGPU, t.SystemGPU);
-            Assert.AreEqual(s.SystemGPUClass, t.SystemGPUClass);
-            Assert.AreEqual(s.SystemGPUVendor, t.SystemGPUVendor);
-            Assert.AreEqual(s.SystemGPUVersion, t.SystemGPUVersion);
-            Assert.AreEqual(s.InCompressedPackets, t.InCompressedPackets);
-            Assert.AreEqual(s.InKbytes, t.InKbytes);
-            Assert.AreEqual(s.InPackets, t.InPackets);
-            Assert.AreEqual(s.InSavings, t.InSavings);
-            Assert.AreEqual(s.MiscInt1, t.MiscInt1);
-            Assert.AreEqual(s.MiscInt2, t.MiscInt2);
-            Assert.AreEqual(s.FailuresInvalid, t.FailuresInvalid);
-            Assert.AreEqual(s.AgentLanguage, t.AgentLanguage);
-            Assert.AreEqual(s.AgentMemoryUsed, t.AgentMemoryUsed);
-            Assert.AreEqual(s.MetersTraveled, t.MetersTraveled);
-            Assert.AreEqual(s.object_kbytes, t.object_kbytes);
-            Assert.AreEqual(s.FailuresOffCircuit, t.FailuresOffCircuit);
-            Assert.AreEqual(s.SystemOS, t.SystemOS);
-            Assert.AreEqual(s.OutCompressedPackets, t.OutCompressedPackets);
-            Assert.AreEqual(s.OutKbytes, t.OutKbytes);
-            Assert.AreEqual(s.OutPackets, t.OutPackets);
-            Assert.AreEqual(s.OutSavings, t.OutSavings);
-            Assert.AreEqual(s.AgentPing, t.AgentPing);
-            Assert.AreEqual(s.SystemInstalledRam, t.SystemInstalledRam);
-            Assert.AreEqual(s.RegionsVisited, t.RegionsVisited);
-            Assert.AreEqual(s.FailuresResent, t.FailuresResent);
-            Assert.AreEqual(s.AgentRuntime, t.AgentRuntime);
-            Assert.AreEqual(s.FailuresSendPacket, t.FailuresSendPacket);
-            Assert.AreEqual(s.SessionID, t.SessionID);
-            Assert.AreEqual(s.SimulatorFPS, t.SimulatorFPS);
-            Assert.AreEqual(s.AgentStartTime, t.AgentStartTime);
-            Assert.AreEqual(s.MiscString1, t.MiscString1);
-            Assert.AreEqual(s.texture_kbytes, t.texture_kbytes);
-            Assert.AreEqual(s.AgentVersion, t.AgentVersion);
-            Assert.AreEqual(s.MiscVersion, t.MiscVersion);
-            Assert.AreEqual(s.VertexBuffersEnabled, t.VertexBuffersEnabled);
-            Assert.AreEqual(s.world_kbytes, t.world_kbytes);
+            Assert.That(s.AgentFPS, Is.EqualTo(t.AgentFPS));
+            Assert.That(s.AgentsInView, Is.EqualTo(t.AgentsInView));
+            Assert.That(s.SystemCPU, Is.EqualTo(t.SystemCPU));
+            Assert.That(s.StatsDropped, Is.EqualTo(t.StatsDropped));
+            Assert.That(s.StatsFailedResends, Is.EqualTo(t.StatsFailedResends));
+            Assert.That(s.SystemGPU, Is.EqualTo(t.SystemGPU));
+            Assert.That(s.SystemGPUClass, Is.EqualTo(t.SystemGPUClass));
+            Assert.That(s.SystemGPUVendor, Is.EqualTo(t.SystemGPUVendor));
+            Assert.That(s.SystemGPUVersion, Is.EqualTo(t.SystemGPUVersion));
+            Assert.That(s.InCompressedPackets, Is.EqualTo(t.InCompressedPackets));
+            Assert.That(s.InKbytes, Is.EqualTo(t.InKbytes));
+            Assert.That(s.InPackets, Is.EqualTo(t.InPackets));
+            Assert.That(s.InSavings, Is.EqualTo(t.InSavings));
+            Assert.That(s.MiscInt1, Is.EqualTo(t.MiscInt1));
+            Assert.That(s.MiscInt2, Is.EqualTo(t.MiscInt2));
+            Assert.That(s.FailuresInvalid, Is.EqualTo(t.FailuresInvalid));
+            Assert.That(s.AgentLanguage, Is.EqualTo(t.AgentLanguage));
+            Assert.That(s.AgentMemoryUsed, Is.EqualTo(t.AgentMemoryUsed));
+            Assert.That(s.MetersTraveled, Is.EqualTo(t.MetersTraveled));
+            Assert.That(s.object_kbytes, Is.EqualTo(t.object_kbytes));
+            Assert.That(s.FailuresOffCircuit, Is.EqualTo(t.FailuresOffCircuit));
+            Assert.That(s.SystemOS, Is.EqualTo(t.SystemOS));
+            Assert.That(s.OutCompressedPackets, Is.EqualTo(t.OutCompressedPackets));
+            Assert.That(s.OutKbytes, Is.EqualTo(t.OutKbytes));
+            Assert.That(s.OutPackets, Is.EqualTo(t.OutPackets));
+            Assert.That(s.OutSavings, Is.EqualTo(t.OutSavings));
+            Assert.That(s.AgentPing, Is.EqualTo(t.AgentPing));
+            Assert.That(s.SystemInstalledRam, Is.EqualTo(t.SystemInstalledRam));
+            Assert.That(s.RegionsVisited, Is.EqualTo(t.RegionsVisited));
+            Assert.That(s.FailuresResent, Is.EqualTo(t.FailuresResent));
+            Assert.That(s.AgentRuntime, Is.EqualTo(t.AgentRuntime));
+            Assert.That(s.FailuresSendPacket, Is.EqualTo(t.FailuresSendPacket));
+            Assert.That(s.SessionID, Is.EqualTo(t.SessionID));
+            Assert.That(s.SimulatorFPS, Is.EqualTo(t.SimulatorFPS));
+            Assert.That(s.AgentStartTime, Is.EqualTo(t.AgentStartTime));
+            Assert.That(s.MiscString1, Is.EqualTo(t.MiscString1));
+            Assert.That(s.texture_kbytes, Is.EqualTo(t.texture_kbytes));
+            Assert.That(s.AgentVersion, Is.EqualTo(t.AgentVersion));
+            Assert.That(s.MiscVersion, Is.EqualTo(t.MiscVersion));
+            Assert.That(s.VertexBuffersEnabled, Is.EqualTo(t.VertexBuffersEnabled));
+            Assert.That(s.world_kbytes, Is.EqualTo(t.world_kbytes));
 
 
         }
@@ -422,39 +453,43 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParcelVoiceInfoRequestMessage()
         {
-            ParcelVoiceInfoRequestMessage s = new ParcelVoiceInfoRequestMessage();
-            s.SipChannelUri = testURI;
-            s.ParcelID = 1;
-            s.RegionName = "Hooper";
+            var s = new ParcelVoiceInfoRequestMessage
+            {
+                SipChannelUri = _testUri,
+                ParcelID = 1,
+                RegionName = "Hooper"
+            };
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            ParcelVoiceInfoRequestMessage t = new ParcelVoiceInfoRequestMessage();
+            var t = new ParcelVoiceInfoRequestMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.SipChannelUri, t.SipChannelUri);
-            Assert.AreEqual(s.ParcelID, t.ParcelID);
-            Assert.AreEqual(s.RegionName, t.RegionName);
+            Assert.That(s.SipChannelUri, Is.EqualTo(t.SipChannelUri));
+            Assert.That(s.ParcelID, Is.EqualTo(t.ParcelID));
+            Assert.That(s.RegionName, Is.EqualTo(t.RegionName));
         }
 
         [Test]
         public void ScriptRunningReplyMessage()
         {
-            ScriptRunningReplyMessage s = new ScriptRunningReplyMessage();
-            s.ItemID = UUID.Random();
-            s.Mono = true;
-            s.Running = true;
-            s.ObjectID = UUID.Random();
+            var s = new ScriptRunningReplyMessage
+            {
+                ItemID = UUID.Random(),
+                Mono = true,
+                Running = true,
+                ObjectID = UUID.Random()
+            };
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            ScriptRunningReplyMessage t = new ScriptRunningReplyMessage();
+            var t = new ScriptRunningReplyMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.ItemID, t.ItemID);
-            Assert.AreEqual(s.Mono, t.Mono);
-            Assert.AreEqual(s.ObjectID, t.ObjectID);
-            Assert.AreEqual(s.Running, t.Running);
+            Assert.That(s.ItemID, Is.EqualTo(t.ItemID));
+            Assert.That(s.Mono, Is.EqualTo(t.Mono));
+            Assert.That(s.ObjectID, Is.EqualTo(t.ObjectID));
+            Assert.That(s.Running, Is.EqualTo(t.Running));
 
         }
 
@@ -462,18 +497,21 @@ namespace LibreMetaverse.Tests
         public void MapLayerMessage()
         {
 
-            MapLayerReplyVariant s = new MapLayerReplyVariant();
-            s.Flags = 1;
+            var s = new MapLayerReplyVariant
+            {
+                Flags = 1
+            };
 
-            MapLayerReplyVariant.LayerData[] blocks = new MapLayerReplyVariant.LayerData[2];
+            var blocks = new MapLayerReplyVariant.LayerData[2];
 
-            MapLayerReplyVariant.LayerData block = new MapLayerReplyVariant.LayerData();
-            block.ImageID = UUID.Random();
-            block.Bottom = 1;
-            block.Top = 2;
-            block.Left = 3;
-            block.Right = 4;
-
+            var block = new MapLayerReplyVariant.LayerData
+            {
+                ImageID = UUID.Random(),
+                Bottom = 1,
+                Top = 2,
+                Left = 3,
+                Right = 4
+            };
 
 
             blocks[0] = block;
@@ -488,676 +526,732 @@ namespace LibreMetaverse.Tests
 
             s.LayerDataBlocks = blocks;
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            MapLayerReplyVariant t = new MapLayerReplyVariant();
+            var t = new MapLayerReplyVariant();
 
             t.Deserialize(map);
 
-            Assert.AreEqual(s.Flags, t.Flags);
+            Assert.That(s.Flags, Is.EqualTo(t.Flags));
 
 
-            for (int i = 0; i < s.LayerDataBlocks.Length; i++)
+            for (var i = 0; i < s.LayerDataBlocks.Length; i++)
             {
-                Assert.AreEqual(s.LayerDataBlocks[i].ImageID, t.LayerDataBlocks[i].ImageID);
-                Assert.AreEqual(s.LayerDataBlocks[i].Top, t.LayerDataBlocks[i].Top);
-                Assert.AreEqual(s.LayerDataBlocks[i].Left, t.LayerDataBlocks[i].Left);
-                Assert.AreEqual(s.LayerDataBlocks[i].Right, t.LayerDataBlocks[i].Right);
-                Assert.AreEqual(s.LayerDataBlocks[i].Bottom, t.LayerDataBlocks[i].Bottom);
+                Assert.That(s.LayerDataBlocks[i].ImageID, Is.EqualTo(t.LayerDataBlocks[i].ImageID));
+                Assert.That(s.LayerDataBlocks[i].Top, Is.EqualTo(t.LayerDataBlocks[i].Top));
+                Assert.That(s.LayerDataBlocks[i].Left, Is.EqualTo(t.LayerDataBlocks[i].Left));
+                Assert.That(s.LayerDataBlocks[i].Right, Is.EqualTo(t.LayerDataBlocks[i].Right));
+                Assert.That(s.LayerDataBlocks[i].Bottom, Is.EqualTo(t.LayerDataBlocks[i].Bottom));
             }
         }
 
         [Test] // VARIANT A
         public void ChatSessionRequestStartConference()
         {
-            ChatSessionRequestStartConference s = new ChatSessionRequestStartConference();
-            s.SessionID = UUID.Random();
-            s.AgentsBlock = new UUID[2];
+            var s = new ChatSessionRequestStartConference
+            {
+                SessionID = UUID.Random(),
+                AgentsBlock = new UUID[2]
+            };
             s.AgentsBlock[0] = UUID.Random();
             s.AgentsBlock[0] = UUID.Random();
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            ChatSessionRequestStartConference t = new ChatSessionRequestStartConference();
+            var t = new ChatSessionRequestStartConference();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.SessionID, t.SessionID);
-            Assert.AreEqual(s.Method, t.Method);
-            for (int i = 0; i < t.AgentsBlock.Length; i++)
+            Assert.That(s.SessionID, Is.EqualTo(t.SessionID));
+            Assert.That(s.Method, Is.EqualTo(t.Method));
+            for (var i = 0; i < t.AgentsBlock.Length; i++)
             {
-                Assert.AreEqual(s.AgentsBlock[i], t.AgentsBlock[i]);
+                Assert.That(s.AgentsBlock[i], Is.EqualTo(t.AgentsBlock[i]));
             }
         }
 
         [Test]
         public void ChatSessionRequestMuteUpdate()
         {
-            ChatSessionRequestMuteUpdate s = new ChatSessionRequestMuteUpdate();
-            s.AgentID = UUID.Random();
-            s.RequestKey = "text";
-            s.RequestValue = true;
-            s.SessionID = UUID.Random();
+            var s = new ChatSessionRequestMuteUpdate
+            {
+                AgentID = UUID.Random(),
+                RequestKey = "text",
+                RequestValue = true,
+                SessionID = UUID.Random()
+            };
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            ChatSessionRequestMuteUpdate t = new ChatSessionRequestMuteUpdate();
+            var t = new ChatSessionRequestMuteUpdate();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AgentID, t.AgentID);
-            Assert.AreEqual(s.Method, t.Method);
-            Assert.AreEqual(s.RequestKey, t.RequestKey);
-            Assert.AreEqual(s.RequestValue, t.RequestValue);
-            Assert.AreEqual(s.SessionID, t.SessionID);
+            Assert.That(s.AgentID, Is.EqualTo(t.AgentID));
+            Assert.That(s.Method, Is.EqualTo(t.Method));
+            Assert.That(s.RequestKey, Is.EqualTo(t.RequestKey));
+            Assert.That(s.RequestValue, Is.EqualTo(t.RequestValue));
+            Assert.That(s.SessionID, Is.EqualTo(t.SessionID));
         }
 
         [Test]
         public void ChatSessionAcceptInvitation()
         {
-            ChatSessionAcceptInvitation s = new ChatSessionAcceptInvitation();
-            s.SessionID = UUID.Random();
+            var s = new ChatSessionAcceptInvitation
+            {
+                SessionID = UUID.Random()
+            };
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            ChatSessionAcceptInvitation t = new ChatSessionAcceptInvitation();
+            var t = new ChatSessionAcceptInvitation();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.Method, t.Method);
-            Assert.AreEqual(s.SessionID, t.SessionID);
+            Assert.That(s.Method, Is.EqualTo(t.Method));
+            Assert.That(s.SessionID, Is.EqualTo(t.SessionID));
         }
 
         [Test]
         public void RequiredVoiceVersionMessage()
         {
-            RequiredVoiceVersionMessage s = new RequiredVoiceVersionMessage();
-            s.MajorVersion = 1;
-            s.MinorVersion = 0;
-            s.RegionName = "Hooper";
+            var s = new RequiredVoiceVersionMessage
+            {
+                MajorVersion = 1,
+                MinorVersion = 0,
+                RegionName = "Hooper"
+            };
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            RequiredVoiceVersionMessage t = new RequiredVoiceVersionMessage();
+            var t = new RequiredVoiceVersionMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.MajorVersion, t.MajorVersion);
-            Assert.AreEqual(s.MinorVersion, t.MinorVersion);
-            Assert.AreEqual(s.RegionName, t.RegionName);
+            Assert.That(s.MajorVersion, Is.EqualTo(t.MajorVersion));
+            Assert.That(s.MinorVersion, Is.EqualTo(t.MinorVersion));
+            Assert.That(s.RegionName, Is.EqualTo(t.RegionName));
         }
 
         [Test]
         public void CopyInventoryFromNotecardMessage()
         {
-            CopyInventoryFromNotecardMessage s = new CopyInventoryFromNotecardMessage();
-            s.CallbackID = 1;
-            s.FolderID = UUID.Random();
-            s.ItemID = UUID.Random();
-            s.NotecardID = UUID.Random();
-            s.ObjectID = UUID.Random();
+            var s = new CopyInventoryFromNotecardMessage
+            {
+                CallbackID = 1,
+                FolderID = UUID.Random(),
+                ItemID = UUID.Random(),
+                NotecardID = UUID.Random(),
+                ObjectID = UUID.Random()
+            };
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            CopyInventoryFromNotecardMessage t = new CopyInventoryFromNotecardMessage();
+            var t = new CopyInventoryFromNotecardMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.CallbackID, t.CallbackID);
-            Assert.AreEqual(s.FolderID, t.FolderID);
-            Assert.AreEqual(s.ItemID, t.ItemID);
-            Assert.AreEqual(s.NotecardID, t.NotecardID);
-            Assert.AreEqual(s.ObjectID, t.ObjectID);
+            Assert.That(s.CallbackID, Is.EqualTo(t.CallbackID));
+            Assert.That(s.FolderID, Is.EqualTo(t.FolderID));
+            Assert.That(s.ItemID, Is.EqualTo(t.ItemID));
+            Assert.That(s.NotecardID, Is.EqualTo(t.NotecardID));
+            Assert.That(s.ObjectID, Is.EqualTo(t.ObjectID));
         }
 
         [Test]
         public void ProvisionVoiceAccountRequestMessage()
         {
-            ProvisionVoiceAccountRequestMessage s = new ProvisionVoiceAccountRequestMessage();
-            s.Username = "username";
-            s.Password = "password";
+            var s = new ProvisionVoiceAccountRequestMessage
+            {
+                Username = "username",
+                Password = "password"
+            };
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            ProvisionVoiceAccountRequestMessage t = new ProvisionVoiceAccountRequestMessage();
+            var t = new ProvisionVoiceAccountRequestMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.Password, t.Password);
-            Assert.AreEqual(s.Username, t.Username);
+            Assert.That(s.Password, Is.EqualTo(t.Password));
+            Assert.That(s.Username, Is.EqualTo(t.Username));
         }
 
         [Test]
         public void UpdateAgentLanguageMessage()
         {
-            UpdateAgentLanguageMessage s = new UpdateAgentLanguageMessage();
-            s.Language = "en";
-            s.LanguagePublic = false;
+            var s = new UpdateAgentLanguageMessage
+            {
+                Language = "en",
+                LanguagePublic = false
+            };
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            UpdateAgentLanguageMessage t = new UpdateAgentLanguageMessage();
+            var t = new UpdateAgentLanguageMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.Language, t.Language);
-            Assert.AreEqual(s.LanguagePublic, t.LanguagePublic);
+            Assert.That(s.Language, Is.EqualTo(t.Language));
+            Assert.That(s.LanguagePublic, Is.EqualTo(t.LanguagePublic));
 
         }
 
         [Test]
         public void ParcelPropertiesMessage()
         {
-            ParcelPropertiesMessage s = new ParcelPropertiesMessage();
-            s.AABBMax = Vector3.Parse("<1,2,3>");
-            s.AABBMin = Vector3.Parse("<2,3,1>");
-            s.AnyAVSounds = true;
-            s.Area = 1024;
-            s.AuctionID = uint.MaxValue;
-            s.AuthBuyerID = UUID.Random();
-            s.Bitmap = Utils.EmptyBytes;
-            s.Category = ParcelCategory.Educational;
-            s.ClaimDate = new DateTime(2008, 12, 25, 3, 15, 22);
-            s.ClaimPrice = 1000;
-            s.Desc = "Test Description";
-            s.GroupAVSounds = true;
-            s.GroupID = UUID.Random();
-            s.GroupPrims = 50;
-            s.IsGroupOwned = false;
-            s.LandingType = LandingType.None;
-            s.LocalID = 1;
-            s.MaxPrims = 234;
-            s.MediaAutoScale = false;
-            s.MediaDesc = "Example Media Description";
-            s.MediaHeight = 480;
-            s.MediaID = UUID.Random();
-            s.MediaLoop = false;
-            s.MediaType = "text/html";
-            s.MediaURL = "http://www.openmetaverse.co";
-            s.MediaWidth = 640;
-            s.MusicURL = "http://scfire-ntc-aa04.stream.aol.com:80/stream/1075"; // Yee Haw
-            s.Name = "Test Name";
-            s.ObscureMedia = false;
-            s.ObscureMusic = false;
-            s.OtherCleanTime = 5;
-            s.OtherCount = 200;
-            s.OtherPrims = 300;
-            s.OwnerID = UUID.Random();
-            s.OwnerPrims = 0;
-            s.ParcelFlags = ParcelFlags.AllowDamage | ParcelFlags.AllowGroupScripts | ParcelFlags.AllowVoiceChat;
-            s.ParcelPrimBonus = 0f;
-            s.PassHours = 1.5f;
-            s.PassPrice = 10;
-            s.PublicCount = 20;
-            s.RegionDenyAgeUnverified = false;
-            s.RegionDenyAnonymous = false;
-            s.RegionPushOverride = true;
-            s.RentPrice = 0;
-            s.RequestResult = ParcelResult.Single;
-            s.SalePrice = 9999;
-            s.SeeAVs = true;
-            s.SelectedPrims = 1;
-            s.SelfCount = 2;
-            s.SequenceID = -4000;
-            s.SimWideMaxPrims = 937;
-            s.SimWideTotalPrims = 117;
-            s.SnapSelection = false;
-            s.SnapshotID = UUID.Random();
-            s.Status = ParcelStatus.Leased;
-            s.TotalPrims = 219;
-            s.UserLocation = Vector3.Parse("<3,4,5>");
-            s.UserLookAt = Vector3.Parse("<5,4,3>");
+            var s = new ParcelPropertiesMessage
+            {
+                AABBMax = Vector3.Parse("<1,2,3>"),
+                AABBMin = Vector3.Parse("<2,3,1>"),
+                AnyAVSounds = true,
+                Area = 1024,
+                AuctionID = uint.MaxValue,
+                AuthBuyerID = UUID.Random(),
+                Bitmap = Utils.EmptyBytes,
+                Category = ParcelCategory.Educational,
+                ClaimDate = new DateTime(2008, 12, 25, 3, 15, 22),
+                ClaimPrice = 1000,
+                Desc = "Test Description",
+                GroupAVSounds = true,
+                GroupID = UUID.Random(),
+                GroupPrims = 50,
+                IsGroupOwned = false,
+                LandingType = LandingType.None,
+                LocalID = 1,
+                MaxPrims = 234,
+                MediaAutoScale = false,
+                MediaDesc = "Example Media Description",
+                MediaHeight = 480,
+                MediaID = UUID.Random(),
+                MediaLoop = false,
+                MediaType = "text/html",
+                MediaURL = "http://www.openmetaverse.co",
+                MediaWidth = 640,
+                MusicURL = "http://scfire-ntc-aa04.stream.aol.com:80/stream/1075", // Yee Haw
+                Name = "Test Name",
+                ObscureMedia = false,
+                ObscureMusic = false,
+                OtherCleanTime = 5,
+                OtherCount = 200,
+                OtherPrims = 300,
+                OwnerID = UUID.Random(),
+                OwnerPrims = 0,
+                ParcelFlags = ParcelFlags.AllowDamage | ParcelFlags.AllowGroupScripts | ParcelFlags.AllowVoiceChat,
+                ParcelPrimBonus = 0f,
+                PassHours = 1.5f,
+                PassPrice = 10,
+                PublicCount = 20,
+                RegionDenyAgeUnverified = false,
+                RegionDenyAnonymous = false,
+                RegionPushOverride = true,
+                RentPrice = 0,
+                RequestResult = ParcelResult.Single,
+                SalePrice = 9999,
+                SeeAVs = true,
+                SelectedPrims = 1,
+                SelfCount = 2,
+                SequenceID = -4000,
+                SimWideMaxPrims = 937,
+                SimWideTotalPrims = 117,
+                SnapSelection = false,
+                SnapshotID = UUID.Random(),
+                Status = ParcelStatus.Leased,
+                TotalPrims = 219,
+                UserLocation = Vector3.Parse("<3,4,5>"),
+                UserLookAt = Vector3.Parse("<5,4,3>")
+            };
 
-            OSDMap map = s.Serialize();
-            ParcelPropertiesMessage t = new ParcelPropertiesMessage();
+            var map = s.Serialize();
+            var t = new ParcelPropertiesMessage();
 
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AABBMax, t.AABBMax);
-            Assert.AreEqual(s.AABBMin, t.AABBMin);
-            Assert.AreEqual(s.AnyAVSounds, t.AnyAVSounds);
-            Assert.AreEqual(s.Area, t.Area);
-            Assert.AreEqual(s.AuctionID, t.AuctionID);
-            Assert.AreEqual(s.AuthBuyerID, t.AuthBuyerID);
-            Assert.AreEqual(s.Bitmap, t.Bitmap);
-            Assert.AreEqual(s.Category, t.Category);
-            Assert.AreEqual(s.ClaimDate, t.ClaimDate);
-            Assert.AreEqual(s.ClaimPrice, t.ClaimPrice);
-            Assert.AreEqual(s.Desc, t.Desc);
-            Assert.AreEqual(s.GroupAVSounds, t.GroupAVSounds);
-            Assert.AreEqual(s.GroupID, t.GroupID);
-            Assert.AreEqual(s.GroupPrims, t.GroupPrims);
-            Assert.AreEqual(s.IsGroupOwned, t.IsGroupOwned);
-            Assert.AreEqual(s.LandingType, t.LandingType);
-            Assert.AreEqual(s.LocalID, t.LocalID);
-            Assert.AreEqual(s.MaxPrims, t.MaxPrims);
-            Assert.AreEqual(s.MediaAutoScale, t.MediaAutoScale);
-            Assert.AreEqual(s.MediaDesc, t.MediaDesc);
-            Assert.AreEqual(s.MediaHeight, t.MediaHeight);
-            Assert.AreEqual(s.MediaID, t.MediaID);
-            Assert.AreEqual(s.MediaLoop, t.MediaLoop);
-            Assert.AreEqual(s.MediaType, t.MediaType);
-            Assert.AreEqual(s.MediaURL, t.MediaURL);
-            Assert.AreEqual(s.MediaWidth, t.MediaWidth);
-            Assert.AreEqual(s.MusicURL, t.MusicURL);
-            Assert.AreEqual(s.Name, t.Name);
-            Assert.AreEqual(s.ObscureMedia, t.ObscureMedia);
-            Assert.AreEqual(s.ObscureMusic, t.ObscureMusic);
-            Assert.AreEqual(s.OtherCleanTime, t.OtherCleanTime);
-            Assert.AreEqual(s.OtherCount, t.OtherCount);
-            Assert.AreEqual(s.OtherPrims, t.OtherPrims);
-            Assert.AreEqual(s.OwnerID, t.OwnerID);
-            Assert.AreEqual(s.OwnerPrims, t.OwnerPrims);
-            Assert.AreEqual(s.ParcelFlags, t.ParcelFlags);
-            Assert.AreEqual(s.ParcelPrimBonus, t.ParcelPrimBonus);
-            Assert.AreEqual(s.PassHours, t.PassHours);
-            Assert.AreEqual(s.PassPrice, t.PassPrice);
-            Assert.AreEqual(s.PublicCount, t.PublicCount);
-            Assert.AreEqual(s.RegionDenyAgeUnverified, t.RegionDenyAgeUnverified);
-            Assert.AreEqual(s.RegionDenyAnonymous, t.RegionDenyAnonymous);
-            Assert.AreEqual(s.RegionPushOverride, t.RegionPushOverride);
-            Assert.AreEqual(s.RentPrice, t.RentPrice);
-            Assert.AreEqual(s.RequestResult, t.RequestResult);
-            Assert.AreEqual(s.SalePrice, t.SalePrice);
-            Assert.AreEqual(s.SeeAVs, t.SeeAVs);
-            Assert.AreEqual(s.SelectedPrims, t.SelectedPrims);
-            Assert.AreEqual(s.SelfCount, t.SelfCount);
-            Assert.AreEqual(s.SequenceID, t.SequenceID);
-            Assert.AreEqual(s.SimWideMaxPrims, t.SimWideMaxPrims);
-            Assert.AreEqual(s.SimWideTotalPrims, t.SimWideTotalPrims);
-            Assert.AreEqual(s.SnapSelection, t.SnapSelection);
-            Assert.AreEqual(s.SnapshotID, t.SnapshotID);
-            Assert.AreEqual(s.Status, t.Status);
-            Assert.AreEqual(s.TotalPrims, t.TotalPrims);
-            Assert.AreEqual(s.UserLocation, t.UserLocation);
-            Assert.AreEqual(s.UserLookAt, t.UserLookAt);
+            Assert.That(s.AABBMax, Is.EqualTo(t.AABBMax));
+            Assert.That(s.AABBMin, Is.EqualTo(t.AABBMin));
+            Assert.That(s.AnyAVSounds, Is.EqualTo(t.AnyAVSounds));
+            Assert.That(s.Area, Is.EqualTo(t.Area));
+            Assert.That(s.AuctionID, Is.EqualTo(t.AuctionID));
+            Assert.That(s.AuthBuyerID, Is.EqualTo(t.AuthBuyerID));
+            Assert.That(s.Bitmap, Is.EqualTo(t.Bitmap));
+            Assert.That(s.Category, Is.EqualTo(t.Category));
+            Assert.That(s.ClaimDate, Is.EqualTo(t.ClaimDate));
+            Assert.That(s.ClaimPrice, Is.EqualTo(t.ClaimPrice));
+            Assert.That(s.Desc, Is.EqualTo(t.Desc));
+            Assert.That(s.GroupAVSounds, Is.EqualTo(t.GroupAVSounds));
+            Assert.That(s.GroupID, Is.EqualTo(t.GroupID));
+            Assert.That(s.GroupPrims, Is.EqualTo(t.GroupPrims));
+            Assert.That(s.IsGroupOwned, Is.EqualTo(t.IsGroupOwned));
+            Assert.That(s.LandingType, Is.EqualTo(t.LandingType));
+            Assert.That(s.LocalID, Is.EqualTo(t.LocalID));
+            Assert.That(s.MaxPrims, Is.EqualTo(t.MaxPrims));
+            Assert.That(s.MediaAutoScale, Is.EqualTo(t.MediaAutoScale));
+            Assert.That(s.MediaDesc, Is.EqualTo(t.MediaDesc));
+            Assert.That(s.MediaHeight, Is.EqualTo(t.MediaHeight));
+            Assert.That(s.MediaID, Is.EqualTo(t.MediaID));
+            Assert.That(s.MediaLoop, Is.EqualTo(t.MediaLoop));
+            Assert.That(s.MediaType, Is.EqualTo(t.MediaType));
+            Assert.That(s.MediaURL, Is.EqualTo(t.MediaURL));
+            Assert.That(s.MediaWidth, Is.EqualTo(t.MediaWidth));
+            Assert.That(s.MusicURL, Is.EqualTo(t.MusicURL));
+            Assert.That(s.Name, Is.EqualTo(t.Name));
+            Assert.That(s.ObscureMedia, Is.EqualTo(t.ObscureMedia));
+            Assert.That(s.ObscureMusic, Is.EqualTo(t.ObscureMusic));
+            Assert.That(s.OtherCleanTime, Is.EqualTo(t.OtherCleanTime));
+            Assert.That(s.OtherCount, Is.EqualTo(t.OtherCount));
+            Assert.That(s.OtherPrims, Is.EqualTo(t.OtherPrims));
+            Assert.That(s.OwnerID, Is.EqualTo(t.OwnerID));
+            Assert.That(s.OwnerPrims, Is.EqualTo(t.OwnerPrims));
+            Assert.That(s.ParcelFlags, Is.EqualTo(t.ParcelFlags));
+            Assert.That(s.ParcelPrimBonus, Is.EqualTo(t.ParcelPrimBonus));
+            Assert.That(s.PassHours, Is.EqualTo(t.PassHours));
+            Assert.That(s.PassPrice, Is.EqualTo(t.PassPrice));
+            Assert.That(s.PublicCount, Is.EqualTo(t.PublicCount));
+            Assert.That(s.RegionDenyAgeUnverified, Is.EqualTo(t.RegionDenyAgeUnverified));
+            Assert.That(s.RegionDenyAnonymous, Is.EqualTo(t.RegionDenyAnonymous));
+            Assert.That(s.RegionPushOverride, Is.EqualTo(t.RegionPushOverride));
+            Assert.That(s.RentPrice, Is.EqualTo(t.RentPrice));
+            Assert.That(s.RequestResult, Is.EqualTo(t.RequestResult));
+            Assert.That(s.SalePrice, Is.EqualTo(t.SalePrice));
+            Assert.That(s.SeeAVs, Is.EqualTo(t.SeeAVs));
+            Assert.That(s.SelectedPrims, Is.EqualTo(t.SelectedPrims));
+            Assert.That(s.SelfCount, Is.EqualTo(t.SelfCount));
+            Assert.That(s.SequenceID, Is.EqualTo(t.SequenceID));
+            Assert.That(s.SimWideMaxPrims, Is.EqualTo(t.SimWideMaxPrims));
+            Assert.That(s.SimWideTotalPrims, Is.EqualTo(t.SimWideTotalPrims));
+            Assert.That(s.SnapSelection, Is.EqualTo(t.SnapSelection));
+            Assert.That(s.SnapshotID, Is.EqualTo(t.SnapshotID));
+            Assert.That(s.Status, Is.EqualTo(t.Status));
+            Assert.That(s.TotalPrims, Is.EqualTo(t.TotalPrims));
+            Assert.That(s.UserLocation, Is.EqualTo(t.UserLocation));
+            Assert.That(s.UserLookAt, Is.EqualTo(t.UserLookAt));
         }
 
         [Test]
         public void ParcelPropertiesUpdateMessage()
         {
-            ParcelPropertiesUpdateMessage s = new ParcelPropertiesUpdateMessage();
-            s.AnyAVSounds = true;
-            s.AuthBuyerID = UUID.Random();
-            s.Category = ParcelCategory.Gaming;
-            s.Desc = "Example Description";
-            s.GroupAVSounds = true;
-            s.GroupID = UUID.Random();
-            s.Landing = LandingType.LandingPoint;
-            s.LocalID = 160;
-            s.MediaAutoScale = true;
-            s.MediaDesc = "Example Media Description";
-            s.MediaHeight = 600;
-            s.MediaID = UUID.Random();
-            s.MediaLoop = false;
-            s.MediaType = "image/jpeg";
-            s.MediaURL = "http://www.openmetaverse.co/test.jpeg";
-            s.MediaWidth = 800;
-            s.MusicURL = "http://scfire-ntc-aa04.stream.aol.com:80/stream/1075";
-            s.Name = "Example Parcel Description";
-            s.ObscureMedia = true;
-            s.ObscureMusic = true;
-            s.ParcelFlags = ParcelFlags.AllowVoiceChat | ParcelFlags.ContributeWithDeed;
-            s.PassHours = 5.5f;
-            s.PassPrice = 100;
-            s.SalePrice = 99;
-            s.SeeAVs = true;
-            s.SnapshotID = UUID.Random();
-            s.UserLocation = Vector3.Parse("<128,128,128>");
-            s.UserLookAt = Vector3.Parse("<256,256,256>");
+            var s = new ParcelPropertiesUpdateMessage
+            {
+                AnyAVSounds = true,
+                AuthBuyerID = UUID.Random(),
+                Category = ParcelCategory.Gaming,
+                Desc = "Example Description",
+                GroupAVSounds = true,
+                GroupID = UUID.Random(),
+                Landing = LandingType.LandingPoint,
+                LocalID = 160,
+                MediaAutoScale = true,
+                MediaDesc = "Example Media Description",
+                MediaHeight = 600,
+                MediaID = UUID.Random(),
+                MediaLoop = false,
+                MediaType = "image/jpeg",
+                MediaURL = "http://www.openmetaverse.co/test.jpeg",
+                MediaWidth = 800,
+                MusicURL = "http://scfire-ntc-aa04.stream.aol.com:80/stream/1075",
+                Name = "Example Parcel Description",
+                ObscureMedia = true,
+                ObscureMusic = true,
+                ParcelFlags = ParcelFlags.AllowVoiceChat | ParcelFlags.ContributeWithDeed,
+                PassHours = 5.5f,
+                PassPrice = 100,
+                SalePrice = 99,
+                SeeAVs = true,
+                SnapshotID = UUID.Random(),
+                UserLocation = Vector3.Parse("<128,128,128>"),
+                UserLookAt = Vector3.Parse("<256,256,256>")
+            };
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            ParcelPropertiesUpdateMessage t = new ParcelPropertiesUpdateMessage();
+            var t = new ParcelPropertiesUpdateMessage();
 
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AnyAVSounds, t.AnyAVSounds);
-            Assert.AreEqual(s.AuthBuyerID, t.AuthBuyerID);
-            Assert.AreEqual(s.Category, t.Category);
-            Assert.AreEqual(s.Desc, t.Desc);
-            Assert.AreEqual(s.GroupAVSounds, t.GroupAVSounds);
-            Assert.AreEqual(s.GroupID, t.GroupID);
-            Assert.AreEqual(s.Landing, t.Landing);
-            Assert.AreEqual(s.LocalID, t.LocalID);
-            Assert.AreEqual(s.MediaAutoScale, t.MediaAutoScale);
-            Assert.AreEqual(s.MediaDesc, t.MediaDesc);
-            Assert.AreEqual(s.MediaHeight, t.MediaHeight);
-            Assert.AreEqual(s.MediaID, t.MediaID);
-            Assert.AreEqual(s.MediaLoop, t.MediaLoop);
-            Assert.AreEqual(s.MediaType, t.MediaType);
-            Assert.AreEqual(s.MediaURL, t.MediaURL);
-            Assert.AreEqual(s.MediaWidth, t.MediaWidth);
-            Assert.AreEqual(s.MusicURL, t.MusicURL);
-            Assert.AreEqual(s.Name, t.Name);
-            Assert.AreEqual(s.ObscureMedia, t.ObscureMedia);
-            Assert.AreEqual(s.ObscureMusic, t.ObscureMusic);
-            Assert.AreEqual(s.ParcelFlags, t.ParcelFlags);
-            Assert.AreEqual(s.PassHours, t.PassHours);
-            Assert.AreEqual(s.PassPrice, t.PassPrice);
-            Assert.AreEqual(s.SalePrice, t.SalePrice);
-            Assert.AreEqual(s.SeeAVs, t.SeeAVs);
-            Assert.AreEqual(s.SnapshotID, t.SnapshotID);
-            Assert.AreEqual(s.UserLocation, t.UserLocation);
-            Assert.AreEqual(s.UserLookAt, t.UserLookAt);
+            Assert.That(s.AnyAVSounds, Is.EqualTo(t.AnyAVSounds));
+            Assert.That(s.AuthBuyerID, Is.EqualTo(t.AuthBuyerID));
+            Assert.That(s.Category, Is.EqualTo(t.Category));
+            Assert.That(s.Desc, Is.EqualTo(t.Desc));
+            Assert.That(s.GroupAVSounds, Is.EqualTo(t.GroupAVSounds));
+            Assert.That(s.GroupID, Is.EqualTo(t.GroupID));
+            Assert.That(s.Landing, Is.EqualTo(t.Landing));
+            Assert.That(s.LocalID, Is.EqualTo(t.LocalID));
+            Assert.That(s.MediaAutoScale, Is.EqualTo(t.MediaAutoScale));
+            Assert.That(s.MediaDesc, Is.EqualTo(t.MediaDesc));
+            Assert.That(s.MediaHeight, Is.EqualTo(t.MediaHeight));
+            Assert.That(s.MediaID, Is.EqualTo(t.MediaID));
+            Assert.That(s.MediaLoop, Is.EqualTo(t.MediaLoop));
+            Assert.That(s.MediaType, Is.EqualTo(t.MediaType));
+            Assert.That(s.MediaURL, Is.EqualTo(t.MediaURL));
+            Assert.That(s.MediaWidth, Is.EqualTo(t.MediaWidth));
+            Assert.That(s.MusicURL, Is.EqualTo(t.MusicURL));
+            Assert.That(s.Name, Is.EqualTo(t.Name));
+            Assert.That(s.ObscureMedia, Is.EqualTo(t.ObscureMedia));
+            Assert.That(s.ObscureMusic, Is.EqualTo(t.ObscureMusic));
+            Assert.That(s.ParcelFlags, Is.EqualTo(t.ParcelFlags));
+            Assert.That(s.PassHours, Is.EqualTo(t.PassHours));
+            Assert.That(s.PassPrice, Is.EqualTo(t.PassPrice));
+            Assert.That(s.SalePrice, Is.EqualTo(t.SalePrice));
+            Assert.That(s.SeeAVs, Is.EqualTo(t.SeeAVs));
+            Assert.That(s.SnapshotID, Is.EqualTo(t.SnapshotID));
+            Assert.That(s.UserLocation, Is.EqualTo(t.UserLocation));
+            Assert.That(s.UserLookAt, Is.EqualTo(t.UserLookAt));
         }
         [Test]
         public void EnableSimulatorMessage()
         {
-            EnableSimulatorMessage s = new EnableSimulatorMessage();
-            s.Simulators = new EnableSimulatorMessage.SimulatorInfoBlock[2];
+            var s = new EnableSimulatorMessage
+            {
+                Simulators = new EnableSimulatorMessage.SimulatorInfoBlock[2]
+            };
 
-            EnableSimulatorMessage.SimulatorInfoBlock block1 = new EnableSimulatorMessage.SimulatorInfoBlock();
-            block1.IP = testIP;
-            block1.Port = 3000;
-            block1.RegionHandle = testHandle;
+            var block1 = new EnableSimulatorMessage.SimulatorInfoBlock
+                {
+                    IP = _testIp,
+                    Port = 3000,
+                    RegionHandle = TEST_HANDLE
+                };
             s.Simulators[0] = block1;
 
-            EnableSimulatorMessage.SimulatorInfoBlock block2 = new EnableSimulatorMessage.SimulatorInfoBlock();
-            block2.IP = testIP;
-            block2.Port = 3001;
-            block2.RegionHandle = testHandle;
+            var block2 = new EnableSimulatorMessage.SimulatorInfoBlock
+                {
+                    IP = _testIp,
+                    Port = 3001,
+                    RegionHandle = TEST_HANDLE
+                };
             s.Simulators[1] = block2;
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            EnableSimulatorMessage t = new EnableSimulatorMessage();
+            var t = new EnableSimulatorMessage();
             t.Deserialize(map);
 
-            for (int i = 0; i < t.Simulators.Length; i++)
+            for (var i = 0; i < t.Simulators.Length; i++)
             {
-                Assert.AreEqual(s.Simulators[i].IP, t.Simulators[i].IP);
-                Assert.AreEqual(s.Simulators[i].Port, t.Simulators[i].Port);
-                Assert.AreEqual(s.Simulators[i].RegionHandle, t.Simulators[i].RegionHandle);
+                Assert.That(s.Simulators[i].IP, Is.EqualTo(t.Simulators[i].IP));
+                Assert.That(s.Simulators[i].Port, Is.EqualTo(t.Simulators[i].Port));
+                Assert.That(s.Simulators[i].RegionHandle, Is.EqualTo(t.Simulators[i].RegionHandle));
             }
         }
 
         [Test]
         public void RemoteParcelRequestReply()
         {
-            RemoteParcelRequestReply s = new RemoteParcelRequestReply();
-            s.ParcelID = UUID.Random();
-            OSDMap map = s.Serialize();
+            var s = new RemoteParcelRequestReply
+            {
+                ParcelID = UUID.Random()
+            };
+            var map = s.Serialize();
 
-            RemoteParcelRequestReply t = new RemoteParcelRequestReply();
+            var t = new RemoteParcelRequestReply();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.ParcelID, t.ParcelID);
+            Assert.That(s.ParcelID, Is.EqualTo(t.ParcelID));
         }
 
         [Test]
         public void UpdateScriptTaskMessage()
         {
-            UpdateScriptTaskUpdateMessage s = new UpdateScriptTaskUpdateMessage();
-            s.TaskID = UUID.Random();
-            s.Target = "mono";
-            s.ScriptRunning = true;
-            s.ItemID = UUID.Random();
+            var s = new UpdateScriptTaskUpdateMessage
+            {
+                TaskID = UUID.Random(),
+                Target = "mono",
+                ScriptRunning = true,
+                ItemID = UUID.Random()
+            };
 
-            OSDMap map = s.Serialize();
-            UpdateScriptTaskUpdateMessage t = new UpdateScriptTaskUpdateMessage();
+            var map = s.Serialize();
+            var t = new UpdateScriptTaskUpdateMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.ItemID, t.ItemID);
-            Assert.AreEqual(s.ScriptRunning, t.ScriptRunning);
-            Assert.AreEqual(s.Target, t.Target);
-            Assert.AreEqual(s.TaskID, t.TaskID);
+            Assert.That(s.ItemID, Is.EqualTo(t.ItemID));
+            Assert.That(s.ScriptRunning, Is.EqualTo(t.ScriptRunning));
+            Assert.That(s.Target, Is.EqualTo(t.Target));
+            Assert.That(s.TaskID, Is.EqualTo(t.TaskID));
         }
 
         [Test]
         public void UpdateScriptAgentMessage()
         {
-            UpdateScriptAgentRequestMessage s = new UpdateScriptAgentRequestMessage();
-            s.ItemID = UUID.Random();
-            s.Target = "lsl2";
+            var s = new UpdateScriptAgentRequestMessage
+            {
+                ItemID = UUID.Random(),
+                Target = "lsl2"
+            };
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            UpdateScriptAgentRequestMessage t = new UpdateScriptAgentRequestMessage();
+            var t = new UpdateScriptAgentRequestMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.ItemID, t.ItemID);
-            Assert.AreEqual(s.Target, t.Target);
+            Assert.That(s.ItemID, Is.EqualTo(t.ItemID));
+            Assert.That(s.Target, Is.EqualTo(t.Target));
         }
 
         [Test]
         public void SendPostcardMessage()
         {
-            SendPostcardMessage s = new SendPostcardMessage();
-            s.FromEmail = "contact@openmetaverse.co";
-            s.FromName = "Jim Radford";
-            s.GlobalPosition = Vector3.One;
-            s.Message = "Hello, How are you today?";
-            s.Subject = "Postcard from the edge";
-            s.ToEmail = "test1@example.com";
+            var s = new SendPostcardMessage
+            {
+                FromEmail = "contact@openmetaverse.co",
+                FromName = "Jim Radford",
+                GlobalPosition = Vector3.One,
+                Message = "Hello, How are you today?",
+                Subject = "Postcard from the edge",
+                ToEmail = "test1@example.com"
+            };
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            SendPostcardMessage t = new SendPostcardMessage();
+            var t = new SendPostcardMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.FromEmail, t.FromEmail);
-            Assert.AreEqual(s.FromName, t.FromName);
-            Assert.AreEqual(s.GlobalPosition, t.GlobalPosition);
-            Assert.AreEqual(s.Message, t.Message);
-            Assert.AreEqual(s.Subject, t.Subject);
-            Assert.AreEqual(s.ToEmail, t.ToEmail);
+            Assert.That(s.FromEmail, Is.EqualTo(t.FromEmail));
+            Assert.That(s.FromName, Is.EqualTo(t.FromName));
+            Assert.That(s.GlobalPosition, Is.EqualTo(t.GlobalPosition));
+            Assert.That(s.Message, Is.EqualTo(t.Message));
+            Assert.That(s.Subject, Is.EqualTo(t.Subject));
+            Assert.That(s.ToEmail, Is.EqualTo(t.ToEmail));
         }
 
         [Test]
         public void UpdateNotecardAgentInventoryMessage()
         {
-            UpdateAgentInventoryRequestMessage s = new UpdateAgentInventoryRequestMessage();
-            s.ItemID = UUID.Random();
+            var s = new UpdateAgentInventoryRequestMessage
+            {
+                ItemID = UUID.Random()
+            };
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            UpdateAgentInventoryRequestMessage t = new UpdateAgentInventoryRequestMessage();
+            var t = new UpdateAgentInventoryRequestMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.ItemID, t.ItemID);
+            Assert.That(s.ItemID, Is.EqualTo(t.ItemID));
         }
 
         [Test]
         public void LandStatReplyMessage()
         {
-            LandStatReplyMessage s = new LandStatReplyMessage();
-            s.ReportType = 22;
-            s.RequestFlags = 44;
-            s.TotalObjectCount = 2;
-            s.ReportDataBlocks = new LandStatReplyMessage.ReportDataBlock[2];
+            var s = new LandStatReplyMessage
+            {
+                ReportType = 22,
+                RequestFlags = 44,
+                TotalObjectCount = 2,
+                ReportDataBlocks = new LandStatReplyMessage.ReportDataBlock[2]
+            };
 
-            LandStatReplyMessage.ReportDataBlock block1 = new LandStatReplyMessage.ReportDataBlock();
-            block1.Location = Vector3.One;
-            block1.MonoScore = 99;
-            block1.OwnerName = "Profoky Neva";
-            block1.Score = 10;
-            block1.TaskID = UUID.Random();
-            block1.TaskLocalID = 987341;
-            block1.TaskName = "Verbal Flogging";
-            block1.TimeStamp = new DateTime(2009, 5, 23, 4, 30, 0);
+            var block1 = new LandStatReplyMessage.ReportDataBlock
+            {
+                Location = Vector3.One,
+                MonoScore = 99,
+                OwnerName = "Profoky Neva",
+                Score = 10,
+                TaskID = UUID.Random(),
+                TaskLocalID = 987341,
+                TaskName = "Verbal Flogging",
+                TimeStamp = new DateTime(2009, 5, 23, 4, 30, 0)
+            };
             s.ReportDataBlocks[0] = block1;
 
-            LandStatReplyMessage.ReportDataBlock block2 = new LandStatReplyMessage.ReportDataBlock();
-            block2.Location = Vector3.One;
-            block2.MonoScore = 1;
-            block2.OwnerName = "Philip Linden";
-            block2.Score = 5;
-            block2.TaskID = UUID.Random();
-            block2.TaskLocalID = 987342;
-            block2.TaskName = "Happy Ant";
-            block2.TimeStamp = new DateTime(2008, 4, 22, 3, 29, 55);
+            var block2 = new LandStatReplyMessage.ReportDataBlock
+            {
+                Location = Vector3.One,
+                MonoScore = 1,
+                OwnerName = "Philip Linden",
+                Score = 5,
+                TaskID = UUID.Random(),
+                TaskLocalID = 987342,
+                TaskName = "Happy Ant",
+                TimeStamp = new DateTime(2008, 4, 22, 3, 29, 55)
+            };
             s.ReportDataBlocks[1] = block2;
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            LandStatReplyMessage t = new LandStatReplyMessage();
+            var t = new LandStatReplyMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.ReportType, t.ReportType);
-            Assert.AreEqual(s.RequestFlags, t.RequestFlags);
-            Assert.AreEqual(s.TotalObjectCount, t.TotalObjectCount);
+            Assert.That(s.ReportType, Is.EqualTo(t.ReportType));
+            Assert.That(s.RequestFlags, Is.EqualTo(t.RequestFlags));
+            Assert.That(s.TotalObjectCount, Is.EqualTo(t.TotalObjectCount));
 
-            for (int i = 0; i < t.ReportDataBlocks.Length; i++)
+            for (var i = 0; i < t.ReportDataBlocks.Length; i++)
             {
-                Assert.AreEqual(s.ReportDataBlocks[i].Location, t.ReportDataBlocks[i].Location);
-                Assert.AreEqual(s.ReportDataBlocks[i].MonoScore, t.ReportDataBlocks[i].MonoScore);
-                Assert.AreEqual(s.ReportDataBlocks[i].OwnerName, t.ReportDataBlocks[i].OwnerName);
-                Assert.AreEqual(s.ReportDataBlocks[i].Score, t.ReportDataBlocks[i].Score);
-                Assert.AreEqual(s.ReportDataBlocks[i].TaskID, t.ReportDataBlocks[i].TaskID);
-                Assert.AreEqual(s.ReportDataBlocks[i].TaskLocalID, t.ReportDataBlocks[i].TaskLocalID);
-                Assert.AreEqual(s.ReportDataBlocks[i].TaskName, t.ReportDataBlocks[i].TaskName);
-                Assert.AreEqual(s.ReportDataBlocks[i].TimeStamp, t.ReportDataBlocks[i].TimeStamp);
+                Assert.That(s.ReportDataBlocks[i].Location, Is.EqualTo(t.ReportDataBlocks[i].Location));
+                Assert.That(s.ReportDataBlocks[i].MonoScore, Is.EqualTo(t.ReportDataBlocks[i].MonoScore));
+                Assert.That(s.ReportDataBlocks[i].OwnerName, Is.EqualTo(t.ReportDataBlocks[i].OwnerName));
+                Assert.That(s.ReportDataBlocks[i].Score, Is.EqualTo(t.ReportDataBlocks[i].Score));
+                Assert.That(s.ReportDataBlocks[i].TaskID, Is.EqualTo(t.ReportDataBlocks[i].TaskID));
+                Assert.That(s.ReportDataBlocks[i].TaskLocalID, Is.EqualTo(t.ReportDataBlocks[i].TaskLocalID));
+                Assert.That(s.ReportDataBlocks[i].TaskName, Is.EqualTo(t.ReportDataBlocks[i].TaskName));
+                Assert.That(s.ReportDataBlocks[i].TimeStamp, Is.EqualTo(t.ReportDataBlocks[i].TimeStamp));
             }
         }
 
         [Test]
         public void TelportFailedMessage()
         {
-            TeleportFailedMessage s = new TeleportFailedMessage();
-            s.AgentID = UUID.Random();
-            s.MessageKey = "Key";
-            s.Reason = "Unable To Teleport for some unspecified reason";
-            s.ExtraParams = string.Empty;
+            var s = new TeleportFailedMessage
+            {
+                AgentID = UUID.Random(),
+                MessageKey = "Key",
+                Reason = "Unable To Teleport for some unspecified reason",
+                ExtraParams = string.Empty
+            };
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            TeleportFailedMessage t = new TeleportFailedMessage();
+            var t = new TeleportFailedMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AgentID, t.AgentID);
-            Assert.AreEqual(s.ExtraParams, t.ExtraParams);
-            Assert.AreEqual(s.MessageKey, t.MessageKey);
-            Assert.AreEqual(s.Reason, t.Reason);
+            Assert.That(s.AgentID, Is.EqualTo(t.AgentID));
+            Assert.That(s.ExtraParams, Is.EqualTo(t.ExtraParams));
+            Assert.That(s.MessageKey, Is.EqualTo(t.MessageKey));
+            Assert.That(s.Reason, Is.EqualTo(t.Reason));
 
         }
 
         [Test]
         public void UpdateAgentInformationMessage()
         {
-            UpdateAgentInformationMessage s = new UpdateAgentInformationMessage();
-            s.MaxAccess = "PG";
-            OSDMap map = s.Serialize();
+            var s = new UpdateAgentInformationMessage
+            {
+                MaxAccess = "PG"
+            };
+            var map = s.Serialize();
 
-            UpdateAgentInformationMessage t = new UpdateAgentInformationMessage();
+            var t = new UpdateAgentInformationMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.MaxAccess, t.MaxAccess);
+            Assert.That(s.MaxAccess, Is.EqualTo(t.MaxAccess));
         }
 
         [Test]
         public void PlacesReplyMessage()
         {
-            PlacesReplyMessage s = new PlacesReplyMessage();
-            s.TransactionID = UUID.Random();
-            s.AgentID = UUID.Random();
-            s.QueryID = UUID.Random();
-            s.QueryDataBlocks = new PlacesReplyMessage.QueryData[2];
+            var s = new PlacesReplyMessage
+            {
+                TransactionID = UUID.Random(),
+                AgentID = UUID.Random(),
+                QueryID = UUID.Random(),
+                QueryDataBlocks = new PlacesReplyMessage.QueryData[2]
+            };
 
-            PlacesReplyMessage.QueryData q1 = new PlacesReplyMessage.QueryData();
-            q1.ActualArea = 1024;
-            q1.BillableArea = 768;
-            q1.Description = "Test Description Q1";
-            q1.Dwell = 1435.4f;
-            q1.Flags = 1 << 6;
-            q1.GlobalX = 1;
-            q1.GlobalY = 2;
-            q1.GlobalZ = 3;
-            q1.Name = "Test Name Q1";
-            q1.OwnerID = UUID.Random();
-            q1.Price = 1;
-            q1.ProductSku = "021";
-            q1.SimName = "Hooper";
-            q1.SnapShotID = UUID.Random();
+            var q1 = new PlacesReplyMessage.QueryData
+            {
+                ActualArea = 1024,
+                BillableArea = 768,
+                Description = "Test Description Q1",
+                Dwell = 1435.4f,
+                Flags = 1 << 6,
+                GlobalX = 1,
+                GlobalY = 2,
+                GlobalZ = 3,
+                Name = "Test Name Q1",
+                OwnerID = UUID.Random(),
+                Price = 1,
+                ProductSku = "021",
+                SimName = "Hooper",
+                SnapShotID = UUID.Random()
+            };
 
             s.QueryDataBlocks[0] = q1;
 
-            PlacesReplyMessage.QueryData q2 = new PlacesReplyMessage.QueryData();
-            q2.ActualArea = 512;
-            q2.BillableArea = 384;
-            q2.Description = "Test Description Q2";
-            q2.Dwell = 1;
-            q2.Flags = 1 << 4;
-            q2.GlobalX = 4;
-            q2.GlobalY = 5;
-            q2.GlobalZ = 6;
-            q2.Name = "Test Name Q2";
-            q2.OwnerID = UUID.Random();
-            q2.Price = 2;
-            q2.ProductSku = "022";
-            q2.SimName = "Tethys";
-            q2.SnapShotID = UUID.Random();
+            var q2 = new PlacesReplyMessage.QueryData
+            {
+                ActualArea = 512,
+                BillableArea = 384,
+                Description = "Test Description Q2",
+                Dwell = 1,
+                Flags = 1 << 4,
+                GlobalX = 4,
+                GlobalY = 5,
+                GlobalZ = 6,
+                Name = "Test Name Q2",
+                OwnerID = UUID.Random(),
+                Price = 2,
+                ProductSku = "022",
+                SimName = "Tethys",
+                SnapShotID = UUID.Random()
+            };
 
             s.QueryDataBlocks[1] = q2;
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            PlacesReplyMessage t = new PlacesReplyMessage();
+            var t = new PlacesReplyMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AgentID, t.AgentID);
-            Assert.AreEqual(s.TransactionID, t.TransactionID);
-            Assert.AreEqual(s.QueryID, t.QueryID);
+            Assert.That(s.AgentID, Is.EqualTo(t.AgentID));
+            Assert.That(s.TransactionID, Is.EqualTo(t.TransactionID));
+            Assert.That(s.QueryID, Is.EqualTo(t.QueryID));
 
-            for (int i = 0; i < s.QueryDataBlocks.Length; i++)
+            for (var i = 0; i < s.QueryDataBlocks.Length; i++)
             {
-                Assert.AreEqual(s.QueryDataBlocks[i].ActualArea, t.QueryDataBlocks[i].ActualArea);
-                Assert.AreEqual(s.QueryDataBlocks[i].BillableArea, t.QueryDataBlocks[i].BillableArea);
-                Assert.AreEqual(s.QueryDataBlocks[i].Description, t.QueryDataBlocks[i].Description);
-                Assert.AreEqual(s.QueryDataBlocks[i].Dwell, t.QueryDataBlocks[i].Dwell);
-                Assert.AreEqual(s.QueryDataBlocks[i].Flags, t.QueryDataBlocks[i].Flags);
-                Assert.AreEqual(s.QueryDataBlocks[i].GlobalX, t.QueryDataBlocks[i].GlobalX);
-                Assert.AreEqual(s.QueryDataBlocks[i].GlobalY, t.QueryDataBlocks[i].GlobalY);
-                Assert.AreEqual(s.QueryDataBlocks[i].GlobalZ, t.QueryDataBlocks[i].GlobalZ);
-                Assert.AreEqual(s.QueryDataBlocks[i].Name, t.QueryDataBlocks[i].Name);
-                Assert.AreEqual(s.QueryDataBlocks[i].OwnerID, t.QueryDataBlocks[i].OwnerID);
-                Assert.AreEqual(s.QueryDataBlocks[i].Price, t.QueryDataBlocks[i].Price);
-                Assert.AreEqual(s.QueryDataBlocks[i].ProductSku, t.QueryDataBlocks[i].ProductSku);
-                Assert.AreEqual(s.QueryDataBlocks[i].SimName, t.QueryDataBlocks[i].SimName);
-                Assert.AreEqual(s.QueryDataBlocks[i].SnapShotID, t.QueryDataBlocks[i].SnapShotID);
+                Assert.That(s.QueryDataBlocks[i].ActualArea, Is.EqualTo(t.QueryDataBlocks[i].ActualArea));
+                Assert.That(s.QueryDataBlocks[i].BillableArea, Is.EqualTo(t.QueryDataBlocks[i].BillableArea));
+                Assert.That(s.QueryDataBlocks[i].Description, Is.EqualTo(t.QueryDataBlocks[i].Description));
+                Assert.That(s.QueryDataBlocks[i].Dwell, Is.EqualTo(t.QueryDataBlocks[i].Dwell));
+                Assert.That(s.QueryDataBlocks[i].Flags, Is.EqualTo(t.QueryDataBlocks[i].Flags));
+                Assert.That(s.QueryDataBlocks[i].GlobalX, Is.EqualTo(t.QueryDataBlocks[i].GlobalX));
+                Assert.That(s.QueryDataBlocks[i].GlobalY, Is.EqualTo(t.QueryDataBlocks[i].GlobalY));
+                Assert.That(s.QueryDataBlocks[i].GlobalZ, Is.EqualTo(t.QueryDataBlocks[i].GlobalZ));
+                Assert.That(s.QueryDataBlocks[i].Name, Is.EqualTo(t.QueryDataBlocks[i].Name));
+                Assert.That(s.QueryDataBlocks[i].OwnerID, Is.EqualTo(t.QueryDataBlocks[i].OwnerID));
+                Assert.That(s.QueryDataBlocks[i].Price, Is.EqualTo(t.QueryDataBlocks[i].Price));
+                Assert.That(s.QueryDataBlocks[i].ProductSku, Is.EqualTo(t.QueryDataBlocks[i].ProductSku));
+                Assert.That(s.QueryDataBlocks[i].SimName, Is.EqualTo(t.QueryDataBlocks[i].SimName));
+                Assert.That(s.QueryDataBlocks[i].SnapShotID, Is.EqualTo(t.QueryDataBlocks[i].SnapShotID));
             }
         }
 
         [Test]
         public void DirLandReplyMessage()
         {
-            DirLandReplyMessage s = new DirLandReplyMessage();
-            s.AgentID = UUID.Random();
-            s.QueryID = UUID.Random();
-            s.QueryReplies = new DirLandReplyMessage.QueryReply[2];
+            var s = new DirLandReplyMessage
+            {
+                AgentID = UUID.Random(),
+                QueryID = UUID.Random(),
+                QueryReplies = new DirLandReplyMessage.QueryReply[2]
+            };
 
-            DirLandReplyMessage.QueryReply q1 = new DirLandReplyMessage.QueryReply();
-            q1.ActualArea = 1024;
-            q1.Auction = true;
-            q1.ForSale = true;
-            q1.Name = "For Sale Parcel Q1";
-            q1.ProductSku = "023";
-            q1.SalePrice = 2193;
-            q1.ParcelID = UUID.Random();
+            var q1 = new DirLandReplyMessage.QueryReply
+            {
+                ActualArea = 1024,
+                Auction = true,
+                ForSale = true,
+                Name = "For Sale Parcel Q1",
+                ProductSku = "023",
+                SalePrice = 2193,
+                ParcelID = UUID.Random()
+            };
 
             s.QueryReplies[0] = q1;
 
-            DirLandReplyMessage.QueryReply q2 = new DirLandReplyMessage.QueryReply();
-            q2.ActualArea = 512;
-            q2.Auction = true;
-            q2.ForSale = true;
-            q2.Name = "For Sale Parcel Q2";
-            q2.ProductSku = "023";
-            q2.SalePrice = 22193;
-            q2.ParcelID = UUID.Random();
+            var q2 = new DirLandReplyMessage.QueryReply
+            {
+                ActualArea = 512,
+                Auction = true,
+                ForSale = true,
+                Name = "For Sale Parcel Q2",
+                ProductSku = "023",
+                SalePrice = 22193,
+                ParcelID = UUID.Random()
+            };
 
             s.QueryReplies[1] = q2;
 
-            OSDMap map = s.Serialize();
+            var map = s.Serialize();
 
-            DirLandReplyMessage t = new DirLandReplyMessage();
+            var t = new DirLandReplyMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AgentID, t.AgentID);
-            Assert.AreEqual(s.QueryID, t.QueryID);
+            Assert.That(s.AgentID, Is.EqualTo(t.AgentID));
+            Assert.That(s.QueryID, Is.EqualTo(t.QueryID));
 
-            for (int i = 0; i < s.QueryReplies.Length; i++)
+            for (var i = 0; i < s.QueryReplies.Length; i++)
             {
-                Assert.AreEqual(s.QueryReplies[i].ActualArea, t.QueryReplies[i].ActualArea);
-                Assert.AreEqual(s.QueryReplies[i].Auction, t.QueryReplies[i].Auction);
-                Assert.AreEqual(s.QueryReplies[i].ForSale, t.QueryReplies[i].ForSale);
-                Assert.AreEqual(s.QueryReplies[i].Name, t.QueryReplies[i].Name);
-                Assert.AreEqual(s.QueryReplies[i].ProductSku, t.QueryReplies[i].ProductSku);
-                Assert.AreEqual(s.QueryReplies[i].ParcelID, t.QueryReplies[i].ParcelID);
-                Assert.AreEqual(s.QueryReplies[i].SalePrice, t.QueryReplies[i].SalePrice);
+                Assert.That(s.QueryReplies[i].ActualArea, Is.EqualTo(t.QueryReplies[i].ActualArea));
+                Assert.That(s.QueryReplies[i].Auction, Is.EqualTo(t.QueryReplies[i].Auction));
+                Assert.That(s.QueryReplies[i].ForSale, Is.EqualTo(t.QueryReplies[i].ForSale));
+                Assert.That(s.QueryReplies[i].Name, Is.EqualTo(t.QueryReplies[i].Name));
+                Assert.That(s.QueryReplies[i].ProductSku, Is.EqualTo(t.QueryReplies[i].ProductSku));
+                Assert.That(s.QueryReplies[i].ParcelID, Is.EqualTo(t.QueryReplies[i].ParcelID));
+                Assert.That(s.QueryReplies[i].SalePrice, Is.EqualTo(t.QueryReplies[i].SalePrice));
             }
         }
         #region Performance Testing
@@ -1168,38 +1262,42 @@ namespace LibreMetaverse.Tests
         [Category("Benchmark")]
         public void ReflectionPerformanceRemoteParcelResponse()
         {
-            DateTime messageTestTime = DateTime.UtcNow;
-            for (int x = 0; x < TEST_ITER; x++)
+            var messageTestTime = DateTime.UtcNow;
+            for (var x = 0; x < TEST_ITER; x++)
             {
-                RemoteParcelRequestReply s = new RemoteParcelRequestReply();
-                s.ParcelID = UUID.Random();
-                OSDMap map = s.Serialize();
+                var s = new RemoteParcelRequestReply
+                {
+                    ParcelID = UUID.Random()
+                };
+                var map = s.Serialize();
 
-                RemoteParcelRequestReply t = new RemoteParcelRequestReply();
+                var t = new RemoteParcelRequestReply();
                 t.Deserialize(map);
 
-                Assert.AreEqual(s.ParcelID, t.ParcelID);
+                Assert.That(s.ParcelID, Is.EqualTo(t.ParcelID));
             }
-            TimeSpan duration = DateTime.UtcNow - messageTestTime;
+            var duration = DateTime.UtcNow - messageTestTime;
             Console.WriteLine("RemoteParcelRequestReply: OMV Message System Serialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, duration);
 
-            BinaryFormatter formatter = new BinaryFormatter();
-            DateTime xmlTestTime = DateTime.UtcNow;
-            for (int x = 0; x < TEST_ITER; x++)
+            var formatter = new BinaryFormatter();
+            var xmlTestTime = DateTime.UtcNow;
+            for (var x = 0; x < TEST_ITER; x++)
             {
-                RemoteParcelRequestReply s = new RemoteParcelRequestReply();
-                s.ParcelID = UUID.Random();
+                var s = new RemoteParcelRequestReply
+                {
+                    ParcelID = UUID.Random()
+                };
 
-                MemoryStream stream = new MemoryStream();
+                var stream = new MemoryStream();
 
                 formatter.Serialize(stream, s);
 
                 stream.Seek(0, SeekOrigin.Begin);
-                RemoteParcelRequestReply t = (RemoteParcelRequestReply)formatter.Deserialize(stream);
+                var t = (RemoteParcelRequestReply)formatter.Deserialize(stream);
 
-                Assert.AreEqual(s.ParcelID, t.ParcelID);
+                Assert.That(s.ParcelID, Is.EqualTo(t.ParcelID));
             }
-            TimeSpan durationxml = DateTime.UtcNow - xmlTestTime;
+            var durationxml = DateTime.UtcNow - xmlTestTime;
             Console.WriteLine("RemoteParcelRequestReply: .NET BinarySerialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, durationxml);
         }
 
@@ -1209,110 +1307,122 @@ namespace LibreMetaverse.Tests
         public void ReflectionPerformanceDirLandReply()
         {
 
-            DateTime messageTestTime = DateTime.UtcNow;
-            for (int x = 0; x < TEST_ITER; x++)
+            var messageTestTime = DateTime.UtcNow;
+            for (var x = 0; x < TEST_ITER; x++)
             {
-                DirLandReplyMessage s = new DirLandReplyMessage();
-                s.AgentID = UUID.Random();
-                s.QueryID = UUID.Random();
-                s.QueryReplies = new DirLandReplyMessage.QueryReply[2];
+                var s = new DirLandReplyMessage
+                {
+                    AgentID = UUID.Random(),
+                    QueryID = UUID.Random(),
+                    QueryReplies = new DirLandReplyMessage.QueryReply[2]
+                };
 
-                DirLandReplyMessage.QueryReply q1 = new DirLandReplyMessage.QueryReply();
-                q1.ActualArea = 1024;
-                q1.Auction = true;
-                q1.ForSale = true;
-                q1.Name = "For Sale Parcel Q1";
-                q1.ProductSku = "023";
-                q1.SalePrice = 2193;
-                q1.ParcelID = UUID.Random();
+                var q1 = new DirLandReplyMessage.QueryReply
+                {
+                    ActualArea = 1024,
+                    Auction = true,
+                    ForSale = true,
+                    Name = "For Sale Parcel Q1",
+                    ProductSku = "023",
+                    SalePrice = 2193,
+                    ParcelID = UUID.Random()
+                };
 
                 s.QueryReplies[0] = q1;
 
-                DirLandReplyMessage.QueryReply q2 = new DirLandReplyMessage.QueryReply();
-                q2.ActualArea = 512;
-                q2.Auction = true;
-                q2.ForSale = true;
-                q2.Name = "For Sale Parcel Q2";
-                q2.ProductSku = "023";
-                q2.SalePrice = 22193;
-                q2.ParcelID = UUID.Random();
+                var q2 = new DirLandReplyMessage.QueryReply
+                {
+                    ActualArea = 512,
+                    Auction = true,
+                    ForSale = true,
+                    Name = "For Sale Parcel Q2",
+                    ProductSku = "023",
+                    SalePrice = 22193,
+                    ParcelID = UUID.Random()
+                };
 
                 s.QueryReplies[1] = q2;
 
-                OSDMap map = s.Serialize();
-                DirLandReplyMessage t = new DirLandReplyMessage();
+                var map = s.Serialize();
+                var t = new DirLandReplyMessage();
 
                 t.Deserialize(map);
-                Assert.AreEqual(s.AgentID, t.AgentID);
-                Assert.AreEqual(s.QueryID, t.QueryID);
+                Assert.That(s.AgentID, Is.EqualTo(t.AgentID));
+                Assert.That(s.QueryID, Is.EqualTo(t.QueryID));
 
-                for (int i = 0; i < s.QueryReplies.Length; i++)
+                for (var i = 0; i < s.QueryReplies.Length; i++)
                 {
-                    Assert.AreEqual(s.QueryReplies[i].ActualArea, t.QueryReplies[i].ActualArea);
-                    Assert.AreEqual(s.QueryReplies[i].Auction, t.QueryReplies[i].Auction);
-                    Assert.AreEqual(s.QueryReplies[i].ForSale, t.QueryReplies[i].ForSale);
-                    Assert.AreEqual(s.QueryReplies[i].Name, t.QueryReplies[i].Name);
-                    Assert.AreEqual(s.QueryReplies[i].ProductSku, t.QueryReplies[i].ProductSku);
-                    Assert.AreEqual(s.QueryReplies[i].ParcelID, t.QueryReplies[i].ParcelID);
-                    Assert.AreEqual(s.QueryReplies[i].SalePrice, t.QueryReplies[i].SalePrice);
+                    Assert.That(s.QueryReplies[i].ActualArea, Is.EqualTo(t.QueryReplies[i].ActualArea));
+                    Assert.That(s.QueryReplies[i].Auction, Is.EqualTo(t.QueryReplies[i].Auction));
+                    Assert.That(s.QueryReplies[i].ForSale, Is.EqualTo(t.QueryReplies[i].ForSale));
+                    Assert.That(s.QueryReplies[i].Name, Is.EqualTo(t.QueryReplies[i].Name));
+                    Assert.That(s.QueryReplies[i].ProductSku, Is.EqualTo(t.QueryReplies[i].ProductSku));
+                    Assert.That(s.QueryReplies[i].ParcelID, Is.EqualTo(t.QueryReplies[i].ParcelID));
+                    Assert.That(s.QueryReplies[i].SalePrice, Is.EqualTo(t.QueryReplies[i].SalePrice));
                 }
             }
-            TimeSpan duration = DateTime.UtcNow - messageTestTime;
+            var duration = DateTime.UtcNow - messageTestTime;
             Console.WriteLine("DirLandReplyMessage: OMV Message System Serialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, duration);
 
-            BinaryFormatter formatter = new BinaryFormatter();
-            DateTime xmlTestTime = DateTime.UtcNow;
-            for (int x = 0; x < TEST_ITER; x++)
+            var formatter = new BinaryFormatter();
+            var xmlTestTime = DateTime.UtcNow;
+            for (var x = 0; x < TEST_ITER; x++)
             {
-                DirLandReplyMessage s = new DirLandReplyMessage();
-                s.AgentID = UUID.Random();
-                s.QueryID = UUID.Random();
-                s.QueryReplies = new DirLandReplyMessage.QueryReply[2];
+                var s = new DirLandReplyMessage
+                {
+                    AgentID = UUID.Random(),
+                    QueryID = UUID.Random(),
+                    QueryReplies = new DirLandReplyMessage.QueryReply[2]
+                };
 
-                DirLandReplyMessage.QueryReply q1 = new DirLandReplyMessage.QueryReply();
-                q1.ActualArea = 1024;
-                q1.Auction = true;
-                q1.ForSale = true;
-                q1.Name = "For Sale Parcel Q1";
-                q1.ProductSku = "023";
-                q1.SalePrice = 2193;
-                q1.ParcelID = UUID.Random();
+                var q1 = new DirLandReplyMessage.QueryReply
+                {
+                    ActualArea = 1024,
+                    Auction = true,
+                    ForSale = true,
+                    Name = "For Sale Parcel Q1",
+                    ProductSku = "023",
+                    SalePrice = 2193,
+                    ParcelID = UUID.Random()
+                };
 
                 s.QueryReplies[0] = q1;
 
-                DirLandReplyMessage.QueryReply q2 = new DirLandReplyMessage.QueryReply();
-                q2.ActualArea = 512;
-                q2.Auction = true;
-                q2.ForSale = true;
-                q2.Name = "For Sale Parcel Q2";
-                q2.ProductSku = "023";
-                q2.SalePrice = 22193;
-                q2.ParcelID = UUID.Random();
+                var q2 = new DirLandReplyMessage.QueryReply
+                {
+                    ActualArea = 512,
+                    Auction = true,
+                    ForSale = true,
+                    Name = "For Sale Parcel Q2",
+                    ProductSku = "023",
+                    SalePrice = 22193,
+                    ParcelID = UUID.Random()
+                };
 
                 s.QueryReplies[1] = q2;
 
-                MemoryStream stream = new MemoryStream();
+                var stream = new MemoryStream();
 
                 formatter.Serialize(stream, s);
 
                 stream.Seek(0, SeekOrigin.Begin);
-                DirLandReplyMessage t = (DirLandReplyMessage)formatter.Deserialize(stream);
+                var t = (DirLandReplyMessage)formatter.Deserialize(stream);
 
-                Assert.AreEqual(s.AgentID, t.AgentID);
-                Assert.AreEqual(s.QueryID, t.QueryID);
+                Assert.That(s.AgentID, Is.EqualTo(t.AgentID));
+                Assert.That(s.QueryID, Is.EqualTo(t.QueryID));
 
-                for (int i = 0; i < s.QueryReplies.Length; i++)
+                for (var i = 0; i < s.QueryReplies.Length; i++)
                 {
-                    Assert.AreEqual(s.QueryReplies[i].ActualArea, t.QueryReplies[i].ActualArea);
-                    Assert.AreEqual(s.QueryReplies[i].Auction, t.QueryReplies[i].Auction);
-                    Assert.AreEqual(s.QueryReplies[i].ForSale, t.QueryReplies[i].ForSale);
-                    Assert.AreEqual(s.QueryReplies[i].Name, t.QueryReplies[i].Name);
-                    Assert.AreEqual(s.QueryReplies[i].ProductSku, t.QueryReplies[i].ProductSku);
-                    Assert.AreEqual(s.QueryReplies[i].ParcelID, t.QueryReplies[i].ParcelID);
-                    Assert.AreEqual(s.QueryReplies[i].SalePrice, t.QueryReplies[i].SalePrice);
+                    Assert.That(s.QueryReplies[i].ActualArea, Is.EqualTo(t.QueryReplies[i].ActualArea));
+                    Assert.That(s.QueryReplies[i].Auction, Is.EqualTo(t.QueryReplies[i].Auction));
+                    Assert.That(s.QueryReplies[i].ForSale, Is.EqualTo(t.QueryReplies[i].ForSale));
+                    Assert.That(s.QueryReplies[i].Name, Is.EqualTo(t.QueryReplies[i].Name));
+                    Assert.That(s.QueryReplies[i].ProductSku, Is.EqualTo(t.QueryReplies[i].ProductSku));
+                    Assert.That(s.QueryReplies[i].ParcelID, Is.EqualTo(t.QueryReplies[i].ParcelID));
+                    Assert.That(s.QueryReplies[i].SalePrice, Is.EqualTo(t.QueryReplies[i].SalePrice));
                 }
             }
-            TimeSpan durationxml = DateTime.UtcNow - xmlTestTime;
+            var durationxml = DateTime.UtcNow - xmlTestTime;
             Console.WriteLine("DirLandReplyMessage: .NET BinarySerialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, durationxml);
         }
 
@@ -1320,42 +1430,48 @@ namespace LibreMetaverse.Tests
         [Category("Benchmark")]
         public void ReflectionPerformanceDirLandReply2()
         {
-            XmlSerializer xmlSerializer = new XmlSerializer(typeof(DirLandReplyMessage));
+            var xmlSerializer = new XmlSerializer(typeof(DirLandReplyMessage));
 
-            DirLandReplyMessage s = new DirLandReplyMessage();
-            s.AgentID = UUID.Random();
-            s.QueryID = UUID.Random();
-            s.QueryReplies = new DirLandReplyMessage.QueryReply[2];
+            var s = new DirLandReplyMessage
+            {
+                AgentID = UUID.Random(),
+                QueryID = UUID.Random(),
+                QueryReplies = new DirLandReplyMessage.QueryReply[2]
+            };
 
-            DirLandReplyMessage.QueryReply q1 = new DirLandReplyMessage.QueryReply();
-            q1.ActualArea = 1024;
-            q1.Auction = true;
-            q1.ForSale = true;
-            q1.Name = "For Sale Parcel Q1";
-            q1.ProductSku = "023";
-            q1.SalePrice = 2193;
-            q1.ParcelID = UUID.Random();
+            var q1 = new DirLandReplyMessage.QueryReply
+            {
+                ActualArea = 1024,
+                Auction = true,
+                ForSale = true,
+                Name = "For Sale Parcel Q1",
+                ProductSku = "023",
+                SalePrice = 2193,
+                ParcelID = UUID.Random()
+            };
 
             s.QueryReplies[0] = q1;
 
-            DirLandReplyMessage.QueryReply q2 = new DirLandReplyMessage.QueryReply();
-            q2.ActualArea = 512;
-            q2.Auction = true;
-            q2.ForSale = true;
-            q2.Name = "For Sale Parcel Q2";
-            q2.ProductSku = "023";
-            q2.SalePrice = 22193;
-            q2.ParcelID = UUID.Random();
+            var q2 = new DirLandReplyMessage.QueryReply
+            {
+                ActualArea = 512,
+                Auction = true,
+                ForSale = true,
+                Name = "For Sale Parcel Q2",
+                ProductSku = "023",
+                SalePrice = 22193,
+                ParcelID = UUID.Random()
+            };
 
             s.QueryReplies[1] = q2;
 
-            System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
+            var timer = new System.Diagnostics.Stopwatch();
             timer.Start();
-            for (int i = 0; i < TEST_ITER; ++i)
+            for (var i = 0; i < TEST_ITER; ++i)
             {
-                MemoryStream stream = new MemoryStream();
-                OSDMap map = s.Serialize();
-                byte[] jsonData = Encoding.UTF8.GetBytes(OSDParser.SerializeJsonString(map));
+                var stream = new MemoryStream();
+                var map = s.Serialize();
+                var jsonData = Encoding.UTF8.GetBytes(OSDParser.SerializeJsonString(map));
                 stream.Write(jsonData, 0, jsonData.Length);
                 stream.Flush();
                 stream.Close();
@@ -1365,9 +1481,9 @@ namespace LibreMetaverse.Tests
 
             timer.Reset();
             timer.Start();
-            for (int i = 0; i < TEST_ITER; ++i)
+            for (var i = 0; i < TEST_ITER; ++i)
             {
-                MemoryStream stream = new MemoryStream();
+                var stream = new MemoryStream();
                 xmlSerializer.Serialize(stream, s);
                 stream.Flush();
                 stream.Close();
@@ -1380,258 +1496,262 @@ namespace LibreMetaverse.Tests
         [Category("Benchmark")]
         public void ReflectionPerformanceParcelProperties()
         {
-            DateTime messageTestTime = DateTime.UtcNow;
-            for (int x = 0; x < TEST_ITER; x++)
+            var messageTestTime = DateTime.UtcNow;
+            for (var x = 0; x < TEST_ITER; x++)
             {
-                ParcelPropertiesMessage s = new ParcelPropertiesMessage();
-                s.AABBMax = Vector3.Parse("<1,2,3>");
-                s.AABBMin = Vector3.Parse("<2,3,1>");
-                s.Area = 1024;
-                s.AuctionID = uint.MaxValue;
-                s.AuthBuyerID = UUID.Random();
-                s.Bitmap = Utils.EmptyBytes;
-                s.Category = ParcelCategory.Educational;
-                s.ClaimDate = new DateTime(2008, 12, 25, 3, 15, 22);
-                s.ClaimPrice = 1000;
-                s.Desc = "Test Description";
-                s.GroupID = UUID.Random();
-                s.GroupPrims = 50;
-                s.IsGroupOwned = false;
-                s.LandingType = LandingType.None;
-                s.LocalID = 1;
-                s.MaxPrims = 234;
-                s.MediaAutoScale = false;
-                s.MediaDesc = "Example Media Description";
-                s.MediaHeight = 480;
-                s.MediaID = UUID.Random();
-                s.MediaLoop = false;
-                s.MediaType = "text/html";
-                s.MediaURL = "http://www.openmetaverse.co";
-                s.MediaWidth = 640;
-                s.MusicURL = "http://scfire-ntc-aa04.stream.aol.com:80/stream/1075"; // Yee Haw
-                s.Name = "Test Name";
-                s.ObscureMedia = false;
-                s.ObscureMusic = false;
-                s.OtherCleanTime = 5;
-                s.OtherCount = 200;
-                s.OtherPrims = 300;
-                s.OwnerID = UUID.Random();
-                s.OwnerPrims = 0;
-                s.ParcelFlags = ParcelFlags.AllowDamage | ParcelFlags.AllowGroupScripts | ParcelFlags.AllowVoiceChat;
-                s.ParcelPrimBonus = 0f;
-                s.PassHours = 1.5f;
-                s.PassPrice = 10;
-                s.PublicCount = 20;
-                s.RegionDenyAgeUnverified = false;
-                s.RegionDenyAnonymous = false;
-                s.RegionPushOverride = true;
-                s.RentPrice = 0;
-                s.RequestResult = ParcelResult.Single;
-                s.SalePrice = 9999;
-                s.SelectedPrims = 1;
-                s.SelfCount = 2;
-                s.SequenceID = -4000;
-                s.SimWideMaxPrims = 937;
-                s.SimWideTotalPrims = 117;
-                s.SnapSelection = false;
-                s.SnapshotID = UUID.Random();
-                s.Status = ParcelStatus.Leased;
-                s.TotalPrims = 219;
-                s.UserLocation = Vector3.Parse("<3,4,5>");
-                s.UserLookAt = Vector3.Parse("<5,4,3>");
+                var s = new ParcelPropertiesMessage
+                {
+                    AABBMax = Vector3.Parse("<1,2,3>"),
+                    AABBMin = Vector3.Parse("<2,3,1>"),
+                    Area = 1024,
+                    AuctionID = uint.MaxValue,
+                    AuthBuyerID = UUID.Random(),
+                    Bitmap = Utils.EmptyBytes,
+                    Category = ParcelCategory.Educational,
+                    ClaimDate = new DateTime(2008, 12, 25, 3, 15, 22),
+                    ClaimPrice = 1000,
+                    Desc = "Test Description",
+                    GroupID = UUID.Random(),
+                    GroupPrims = 50,
+                    IsGroupOwned = false,
+                    LandingType = LandingType.None,
+                    LocalID = 1,
+                    MaxPrims = 234,
+                    MediaAutoScale = false,
+                    MediaDesc = "Example Media Description",
+                    MediaHeight = 480,
+                    MediaID = UUID.Random(),
+                    MediaLoop = false,
+                    MediaType = "text/html",
+                    MediaURL = "http://www.openmetaverse.co",
+                    MediaWidth = 640,
+                    MusicURL = "http://scfire-ntc-aa04.stream.aol.com:80/stream/1075", // Yee Haw
+                    Name = "Test Name",
+                    ObscureMedia = false,
+                    ObscureMusic = false,
+                    OtherCleanTime = 5,
+                    OtherCount = 200,
+                    OtherPrims = 300,
+                    OwnerID = UUID.Random(),
+                    OwnerPrims = 0,
+                    ParcelFlags = ParcelFlags.AllowDamage | ParcelFlags.AllowGroupScripts | ParcelFlags.AllowVoiceChat,
+                    ParcelPrimBonus = 0f,
+                    PassHours = 1.5f,
+                    PassPrice = 10,
+                    PublicCount = 20,
+                    RegionDenyAgeUnverified = false,
+                    RegionDenyAnonymous = false,
+                    RegionPushOverride = true,
+                    RentPrice = 0,
+                    RequestResult = ParcelResult.Single,
+                    SalePrice = 9999,
+                    SelectedPrims = 1,
+                    SelfCount = 2,
+                    SequenceID = -4000,
+                    SimWideMaxPrims = 937,
+                    SimWideTotalPrims = 117,
+                    SnapSelection = false,
+                    SnapshotID = UUID.Random(),
+                    Status = ParcelStatus.Leased,
+                    TotalPrims = 219,
+                    UserLocation = Vector3.Parse("<3,4,5>"),
+                    UserLookAt = Vector3.Parse("<5,4,3>")
+                };
 
-                OSDMap map = s.Serialize();
-                ParcelPropertiesMessage t = new ParcelPropertiesMessage();
+                var map = s.Serialize();
+                var t = new ParcelPropertiesMessage();
 
                 t.Deserialize(map);
 
-                Assert.AreEqual(s.AABBMax, t.AABBMax);
-                Assert.AreEqual(s.AABBMin, t.AABBMin);
-                Assert.AreEqual(s.Area, t.Area);
-                Assert.AreEqual(s.AuctionID, t.AuctionID);
-                Assert.AreEqual(s.AuthBuyerID, t.AuthBuyerID);
-                Assert.AreEqual(s.Bitmap, t.Bitmap);
-                Assert.AreEqual(s.Category, t.Category);
-                Assert.AreEqual(s.ClaimDate, t.ClaimDate);
-                Assert.AreEqual(s.ClaimPrice, t.ClaimPrice);
-                Assert.AreEqual(s.Desc, t.Desc);
-                Assert.AreEqual(s.GroupID, t.GroupID);
-                Assert.AreEqual(s.GroupPrims, t.GroupPrims);
-                Assert.AreEqual(s.IsGroupOwned, t.IsGroupOwned);
-                Assert.AreEqual(s.LandingType, t.LandingType);
-                Assert.AreEqual(s.LocalID, t.LocalID);
-                Assert.AreEqual(s.MaxPrims, t.MaxPrims);
-                Assert.AreEqual(s.MediaAutoScale, t.MediaAutoScale);
-                Assert.AreEqual(s.MediaDesc, t.MediaDesc);
-                Assert.AreEqual(s.MediaHeight, t.MediaHeight);
-                Assert.AreEqual(s.MediaID, t.MediaID);
-                Assert.AreEqual(s.MediaLoop, t.MediaLoop);
-                Assert.AreEqual(s.MediaType, t.MediaType);
-                Assert.AreEqual(s.MediaURL, t.MediaURL);
-                Assert.AreEqual(s.MediaWidth, t.MediaWidth);
-                Assert.AreEqual(s.MusicURL, t.MusicURL);
-                Assert.AreEqual(s.Name, t.Name);
-                Assert.AreEqual(s.ObscureMedia, t.ObscureMedia);
-                Assert.AreEqual(s.ObscureMusic, t.ObscureMusic);
-                Assert.AreEqual(s.OtherCleanTime, t.OtherCleanTime);
-                Assert.AreEqual(s.OtherCount, t.OtherCount);
-                Assert.AreEqual(s.OtherPrims, t.OtherPrims);
-                Assert.AreEqual(s.OwnerID, t.OwnerID);
-                Assert.AreEqual(s.OwnerPrims, t.OwnerPrims);
-                Assert.AreEqual(s.ParcelFlags, t.ParcelFlags);
-                Assert.AreEqual(s.ParcelPrimBonus, t.ParcelPrimBonus);
-                Assert.AreEqual(s.PassHours, t.PassHours);
-                Assert.AreEqual(s.PassPrice, t.PassPrice);
-                Assert.AreEqual(s.PublicCount, t.PublicCount);
-                Assert.AreEqual(s.RegionDenyAgeUnverified, t.RegionDenyAgeUnverified);
-                Assert.AreEqual(s.RegionDenyAnonymous, t.RegionDenyAnonymous);
-                Assert.AreEqual(s.RegionPushOverride, t.RegionPushOverride);
-                Assert.AreEqual(s.RentPrice, t.RentPrice);
-                Assert.AreEqual(s.RequestResult, t.RequestResult);
-                Assert.AreEqual(s.SalePrice, t.SalePrice);
-                Assert.AreEqual(s.SelectedPrims, t.SelectedPrims);
-                Assert.AreEqual(s.SelfCount, t.SelfCount);
-                Assert.AreEqual(s.SequenceID, t.SequenceID);
-                Assert.AreEqual(s.SimWideMaxPrims, t.SimWideMaxPrims);
-                Assert.AreEqual(s.SimWideTotalPrims, t.SimWideTotalPrims);
-                Assert.AreEqual(s.SnapSelection, t.SnapSelection);
-                Assert.AreEqual(s.SnapshotID, t.SnapshotID);
-                Assert.AreEqual(s.Status, t.Status);
-                Assert.AreEqual(s.TotalPrims, t.TotalPrims);
-                Assert.AreEqual(s.UserLocation, t.UserLocation);
-                Assert.AreEqual(s.UserLookAt, t.UserLookAt);
+                Assert.That(s.AABBMax, Is.EqualTo(t.AABBMax));
+                Assert.That(s.AABBMin, Is.EqualTo(t.AABBMin));
+                Assert.That(s.Area, Is.EqualTo(t.Area));
+                Assert.That(s.AuctionID, Is.EqualTo(t.AuctionID));
+                Assert.That(s.AuthBuyerID, Is.EqualTo(t.AuthBuyerID));
+                Assert.That(s.Bitmap, Is.EqualTo(t.Bitmap));
+                Assert.That(s.Category, Is.EqualTo(t.Category));
+                Assert.That(s.ClaimDate, Is.EqualTo(t.ClaimDate));
+                Assert.That(s.ClaimPrice, Is.EqualTo(t.ClaimPrice));
+                Assert.That(s.Desc, Is.EqualTo(t.Desc));
+                Assert.That(s.GroupID, Is.EqualTo(t.GroupID));
+                Assert.That(s.GroupPrims, Is.EqualTo(t.GroupPrims));
+                Assert.That(s.IsGroupOwned, Is.EqualTo(t.IsGroupOwned));
+                Assert.That(s.LandingType, Is.EqualTo(t.LandingType));
+                Assert.That(s.LocalID, Is.EqualTo(t.LocalID));
+                Assert.That(s.MaxPrims, Is.EqualTo(t.MaxPrims));
+                Assert.That(s.MediaAutoScale, Is.EqualTo(t.MediaAutoScale));
+                Assert.That(s.MediaDesc, Is.EqualTo(t.MediaDesc));
+                Assert.That(s.MediaHeight, Is.EqualTo(t.MediaHeight));
+                Assert.That(s.MediaID, Is.EqualTo(t.MediaID));
+                Assert.That(s.MediaLoop, Is.EqualTo(t.MediaLoop));
+                Assert.That(s.MediaType, Is.EqualTo(t.MediaType));
+                Assert.That(s.MediaURL, Is.EqualTo(t.MediaURL));
+                Assert.That(s.MediaWidth, Is.EqualTo(t.MediaWidth));
+                Assert.That(s.MusicURL, Is.EqualTo(t.MusicURL));
+                Assert.That(s.Name, Is.EqualTo(t.Name));
+                Assert.That(s.ObscureMedia, Is.EqualTo(t.ObscureMedia));
+                Assert.That(s.ObscureMusic, Is.EqualTo(t.ObscureMusic));
+                Assert.That(s.OtherCleanTime, Is.EqualTo(t.OtherCleanTime));
+                Assert.That(s.OtherCount, Is.EqualTo(t.OtherCount));
+                Assert.That(s.OtherPrims, Is.EqualTo(t.OtherPrims));
+                Assert.That(s.OwnerID, Is.EqualTo(t.OwnerID));
+                Assert.That(s.OwnerPrims, Is.EqualTo(t.OwnerPrims));
+                Assert.That(s.ParcelFlags, Is.EqualTo(t.ParcelFlags));
+                Assert.That(s.ParcelPrimBonus, Is.EqualTo(t.ParcelPrimBonus));
+                Assert.That(s.PassHours, Is.EqualTo(t.PassHours));
+                Assert.That(s.PassPrice, Is.EqualTo(t.PassPrice));
+                Assert.That(s.PublicCount, Is.EqualTo(t.PublicCount));
+                Assert.That(s.RegionDenyAgeUnverified, Is.EqualTo(t.RegionDenyAgeUnverified));
+                Assert.That(s.RegionDenyAnonymous, Is.EqualTo(t.RegionDenyAnonymous));
+                Assert.That(s.RegionPushOverride, Is.EqualTo(t.RegionPushOverride));
+                Assert.That(s.RentPrice, Is.EqualTo(t.RentPrice));
+                Assert.That(s.RequestResult, Is.EqualTo(t.RequestResult));
+                Assert.That(s.SalePrice, Is.EqualTo(t.SalePrice));
+                Assert.That(s.SelectedPrims, Is.EqualTo(t.SelectedPrims));
+                Assert.That(s.SelfCount, Is.EqualTo(t.SelfCount));
+                Assert.That(s.SequenceID, Is.EqualTo(t.SequenceID));
+                Assert.That(s.SimWideMaxPrims, Is.EqualTo(t.SimWideMaxPrims));
+                Assert.That(s.SimWideTotalPrims, Is.EqualTo(t.SimWideTotalPrims));
+                Assert.That(s.SnapSelection, Is.EqualTo(t.SnapSelection));
+                Assert.That(s.SnapshotID, Is.EqualTo(t.SnapshotID));
+                Assert.That(s.Status, Is.EqualTo(t.Status));
+                Assert.That(s.TotalPrims, Is.EqualTo(t.TotalPrims));
+                Assert.That(s.UserLocation, Is.EqualTo(t.UserLocation));
+                Assert.That(s.UserLookAt, Is.EqualTo(t.UserLookAt));
             }
-            TimeSpan duration = DateTime.UtcNow - messageTestTime;
+            var duration = DateTime.UtcNow - messageTestTime;
             Console.WriteLine("ParcelPropertiesMessage: OMV Message System Serialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, duration);
 
-            BinaryFormatter formatter = new BinaryFormatter();
+            var formatter = new BinaryFormatter();
 
-            DateTime xmlTestTime = DateTime.UtcNow;
-            for (int x = 0; x < TEST_ITER; x++)
+            var xmlTestTime = DateTime.UtcNow;
+            for (var x = 0; x < TEST_ITER; x++)
             {
 
-                ParcelPropertiesMessage s = new ParcelPropertiesMessage();
-                s.AABBMax = Vector3.Parse("<1,2,3>");
-                s.AABBMin = Vector3.Parse("<2,3,1>");
-                s.Area = 1024;
-                s.AuctionID = uint.MaxValue;
-                s.AuthBuyerID = UUID.Random();
-                s.Bitmap = Utils.EmptyBytes;
-                s.Category = ParcelCategory.Educational;
-                s.ClaimDate = new DateTime(2008, 12, 25, 3, 15, 22);
-                s.ClaimPrice = 1000;
-                s.Desc = "Test Description";
-                s.GroupID = UUID.Random();
-                s.GroupPrims = 50;
-                s.IsGroupOwned = false;
-                s.LandingType = LandingType.None;
-                s.LocalID = 1;
-                s.MaxPrims = 234;
-                s.MediaAutoScale = false;
-                s.MediaDesc = "Example Media Description";
-                s.MediaHeight = 480;
-                s.MediaID = UUID.Random();
-                s.MediaLoop = false;
-                s.MediaType = "text/html";
-                s.MediaURL = "http://www.openmetaverse.co";
-                s.MediaWidth = 640;
-                s.MusicURL = "http://scfire-ntc-aa04.stream.aol.com:80/stream/1075"; // Yee Haw
-                s.Name = "Test Name";
-                s.ObscureMedia = false;
-                s.ObscureMusic = false;
-                s.OtherCleanTime = 5;
-                s.OtherCount = 200;
-                s.OtherPrims = 300;
-                s.OwnerID = UUID.Random();
-                s.OwnerPrims = 0;
-                s.ParcelFlags = ParcelFlags.AllowDamage | ParcelFlags.AllowGroupScripts | ParcelFlags.AllowVoiceChat;
-                s.ParcelPrimBonus = 0f;
-                s.PassHours = 1.5f;
-                s.PassPrice = 10;
-                s.PublicCount = 20;
-                s.RegionDenyAgeUnverified = false;
-                s.RegionDenyAnonymous = false;
-                s.RegionPushOverride = true;
-                s.RentPrice = 0;
-                s.RequestResult = ParcelResult.Single;
-                s.SalePrice = 9999;
-                s.SelectedPrims = 1;
-                s.SelfCount = 2;
-                s.SequenceID = -4000;
-                s.SimWideMaxPrims = 937;
-                s.SimWideTotalPrims = 117;
-                s.SnapSelection = false;
-                s.SnapshotID = UUID.Random();
-                s.Status = ParcelStatus.Leased;
-                s.TotalPrims = 219;
-                s.UserLocation = Vector3.Parse("<3,4,5>");
-                s.UserLookAt = Vector3.Parse("<5,4,3>");
+                var s = new ParcelPropertiesMessage
+                {
+                    AABBMax = Vector3.Parse("<1,2,3>"),
+                    AABBMin = Vector3.Parse("<2,3,1>"),
+                    Area = 1024,
+                    AuctionID = uint.MaxValue,
+                    AuthBuyerID = UUID.Random(),
+                    Bitmap = Utils.EmptyBytes,
+                    Category = ParcelCategory.Educational,
+                    ClaimDate = new DateTime(2008, 12, 25, 3, 15, 22),
+                    ClaimPrice = 1000,
+                    Desc = "Test Description",
+                    GroupID = UUID.Random(),
+                    GroupPrims = 50,
+                    IsGroupOwned = false,
+                    LandingType = LandingType.None,
+                    LocalID = 1,
+                    MaxPrims = 234,
+                    MediaAutoScale = false,
+                    MediaDesc = "Example Media Description",
+                    MediaHeight = 480,
+                    MediaID = UUID.Random(),
+                    MediaLoop = false,
+                    MediaType = "text/html",
+                    MediaURL = "http://www.openmetaverse.co",
+                    MediaWidth = 640,
+                    MusicURL = "http://scfire-ntc-aa04.stream.aol.com:80/stream/1075", // Yee Haw
+                    Name = "Test Name",
+                    ObscureMedia = false,
+                    ObscureMusic = false,
+                    OtherCleanTime = 5,
+                    OtherCount = 200,
+                    OtherPrims = 300,
+                    OwnerID = UUID.Random(),
+                    OwnerPrims = 0,
+                    ParcelFlags = ParcelFlags.AllowDamage | ParcelFlags.AllowGroupScripts | ParcelFlags.AllowVoiceChat,
+                    ParcelPrimBonus = 0f,
+                    PassHours = 1.5f,
+                    PassPrice = 10,
+                    PublicCount = 20,
+                    RegionDenyAgeUnverified = false,
+                    RegionDenyAnonymous = false,
+                    RegionPushOverride = true,
+                    RentPrice = 0,
+                    RequestResult = ParcelResult.Single,
+                    SalePrice = 9999,
+                    SelectedPrims = 1,
+                    SelfCount = 2,
+                    SequenceID = -4000,
+                    SimWideMaxPrims = 937,
+                    SimWideTotalPrims = 117,
+                    SnapSelection = false,
+                    SnapshotID = UUID.Random(),
+                    Status = ParcelStatus.Leased,
+                    TotalPrims = 219,
+                    UserLocation = Vector3.Parse("<3,4,5>"),
+                    UserLookAt = Vector3.Parse("<5,4,3>")
+                };
 
-                MemoryStream stream = new MemoryStream();
+                var stream = new MemoryStream();
 
                 formatter.Serialize(stream, s);
 
                 stream.Seek(0, SeekOrigin.Begin);
 
-                ParcelPropertiesMessage t = (ParcelPropertiesMessage)formatter.Deserialize(stream);
+                var t = (ParcelPropertiesMessage)formatter.Deserialize(stream);
 
-                Assert.AreEqual(s.AABBMax, t.AABBMax);
-                Assert.AreEqual(s.AABBMin, t.AABBMin);
-                Assert.AreEqual(s.Area, t.Area);
-                Assert.AreEqual(s.AuctionID, t.AuctionID);
-                Assert.AreEqual(s.AuthBuyerID, t.AuthBuyerID);
-                Assert.AreEqual(s.Bitmap, t.Bitmap);
-                Assert.AreEqual(s.Category, t.Category);
-                Assert.AreEqual(s.ClaimDate, t.ClaimDate);
-                Assert.AreEqual(s.ClaimPrice, t.ClaimPrice);
-                Assert.AreEqual(s.Desc, t.Desc);
-                Assert.AreEqual(s.GroupID, t.GroupID);
-                Assert.AreEqual(s.GroupPrims, t.GroupPrims);
-                Assert.AreEqual(s.IsGroupOwned, t.IsGroupOwned);
-                Assert.AreEqual(s.LandingType, t.LandingType);
-                Assert.AreEqual(s.LocalID, t.LocalID);
-                Assert.AreEqual(s.MaxPrims, t.MaxPrims);
-                Assert.AreEqual(s.MediaAutoScale, t.MediaAutoScale);
-                Assert.AreEqual(s.MediaDesc, t.MediaDesc);
-                Assert.AreEqual(s.MediaHeight, t.MediaHeight);
-                Assert.AreEqual(s.MediaID, t.MediaID);
-                Assert.AreEqual(s.MediaLoop, t.MediaLoop);
-                Assert.AreEqual(s.MediaType, t.MediaType);
-                Assert.AreEqual(s.MediaURL, t.MediaURL);
-                Assert.AreEqual(s.MediaWidth, t.MediaWidth);
-                Assert.AreEqual(s.MusicURL, t.MusicURL);
-                Assert.AreEqual(s.Name, t.Name);
-                Assert.AreEqual(s.ObscureMedia, t.ObscureMedia);
-                Assert.AreEqual(s.ObscureMusic, t.ObscureMusic);
-                Assert.AreEqual(s.OtherCleanTime, t.OtherCleanTime);
-                Assert.AreEqual(s.OtherCount, t.OtherCount);
-                Assert.AreEqual(s.OtherPrims, t.OtherPrims);
-                Assert.AreEqual(s.OwnerID, t.OwnerID);
-                Assert.AreEqual(s.OwnerPrims, t.OwnerPrims);
-                Assert.AreEqual(s.ParcelFlags, t.ParcelFlags);
-                Assert.AreEqual(s.ParcelPrimBonus, t.ParcelPrimBonus);
-                Assert.AreEqual(s.PassHours, t.PassHours);
-                Assert.AreEqual(s.PassPrice, t.PassPrice);
-                Assert.AreEqual(s.PublicCount, t.PublicCount);
-                Assert.AreEqual(s.RegionDenyAgeUnverified, t.RegionDenyAgeUnverified);
-                Assert.AreEqual(s.RegionDenyAnonymous, t.RegionDenyAnonymous);
-                Assert.AreEqual(s.RegionPushOverride, t.RegionPushOverride);
-                Assert.AreEqual(s.RentPrice, t.RentPrice);
-                Assert.AreEqual(s.RequestResult, t.RequestResult);
-                Assert.AreEqual(s.SalePrice, t.SalePrice);
-                Assert.AreEqual(s.SelectedPrims, t.SelectedPrims);
-                Assert.AreEqual(s.SelfCount, t.SelfCount);
-                Assert.AreEqual(s.SequenceID, t.SequenceID);
-                Assert.AreEqual(s.SimWideMaxPrims, t.SimWideMaxPrims);
-                Assert.AreEqual(s.SimWideTotalPrims, t.SimWideTotalPrims);
-                Assert.AreEqual(s.SnapSelection, t.SnapSelection);
-                Assert.AreEqual(s.SnapshotID, t.SnapshotID);
-                Assert.AreEqual(s.Status, t.Status);
-                Assert.AreEqual(s.TotalPrims, t.TotalPrims);
-                Assert.AreEqual(s.UserLocation, t.UserLocation);
-                Assert.AreEqual(s.UserLookAt, t.UserLookAt);
+                Assert.That(s.AABBMax, Is.EqualTo(t.AABBMax));
+                Assert.That(s.AABBMin, Is.EqualTo(t.AABBMin));
+                Assert.That(s.Area, Is.EqualTo(t.Area));
+                Assert.That(s.AuctionID, Is.EqualTo(t.AuctionID));
+                Assert.That(s.AuthBuyerID, Is.EqualTo(t.AuthBuyerID));
+                Assert.That(s.Bitmap, Is.EqualTo(t.Bitmap));
+                Assert.That(s.Category, Is.EqualTo(t.Category));
+                Assert.That(s.ClaimDate, Is.EqualTo(t.ClaimDate));
+                Assert.That(s.ClaimPrice, Is.EqualTo(t.ClaimPrice));
+                Assert.That(s.Desc, Is.EqualTo(t.Desc));
+                Assert.That(s.GroupID, Is.EqualTo(t.GroupID));
+                Assert.That(s.GroupPrims, Is.EqualTo(t.GroupPrims));
+                Assert.That(s.IsGroupOwned, Is.EqualTo(t.IsGroupOwned));
+                Assert.That(s.LandingType, Is.EqualTo(t.LandingType));
+                Assert.That(s.LocalID, Is.EqualTo(t.LocalID));
+                Assert.That(s.MaxPrims, Is.EqualTo(t.MaxPrims));
+                Assert.That(s.MediaAutoScale, Is.EqualTo(t.MediaAutoScale));
+                Assert.That(s.MediaDesc, Is.EqualTo(t.MediaDesc));
+                Assert.That(s.MediaHeight, Is.EqualTo(t.MediaHeight));
+                Assert.That(s.MediaID, Is.EqualTo(t.MediaID));
+                Assert.That(s.MediaLoop, Is.EqualTo(t.MediaLoop));
+                Assert.That(s.MediaType, Is.EqualTo(t.MediaType));
+                Assert.That(s.MediaURL, Is.EqualTo(t.MediaURL));
+                Assert.That(s.MediaWidth, Is.EqualTo(t.MediaWidth));
+                Assert.That(s.MusicURL, Is.EqualTo(t.MusicURL));
+                Assert.That(s.Name, Is.EqualTo(t.Name));
+                Assert.That(s.ObscureMedia, Is.EqualTo(t.ObscureMedia));
+                Assert.That(s.ObscureMusic, Is.EqualTo(t.ObscureMusic));
+                Assert.That(s.OtherCleanTime, Is.EqualTo(t.OtherCleanTime));
+                Assert.That(s.OtherCount, Is.EqualTo(t.OtherCount));
+                Assert.That(s.OtherPrims, Is.EqualTo(t.OtherPrims));
+                Assert.That(s.OwnerID, Is.EqualTo(t.OwnerID));
+                Assert.That(s.OwnerPrims, Is.EqualTo(t.OwnerPrims));
+                Assert.That(s.ParcelFlags, Is.EqualTo(t.ParcelFlags));
+                Assert.That(s.ParcelPrimBonus, Is.EqualTo(t.ParcelPrimBonus));
+                Assert.That(s.PassHours, Is.EqualTo(t.PassHours));
+                Assert.That(s.PassPrice, Is.EqualTo(t.PassPrice));
+                Assert.That(s.PublicCount, Is.EqualTo(t.PublicCount));
+                Assert.That(s.RegionDenyAgeUnverified, Is.EqualTo(t.RegionDenyAgeUnverified));
+                Assert.That(s.RegionDenyAnonymous, Is.EqualTo(t.RegionDenyAnonymous));
+                Assert.That(s.RegionPushOverride, Is.EqualTo(t.RegionPushOverride));
+                Assert.That(s.RentPrice, Is.EqualTo(t.RentPrice));
+                Assert.That(s.RequestResult, Is.EqualTo(t.RequestResult));
+                Assert.That(s.SalePrice, Is.EqualTo(t.SalePrice));
+                Assert.That(s.SelectedPrims, Is.EqualTo(t.SelectedPrims));
+                Assert.That(s.SelfCount, Is.EqualTo(t.SelfCount));
+                Assert.That(s.SequenceID, Is.EqualTo(t.SequenceID));
+                Assert.That(s.SimWideMaxPrims, Is.EqualTo(t.SimWideMaxPrims));
+                Assert.That(s.SimWideTotalPrims, Is.EqualTo(t.SimWideTotalPrims));
+                Assert.That(s.SnapSelection, Is.EqualTo(t.SnapSelection));
+                Assert.That(s.SnapshotID, Is.EqualTo(t.SnapshotID));
+                Assert.That(s.Status, Is.EqualTo(t.Status));
+                Assert.That(s.TotalPrims, Is.EqualTo(t.TotalPrims));
+                Assert.That(s.UserLocation, Is.EqualTo(t.UserLocation));
+                Assert.That(s.UserLookAt, Is.EqualTo(t.UserLookAt));
             }
-            TimeSpan durationxml = DateTime.UtcNow - xmlTestTime;
+            var durationxml = DateTime.UtcNow - xmlTestTime;
             Console.WriteLine("ParcelPropertiesMessage: .NET BinarySerialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, durationxml);
         }
 

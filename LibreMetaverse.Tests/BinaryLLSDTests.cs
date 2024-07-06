@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,7 @@
 
 /* 
  * 
- * This tests are based upon the description at
+ * These tests are based upon the description at
  * 
  * http://wiki.secondlife.com/wiki/LLSD
  * 
@@ -48,12 +48,12 @@ using OpenMetaverse.StructuredData;
 namespace LibreMetaverse.Tests
 {
 
-    [TestFixture()]
-    public class BinarySDTests
+    [TestFixture]
+    public class BinarySdTests
     {
-        private static readonly byte[] binaryHead = Encoding.ASCII.GetBytes("<?llsd/binary?>\n");
+        private static readonly byte[] BinaryHead = Encoding.ASCII.GetBytes("<?llsd/binary?>\n");
 
-        [Test()]
+        [Test]
         public void HelperFunctions()
         {
             string s = "this is a teststring so that we can find something from the beginning";
@@ -62,211 +62,210 @@ namespace LibreMetaverse.Tests
 
             stream.Position = 0L;
             bool result = OSDParser.FindString(stream, "this");
-            Assert.AreEqual(true, result);
-            Assert.AreEqual(4L, stream.Position);
+            Assert.That(result, Is.True);
+            Assert.That(stream.Position, Is.EqualTo(4L));
 
             stream.Position = 10L;
             result = OSDParser.FindString(stream, "teststring");
-            Assert.AreEqual(true, result);
-            Assert.AreEqual(20L, stream.Position);
+            Assert.That(result, Is.True);
+            Assert.That(stream.Position, Is.EqualTo((20L)));
 
             stream.Position = 25L;
             result = OSDParser.FindString(stream, "notfound");
-            Assert.AreEqual(false, result);
-            Assert.AreEqual(25L, stream.Position);
+            Assert.That(result, Is.False);
+            Assert.That(stream.Position, Is.EqualTo(25L));
 
             stream.Position = 60L;
             result = OSDParser.FindString(stream, "beginningAndMore");
-            Assert.AreEqual(false, result);
-            Assert.AreEqual(60L, stream.Position);
+            Assert.That(result, Is.False);
+            Assert.That(stream.Position, Is.EqualTo(60L));
 
             byte[] sFrontWhiteSpace = Encoding.ASCII.GetBytes("   \t\t\n\rtest");
             MemoryStream streamTwo = new MemoryStream(sFrontWhiteSpace);
             OSDParser.SkipWhiteSpace(streamTwo);
-            Assert.AreEqual(7L, streamTwo.Position);
+            Assert.That(streamTwo.Position, Is.EqualTo(7L));
 
             byte[] sMiddleWhiteSpace = Encoding.ASCII.GetBytes("test \t\t\n\rtest");
             MemoryStream streamThree = new MemoryStream(sMiddleWhiteSpace);
             streamThree.Position = 4L;
             OSDParser.SkipWhiteSpace(streamThree);
-            Assert.AreEqual(9L, streamThree.Position);
+            Assert.That(streamThree, Is.EqualTo(9L));
 
             byte[] sNoWhiteSpace = Encoding.ASCII.GetBytes("testtesttest");
             MemoryStream streamFour = new MemoryStream(sNoWhiteSpace);
             OSDParser.SkipWhiteSpace(streamFour);
-            Assert.AreEqual(0L, streamFour.Position);
-
+            Assert.That(streamFour, Is.EqualTo(0L));
         }
 
         // Testvalues for Undef:
-        private static byte[] binaryUndefValue = { 0x21 };
-        private static byte[] binaryUndef = (byte[])ConcatenateArrays(binaryHead, binaryUndefValue);
+        private static readonly byte[] BinaryUndefValue = { 0x21 };
+        private static readonly byte[] BinaryUndef = (byte[])ConcatenateArrays(BinaryHead, BinaryUndefValue);
 
-        [Test()]
+        [Test]
         public void DeserializeUndef()
         {
-            OSD llsdUndef = OSDParser.DeserializeLLSDBinary(binaryUndef);
-            Assert.AreEqual(OSDType.Unknown, llsdUndef.Type);
+            OSD llsdUndef = OSDParser.DeserializeLLSDBinary(BinaryUndef);
+            Assert.That(llsdUndef, Is.EqualTo(OSDType.Unknown));
         }
 
-        [Test()]
+        [Test]
         public void SerializeUndef()
         {
             OSD llsdUndef = new OSD();
             byte[] binaryUndefSerialized = OSDParser.SerializeLLSDBinary(llsdUndef);
-            Assert.AreEqual(binaryUndef, binaryUndefSerialized);
+            Assert.That(binaryUndefSerialized, Is.EqualTo(BinaryUndef));
         }
 
-        private static byte[] binaryTrueValue = { 0x31 };
-        private static byte[] binaryTrue = (byte[])ConcatenateArrays(binaryHead, binaryTrueValue);
+        private static readonly byte[] BinaryTrueValue = { 0x31 };
+        private static readonly byte[] BinaryTrue = (byte[])ConcatenateArrays(BinaryHead, BinaryTrueValue);
 
 
-        private static byte[] binaryFalseValue = { 0x30 };
-        private static byte[] binaryFalse = (byte[])ConcatenateArrays(binaryHead, binaryFalseValue);
+        private static readonly byte[] BinaryFalseValue = { 0x30 };
+        private static readonly byte[] BinaryFalse = (byte[])ConcatenateArrays(BinaryHead, BinaryFalseValue);
 
-        [Test()]
+        [Test]
         public void DeserializeBool()
         {
-            OSD llsdTrue = OSDParser.DeserializeLLSDBinary(binaryTrue);
-            Assert.AreEqual(OSDType.Boolean, llsdTrue.Type);
-            Assert.AreEqual(true, llsdTrue.AsBoolean());
+            OSD llsdTrue = OSDParser.DeserializeLLSDBinary(BinaryTrue);
+            Assert.That(llsdTrue.Type, Is.EqualTo(OSDType.Boolean));
+            Assert.That(llsdTrue.AsBoolean(), Is.True);
 
-            OSD llsdFalse = OSDParser.DeserializeLLSDBinary(binaryFalse);
-            Assert.AreEqual(OSDType.Boolean, llsdFalse.Type);
-            Assert.AreEqual(false, llsdFalse.AsBoolean());
+            OSD llsdFalse = OSDParser.DeserializeLLSDBinary(BinaryFalse);
+            Assert.That(llsdFalse.Type, Is.EqualTo(OSDType.Boolean));
+            Assert.That(llsdFalse.AsBoolean(), Is.False);
         }
 
-        [Test()]
+        [Test]
         public void SerializeBool()
         {
             OSD llsdTrue = OSD.FromBoolean(true);
             byte[] binaryTrueSerialized = OSDParser.SerializeLLSDBinary(llsdTrue);
-            Assert.AreEqual(binaryTrue, binaryTrueSerialized);
+            Assert.That(binaryTrueSerialized, Is.EqualTo(BinaryTrue));
 
             OSD llsdFalse = OSD.FromBoolean(false);
             byte[] binaryFalseSerialized = OSDParser.SerializeLLSDBinary(llsdFalse);
-            Assert.AreEqual(binaryFalse, binaryFalseSerialized);
+            Assert.That(binaryFalseSerialized, Is.EqualTo(BinaryFalse));
         }
 
-        private static byte[] binaryZeroIntValue = { 0x69, 0x0, 0x0, 0x0, 0x0 };
-        private static byte[] binaryZeroInt = (byte[])ConcatenateArrays(binaryHead, binaryZeroIntValue);
+        private static readonly byte[] BinaryZeroIntValue = { 0x69, 0x0, 0x0, 0x0, 0x0 };
+        private static readonly byte[] BinaryZeroInt = (byte[])ConcatenateArrays(BinaryHead, BinaryZeroIntValue);
 
-        private static byte[] binaryAnIntValue = { 0x69, 0x0, 0x12, 0xd7, 0x9b };
-        private static byte[] binaryAnInt = (byte[])ConcatenateArrays(binaryHead, binaryAnIntValue);
+        private static readonly byte[] BinaryAnIntValue = { 0x69, 0x0, 0x12, 0xd7, 0x9b };
+        private static readonly byte[] BinaryAnInt = (byte[])ConcatenateArrays(BinaryHead, BinaryAnIntValue);
 
-        [Test()]
+        [Test]
         public void DeserializeInteger()
         {
-            OSD llsdZeroInteger = OSDParser.DeserializeLLSDBinary(binaryZeroInt);
-            Assert.AreEqual(OSDType.Integer, llsdZeroInteger.Type);
-            Assert.AreEqual(0, llsdZeroInteger.AsInteger());
+            OSD llsdZeroInteger = OSDParser.DeserializeLLSDBinary(BinaryZeroInt);
+            Assert.That(llsdZeroInteger.Type, Is.EqualTo(OSDType.Integer));
+            Assert.That(llsdZeroInteger.AsInteger(), Is.Zero);
 
-
-            OSD llsdAnInteger = OSDParser.DeserializeLLSDBinary(binaryAnInt);
-            Assert.AreEqual(OSDType.Integer, llsdAnInteger.Type);
-            Assert.AreEqual(1234843, llsdAnInteger.AsInteger());
+            OSD llsdAnInteger = OSDParser.DeserializeLLSDBinary(BinaryAnInt);
+            Assert.That(llsdAnInteger.Type, Is.EqualTo(OSDType.Integer));
+            Assert.That(llsdAnInteger.AsInteger(), Is.EqualTo(1234843));
         }
 
-        [Test()]
+        [Test]
         public void SerializeInteger()
         {
             OSD llsdZeroInt = OSD.FromInteger(0);
             byte[] binaryZeroIntSerialized = OSDParser.SerializeLLSDBinary(llsdZeroInt);
-            Assert.AreEqual(binaryZeroInt, binaryZeroIntSerialized);
+            Assert.That(binaryZeroIntSerialized, Is.EqualTo(BinaryZeroInt));
 
             binaryZeroIntSerialized = OSDParser.SerializeLLSDBinary(llsdZeroInt, false);
-            Assert.AreEqual(binaryZeroIntValue, binaryZeroIntSerialized);
+            Assert.That(binaryZeroIntSerialized, Is.EqualTo(BinaryZeroIntValue));
 
             OSD llsdAnInt = OSD.FromInteger(1234843);
             byte[] binaryAnIntSerialized = OSDParser.SerializeLLSDBinary(llsdAnInt);
-            Assert.AreEqual(binaryAnInt, binaryAnIntSerialized);
+            Assert.That(binaryAnIntSerialized, Is.EqualTo(BinaryAnInt));
 
             binaryAnIntSerialized = OSDParser.SerializeLLSDBinary(llsdAnInt, false);
-            Assert.AreEqual(binaryAnIntValue, binaryAnIntSerialized);
+            Assert.That(binaryAnIntSerialized, Is.EqualTo(BinaryAnIntValue));
         }
 
-        private static byte[] binaryRealValue = { 0x72, 0x41, 0x2c, 0xec, 0xf6, 0x77, 0xce, 0xd9, 0x17 };
-        private static byte[] binaryReal = (byte[])ConcatenateArrays(binaryHead, binaryRealValue);
+        private static readonly byte[] BinaryRealValue = { 0x72, 0x41, 0x2c, 0xec, 0xf6, 0x77, 0xce, 0xd9, 0x17 };
+        private static readonly byte[] BinaryReal = (byte[])ConcatenateArrays(BinaryHead, BinaryRealValue);
 
-        [Test()]
+        [Test]
         public void DeserializeReal()
         {
-            OSD llsdReal = OSDParser.DeserializeLLSDBinary(binaryReal);
-            Assert.AreEqual(OSDType.Real, llsdReal.Type);
-            Assert.AreEqual(947835.234d, llsdReal.AsReal());
+            OSD llsdReal = OSDParser.DeserializeLLSDBinary(BinaryReal);
+            Assert.That(llsdReal.Type, Is.EqualTo(OSDType.Real));
+            Assert.That(llsdReal.AsReal(), Is.EqualTo(947835.234d));
         }
 
-        [Test()]
+        [Test]
         public void SerializeReal()
         {
             OSD llsdReal = OSD.FromReal(947835.234d);
             byte[] binaryRealSerialized = OSDParser.SerializeLLSDBinary(llsdReal);
-            Assert.AreEqual(binaryReal, binaryRealSerialized);
+            Assert.That(binaryRealSerialized, Is.EqualTo(BinaryReal));
 
             binaryRealSerialized = OSDParser.SerializeLLSDBinary(llsdReal);
-            Assert.AreEqual(binaryReal, binaryRealSerialized);
+            Assert.That(binaryRealSerialized, Is.EqualTo(BinaryReal));
         }
 
-        private static byte[] binaryAUUIDValue = { 0x75, 0x97, 0xf4, 0xae, 0xca, 0x88, 0xa1, 0x42, 0xa1, 
+        private static readonly byte[] BinaryAuuidValue = { 0x75, 0x97, 0xf4, 0xae, 0xca, 0x88, 0xa1, 0x42, 0xa1, 
                                         0xb3, 0x85, 0xb9, 0x7b, 0x18, 0xab, 0xb2, 0x55 };
-        private static byte[] binaryAUUID = (byte[])ConcatenateArrays(binaryHead, binaryAUUIDValue);
+        private static readonly byte[] BinaryAuuid = (byte[])ConcatenateArrays(BinaryHead, BinaryAuuidValue);
 
-        private static byte[] binaryZeroUUIDValue = { 0x75, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
-        private static byte[] binaryZeroUUID = (byte[])ConcatenateArrays(binaryHead, binaryZeroUUIDValue);
+        private static readonly byte[] BinaryZeroUuidValue = { 0x75, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
+        private static readonly byte[] BinaryZeroUuid = (byte[])ConcatenateArrays(BinaryHead, BinaryZeroUuidValue);
 
 
-        [Test()]
-        public void DeserializeUUID()
+        [Test]
+        public void DeserializeUuid()
         {
-            OSD llsdAUUID = OSDParser.DeserializeLLSDBinary(binaryAUUID);
-            Assert.AreEqual(OSDType.UUID, llsdAUUID.Type);
-            Assert.AreEqual("97f4aeca-88a1-42a1-b385-b97b18abb255", llsdAUUID.AsString());
+            Assert.That(UUID.Zero.ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
+            
+            OSD llsdAuuid = OSDParser.DeserializeLLSDBinary(BinaryAuuid);
+            Assert.That(llsdAuuid.Type, Is.EqualTo(OSDType.UUID));
+            Assert.That(llsdAuuid.AsString(), Is.EqualTo("97f4aeca-88a1-42a1-b385-b97b18abb255"));
 
-            OSD llsdZeroUUID = OSDParser.DeserializeLLSDBinary(binaryZeroUUID);
-            Assert.AreEqual(OSDType.UUID, llsdZeroUUID.Type);
-            Assert.AreEqual("00000000-0000-0000-0000-000000000000", llsdZeroUUID.AsString());
-
+            OSD llsdZeroUuid = OSDParser.DeserializeLLSDBinary(BinaryZeroUuid);
+            Assert.That(llsdZeroUuid.Type, Is.EqualTo(OSDType.UUID));
+            Assert.That(llsdZeroUuid.ToString(), Is.EqualTo(UUID.Zero.ToString()));
         }
 
-        [Test()]
-        public void SerializeUUID()
+        [Test]
+        public void SerializeUuid()
         {
-            OSD llsdAUUID = OSD.FromUUID(new UUID("97f4aeca-88a1-42a1-b385-b97b18abb255"));
-            byte[] binaryAUUIDSerialized = OSDParser.SerializeLLSDBinary(llsdAUUID);
-            Assert.AreEqual(binaryAUUID, binaryAUUIDSerialized);
+            OSD llsdAuuid = OSD.FromUUID(new UUID("97f4aeca-88a1-42a1-b385-b97b18abb255"));
+            byte[] binaryAuuidSerialized = OSDParser.SerializeLLSDBinary(llsdAuuid);
+            Assert.That(binaryAuuidSerialized, Is.EqualTo(BinaryAuuid));
 
-            binaryAUUIDSerialized = OSDParser.SerializeLLSDBinary(llsdAUUID);
-            Assert.AreEqual(binaryAUUID, binaryAUUIDSerialized);
+            binaryAuuidSerialized = OSDParser.SerializeLLSDBinary(llsdAuuid);
+            Assert.That(binaryAuuidSerialized, Is.EqualTo(BinaryAuuid));
 
-            OSD llsdZeroUUID = OSD.FromUUID(new UUID("00000000-0000-0000-0000-000000000000"));
-            byte[] binaryZeroUUIDSerialized = OSDParser.SerializeLLSDBinary(llsdZeroUUID);
-            Assert.AreEqual(binaryZeroUUID, binaryZeroUUIDSerialized);
+            OSD llsdZeroUuid = OSD.FromUUID(UUID.Zero);
+            byte[] binaryZeroUuidSerialized = OSDParser.SerializeLLSDBinary(llsdZeroUuid);
+            Assert.That(binaryZeroUuidSerialized, Is.EqualTo(BinaryZeroUuid));
 
-            binaryZeroUUIDSerialized = OSDParser.SerializeLLSDBinary(llsdZeroUUID);
-            Assert.AreEqual(binaryZeroUUID, binaryZeroUUIDSerialized);
+            binaryZeroUuidSerialized = OSDParser.SerializeLLSDBinary(llsdZeroUuid);
+            Assert.That(binaryZeroUuidSerialized, Is.EqualTo(BinaryZeroUuid));
         }
 
-        private static byte[] binaryBinStringValue = { 0x62, 0x0, 0x0, 0x0, 0x34, // this line is the encoding header
+        private static readonly byte[] BinaryBinStringValue = { 0x62, 0x0, 0x0, 0x0, 0x34, // this line is the encoding header
                                         0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67, 0x20, 0x61, 0x20, 0x73, 
                                         0x69, 0x6d, 0x70, 0x6c, 0x65, 0x20, 0x62, 0x69, 0x6e, 0x61, 0x72, 0x79, 0x20, 0x63, 0x6f,
                                         0x6e, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x20, 0x66, 0x6f, 0x72, 0x20, 0x74, 0x68,
                                         0x69, 0x73, 0x20, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0xa, 0xd };
-        private static byte[] binaryBinString = (byte[])ConcatenateArrays(binaryHead, binaryBinStringValue);
+        private static readonly byte[] BinaryBinString = (byte[])ConcatenateArrays(BinaryHead, BinaryBinStringValue);
 
-        [Test()]
-        public void DeserializeLLSDBinary()
+        [Test]
+        public void DeserializeLlsdBinary()
         {
-            OSD llsdBytes = OSDParser.DeserializeLLSDBinary(binaryBinString);
-            Assert.AreEqual(OSDType.Binary, llsdBytes.Type);
+            OSD llsdBytes = OSDParser.DeserializeLLSDBinary(BinaryBinString);
+            Assert.That(llsdBytes.Type, Is.EqualTo(OSDType.Binary));
             byte[] contentBinString = { 0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67, 0x20, 0x61, 0x20, 0x73, 
                                         0x69, 0x6d, 0x70, 0x6c, 0x65, 0x20, 0x62, 0x69, 0x6e, 0x61, 0x72, 0x79, 0x20, 0x63, 0x6f,
                                         0x6e, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x20, 0x66, 0x6f, 0x72, 0x20, 0x74, 0x68,
                                         0x69, 0x73, 0x20, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0xa, 0xd };
-            Assert.AreEqual(contentBinString, llsdBytes.AsBinary());
+            Assert.That(llsdBytes.AsBinary(), Is.EqualTo(contentBinString));
         }
 
-        [Test()]
-        public void SerializeLLSDBinary()
+        [Test]
+        public void SerializeLlsdBinary()
         {
             byte[] contentBinString = { 0x74, 0x65, 0x73, 0x74, 0x69, 0x6e, 0x67, 0x20, 0x61, 0x20, 0x73, 
                                         0x69, 0x6d, 0x70, 0x6c, 0x65, 0x20, 0x62, 0x69, 0x6e, 0x61, 0x72, 0x79, 0x20, 0x63, 0x6f,
@@ -274,44 +273,43 @@ namespace LibreMetaverse.Tests
                                         0x69, 0x73, 0x20, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0xa, 0xd };
             OSD llsdBinary = OSD.FromBinary(contentBinString);
             byte[] binaryBinarySerialized = OSDParser.SerializeLLSDBinary(llsdBinary);
-            Assert.AreEqual(binaryBinString, binaryBinarySerialized);
+            Assert.That(binaryBinarySerialized, Is.EqualTo(BinaryBinString));
         }
 
-        private static byte[] binaryEmptyStringValue = { 0x73, 0x0, 0x0, 0x0, 0x0 };
-        private static byte[] binaryEmptyString = (byte[])ConcatenateArrays(binaryHead, binaryEmptyStringValue);
-        private static byte[] binaryLongStringValue = { 0x73, 0x0, 0x0, 0x0, 0x25, 
+        private static readonly byte[] BinaryEmptyStringValue = { 0x73, 0x0, 0x0, 0x0, 0x0 };
+        private static readonly byte[] BinaryEmptyString = (byte[])ConcatenateArrays(BinaryHead, BinaryEmptyStringValue);
+        private static readonly byte[] BinaryLongStringValue = { 0x73, 0x0, 0x0, 0x0, 0x25, 
                                                             0x61, 0x62, 0x63, 0x64, 0x65, 0x66,
                                                             0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c,
                                                             0x6d, 0x6e, 0x6f, 0x70, 0x71, 0x72,
                                                             0x73, 0x74, 0x75, 0x76, 0x77, 0x78,
                                                             0x79, 0x7a, 0x30, 0x31, 0x32, 0x33,
                                                             0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30 };
-        private static byte[] binaryLongString = (byte[])ConcatenateArrays(binaryHead, binaryLongStringValue);
+        private static readonly byte[] BinaryLongString = (byte[])ConcatenateArrays(BinaryHead, BinaryLongStringValue);
 
-        [Test()]
+        [Test]
         public void DeserializeString()
         {
-            OSD llsdEmptyString = OSDParser.DeserializeLLSDBinary(binaryEmptyString);
-            Assert.AreEqual(OSDType.String, llsdEmptyString.Type);
-            string contentEmptyString = "";
-            Assert.AreEqual(contentEmptyString, llsdEmptyString.AsString());
+            OSD llsdEmptyString = OSDParser.DeserializeLLSDBinary(BinaryEmptyString);
+            Assert.That(llsdEmptyString.Type, Is.EqualTo(OSDType.String));
+            Assert.That(llsdEmptyString, Is.Empty);
 
-            OSD llsdLongString = OSDParser.DeserializeLLSDBinary(binaryLongString);
-            Assert.AreEqual(OSDType.String, llsdLongString.Type);
+            OSD llsdLongString = OSDParser.DeserializeLLSDBinary(BinaryLongString);
+            Assert.That(llsdLongString.Type, Is.EqualTo(OSDType.String));
             string contentLongString = "abcdefghijklmnopqrstuvwxyz01234567890";
-            Assert.AreEqual(contentLongString, llsdLongString.AsString());
+            Assert.That(llsdLongString, Is.EqualTo(contentLongString));
         }
 
-        [Test()]
+        [Test]
         public void SerializeString()
         {
             OSD llsdString = OSD.FromString("abcdefghijklmnopqrstuvwxyz01234567890");
             byte[] binaryLongStringSerialized = OSDParser.SerializeLLSDBinary(llsdString);
-            Assert.AreEqual(binaryLongString, binaryLongStringSerialized);
+            Assert.That(binaryLongStringSerialized, Is.EqualTo(BinaryLongString));
 
             // A test with some utf8 characters
-            string contentAStringXML = "<x>&#x196;&#x214;&#x220;&#x228;&#x246;&#x252;</x>";
-            byte[] bytes = Encoding.UTF8.GetBytes(contentAStringXML);
+            string contentAStringXml = "<x>&#x196;&#x214;&#x220;&#x228;&#x246;&#x252;</x>";
+            byte[] bytes = Encoding.UTF8.GetBytes(contentAStringXml);
             XmlTextReader xtr = new XmlTextReader(new MemoryStream(bytes, false));
             xtr.Read();
             xtr.Read();
@@ -319,9 +317,9 @@ namespace LibreMetaverse.Tests
             string contentAString = xtr.ReadString();
             OSD llsdAString = OSD.FromString(contentAString);
             byte[] binaryAString = OSDParser.SerializeLLSDBinary(llsdAString);
-            OSD llsdAStringDS = OSDParser.DeserializeLLSDBinary(binaryAString);
-            Assert.AreEqual(OSDType.String, llsdAStringDS.Type);
-            Assert.AreEqual(contentAString, llsdAStringDS.AsString());
+            OSD llsdAStringDs = OSDParser.DeserializeLLSDBinary(binaryAString);
+            Assert.That(llsdAStringDs.Type, Is.EqualTo(OSDType.String));
+            Assert.That(llsdAStringDs, Is.EqualTo(contentAString));
 
             // we also test for a 4byte character.
             string xml = "<x>&#x10137;</x>";
@@ -333,164 +331,163 @@ namespace LibreMetaverse.Tests
 
             OSD llsdStringOne = OSD.FromString(content);
             byte[] binaryAStringOneSerialized = OSDParser.SerializeLLSDBinary(llsdStringOne);
-            OSD llsdStringOneDS = OSDParser.DeserializeLLSDBinary(binaryAStringOneSerialized);
-            Assert.AreEqual(OSDType.String, llsdStringOneDS.Type);
-            Assert.AreEqual(content, llsdStringOneDS.AsString());
-
+            OSD llsdStringOneDs = OSDParser.DeserializeLLSDBinary(binaryAStringOneSerialized);
+            Assert.That(llsdStringOneDs.Type, Is.EqualTo(OSDType.String));
+            Assert.That(llsdStringOneDs, Is.EqualTo(content));
         }
 
-        // Be careful. The current and above mentioned reference implementation has a bug that
-        // doesnt allow proper binary Uri encoding.
+        // Be careful. The current and above-mentioned reference implementation has a bug that
+        // doesn't allow proper binary Uri encoding.
         // We compare here to a fixed version of Uri encoding
-        private static byte[] binaryURIValue = { 0x6c, 0x0, 0x0, 0x0, 0x18, // this line is the encoding header
+        private static readonly byte[] BinaryUriValue = { 0x6c, 0x0, 0x0, 0x0, 0x18, // this line is the encoding header
                                     0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x77, 0x77, 0x77, 0x2e, 0x74,
                                     0x65, 0x73, 0x74, 0x75, 0x72, 0x6c, 0x2e, 0x74, 0x65, 0x73, 0x74, 0x2f };
-        private static byte[] binaryURI = (byte[])ConcatenateArrays(binaryHead, binaryURIValue);
+        private static readonly byte[] BinaryUri = (byte[])ConcatenateArrays(BinaryHead, BinaryUriValue);
 
-        [Test()]
-        public void DeserializeURI()
+        [Test]
+        public void DeserializeUri()
         {
-            OSD llsdURI = OSDParser.DeserializeLLSDBinary(binaryURI);
-            Assert.AreEqual(OSDType.URI, llsdURI.Type);
+            OSD llsdUri = OSDParser.DeserializeLLSDBinary(BinaryUri);
+            Assert.That(llsdUri.Type, Is.EqualTo(OSDType.URI));
             Uri uri = new Uri("http://www.testurl.test/");
-            Assert.AreEqual(uri, llsdURI.AsUri());
-
+            Assert.That(llsdUri.AsUri(), Is.EqualTo(uri));
         }
 
-        [Test()]
-        public void SerializeURI()
+        [Test]
+        public void SerializeUri()
         {
             OSD llsdUri = OSD.FromUri(new Uri("http://www.testurl.test/"));
-            byte[] binaryURISerialized = OSDParser.SerializeLLSDBinary(llsdUri);
-            Assert.AreEqual(binaryURI, binaryURISerialized);
+            byte[] binaryUriSerialized = OSDParser.SerializeLLSDBinary(llsdUri);
+            Assert.That(binaryUriSerialized, Is.EqualTo(BinaryUri));
         }
 
         // Here is a problem.
         // The reference implementation does serialize to a local timestamp and not to a universal timestamp,
         // which means, this implementation and the reference implementation only work the same in the universal
-        // timezone. Therefore this binaryDateTimeValue is generated in the UTC timezone by the reference
+        // timezone. Therefore, this binaryDateTimeValue is generated in the UTC timezone by the reference
         // implementation.
-        private static byte[] binaryDateTimeValue = { 100, 0, 0, 192, 141, 167, 222, 209, 65 };
-        private static byte[] binaryDateTime = (byte[])ConcatenateArrays(binaryHead, binaryDateTimeValue);
+        private static readonly byte[] BinaryDateTimeValue = { 100, 0, 0, 192, 141, 167, 222, 209, 65 };
+        private static readonly byte[] BinaryDateTime = (byte[])ConcatenateArrays(BinaryHead, BinaryDateTimeValue);
 
-        [Test()]
+        [Test]
         public void DeserializeDateTime()
         {
-            OSD llsdDateTime = OSDParser.DeserializeLLSDBinary(binaryDateTime);
-            Assert.AreEqual(OSDType.Date, llsdDateTime.Type);
+            OSD llsdDateTime = OSDParser.DeserializeLLSDBinary(BinaryDateTime);
+            Assert.That(llsdDateTime.Type, Is.EqualTo(OSDType.Date));
             DateTime dt = new DateTime(2008, 1, 1, 20, 10, 31, 0, DateTimeKind.Utc);
             DateTime dateLocal = llsdDateTime.AsDate();
-            Assert.AreEqual(dt, dateLocal.ToUniversalTime());
+            Assert.That(dt, Is.EqualTo(dateLocal.ToUniversalTime()));
         }
 
-        [Test()]
+        [Test]
         public void SerializeDateTime()
         {
             DateTime dt = new DateTime(2008, 1, 1, 20, 10, 31, 0, DateTimeKind.Utc);
             OSD llsdDate = OSD.FromDate(dt);
             byte[] binaryDateSerialized = OSDParser.SerializeLLSDBinary(llsdDate);
-            Assert.AreEqual(binaryDateTime, binaryDateSerialized);
+            Assert.That(binaryDateSerialized, Is.EqualTo(BinaryDateTime));
 
             // check if a *local* time can be serialized and deserialized
             DateTime dtOne = new DateTime(2009, 12, 30, 8, 25, 10, DateTimeKind.Local);
             OSD llsdDateOne = OSD.FromDate(dtOne);
             byte[] binaryDateOneSerialized = OSDParser.SerializeLLSDBinary(llsdDateOne);
-            OSD llsdDateOneDS = OSDParser.DeserializeLLSDBinary(binaryDateOneSerialized);
-            Assert.AreEqual(OSDType.Date, llsdDateOneDS.Type);
-            Assert.AreEqual(dtOne, llsdDateOneDS.AsDate());
+            OSD llsdDateOneDs = OSDParser.DeserializeLLSDBinary(binaryDateOneSerialized);
+            Assert.That(llsdDateOneDs, Is.EqualTo(OSDType.Date));
+            Assert.That(llsdDateOneDs.AsDate(), Is.EqualTo(dtOne));
 
             DateTime dtTwo = new DateTime(2010, 11, 11, 10, 8, 20, DateTimeKind.Utc);
             OSD llsdDateTwo = OSD.FromDate(dtTwo);
             byte[] binaryDateTwoSerialized = OSDParser.SerializeLLSDBinary(llsdDateTwo);
-            OSD llsdDateTwoDS = OSDParser.DeserializeLLSDBinary(binaryDateTwoSerialized);
-            Assert.AreEqual(OSDType.Date, llsdDateOneDS.Type);
-            Assert.AreEqual(dtTwo.ToLocalTime(), llsdDateTwoDS.AsDate());
+            OSD llsdDateTwoDs = OSDParser.DeserializeLLSDBinary(binaryDateTwoSerialized);
+            Assert.That(llsdDateTwoDs, Is.EqualTo(OSDType.Date));
+            Assert.That(llsdDateTwoDs.AsDate(), Is.EqualTo(dtTwo));
         }
 
         // Data for empty array { }
-        private static byte[] binaryEmptyArrayValue = { 0x5b, 0x0, 0x0, 0x0, 0x0, 0x5d };
+        private static readonly byte[] BinaryEmptyArrayValue = { 0x5b, 0x0, 0x0, 0x0, 0x0, 0x5d };
         // Encoding header + num of elements + tail
-        private static byte[] binaryEmptyArray = (byte[])ConcatenateArrays(binaryHead, binaryEmptyArrayValue);
+        private static readonly byte[] BinaryEmptyArray = (byte[])ConcatenateArrays(BinaryHead, BinaryEmptyArrayValue);
         // Data for simple array { 0 }
-        private static byte[] binarySimpleArrayValue = { 0x5b, 0x0, 0x0, 0x0, 0x1, // Encoding header + num of elements
+        private static readonly byte[] BinarySimpleArrayValue = { 0x5b, 0x0, 0x0, 0x0, 0x1, // Encoding header + num of elements
                                                              0x69, 0x0, 0x0, 0x0, 0x0, 0x5d };
-        private static byte[] binarySimpleArray = (byte[])ConcatenateArrays(binaryHead, binarySimpleArrayValue);
+        private static readonly byte[] BinarySimpleArray = (byte[])ConcatenateArrays(BinaryHead, BinarySimpleArrayValue);
 
         // Data for simple array { 0, 0 }
-        private static byte[] binarySimpleArrayTwoValue = { 0x5b, 0x0, 0x0, 0x0, 0x2, // Encoding header + num of elements
+        private static readonly byte[] BinarySimpleArrayTwoValue = { 0x5b, 0x0, 0x0, 0x0, 0x2, // Encoding header + num of elements
                                                              0x69, 0x0, 0x0, 0x0, 0x0, 
                                                              0x69, 0x0, 0x0, 0x0, 0x0, 0x5d };
-        private static byte[] binarySimpleArrayTwo = (byte[])ConcatenateArrays(binaryHead, binarySimpleArrayTwoValue);
+        private static readonly byte[] BinarySimpleArrayTwo = (byte[])ConcatenateArrays(BinaryHead, BinarySimpleArrayTwoValue);
 
-        [Test()]
+        [Test]
         public void DeserializeArray()
         {
-            OSD llsdEmptyArray = OSDParser.DeserializeLLSDBinary(binaryEmptyArray);
-            Assert.AreEqual(OSDType.Array, llsdEmptyArray.Type);
+            OSD llsdEmptyArray = OSDParser.DeserializeLLSDBinary(BinaryEmptyArray);
+            Assert.That(llsdEmptyArray.Type, Is.EqualTo(OSDType.Array));
             OSDArray llsdEmptyArrayArray = (OSDArray)llsdEmptyArray;
-            Assert.AreEqual(0, llsdEmptyArrayArray.Count);
+            Assert.That(llsdEmptyArrayArray, Is.Empty);
 
 
-            OSD llsdSimpleArray = OSDParser.DeserializeLLSDBinary(binarySimpleArray);
-            Assert.AreEqual(OSDType.Array, llsdSimpleArray.Type);
+            OSD llsdSimpleArray = OSDParser.DeserializeLLSDBinary(BinarySimpleArray);
+            Assert.That(llsdSimpleArray.Type, Is.EqualTo(OSDType.Array));
             OSDArray llsdArray = (OSDArray)llsdSimpleArray;
-            Assert.AreEqual(OSDType.Integer, llsdArray[0].Type);
-            Assert.AreEqual(0, llsdArray[0].AsInteger());
+            Assert.That(llsdArray[0].Type, Is.EqualTo(OSDType.Integer));
+            Assert.That(llsdArray[0].AsInteger(), Is.Zero);
 
 
-            OSD llsdSimpleArrayTwo = OSDParser.DeserializeLLSDBinary(binarySimpleArrayTwo);
-            Assert.AreEqual(OSDType.Array, llsdSimpleArrayTwo.Type);
+            OSD llsdSimpleArrayTwo = OSDParser.DeserializeLLSDBinary(BinarySimpleArrayTwo);
+            Assert.That(llsdSimpleArrayTwo.Type, Is.EqualTo(OSDType.Array));
             OSDArray llsdArrayTwo = (OSDArray)llsdSimpleArrayTwo;
-            Assert.AreEqual(2, llsdArrayTwo.Count);
+            Assert.That(llsdArrayTwo.Count, Is.EqualTo(2));
 
-            Assert.AreEqual(OSDType.Integer, llsdArrayTwo[0].Type);
-            Assert.AreEqual(0, llsdArrayTwo[0].AsInteger());
-            Assert.AreEqual(OSDType.Integer, llsdArrayTwo[1].Type);
-            Assert.AreEqual(0, llsdArrayTwo[1].AsInteger());
+            Assert.That(llsdArrayTwo[0].Type, Is.EqualTo(OSDType.Integer));
+            Assert.That(llsdArrayTwo[0].AsInteger(), Is.Zero);
+            Assert.That(llsdArrayTwo[1].Type, Is.EqualTo(OSDType.Integer));
+            Assert.That(llsdArrayTwo[1].AsInteger(), Is.Zero);
         }
 
-        [Test()]
+        [Test]
         public void SerializeArray()
         {
             OSDArray llsdEmptyArray = new OSDArray();
             byte[] binaryEmptyArraySerialized = OSDParser.SerializeLLSDBinary(llsdEmptyArray);
-            Assert.AreEqual(binaryEmptyArray, binaryEmptyArraySerialized);
+            Assert.That(binaryEmptyArraySerialized, Is.EqualTo(BinaryEmptyArray));
 
             binaryEmptyArraySerialized = OSDParser.SerializeLLSDBinary(llsdEmptyArray, false);
-            Assert.AreEqual(binaryEmptyArrayValue, binaryEmptyArraySerialized);
+            Assert.That(binaryEmptyArraySerialized, Is.EqualTo(BinaryEmptyArrayValue));
 
-            OSDArray llsdSimpleArray = new OSDArray();
-            llsdSimpleArray.Add(OSD.FromInteger(0));
+            OSDArray llsdSimpleArray = new OSDArray { OSD.FromInteger(0) };
             byte[] binarySimpleArraySerialized = OSDParser.SerializeLLSDBinary(llsdSimpleArray);
-            Assert.AreEqual(binarySimpleArray, binarySimpleArraySerialized);
+            Assert.That(binarySimpleArraySerialized, Is.EqualTo(BinarySimpleArray));
 
             binarySimpleArraySerialized = OSDParser.SerializeLLSDBinary(llsdSimpleArray, false);
-            Assert.AreEqual(binarySimpleArrayValue, binarySimpleArraySerialized);
+            Assert.That(binarySimpleArraySerialized, Is.EqualTo(BinarySimpleArrayValue));
 
-            OSDArray llsdSimpleArrayTwo = new OSDArray();
-            llsdSimpleArrayTwo.Add(OSD.FromInteger(0));
-            llsdSimpleArrayTwo.Add(OSD.FromInteger(0));
+            OSDArray llsdSimpleArrayTwo = new OSDArray
+            {
+                OSD.FromInteger(0),
+                OSD.FromInteger(0)
+            };
             byte[] binarySimpleArrayTwoSerialized = OSDParser.SerializeLLSDBinary(llsdSimpleArrayTwo);
-            Assert.AreEqual(binarySimpleArrayTwo, binarySimpleArrayTwoSerialized);
+            Assert.That(binarySimpleArrayTwoSerialized, Is.EqualTo(BinarySimpleArrayTwo));
 
             binarySimpleArrayTwoSerialized = OSDParser.SerializeLLSDBinary(llsdSimpleArrayTwo, false);
-            Assert.AreEqual(binarySimpleArrayTwoValue, binarySimpleArrayTwoSerialized);
+            Assert.That(binarySimpleArrayTwoSerialized, Is.EqualTo(BinarySimpleArrayTwoValue));
         }
 
         // Data for empty dictionary { }
-        private static byte[] binaryEmptyMapValue = { 0x7b, 0x0, 0x0, 0x0, 0x0, 0x7d };
-        private static byte[] binaryEmptyMap = (byte[])ConcatenateArrays(binaryHead, binaryEmptyMapValue);
+        private static readonly byte[] BinaryEmptyMapValue = { 0x7b, 0x0, 0x0, 0x0, 0x0, 0x7d };
+        private static readonly byte[] BinaryEmptyMap = (byte[])ConcatenateArrays(BinaryHead, BinaryEmptyMapValue);
 
         // Data for simple dictionary { test = 0 }
-        private static byte[] binarySimpleMapValue = { 0x7b, 0x0, 0x0, 0x0, 0x1, // Encoding header + num of elements
+        private static readonly byte[] BinarySimpleMapValue = { 0x7b, 0x0, 0x0, 0x0, 0x1, // Encoding header + num of elements
                                                         0x6b, 0x0, 0x0, 0x0, 0x4, // 'k' + keylength 
                                                         0x74, 0x65, 0x73, 0x74,  // key 'test' 
                                                         0x69, 0x0, 0x0, 0x0, 0x0, // i + '0'
                                                         0x7d };
-        private static byte[] binarySimpleMap = (byte[])ConcatenateArrays(binaryHead, binarySimpleMapValue);
+        private static readonly byte[] BinarySimpleMap = (byte[])ConcatenateArrays(BinaryHead, BinarySimpleMapValue);
 
         // Data for simple dictionary { t0st = 241, tes1 = "aha", test = undef }
-        private static byte[] binarySimpleMapTwoValue = { 0x7b, 0x0, 0x0, 0x0, 0x3, // Encoding header + num of elements
+        private static readonly byte[] BinarySimpleMapTwoValue = { 0x7b, 0x0, 0x0, 0x0, 0x3, // Encoding header + num of elements
                                  0x6b, 0x0, 0x0, 0x0, 0x4, // 'k' + keylength 
                                  0x74, 0x65, 0x73, 0x74,  // key 'test'
                                  0x21, // undef
@@ -502,62 +499,64 @@ namespace LibreMetaverse.Tests
                                  0x74, 0x30, 0x73, 0x74,  // key 't0st'
                                  0x69, 0x0, 0x0, 0x0, 0xf1, // integer 241
                                  0x7d };
-        private static byte[] binarySimpleMapTwo = (byte[])ConcatenateArrays(binaryHead, binarySimpleMapTwoValue);
+        private static readonly byte[] BinarySimpleMapTwo = (byte[])ConcatenateArrays(BinaryHead, BinarySimpleMapTwoValue);
 
-        [Test()]
+        [Test]
         public void DeserializeDictionary()
         {
-            OSDMap llsdEmptyMap = (OSDMap)OSDParser.DeserializeLLSDBinary(binaryEmptyMap);
-            Assert.AreEqual(OSDType.Map, llsdEmptyMap.Type);
-            Assert.AreEqual(0, llsdEmptyMap.Count);
+            OSDMap llsdEmptyMap = (OSDMap)OSDParser.DeserializeLLSDBinary(BinaryEmptyMap);
+            Assert.That(llsdEmptyMap.Type, Is.EqualTo(OSDType.Map));
+            Assert.That(llsdEmptyMap, Is.Empty);
 
-            OSDMap llsdSimpleMap = (OSDMap)OSDParser.DeserializeLLSDBinary(binarySimpleMap);
-            Assert.AreEqual(OSDType.Map, llsdSimpleMap.Type);
-            Assert.AreEqual(1, llsdSimpleMap.Count);
-            Assert.AreEqual(OSDType.Integer, llsdSimpleMap["test"].Type);
-            Assert.AreEqual(0, llsdSimpleMap["test"].AsInteger());
+            OSDMap llsdSimpleMap = (OSDMap)OSDParser.DeserializeLLSDBinary(BinarySimpleMap);
+            Assert.That(llsdSimpleMap.Type, Is.EqualTo(OSDType.Map));
+            Assert.That(llsdSimpleMap.Count, Is.EqualTo(1));
+            Assert.That(llsdSimpleMap["test"].Type, Is.EqualTo(OSDType.Integer));
+            Assert.That(llsdSimpleMap["test"].AsInteger(), Is.Zero);
 
-            OSDMap llsdSimpleMapTwo = (OSDMap)OSDParser.DeserializeLLSDBinary(binarySimpleMapTwo);
-            Assert.AreEqual(OSDType.Map, llsdSimpleMapTwo.Type);
-            Assert.AreEqual(3, llsdSimpleMapTwo.Count);
-            Assert.AreEqual(OSDType.Unknown, llsdSimpleMapTwo["test"].Type);
-            Assert.AreEqual(OSDType.String, llsdSimpleMapTwo["tes1"].Type);
-            Assert.AreEqual("aha", llsdSimpleMapTwo["tes1"].AsString());
-            Assert.AreEqual(OSDType.Integer, llsdSimpleMapTwo["t0st"].Type);
-            Assert.AreEqual(241, llsdSimpleMapTwo["t0st"].AsInteger());
-
-
+            OSDMap llsdSimpleMapTwo = (OSDMap)OSDParser.DeserializeLLSDBinary(BinarySimpleMapTwo);
+            Assert.That(llsdSimpleMapTwo.Type, Is.EqualTo(OSDType.Map));
+            Assert.That(llsdSimpleMapTwo.Count, Is.EqualTo(3));
+            Assert.That(llsdSimpleMapTwo["test"].Type, Is.EqualTo(OSDType.Unknown));
+            Assert.That(llsdSimpleMapTwo["tes1"].Type, Is.EqualTo(OSDType.String));
+            Assert.That(llsdSimpleMapTwo["tes1"].AsString(), Is.EqualTo("aha"));
+            Assert.That(llsdSimpleMapTwo["t0st"].Type, Is.EqualTo(OSDType.Integer));
+            Assert.That(llsdSimpleMapTwo["t0st"].AsInteger(), Is.EqualTo(241));
         }
 
-        [Test()]
+        [Test]
         public void SerializeDictionary()
         {
             OSDMap llsdEmptyMap = new OSDMap();
             byte[] binaryEmptyMapSerialized = OSDParser.SerializeLLSDBinary(llsdEmptyMap);
-            Assert.AreEqual(binaryEmptyMap, binaryEmptyMapSerialized);
+            Assert.That(binaryEmptyMapSerialized, Is.EqualTo(BinaryEmptyMap));
 
-            OSDMap llsdSimpleMap = new OSDMap();
-            llsdSimpleMap["test"] = OSD.FromInteger(0);
+            OSDMap llsdSimpleMap = new OSDMap
+            {
+                ["test"] = OSD.FromInteger(0)
+            };
             byte[] binarySimpleMapSerialized = OSDParser.SerializeLLSDBinary(llsdSimpleMap);
-            Assert.AreEqual(binarySimpleMap, binarySimpleMapSerialized);
+            Assert.That(binarySimpleMapSerialized, Is.EqualTo(BinarySimpleMap));
 
-            OSDMap llsdSimpleMapTwo = new OSDMap();
-            llsdSimpleMapTwo["t0st"] = OSD.FromInteger(241);
-            llsdSimpleMapTwo["tes1"] = OSD.FromString("aha");
-            llsdSimpleMapTwo["test"] = new OSD();
+            OSDMap llsdSimpleMapTwo = new OSDMap
+            {
+                ["t0st"] = OSD.FromInteger(241),
+                ["tes1"] = OSD.FromString("aha"),
+                ["test"] = new OSD()
+            };
             byte[] binarySimpleMapTwoSerialized = OSDParser.SerializeLLSDBinary(llsdSimpleMapTwo);
 
-            // We dont compare here to the original serialized value, because, as maps dont preserve order,
+            // We dont compare here to the original serialized value, because, as maps don't preserve order,
             // the original serialized value is not *exactly* the same. Instead we compare to a deserialized
             // version created by this deserializer.
             OSDMap llsdSimpleMapDeserialized = (OSDMap)OSDParser.DeserializeLLSDBinary(binarySimpleMapTwoSerialized);
-            Assert.AreEqual(OSDType.Map, llsdSimpleMapDeserialized.Type);
-            Assert.AreEqual(3, llsdSimpleMapDeserialized.Count);
-            Assert.AreEqual(OSDType.Integer, llsdSimpleMapDeserialized["t0st"].Type);
-            Assert.AreEqual(241, llsdSimpleMapDeserialized["t0st"].AsInteger());
-            Assert.AreEqual(OSDType.String, llsdSimpleMapDeserialized["tes1"].Type);
-            Assert.AreEqual("aha", llsdSimpleMapDeserialized["tes1"].AsString());
-            Assert.AreEqual(OSDType.Unknown, llsdSimpleMapDeserialized["test"].Type);
+            Assert.That(llsdSimpleMapDeserialized.Type, Is.EqualTo(OSDType.Map));
+            Assert.That(llsdSimpleMapDeserialized.Count, Is.EqualTo(3));
+            Assert.That(llsdSimpleMapDeserialized["t0st"].Type, Is.EqualTo(OSDType.Integer));
+            Assert.That(llsdSimpleMapDeserialized["t0st"].AsInteger(), Is.EqualTo(241));
+            Assert.That(llsdSimpleMapDeserialized["tes1"].Type, Is.EqualTo(OSDType.String));
+            Assert.That(llsdSimpleMapDeserialized["tes1"].AsString(), Is.EqualTo("aha"));
+            Assert.That(llsdSimpleMapDeserialized["test"].Type, Is.EqualTo(OSDType.Unknown));
 
             // we also test for a 4byte key character.
             string xml = "<x>&#x10137;</x>";
@@ -570,17 +569,16 @@ namespace LibreMetaverse.Tests
             OSDMap llsdSimpleMapThree = new OSDMap();
             OSD llsdSimpleValue = OSD.FromString(content);
             llsdSimpleMapThree[content] = llsdSimpleValue;
-            Assert.AreEqual(content, llsdSimpleMapThree[content].AsString());
+            Assert.That(llsdSimpleMapThree[content].AsString(), Is.EqualTo(content));
 
             byte[] binarySimpleMapThree = OSDParser.SerializeLLSDBinary(llsdSimpleMapThree);
-            OSDMap llsdSimpleMapThreeDS = (OSDMap)OSDParser.DeserializeLLSDBinary(binarySimpleMapThree);
-            Assert.AreEqual(OSDType.Map, llsdSimpleMapThreeDS.Type);
-            Assert.AreEqual(1, llsdSimpleMapThreeDS.Count);
-            Assert.AreEqual(content, llsdSimpleMapThreeDS[content].AsString());
-
+            OSDMap llsdSimpleMapThreeDs = (OSDMap)OSDParser.DeserializeLLSDBinary(binarySimpleMapThree);
+            Assert.That(llsdSimpleMapThreeDs.Type, Is.EqualTo(OSDType.Map));
+            Assert.That(llsdSimpleMapThreeDs.Count, Is.EqualTo(1));
+            Assert.That(llsdSimpleMapThreeDs[content].AsString(), Is.EqualTo(content));
         }
 
-        private static byte[] binaryNestedValue = { 0x5b, 0x0, 0x0, 0x0, 0x3, 
+        private static readonly byte[] BinaryNestedValue = { 0x5b, 0x0, 0x0, 0x0, 0x3, 
                                             0x7b, 0x0, 0x0, 0x0, 0x2, 
                                             0x6b, 0x0, 0x0, 0x0, 0x4, 
                                             0x74, 0x65, 0x73, 0x74, 
@@ -594,50 +592,51 @@ namespace LibreMetaverse.Tests
                                             0x5d, 0x7d, 0x69, 0x0, 0x0, 0x0, 
                                             0x7c, 0x69, 0x0, 0x0, 0x3, 0xdb, 
                                            0x5d };
-        private static byte[] binaryNested = (byte[])ConcatenateArrays(binaryHead, binaryNestedValue);
+        private static readonly byte[] BinaryNested = (byte[])ConcatenateArrays(BinaryHead, BinaryNestedValue);
 
-        [Test()]
+        [Test]
         public void DeserializeNestedComposite()
         {
-            OSD llsdNested = OSDParser.DeserializeLLSDBinary(binaryNested);
-            Assert.AreEqual(OSDType.Array, llsdNested.Type);
+            OSD llsdNested = OSDParser.DeserializeLLSDBinary(BinaryNested);
+            Assert.That(llsdNested.Type, Is.EqualTo(OSDType.Array));
             OSDArray llsdArray = (OSDArray)llsdNested;
-            Assert.AreEqual(3, llsdArray.Count);
+            Assert.That(llsdArray.Count, Is.EqualTo(3));
 
             OSDMap llsdMap = (OSDMap)llsdArray[0];
-            Assert.AreEqual(OSDType.Map, llsdMap.Type);
-            Assert.AreEqual(2, llsdMap.Count);
+            Assert.That(llsdMap.Type, Is.EqualTo(OSDType.Map));
+            Assert.That(llsdMap.Count, Is.EqualTo(2));
 
             OSDArray llsdNestedArray = (OSDArray)llsdMap["t0st"];
-            Assert.AreEqual(OSDType.Array, llsdNestedArray.Type);
+            Assert.That(llsdNestedArray.Type, Is.EqualTo(OSDType.Array));
             OSDInteger llsdNestedIntOne = (OSDInteger)llsdNestedArray[0];
-            Assert.AreEqual(OSDType.Integer, llsdNestedIntOne.Type);
-            Assert.AreEqual(1, llsdNestedIntOne.AsInteger());
+            Assert.That(llsdNestedIntOne.Type, Is.EqualTo(OSDType.Integer));
+            Assert.That(llsdNestedIntOne.AsInteger(), Is.EqualTo(1));
             OSDInteger llsdNestedIntTwo = (OSDInteger)llsdNestedArray[1];
-            Assert.AreEqual(OSDType.Integer, llsdNestedIntTwo.Type);
-            Assert.AreEqual(2, llsdNestedIntTwo.AsInteger());
+            Assert.That(llsdNestedIntTwo.Type, Is.EqualTo(OSDType.Integer));
+            Assert.That(llsdNestedIntTwo.AsInteger(), Is.EqualTo(2));
 
             OSDString llsdString = (OSDString)llsdMap["test"];
-            Assert.AreEqual(OSDType.String, llsdString.Type);
-            Assert.AreEqual("what", llsdString.AsString());
+            Assert.That(llsdString.Type, Is.EqualTo(OSDType.String));
+            Assert.That(llsdString.AsString(), Is.EqualTo("what"));
 
             OSDInteger llsdIntOne = (OSDInteger)llsdArray[1];
-            Assert.AreEqual(OSDType.Integer, llsdIntOne.Type);
-            Assert.AreEqual(124, llsdIntOne.AsInteger());
+            Assert.That(llsdIntOne.Type, Is.EqualTo(OSDType.Integer));
+            Assert.That(llsdIntOne.AsInteger(), Is.EqualTo(124));
             OSDInteger llsdIntTwo = (OSDInteger)llsdArray[2];
-            Assert.AreEqual(OSDType.Integer, llsdIntTwo.Type);
-            Assert.AreEqual(987, llsdIntTwo.AsInteger());
-
+            Assert.That(llsdIntTwo.Type, Is.EqualTo(OSDType.Integer));
+            Assert.That(llsdIntTwo.AsInteger(), Is.EqualTo(987));
         }
 
-        [Test()]
+        [Test]
         public void SerializeNestedComposite()
         {
             OSDArray llsdNested = new OSDArray();
             OSDMap llsdMap = new OSDMap();
-            OSDArray llsdArray = new OSDArray();
-            llsdArray.Add(OSD.FromInteger(1));
-            llsdArray.Add(OSD.FromInteger(2));
+            OSDArray llsdArray = new OSDArray
+            {
+                OSD.FromInteger(1),
+                OSD.FromInteger(2)
+            };
             llsdMap["t0st"] = llsdArray;
             llsdMap["test"] = OSD.FromString("what");
             llsdNested.Add(llsdMap);
@@ -647,34 +646,33 @@ namespace LibreMetaverse.Tests
             byte[] binaryNestedSerialized = OSDParser.SerializeLLSDBinary(llsdNested);
             // Because maps don't preserve order, we compare here to a deserialized value. 
             OSDArray llsdNestedDeserialized = (OSDArray)OSDParser.DeserializeLLSDBinary(binaryNestedSerialized);
-            Assert.AreEqual(OSDType.Array, llsdNestedDeserialized.Type);
-            Assert.AreEqual(3, llsdNestedDeserialized.Count);
+            Assert.That(llsdNestedDeserialized.Type, Is.EqualTo(OSDType.Array));
+            Assert.That(llsdNestedDeserialized.Count, Is.EqualTo(3));
 
             OSDMap llsdMapDeserialized = (OSDMap)llsdNestedDeserialized[0];
-            Assert.AreEqual(OSDType.Map, llsdMapDeserialized.Type);
-            Assert.AreEqual(2, llsdMapDeserialized.Count);
-            Assert.AreEqual(OSDType.Array, llsdMapDeserialized["t0st"].Type);
+            Assert.That(llsdMapDeserialized.Type, Is.EqualTo(OSDType.Map));
+            Assert.That(llsdMapDeserialized.Count, Is.EqualTo(2));
+            Assert.That(llsdMapDeserialized["t0st"].Type, Is.EqualTo(OSDType.Array));
 
             OSDArray llsdNestedArray = (OSDArray)llsdMapDeserialized["t0st"];
-            Assert.AreEqual(OSDType.Array, llsdNestedArray.Type);
-            Assert.AreEqual(2, llsdNestedArray.Count);
-            Assert.AreEqual(OSDType.Integer, llsdNestedArray[0].Type);
-            Assert.AreEqual(1, llsdNestedArray[0].AsInteger());
-            Assert.AreEqual(OSDType.Integer, llsdNestedArray[1].Type);
-            Assert.AreEqual(2, llsdNestedArray[1].AsInteger());
+            Assert.That(llsdNestedArray.Type, Is.EqualTo(OSDType.Array));
+            Assert.That(llsdNestedArray.Count, Is.EqualTo(2));
+            Assert.That(llsdNestedArray[0].Type, Is.EqualTo(OSDType.Integer));
+            Assert.That(llsdNestedArray[0].AsInteger(), Is.EqualTo(1));
+            Assert.That(llsdNestedArray[1].Type, Is.EqualTo(OSDType.Integer));
+            Assert.That(llsdNestedArray[1].AsInteger(), Is.EqualTo(2));
 
-            Assert.AreEqual(OSDType.String, llsdMapDeserialized["test"].Type);
-            Assert.AreEqual("what", llsdMapDeserialized["test"].AsString());
+            Assert.That(llsdMapDeserialized["test"].Type, Is.EqualTo(OSDType.String));
+            Assert.That(llsdMapDeserialized["test"].AsString(), Is.EqualTo("what"));
 
-            Assert.AreEqual(OSDType.Integer, llsdNestedDeserialized[1].Type);
-            Assert.AreEqual(124, llsdNestedDeserialized[1].AsInteger());
+            Assert.That(llsdNestedDeserialized[1].Type, Is.EqualTo(OSDType.Integer));
+            Assert.That(llsdNestedDeserialized[1].AsInteger(), Is.EqualTo(124));
 
-            Assert.AreEqual(OSDType.Integer, llsdNestedDeserialized[2].Type);
-            Assert.AreEqual(987, llsdNestedDeserialized[2].AsInteger());
-
+            Assert.That(llsdNestedDeserialized[2].Type, Is.EqualTo(OSDType.Integer));
+            Assert.That(llsdNestedDeserialized[2].AsInteger(), Is.EqualTo(987));
         }
 
-        [Test()]
+        [Test]
         public void SerializeLongMessage()
         {
             // each 80 chars
@@ -684,34 +682,36 @@ namespace LibreMetaverse.Tests
             OSD stringOne = OSD.FromString( sOne );
             OSD stringTwo = OSD.FromString(sTwo);
 
-            OSDMap llsdMap = new OSDMap();
-            llsdMap["testOne"] = stringOne;
-            llsdMap["testTwo"] = stringTwo;
-            llsdMap["testThree"] = stringOne;
-            llsdMap["testFour"] = stringTwo;
-            llsdMap["testFive"] = stringOne;
-            llsdMap["testSix"] = stringTwo;
-            llsdMap["testSeven"] = stringOne;
-            llsdMap["testEight"] = stringTwo;
-            llsdMap["testNine"] = stringOne;
-            llsdMap["testTen"] = stringTwo;
-            
-            
+            OSDMap llsdMap = new OSDMap
+            {
+                ["testOne"] = stringOne,
+                ["testTwo"] = stringTwo,
+                ["testThree"] = stringOne,
+                ["testFour"] = stringTwo,
+                ["testFive"] = stringOne,
+                ["testSix"] = stringTwo,
+                ["testSeven"] = stringOne,
+                ["testEight"] = stringTwo,
+                ["testNine"] = stringOne,
+                ["testTen"] = stringTwo
+            };
+
+
             byte[] binaryData = OSDParser.SerializeLLSDBinary( llsdMap );
 
-            OSDMap llsdMapDS = (OSDMap)OSDParser.DeserializeLLSDBinary( binaryData );
-            Assert.AreEqual( OSDType.Map, llsdMapDS.Type );
-            Assert.AreEqual( 10, llsdMapDS.Count );
-            Assert.AreEqual( sOne, llsdMapDS["testOne"].AsString());
-            Assert.AreEqual( sTwo, llsdMapDS["testTwo"].AsString());
-            Assert.AreEqual( sOne, llsdMapDS["testThree"].AsString());
-            Assert.AreEqual( sTwo, llsdMapDS["testFour"].AsString());
-            Assert.AreEqual( sOne, llsdMapDS["testFive"].AsString());
-            Assert.AreEqual( sTwo, llsdMapDS["testSix"].AsString());
-            Assert.AreEqual( sOne, llsdMapDS["testSeven"].AsString());
-            Assert.AreEqual( sTwo, llsdMapDS["testEight"].AsString());
-            Assert.AreEqual( sOne, llsdMapDS["testNine"].AsString());
-            Assert.AreEqual( sTwo, llsdMapDS["testTen"].AsString());
+            OSDMap llsdMapDs = (OSDMap)OSDParser.DeserializeLLSDBinary( binaryData );
+            Assert.That(llsdMapDs.Type, Is.EqualTo(OSDType.Map));
+            Assert.That(llsdMapDs.Count, Is.EqualTo(10));
+            Assert.That(llsdMapDs["testOne"].AsString(), Is.EqualTo(sOne));
+            Assert.That(llsdMapDs["testTwo"].AsString(), Is.EqualTo(sTwo));
+            Assert.That(llsdMapDs["testThree"].AsString(), Is.EqualTo(sOne));
+            Assert.That(llsdMapDs["testFour"].AsString(), Is.EqualTo(sTwo));
+            Assert.That(llsdMapDs["testFive"].AsString(), Is.EqualTo(sOne));
+            Assert.That(llsdMapDs["testSix"].AsString(), Is.EqualTo(sTwo));
+            Assert.That(llsdMapDs["testSeven"].AsString(), Is.EqualTo(sOne));
+            Assert.That(llsdMapDs["testEight"].AsString(), Is.EqualTo(sTwo));
+            Assert.That(llsdMapDs["testNine"].AsString(), Is.EqualTo(sOne));
+            Assert.That(llsdMapDs["testTen"].AsString(), Is.EqualTo(sTwo));
         }
 
 
