@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2021-2024, Sjofn LLC
+ * Copyright (c) 2021-2022, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -57,15 +57,15 @@ namespace LibreMetaverse.Tests
             Console.Write($"Logging in {fullusername}...");
             // Connect to the grid
             string startLoc = NetworkManager.StartLocation("Hooper", 179, 18, 32);
-            Assert.That(Client.Network.Login(username[0], username[1], password, "Unit Test Framework", startLoc,
-                "contact@radegast.life"), Is.True, "Client failed to login, reason: " + Client.Network.LoginMessage);
+            Assert.IsTrue(Client.Network.Login(username[0], username[1], password, "Unit Test Framework", startLoc,
+                "contact@radegast.life"), "Client failed to login, reason: " + Client.Network.LoginMessage);
             Console.WriteLine("Done");
 
-            Assert.That(Client.Network.Connected, Is.True, "Client is not connected to the grid");
+            Assert.IsTrue(Client.Network.Connected, "Client is not connected to the grid");
 
             //int start = Environment.TickCount;
 
-            Assert.That(Client.Network.CurrentSim.Name, Is.EqualTo("hooper").IgnoreCase, 
+            Assert.AreEqual("hooper", Client.Network.CurrentSim.Name.ToLower(), 
                 $"Logged in to region {Client.Network.CurrentSim.Name} instead of Hooper");
         }
 
@@ -81,8 +81,8 @@ namespace LibreMetaverse.Tests
         public void GetGridRegion()
         {
             GridRegion region;
-            Assert.That(Client.Grid.GetGridRegion("Hippo Hollow", GridLayerType.Terrain, out region), Is.True);
-            Assert.That(region.Name, Is.EqualTo("hippo hollow").IgnoreCase);
+            Assert.IsTrue(Client.Grid.GetGridRegion("Hippo Hollow", GridLayerType.Terrain, out region));
+            Assert.AreEqual("hippo hollow", region.Name.ToLower());
         }
     }
 }
