@@ -42,8 +42,8 @@ namespace LibreMetaverse.Tests
                 float floatValue = Primitive.UnpackBeginCut(i);
                 ushort result = Primitive.PackBeginCut(floatValue);
 
-                Assert.IsTrue(result == i, "Started with " + i + ", float value was " + floatValue +
-                    ", and ended up with " + result);
+                Assert.That(result == i, Is.True, 
+                    "Started with " + i + ", float value was " + floatValue + ", and ended up with " + result);
             }
         }
 
@@ -55,8 +55,8 @@ namespace LibreMetaverse.Tests
                 float floatValue = Primitive.UnpackEndCut(i);
                 ushort result = Primitive.PackEndCut(floatValue);
 
-                Assert.IsTrue(result == i, "Started with " + i + ", float value was " + floatValue +
-                    ", and ended up with " + result);
+                Assert.That(result == i, Is.True, 
+                    "Started with " + i + ", float value was " + floatValue + ", and ended up with " + result);
             }
         }
 
@@ -68,8 +68,8 @@ namespace LibreMetaverse.Tests
                 float floatValue = Primitive.UnpackPathRevolutions(i);
                 byte result = Primitive.PackPathRevolutions(floatValue);
 
-                Assert.IsTrue(result == i, "Started with " + i + ", float value was " + floatValue +
-                    ", and ended up with " + result);
+                Assert.That(result == i, Is.True, 
+                    "Started with " + i + ", float value was " + floatValue + ", and ended up with " + result);
             }
         }
 
@@ -81,8 +81,8 @@ namespace LibreMetaverse.Tests
                 float floatValue = Primitive.UnpackPathScale(i);
                 byte result = Primitive.PackPathScale(floatValue);
 
-                Assert.IsTrue(result == i, "Started with " + i + ", float value was " + floatValue +
-                    ", and ended up with " + result);
+                Assert.That(result == i, Is.True, 
+                    "Started with " + i + ", float value was " + floatValue + ", and ended up with " + result);
             }
         }
 
@@ -107,8 +107,8 @@ namespace LibreMetaverse.Tests
                 float floatValue = Primitive.UnpackPathTaper(i);
                 sbyte result = Primitive.PackPathTaper(floatValue);
 
-                Assert.IsTrue(result == i, "Started with " + i + ", float value was " + floatValue +
-                ", and ended up with " + result);
+                Assert.That(result == i, Is.True, 
+                    "Started with " + i + ", float value was " + floatValue + ", and ended up with " + result);
             }
         }
 
@@ -123,7 +123,8 @@ namespace LibreMetaverse.Tests
                 float foffset = Helpers.TEOffsetFloat(BitConverter.GetBytes(offset), 0);
                 foffset = (float)Math.Round(foffset, 3);
 
-                Assert.IsTrue(foffset - i < float.Epsilon, foffset + " is not equal to " + i);
+                Assert.That(foffset - i < float.Epsilon, Is.True,
+                    foffset + " is not equal to " + i);
             }
         }
 
@@ -151,11 +152,11 @@ namespace LibreMetaverse.Tests
 
             byte[] teBytes2 = te2.GetBytes();
 
-            Assert.IsTrue(teBytes.Length == teBytes2.Length);
+            Assert.That(teBytes.Length, Is.EqualTo(teBytes2.Length));
 
             for (int i = 0; i < teBytes.Length; i++)
             {
-                Assert.IsTrue(teBytes[i] == teBytes2[i], "Byte " + i + " is not equal");
+                Assert.That(teBytes[i], Is.EqualTo(teBytes2[i]), "Byte " + i + " is not equal");
             }
         }
     }
