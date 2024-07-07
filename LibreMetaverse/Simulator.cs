@@ -526,6 +526,8 @@ namespace OpenMetaverse
         /// <param name="client">Reference to the <seealso cref="GridClient"/> object</param>
         /// <param name="address">IPEndPoint of the simulator</param>
         /// <param name="handle">Region handle for the simulator</param>
+        /// <param name="sizeX">Region size X</param>
+        /// <param name="sizeY">Region size Y</param>
         public Simulator(GridClient client, IPEndPoint address, ulong handle, uint sizeX = DefaultRegionSizeX, uint sizeY = DefaultRegionSizeY)
             : base(address)
         {
