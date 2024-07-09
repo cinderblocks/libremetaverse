@@ -27,9 +27,8 @@
 
 using System;
 using System.Threading;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using OpenMetaverse.Imaging;
+using IronSoftware.Drawing;
+using SkiaSharp;
 
 namespace OpenMetaverse.TestClient
 {
@@ -96,18 +95,18 @@ namespace OpenMetaverse.TestClient
 
         private byte[] LoadImage(string fileName)
         {
-            byte[] UploadData = { };
+            byte[] uploadData;
             string lowfilename = fileName.ToLower();
-            Bitmap bitmap = null;
 
             try
             {
+                AnyBitmap bitmap;
                 if (lowfilename.EndsWith(".jp2") || lowfilename.EndsWith(".j2c"))
                 {
                     // Upload JPEG2000 images untouched
-                    UploadData = System.IO.File.ReadAllBytes(fileName);
+                    uploadData = System.IO.File.ReadAllBytes(fileName);
 
-                    using (var reader = new OpenJpegDotNet.IO.Reader(UploadData))
+                    using (var reader = new OpenJpegDotNet.IO.Reader(uploadData))
                     {
                         reader.ReadHeader();
                         bitmap = reader.DecodeToBitmap();
@@ -115,25 +114,18 @@ namespace OpenMetaverse.TestClient
                 }
                 else
                 {
-                    if (lowfilename.EndsWith(".tga")) {
-                        bitmap = LoadTGAClass.LoadTGA(fileName);
-                    } else {
-                        bitmap = (Bitmap)Image.FromFile(fileName);
-                    }
+                    bitmap = AnyBitmap.FromFile(fileName);
                     int oldwidth = bitmap.Width;
                     int oldheight = bitmap.Height;
 
                     if (!IsPowerOfTwo((uint)oldwidth) || !IsPowerOfTwo((uint)oldheight))
                     {
-                        Bitmap resized = new Bitmap(256, 256, bitmap.PixelFormat);
-                        Graphics graphics = Graphics.FromImage(resized);
+                        var info = new SKImageInfo(256, 256);
+                        var scaledImage = SKImage.Create(info);
+                        var skImage = SKImage.FromBitmap(bitmap);
+                        skImage.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
 
-                        graphics.SmoothingMode = SmoothingMode.HighQuality;
-                        graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                        graphics.DrawImage(bitmap, 0, 0, 256, 256);
-
-                        bitmap.Dispose();
-                        bitmap = resized;
+                        bitmap = scaledImage;
 
                         oldwidth = 256;
                         oldheight = 256;
@@ -145,21 +137,18 @@ namespace OpenMetaverse.TestClient
                         int newwidth = (oldwidth > 1024) ? 1024 : oldwidth;
                         int newheight = (oldheight > 1024) ? 1024 : oldheight;
 
-                        Bitmap resized = new Bitmap(newwidth, newheight, bitmap.PixelFormat);
-                        Graphics graphics = Graphics.FromImage(resized);
+                        var info = new SKImageInfo(newwidth, newheight);
+                        var scaledImage = SKImage.Create(info);
+                        var skImage = SKImage.FromBitmap(bitmap);
+                        skImage.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
 
-                        graphics.SmoothingMode = SmoothingMode.HighQuality;
-                        graphics.InterpolationMode =
-                           InterpolationMode.HighQualityBicubic;
-                        graphics.DrawImage(bitmap, 0, 0, newwidth, newheight);
+                        bitmap = scaledImage;
+                    }
+                }
 
-                        bitmap.Dispose();
-                        bitmap = resized;
-                    }
-                    using (var writer = new OpenJpegDotNet.IO.Writer(bitmap))
-                    {
-                        UploadData = writer.Encode();
-                    }
+                using (var writer = new OpenJpegDotNet.IO.Writer(bitmap))
+                {
+                    uploadData = writer.Encode();
                 }
             }
             catch (Exception ex)
@@ -167,7 +156,7 @@ namespace OpenMetaverse.TestClient
                 Console.WriteLine(ex + " SL Image Upload ");
                 return null;
             }
-            return UploadData;
+            return uploadData;
         }
 
         private static bool IsPowerOfTwo(uint n)

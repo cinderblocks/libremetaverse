@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -24,8 +25,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System.Drawing;
 using System.Collections.Generic;
+using IronSoftware.Drawing;
 
 namespace OpenMetaverse.Rendering
 {
@@ -47,7 +48,7 @@ namespace OpenMetaverse.Rendering
             return mesh;
         }
 
-        public SimpleMesh GenerateSimpleSculptMesh(Primitive prim, Bitmap sculptTexture, DetailLevel lod)
+        public SimpleMesh GenerateSimpleSculptMesh(Primitive prim, AnyBitmap sculptTexture, DetailLevel lod)
         {
             return GenerateSimpleMesh(prim, lod);
         }
@@ -66,7 +67,7 @@ namespace OpenMetaverse.Rendering
             return mesh;
         }
 
-        public FacetedMesh GenerateFacetedSculptMesh(Primitive prim, Bitmap sculptTexture, DetailLevel lod)
+        public FacetedMesh GenerateFacetedSculptMesh(Primitive prim, AnyBitmap sculptTexture, DetailLevel lod)
         {
             return GenerateFacetedMesh(prim, lod);
         }

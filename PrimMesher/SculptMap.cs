@@ -27,8 +27,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Drawing2D;
+using IronSoftware.Drawing;
+using SkiaSharp;
 
 namespace LibreMetaverse.PrimMesher
 {
@@ -44,7 +44,7 @@ namespace LibreMetaverse.PrimMesher
         {
         }
 
-        public SculptMap(Bitmap bm, int lod)
+        public SculptMap(AnyBitmap bm, int lod)
         {
             var bmW = bm.Width;
             var bmH = bm.Height;
@@ -71,8 +71,7 @@ namespace LibreMetaverse.PrimMesher
             try
             {
                 if (needsScaling)
-                    bm = ScaleImage(bm, width, height,
-                        InterpolationMode.NearestNeighbor);
+                    bm = ScaleImage(bm, width, height);
             }
 
             catch (Exception e)
@@ -164,21 +163,12 @@ namespace LibreMetaverse.PrimMesher
             return rows;
         }
 
-        private Bitmap ScaleImage(Bitmap srcImage, int destWidth, int destHeight,
-            InterpolationMode interpMode)
+        private AnyBitmap ScaleImage(AnyBitmap srcImage, int destWidth, int destHeight)
         {
-            var scaledImage = new Bitmap(srcImage, destWidth, destHeight);
-            scaledImage.SetResolution(96.0f, 96.0f);
-
-            var grPhoto = Graphics.FromImage(scaledImage);
-            grPhoto.InterpolationMode = interpMode;
-
-            grPhoto.DrawImage(srcImage,
-                new Rectangle(0, 0, destWidth, destHeight),
-                new Rectangle(0, 0, srcImage.Width, srcImage.Height),
-                GraphicsUnit.Pixel);
-
-            grPhoto.Dispose();
+            var info = new SKImageInfo(destWidth, destHeight);
+            var scaledImage = SKImage.Create(info);
+            var skImage = SKImage.FromBitmap(srcImage);
+            skImage.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
             return scaledImage;
         }
     }
