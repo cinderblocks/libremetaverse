@@ -35,7 +35,8 @@ environment:
 
 matrix:
   allow_failures:
-  - image: Ubuntu
+  - image: Ubuntu2204
+  - image: macos-monterey
 
 pull_requests:
   do_not_increment_build_number: false
