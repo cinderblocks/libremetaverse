@@ -1,7 +1,8 @@
 using System;
 using System.Windows.Forms;
 using System.IO;
-using OpenMetaverse.Imaging;
+using System.Drawing;
+using IronSoftware.Drawing;
 
 namespace Baker
 {
@@ -26,7 +27,7 @@ namespace Baker
 
             if (stream != null)
             {
-                _alphaMask = LoadTGAClass.LoadTGA(stream);
+                _alphaMask = AnyBitmap.FromStream(stream);
                 stream.Close();
 
                 pic1.Image = Oven.ModifyAlphaMask(_alphaMask, (byte)scrollWeight.Value, 0.0f); // *HACK:
