@@ -26,7 +26,7 @@
  */
 
 using System;
-using IronSoftware.Drawing;
+using SkiaSharp;
 
 namespace OpenMetaverse.Imaging
 {
@@ -117,16 +117,16 @@ namespace OpenMetaverse.Imaging
         /// Constructs ManagedImage class from AnyBitmap
         /// </summary>
         /// <param name="bitmap">Input AnyBitmap</param>
-        public ManagedImage(AnyBitmap bitmap)
+        public ManagedImage(SKBitmap bitmap)
         {
             Width = bitmap.Width;
             Height = bitmap.Height;
             var pixelCount = Width * Height;
-            var bpp = bitmap.BitsPerPixel;
+            var bpp = bitmap.BytesPerPixel;
 
             switch (bpp)
             {
-                case 32:
+                case 4:
                     Channels = ImageChannels.Alpha | ImageChannels.Color;
                     Red = new byte[pixelCount];
                     Green = new byte[pixelCount];
@@ -135,7 +135,7 @@ namespace OpenMetaverse.Imaging
                 
                     unsafe
                     {
-                        byte* pixel = (byte*)bitmap.Scan0;
+                        byte* pixel = (byte*)bitmap.GetPixels();
 
                         for (var i = 0; i < pixelCount; ++i)
                         {
@@ -148,7 +148,7 @@ namespace OpenMetaverse.Imaging
                     }
 
                     break;
-                case 24:
+                case 3:
                     Channels = ImageChannels.Color;
                     Red = new byte[pixelCount];
                     Green = new byte[pixelCount];
@@ -156,7 +156,7 @@ namespace OpenMetaverse.Imaging
 
                     unsafe
                     {
-                        byte* pixel = (byte*)bitmap.Scan0;
+                        byte* pixel = (byte*)bitmap.GetPixels();
 
                         for (var i = 0; i < pixelCount; ++i)
                         {
@@ -168,7 +168,7 @@ namespace OpenMetaverse.Imaging
                     }
 
                     break;
-                case 16:
+                case 2:
                     Channels = ImageChannels.Gray;
                     Red = new byte[pixelCount];
                 
@@ -340,7 +340,7 @@ namespace OpenMetaverse.Imaging
         /// origin, suitable for feeding directly into OpenGL
         /// </summary>
         /// <returns>A byte array containing raw texture data</returns>
-        public AnyBitmap ExportBitmap()
+        public SKBitmap ExportBitmap()
         {
             var raw = new byte[Width * Height * 4];
 
@@ -377,7 +377,8 @@ namespace OpenMetaverse.Imaging
                 }
             }
 
-            return AnyBitmap.FromBytes(raw);
+            var img = SKImage.FromEncodedData(raw);
+            return SKBitmap.FromImage(img);
         }
 
         public byte[] ExportTGA()

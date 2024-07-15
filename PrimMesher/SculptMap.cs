@@ -27,7 +27,6 @@
 
 using System;
 using System.Collections.Generic;
-using IronSoftware.Drawing;
 using SkiaSharp;
 
 namespace LibreMetaverse.PrimMesher
@@ -44,7 +43,7 @@ namespace LibreMetaverse.PrimMesher
         {
         }
 
-        public SculptMap(AnyBitmap bm, int lod)
+        public SculptMap(SKBitmap bm, int lod)
         {
             var bmW = bm.Width;
             var bmH = bm.Height;
@@ -100,9 +99,9 @@ namespace LibreMetaverse.PrimMesher
                     {
                         var c = bm.GetPixel(x, y);
 
-                        redBytes[byteNdx] = c.R;
-                        greenBytes[byteNdx] = c.G;
-                        blueBytes[byteNdx] = c.B;
+                        redBytes[byteNdx] = c.Red;
+                        greenBytes[byteNdx] = c.Green;
+                        blueBytes[byteNdx] = c.Blue;
 
                         ++byteNdx;
                     }
@@ -113,9 +112,9 @@ namespace LibreMetaverse.PrimMesher
                         var c = bm.GetPixel(x < width ? x * 2 : x * 2 - 1,
                             y < height ? y * 2 : y * 2 - 1);
 
-                        redBytes[byteNdx] = c.R;
-                        greenBytes[byteNdx] = c.G;
-                        blueBytes[byteNdx] = c.B;
+                        redBytes[byteNdx] = c.Red;
+                        greenBytes[byteNdx] = c.Green;
+                        blueBytes[byteNdx] = c.Blue;
 
                         ++byteNdx;
                     }
@@ -163,13 +162,13 @@ namespace LibreMetaverse.PrimMesher
             return rows;
         }
 
-        private AnyBitmap ScaleImage(AnyBitmap srcImage, int destWidth, int destHeight)
+        private SKBitmap ScaleImage(SKBitmap srcImage, int destWidth, int destHeight)
         {
             var info = new SKImageInfo(destWidth, destHeight);
             var scaledImage = SKImage.Create(info);
             var skImage = SKImage.FromBitmap(srcImage);
             skImage.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
-            return scaledImage;
+            return SKBitmap.FromImage(scaledImage);
         }
     }
 }

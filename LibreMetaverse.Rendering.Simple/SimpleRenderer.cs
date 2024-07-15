@@ -26,7 +26,7 @@
  */
 
 using System.Collections.Generic;
-using IronSoftware.Drawing;
+using SkiaSharp;
 
 namespace OpenMetaverse.Rendering
 {
@@ -48,7 +48,7 @@ namespace OpenMetaverse.Rendering
             return mesh;
         }
 
-        public SimpleMesh GenerateSimpleSculptMesh(Primitive prim, AnyBitmap sculptTexture, DetailLevel lod)
+        public SimpleMesh GenerateSimpleSculptMesh(Primitive prim, SKBitmap sculptTexture, DetailLevel lod)
         {
             return GenerateSimpleMesh(prim, lod);
         }
@@ -67,7 +67,7 @@ namespace OpenMetaverse.Rendering
             return mesh;
         }
 
-        public FacetedMesh GenerateFacetedSculptMesh(Primitive prim, AnyBitmap sculptTexture, DetailLevel lod)
+        public FacetedMesh GenerateFacetedSculptMesh(Primitive prim, SKBitmap sculptTexture, DetailLevel lod)
         {
             return GenerateFacetedMesh(prim, lod);
         }

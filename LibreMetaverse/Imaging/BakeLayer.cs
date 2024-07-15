@@ -27,7 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using IronSoftware.Drawing;
+using SkiaSharp;
 using OpenMetaverse.Assets;
 
 namespace OpenMetaverse.Imaging
@@ -356,14 +356,14 @@ namespace OpenMetaverse.Imaging
         {
             try
             {
-                AnyBitmap bitmap = null;
+                SKBitmap bitmap = null;
                 lock (ResourceSync)
                 {
                     using (Stream stream = Helpers.GetResourceStream(fileName, Settings.RESOURCE_DIR))
                     {
                         if (stream != null)
                         {
-                            bitmap = SkiaSharp.SKImage.FromEncodedData(stream);
+                            bitmap = SKBitmap.Decode(stream);
                         }
                     }
                 }

@@ -27,7 +27,6 @@
 
 using System;
 using System.Threading;
-using IronSoftware.Drawing;
 using SkiaSharp;
 
 namespace OpenMetaverse.TestClient
@@ -100,7 +99,7 @@ namespace OpenMetaverse.TestClient
 
             try
             {
-                AnyBitmap bitmap;
+                SKBitmap bitmap;
                 if (lowfilename.EndsWith(".jp2") || lowfilename.EndsWith(".j2c"))
                 {
                     // Upload JPEG2000 images untouched
@@ -114,7 +113,8 @@ namespace OpenMetaverse.TestClient
                 }
                 else
                 {
-                    bitmap = AnyBitmap.FromFile(fileName);
+                    var img = SKImage.FromEncodedData(fileName);
+                    bitmap = SKBitmap.FromImage(img);
                     int oldwidth = bitmap.Width;
                     int oldheight = bitmap.Height;
 
@@ -125,7 +125,7 @@ namespace OpenMetaverse.TestClient
                         var skImage = SKImage.FromBitmap(bitmap);
                         skImage.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
 
-                        bitmap = scaledImage;
+                        bitmap = SKBitmap.FromImage(scaledImage);
 
                         oldwidth = 256;
                         oldheight = 256;
@@ -142,7 +142,7 @@ namespace OpenMetaverse.TestClient
                         var skImage = SKImage.FromBitmap(bitmap);
                         skImage.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
 
-                        bitmap = scaledImage;
+                        bitmap = SKBitmap.FromImage(scaledImage);
                     }
                 }
 

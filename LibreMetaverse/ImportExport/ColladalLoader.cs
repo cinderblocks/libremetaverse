@@ -33,10 +33,8 @@ using System.IO;
 using System.Xml;
 using System.Linq;
 using System.Xml.Serialization;
-using IronSoftware.Drawing;
 using OpenMetaverse.ImportExport.Collada14;
 using OpenMetaverse.Rendering;
-using OpenMetaverse.Imaging;
 using SkiaSharp;
 
 namespace OpenMetaverse.ImportExport
@@ -120,7 +118,7 @@ namespace OpenMetaverse.ImportExport
             {
                 string ext = System.IO.Path.GetExtension(material.Texture).ToLower();
 
-                AnyBitmap bitmap;
+                SKBitmap bitmap;
 
                 switch (ext)
                 {
@@ -129,7 +127,8 @@ namespace OpenMetaverse.ImportExport
                         material.TextureData = File.ReadAllBytes(fname);
                         return;
                     default:
-                        bitmap = AnyBitmap.FromFile(fname);
+                        var img = SKImage.FromEncodedData(fname);
+                        bitmap = SKBitmap.FromImage(img);
                         break;
                 }
 
@@ -154,7 +153,7 @@ namespace OpenMetaverse.ImportExport
                     var scaledImage = SKImage.Create(info);
                     var skImage = SKImage.FromBitmap(bitmap);
                     skImage.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
-                    bitmap = scaledImage;
+                    bitmap = SKBitmap.FromImage(scaledImage);
                 }
 
                 using (var writer = new OpenJpegDotNet.IO.Writer(bitmap))

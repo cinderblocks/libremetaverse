@@ -43,7 +43,6 @@
     <Optimize>True</Optimize>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="IronSoftware.System.Drawing" Version="2024.7.2" />
     <PackageReference Include="log4net" Version="2.0.17" />
     <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="8.0.6" />
     <PackageReference Include="OggVorbisEncoder" Version="1.2.2" />

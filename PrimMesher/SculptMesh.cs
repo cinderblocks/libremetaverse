@@ -28,8 +28,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using IronSoftware.Drawing;
-using Color = IronSoftware.Drawing.Color;
+using SkiaSharp;
 
 namespace LibreMetaverse.PrimMesher
 {
@@ -53,9 +52,9 @@ namespace LibreMetaverse.PrimMesher
 
         public SculptMesh(string fileName, int sculptType, int lod, int viewerMode, int mirror, int invert)
         {
-            var bitmap = AnyBitmap.FromFile(fileName);
-            _SculptMesh(bitmap, (SculptType) sculptType, lod, viewerMode != 0, mirror != 0, invert != 0);
-            bitmap.Dispose();
+            var img = SKImage.FromEncodedData(fileName);
+            var bitmap = SKBitmap.FromImage(img);
+            _SculptMesh(bitmap, (SculptType)sculptType, lod, viewerMode != 0, mirror != 0, invert != 0);
         }
 
         /// <summary>
@@ -165,12 +164,12 @@ namespace LibreMetaverse.PrimMesher
                 calcVertexNormals(SculptType.plane, numXElements, numYElements);
         }
 
-        public SculptMesh(AnyBitmap sculptBitmap, SculptType sculptType, int lod, bool viewerMode)
+        public SculptMesh(SKBitmap sculptBitmap, SculptType sculptType, int lod, bool viewerMode)
         {
             _SculptMesh(sculptBitmap, sculptType, lod, viewerMode, false, false);
         }
 
-        public SculptMesh(AnyBitmap sculptBitmap, SculptType sculptType, int lod, bool viewerMode, bool mirror,
+        public SculptMesh(SKBitmap sculptBitmap, SculptType sculptType, int lod, bool viewerMode, bool mirror,
             bool invert)
         {
             _SculptMesh(sculptBitmap, sculptType, lod, viewerMode, mirror, invert);
@@ -192,7 +191,8 @@ namespace LibreMetaverse.PrimMesher
 
         public SculptMesh SculptMeshFromFile(string fileName, SculptType sculptType, int lod, bool viewerMode)
         {
-            var bitmap = AnyBitmap.FromFile(fileName);
+            var img = SKImage.FromEncodedData(fileName);
+            var bitmap = SKBitmap.FromImage(img);
             var sculptMesh = new SculptMesh(bitmap, sculptType, lod, viewerMode);
             bitmap.Dispose();
             return sculptMesh;
@@ -208,7 +208,7 @@ namespace LibreMetaverse.PrimMesher
         /// <param name="scale"></param>
         /// <param name="mirror"></param>
         /// <returns></returns>
-        private List<List<Coord>> bitmap2Coords(AnyBitmap bitmap, int scale, bool mirror)
+        private List<List<Coord>> bitmap2Coords(SKBitmap bitmap, int scale, bool mirror)
         {
             var numRows = bitmap.Height / scale;
             var numCols = bitmap.Width / scale;
@@ -237,14 +237,14 @@ namespace LibreMetaverse.PrimMesher
                     for (imageY = imageYStart; imageY < imageYEnd; imageY++)
                     {
                         var c = bitmap.GetPixel(imageX, imageY);
-                        if (c.A != 255)
+                        if (c.Alpha != 255)
                         {
-                            bitmap.SetPixel(imageX, imageY, Color.FromArgb(255, c.R, c.G, c.B));
+                            bitmap.SetPixel(imageX, imageY, c.WithAlpha(255));
                             c = bitmap.GetPixel(imageX, imageY);
                         }
-                        rSum += c.R;
-                        gSum += c.G;
-                        bSum += c.B;
+                        rSum += c.Red;
+                        gSum += c.Green;
+                        bSum += c.Blue;
                     }
                     row.Add(mirror
                         ? new Coord(-(rSum * pixScale - 0.5f), gSum * pixScale - 0.5f, bSum * pixScale - 0.5f)
@@ -255,7 +255,7 @@ namespace LibreMetaverse.PrimMesher
             return rows;
         }
 
-        private List<List<Coord>> bitmap2CoordsSampled(AnyBitmap bitmap, int scale, bool mirror)
+        private List<List<Coord>> bitmap2CoordsSampled(SKBitmap bitmap, int scale, bool mirror)
         {
             var numRows = bitmap.Height / scale;
             var numCols = bitmap.Width / scale;
@@ -278,15 +278,15 @@ namespace LibreMetaverse.PrimMesher
                     if (colNdx == numCols) imageX--;
 
                     var c = bitmap.GetPixel(imageX, imageY);
-                    if (c.A != 255)
+                    if (c.Alpha != 255)
                     {
-                        bitmap.SetPixel(imageX, imageY, Color.FromArgb(255, c.R, c.G, c.B));
+                        bitmap.SetPixel(imageX, imageY, c.WithAlpha(255));
                         c = bitmap.GetPixel(imageX, imageY);
                     }
 
                     row.Add(mirror
-                        ? new Coord(-(c.R * pixScale - 0.5f), c.G * pixScale - 0.5f, c.B * pixScale - 0.5f)
-                        : new Coord(c.R * pixScale - 0.5f, c.G * pixScale - 0.5f, c.B * pixScale - 0.5f));
+                        ? new Coord(-(c.Red * pixScale - 0.5f), c.Green * pixScale - 0.5f, c.Blue * pixScale - 0.5f)
+                        : new Coord(c.Red * pixScale - 0.5f, c.Green * pixScale - 0.5f, c.Blue * pixScale - 0.5f));
                 }
                 rows.Add(row);
             }
@@ -294,7 +294,7 @@ namespace LibreMetaverse.PrimMesher
         }
 
 
-        private void _SculptMesh(AnyBitmap sculptBitmap, SculptType sculptType, int lod, bool viewerMode, bool mirror,
+        private void _SculptMesh(SKBitmap sculptBitmap, SculptType sculptType, int lod, bool viewerMode, bool mirror,
             bool invert)
         {
             _SculptMesh(new SculptMap(sculptBitmap, lod).ToRows(mirror), sculptType, viewerMode, mirror, invert);
