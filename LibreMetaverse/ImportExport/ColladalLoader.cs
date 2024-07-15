@@ -35,6 +35,7 @@ using System.Linq;
 using System.Xml.Serialization;
 using OpenMetaverse.ImportExport.Collada14;
 using OpenMetaverse.Rendering;
+using Pfim;
 using SkiaSharp;
 
 namespace OpenMetaverse.ImportExport
@@ -126,6 +127,10 @@ namespace OpenMetaverse.ImportExport
                     case ".j2c":
                         material.TextureData = File.ReadAllBytes(fname);
                         return;
+                    case ".tga":
+                    case ".targa":
+                        bitmap = Imaging.Targa.Decode(fname);
+                        break;
                     default:
                         var img = SKImage.FromEncodedData(fname);
                         bitmap = SKBitmap.FromImage(img);

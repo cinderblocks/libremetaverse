@@ -114,9 +114,9 @@ namespace OpenMetaverse.Imaging
         }
 
         /// <summary>
-        /// Constructs ManagedImage class from AnyBitmap
+        /// Constructs ManagedImage class from <see cref="SKBitmap"/>
         /// </summary>
-        /// <param name="bitmap">Input AnyBitmap</param>
+        /// <param name="bitmap">Input <see cref="SKBitmap"/></param>
         public ManagedImage(SKBitmap bitmap)
         {
             Width = bitmap.Width;

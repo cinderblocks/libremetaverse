@@ -113,8 +113,16 @@ namespace OpenMetaverse.TestClient
                 }
                 else
                 {
-                    var img = SKImage.FromEncodedData(fileName);
-                    bitmap = SKBitmap.FromImage(img);
+                    if (lowfilename.EndsWith(".tga") || lowfilename.EndsWith(".targa"))
+                    {
+                        bitmap = Imaging.Targa.Decode(fileName);
+                    }
+                    else
+                    {
+                        var img = SKImage.FromEncodedData(fileName);
+                        bitmap = SKBitmap.FromImage(img);
+                    }
+                    
                     int oldwidth = bitmap.Width;
                     int oldheight = bitmap.Height;
 
