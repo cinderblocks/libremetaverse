@@ -3,25 +3,25 @@
  * Copyright (c) 2019-2024, Sjofn, LLC
  * All rights reserved.
  *
- * - Redistribution and use in source and binary forms, with or without 
+ * - Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions are met:
  *
  * - Redistributions of source code must retain the above copyright notice, this
  *   list of conditions and the following disclaimer.
- * - Neither the name of the openmetaverse.co nor the names 
+ * - Neither the name of the openmetaverse.co nor the names
  *   of its contributors may be used to endorse or promote products derived from
  *   this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -86,8 +86,8 @@ namespace OpenMetaverse.TestClient
 
             LoginDetails account = new LoginDetails
             {
-                FirstName = args[0], 
-                LastName = args[1], 
+                FirstName = args[0],
+                LastName = args[1],
                 Password = args[2]
             };
 
@@ -132,7 +132,7 @@ namespace OpenMetaverse.TestClient
         }
 
         /// <summary>
-        /// Login account with provided <seealso cref="LoginDetails"/> 
+        /// Login account with provided <seealso cref="LoginDetails"/>
         /// </summary>
         /// <param name="account"></param>
         /// <returns></returns>
@@ -189,7 +189,7 @@ namespace OpenMetaverse.TestClient
                     }
                     else if (e.Status == LoginStatus.Failed)
                     {
-                        Logger.Log($"Failed to login {account.FirstName} {account.LastName}: {client.Network.LoginMessage}", 
+                        Logger.Log($"Failed to login {account.FirstName} {account.LastName}: {client.Network.LoginMessage}",
                             Helpers.LogLevel.Warning);
                         --PendingLogins;
                     }
@@ -202,7 +202,7 @@ namespace OpenMetaverse.TestClient
             client.Throttle.Task = 1000000;
 
             client.GroupCommands = account.GroupCommands;
-			client.MasterName = account.MasterName;
+						client.MasterName = account.MasterName;
             client.MasterKey = account.MasterKey;
             client.AllowObjectMaster = client.MasterKey != UUID.Zero; // Require UUID for object master.
 
@@ -260,7 +260,7 @@ namespace OpenMetaverse.TestClient
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="cmd"></param>
         /// <param name="fromAgentID"></param>
@@ -271,7 +271,7 @@ namespace OpenMetaverse.TestClient
             string[] tokens = cmd.Trim().Split(' ', '\t');
             if (tokens.Length == 0)
                 return;
-            
+
             string firstToken = tokens[0].ToLower();
             if (string.IsNullOrEmpty(firstToken))
                 return;
@@ -295,7 +295,7 @@ namespace OpenMetaverse.TestClient
                 }
                 return;
             }
-            
+
             string[] args = new string[tokens.Length - 1];
             if (args.Length > 0)
                 Array.Copy(tokens, 1, args, 0, args.Length);

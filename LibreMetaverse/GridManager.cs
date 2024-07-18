@@ -93,28 +93,40 @@ namespace OpenMetaverse
         /// <summary>Access level</summary>
 		public SimAccess Access;
         /// <summary>Appears to always be zero (None)</summary>
-        public RegionFlags RegionFlags;
+    public RegionFlags RegionFlags;
         /// <summary>Water Height</summary>
 		public byte WaterHeight;
         /// <summary></summary>
 		public byte Agents;
         /// <summary>UUID of the World Map image</summary>
 		public UUID MapImageID;
-        /// <summary>Unique identifier for this region, a combination of the X 
+        /// <summary>Unique identifier for this region, a combination of the X
         /// and Y position</summary>
 		public ulong RegionHandle;
 
-
+        /// <summary>
+        ///
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
-            return $"{Name} ({X}/{Y}), Handle: {RegionHandle}, MapImage: {MapImageID}, Access: {Access}";
+						return $"{Name} ({X}/{Y}), Handle: {RegionHandle}, MapImage: {MapImageID}, Access: {Access}";
         }
 
+        /// <summary>
+        ///
+        /// </summary>
+        /// <returns></returns>
         public override int GetHashCode()
         {
             return X.GetHashCode() ^ Y.GetHashCode();
         }
 
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public override bool Equals(object obj)
         {
             return (obj is GridRegion region) && Equals(region);
@@ -174,7 +186,7 @@ namespace OpenMetaverse
     /// Represents an agent or group of agents location
     /// </summary>
     public class MapAgentLocation : MapItem
-    {       
+    {
         public int AvatarCount;
         public string Identifier;
     }
@@ -183,25 +195,25 @@ namespace OpenMetaverse
     /// Represents a Telehub location
     /// </summary>
     public class MapTelehub : MapItem
-    {        
+    {
     }
 
     /// <summary>
     /// Represents a non-adult parcel of land for sale
     /// </summary>
     public class MapLandForSale : MapItem
-    {        
+    {
         public int Size;
         public int Price;
         public string Name;
-        public UUID ID;        
+        public UUID ID;
     }
 
     /// <summary>
     /// Represents an Adult parcel of land for sale
     /// </summary>
     public class MapAdultLandForSale : MapItem
-    {     
+    {
         public int Size;
         public int Price;
         public string Name;
@@ -261,7 +273,7 @@ namespace OpenMetaverse
         /// <summary>Thread sync lock object</summary>
         private readonly object m_CoarseLocationUpdateLock = new object();
 
-        /// <summary>Raised when the simulator sends a <see cref="CoarseLocationUpdatePacket"/> 
+        /// <summary>Raised when the simulator sends a <see cref="CoarseLocationUpdatePacket"/>
         /// containing the location of agents in the simulator</summary>
         public event EventHandler<CoarseLocationUpdateEventArgs> CoarseLocationUpdate
         {
@@ -284,7 +296,7 @@ namespace OpenMetaverse
         /// <summary>Thread sync lock object</summary>
         private readonly object m_GridRegionLock = new object();
 
-        /// <summary>Raised when the simulator sends a Region Data in response to 
+        /// <summary>Raised when the simulator sends a Region Data in response to
         /// a Map request</summary>
         public event EventHandler<GridRegionEventArgs> GridRegion
         {
@@ -447,7 +459,7 @@ namespace OpenMetaverse
         /// <param name="maxX"></param>
         /// <param name="maxY"></param>
         /// <param name="returnNonExistent"></param>
-        public void RequestMapBlocks(GridLayerType layer, ushort minX, ushort minY, ushort maxX, ushort maxY, 
+        public void RequestMapBlocks(GridLayerType layer, ushort minX, ushort minY, ushort maxX, ushort maxY,
             bool returnNonExistent)
         {
             MapBlockRequestPacket request = new MapBlockRequestPacket
@@ -473,7 +485,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="regionHandle"></param>
         /// <param name="item"></param>
@@ -612,7 +624,7 @@ namespace OpenMetaverse
                 return false;
             }
         }
-        
+
         protected void MapLayerResponseHandler(HttpResponseMessage response, byte[] responseData, Exception error)
         {
             if (error != null)
@@ -800,7 +812,7 @@ namespace OpenMetaverse
         protected void SimulatorViewerTimeMessageHandler(object sender, PacketReceivedEventArgs e)
         {
             SimulatorViewerTimeMessagePacket time = (SimulatorViewerTimeMessagePacket)e.Packet;
-            
+
             SunPhase = time.TimeInfo.SunPhase;
             SunDirection = time.TimeInfo.SunDirection;
             SunAngVelocity = time.TimeInfo.SunAngVelocity;
@@ -861,7 +873,7 @@ namespace OpenMetaverse
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void RegionHandleReplyHandler(object sender, PacketReceivedEventArgs e)
-        {            
+        {
             if (m_RegionHandleReply != null)
             {
                 RegionIDAndHandleReplyPacket reply = (RegionIDAndHandleReplyPacket)e.Packet;
