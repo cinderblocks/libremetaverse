@@ -2438,6 +2438,11 @@ namespace OpenMetaverse
                         avatar.Rotation = objectupdate.Rotation;
                         avatar.AngularVelocity = objectupdate.AngularVelocity;
                         avatar.NameValues = nameValues;
+                        if (nameValues.Length > 0)
+                        {   
+							// Not great modularity, but considering how often this method runs, better to not, e.g., have Avatar define an ObjectDataBlockUpdate handler.
+                            avatar.name = avatar.groupName = null;
+                        }
                         avatar.PrimData = data;
                         // See: SL-20635 -- https://github.com/secondlife/viewer/commit/ce75d0e63b5b0efa1f5e880ee029f95aed56f66d
                         if (block.Data.Length >= 1)

@@ -361,8 +361,8 @@ namespace OpenMetaverse
 
         #endregion Public Members
 
-        protected string name;
-        protected string groupName;
+        internal string name = null;
+        internal string groupName = null;
 
         #region Properties
 
@@ -443,13 +443,13 @@ namespace OpenMetaverse
         {
             get
             {
-                if (!string.IsNullOrEmpty(groupName))
+                if (groupName != null)
                 {
                     return groupName;
                 }
                 if (NameValues == null || NameValues.Length == 0)
                 {
-                    return string.Empty;
+                    return groupName = string.Empty;
                 }
                 else
                 {
@@ -464,7 +464,7 @@ namespace OpenMetaverse
                             }
                         }
                     }
-                    return string.Empty;
+                    return groupName = string.Empty;
                 }
             }
         }
