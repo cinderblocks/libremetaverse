@@ -85,7 +85,7 @@ namespace OpenMetaverse
             get { return task; }
             set
             {
-                if (value > 446000.0f) task = 446000.0f;
+                if (value > 446000.0f*3) task = 446000.0f*3;
                 else if (value < 4000.0f) task = 4000.0f;
                 else task = value;
             }
