@@ -1015,6 +1015,35 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Returns information about the current parcel the user is located on, if any is known.
+        /// Will return null in the event the user is not connected, or the parcel information has
+        /// not yet been retrieved.
+        /// </summary>
+        public Parcel CurrentParcel
+        {
+            get
+            {
+                if (Client.Network == null || Client.Network.CurrentSim == null)
+                    return null;
+
+                if (!Client.Network.CurrentSim.Connected)
+                    return null;
+
+                if (Client.Network.CurrentSim.DownloadingParcelMap)
+                    return null;
+                
+                var localID = GetParcelLocalID(Client.Network.CurrentSim, Client.Self.SimPosition);
+
+                if (Client.Network.CurrentSim.Parcels.TryGetValue(localID, out var parcel))
+                {
+                    return parcel;
+                }
+
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Request properties of a single parcel
         /// </summary>
         /// <param name="simulator">Simulator containing the parcel</param>
@@ -1969,7 +1998,7 @@ namespace OpenMetaverse
             {
                 OnParcelProperties(new ParcelPropertiesEventArgs(simulator, parcel, result, selectedPrims, sequenceID, snapSelection));
             }
-
+            
             // Check if all of the simulator parcels have been retrieved, if so fire another callback
             if (simulator.IsParcelMapFull() && m_SimParcelsDownloaded != null)
             {
