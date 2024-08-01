@@ -39,7 +39,6 @@ using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
 using System.Net.Http;
 using System.Threading.Tasks;
-using System.Drawing;
 
 namespace OpenMetaverse
 {
