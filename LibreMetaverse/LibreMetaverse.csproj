@@ -43,10 +43,10 @@
     <Optimize>True</Optimize>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="CSJ2K.Skia" Version="0.10.0.8" />
     <PackageReference Include="log4net" Version="2.0.17" />
     <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="8.0.6" />
     <PackageReference Include="OggVorbisEncoder" Version="1.2.2" />
-    <PackageReference Include="OpenJpegDotNet-LMV" Version="2.5.0.20240712" />
     <PackageReference Include="Pfim" Version="0.11.2" />
     <PackageReference Include="SkiaSharp" Version="2.88.8" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.8" />

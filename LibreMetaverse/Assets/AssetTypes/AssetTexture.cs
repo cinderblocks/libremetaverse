@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -25,7 +25,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using CSJ2K;
 using OpenMetaverse.Imaging;
+using SkiaSharp;
 
 namespace OpenMetaverse.Assets
 {
@@ -77,10 +79,8 @@ namespace OpenMetaverse.Assets
         /// </summary>
         public sealed override void Encode()
         {
-            using (var writer = new OpenJpegDotNet.IO.Writer(Image.ExportBitmap()))
-            {
-                AssetData = writer.Encode();
-            }
+            var bitmap = Image.ExportBitmap();
+            AssetData = J2kImage.ToBytes(J2kImage.CreateEncodableSource(bitmap));
         }
 
         /// <summary>
@@ -94,12 +94,8 @@ namespace OpenMetaverse.Assets
 
             this.Components = 0;
 
-            using (var reader = new OpenJpegDotNet.IO.Reader(AssetData))
-            {
-                // *hack: decode from ManagedImage directly or better yet, get rid of ManagedImage entirely!
-                if (!reader.ReadHeader()) { return false; }
-                Image = new ManagedImage(reader.DecodeToBitmap());
-            }
+            var image = J2kImage.FromBytes(AssetData);
+            Image = new ManagedImage(image.As<SKBitmap>());
 
             if ((Image.Channels & ManagedImage.ImageChannels.Color) != 0)
                 Components += 3;

@@ -29,7 +29,10 @@ using System;
 using System.Text;
 using System.IO;
 using System.Collections.Generic;
+using CSJ2K;
 using OpenMetaverse.Assets;
+using Pfim;
+using SkiaSharp;
 
 namespace OpenMetaverse.TestClient
 {
@@ -114,15 +117,15 @@ namespace OpenMetaverse.TestClient
                         try
                         {
                             File.WriteAllBytes(assetTexture.AssetID + ".jp2", assetTexture.AssetData);
-                            Console.WriteLine("Wrote JPEG2000 image " + assetTexture.AssetID + ".jp2");
+                            Console.WriteLine($"Wrote JPEG2000 image {assetTexture.AssetID}.jp2");
 
-                            using (var reader = new OpenJpegDotNet.IO.Reader(assetTexture.AssetData))
-                            {
-                                reader.ReadHeader();
-                                OpenJpegDotNet.RawImage tga = reader.Decode().ToTarga();
-                                File.WriteAllBytes(assetTexture.AssetID + ".tga", tga.Bytes);
-                            }
-                            Console.WriteLine("Wrote TGA image " + assetTexture.AssetID + ".tga");
+                            // FIXME: Need to readd TARGA support!
+                            //var bitmap = J2kImage.FromBytes(assetTexture.AssetData).As<SKBitmap>();
+                            //var image = SKImage.FromPixels(bitmap.PeekPixels());
+                            //var bytes = image.Encode(SKEncodedImageFormat.Tga, 100);
+                            //File.WriteAllBytes(assetTexture.AssetID + ".tga", bytes.ToArray());
+                            //
+                            //Console.WriteLine($"Wrote TGA image {assetTexture.AssetID}.tga");
                         }
                         catch (Exception e)
                         {
@@ -131,7 +134,7 @@ namespace OpenMetaverse.TestClient
                     }
                     else
                     {
-                        Console.WriteLine("Failed to download image " + assetTexture.AssetID);
+                        Console.WriteLine($"Failed to download image {assetTexture.AssetID}");
                     }
 
                     OutfitAssets.Remove(assetTexture.AssetID);

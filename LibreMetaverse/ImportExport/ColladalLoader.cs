@@ -33,9 +33,9 @@ using System.IO;
 using System.Xml;
 using System.Linq;
 using System.Xml.Serialization;
+using CSJ2K;
 using OpenMetaverse.ImportExport.Collada14;
 using OpenMetaverse.Rendering;
-using Pfim;
 using SkiaSharp;
 
 namespace OpenMetaverse.ImportExport
@@ -161,10 +161,7 @@ namespace OpenMetaverse.ImportExport
                     bitmap = SKBitmap.FromImage(scaledImage);
                 }
 
-                using (var writer = new OpenJpegDotNet.IO.Writer(bitmap))
-                {
-                    material.TextureData = writer.Encode();
-                }
+                material.TextureData = J2kImage.ToBytes(J2kImage.CreateEncodableSource(bitmap));
 
                 Logger.Log("Successfully encoded " + fname, Helpers.LogLevel.Info);
             }

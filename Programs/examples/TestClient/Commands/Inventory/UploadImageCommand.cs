@@ -27,6 +27,7 @@
 
 using System;
 using System.Threading;
+using CSJ2K;
 using SkiaSharp;
 
 namespace OpenMetaverse.TestClient
@@ -105,11 +106,7 @@ namespace OpenMetaverse.TestClient
                     // Upload JPEG2000 images untouched
                     uploadData = System.IO.File.ReadAllBytes(fileName);
 
-                    using (var reader = new OpenJpegDotNet.IO.Reader(uploadData))
-                    {
-                        reader.ReadHeader();
-                        bitmap = reader.DecodeToBitmap();
-                    }
+                    bitmap = J2kImage.FromBytes(uploadData).As<SKBitmap>();
                 }
                 else
                 {
@@ -153,11 +150,7 @@ namespace OpenMetaverse.TestClient
                         bitmap = SKBitmap.FromImage(scaledImage);
                     }
                 }
-
-                using (var writer = new OpenJpegDotNet.IO.Writer(bitmap))
-                {
-                    uploadData = writer.Encode();
-                }
+                uploadData = J2kImage.ToBytes(J2kImage.CreateEncodableSource(bitmap));
             }
             catch (Exception ex)
             {
