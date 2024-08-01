@@ -75,7 +75,7 @@ namespace OpenMetaverse
                 public AgentCamera()
                 {
                     Frame = new CoordinateFrame(new Vector3(128f, 128f, 20f));
-                    Far = 128f;
+                    Far = 32f;
                 }
 
                 public void Roll(float angle)
