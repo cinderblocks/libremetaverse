@@ -459,7 +459,7 @@ namespace OpenMetaverse
                 Camera = new AgentCamera();
                 Client.Network.LoginProgress += Network_OnConnected;                
                 Client.Network.Disconnected += Network_OnDisconnected;
-                updateInterval = Settings.DEFAULT_AGENT_UPDATE_INTERVAL;
+                updateInterval = client.Settings.DEFAULT_AGENT_UPDATE_INTERVAL;
             }
 
             private void CleanupTimer()
@@ -481,7 +481,10 @@ namespace OpenMetaverse
                 if (e.Status == LoginStatus.Success)
                 {
                     CleanupTimer();
-                    updateTimer = new Timer(new TimerCallback(UpdateTimer_Elapsed), null, updateInterval, updateInterval);
+                    if (Client.Settings.SEND_AGENT_UPDATES_REGULARLY)
+                    {
+                        updateTimer = new Timer(new TimerCallback(UpdateTimer_Elapsed), null, updateInterval, updateInterval);
+                    }
                 }
             }
 
@@ -528,12 +531,13 @@ namespace OpenMetaverse
 
                     if (Client.Self.SittingOn > 0)
                     {
-                        if (!Client.Network.CurrentSim.ObjectsPrimitives.ContainsKey(Client.Self.SittingOn))
+                        if (!Client.Network.CurrentSim.ObjectsPrimitives.TryGetValue(Client.Self.SittingOn, out var parent))
                         {
                             Logger.Log("Attempted TurnToward but parent prim is not in dictionary", Helpers.LogLevel.Warning, Client);
                             return false;
                         }
-                        else parentRot = Client.Network.CurrentSim.ObjectsPrimitives[Client.Self.SittingOn].Rotation;
+
+                        parentRot = parent.Rotation;
                     }
 
                     Quaternion between = Vector3.RotationBetween(Vector3.UnitX, Vector3.Normalize(target - Client.Self.SimPosition));
