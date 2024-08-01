@@ -29,6 +29,7 @@ using System.Reflection;
 using log4net;
 using log4net.Appender;
 using log4net.Config;
+using log4net.Layout;
 
 [assembly: XmlConfigurator(Watch = true)]
 
@@ -65,10 +66,11 @@ namespace OpenMetaverse
             // ConsoleAppender
             if (!LogInstance.Logger.IsEnabledFor(log4net.Core.Level.Error))
             {
-                IAppender appender = new ConsoleAppender
+                IAppender appender = new ConsoleAppender()
                 {
-                    Layout = new log4net.Layout.PatternLayout("%timestamp [%thread] %-5level - %message%newline")
+                    Layout = new log4net.Layout.PatternLayout("%date{HH:mm:ss,fff} [%thread] %-5level - %message%newline")
                 };
+
                 BasicConfigurator.Configure(LogManager.GetRepository(Assembly.GetCallingAssembly()), appender);
 
                 if(Settings.LOG_LEVEL != Helpers.LogLevel.None)
