@@ -36,6 +36,8 @@ using OpenMetaverse.StructuredData;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Http;
 using System.Net.Http;
+using System.Text.Unicode;
+using LitJson;
 
 namespace OpenMetaverse
 {
@@ -72,6 +74,8 @@ namespace OpenMetaverse
         /// <summary>Whether the capabilities event queue is connected and
         /// listening for incoming events</summary>
         public bool IsEventQueueRunning => _EventQueueCap != null && _EventQueueCap.Running;
+
+        public EventQueueClient EventQueue => _EventQueueCap;
 
         /// <summary>
         /// Default constructor
@@ -282,31 +286,43 @@ namespace OpenMetaverse
                 return;
             }
 
-            OSD result = OSDParser.Deserialize(responseData);
-            if (result is OSDMap respMap)
+            try
             {
-                foreach (var cap in respMap.Keys)
+                OSD result = OSDParser.Deserialize(responseData);
+                if (result is OSDMap respMap)
                 {
-                    _Caps[cap] = respMap[cap].AsUri();
+                    foreach (var cap in respMap.Keys)
+                    {
+                        _Caps[cap] = respMap[cap].AsUri();
+                    }
+
+                    if (_Caps.ContainsKey("EventQueueGet"))
+                    {
+                        Logger.DebugLog($"Starting event queue for {Simulator}", Simulator.Client);
+
+                        _EventQueueCap = new EventQueueClient(_Caps["EventQueueGet"], Simulator);
+                        _EventQueueCap.OnConnected += EventQueueConnectedHandler;
+                        _EventQueueCap.OnEvent += EventQueueEventHandler;
+                        _EventQueueCap.Start();
+                    }
+
+                    OnCapabilitiesReceived(Simulator);
                 }
-
-                if (_Caps.ContainsKey("EventQueueGet"))
-                {
-                    Logger.DebugLog($"Starting event queue for {Simulator}", Simulator.Client);
-
-                    _EventQueueCap = new EventQueueClient(_Caps["EventQueueGet"], Simulator);
-                    _EventQueueCap.OnConnected += EventQueueConnectedHandler;
-                    _EventQueueCap.OnEvent += EventQueueEventHandler;
-                    _EventQueueCap.Start();
-                }
-
-                OnCapabilitiesReceived(Simulator);
+            }
+            catch (JsonException)
+            {
+                Logger.Log("Invalid caps response; '" + System.Text.Encoding.UTF8.GetString(responseData) + "' for seed request.", Helpers.LogLevel.Warning, Simulator.Client);
             }
         }
 
         private void EventQueueConnectedHandler()
         {
-            Logger.DebugLog($"Event queue for {Simulator} is connected", Simulator.Client);
+            const bool detailedLogging = false;
+            if (detailedLogging)
+            {
+                Logger.DebugLog($"Event queue for {Simulator} is connected", Simulator.Client);
+            }
+
             Simulator.Client.Network.RaiseConnectedEvent(Simulator);
         }
 

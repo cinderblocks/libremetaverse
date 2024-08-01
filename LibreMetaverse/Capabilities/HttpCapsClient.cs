@@ -30,6 +30,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
+using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 
 namespace LibreMetaverse
@@ -95,9 +96,16 @@ namespace LibreMetaverse
             SerializeData(format, payload, out var serialized, out var contentType);
             using (var request = new HttpRequestMessage(HttpMethod.Post, uri))
             {
-                request.Content = new ByteArrayContent(serialized);
-                request.Content.Headers.ContentType = contentType;
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+                try
+                {
+                    request.Content = new ByteArrayContent(serialized);
+                    request.Content.Headers.ContentType = contentType;
+                    await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+                }
+                catch (Exception e)
+                {
+                    Logger.Log("Error in HTTP request; " + e, Helpers.LogLevel.Error, null, e);
+                }
             }
         }
 
@@ -234,19 +242,36 @@ namespace LibreMetaverse
         private async Task SendRequestAsync(HttpRequestMessage request, CancellationToken? cancellationToken,
             DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
         {
-            using (var response = (cancellationToken.HasValue)
-                       ? await SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken.Value)
-                       : await SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
+            try
             {
-                if (!response.IsSuccessStatusCode)
+                using (var response = (cancellationToken.HasValue)
+                                          ? await SendAsync(request, HttpCompletionOption.ResponseHeadersRead,
+                                                            cancellationToken.Value)
+                                          : await SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
                 {
-                    completeHandler?.Invoke(response, null,
-                        new HttpRequestException(response.StatusCode + " " + response.ReasonPhrase));
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        completeHandler?.Invoke(response, null,
+                                                new HttpRequestException(response.StatusCode + " " +
+                                                                         response.ReasonPhrase));
+                    }
+
+                    connectedHandler?.Invoke(response);
+
+                    await ProcessResponseAsync(response, cancellationToken, completeHandler, progressHandler);
                 }
-
-                connectedHandler?.Invoke(response);
-
-                await ProcessResponseAsync(response, cancellationToken, completeHandler, progressHandler);
+            }
+            catch (TaskCanceledException)
+            {
+                // Eat this.
+            }
+            catch (HttpRequestException httpReqEx)
+            {
+                completeHandler?.Invoke(null, null, httpReqEx);
+            }
+            catch (IOException ioex)
+            {
+                completeHandler?.Invoke(null, null, ioex);
             }
         }
 
