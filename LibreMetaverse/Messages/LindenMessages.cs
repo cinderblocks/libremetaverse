@@ -1535,6 +1535,7 @@ namespace OpenMetaverse.Messages.Linden
     {
         /// <summary>The Agent receiving the message</summary>
         public UUID AgentID;
+        public UUID AvatarID;
 
         /// <summary>Group Details specific to the agent</summary>
         public class GroupData
@@ -1623,6 +1624,15 @@ namespace OpenMetaverse.Messages.Linden
             OSDArray agentArray = (OSDArray)map["AgentData"];
             OSDMap agentMap = (OSDMap)agentArray[0];
             AgentID = agentMap["AgentID"].AsUUID();
+            if (agentArray.Count == 0)
+            {
+                AvatarID = AgentID;
+            }
+            else
+            {
+                OSDMap avatarMap = (OSDMap)agentArray[1];
+                AvatarID = avatarMap["AvatarID"].AsUUID();
+            }
 
             OSDArray groupArray = (OSDArray)map["GroupData"];
 
@@ -4514,24 +4524,9 @@ namespace OpenMetaverse.Messages.Linden
         {
             try
             {
-                using (MemoryStream input = new MemoryStream(map["Zipped"].AsBinary()))
-                {
-                    using (MemoryStream output = new MemoryStream())
-                    {
-                        using (ZOutputStream zout = new ZOutputStream(output))
-                        {
-                            byte[] buffer = new byte[2048];
-                            int len;
-                            while ((len = input.Read(buffer, 0, buffer.Length)) > 0)
-                            {
-                                zout.Write(buffer, 0, len);
-                            }
-                            zout.Flush();
-                            output.Seek(0, SeekOrigin.Begin);
-                            MaterialData = OSDParser.DeserializeLLSDBinary(output);
-                        }
-                    }
-                }
+                var bytes = map["Zipped"].AsBinary();
+
+                MaterialData = Helpers.ZDecompressOSD(bytes);
             }
             catch (Exception ex)
             {
