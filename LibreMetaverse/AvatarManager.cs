@@ -236,6 +236,17 @@ namespace OpenMetaverse
             remove { lock (m_AvatarAppearanceLock) { m_AvatarAppearance -= value; } }
         }
 
+        internal void TriggerAvatarAppearanceMessage(AvatarAppearanceEventArgs args)
+        {
+            lock (m_AvatarAppearanceLock)
+            {
+                if (m_AvatarAppearance != null)
+                {
+                    m_AvatarAppearance(this, args);
+                }
+            }
+        }
+
         /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<UUIDNameReplyEventArgs> m_UUIDNameReply;
 
@@ -977,6 +988,10 @@ namespace OpenMetaverse
             {
                 avatar.Animations = signaledAnimations;
             }
+            else
+            {
+                e.Simulator.Client.Objects.RequestObjectPropertiesFamily(e.Simulator, data.Sender.ID);
+            }
 
             OnAvatarAnimation(new AvatarAnimationEventArgs(data.Sender.ID, signaledAnimations));
         }
@@ -993,8 +1008,15 @@ namespace OpenMetaverse
 
                 AvatarAppearancePacket appearance = (AvatarAppearancePacket)packet;
 
-                var visualParams = appearance.VisualParam.Select(block => block.ParamValue).ToList();
+                var hoverHeight = Vector3.Zero;
 
+                if (appearance.AppearanceHover != null && appearance.AppearanceHover.Length > 0)
+                {
+                    hoverHeight = appearance.AppearanceHover[0].HoverHeight;
+                }
+
+                var visualParams = appearance.VisualParam.Select(block => block.ParamValue).ToList();
+                
                 var textureEntry = new Primitive.TextureEntry(appearance.ObjectData.TextureEntry, 0,
                         appearance.ObjectData.TextureEntry.Length);
 
@@ -1003,6 +1025,7 @@ namespace OpenMetaverse
 
                 byte appearanceVersion = 0;
                 int COFVersion = 0;
+                int childCount = -1;
                 AppearanceFlags appearanceFlags = 0;
 
                 if (appearance.AppearanceData != null && appearance.AppearanceData.Length > 0)
@@ -1012,18 +1035,61 @@ namespace OpenMetaverse
                     appearanceFlags = (AppearanceFlags)appearance.AppearanceData[0].Flags;
                 }
 
-                Avatar av = simulator.ObjectsAvatars.Find((Avatar a) => a.ID == appearance.Sender.ID);
-                if (av != null)
+                if (appearance.AttachmentBlock != null && appearance.AttachmentBlock.Length > 0)
                 {
-                    av.Textures = textureEntry;
-                    av.VisualParameters = visualParams.ToArray();
-                    av.AppearanceVersion = appearanceVersion;
-                    av.COFVersion = COFVersion;
-                    av.AppearanceFlags = appearanceFlags;
+                    if (appearance.AttachmentBlock != null && appearance.AttachmentBlock.Length > 0)
+                    {
+                        Avatar av = simulator.ObjectsAvatars.Find((Avatar a) => a.ID == appearance.Sender.ID);
+                        if (av != null)
+                        {
+                            av.Attachments = new List<Avatar.Attachment>();
+                            foreach (var block in appearance.AttachmentBlock)
+                            {
+                                av.Attachments.Add(new Avatar.Attachment
+                                {
+                                    AttachmentID = block.ID,
+                                    AttachmentPoint = block.AttachmentPoint
+                                });
+                            }
+
+                            childCount = av.ChildCount = av.Attachments.Count;
+
+                            const bool log = false;
+                            if (log)
+                            {
+                                Logger.Log($"Attachment count for {av.Name}: {av.Attachments.Count}", Helpers.LogLevel.Info, Client);
+                            }
+                        }
+                    }
                 }
 
-                OnAvatarAppearance(new AvatarAppearanceEventArgs(simulator, appearance.Sender.ID, appearance.Sender.IsTrial,
-                    defaultTexture, faceTextures, visualParams, appearanceVersion, COFVersion, appearanceFlags));
+                if (appearance.Sender.ID != Client.Self.AgentID) // We need to ignore this for avatar self-appearance.
+                                                                 // The data in this packet is incorrect, and only the 
+                                                                 // mesh bake CAP response can be treated as fully reliable.
+                {
+                    Avatar av = simulator.ObjectsAvatars.Find((Avatar a) => a.ID == appearance.Sender.ID);
+                    if (av != null)
+                    {
+                        av.Textures = textureEntry;
+                        av.VisualParameters = visualParams.ToArray();
+                        av.AppearanceVersion = appearanceVersion;
+                        av.COFVersion = COFVersion;
+                        av.AppearanceFlags = appearanceFlags;
+                        av.HoverHeight = hoverHeight;
+
+                    }
+
+                    OnAvatarAppearance(new AvatarAppearanceEventArgs(simulator,
+                                                                     appearance.Sender.ID,
+                                                                     appearance.Sender.IsTrial,
+                                                                     defaultTexture,
+                                                                     faceTextures,
+                                                                     visualParams,
+                                                                     appearanceVersion,
+                                                                     COFVersion,
+                                                                     appearanceFlags,
+                                                                     childCount));
+                }
             }
         }
 
@@ -1153,7 +1219,7 @@ namespace OpenMetaverse
                 avatarGroups.Add(avatarGroup);
             }
 
-            OnAvatarGroupsReply(new AvatarGroupsReplyEventArgs(msg.AgentID, avatarGroups));
+            OnAvatarGroupsReply(new AvatarGroupsReplyEventArgs(msg.AvatarID, avatarGroups));
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
@@ -1523,6 +1589,11 @@ namespace OpenMetaverse
         public AppearanceFlags AppearanceFlags { get; }
 
         /// <summary>
+        /// Number of attachments
+        /// </summary>
+        public int ChildCount { get; }
+
+        /// <summary>
         /// Construct a new instance of the AvatarAppearanceEventArgs class
         /// </summary>
         /// <param name="sim">The simulator request was from</param>
@@ -1536,7 +1607,7 @@ namespace OpenMetaverse
         /// <param name="appearanceFlags">Appearance Flags</param>
         public AvatarAppearanceEventArgs(Simulator sim, UUID avatarID, bool isTrial, Primitive.TextureEntryFace defaultTexture,
             Primitive.TextureEntryFace[] faceTextures, List<byte> visualParams,
-            byte appearanceVersion, int COFVersion, AppearanceFlags appearanceFlags)
+            byte appearanceVersion, int COFVersion, AppearanceFlags appearanceFlags, int childCount)
         {
             this.Simulator = sim;
             this.AvatarID = avatarID;
@@ -1547,6 +1618,7 @@ namespace OpenMetaverse
             this.AppearanceVersion = appearanceVersion;
             this.COFVersion = COFVersion;
             this.AppearanceFlags = appearanceFlags;
+            this.ChildCount = childCount;
         }
     }
 
