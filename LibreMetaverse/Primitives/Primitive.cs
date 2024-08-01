@@ -25,6 +25,9 @@
  */
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse
@@ -816,6 +819,7 @@ namespace OpenMetaverse
         public LightImage LightMap;
         /// <summary></summary>
         public SculptData Sculpt;
+        public UInt32 ExtendedMeshFlags;
         /// <summary></summary>
         public ClickAction ClickAction;
         /// <summary></summary>
@@ -855,8 +859,27 @@ namespace OpenMetaverse
         public bool IsAttachment;
         /// <summary>Number of clients referencing this prim</summary>
         public int ActiveClients = 0;
+        /// <summary>
+        /// CRC32 of the primitive data structure, as delivered over the network.
+        /// </summary>
+        public uint CRC;
+        /// <summary>
+        /// Number of children, indicated via the network.
+        /// </summary>
+        public int ChildCount;
 
-        #endregion Public Members
+        public virtual IEnumerable<Primitive> GetChildren(GridClient client)
+        {
+            var sim = client.Network.FindSimulator(RegionHandle);
+            if (sim != null)
+            {
+                return sim.ObjectsPrimitives.Where(p => p.Value.ParentID == LocalID).Select(p => p.Value);
+            }
+
+            return Array.Empty<Primitive>();
+        }
+
+#endregion Public Members
 
         #region Properties
 
@@ -1206,6 +1229,10 @@ namespace OpenMetaverse
                     LightMap = new LightImage(data, i);
                 else if (type == ExtraParamType.Sculpt || type == ExtraParamType.Mesh)
                     Sculpt = new SculptData(data, i);
+                else if (type == ExtraParamType.ExtendedMesh)
+                {
+                    ExtendedMeshFlags = Utils.BytesToUInt(data, i);
+                }
 
                 i += (int)paramLength;
                 totalLength += (int)paramLength + 6;
