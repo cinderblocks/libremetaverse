@@ -369,9 +369,19 @@ namespace OpenMetaverse
             RegisterCallback(PacketType.LogoutReply, LogoutReplyHandler);
             RegisterCallback(PacketType.CompletePingCheck, CompletePingCheckHandler, false);
             RegisterCallback(PacketType.SimStats, SimStatsHandler, false);
+            RegisterCallback(PacketType.GenericMessage, GenericMessageHandler);
 
             // GLOBAL SETTING: Don't force Expect-100: Continue headers on HTTP POST calls
             ServicePointManager.Expect100Continue = false;
+        }
+
+        private void GenericMessageHandler(object sender, PacketReceivedEventArgs e)
+        {
+            if (e.Packet is GenericMessagePacket message)
+            {
+                string method = Utils.BytesToString(message.MethodData.Method);
+                Logger.Log("Received Unhandled Generic Message: " + method, Helpers.LogLevel.Info, Client);
+            }
         }
 
         /// <summary>
@@ -646,6 +656,7 @@ namespace OpenMetaverse
             }
             else if (setDefault)
             {
+                Logger.Log("Moving to another simulator; sending CompleteAgentMovement to " + simulator.Name, Helpers.LogLevel.Info, Client);
                 // Move in to this simulator
                 simulator.handshakeComplete = false;
                 simulator.UseCircuitCode(true);
@@ -670,6 +681,7 @@ namespace OpenMetaverse
             }
         }
 
+        private System.Timers.Timer logoutReplyTimeout;
         /// <summary>
         /// Begins the non-blocking logout. Makes sure that the LoggedOut event is
         /// called even if the server does not send a logout reply, and Shutdown()
@@ -680,29 +692,20 @@ namespace OpenMetaverse
             // Wait for a logout response (by way of the LoggedOut event. If the
             // response is received, shutdown will be fired in the callback.
             // Otherwise we fire it manually with a NetworkTimeout type after LOGOUT_TIMEOUT
-            System.Timers.Timer timeout = new System.Timers.Timer();
+            logoutReplyTimeout = new System.Timers.Timer();
 
-            EventHandler<LoggedOutEventArgs> callback = delegate
+            logoutReplyTimeout.Interval = Client.Settings.LOGOUT_TIMEOUT;
+            logoutReplyTimeout.Elapsed += delegate
             {
-                Shutdown(DisconnectType.ClientInitiated);
-                timeout.Stop();
-            };
-
-            LoggedOut += callback;
-
-            timeout.Interval = Client.Settings.LOGOUT_TIMEOUT;
-            timeout.Elapsed += delegate
-            {
-                timeout.Stop();
+                logoutReplyTimeout.Stop();
                 Shutdown(DisconnectType.NetworkTimeout);
                 OnLoggedOut(new LoggedOutEventArgs(new List<UUID>()));
             };
-            timeout.Start();
+            logoutReplyTimeout.Start();
 
             // Send the packet requesting a clean logout
             RequestLogout();
 
-            LoggedOut -= callback;
         }
 
         /// <summary>
@@ -772,12 +775,14 @@ namespace OpenMetaverse
         {
             if (simulator != null)
             {
+                bool wasConnected = simulator.Connected;
+
                 simulator.Disconnect(sendCloseCircuit);
 
                 // Fire the SimDisconnected event if a handler is registered
                 if (m_SimDisconnected != null)
                 {
-                    OnSimDisconnected(new SimDisconnectedEventArgs(simulator, DisconnectType.NetworkTimeout));
+                    OnSimDisconnected(new SimDisconnectedEventArgs(simulator, DisconnectType.NetworkTimeout, wasConnected));
                 }
 
                 int simulatorsCount;
@@ -816,7 +821,7 @@ namespace OpenMetaverse
         /// <param name="message">Shutdown message</param>
         public void Shutdown(DisconnectType type, string message)
         {
-            Logger.Log("NetworkManager shutdown initiated", Helpers.LogLevel.Info, Client);
+            Logger.Log($"NetworkManager shutdown initiated for {message} due to {type}", Helpers.LogLevel.Info, Client);
 
             // Send a CloseCircuit packet to simulators if we are initiating the disconnect
             bool sendCloseCircuit = (type == DisconnectType.ClientInitiated || type == DisconnectType.NetworkTimeout);
@@ -828,12 +833,14 @@ namespace OpenMetaverse
                 {
                     if (t != null && t != CurrentSim)
                     {
+                        bool wasConnected = t.Connected;
+
                         t.Disconnect(sendCloseCircuit);
 
                         // Fire the SimDisconnected event if a handler is registered
                         if (m_SimDisconnected != null)
                         {
-                            OnSimDisconnected(new SimDisconnectedEventArgs(t, type));
+                            OnSimDisconnected(new SimDisconnectedEventArgs(t, type, wasConnected));
                         }
                     }
                 }
@@ -843,18 +850,20 @@ namespace OpenMetaverse
 
             if (CurrentSim != null)
             {
+                bool wasConnected = CurrentSim.Connected;
+
                 // Kill the connection to the curent simulator
                 CurrentSim.Disconnect(sendCloseCircuit);
 
                 // Fire the SimDisconnected event if a handler is registered
                 if (m_SimDisconnected != null)
                 {
-                    OnSimDisconnected(new SimDisconnectedEventArgs(CurrentSim, type));
+                    OnSimDisconnected(new SimDisconnectedEventArgs(CurrentSim, type, wasConnected));
                 }
             }
             
-            _packetInbox.Writer.Complete();
-            _packetOutbox.Writer.Complete();
+            _packetInbox?.Writer?.Complete();
+            _packetOutbox?.Writer?.Complete();
 
             _packetInbox = null;
             _packetOutbox = null;
@@ -884,6 +893,20 @@ namespace OpenMetaverse
                 foreach (Simulator t in Simulators)
                 {
                     if (t.IPEndPoint.Equals(endPoint))
+                        return t;
+                }
+            }
+
+            return null;
+        }
+
+        public Simulator FindSimulator(ulong handle)
+        {
+            lock (Simulators)
+            {
+                foreach (Simulator t in Simulators)
+                {
+                    if (t.Handle == handle)
                         return t;
                 }
             }
@@ -990,7 +1013,7 @@ namespace OpenMetaverse
             Simulator oldSim = CurrentSim;
             lock (Simulators) CurrentSim = simulator; // CurrentSim is synchronized against Simulators
 
-            simulator.SetSeedCaps(seedcaps);
+            simulator.SetSeedCaps(seedcaps, oldSim != simulator);
 
             // If the current simulator changed fire the callback
             if (m_SimChanged != null && simulator != oldSim)
@@ -1052,6 +1075,7 @@ namespace OpenMetaverse
             if ((logout.AgentData.SessionID == Client.Self.SessionID) && (logout.AgentData.AgentID == Client.Self.AgentID))
             {
                 Logger.DebugLog("Logout reply received", Client);
+                logoutReplyTimeout?.Stop();
 
                 // Deal with callbacks, if any
                 if (m_LoggedOut != null)
@@ -1251,7 +1275,7 @@ namespace OpenMetaverse
                     AgentID = Client.Self.AgentID,
                     SessionID = Client.Self.SessionID
                 },
-                RegionInfo = {Flags = (uint) RegionProtocols.SelfAppearanceSupport}
+                RegionInfo = { Flags = 0x1 | 0x2 | 0x4 } // 0x3 == 
             };
             SendPacket(reply, simulator);
 
@@ -1375,10 +1399,13 @@ namespace OpenMetaverse
 
         public NetworkManager.DisconnectType Reason { get; }
 
-        public SimDisconnectedEventArgs(Simulator simulator, NetworkManager.DisconnectType reason)
+        public bool WasConnected { get; }
+
+        public SimDisconnectedEventArgs(Simulator simulator, NetworkManager.DisconnectType reason, bool wasConnected)
         {
             Simulator = simulator;
             Reason = reason;
+            WasConnected = wasConnected;
         }
     }
 
