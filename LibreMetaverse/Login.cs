@@ -1229,6 +1229,102 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Login that works via a existing login response
+        /// </summary>
+        /// <returns>Whether we are able to connect to a simulator using this data</returns>
+        public bool Login(LoginResponseData response)
+        {
+            LoginResponseData = response;
+
+            Client.Network.CircuitCode = (uint)response.CircuitCode;
+
+            LoginSeedCapability = new Uri(response.SeedCapability);
+
+            var handle = Utils.UIntsToLong(response.RegionX, response.RegionY);
+
+            if (Connect(response.SimIP, response.SimPort, handle, true, LoginSeedCapability) != null)
+            {
+                SendPacket(new EconomyDataRequestPacket());
+
+                UpdateLoginStatus(LoginStatus.Success, "Login success");
+                return true;
+            }
+            else
+            {
+                UpdateLoginStatus(LoginStatus.Failed, "Unable to connect to simulator");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Login that works via a SeedCap to allow logins to occur on another host with the details passed in here.
+        /// </summary>
+        /// <returns>Whether we are able to connect to a simulator using this data</returns>
+        public bool Login(string fullLLSD, string seedcap, string username, UUID agentID, UUID sessionID,
+                          UUID secureSessionID, string host, uint port, int circuitCode, uint regionX, uint regionY)
+        {
+            if (string.IsNullOrEmpty(fullLLSD))
+            {
+                LoginResponseData = new LoginResponseData
+                {
+                    AgentID = agentID, SessionID = sessionID, SecureSessionID = secureSessionID,
+                    CircuitCode = circuitCode,
+                    RegionX = regionX, RegionY = regionY, SeedCapability = seedcap, SimIP = IPAddress.Parse(host),
+                    SimPort = (ushort)port, Success = true
+                };
+            }
+            else
+            {
+                LoginResponseData = new LoginResponseData();
+                LoginResponseData.Parse(OSDParser.DeserializeLLSDXml(fullLLSD) as OSDMap);
+            }
+
+            // Login succeeded
+
+            // Fire the login callback
+            if (OnLoginResponse != null)
+            {
+                try { OnLoginResponse(LoginResponseData.Success, false, "Login Message", LoginResponseData.Reason, LoginResponseData); }
+                catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+            }
+
+            // These parameters are stored in NetworkManager, so instead of registering
+            // another callback for them we just set the values here
+            Client.Network.CircuitCode = (uint)circuitCode;
+            LoginSeedCapability = new Uri(seedcap);
+            
+            UpdateLoginStatus(LoginStatus.ConnectingToSim, "Connecting to simulator...");
+
+            var handle = Utils.UIntsToLong(regionX, regionY);
+
+            if (LoginResponseData.SimIP != null && LoginResponseData.SimPort != 0)
+            {
+                // Connect to the sim given in the login reply
+                if (Connect(LoginResponseData.SimIP, LoginResponseData.SimPort, handle, true, LoginSeedCapability) != null)
+                {
+                    // Request the economy data right after login
+                    SendPacket(new EconomyDataRequestPacket());
+
+                    // Update the login message with the MOTD returned from the server
+                    UpdateLoginStatus(LoginStatus.Success, "Login Success");
+                    return true;
+                }
+                else
+                {
+                    UpdateLoginStatus(LoginStatus.Failed,
+                                      "Unable to establish a UDP connection to the simulator");
+                    return false;
+                }
+            }
+            else
+            {
+                UpdateLoginStatus(LoginStatus.Failed,
+                                  "Login server did not return a simulator address");
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Simplified login that takes the most common fields along with a
         /// starting location URI, and can accept an MD5 string instead of a
         /// plaintext password
