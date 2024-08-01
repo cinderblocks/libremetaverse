@@ -212,6 +212,14 @@ namespace OpenMetaverse
 
             #region Properties
 
+            public bool Valid
+            {
+                get
+                {
+                    return DefaultTexture != null;
+                }
+            }
+
             /// <summary></summary>
             internal byte material
             {
@@ -780,18 +788,18 @@ namespace OpenMetaverse
                 }
 
                 uint bitfieldSize = 0;
-                uint faceBits = 0;
+                UInt64 faceBits = 0;
                 int i = pos;
 
                 #region Texture
                 DefaultTexture.TextureID = new UUID(data, i);
                 i += 16;
-
+                
                 while (ReadFaceBitfield(data, ref i, ref faceBits, ref bitfieldSize))
                 {
                     UUID tmpUUID = new UUID(data, i);
                     i += 16;
-
+                    
                     for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
                     {
                         if ((faceBits & bit) != 0)
@@ -1257,7 +1265,7 @@ namespace OpenMetaverse
                     array[i] = uint.MaxValue;
             }
 
-            private bool ReadFaceBitfield(byte[] data, ref int pos, ref uint faceBits, ref uint bitfieldSize)
+            private bool ReadFaceBitfield(byte[] data, ref int pos, ref UInt64 faceBits, ref uint bitfieldSize)
             {
                 faceBits = 0;
                 bitfieldSize = 0;
