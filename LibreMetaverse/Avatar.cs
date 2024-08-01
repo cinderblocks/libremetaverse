@@ -288,6 +288,24 @@ namespace OpenMetaverse
             }
         }
 
+        /// <summary>
+        /// The simulator can send down a list of attachments the avatar is wearing,
+        /// this can be helpful in knowing when the avatar is ready to render.
+        ///
+        /// See also: Primitive.ChildCount
+        /// </summary>
+        public struct Attachment
+        {
+            /// <summary>
+            /// The attachment point (see avatar_lad.xml for a list)
+            /// </summary>
+            public byte AttachmentPoint;
+            /// <summary>
+            /// The UUID (global) of the attachment on this point.
+            /// </summary>
+            public UUID AttachmentID;
+        }
+
         #endregion Subclasses
 
         #region Public Members
@@ -312,6 +330,11 @@ namespace OpenMetaverse
         public byte[] VisualParameters = null;
 
         /// <summary>
+        /// The avatars hover height (as indicated by the simulator)
+        /// </summary>
+        public Vector3 HoverHeight = Vector3.Zero;
+
+        /// <summary>
         /// Appearance version. Value greater than 0 indicates using server side baking
         /// </summary>
         public byte AppearanceVersion = 0;
@@ -330,6 +353,11 @@ namespace OpenMetaverse
         /// List of current avatar animations
         /// </summary>
         public List<Animation> Animations;
+
+        /// <summary>
+        /// List of (known) attachments, hinted by the simulator. See: https://jira.secondlife.com/browse/SL-20635
+        /// </summary>
+        public List<Attachment> Attachments;
 
         #endregion Public Members
 
