@@ -126,11 +126,11 @@ namespace OpenMetaverse
         public const int PING_INTERVAL = 2200;
 
         /// <summary>Number of milliseconds between sending camera updates</summary>
-        public const int DEFAULT_AGENT_UPDATE_INTERVAL = 500;
+        public int DEFAULT_AGENT_UPDATE_INTERVAL = 500;
 
         /// <summary>Number of milliseconds between updating the current
         /// positions of moving, non-accelerating and non-colliding objects</summary>
-        public const int INTERPOLATION_INTERVAL = 250;
+        public int INTERPOLATION_INTERVAL = 250;
 
         /// <summary>Millisecond interval between ticks, where all ACKs are 
         /// sent out and the age of unACKed packets is checked</summary>
@@ -182,8 +182,11 @@ namespace OpenMetaverse
         /// TerrainManager</summary>
         public bool STORE_LAND_PATCHES = false;
 
-        /// <summary>Enable/disable sending periodic camera updates</summary>
+        /// <summary>Enable/disable sending agent updates</summary>
         public bool SEND_AGENT_UPDATES = true;
+
+        /// <summary>Enable/disable sending periodic agent updates</summary>
+        public bool SEND_AGENT_UPDATES_REGULARLY = true;
 
         /// <summary>Enable/disable automatically setting agent appearance at
         /// login and after sim crossing</summary>
@@ -310,6 +313,11 @@ namespace OpenMetaverse
 
         #endregion
         #region Texture Pipeline
+
+        /// <summary>
+        /// Enable texture pipeline, will use a thread.
+        /// </summary>
+        public bool USE_TEXTURE_PIPELINE = true;
 
         /// <summary>
         /// Download textures using GetTexture capability when available

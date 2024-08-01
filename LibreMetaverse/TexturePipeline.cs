@@ -174,6 +174,9 @@ namespace OpenMetaverse
             if (_Running)
                 return;
 
+            if (!_Client.Settings.USE_TEXTURE_PIPELINE)
+                return;
+
             if (downloadMaster == null)
             {
                 // Instantiate master thread that manages the request pool
