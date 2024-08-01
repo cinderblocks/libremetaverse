@@ -26,9 +26,13 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ComponentAce.Compression.Libs.zlib;
+using LibreMetaverse.Materials;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Http;
 using OpenMetaverse.StructuredData;
@@ -169,6 +173,31 @@ namespace OpenMetaverse
         public const float HAVOK_TIMESTEP = 1.0f / 45.0f;
 
         #region Delegates
+
+        #region ObjectAnimation event
+        /// <summary>The event subscribers, null if no subscribers</summary>
+        private EventHandler<ObjectAnimationEventArgs> m_ObjectAnimation;
+
+        ///<summary>Raises the ObjectAnimation Event</summary>
+        /// <param name="e">An ObjectAnimationEventArgs object containing
+        /// the data sent from the simulator</param>
+        protected virtual void OnObjectAnimation(ObjectAnimationEventArgs e)
+        {
+            EventHandler<ObjectAnimationEventArgs> handler = m_ObjectAnimation;
+            handler?.Invoke(this, e);
+        }
+
+        /// <summary>Thread sync lock object</summary>
+        private readonly object m_ObjectAnimationLock = new object();
+
+        /// <summary>Raised when the simulator sends us data containing
+        /// an agents animation playlist</summary>
+        public event EventHandler<ObjectAnimationEventArgs> ObjectAnimation
+        {
+            add { lock (m_ObjectAnimationLock) { m_ObjectAnimation += value; } }
+            remove { lock (m_ObjectAnimationLock) { m_ObjectAnimation -= value; } }
+        }
+        #endregion ObjectAnimation event
 
         #region ObjectUpdate event
         /// <summary>The event subscribers, null if no subscribers</summary>
@@ -517,9 +546,230 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.ObjectPropertiesFamily, ObjectPropertiesFamilyHandler);
             Client.Network.RegisterCallback(PacketType.ObjectProperties, ObjectPropertiesHandler);
             Client.Network.RegisterCallback(PacketType.PayPriceReply, PayPriceReplyHandler);
+            Client.Network.RegisterCallback(PacketType.ObjectAnimation, ObjectAnimationHandler);
             Client.Network.RegisterEventCallback("ObjectPhysicsProperties", ObjectPhysicsPropertiesHandler);
         }
 
+        private void ObjectAnimationHandler(object sender, PacketReceivedEventArgs e)
+        {
+            if (e.Packet is ObjectAnimationPacket data)
+            {
+                List<Animation> signaledAnimations = new List<Animation>(data.AnimationList.Length);
+
+                for (int i = 0; i < data.AnimationList.Length; i++)
+                {
+                    Animation animation = new Animation
+                    {
+                        AnimationID = data.AnimationList[i].AnimID,
+                        AnimationSequence = data.AnimationList[i].AnimSequenceID
+                    };
+                    if (i < data.AnimationList.Length)
+                    {
+                        animation.AnimationSourceObjectID = data.Sender.ID;
+                    }
+
+                    signaledAnimations.Add(animation);
+                }
+                
+                OnObjectAnimation(new ObjectAnimationEventArgs(data.Sender.ID, signaledAnimations));
+            }
+        }
+
+        public async Task<IEnumerable<LegacyMaterial>> RequestMaterials(Simulator sim)
+        {
+            if (sim == null)
+                return null;
+
+            if (sim.Caps == null)
+            {
+                await Task.Delay(10000);
+            }
+
+            if (sim.Caps == null)
+            {
+                Logger.Log("Caps are down, unable to retrieve materials.", Helpers.LogLevel.Info, Client);
+                return null;
+            }
+            
+            var uri = sim.Caps.CapabilityURI("RenderMaterials");
+
+            List<LegacyMaterial> matsToReturn = new List<LegacyMaterial>();
+
+            Logger.Log($"Awaiting materials from {uri}", Helpers.LogLevel.Info, Client);
+
+            await Client.HttpCapsClient.GetRequestAsync(uri, CancellationToken.None,
+                                                   ((response, data, error) =>
+                                                   {
+                                                       if (error != null)
+                                                       {
+                                                           Logger.Log("Failed fetching materials",
+                                                                      Helpers.LogLevel.Error, Client, error);
+                                                           return;
+                                                       }
+
+                                                       if (data == null || data.Length == 0)
+                                                       {
+                                                           Logger.Log("Failed fetching materials; result was empty.",
+                                                                      Helpers.LogLevel.Error, Client);
+
+                                                           return;
+                                                       }
+
+                                                       try
+                                                       {
+                                                           OSD result = OSDParser.Deserialize(data);
+                                                           RenderMaterialsMessage info = new RenderMaterialsMessage();
+                                                           info.Deserialize(result as OSDMap);
+
+                                                           if (info.MaterialData is OSDArray mats)
+                                                           {
+                                                               foreach (var entry in mats)
+                                                               {
+                                                                   if (entry is OSDMap map)
+                                                                   {
+                                                                       matsToReturn.Add(new LegacyMaterial(map));
+                                                                   }
+                                                                   else
+                                                                   {
+                                                                       Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJson(entry, true).ToJson(), Helpers.LogLevel.Info, Client);
+                                                                   }
+                                                               }
+                                                           }
+                                                           else
+                                                           {
+                                                               Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJson(result, true).ToJson(), Helpers.LogLevel.Info, Client);
+                                                           }
+
+                                                           Logger.Log($"Fetched (x{matsToReturn.Count}) from {uri}", Helpers.LogLevel.Info, Client);
+                                                       }
+                                                       catch (Exception ex)
+                                                       {
+                                                           Logger.Log("Failed fetching RenderMaterials",
+                                                                      Helpers.LogLevel.Error, Client, ex);
+
+                                                           if (data != null && data.Length > 0)
+                                                           {
+                                                               Logger
+                                                                   .Log("Response unparsable; " + System.Text.UTF8Encoding.UTF8.GetString(data),
+                                                                        Helpers.LogLevel.Info, Client);
+                                                           }
+                                                       }
+                                                   }));
+
+            return matsToReturn;
+        }
+
+        public async Task<IEnumerable<LegacyMaterial>> RequestMaterials(Simulator sim, IEnumerable<UUID> materials)
+        {
+            if (sim == null)
+                return null;
+
+            if (sim.Caps == null)
+            {
+                await Task.Delay(10000);
+            }
+
+            if (sim.Caps == null)
+            {
+                Logger.Log("Caps are down, unable to retrieve materials.", Helpers.LogLevel.Info, Client);
+                return null;
+            }
+
+            var array = new OSDArray();
+
+            foreach (var material in materials)
+            {
+                array.Add(material);
+            }
+            
+            OSDMap request = new OSDMap(new Dictionary<string, OSD>
+            {
+                {"Zipped", Helpers.ZCompressOSD(array)}
+            });
+
+            var uri = sim.Caps.CapabilityURI("RenderMaterials");
+
+            List<LegacyMaterial> matsToReturn = new List<LegacyMaterial>();
+
+            Logger.Log($"Awaiting materials (x{array.Count}) from {uri}", Helpers.LogLevel.Info, Client);
+
+            await Client.HttpCapsClient.PostRequestAsync(uri, OSDFormat.Xml, request, CancellationToken.None,
+                                                   ((response, data, error) =>
+                                                       {
+                                                           if (error != null)
+                                                           {
+                                                               Logger.Log("Failed fetching materials",
+                                                                          Helpers.LogLevel.Error, Client, error);
+                                                               return;
+                                                           }
+
+                                                           if (data == null || data.Length == 0)
+                                                           {
+                                                               Logger.Log("Failed fetching materials; result was empty.",
+                                                                          Helpers.LogLevel.Error, Client);
+
+                                                               Logger
+                                                                   .Log($"Sent:\n{uri}\n{Convert.ToBase64String(OSDParser.SerializeLLSDBinary(request), Base64FormattingOptions.InsertLineBreaks)}",
+                                                                        Helpers.LogLevel.Info, Client);
+
+                                                               return;
+                                                           }
+
+                                                           try
+                                                           {
+                                                               OSD result = OSDParser.Deserialize(data);
+                                                               RenderMaterialsMessage info = new RenderMaterialsMessage();
+                                                               info.Deserialize(result as OSDMap);
+                                                               
+                                                               if (info.MaterialData is OSDArray mats)
+                                                               {
+                                                                   foreach (var entry in mats)
+                                                                   {
+                                                                       if (entry is OSDMap map)
+                                                                       {
+                                                                           matsToReturn.Add(new LegacyMaterial(map));
+                                                                       }
+                                                                       else
+                                                                       {
+                                                                           Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJson(entry, true).ToJson(), Helpers.LogLevel.Info, Client);
+                                                                       }
+                                                                   }
+                                                               }
+                                                               else
+                                                               {
+                                                                   Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJson(result, true).ToJson(), Helpers.LogLevel.Info, Client);
+                                                               }
+                                                               
+                                                               Logger.Log($"Fetched (x{matsToReturn.Count}) from {uri}", Helpers.LogLevel.Info, Client);
+                                                           }
+                                                           catch (Exception ex)
+                                                           {
+                                                               Logger.Log("Failed fetching RenderMaterials",
+                                                                          Helpers.LogLevel.Error, Client, ex);
+
+                                                               Logger
+                                                                   .Log($"Sent:\n{uri}\n{System.Text.UTF8Encoding.UTF8.GetString(OSDParser.SerializeLLSDXmlBytes(request))}",
+                                                                        Helpers.LogLevel.Info, Client);
+
+                                                               if (materials != null)
+                                                               {
+                                                                   Logger
+                                                                       .Log("Requests: " + string.Join(",", materials.Select(m => m.ToString())),
+                                                                            Helpers.LogLevel.Info);
+                                                               }
+
+                                                               if (data != null && data.Length > 0)
+                                                               {
+                                                                   Logger
+                                                                       .Log("Response unparsable; " + System.Text.UTF8Encoding.UTF8.GetString(data),
+                                                                            Helpers.LogLevel.Info, Client);
+                                                               }
+                                                           }
+                                                       }));
+
+            return matsToReturn;
+        }
+        
         #region Internal event handlers
 
         private void Network_OnDisconnected(NetworkManager.DisconnectType reason, string message)
@@ -535,7 +785,7 @@ namespace OpenMetaverse
         {
             if (Client.Settings.USE_INTERPOLATION_TIMER)
             {
-                InterpolationTimer = new Timer(InterpolationTimer_Elapsed, null, Settings.INTERPOLATION_INTERVAL, Timeout.Infinite);
+                InterpolationTimer = new Timer(InterpolationTimer_Elapsed, null, Client.Settings.INTERPOLATION_INTERVAL, Timeout.Infinite);
             }
         }
 
@@ -1765,11 +2015,15 @@ namespace OpenMetaverse
                     {
                         if (Client.Settings.OBJECT_TRACKING)
                         {
-                            Primitive prim = sim.ObjectsPrimitives.Find((Primitive p) => p.ID == primID);
-                            if (prim != null)
+                            var pair = sim.ObjectsPrimitives.FirstOrDefault(p => p.Value.ID == primID);
+                            if (pair.Value != null)
                             {
-                                prim.MediaVersion = response.Version;
-                                prim.FaceMedia = response.FaceMedia;
+                                Primitive prim = pair.Value;
+                                if (prim != null)
+                                {
+                                    prim.MediaVersion = response.Version;
+                                    prim.FaceMedia = response.FaceMedia;
+                                }
                             }
                         }
 
@@ -2015,9 +2269,7 @@ namespace OpenMetaverse
                     case PCode.NewTree:
                     case PCode.Prim:
 
-                        bool isNewObject;
-                        lock (simulator.ObjectsPrimitives.Dictionary)
-                            isNewObject = !simulator.ObjectsPrimitives.ContainsKey(block.ID);
+                        var isProbablyNew = !simulator.ObjectsPrimitives.ContainsKey(block.ID);
 
                         Primitive prim = GetPrimitive(simulator, block.ID, block.FullID);
 
@@ -2042,6 +2294,8 @@ namespace OpenMetaverse
                         {
                             SelectObject(simulator, prim.LocalID);
                         }
+
+                        prim.CRC = block.CRC;
 
                         prim.NameValues = nameValues;
                         prim.LocalID = block.ID;
@@ -2077,6 +2331,9 @@ namespace OpenMetaverse
                         prim.ParticleSys = new Primitive.ParticleSystem(block.PSBlock, 0);
                         prim.SetExtraParamsFromBytes(block.ExtraParams, 0);
 
+                        // Set number of known children to unknown, until it is known below...
+                        prim.ChildCount = -1;
+
                         // PCode-specific data
                         switch (pcode)
                         {
@@ -2094,6 +2351,18 @@ namespace OpenMetaverse
                                 //    if (block.Data.Length > 0)
                                 //        Buffer.BlockCopy(block.Data, 0, prim.ScratchPad, 0, prim.ScratchPad.Length);
                                 break;
+                            default:
+                                // See: SL-20635 -- https://github.com/secondlife/viewer/commit/ce75d0e63b5b0efa1f5e880ee029f95aed56f66d
+                                if (block.Data.Length >= 1)
+                                {
+                                    prim.ChildCount = block.Data[0];
+                                }
+                                else
+                                {
+                                    prim.ChildCount = 0;
+                                }
+
+                                break;
                         }
                         prim.ScratchPad = Utils.EmptyBytes;
 
@@ -2110,7 +2379,7 @@ namespace OpenMetaverse
                         if (handler != null)
                         {
                             ThreadPool.QueueUserWorkItem(delegate(object o)
-                                { handler(this, new PrimEventArgs(simulator, prim, update.RegionData.TimeDilation, isNewObject, attachment)); });
+                                { handler(this, new PrimEventArgs(simulator, prim, update.RegionData.TimeDilation, isProbablyNew, attachment)); });
                         }
                         //OnParticleUpdate handler replacing decode particles, PCode.Particle system appears to be deprecated this is a fix
                         if (prim.ParticleSys.PartMaxAge != 0) {
@@ -2137,6 +2406,7 @@ namespace OpenMetaverse
                             // Packed parameters
                             Client.Self.collisionPlane = objectupdate.CollisionPlane;
                             Client.Self.relativePosition = objectupdate.Position;
+                            Client.Self.LastPositionUpdate = DateTime.UtcNow;
                             Client.Self.velocity = objectupdate.Velocity;
                             Client.Self.acceleration = objectupdate.Acceleration;
                             Client.Self.relativeRotation = objectupdate.Rotation;
@@ -2169,10 +2439,24 @@ namespace OpenMetaverse
                         avatar.AngularVelocity = objectupdate.AngularVelocity;
                         avatar.NameValues = nameValues;
                         avatar.PrimData = data;
-                        if (block.Data.Length > 0)
+                        // See: SL-20635 -- https://github.com/secondlife/viewer/commit/ce75d0e63b5b0efa1f5e880ee029f95aed56f66d
+                        if (block.Data.Length >= 1)
                         {
-                            Logger.Log("Unexpected Data field for an avatar update, length " + block.Data.Length, Helpers.LogLevel.Warning);
+                            avatar.ChildCount = block.Data[0]; // This will be the number of unique attachments.
                         }
+                        else
+                        {
+                            avatar.ChildCount = 0; // Not great that we can't detect this case.
+                        }
+
+                        if (avatar.ChildCount == 0)
+                        {
+                            if (avatar.Attachments != null)
+                            {
+                                avatar.ChildCount = avatar.Attachments.Count;
+                            }
+                        }
+
                         avatar.ParentID = block.ParentID;
                         avatar.RegionHandle = update.RegionData.RegionHandle;
 
@@ -2338,6 +2622,7 @@ namespace OpenMetaverse
                         Client.Self.collisionPlane = update.CollisionPlane;
                         Client.Self.relativePosition = update.Position;
                         Client.Self.velocity = update.Velocity;
+                        Client.Self.LastPositionUpdate = DateTime.UtcNow;
                         Client.Self.acceleration = update.Acceleration;
                         Client.Self.relativeRotation = update.Rotation;
                         Client.Self.angularVelocity = update.AngularVelocity;
@@ -2406,9 +2691,7 @@ namespace OpenMetaverse
 
                     #endregion Relevance check
 
-                    bool isNew;
-                    lock (simulator.ObjectsPrimitives.Dictionary)
-                        isNew = !simulator.ObjectsPrimitives.ContainsKey(LocalID);
+                    var isProbablyNew = !simulator.ObjectsPrimitives.ContainsKey(LocalID);
 
                     Primitive prim = GetPrimitive(simulator, LocalID, FullID);
 
@@ -2612,7 +2895,7 @@ namespace OpenMetaverse
 
                     EventHandler<PrimEventArgs> handler = m_ObjectUpdate;
                     if (handler != null)
-                        handler(this, new PrimEventArgs(simulator, prim, update.RegionData.TimeDilation, isNew, prim.IsAttachment));
+                        handler(this, new PrimEventArgs(simulator, prim, update.RegionData.TimeDilation, isProbablyNew, prim.IsAttachment));
 
                     #endregion
                 }
@@ -2642,10 +2925,11 @@ namespace OpenMetaverse
                 foreach (var odb in update.ObjectData)
                 {
                     uint localID = odb.ID;
+                    uint crc = odb.CRC;
 
                     if (cachedPrimitives)
                     {
-                        if (!simulator.DataPool.NeedsRequest(localID))
+                        if (!simulator.DataPool.NeedsRequest(localID, crc))
                         {
                             continue;
                         }
@@ -2676,74 +2960,73 @@ namespace OpenMetaverse
             }
             OnKillObjects(new KillObjectsEventArgs(e.Simulator, killed));
 
+            List<uint> removeAvatars = new List<uint>();
+            List<uint> removePrims = new List<uint>();
 
-            lock (simulator.ObjectsPrimitives.Dictionary)
+            if (Client.Settings.OBJECT_TRACKING)
             {
-                List<uint> removeAvatars = new List<uint>();
-                List<uint> removePrims = new List<uint>();
+                uint localID;
+                foreach (var odb in kill.ObjectData)
+                {
+                    localID = odb.ID;
 
-                if (Client.Settings.OBJECT_TRACKING)
+                    if (simulator.ObjectsPrimitives.ContainsKey(localID))
+                        removePrims.Add(localID);
+
+                    foreach (KeyValuePair<uint, Primitive> prim in simulator.ObjectsPrimitives)
+                    {
+                        if (prim.Value.ParentID == localID)
+                        {
+                            OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
+                            removePrims.Add(prim.Key);
+                        }
+                    }
+                }
+            }
+
+            if (Client.Settings.AVATAR_TRACKING)
+            {
+                lock (simulator.ObjectsAvatars.Dictionary)
                 {
                     uint localID;
                     foreach (var odb in kill.ObjectData)
                     {
                         localID = odb.ID;
 
-                        if (simulator.ObjectsPrimitives.Dictionary.ContainsKey(localID))
-                            removePrims.Add(localID);
+                        if (simulator.ObjectsAvatars.Dictionary.ContainsKey(localID))
+                            removeAvatars.Add(localID);
 
-                        foreach (KeyValuePair<uint, Primitive> prim in simulator.ObjectsPrimitives.Dictionary)
+                        List<uint> rootPrims = new List<uint>();
+
+                        foreach (var prim in simulator.ObjectsPrimitives.Where(prim => prim.Value.ParentID == localID))
                         {
-                            if (prim.Value.ParentID == localID)
-                            {
-                                OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
-                                removePrims.Add(prim.Key);
-                            }
-                        }
-                    }
-                }
-
-                if (Client.Settings.AVATAR_TRACKING)
-                {
-                    lock (simulator.ObjectsAvatars.Dictionary)
-                    {
-                        uint localID;
-                        foreach (var odb in kill.ObjectData)
-                        {
-                            localID = odb.ID;
-
-                            if (simulator.ObjectsAvatars.Dictionary.ContainsKey(localID))
-                                removeAvatars.Add(localID);
-
-                            List<uint> rootPrims = new List<uint>();
-
-                            foreach (var prim in simulator.ObjectsPrimitives.Dictionary.Where(prim => prim.Value.ParentID == localID))
-                            {
-                                OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
-                                removePrims.Add(prim.Key);
-                                rootPrims.Add(prim.Key);
-                            }
-
-                            foreach (var prim in simulator.ObjectsPrimitives.Dictionary.Where(prim => rootPrims.Contains(prim.Value.ParentID)))
-                            {
-                                OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
-                                removePrims.Add(prim.Key);
-                            }
+                            OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
+                            removePrims.Add(prim.Key);
+                            rootPrims.Add(prim.Key);
                         }
 
-                        //Do the actual removing outside of the loops but still inside the lock.
-                        //This safely prevents the collection from being modified during a loop.
-                        foreach (uint removeID in removeAvatars)
-                            simulator.ObjectsAvatars.Dictionary.Remove(removeID);
+                        foreach (var prim in simulator.ObjectsPrimitives.Where(prim => rootPrims.Contains(prim.Value.ParentID)))
+                        {
+                            OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
+                            removePrims.Add(prim.Key);
+                        }
                     }
-                }
 
-                if (Client.Settings.CACHE_PRIMITIVES)
-                {
-                    simulator.DataPool.ReleasePrims(removePrims);
+                    //Do the actual removing outside of the loops but still inside the lock.
+                    //This safely prevents the collection from being modified during a loop.
+                    foreach (uint removeID in removeAvatars)
+                        simulator.ObjectsAvatars.Dictionary.Remove(removeID);
                 }
-                foreach (uint removeID in removePrims)
-                    simulator.ObjectsPrimitives.Dictionary.Remove(removeID);
+            }
+
+            if (Client.Settings.CACHE_PRIMITIVES)
+            {
+                simulator.DataPool.ReleasePrims(removePrims);
+            }
+
+            foreach (uint removeID in removePrims)
+            {
+                simulator.ObjectsPrimitives.Remove(removeID, out _);
             }
         }
 
@@ -2794,17 +3077,19 @@ namespace OpenMetaverse
 
                 if (Client.Settings.OBJECT_TRACKING)
                 {
-                    Primitive findPrim = simulator.ObjectsPrimitives.Find(
-                        prim => prim.ID == props.ObjectID);
-
-                    if (findPrim != null)
+                    if (simulator.UUIDToLocalID.TryGetValue(props.ObjectID, out var localID))
                     {
-                        OnObjectPropertiesUpdated(new ObjectPropertiesUpdatedEventArgs(simulator, findPrim, props));
-
-                        lock (simulator.ObjectsPrimitives.Dictionary)
+                        if (simulator.ObjectsPrimitives.TryGetValue(localID, out var findPrim))
                         {
-                            if (simulator.ObjectsPrimitives.Dictionary.ContainsKey(findPrim.LocalID))
-                                simulator.ObjectsPrimitives.Dictionary[findPrim.LocalID].Properties = props;
+                            if (findPrim != null)
+                            {
+                                OnObjectPropertiesUpdated(new ObjectPropertiesUpdatedEventArgs(simulator, findPrim, props));
+
+                                if (simulator.ObjectsPrimitives.TryGetValue(findPrim.LocalID, out var primitive))
+                                {
+                                    primitive.Properties = props;
+                                }
+                            }
                         }
                     }
                 }
@@ -2844,18 +3129,21 @@ namespace OpenMetaverse
 
             if (Client.Settings.OBJECT_TRACKING)
             {
-                Primitive findPrim = simulator.ObjectsPrimitives.Find(
-                    prim => prim.ID == op.ObjectData.ObjectID);
-
-                if (findPrim != null)
+                if (simulator.UUIDToLocalID.TryGetValue(props.ObjectID, out var localID))
                 {
-                    lock (simulator.ObjectsPrimitives.Dictionary)
+                    if (simulator.ObjectsPrimitives.TryGetValue(localID, out var findPrim))
                     {
-                        if (simulator.ObjectsPrimitives.Dictionary.ContainsKey(findPrim.LocalID))
+                        if (findPrim != null)
                         {
-                            if (simulator.ObjectsPrimitives.Dictionary[findPrim.LocalID].Properties == null)
-                                simulator.ObjectsPrimitives.Dictionary[findPrim.LocalID].Properties = new Primitive.ObjectProperties();
-                            simulator.ObjectsPrimitives.Dictionary[findPrim.LocalID].Properties.SetFamilyProperties(props);
+                            if (simulator.ObjectsPrimitives.TryGetValue(findPrim.LocalID, out var prim))
+                            {
+                                if (prim.Properties == null)
+                                {
+                                    prim.Properties = new Primitive.ObjectProperties();
+                                }
+
+                                prim.Properties.SetFamilyProperties(props);
+                            }
                         }
                     }
                 }
@@ -2902,12 +3190,9 @@ namespace OpenMetaverse
             {
                 foreach (var prop in msg.ObjectPhysicsProperties)
                 {
-                    lock (simulator.ObjectsPrimitives.Dictionary)
+                    if (simulator.ObjectsPrimitives.TryGetValue(prop.LocalID, out var primitive))
                     {
-                        if (simulator.ObjectsPrimitives.Dictionary.ContainsKey(prop.LocalID))
-                        {
-                            simulator.ObjectsPrimitives.Dictionary[prop.LocalID].PhysicsProps = prop;
-                        }
+                        primitive.PhysicsProps = prop;
                     }
                 }
             }
@@ -3142,35 +3427,32 @@ namespace OpenMetaverse
         {
             if (Client.Settings.OBJECT_TRACKING)
             {
-                lock (simulator.ObjectsPrimitives.Dictionary)
+                if (simulator.ObjectsPrimitives.TryGetValue(localID, out var prim))
                 {
-
-                    Primitive prim;
-
-                    if (simulator.ObjectsPrimitives.Dictionary.TryGetValue(localID, out prim))
+                    return prim;
+                }
+                else
+                {
+                    if (!createIfMissing) return null;
+                    if (Client.Settings.CACHE_PRIMITIVES)
                     {
-                        return prim;
+                        prim = simulator.DataPool.MakePrimitive(localID);
                     }
                     else
                     {
-                        if (!createIfMissing) return null;
-                        if (Client.Settings.CACHE_PRIMITIVES)
-                        {
-                            prim = simulator.DataPool.MakePrimitive(localID);
-                        }
-                        else
-                        {
-                            prim = new Primitive();
-                            prim.LocalID = localID;
-                            prim.RegionHandle = simulator.Handle;
-                        }
-                        prim.ActiveClients++;
-                        prim.ID = fullID;
-
-                        simulator.ObjectsPrimitives.Dictionary[localID] = prim;
-
-                        return prim;
+                        prim = new Primitive();
+                        prim.LocalID = localID;
+                        prim.RegionHandle = simulator.Handle;
                     }
+
+                    prim.ActiveClients++;
+                    prim.ID = fullID;
+
+                    prim = simulator.ObjectsPrimitives.GetOrAdd(localID, prim);
+
+                    simulator.UUIDToLocalID.AddOrUpdate(prim.ID, prim.LocalID, (uuid, u) => prim.LocalID);
+
+                    return prim;
                 }
             }
             else
@@ -3242,64 +3524,60 @@ namespace OpenMetaverse
                         delegate(Avatar avatar)
                         {
                             #region Linear Motion
-                            // Only do movement interpolation (extrapolation) when there is a non-zero velocity but 
-                            // no acceleration
-                            if (avatar.Acceleration != Vector3.Zero && avatar.Velocity == Vector3.Zero)
+                            if (avatar.Acceleration != Vector3.Zero)
                             {
-                                avatar.Position += (avatar.Velocity + avatar.Acceleration *
-                                    (0.5f * (adjSeconds - HAVOK_TIMESTEP))) * adjSeconds;
                                 avatar.Velocity += avatar.Acceleration * adjSeconds;
+                            }
+
+                            if (avatar.Velocity != Vector3.Zero)
+                            {
+                                avatar.Position += (avatar.Velocity) * adjSeconds;
                             }
                             #endregion Linear Motion
                         }
                     );
 
                     // Iterate through all of this sims primitives
-                    sim.ObjectsPrimitives.ForEach(
-                        delegate(Primitive prim)
+
+                    foreach (var (key, prim) in sim.ObjectsPrimitives)
+                    {
+                        if (prim.Joint == JointType.Invalid)
                         {
-                            if (prim.Joint == JointType.Invalid)
-                            {
-                                #region Angular Velocity
-                                Vector3 angVel = prim.AngularVelocity;
-                                float omega = angVel.LengthSquared();
+                            Vector3 angVel = prim.AngularVelocity;
+                            float omega = angVel.LengthSquared();
 
-                                if (omega > 0.00001f)
-                                {
-                                    omega = (float)Math.Sqrt(omega);
-                                    float angle = omega * adjSeconds;
-                                    angVel *= 1.0f / omega;
-                                    Quaternion dQ = Quaternion.CreateFromAxisAngle(angVel, angle);
+                            if (omega > 0.00001f)
+                            {
+                                omega = (float)Math.Sqrt(omega);
+                                float angle = omega * adjSeconds;
+                                angVel *= 1.0f / omega;
+                                Quaternion dQ = Quaternion.CreateFromAxisAngle(angVel, angle);
 
-                                    prim.Rotation *= dQ;
-                                }
-                                #endregion Angular Velocity
+                                prim.Rotation *= dQ;
+                            }
 
-                                #region Linear Motion
-                                // Only do movement interpolation (extrapolation) when there is a non-zero velocity but 
-                                // no acceleration
-                                if (prim.Acceleration != Vector3.Zero && prim.Velocity == Vector3.Zero)
-                                {
-                                    prim.Position += (prim.Velocity + prim.Acceleration *
-                                        (0.5f * (adjSeconds - HAVOK_TIMESTEP))) * adjSeconds;
-                                    prim.Velocity += prim.Acceleration * adjSeconds;
-                                }
-                                #endregion Linear Motion
-                            }
-                            else if (prim.Joint == JointType.Hinge)
+                            // Only do movement interpolation (extrapolation) when there is a non-zero velocity but 
+                            // no acceleration
+                            if (prim.Acceleration != Vector3.Zero && prim.Velocity == Vector3.Zero)
                             {
-                                //FIXME: Hinge movement extrapolation
-                            }
-                            else if (prim.Joint == JointType.Point)
-                            {
-                                //FIXME: Point movement extrapolation
-                            }
-                            else
-                            {
-                                Logger.Log("Unhandled joint type " + prim.Joint, Helpers.LogLevel.Warning, Client);
+                                prim.Position += (prim.Velocity + prim.Acceleration *
+                                                  (0.5f * (adjSeconds - HAVOK_TIMESTEP))) * adjSeconds;
+                                prim.Velocity += prim.Acceleration * adjSeconds;
                             }
                         }
-                    );
+                        else if (prim.Joint == JointType.Hinge)
+                        {
+                            //FIXME: Hinge movement extrapolation
+                        }
+                        else if (prim.Joint == JointType.Point)
+                        {
+                            //FIXME: Point movement extrapolation
+                        }
+                        else
+                        {
+                            Logger.Log("Unhandled joint type " + prim.Joint, Helpers.LogLevel.Warning, Client);
+                        }
+                    }
                 }
 
                 // Make sure the last interpolated time is always updated
@@ -3309,7 +3587,7 @@ namespace OpenMetaverse
             }
 
             // Start the timer again. Use a minimum of a 50ms pause in between calculations
-            int delay = Math.Max(50, Settings.INTERPOLATION_INTERVAL - elapsed);
+            int delay = Math.Max(50, Client.Settings.INTERPOLATION_INTERVAL - elapsed);
             if (InterpolationTimer != null)
             {
                 InterpolationTimer.Change(delay, Timeout.Infinite);
@@ -3452,6 +3730,28 @@ namespace OpenMetaverse
             this.IsNew = isNew;
         }
     }
+
+
+    public class ObjectAnimationEventArgs : EventArgs
+    {
+        /// <summary>Get the ID of the agent</summary>
+        public UUID ObjectID { get; }
+
+        /// <summary>Get the list of animations to start</summary>
+        public List<Animation> Animations { get; }
+
+        /// <summary>
+        /// Construct a new instance of the AvatarAnimationEventArgs class
+        /// </summary>
+        /// <param name="objectID">The ID of the agent</param>
+        /// <param name="anims">The list of animations to start</param>
+        public ObjectAnimationEventArgs(UUID objectID, List<Animation> anims)
+        {
+            this.ObjectID = objectID;
+            this.Animations = anims;
+        }
+    }
+
 
     public class ParticleUpdateEventArgs : EventArgs {
         /// <summary>Get the simulator the object originated from</summary>
