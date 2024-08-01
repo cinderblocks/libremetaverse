@@ -379,7 +379,12 @@ namespace OpenMetaverse
         /// <summary>
         /// A thread-safe dictionary containing primitives in a simulator
         /// </summary>
-        public InternalDictionary<uint, Primitive> ObjectsPrimitives = new InternalDictionary<uint, Primitive>();
+        public ConcurrentDictionary<uint, Primitive> ObjectsPrimitives = new ConcurrentDictionary<uint, Primitive>();
+
+        /// <summary>
+        /// A thread-safe dictionary which can be used to find the local ID of a specified UUID.
+        /// </summary>
+        public ConcurrentDictionary<UUID, uint> UUIDToLocalID = new ConcurrentDictionary<UUID, uint>();
 
         public readonly TerrainPatch[] Terrain;
 
@@ -492,6 +497,7 @@ namespace OpenMetaverse
         private Timer AckTimer;
         private Timer PingTimer;
         private Timer StatsTimer;
+        private Timer EventQueueTimer;
         // simulator <> parcel LocalID Map
         private int[,] _parcelMap;
         public readonly SimulatorDataPool DataPool;
@@ -506,6 +512,36 @@ namespace OpenMetaverse
                 if (Client.Settings.POOL_PARCEL_DATA) DataPool.DownloadingParcelMap = value;
                 _DownloadingParcelMap = value;
             }
+        }
+
+        public bool IsEventQueueRunning(bool blockUntilRunning = false)
+        {
+            if (Caps != null && Caps.IsEventQueueRunning)
+                return true;
+
+            if (blockUntilRunning)
+            {
+                // Wait a bit to see if the event queue comes online
+                AutoResetEvent queueEvent = new AutoResetEvent(false);
+                EventHandler<EventQueueRunningEventArgs> queueCallback =
+                    delegate(object sender, EventQueueRunningEventArgs e)
+                    {
+                        if (e.Simulator == this)
+                            queueEvent.Set();
+                    };
+
+                if (Caps != null)
+                {
+                    Logger.Log("Event queue restart requested.", Helpers.LogLevel.Info, Client);
+                    Client.Network.CurrentSim.Caps.EventQueue.RestartIfDead();
+                }
+
+                Client.Network.EventQueueRunning += queueCallback;
+                queueEvent.WaitOne(10 * 1000, false);
+                Client.Network.EventQueueRunning -= queueCallback;
+            }
+
+            return Caps != null && Caps.IsEventQueueRunning;
         }
 
         internal bool _DownloadingParcelMap = false;
@@ -559,6 +595,7 @@ namespace OpenMetaverse
             AckTimer?.Dispose();
             PingTimer?.Dispose();
             StatsTimer?.Dispose();
+            EventQueueTimer?.Dispose();
             ConnectedEvent?.Close();
 
             // Force all the CAPS connections closed for this simulator
@@ -580,6 +617,7 @@ namespace OpenMetaverse
                 UseCircuitCode(true);
                 if (moveToSim)
                 {
+                    Thread.Sleep(500);
                     Client.Self.CompleteAgentMovement(this);
                 }
                 return true;
@@ -599,6 +637,9 @@ namespace OpenMetaverse
             if (PingTimer == null && Client.Settings.SEND_PINGS)
                 PingTimer = new Timer(PingTimer_Elapsed, null, Settings.PING_INTERVAL, Settings.PING_INTERVAL);
 
+            if (EventQueueTimer == null)
+                EventQueueTimer = new Timer(EventQueueTimer_Elapsed, null, 2000, 2000);
+
             #endregion Start Timers
 
             Logger.Log($"Connecting to {this}", Helpers.LogLevel.Info, Client);
@@ -617,7 +658,11 @@ namespace OpenMetaverse
                 Stats.ConnectTime = Environment.TickCount;
 
                 // Move our agent in to the sim to complete the connection
-                if (moveToSim) Client.Self.CompleteAgentMovement(this);
+                if (moveToSim)
+                {
+                    Thread.Sleep(500);
+                    Client.Self.CompleteAgentMovement(this);
+                }
 
                 if (!ConnectedEvent.WaitOne(Client.Settings.LOGIN_TIMEOUT, false))
                 {
@@ -643,6 +688,30 @@ namespace OpenMetaverse
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// The event queue can sometimes randomly, and permanently die.
+        ///
+        /// This is due to a bug somewhere in the event queue code, but thus far,
+        /// it has completely eluded me. This hacky mechanism, solves that problem.
+        /// </summary>
+        /// <param name="state"></param>
+        private void EventQueueTimer_Elapsed(object state)
+        {
+            if (Connected && Client.Network.Connected)
+            {
+                if (Caps != null)
+                {
+                    if (!Caps.IsEventQueueRunning)
+                    {
+                        if (Caps.EventQueue != null)
+                        {
+                            Caps.EventQueue.RestartIfDead();
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -679,11 +748,11 @@ namespace OpenMetaverse
             }
         }
 
-        public void SetSeedCaps(Uri seedcaps)
+        public void SetSeedCaps(Uri seedcaps, bool changedSim = false)
         {
             if (Caps != null)
             {
-                if (Caps._SeedCapsURI == seedcaps) return;
+                if (Caps._SeedCapsURI == seedcaps && !changedSim) return;
 
                 Logger.Log("Unexpected change of seed capability", Helpers.LogLevel.Warning, Client);
                 Caps.Disconnect(true);
@@ -716,10 +785,12 @@ namespace OpenMetaverse
             AckTimer?.Dispose();
             StatsTimer?.Dispose();
             PingTimer?.Dispose();
+            EventQueueTimer?.Dispose();
 
             AckTimer = null;
             StatsTimer = null;
             PingTimer = null;
+            EventQueueTimer = null;
 
             // Kill the current CAPS system
             if (Caps != null)
@@ -1471,7 +1542,7 @@ namespace OpenMetaverse
             lock (dict)
             {
                 Primitive prim;
-                if (!dict.TryGetValue(localID, out prim))
+                if (!dict.TryGetValue(localID, out prim) || prim.IsAttachment)
                 {
                     dict[localID] = prim = new Primitive { RegionHandle = Handle, LocalID = localID };
                 }
@@ -1479,10 +1550,13 @@ namespace OpenMetaverse
             }
         }
 
-        internal bool NeedsRequest(uint localID)
+        internal bool NeedsRequest(uint localID, uint crc32)
         {
             var dict = PrimCache;
-            lock (dict) return !dict.ContainsKey(localID);
+            lock (dict)
+            {
+                return !dict.TryGetValue(localID, out var prim) || prim.CRC != crc32;
+            }
         }
         #endregion Factories
 
