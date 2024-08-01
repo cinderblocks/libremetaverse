@@ -1567,6 +1567,8 @@ namespace OpenMetaverse.Messages.Linden
             public UUID GroupID;
             /// <summary>The <seealso cref="UUID"/> of the groups insignia</summary>
             public UUID GroupInsigniaID;
+            /// <summary>The user title from the group</summary>
+            public string GroupTitle;
             /// <summary>The name of the group</summary>
             public string GroupName;
             /// <summary>The aggregate permissions the agent has in the group for all roles the agent
@@ -1613,6 +1615,7 @@ namespace OpenMetaverse.Messages.Linden
                     ["Contribution"] = OSD.FromInteger(t.Contribution),
                     ["GroupID"] = OSD.FromUUID(t.GroupID),
                     ["GroupInsigniaID"] = OSD.FromUUID(t.GroupInsigniaID),
+                    ["GroupTitle"] = OSD.FromString(t.GroupTitle),
                     ["GroupName"] = OSD.FromString(t.GroupName),
                     ["GroupPowers"] = OSD.FromLong((long) t.GroupPowers)
                 };
@@ -1657,6 +1660,7 @@ namespace OpenMetaverse.Messages.Linden
                     GroupID = groupMap["GroupID"].AsUUID(),
                     Contribution = groupMap["Contribution"].AsInteger(),
                     GroupInsigniaID = groupMap["GroupInsigniaID"].AsUUID(),
+                    GroupTitle = groupMap["GroupTitle"].AsString(),
                     GroupName = groupMap["GroupName"].AsString(),
                     GroupPowers = (GroupPowers) groupMap["GroupPowers"].AsLong(),
                     AcceptNotices = groupMap["AcceptNotices"].AsBoolean()

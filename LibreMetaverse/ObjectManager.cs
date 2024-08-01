@@ -2157,6 +2157,11 @@ namespace OpenMetaverse
                         avatar.Rotation = objectupdate.Rotation;
                         avatar.AngularVelocity = objectupdate.AngularVelocity;
                         avatar.NameValues = nameValues;
+                        if (nameValues.Length > 0)
+                        {   
+							// Not great modularity, but considering how often this method runs, better to not, e.g., have Avatar define an ObjectDataBlockUpdate handler.
+                            avatar.name = avatar.groupName = null;
+                        }
                         avatar.PrimData = data;
                         if (block.Data.Length > 0)
                         {

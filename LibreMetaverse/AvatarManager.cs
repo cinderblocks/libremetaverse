@@ -1147,6 +1147,7 @@ namespace OpenMetaverse
                     GroupInsigniaID = msg.GroupDataBlock[i].GroupInsigniaID,
                     GroupName = msg.GroupDataBlock[i].GroupName,
                     GroupPowers = msg.GroupDataBlock[i].GroupPowers,
+                    GroupTitle = msg.GroupDataBlock[i].GroupTitle,
                     ListInProfile = msg.NewGroupDataBlock[i].ListInProfile
                 };
 
