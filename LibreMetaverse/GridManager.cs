@@ -377,8 +377,10 @@ namespace OpenMetaverse
         internal Dictionary<string, GridRegion> Regions = new Dictionary<string, GridRegion>();
         /// <summary>A dictionary of all the regions, indexed by region handle</summary>
         internal Dictionary<ulong, GridRegion> RegionsByHandle = new Dictionary<ulong, GridRegion>();
+        /// <summary>A dictionary of regions by region handle</summary>
+        internal Dictionary<UUID, ulong> RegionsByUUID = new Dictionary<UUID, ulong>();
 
-		private readonly GridClient Client;
+        private readonly GridClient Client;
 
         /// <summary>
         /// Constructor
@@ -430,7 +432,7 @@ namespace OpenMetaverse
                 },
                 NameData =
                 {
-                    Name = Utils.StringToBytes(regionName)
+                    Name = Utils.StringToBytes(regionName.ToLowerInvariant())
                 }
             };
 
@@ -545,6 +547,23 @@ namespace OpenMetaverse
         /// <param name="regionID">UUID of the region to look up</param>
         public void RequestRegionHandle(UUID regionID)
         {
+            ulong handle = 0;
+            bool found = false;
+            lock (RegionsByUUID)
+            {
+                found = RegionsByUUID.TryGetValue(regionID, out handle);
+            }
+
+            if (found)
+            {
+                if (m_RegionHandleReply != null)
+                {
+                    OnRegionHandleReply(new RegionHandleReplyEventArgs(regionID, handle));
+                }
+
+                return;
+            }
+
             RegionHandleRequestPacket request = new RegionHandleRequestPacket
             {
                 RequestBlock = new RegionHandleRequestPacket.RequestBlockBlock
@@ -553,6 +572,62 @@ namespace OpenMetaverse
                 }
             };
             Client.Network.SendPacket(request);
+        }
+
+        /// <summary>
+        /// Retrieves <seealso cref="GridRegion"/> information using the region name
+        /// </summary>
+        /// <remarks>This function will block until it can find the region or gives up</remarks>
+        /// <param name="handle">Region Handle of requested <seealso cref="GridRegion"/></param>
+        /// <param name="layer"><seealso cref="GridLayerType"/> for the
+        /// <seealso cref="GridRegion"/> being requested</param>
+        /// <param name="region">Output for the fetched <seealso cref="GridRegion"/>,
+        /// or empty struct if failure</param>
+        /// <returns>True if the <seealso cref="GridRegion"/> was fetched, otherwise false</returns>
+        public bool GetGridRegion(ulong handle, GridLayerType layer, out GridRegion region)
+        {
+            // Check if cached
+            if (RegionsByHandle.TryGetValue(handle, out region))
+            {
+                return true;
+            }
+
+            uint globalX,
+                 globalY;
+
+            Utils.LongToUInts(handle, out globalX, out globalY);
+            const uint regionWidthUnits = 256;
+            ushort gridX = (ushort)(globalX / regionWidthUnits);
+            ushort gridY = (ushort)(globalY / regionWidthUnits);
+
+            // Ask the server for the name of the region anchored at the specified grid position.
+            AutoResetEvent regionEvent = new AutoResetEvent(false);
+
+            GridRegion foundRegion = default(GridRegion);
+            bool found = false;
+
+            void RegionCallback(object? sender, GridRegionEventArgs e)
+            {   // See note in HandleCallback, above.
+                if (e.Region.RegionHandle == handle)
+                {
+                    found = true;
+                    foundRegion = e.Region;
+                    regionEvent.Set();
+                }
+            }
+
+            GridRegion += RegionCallback;
+            RequestMapBlocks(layer, gridX, gridY, gridX, gridY, true);
+            regionEvent.WaitOne(Client.Settings.MAP_REQUEST_TIMEOUT, false);
+            GridRegion -= RegionCallback;
+            region = foundRegion;
+
+            if (!found)
+            {
+                Logger.Log($"Could not find region at region handle {handle}", Helpers.LogLevel.Warning, Client);
+            }
+
+            return found;
         }
 
         /// <summary>
@@ -574,10 +649,10 @@ namespace OpenMetaverse
                 return false;
             }
 
-            if (Regions.ContainsKey(name))
+            if (Regions.ContainsKey(name.ToLowerInvariant()))
             {
                 // We already have this GridRegion structure
-                region = Regions[name];
+                region = Regions[name.ToLowerInvariant()];
                 return true;
             }
 
@@ -585,7 +660,7 @@ namespace OpenMetaverse
 
             void Callback(object sender, GridRegionEventArgs e)
             {
-                if (e.Region.Name == name)
+                if (e.Region.Name.ToLowerInvariant() == name.ToLowerInvariant())
                 {
                     regionEvent.Set();
                 }
@@ -598,10 +673,10 @@ namespace OpenMetaverse
 
             GridRegion -= Callback;
 
-            if (Regions.ContainsKey(name))
+            if (Regions.ContainsKey(name.ToLowerInvariant()))
             {
                 // The region was found after our request
-                region = Regions[name];
+                region = Regions[name.ToLowerInvariant()];
                 return true;
             }
             else
@@ -674,7 +749,7 @@ namespace OpenMetaverse
 
                     lock (Regions)
                     {
-                        Regions[region.Name] = region;
+                        Regions[region.Name.ToLowerInvariant()] = region;
                         RegionsByHandle[region.RegionHandle] = region;
                     }
 
@@ -860,10 +935,16 @@ namespace OpenMetaverse
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void RegionHandleReplyHandler(object sender, PacketReceivedEventArgs e)
-        {            
+        {
+            RegionIDAndHandleReplyPacket reply = (RegionIDAndHandleReplyPacket)e.Packet;
+
+            lock (RegionsByUUID)
+            {
+                RegionsByUUID[reply.ReplyBlock.RegionID] = reply.ReplyBlock.RegionHandle;
+            }
+
             if (m_RegionHandleReply != null)
             {
-                RegionIDAndHandleReplyPacket reply = (RegionIDAndHandleReplyPacket)e.Packet;
                 OnRegionHandleReply(new RegionHandleReplyEventArgs(reply.ReplyBlock.RegionID, reply.ReplyBlock.RegionHandle));
             }
         }
