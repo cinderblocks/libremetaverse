@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2022-2023, Sjofn, LLC.
+ * Copyright (c) 2022-2024, Sjofn, LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
+using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 
 namespace LibreMetaverse
@@ -95,9 +96,16 @@ namespace LibreMetaverse
             SerializeData(format, payload, out var serialized, out var contentType);
             using (var request = new HttpRequestMessage(HttpMethod.Post, uri))
             {
-                request.Content = new ByteArrayContent(serialized);
-                request.Content.Headers.ContentType = contentType;
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+                try
+                {
+                    request.Content = new ByteArrayContent(serialized);
+                    request.Content.Headers.ContentType = contentType;
+                    await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+                }
+                catch (Exception e)
+                {
+                    Logger.Log("Error in HTTP request; " + e, Helpers.LogLevel.Error, null, e);
+                }
             }
         }
 
@@ -237,13 +245,15 @@ namespace LibreMetaverse
             try
             {
                 using (var response = (cancellationToken.HasValue)
-                           ? await SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken.Value)
-                           : await SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
+                                          ? await SendAsync(request, HttpCompletionOption.ResponseHeadersRead,
+                                                            cancellationToken.Value)
+                                          : await SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
                 {
                     if (!response.IsSuccessStatusCode)
                     {
                         completeHandler?.Invoke(response, null,
-                            new HttpRequestException(response.StatusCode + " " + response.ReasonPhrase));
+                                                new HttpRequestException(response.StatusCode + " " +
+                                                                         response.ReasonPhrase));
                     }
 
                     connectedHandler?.Invoke(response);
@@ -251,9 +261,17 @@ namespace LibreMetaverse
                     await ProcessResponseAsync(response, cancellationToken, completeHandler, progressHandler);
                 }
             }
-            catch (HttpRequestException ex)
+            catch (TaskCanceledException)
             {
-                completeHandler?.Invoke(null, null, ex);
+                /* noop */
+            }
+            catch (HttpRequestException httpReqEx)
+            {
+                completeHandler?.Invoke(null, null, httpReqEx);
+            }
+            catch (IOException ioex)
+            {
+                completeHandler?.Invoke(null, null, ioex);
             }
         }
 
