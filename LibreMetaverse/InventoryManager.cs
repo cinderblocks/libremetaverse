@@ -873,6 +873,15 @@ namespace OpenMetaverse
                                 // Do we have any descendants
                                 if (fetchedFolder.DescendentCount > 0)
                                 {
+                                    // Delete the old items, because otherwise it merges in cache.
+                                    if (_Store.Contains(fetchedFolder.UUID))
+                                    {
+                                        foreach (var oldItem in _Store.GetContents(fetchedFolder.UUID).ToList())
+                                        {
+                                            _Store.RemoveNodeFor(oldItem);
+                                        }
+                                    }
+
                                     // Fetch descendent folders
                                     if (res["categories"] is OSDArray folders)
                                     {
@@ -3717,6 +3726,9 @@ namespace OpenMetaverse
         private void Network_OnLoginResponse(bool loginSuccess, bool redirect, string message, string reason, LoginResponseData replyData)
         {
             if (!loginSuccess) return;
+
+            if (replyData.InventorySkeleton == null || replyData.LibrarySkeleton == null)
+                return;
 
             // Initialize the store here so we know who owns it:
             _Store = new Inventory(Client, this, Client.Self.AgentID);
