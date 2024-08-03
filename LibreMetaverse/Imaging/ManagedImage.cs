@@ -26,6 +26,7 @@
  */
 
 using System;
+using CSJ2K.Util;
 using SkiaSharp;
 
 namespace OpenMetaverse.Imaging
@@ -114,6 +115,55 @@ namespace OpenMetaverse.Imaging
         }
 
         /// <summary>
+        /// Constructs ManagedImage class from <see cref="PortableImage"/>
+        /// Currently only supporting 8-bit channels;
+        /// </summary>
+        /// <param name="bitmap">Input <see cref="PortableImage"/></param>
+        public ManagedImage(PortableImage image)
+        {
+            Width = image.Width;
+            Height = image.Height;
+            
+            var pixelCount = Width * Height;
+            var numComp = image.NumberOfComponents;
+            switch (numComp)
+            {
+                case 1:
+                    Channels = ImageChannels.Gray;
+                    Red = new byte[pixelCount * sizeof(int)];
+                    Buffer.BlockCopy(image.GetComponent(0), 0, Red, 0, Red.Length);
+                    break;
+                case 2:
+                    Channels = ImageChannels.Color;
+                    Red = new byte[pixelCount * sizeof(int)];
+                    Green = new byte[pixelCount * sizeof(int)];
+                    Buffer.BlockCopy(image.GetComponent(0), 0, Red, 0, Red.Length);
+                    Buffer.BlockCopy(image.GetComponent(1), 0, Green, 0, Green.Length);
+                    break;
+                case 3:
+                    Channels = ImageChannels.Color;
+                    Red = new byte[pixelCount * sizeof(int)];
+                    Green = new byte[pixelCount * sizeof(int)];
+                    Blue = new byte[pixelCount * sizeof(int)];
+                    Buffer.BlockCopy(image.GetComponent(0), 0, Red, 0, Red.Length);
+                    Buffer.BlockCopy(image.GetComponent(1), 0, Green, 0, Green.Length);
+                    Buffer.BlockCopy(image.GetComponent(2), 0, Blue, 0, Blue.Length);
+                    break;
+                case 4:
+                    Channels = ImageChannels.Alpha | ImageChannels.Color;
+                    Red = new byte[pixelCount * sizeof(int)];
+                    Green = new byte[pixelCount * sizeof(int)];
+                    Blue = new byte[pixelCount * sizeof(int)];
+                    Alpha = new byte[pixelCount * sizeof(int)];
+                    Buffer.BlockCopy(image.GetComponent(0), 0, Red, 0, Red.Length);
+                    Buffer.BlockCopy(image.GetComponent(1), 0, Green, 0, Green.Length);
+                    Buffer.BlockCopy(image.GetComponent(2), 0, Blue, 0, Blue.Length);
+                    Buffer.BlockCopy(image.GetComponent(3), 0, Alpha, 0, Alpha.Length);
+                    break;
+            }
+        }
+        
+        /// <summary>
         /// Constructs ManagedImage class from <see cref="SKBitmap"/>
         /// </summary>
         /// <param name="bitmap">Input <see cref="SKBitmap"/></param>
@@ -139,14 +189,12 @@ namespace OpenMetaverse.Imaging
 
                         for (var i = 0; i < pixelCount; ++i)
                         {
-                            // GDI+ gives us BGRA and we need to turn that in to RGBA
-                            Blue[i] = *pixel++;
-                            Green[i] = *pixel++;
                             Red[i] = *pixel++;
+                            Green[i] = *pixel++;
+                            Blue[i] = *pixel++;
                             Alpha[i] = *pixel++;
                         }
                     }
-
                     break;
                 case 3:
                     Channels = ImageChannels.Color;
@@ -160,19 +208,26 @@ namespace OpenMetaverse.Imaging
 
                         for (var i = 0; i < pixelCount; ++i)
                         {
-                            // GDI+ gives us BGR and we need to turn that in to RGB
-                            Blue[i] = *pixel++;
-                            Green[i] = *pixel++;
                             Red[i] = *pixel++;
+                            Green[i] = *pixel++;
+                            Blue[i] = *pixel++;
                         }
                     }
-
                     break;
-                case 2:
+                case 1:
                     Channels = ImageChannels.Gray;
                     Red = new byte[pixelCount];
                 
-                    throw new NotImplementedException("16bpp grayscale image support is incomplete");
+                    unsafe
+                    {
+                        byte* pixel = (byte*)bitmap.GetPixels();
+
+                        for (var i = 0; i < pixelCount; ++i)
+                        {
+                            Red[i] = *pixel++;
+                        }
+                    }
+                    break;
                 default:
                     throw new NotSupportedException($"Pixel depth of {bpp} is not supported.");
             }
