@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -126,11 +126,11 @@ namespace OpenMetaverse.TestClient
                     if (!IsPowerOfTwo((uint)oldwidth) || !IsPowerOfTwo((uint)oldheight))
                     {
                         var info = new SKImageInfo(256, 256);
-                        var scaledImage = SKImage.Create(info);
-                        var skImage = SKImage.FromBitmap(bitmap);
-                        skImage.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
+                        var scaledImage = new SKBitmap(info);
+                        bitmap.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
 
-                        bitmap = SKBitmap.FromImage(scaledImage);
+                        bitmap.Dispose();
+                        bitmap = scaledImage;
 
                         oldwidth = 256;
                         oldheight = 256;
@@ -143,11 +143,11 @@ namespace OpenMetaverse.TestClient
                         int newheight = (oldheight > 1024) ? 1024 : oldheight;
 
                         var info = new SKImageInfo(newwidth, newheight);
-                        var scaledImage = SKImage.Create(info);
-                        var skImage = SKImage.FromBitmap(bitmap);
-                        skImage.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
+                        var scaledImage = new SKBitmap(info);
+                        bitmap.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
 
-                        bitmap = SKBitmap.FromImage(scaledImage);
+                        bitmap.Dispose();
+                        bitmap = scaledImage;
                     }
                 }
                 uploadData = J2kImage.ToBytes(J2kImage.CreateEncodableSource(bitmap));

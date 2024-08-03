@@ -165,10 +165,10 @@ namespace LibreMetaverse.PrimMesher
         private SKBitmap ScaleImage(SKBitmap srcImage, int destWidth, int destHeight)
         {
             var info = new SKImageInfo(destWidth, destHeight);
-            var scaledImage = SKImage.Create(info);
-            var skImage = SKImage.FromBitmap(srcImage);
-            skImage.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
-            return SKBitmap.FromImage(scaledImage);
+            var scaledImage = new SKBitmap(info);
+            srcImage.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
+            srcImage.Dispose();
+            return scaledImage;
         }
     }
 }

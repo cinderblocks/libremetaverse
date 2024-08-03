@@ -155,10 +155,10 @@ namespace OpenMetaverse.ImportExport
                     Logger.Log("Image has irregular dimensions " + origWidth + "x" + origHieght + ". Resizing to " + width + "x" + height, Helpers.LogLevel.Info);
 
                     var info = new SKImageInfo(width, height);
-                    var scaledImage = SKImage.Create(info);
-                    var skImage = SKImage.FromBitmap(bitmap);
-                    skImage.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
-                    bitmap = SKBitmap.FromImage(scaledImage);
+                    var scaledImage = new SKBitmap(info);
+                    bitmap.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
+                    bitmap.Dispose();
+                    bitmap = scaledImage;
                 }
 
                 material.TextureData = J2kImage.ToBytes(J2kImage.CreateEncodableSource(bitmap));
