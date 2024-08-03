@@ -118,7 +118,7 @@ namespace OpenMetaverse.Imaging
         /// Constructs ManagedImage class from <see cref="PortableImage"/>
         /// Currently only supporting 8-bit channels;
         /// </summary>
-        /// <param name="bitmap">Input <see cref="PortableImage"/></param>
+        /// <param name="image">Input <see cref="PortableImage"/></param>
         public ManagedImage(PortableImage image)
         {
             Width = image.Width;
@@ -436,6 +436,7 @@ namespace OpenMetaverse.Imaging
             return SKBitmap.FromImage(img);
         }
 
+        [Obsolete("ExportTGA() is deprecated, please use Targa.Encode() instead.")]
         public byte[] ExportTGA()
         {
             byte[] tga = new byte[Width * Height * ((Channels & ImageChannels.Alpha) == 0 ? 3 : 4) + 32];

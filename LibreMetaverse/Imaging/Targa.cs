@@ -32,8 +32,9 @@ using SkiaSharp;
 
 namespace OpenMetaverse.Imaging
 {
-    public class Targa
+    public static class Targa
     {
+        /// <summary>Decode Truvision TGA file to <seealso cref="SKBitmap" /></summary>
         public static SKBitmap Decode(string fileName)
         {
             using (var image = Pfimage.FromFile(fileName))
@@ -42,6 +43,7 @@ namespace OpenMetaverse.Imaging
             }
         }
 
+        /// <summary>Decode Truvision TGA stream to <seealso cref="SKBitmap" /></summary>
         public static SKBitmap Decode(Stream stream)
         {
             using (var image = Pfimage.FromStream(stream))
@@ -97,6 +99,71 @@ namespace OpenMetaverse.Imaging
                     return SKBitmap.FromImage(skImage);
                 }
             }
+        }
+        
+        /// <summary>Encode <see cref="ManagedImage"/> to Truvision TGA byte array</summary>
+        public static byte[] Encode(ManagedImage image)
+        {
+            var tga = new byte[image.Width * image.Height * ((image.Channels & ManagedImage.ImageChannels.Alpha) == 0 ? 3 : 4) + 32];
+            var di = 0;
+            tga[di++] = 0; // idlength
+            tga[di++] = 0; // colormaptype = 0: no colormap
+            tga[di++] = 2; // image type = 2: uncompressed RGB
+            tga[di++] = 0; // color map spec is five zeroes for no color map
+            tga[di++] = 0; // color map spec is five zeroes for no color map
+            tga[di++] = 0; // color map spec is five zeroes for no color map
+            tga[di++] = 0; // color map spec is five zeroes for no color map
+            tga[di++] = 0; // color map spec is five zeroes for no color map
+            tga[di++] = 0; // x origin = two bytes
+            tga[di++] = 0; // x origin = two bytes
+            tga[di++] = 0; // y origin = two bytes
+            tga[di++] = 0; // y origin = two bytes
+            tga[di++] = (byte)(image.Width & 0xFF); // width - low byte
+            tga[di++] = (byte)(image.Width >> 8); // width - hi byte
+            tga[di++] = (byte)(image.Height & 0xFF); // height - low byte
+            tga[di++] = (byte)(image.Height >> 8); // height - hi byte
+            tga[di++] = (byte)((image.Channels & ManagedImage.ImageChannels.Alpha) == 0 ? 24 : 32); // 24/32 bits per pixel
+            tga[di++] = (byte)((image.Channels & ManagedImage.ImageChannels.Alpha) == 0 ? 32 : 40); // image descriptor byte
+
+            int n = image.Width * image.Height;
+
+            if ((image.Channels & ManagedImage.ImageChannels.Alpha) != 0)
+            {
+                if ((image.Channels & ManagedImage.ImageChannels.Color) != 0)
+                {
+                    // RGBA
+                    for (var i = 0; i < n; i++)
+                    {
+                        tga[di++] = image.Blue[i];
+                        tga[di++] = image.Green[i];
+                        tga[di++] = image.Red[i];
+                        tga[di++] = image.Alpha[i];
+                    }
+                }
+                else
+                {
+                    // Alpha only
+                    for (var i = 0; i < n; i++)
+                    {
+                        tga[di++] = image.Alpha[i];
+                        tga[di++] = image.Alpha[i];
+                        tga[di++] = image.Alpha[i];
+                        tga[di++] = byte.MaxValue;
+                    }
+                }
+            }
+            else
+            {
+                // RGB
+                for (var i = 0; i < n; i++)
+                {
+                    tga[di++] = image.Blue[i];
+                    tga[di++] = image.Green[i];
+                    tga[di++] = image.Red[i];
+                }
+            }
+
+            return tga;
         }
     }
 }

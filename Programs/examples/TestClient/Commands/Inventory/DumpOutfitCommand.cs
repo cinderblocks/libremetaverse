@@ -31,8 +31,10 @@ using System.IO;
 using System.Collections.Generic;
 using CSJ2K;
 using OpenMetaverse.Assets;
+using OpenMetaverse.Imaging;
 using Pfim;
 using SkiaSharp;
+using Targa = OpenMetaverse.Imaging.Targa;
 
 namespace OpenMetaverse.TestClient
 {
@@ -119,13 +121,13 @@ namespace OpenMetaverse.TestClient
                             File.WriteAllBytes(assetTexture.AssetID + ".jp2", assetTexture.AssetData);
                             Console.WriteLine($"Wrote JPEG2000 image {assetTexture.AssetID}.jp2");
 
-                            // FIXME: Need to readd TARGA support!
-                            //var bitmap = J2kImage.FromBytes(assetTexture.AssetData).As<SKBitmap>();
-                            //var image = SKImage.FromPixels(bitmap.PeekPixels());
-                            //var bytes = image.Encode(SKEncodedImageFormat.Tga, 100);
-                            //File.WriteAllBytes(assetTexture.AssetID + ".tga", bytes.ToArray());
-                            //
-                            //Console.WriteLine($"Wrote TGA image {assetTexture.AssetID}.tga");
+                            using (var bitmap = J2kImage.FromBytes(assetTexture.AssetData).As<SKBitmap>())
+                            {
+                                var mi = new ManagedImage(bitmap);
+                                var bytes = Targa.Encode(mi);
+                                File.WriteAllBytes(assetTexture.AssetID + ".tga", bytes);
+                                Console.WriteLine($"Wrote TGA image {assetTexture.AssetID}.tga");
+                            }
                         }
                         catch (Exception e)
                         {
