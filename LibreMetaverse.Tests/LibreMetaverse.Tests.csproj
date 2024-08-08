@@ -6,7 +6,7 @@
     <RootNamespace>LibreMetaverse.Tests</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <IsPackable>false</IsPackable>
-    <Platforms>x64;x86;AnyCPU</Platforms>
+    <Platforms>AnyCPU</Platforms>
 	<OutputPath>..\bin\</OutputPath>
 	<NoWarn>$(NoWarn);SYSLIB0001</NoWarn>
 	<EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
