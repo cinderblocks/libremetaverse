@@ -10,7 +10,7 @@
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	<IncludeSymbols>true</IncludeSymbols>
 	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-	<NoWarn>0419,1574,1591</NoWarn>
+    <NoWarn>$(NoWarn);CS8981</NoWarn>
     <TargetFrameworks>net48;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
     <PlatformTarget>AnyCPU</PlatformTarget>
 	<OutputPath>..\bin\</OutputPath>

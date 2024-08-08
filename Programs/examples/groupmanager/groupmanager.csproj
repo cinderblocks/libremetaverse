@@ -22,7 +22,6 @@
     <RegisterForComInterop>False</RegisterForComInterop>
     <OutputPath>..\..\..\bin\</OutputPath>
     <BaseAddress>285212672</BaseAddress>
-    <NoWarn>1591,1574,0419</NoWarn>
     <ConfigurationOverrideFile />
     <PreBuildEvent />
     <PostBuildEvent />

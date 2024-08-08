@@ -8,7 +8,7 @@
 	    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	    <IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-	    <NoWarn>0419,1574,1591,0618</NoWarn>
+		<NoWarn>$(NoWarn);SYSLIB0001</NoWarn>
         <PlatformTarget>AnyCPU</PlatformTarget>
 	    <OutputPath>..\bin\</OutputPath>
     </PropertyGroup>

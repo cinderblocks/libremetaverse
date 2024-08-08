@@ -14,7 +14,6 @@
     <StartupObject />
     <StartArguments />
     <FileUpgradeFlags />
-    <NoWarn>1591,1574,0419</NoWarn>
     <DocumentationFile />
     <RegisterForComInterop>False</RegisterForComInterop>
     <ConfigurationOverrideFile />
