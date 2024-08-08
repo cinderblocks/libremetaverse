@@ -84,8 +84,8 @@ deploy:
       APPVEYOR_REPO_TAG: true
   - provider: GitHub
     name: github_releases
-    description: Release v$(appveyor_build_version)
-    tag: $(appveyor_build_version)
+    description: Release v$(APPVEYOR_REPO_TAG)
+    tag: $(APPVEYOR_REPO_TAG)
     auth_token:
       secure: KPXQ74CJ+1aD3/H12JeVwMedPvcyr4aL9O/CFL8sGJHN/WZCYjKw92m8CodgO90D
     artifact: /.*LibreMetaverse.*(\.|\.s)nupkg/
