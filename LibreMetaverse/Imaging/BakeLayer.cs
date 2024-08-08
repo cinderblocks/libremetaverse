@@ -364,7 +364,7 @@ namespace OpenMetaverse.Imaging
                     {
                         if (stream != null)
                         {
-                            bitmap = SKBitmap.Decode(stream);
+                            bitmap = Targa.Decode(stream);
                         }
                     }
                 }
