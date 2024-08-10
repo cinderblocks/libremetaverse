@@ -7,15 +7,15 @@ init:
 environment:
   matrix:
   - job_name: Windows x64 Build
-    platform: x64
+    platform: Any CPU
     appveyor_build_worker_image: Visual Studio 2022
     configuration: Release
   - job_name: Linux Build
-    platform: x64
+    platform: Any CPU
     appveyor_build_worker_image: Ubuntu2204
     configuration: Release
   - job_name: Mac Build
-    platform: x64
+    platform: Any CPU
     appveyor_build_worker_image: macos-monterey
     configuration: Release
 
