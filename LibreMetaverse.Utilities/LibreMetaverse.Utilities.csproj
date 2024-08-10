@@ -9,7 +9,7 @@
 	  <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	  <IncludeSymbols>true</IncludeSymbols>
       <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-      <NoWarn>$(NoWarn);CS1591</NoWarn>
+      <NoWarn>$(NoWarn);CS1591;CS1574</NoWarn>
 	  <PlatformTarget>AnyCPU</PlatformTarget>
       <OutputPath>..\bin\</OutputPath>
 	</PropertyGroup>
