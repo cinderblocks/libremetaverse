@@ -4,7 +4,7 @@
 	<PackageId>LibreMetaverse.Rendering.Meshmerizer</PackageId>
 	<Description>Meshmerizer library for rendering mesh assets in LibreMetaverse</Description>
 	<RootNamespace>LibreMetaverse.Rendering.Meshmerizer</RootNamespace>
-    <TargetFrameworks>net48;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>net481;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
     <OutputType>Library</OutputType>
 	<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	<IncludeSymbols>true</IncludeSymbols>

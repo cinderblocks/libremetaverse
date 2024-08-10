@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>LibreMetaverse.Tests</AssemblyName>
-    <TargetFrameworks>net48;net6.0;net7.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>net481;net6.0;net7.0;net8.0</TargetFrameworks>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse.Tests</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>

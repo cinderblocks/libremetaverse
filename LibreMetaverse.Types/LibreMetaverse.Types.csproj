@@ -3,7 +3,7 @@
     <AssemblyName>LibreMetaverse.Types</AssemblyName>
 	<PackageId>LibreMetaverse.Types</PackageId>
 	<Description>LibreMetaverse type library</Description>
-    <TargetFrameworks>net48;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>net481;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
