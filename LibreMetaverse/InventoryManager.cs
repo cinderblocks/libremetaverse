@@ -3169,6 +3169,7 @@ namespace OpenMetaverse
                 case InventoryType.Animation: return new InventoryAnimation(id);
                 case InventoryType.Gesture: return new InventoryGesture(id);
                 case InventoryType.Settings: return new InventorySettings(id);
+                case InventoryType.Material: return new InventoryMaterial(id);
                 default: return new InventoryItem(type, id);
             }
         }

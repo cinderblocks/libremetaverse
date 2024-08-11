@@ -804,6 +804,29 @@ namespace OpenMetaverse
     
     /// <inheritdoc />
     /// <summary>
+    /// InventoryMaterial, material as an asset
+    /// </summary>
+    [Serializable]
+    public class InventoryMaterial : InventoryItem
+    {
+        /// <summary>
+        /// Construct an InventorySettings object
+        /// </summary>
+        /// <param name="itemID">A <seealso cref="UUID"/> which becomes the 
+        /// <seealso cref="InventoryItem"/> objects AssetUUID</param>
+        public InventoryMaterial(UUID itemID) : base(itemID)
+        {
+            InventoryType = InventoryType.Settings;
+        }
+
+        public InventoryMaterial(SerializationInfo info, StreamingContext ctxt) : base(info, ctxt)
+        {
+            InventoryType = InventoryType.Settings;
+        }
+    }
+    
+    /// <inheritdoc />
+    /// <summary>
     /// A folder contains <seealso cref="T:OpenMetaverse.InventoryItem" />s and has certain attributes specific 
     /// to itself
     /// </summary>

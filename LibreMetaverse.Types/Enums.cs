@@ -262,11 +262,12 @@ namespace OpenMetaverse
         Animation = 19,
         /// <summary></summary>
         Gesture = 20,
-
         /// <summary></summary>
         Mesh = 22,
         /// <summary></summary>
         Settings = 23,
+        /// <summary></summary>
+        Material = 24,
     }
 
     /// <summary>
