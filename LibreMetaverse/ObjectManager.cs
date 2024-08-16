@@ -2160,7 +2160,7 @@ namespace OpenMetaverse
                         if (nameValues.Length > 0)
                         {   
 							// Not great modularity, but considering how often this method runs, better to not, e.g., have Avatar define an ObjectDataBlockUpdate handler.
-                            avatar.name = avatar.groupName = null;
+                            avatar._cachedName = avatar._cachedGroupName = null;
                         }
                         avatar.PrimData = data;
                         if (block.Data.Length > 0)

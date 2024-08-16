@@ -371,8 +371,8 @@ namespace OpenMetaverse
 
         #endregion Public Members
 
-        internal string name = null;
-        internal string groupName = null;
+        internal string _cachedName;
+        internal string _cachedGroupName;
 
         #region Properties
 
@@ -411,9 +411,9 @@ namespace OpenMetaverse
         {
             get
             {
-                if (!string.IsNullOrEmpty(name))
+                if (!string.IsNullOrEmpty(_cachedName))
                 {
-                    return name;
+                    return _cachedName;
                 }
                 if (NameValues != null && NameValues.Length > 0)
                 {
@@ -432,8 +432,8 @@ namespace OpenMetaverse
 
                         if (firstName != string.Empty && lastName != string.Empty)
                         {
-                            name = $"{firstName} {lastName}";
-                            return name;
+                            _cachedName = $"{firstName} {lastName}";
+                            return _cachedName;
                         }
                         else
                         {
@@ -453,13 +453,13 @@ namespace OpenMetaverse
         {
             get
             {
-                if (groupName != null)
+                if (_cachedGroupName != null)
                 {
-                    return groupName;
+                    return _cachedGroupName;
                 }
                 if (NameValues == null || NameValues.Length == 0)
                 {
-                    return groupName = string.Empty;
+                    return _cachedGroupName = string.Empty;
                 }
                 else
                 {
@@ -469,12 +469,12 @@ namespace OpenMetaverse
                         {
                             if (NameValues[i].Name == "Title" && NameValues[i].Type == NameValue.ValueType.String)
                             {
-                                groupName = (string)NameValues[i].Value;
-                                return groupName;
+                                _cachedGroupName = (string)NameValues[i].Value;
+                                return _cachedGroupName;
                             }
                         }
                     }
-                    return groupName = string.Empty;
+                    return _cachedGroupName = string.Empty;
                 }
             }
         }
