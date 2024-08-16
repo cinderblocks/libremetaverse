@@ -66,7 +66,7 @@ namespace OpenMetaverse
             // ConsoleAppender
             if (!LogInstance.Logger.IsEnabledFor(log4net.Core.Level.Error))
             {
-                IAppender appender = new ConsoleAppender()
+                IAppender appender = new ConsoleAppender
                 {
                     Layout = new log4net.Layout.PatternLayout("%date{HH:mm:ss,fff} [%thread] %-5level - %message%newline")
                 };
