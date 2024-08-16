@@ -161,6 +161,7 @@ namespace OpenMetaverse
             if (_Caps.TryGetValue("GetMesh2", out cap)) { return cap; }
             return _Caps.TryGetValue("GetMesh", out cap) ? cap : null;
         }
+
         public static OSDArray AllCapabilities = new OSDArray
         {
             "AbuseCategories",
@@ -275,6 +276,7 @@ namespace OpenMetaverse
             "InventoryAPIv3",
             "LibraryAPIv3"
         };
+
         private void MakeSeedRequest()
         {
             if (Simulator == null || !Simulator.Client.Network.Connected) { return; }
