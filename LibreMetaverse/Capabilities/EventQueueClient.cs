@@ -102,11 +102,17 @@ namespace OpenMetaverse.Http
                 var initialTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(_queueCts.Token);
                 initialTimeoutCts.CancelAfter(TimeSpan.FromSeconds(30));
 
-                Task initialReq = _Simulator.Client.HttpCapsClient.PostRequestAsync(_Address, OSDFormat.Xml, _AckPayload,
-                    initialTimeoutCts.Token, RequestCompletedHandler, null, ConnectedResponseHandler);
+                Task initialReq = _Simulator.Client.HttpCapsClient.PostRequestAsync(_Address,
+                                                                                    OSDFormat.Xml,
+                                                                                    _AckPayload,
+                                                                                    initialTimeoutCts.Token,
+                                                                                    RequestCompletedHandler,
+                                                                                    null,
+                                                                                    ConnectedResponseHandler);
 
                 initialReq.Wait(initialTimeoutCts.Token);
                 initialTimeoutCts.Dispose();
+            });
 
             // Create an EventQueueGet request
             OSDMap payload = new OSDMap { ["ack"] = new OSD(), ["done"] = OSD.FromBoolean(false) };
