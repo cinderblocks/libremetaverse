@@ -3564,7 +3564,7 @@ namespace OpenMetaverse
             };
 
             Client.Network.SendPacket(move, simulator);
-            Logger.Log("Sending complete agent movement to " + simulator.Handle + " / " + simulator.Name, Helpers.LogLevel.Info, Client);
+            Logger.Log("Sending complete agent movement to {simulator.Handle} / {simulator.Name}", Helpers.LogLevel.Info, Client);
         }
 
         /// <summary>
