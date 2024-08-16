@@ -2441,7 +2441,7 @@ namespace OpenMetaverse
                         if (nameValues.Length > 0)
                         {   
 							// Not great modularity, but considering how often this method runs, better to not, e.g., have Avatar define an ObjectDataBlockUpdate handler.
-                            avatar.name = avatar.groupName = null;
+                            avatar._cachedName = avatar._cachedGroupName = null;
                         }
                         avatar.PrimData = data;
                         // See: SL-20635 -- https://github.com/secondlife/viewer/commit/ce75d0e63b5b0efa1f5e880ee029f95aed56f66d
