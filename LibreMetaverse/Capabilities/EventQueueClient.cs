@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2022-2023, Sjofn LLC.
+ * Copyright (c) 2022, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@ namespace OpenMetaverse.Http
         public static int REQUEST_BACKOFF_SECONDS = 5 * 1000; // 5 seconds start
         public static int REQUEST_BACKOFF_SECONDS_INC = 5 * 1000; // 5 seconds increase
         public static int REQUEST_BACKOFF_SECONDS_MAX = 1 * 30 * 1000; // 30 seconds
+
         public delegate void ConnectedCallback();
 
         public delegate void EventCallback(string eventName, OSDMap body);
@@ -49,13 +50,7 @@ namespace OpenMetaverse.Http
         public ConnectedCallback OnConnected;
         public EventCallback OnEvent;
 
-        public bool Running { get; private set; }
-
-        private readonly Uri _Address;
-        private readonly Simulator _Simulator;
-        private readonly CancellationTokenSource _queueCts;
-        private bool _Dead;
-        private OSD _AckPayload;
+        public bool Running => _Running;
 
         protected readonly Uri _Address;
         protected readonly Simulator _Simulator;
@@ -74,12 +69,11 @@ namespace OpenMetaverse.Http
         {
             _Address = eventQueueLocation;
             _Simulator = sim;
-            _queueCts = new CancellationTokenSource();
         }
 
         ~EventQueueClient()
         {
-            _httpCancellationTokenSource?.Dispose();
+            _httpCancellationTokenSource.Dispose();
         }
 
         public void RestartIfDead()
@@ -93,26 +87,7 @@ namespace OpenMetaverse.Http
         public void Start()
         {
             _Dead = false;
-            Running = true;
-
-            Task.Factory.StartNew(() =>
-            {
-                // Initial request
-                _AckPayload = new OSDMap { ["ack"] = new OSD(), ["done"] = OSD.FromBoolean(false) };
-                var initialTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(_queueCts.Token);
-                initialTimeoutCts.CancelAfter(TimeSpan.FromSeconds(30));
-
-                Task initialReq = _Simulator.Client.HttpCapsClient.PostRequestAsync(_Address,
-                                                                                    OSDFormat.Xml,
-                                                                                    _AckPayload,
-                                                                                    initialTimeoutCts.Token,
-                                                                                    RequestCompletedHandler,
-                                                                                    null,
-                                                                                    ConnectedResponseHandler);
-
-                initialReq.Wait(initialTimeoutCts.Token);
-                initialTimeoutCts.Dispose();
-            });
+            _Running = true;
 
             // Create an EventQueueGet request
             OSDMap payload = new OSDMap { ["ack"] = new OSD(), ["done"] = OSD.FromBoolean(false) };
@@ -130,10 +105,9 @@ namespace OpenMetaverse.Http
 
             if (immediate)
             {
-                Running = false;
+                _Running = false;
             }
 
-            _queueCts.Cancel();
             _httpCancellationTokenSource.Cancel();
         }
 
@@ -144,7 +118,7 @@ namespace OpenMetaverse.Http
                 return;
             }
 
-            Running = true;
+            _Running = true;
 
             // The event queue is starting up for the first time
             if (OnConnected != null)
@@ -186,7 +160,7 @@ namespace OpenMetaverse.Http
                         if (responseString.Contains("502 Proxy Error"))
                         {
                             // LL's "go ask again" message.
-                        } 
+                        }
                         else if (responseString.Contains("<llsd><undef /></llsd>"))
                         {
                             if (DETAILED_LOGGING)
@@ -219,139 +193,139 @@ namespace OpenMetaverse.Http
                         {
                             Logger.Log($"Got an unparseable response (2) from {_Simulator} event queue: \"{error}\"", Helpers.LogLevel.Error);
                         }
-                    } 
+                    }
                     else switch (response.StatusCode)
-                    {
-                        case HttpStatusCode.NotFound:
-                        case HttpStatusCode.Gone:
-                            Logger.Log($"Closing event queue at {_Simulator} due to missing caps URI",
-                                       Helpers.LogLevel.Info);
+                        {
+                            case HttpStatusCode.NotFound:
+                            case HttpStatusCode.Gone:
+                                Logger.Log($"Closing event queue at {_Simulator} due to missing caps URI",
+                                           Helpers.LogLevel.Info);
 
-                            _Running = false;
-                            _Dead = true;
-                            _LastError = "Missing Caps URI";
-                            break;
-                        case (HttpStatusCode)499: // weird error returned occasionally, ignore for now
-                            // I believe this is the timeout error invented by LL for LSL HTTP-out requests (gwyneth 20220413)
-                            Logger.Log($"Possible HTTP-out timeout error from {_Simulator}, no need to continue",
-                                       Helpers.LogLevel.Debug);
+                                _Running = false;
+                                _Dead = true;
+                                _LastError = "Missing Caps URI";
+                                break;
+                            case (HttpStatusCode)499: // weird error returned occasionally, ignore for now
+                                                      // I believe this is the timeout error invented by LL for LSL HTTP-out requests (gwyneth 20220413)
+                                Logger.Log($"Possible HTTP-out timeout error from {_Simulator}, no need to continue",
+                                           Helpers.LogLevel.Debug);
 
-                            _Running = false;
-                            _Dead = true;
-                            _LastError = "HTTP Timeout";
-                            break;
+                                _Running = false;
+                                _Dead = true;
+                                _LastError = "HTTP Timeout";
+                                break;
 
-                        case HttpStatusCode.InternalServerError:
-                            if (error != null)
-                            {
-                                var responseString = (responseData == null) ? string.Empty : System.Text.Encoding.UTF8.GetString(responseData);
-                                if (responseData == null || responseData.Length == 0)
+                            case HttpStatusCode.InternalServerError:
+                                if (error != null)
                                 {
-                                    try
+                                    var responseString = (responseData == null) ? string.Empty : System.Text.Encoding.UTF8.GetString(responseData);
+                                    if (responseData == null || responseData.Length == 0)
                                     {
-                                        responseString = response.Content.ReadAsStringAsync().Result;
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        // Swallow
-                                    }
-                                }
-
-                                if (!responseString.Contains("502 Proxy Error"))
-                                {
-                                    Logger.Log($"Grid sent a {response.StatusCode} : {response.ReasonPhrase} at {_Simulator}", Helpers.LogLevel.Debug, _Simulator.Client);
-
-                                    if (!string.IsNullOrEmpty(responseString))
-                                    {
-                                        Logger.Log("Full response was: " + responseString, Helpers.LogLevel.Debug, _Simulator.Client);
-                                    }
-
-                                    if (error.InnerException != null)
-                                    {
-                                        if (!error.InnerException.Message.Contains("502 Proxy Error"))
+                                        try
                                         {
-                                            if (DETAILED_LOGGING)
+                                            responseString = response.Content.ReadAsStringAsync().Result;
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            // Swallow
+                                        }
+                                    }
+
+                                    if (!responseString.Contains("502 Proxy Error"))
+                                    {
+                                        Logger.Log($"Grid sent a {response.StatusCode} : {response.ReasonPhrase} at {_Simulator}", Helpers.LogLevel.Debug, _Simulator.Client);
+
+                                        if (!string.IsNullOrEmpty(responseString))
+                                        {
+                                            Logger.Log("Full response was: " + responseString, Helpers.LogLevel.Debug, _Simulator.Client);
+                                        }
+
+                                        if (error.InnerException != null)
+                                        {
+                                            if (!error.InnerException.Message.Contains("502 Proxy Error"))
+                                            {
+                                                if (DETAILED_LOGGING)
                                                     Logger.Log($"Closing event queue connection. (1)", Helpers.LogLevel.Debug);
 
-                                            _Running = false;
-                                            _Dead = true;
-                                            _LastError = error.ToString();
+                                                _Running = false;
+                                                _Dead = true;
+                                                _LastError = error.ToString();
+                                            }
+                                        }
+                                        else
+                                        {
+                                            const bool willfullyIgnoreLLSpecsOnEventQueue = true;
+
+                                            if (!willfullyIgnoreLLSpecsOnEventQueue || !_Simulator.Connected)
+                                            {
+                                                if (DETAILED_LOGGING)
+                                                    Logger.Log($"Closing event queue connection. (2)", Helpers.LogLevel.Debug);
+
+                                                _Running = false;
+                                                _Dead = true;
+                                                _LastError = error.ToString();
+                                            }
                                         }
                                     }
                                     else
                                     {
-                                        const bool willfullyIgnoreLLSpecsOnEventQueue = true;
+                                        // It's the typical re-queue for event queue get
+                                    }
+                                }
+                                else
+                                {
+                                    Logger.Log($"Grid sent a {response.StatusCode} at {_Simulator}", Helpers.LogLevel.Debug);
+                                }
 
-                                        if (!willfullyIgnoreLLSpecsOnEventQueue || !_Simulator.Connected)
+                                break;
+
+                            case HttpStatusCode.BadGateway:
+                                // This is not good (server) protocol design, but it's normal.
+                                // The EventQueue server is a proxy that connects to a Squid
+                                // cache which will time out periodically. The EventQueue server
+                                // interprets this as a generic error and returns a 502 to us
+                                // that we ignore
+                                //
+                                // Note: if this condition persists, it _might_ be the grid trying to request
+                                // that the client closes the connection, as per LL's specs (gwyneth 20220414)
+                                Logger.Log($"Grid sent a Bad Gateway Error at {_Simulator}; " +
+                                           $"probably a time-out from the grid's EventQueue server (normal) -- ignoring and continuing",
+                                           Helpers.LogLevel.Debug);
+                                break;
+                            default:
+                                ++_errorCount;
+
+                                // Try to log a meaningful error message
+                                if (response.StatusCode != HttpStatusCode.OK)
+                                {
+                                    Logger.Log($"Unrecognized caps connection problem from {_Simulator}: {response.StatusCode} {response.ReasonPhrase}",
+                                               Helpers.LogLevel.Warning);
+                                }
+                                else if (error.InnerException != null)
+                                {
+                                    // see comment above (gwyneth 20220414)
+                                    Logger.Log($"Unrecognized internal caps exception from {_Simulator}: '{error.InnerException.Message}'",
+                                               Helpers.LogLevel.Warning);
+                                    Logger.Log($"Message ---\n{error.Message}", Helpers.LogLevel.Warning);
+                                    if (error.Data.Count > 0)
+                                    {
+                                        Logger.Log("  Extra details:", Helpers.LogLevel.Warning);
+                                        foreach (DictionaryEntry de in error.Data)
                                         {
-                                            if (DETAILED_LOGGING)
-                                                Logger.Log($"Closing event queue connection. (2)", Helpers.LogLevel.Debug);
-
-                                            _Running = false;
-                                            _Dead = true;
-                                            _LastError = error.ToString();
+                                            Logger.Log(string.Format("    Key: {0,-20}      Value: {1}",
+                                                                     "'" + de.Key + "'", de.Value),
+                                                       Helpers.LogLevel.Warning);
                                         }
                                     }
                                 }
                                 else
                                 {
-                                    // It's the typical re-queue for event queue get
+                                    Logger.Log($"Unrecognized caps exception from {_Simulator}: {error.Message}",
+                                               Helpers.LogLevel.Warning);
                                 }
-                            }
-                            else
-                            {
-                                Logger.Log($"Grid sent a {response.StatusCode} at {_Simulator}", Helpers.LogLevel.Debug);
-                            }
 
-                            break;
-
-                        case HttpStatusCode.BadGateway:
-                            // This is not good (server) protocol design, but it's normal.
-                            // The EventQueue server is a proxy that connects to a Squid
-                            // cache which will time out periodically. The EventQueue server
-                            // interprets this as a generic error and returns a 502 to us
-                            // that we ignore
-                            //
-                            // Note: if this condition persists, it _might_ be the grid trying to request
-                            // that the client closes the connection, as per LL's specs (gwyneth 20220414)
-                            Logger.Log($"Grid sent a Bad Gateway Error at {_Simulator}; " +
-                                       $"probably a time-out from the grid's EventQueue server (normal) -- ignoring and continuing",
-                                       Helpers.LogLevel.Debug);
-                            break;
-                        default:
-                            ++_errorCount;
-
-                            // Try to log a meaningful error message
-                            if (response.StatusCode != HttpStatusCode.OK)
-                            {
-                                Logger.Log($"Unrecognized caps connection problem from {_Simulator}: {response.StatusCode} {response.ReasonPhrase}",
-                                           Helpers.LogLevel.Warning);
-                            }
-                            else if (error.InnerException != null)
-                            {
-                                // see comment above (gwyneth 20220414)
-                                Logger.Log($"Unrecognized internal caps exception from {_Simulator}: '{error.InnerException.Message}'",
-                                           Helpers.LogLevel.Warning);
-                                Logger.Log($"Message ---\n{error.Message}", Helpers.LogLevel.Warning);
-                                if (error.Data.Count > 0)
-                                {
-                                    Logger.Log("  Extra details:", Helpers.LogLevel.Warning);
-                                    foreach (DictionaryEntry de in error.Data)
-                                    {
-                                        Logger.Log(string.Format("    Key: {0,-20}      Value: {1}",
-                                                                 "'" + de.Key + "'", de.Value),
-                                                   Helpers.LogLevel.Warning);
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                Logger.Log($"Unrecognized caps exception from {_Simulator}: {error.Message}",
-                                           Helpers.LogLevel.Warning);
-                            }
-
-                            break;
-                    } // end switch
+                                break;
+                        } // end switch
 
                     #endregion Error handling
                 }
@@ -364,7 +338,7 @@ namespace OpenMetaverse.Http
                 }
 
 #pragma warning disable CS0164 // This label has not been referenced
-                HandlingDone:
+            HandlingDone:
 
                 #region Resume the connection
 
