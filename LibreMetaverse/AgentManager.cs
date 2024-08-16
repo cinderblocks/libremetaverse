@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2019-2022, Sjofn LLC
+ * Copyright (c) 2019-2024, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -39,6 +39,7 @@ using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Collections;
 
 namespace OpenMetaverse
 {
@@ -910,7 +911,7 @@ namespace OpenMetaverse
 
         /// <summary>Thread sync lock object</summary>
         private readonly object m_InstantMessageLock = new object();
-        /// <summary>Raised when an ImprovedInstantMessage packet is recieved from the simulator, this is used for everything from
+        /// <summary>Raised when an ImprovedInstantMessage packet is received from the simulator, this is used for everything from
         /// private messaging to friendship offers. The Dialog field defines what type of message has arrived</summary>
         public event EventHandler<InstantMessageEventArgs> IM
         {
@@ -1104,8 +1105,7 @@ namespace OpenMetaverse
         protected virtual void OnCameraConstraint(CameraConstraintEventArgs e)
         {
             EventHandler<CameraConstraintEventArgs> handler = m_CameraConstraint;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1128,8 +1128,7 @@ namespace OpenMetaverse
         protected virtual void OnScriptSensorReply(ScriptSensorReplyEventArgs e)
         {
             EventHandler<ScriptSensorReplyEventArgs> handler = m_ScriptSensorReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1151,8 +1150,7 @@ namespace OpenMetaverse
         protected virtual void OnAvatarSitResponse(AvatarSitResponseEventArgs e)
         {
             EventHandler<AvatarSitResponseEventArgs> handler = m_AvatarSitResponse;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -1491,7 +1489,7 @@ namespace OpenMetaverse
 
         private HomeInfo home;
         private string fullName;
-        private TeleportStatus teleportStat = TeleportStatus.None;
+        private TeleportStatus teleportStatus = TeleportStatus.None;
         private ManualResetEvent teleportEvent = new ManualResetEvent(false);
         private uint heightWidthGenCounter;
         private Dictionary<UUID, AssetGesture> gestureCache = new Dictionary<UUID, AssetGesture>();
@@ -2014,7 +2012,7 @@ namespace OpenMetaverse
             {
                 AgentID = Client.Self.AgentID,
                 Color = new byte[4],
-                Duration = (type == PointAtType.Clear) ? 0.0f : Single.MaxValue / 4.0f,
+                Duration = (type == PointAtType.Clear) ? 0.0f : float.MaxValue / 4.0f,
                 ID = effectID,
                 Type = (byte) EffectType.PointAt
             };
@@ -2077,7 +2075,7 @@ namespace OpenMetaverse
                 case LookAtType.Select:
                 case LookAtType.Focus:
                 case LookAtType.Mouselook:
-                    duration = Single.MaxValue / 2.0f;
+                    duration = float.MaxValue / 2.0f;
                     break;
                 default:
                     duration = 0.0f;
@@ -2723,7 +2721,7 @@ namespace OpenMetaverse
         /// <param name="gestureID">Asset <seealso cref="UUID"/> of the gesture</param>
         public void PlayGesture(UUID gestureID)
         {
-            ThreadPool.QueueUserWorkItem((_) =>
+            ThreadPool.QueueUserWorkItem(_ =>
             {
                 // First fetch the guesture
                 AssetGesture gesture = null;
@@ -2973,7 +2971,13 @@ namespace OpenMetaverse
         /// <returns>true on success, false on failure</returns>
         public bool Teleport(UUID landmark)
         {
-            teleportStat = TeleportStatus.None;
+            if (teleportStatus == TeleportStatus.Progress)
+            {
+                Logger.Log("Teleport already in progress while attempting to teleport.", Helpers.LogLevel.Info, Client);
+                return false;
+            }
+
+            teleportStatus = TeleportStatus.None;
             teleportEvent.Reset();
             TeleportLandmarkRequestPacket p = new TeleportLandmarkRequestPacket
             {
@@ -2988,15 +2992,15 @@ namespace OpenMetaverse
 
             teleportEvent.WaitOne(Client.Settings.TELEPORT_TIMEOUT, false);
 
-            if (teleportStat == TeleportStatus.None ||
-                teleportStat == TeleportStatus.Start ||
-                teleportStat == TeleportStatus.Progress)
+            if (teleportStatus == TeleportStatus.None ||
+                teleportStatus == TeleportStatus.Start ||
+                teleportStatus == TeleportStatus.Progress)
             {
                 TeleportMessage = "Teleport timed out.";
-                teleportStat = TeleportStatus.Failed;
+                teleportStatus = TeleportStatus.Failed;
             }
 
-            return (teleportStat == TeleportStatus.Finished);
+            return (teleportStatus == TeleportStatus.Finished);
         }
 
         /// <summary>
@@ -3028,8 +3032,8 @@ namespace OpenMetaverse
             if (string.IsNullOrEmpty(simName))
             {
                 TeleportMessage = $"Invalid simulator name";
-                teleportStat = TeleportStatus.Failed;
-                OnTeleport(new TeleportEventArgs(TeleportMessage, teleportStat, TeleportFlags.Default));
+                teleportStatus = TeleportStatus.Failed;
+                OnTeleport(new TeleportEventArgs(TeleportMessage, teleportStatus, TeleportFlags.Default));
                 Logger.Log("Teleport failed; " + TeleportMessage, Helpers.LogLevel.Warning, Client);
                 return false;
             }
@@ -3037,13 +3041,20 @@ namespace OpenMetaverse
             if (Client.Network.CurrentSim == null)
             {
                 TeleportMessage = $"Not in a current simulator, cannot teleport to {simName}";
-                teleportStat = TeleportStatus.Failed;
-                OnTeleport(new TeleportEventArgs(TeleportMessage, teleportStat, TeleportFlags.Default));
+                teleportStatus = TeleportStatus.Failed;
+                OnTeleport(new TeleportEventArgs(TeleportMessage, teleportStatus, TeleportFlags.Default));
                 Logger.Log("Teleport failed; " + TeleportMessage, Helpers.LogLevel.Warning, Client);
                 return false;
             }
 
-            teleportStat = TeleportStatus.None;
+            if (teleportStatus == TeleportStatus.Progress)
+            {
+                Logger.Log($"Teleport already in progress while attempting to teleport to {simName}.",
+                    Helpers.LogLevel.Info, Client);
+                return false;
+            }
+
+            teleportStatus = TeleportStatus.None;
 
             // Dodgy Hack - Requesting individual regions isn't always reliable.
             if (!Client.Grid.GetGridRegion(simName, GridLayerType.Objects, out var region))
@@ -3070,8 +3081,8 @@ namespace OpenMetaverse
                 else
                 {
                     TeleportMessage = $"Unable to resolve simulator named: {simName}";
-                    teleportStat = TeleportStatus.Failed;
-                    OnTeleport(new TeleportEventArgs(TeleportMessage, teleportStat, TeleportFlags.Default));
+                    teleportStatus = TeleportStatus.Failed;
+                    OnTeleport(new TeleportEventArgs(TeleportMessage, teleportStatus, TeleportFlags.Default));
                     Logger.Log("Teleport failed; " + TeleportMessage, Helpers.LogLevel.Warning, Client);
                     return false;
                 }
@@ -3105,6 +3116,13 @@ namespace OpenMetaverse
         /// <remarks>This call is blocking</remarks>
         public bool Teleport(ulong regionHandle, Vector3 position, Vector3 lookAt)
         {
+            if (teleportStatus == TeleportStatus.Progress)
+            {
+                Logger.Log("Teleport already in progress while attempting to teleport.", 
+                    Helpers.LogLevel.Info, Client);
+                return false;
+            }
+
             if (Client.Network.CurrentSim == null ||
                 Client.Network.CurrentSim.Caps == null ||
                 !Client.Network.CurrentSim.Caps.IsEventQueueRunning)
@@ -3113,7 +3131,7 @@ namespace OpenMetaverse
                 // Wait a bit to see if the event queue comes online
                 AutoResetEvent queueEvent = new AutoResetEvent(false);
                 EventHandler<EventQueueRunningEventArgs> queueCallback =
-                    delegate(object sender, EventQueueRunningEventArgs e)
+                    delegate (object sender, EventQueueRunningEventArgs e)
                     {
                         if (e.Simulator == Client.Network.CurrentSim)
                             queueEvent.Set();
@@ -3130,24 +3148,24 @@ namespace OpenMetaverse
                 Client.Network.EventQueueRunning -= queueCallback;
             }
 
-            teleportStat = TeleportStatus.None;
+            teleportStatus = TeleportStatus.None;
             teleportEvent.Reset();
 
             RequestTeleport(regionHandle, position, lookAt, true);
 
             teleportEvent.WaitOne(Client.Settings.TELEPORT_TIMEOUT, false);
 
-            if (teleportStat == TeleportStatus.None ||
-                teleportStat == TeleportStatus.Start ||
-                teleportStat == TeleportStatus.Progress)
+            if (teleportStatus == TeleportStatus.None ||
+                teleportStatus == TeleportStatus.Start ||
+                teleportStatus == TeleportStatus.Progress)
             {
                 TeleportMessage = "Teleport timed out.";
-                teleportStat = TeleportStatus.Failed;
+                teleportStatus = TeleportStatus.Failed;
                 
                 Logger.Log("Teleport has timed out.", Helpers.LogLevel.Info, Client);
             }
 
-            return (teleportStat == TeleportStatus.Finished);
+            return (teleportStatus == TeleportStatus.Finished);
         }
 
         /// <summary>
@@ -3195,7 +3213,7 @@ namespace OpenMetaverse
                 Logger.Log("Event queue is not running, teleport abandoned.", Helpers.LogLevel.Info, Client);
                 TeleportMessage = "CAPS event queue is not running";
                 teleportEvent.Set();
-                teleportStat = TeleportStatus.Failed;
+                teleportStatus = TeleportStatus.Failed;
             }
         }
 
@@ -3302,7 +3320,7 @@ namespace OpenMetaverse
         }
         public void SendTeleportLureRequest(UUID targetID)
         {
-            SendTeleportLureRequest(targetID, "Hi there I would like to teleport to you");
+            SendTeleportLureRequest(targetID, "Let me join you in your location");
         }
 
         #endregion Teleporting
@@ -3540,7 +3558,7 @@ namespace OpenMetaverse
             {
                 LocationPos = Client.Self.SimPosition,
                 LocationID = 1,
-                SimName = Utils.StringToBytes(String.Empty),
+                SimName = Utils.StringToBytes(string.Empty),
                 LocationLookAt = Movement.Camera.AtAxis
             };
             Client.Network.SendPacket(s);
@@ -4027,7 +4045,8 @@ namespace OpenMetaverse
 
         protected void OfflineMessageHandlerCallback(HttpResponseMessage response, byte[] data, Exception error)
         {
-            if (error != null) {
+            if (error != null)
+            {
                 Logger.Log($"Failed to retrieve offline messages from the simulator: {error.Message}",
                     Helpers.LogLevel.Warning);
                 RetrieveInstantMessagesLegacy();
@@ -4037,52 +4056,72 @@ namespace OpenMetaverse
             if (m_InstantMessage == null) { return; } // don't bother if we don't have any listeners
 
             OSD result = OSDParser.Deserialize(data);
-            if (!(result is OSDMap respMap) || respMap.Count == 0 || respMap.ContainsKey("messages"))
+            if (result == null)
             {
-                Logger.Log("Failed to retrieve offline messages because the capability returned invalid shiz.",
-                    Helpers.LogLevel.Warning);
+                Logger.Log("Failed to decode offline messages from data, trying legacy method (Null reply)",
+                  Helpers.LogLevel.Warning);
                 RetrieveInstantMessagesLegacy();
                 return;
             }
-
-            if (respMap["messages"] is OSDArray msgArray)
+            if (result.Type != OSDType.Array)
             {
-                foreach (var osd in msgArray)
+                Logger.Log("Failed to decode offline messages from data trying legacy method (Wrong unpack type expected array)",
+                  Helpers.LogLevel.Warning);
+                RetrieveInstantMessagesLegacy();
+                return;
+            }
+            try
+            {
+                OSDArray respMap = (OSDArray)result;
+                ArrayList listEntrys = respMap.ToArrayList();
+                foreach (OSDArray listEntry in listEntrys)
                 {
-                    var msg = (OSDMap)osd;
-
-                    InstantMessage message;
-                    message.FromAgentID = msg["from_agent_id"].AsUUID();
-                    message.FromAgentName = msg["from_agent_name"].AsString();
-                    message.ToAgentID = msg["to_agent_id"].AsUUID();
-                    message.RegionID = msg["region_id"].AsUUID();
-                    message.Dialog = (InstantMessageDialog)msg["dialog"].AsInteger();
-                    message.IMSessionID = msg["transaction-id"].AsUUID();
-                    message.Timestamp = new DateTime(msg["timestamp"].AsInteger());
-                    message.Message = msg["message"].AsString();
-                    message.Offline = msg.ContainsKey("offline")
-                        ? (InstantMessageOnline)msg["offline"].AsInteger() 
-                        : InstantMessageOnline.Offline;
-                    message.ParentEstateID = msg.ContainsKey("parent_estate_id")
-                        ? msg["parent_estate_id"].AsUInteger() : 1;
-                    message.Position = msg.ContainsKey("position")
-                        ? msg["position"].AsVector3()
-                        : new Vector3(msg["local_x"], msg["local_y"], msg["local_z"]);
-                    message.BinaryBucket = msg.ContainsKey("binary_bucket")
-                        ? msg["binary_bucket"].AsBinary() : new byte[] { 0 };
-                    message.GroupIM = msg.ContainsKey("from_group") && msg["from_group"].AsBoolean();
-
-                    if (message.GroupIM)
+                    foreach (var osd in listEntry)
                     {
-                        lock (GroupChatSessions.Dictionary)
-                        {
-                            if (!GroupChatSessions.ContainsKey(message.IMSessionID))
-                                GroupChatSessions.Add(message.IMSessionID, new List<ChatSessionMember>());
-                        }
-                    }
+                        var msg = (OSDMap)osd;
 
-                    OnInstantMessage(new InstantMessageEventArgs(message, null));
+                        InstantMessage message;
+                        message.FromAgentID = msg["from_agent_id"].AsUUID();
+                        message.FromAgentName = msg["from_agent_name"].AsString();
+                        message.ToAgentID = msg["to_agent_id"].AsUUID();
+                        message.RegionID = msg["region_id"].AsUUID();
+                        message.Dialog = (InstantMessageDialog)msg["dialog"].AsInteger();
+                        message.IMSessionID = msg["transaction-id"].AsUUID();
+                        message.Timestamp = new DateTime(msg["timestamp"].AsInteger());
+                        message.Message = msg["message"].AsString();
+                        message.Offline = msg.ContainsKey("offline")
+                                              ? (InstantMessageOnline)msg["offline"].AsInteger()
+                                              : InstantMessageOnline.Offline;
+                        message.ParentEstateID = msg.ContainsKey("parent_estate_id")
+                                                     ? msg["parent_estate_id"].AsUInteger()
+                                                     : 1;
+                        message.Position = msg.ContainsKey("position")
+                                               ? msg["position"].AsVector3()
+                                               : new Vector3(msg["local_x"], msg["local_y"], msg["local_z"]);
+                        message.BinaryBucket = msg.ContainsKey("binary_bucket")
+                                                   ? msg["binary_bucket"].AsBinary()
+                                                   : new byte[] { 0 };
+                        message.GroupIM = msg.ContainsKey("from_group") && msg["from_group"].AsBoolean();
+
+                        if (message.GroupIM)
+                        {
+                            lock (GroupChatSessions.Dictionary)
+                            {
+                                if (!GroupChatSessions.ContainsKey(message.IMSessionID))
+                                    GroupChatSessions.Add(message.IMSessionID, new List<ChatSessionMember>());
+                            }
+                        }
+
+                        OnInstantMessage(new InstantMessageEventArgs(message, null));
+                    }
                 }
+            }
+            catch
+            {
+                Logger.Log("Failed to decode offline messages from data trying legacy method (Switch from OSD to OSDMap failed)",
+                  Helpers.LogLevel.Warning);
+                RetrieveInstantMessagesLegacy();
+                return;
             }
         }
 
@@ -4392,7 +4431,9 @@ namespace OpenMetaverse
                     SimAccess = (byte) msg.SimAccess,
                     SimIP = Utils.IPToUInt(msg.IP),
                     SimPort = (ushort) msg.Port,
-                    TeleportFlags = (uint) msg.Flags
+                    TeleportFlags = (uint) msg.Flags,
+                    RegionSizeX = msg.RegionSizeX,
+                    RegionSizeY = msg.RegionSizeY
                 }
             };
             // FIXME: Check This
@@ -4418,7 +4459,7 @@ namespace OpenMetaverse
 
                 TeleportMessage = "Teleport started";
                 flags = (TeleportFlags)start.Info.TeleportFlags;
-                teleportStat = TeleportStatus.Start;
+                teleportStatus = TeleportStatus.Start;
 
                 Logger.DebugLog($"TeleportStart received, Flags: {flags}", Client);
             }
@@ -4428,7 +4469,7 @@ namespace OpenMetaverse
 
                 TeleportMessage = Utils.BytesToString(progress.Info.Message);
                 flags = (TeleportFlags)progress.Info.TeleportFlags;
-                teleportStat = TeleportStatus.Progress;
+                teleportStatus = TeleportStatus.Progress;
 
                 Logger.DebugLog($"TeleportProgress received, Message: {TeleportMessage}, Flags: {flags}", Client);
             }
@@ -4437,7 +4478,7 @@ namespace OpenMetaverse
                 TeleportFailedPacket failed = (TeleportFailedPacket)packet;
 
                 TeleportMessage = Utils.BytesToString(failed.Info.Reason);
-                teleportStat = TeleportStatus.Failed;
+                teleportStatus = TeleportStatus.Failed;
                 finished = true;
 
                 Logger.DebugLog($"TeleportFailed received, Reason: {TeleportMessage}", Client);
@@ -4455,19 +4496,20 @@ namespace OpenMetaverse
                 // Connect to the new sim
                 Client.Network.CurrentSim.AgentMovementComplete = false; // we're not there anymore
                 Simulator newSimulator = Client.Network.Connect(new IPAddress(finish.Info.SimIP),
-                    finish.Info.SimPort, finish.Info.RegionHandle, true, seedcaps);
+                    finish.Info.SimPort, finish.Info.RegionHandle, true, seedcaps,
+                    finish.Info.RegionSizeX, finish.Info.RegionSizeY);
 
                 if (newSimulator != null)
                 {
                     TeleportMessage = "Teleport finished";
-                    teleportStat = TeleportStatus.Finished;
+                    teleportStatus = TeleportStatus.Finished;
 
-                    Logger.Log($"Moved to new sim {newSimulator}", Helpers.LogLevel.Info, Client);
+                    Logger.Log($"Moved to {newSimulator}", Helpers.LogLevel.Info, Client);
                 }
                 else
                 {
-                    TeleportMessage = "Failed to connect to the new sim after a teleport";
-                    teleportStat = TeleportStatus.Failed;
+                    TeleportMessage = $"Failed to connect to {newSimulator} after teleport";
+                    teleportStatus = TeleportStatus.Failed;
 
                     // We're going to get disconnected now
                     Logger.Log(TeleportMessage, Helpers.LogLevel.Error, Client);
@@ -4478,7 +4520,7 @@ namespace OpenMetaverse
                 //TeleportCancelPacket cancel = (TeleportCancelPacket)packet;
 
                 TeleportMessage = "Cancelled";
-                teleportStat = TeleportStatus.Cancelled;
+                teleportStatus = TeleportStatus.Cancelled;
                 finished = true;
 
                 Logger.DebugLog($"TeleportCancel received from {simulator}", Client);
@@ -4489,7 +4531,7 @@ namespace OpenMetaverse
 
                 TeleportMessage = "Teleport finished";
                 flags = (TeleportFlags)local.Info.TeleportFlags;
-                teleportStat = TeleportStatus.Finished;
+                teleportStatus = TeleportStatus.Finished;
                 relativePosition = local.Info.Position;
                 LastPositionUpdate = DateTime.UtcNow;
                 Movement.Camera.LookDirection(local.Info.LookAt);
@@ -4502,7 +4544,7 @@ namespace OpenMetaverse
 
             if (m_Teleport != null)
             {
-                OnTeleport(new TeleportEventArgs(TeleportMessage, teleportStat, flags));
+                OnTeleport(new TeleportEventArgs(TeleportMessage, teleportStatus, flags));
             }
 
             if (finished) { teleportEvent.Set(); }
@@ -4632,7 +4674,8 @@ namespace OpenMetaverse
             Logger.Log($"Crossed in to new region area, attempting to connect to {endPoint}", Helpers.LogLevel.Info, Client);
 
             Simulator oldSim = Client.Network.CurrentSim;
-            Simulator newSim = Client.Network.Connect(endPoint, crossed.RegionHandle, true, crossed.SeedCapability);
+            Simulator newSim = Client.Network.Connect(endPoint, crossed.RegionHandle, true, crossed.SeedCapability,
+                        crossed.RegionSizeX, crossed.RegionSizeY);
 
             if (newSim != null)
             {
