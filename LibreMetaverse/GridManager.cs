@@ -158,14 +158,15 @@ namespace OpenMetaverse
         public uint GlobalY;
 
         /// <summary>Get the Local X position of the item</summary>
-        public uint LocalX { get { return GlobalX % 256; } }
+        public uint LocalX { get { return GlobalX % Simulator.DefaultRegionSizeX; } }
         /// <summary>Get the Local Y position of the item</summary>
-        public uint LocalY { get { return GlobalY % 256; } }
+        public uint LocalY { get { return GlobalY % Simulator.DefaultRegionSizeY; } }
 
         /// <summary>Get the Handle of the region</summary>
         public ulong RegionHandle
         {
-            get { return Utils.UIntsToLong((uint)(GlobalX - (GlobalX % 256)), (uint)(GlobalY - (GlobalY % 256))); }
+            get { return Utils.UIntsToLong((uint)(GlobalX - (GlobalX % Simulator.DefaultRegionSizeX)),
+                                    (uint)(GlobalY - (GlobalY % Simulator.DefaultRegionSizeY))); }
         }
     }
 
@@ -606,7 +607,7 @@ namespace OpenMetaverse
             GridRegion foundRegion = default(GridRegion);
             bool found = false;
 
-            void RegionCallback(object? sender, GridRegionEventArgs e)
+            void RegionCallback(object sender, GridRegionEventArgs e)
             {   // See note in HandleCallback, above.
                 if (e.Region.RegionHandle == handle)
                 {
@@ -926,7 +927,7 @@ namespace OpenMetaverse
 
             if (m_CoarseLocationUpdate != null)
             {
-                ThreadPool.QueueUserWorkItem((object o) =>
+                ThreadPool.QueueUserWorkItem(o =>
                 { OnCoarseLocationUpdate(new CoarseLocationUpdateEventArgs(e.Simulator, newEntries, removedEntries)); });
             }
         }
