@@ -4,13 +4,13 @@
 	<PackageId>LibreMetaverse.Rendering.Meshmerizer</PackageId>
 	<Description>Meshmerizer library for rendering mesh assets in LibreMetaverse</Description>
 	<RootNamespace>LibreMetaverse.Rendering.Meshmerizer</RootNamespace>
-    <TargetFrameworks>net48;netstandard2.1;net6.0;net7.0</TargetFrameworks>
+    <TargetFrameworks>net481;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
     <OutputType>Library</OutputType>
 	<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	<IncludeSymbols>true</IncludeSymbols>
 	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-	<NoWarn>0419,1574,1591</NoWarn>
-    <Platforms>x64;x86;AnyCPU</Platforms>
+    <NoWarn>$(NoWarn);CS1591;CS1574</NoWarn>
+    <PlatformTarget>AnyCPU</PlatformTarget>
 	<OutputPath>..\bin\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
@@ -50,7 +50,6 @@
     <ProjectReference Include="..\PrimMesher\LibreMetaverse.PrimMesher.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="7.0.0" />
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
   </ItemGroup>
   <ItemGroup>

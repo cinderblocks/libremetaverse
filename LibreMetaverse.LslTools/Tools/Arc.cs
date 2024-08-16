@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2019-2022, Sjofn LLC
+ * Copyright (c) 2019-2024, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@ namespace LibreMetaverse.LslTools
 
     public virtual void Print(TextWriter s)
     {
-      s.WriteLine(string.Format("  {0} {1}", (object) this.m_ch, (object) this.m_next.m_state));
+      s.WriteLine($"  {(object)this.m_ch} {(object)this.m_next.m_state}");
     }
   }
 }

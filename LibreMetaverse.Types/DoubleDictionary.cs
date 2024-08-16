@@ -27,6 +27,7 @@
 using System;
 using System.Threading;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OpenMetaverse
 {
@@ -242,7 +243,7 @@ namespace OpenMetaverse
 
         public IList<TValue> FindAll(Predicate<TValue> predicate)
         {
-            IList<TValue> list = new List<TValue>();
+            var list = new List<TValue>();
             _rwLock.EnterReadLock();
 
             try
@@ -260,7 +261,7 @@ namespace OpenMetaverse
 
         public int RemoveAll(Predicate<TValue> predicate)
         {
-            IList<TKey1> list = new List<TKey1>();
+            var list = new List<TKey1>();
 
             _rwLock.EnterUpgradeableReadLock();
 
@@ -272,12 +273,8 @@ namespace OpenMetaverse
                         list.Add(kvp.Key);
                 }
 
-                IList<TKey2> list2 = new List<TKey2>(list.Count);
-                foreach (var kvp in _dictionary2)
-                {
-                    if (predicate(kvp.Value))
-                        list2.Add(kvp.Key);
-                }
+                var list2 = new List<TKey2>(list.Count);
+                list2.AddRange(from kvp in _dictionary2 where predicate(kvp.Value) select kvp.Key);
 
                 _rwLock.EnterWriteLock();
 

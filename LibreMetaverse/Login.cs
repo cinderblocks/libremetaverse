@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2019-2022, Sjofn, LLC
+ * Copyright (c) 2019-2024, Sjofn, LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -369,6 +369,8 @@ namespace OpenMetaverse
         public int CircuitCode;
         public uint RegionX;
         public uint RegionY;
+        public uint RegionSizeX;
+        public uint RegionSizeY;
         public ushort SimPort;
         public IPAddress SimIP;
         public string SeedCapability;
@@ -488,6 +490,9 @@ namespace OpenMetaverse
             CircuitCode = (int)ParseUInt("circuit_code", reply);
             RegionX = ParseUInt("region_x", reply);
             RegionY = ParseUInt("region_y", reply);
+            // Region size is returned by OpenSimulator derived systems but not SL
+            RegionSizeX = reply.ContainsKey("region_size_x") ? ParseUInt("region_size_x", reply) : Simulator.DefaultRegionSizeX;
+            RegionSizeY = reply.ContainsKey("region_size_y") ? ParseUInt("region_size_y", reply) : Simulator.DefaultRegionSizeY;
             SimPort = (ushort)ParseUInt("sim_port", reply);
             var simIP = ParseString("sim_ip", reply);
             IPAddress.TryParse(simIP, out SimIP);
@@ -681,7 +686,7 @@ namespace OpenMetaverse
                     }
                     else
                     {
-                        throw new Exception("Could not parse 'home' in Login Response");
+                        throw new LoginException("Could not parse 'home' in Login Response");
                     }
                 }
             } catch (Exception ex)
@@ -693,6 +698,9 @@ namespace OpenMetaverse
             CircuitCode = (int)ParseUInt("circuit_code", reply);
             RegionX = ParseUInt("region_x", reply);
             RegionY = ParseUInt("region_y", reply);
+            // Region size is returned by OpenSimulator derived systems but not SL
+            RegionSizeX = reply.ContainsKey("region_size_x") ? ParseUInt("region_size_x", reply) : Simulator.DefaultRegionSizeX;
+            RegionSizeY = reply.ContainsKey("region_size_y") ? ParseUInt("region_size_y", reply) : Simulator.DefaultRegionSizeY;
             SimPort = (ushort)ParseUInt("sim_port", reply);
             var simIP = ParseString("sim_ip", reply);
             IPAddress.TryParse(simIP, out SimIP);
@@ -1053,6 +1061,18 @@ namespace OpenMetaverse
 
     #endregion Structs
 
+    [Serializable]
+    public class LoginException : Exception
+    {
+        public LoginException(string message) 
+            : base(message)
+        {}
+
+        public LoginException(string message, Exception innerException)
+            : base (message, innerException)
+        {}
+    }
+    
     /// <summary>
     /// Login Routines
     /// </summary>
@@ -1184,7 +1204,7 @@ namespace OpenMetaverse
         /// <param name="lastName">Account last name</param>
         /// <param name="password">Account password</param>
         /// <param name="channel">Client application name (channel)</param>
-        /// <param name="version">Client application name + version</param>
+        /// <param name="version">Version string (typically x.x.x)</param>
         /// <returns>A populated <seealso cref="LoginParams"/> object containing sane defaults</returns>
         public LoginParams DefaultLoginParams(string firstName, string lastName, string password,
             string channel, string version)
@@ -1199,7 +1219,7 @@ namespace OpenMetaverse
         /// <param name="lastName">Account last name</param>
         /// <param name="password">Account password</param>
         /// <param name="channel">Client application name (channel)</param>
-        /// <param name="version">Client application name + version</param>
+        /// <param name="version">Version string (typically x.x.x)</param>
         /// <returns>Whether the login was successful or not. On failure the
         /// LoginErrorKey string will contain the error code and LoginMessage
         /// will contain a description of the error</returns>
@@ -1316,7 +1336,7 @@ namespace OpenMetaverse
         /// <param name="channel">Client application name (channel)</param>
         /// <param name="start">Starting location URI that can be built with
         /// StartLocation()</param>
-        /// <param name="version">Client application name + version</param>
+        /// <param name="version">Version string (typically x.x.x)</param>
         /// <returns>Whether the login was successful or not. On failure the
         /// LoginErrorKey string will contain the error code and LoginMessage
         /// will contain a description of the error</returns>
@@ -1358,7 +1378,7 @@ namespace OpenMetaverse
         public void BeginLogin(LoginParams loginParams)
         {
             // FIXME: Now that we're using CAPS we could cancel the current login and start a new one
-            if (CurrentContext != null) {throw new Exception("Login already in progress");}
+            if (CurrentContext != null) {throw new LoginException("Login already in progress");}
 
             LoginEvent.Reset();
             CurrentContext = loginParams;
@@ -1427,38 +1447,52 @@ namespace OpenMetaverse
             #region Sanity Check loginParams
 
             if (loginParams.Options == null)
+            {
                 loginParams.Options = new List<string>();
-
+            }
             if (loginParams.Password == null)
+            {
                 loginParams.Password = string.Empty;
+            }
+            if (loginParams.ViewerDigest == null)
+            {
+                loginParams.ViewerDigest = string.Empty;
+            }
+            if (loginParams.UserAgent == null)
+            {
+                loginParams.UserAgent = Settings.USER_AGENT;
+            }
+            if (loginParams.Platform == null)
+            {
+                loginParams.Platform = string.Empty;
+            }
+            if (loginParams.PlatformVersion == null)
+            {
+                loginParams.PlatformVersion = string.Empty;
+            }
+            if (loginParams.MAC == null)
+            {
+                loginParams.MAC = string.Empty;
+            }
+            if (loginParams.Author == null)
+            {
+                loginParams.Author = string.Empty;
+            }
 
             // *HACK: Convert the password to MD5 if it isn't already
             if (loginParams.Password.Length != 35 && !loginParams.Password.StartsWith("$1$"))
                 loginParams.Password = Utils.MD5(loginParams.Password);
-
-            if (loginParams.ViewerDigest == null)
-                loginParams.ViewerDigest = string.Empty;
-
-            if (loginParams.Version == null)
-                loginParams.Version = string.Empty;
-
-            if (loginParams.UserAgent == null)
-                loginParams.UserAgent = Settings.USER_AGENT;
-
-            if (loginParams.Platform == null)
-                loginParams.Platform = string.Empty;
-
-            if (loginParams.PlatformVersion == null)
-                loginParams.PlatformVersion = string.Empty;
-
-            if (loginParams.MAC == null)
-                loginParams.MAC = string.Empty;
-
+            
             if (string.IsNullOrEmpty(loginParams.Channel))
             {
-                Logger.Log("Viewer channel not set.", 
-                    Helpers.LogLevel.Warning);
+                Logger.Log("Viewer channel not set.", Helpers.LogLevel.Warning);
                 loginParams.Channel = $"{Settings.USER_AGENT}";
+            }
+
+            if (string.IsNullOrEmpty((loginParams.Version)))
+            {
+                Logger.Log("Viewer version not set.", Helpers.LogLevel.Warning);
+                loginParams.Version = "?.?.?";
             }
 
             if (!string.IsNullOrEmpty(loginParams.LoginLocation))
@@ -1479,11 +1513,7 @@ namespace OpenMetaverse
                         break;
                 }
             }
-
-            if (loginParams.Author == null)
-            {
-                loginParams.Author = string.Empty;
-            }
+            
             #endregion
 
             // TODO: Allow a user callback to be defined for handling the cert
@@ -1787,7 +1817,7 @@ namespace OpenMetaverse
                 var handle = Utils.UIntsToLong(regionX, regionY);
 
                 // Connect to the sim given in the login reply
-                if (Connect(reply.SimIP, simPort, handle, true, LoginSeedCapability) != null)
+                if (Connect(reply.SimIP, simPort, handle, true, LoginSeedCapability, reply.RegionSizeX, reply.RegionSizeY) != null)
                 {
                     // Request the economy data right after login
                     SendPacket(new EconomyDataRequestPacket());

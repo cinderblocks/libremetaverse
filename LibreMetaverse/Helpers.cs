@@ -72,7 +72,7 @@ namespace OpenMetaverse
             /// pass this to the Log() function, use DebugLog() instead.
             /// </summary>
             Debug
-        };
+        }
 
         /// <summary>
         /// 
@@ -88,7 +88,7 @@ namespace OpenMetaverse
 
         public static IEnumerable<string> SplitBy(this string str, int chunkLength)
         {
-            if (String.IsNullOrEmpty(str)) throw new ArgumentException();
+            if (string.IsNullOrEmpty(str)) throw new ArgumentException();
             if (chunkLength < 1) throw new ArgumentException();
 
             for (int i = 0; i < str.Length; i += chunkLength)
@@ -149,6 +149,11 @@ namespace OpenMetaverse
         /// Given an X/Y location in absolute (grid-relative) terms, a region
         /// handle is returned along with the local X/Y location in that region
         /// </summary>
+        /// <remarks>
+        /// NOTE: this does not work for varregions -- the region handle is correct but
+        /// the local X,Y are wrong. TODO: create new function
+        /// that takes a reference to the region and thus can calculate region local address.
+        /// </remarks>
         /// <param name="globalX">The absolute X location, a number such as 
         /// 255360.35</param>
         /// <param name="globalY">The absolute Y location, a number such as
@@ -160,8 +165,8 @@ namespace OpenMetaverse
         /// <returns>A 64-bit region handle that can be used to teleport to</returns>
         public static ulong GlobalPosToRegionHandle(float globalX, float globalY, out float localX, out float localY)
         {
-            uint x = ((uint)globalX / 256) * 256;
-            uint y = ((uint)globalY / 256) * 256;
+            uint x = ((uint)globalX / Simulator.DefaultRegionSizeX) * Simulator.DefaultRegionSizeX;
+            uint y = ((uint)globalY / Simulator.DefaultRegionSizeY) * Simulator.DefaultRegionSizeY;
             localX = globalX - (float)x;
             localY = globalY - (float)y;
             return Utils.UIntsToLong(x, y);
@@ -313,10 +318,10 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log(String.Format("Zerodecoding error: i={0}, srclen={1}, bodylen={2}, zerolen={3}\n{4}\n{5}",
+                Logger.Log(string.Format("Zerodecoding error: i={0}, srclen={1}, bodylen={2}, zerolen={3}\n{4}\n{5}",
                     i, srclen, bodylen, zerolen, Utils.BytesToHexString(src, srclen, null), ex), LogLevel.Error);
 
-                throw new IndexOutOfRangeException(String.Format("Zerodecoding error: i={0}, srclen={1}, bodylen={2}, zerolen={3}\n{4}\n{5}",
+                throw new IndexOutOfRangeException(string.Format("Zerodecoding error: i={0}, srclen={1}, bodylen={2}, zerolen={3}\n{4}\n{5}",
                     i, srclen, bodylen, zerolen, Utils.BytesToHexString(src, srclen, null), ex.InnerException));
             }
         }
@@ -540,7 +545,7 @@ namespace OpenMetaverse
             foreach (KeyValuePair<string, StructuredData.OSD> kvp in map)
             {
                 Primitive prim = Primitive.FromOSD(kvp.Value);
-                prim.LocalID = UInt32.Parse(kvp.Key);
+                prim.LocalID = uint.Parse(kvp.Key);
                 prims.Add(prim);
             }
 

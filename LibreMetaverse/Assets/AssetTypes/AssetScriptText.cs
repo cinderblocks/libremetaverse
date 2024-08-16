@@ -32,7 +32,7 @@ namespace OpenMetaverse.Assets
     public class AssetScriptText : Asset
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.LSLText; } }
+        public override AssetType AssetType => AssetType.LSLText;
 
         /// <summary>A string of characters represting the script contents</summary>
         public string Source;
@@ -50,7 +50,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Encode a string containing the scripts contents into byte encoded AssetData
         /// </summary>
-        public override void Encode()
+        public sealed override void Encode()
         {
             AssetData = Utils.StringToBytes(Source);
         }
@@ -59,7 +59,7 @@ namespace OpenMetaverse.Assets
         /// Decode a byte array containing the scripts contents into a string
         /// </summary>
         /// <returns>true if decoding is successful</returns>
-        public override bool Decode()
+        public sealed override bool Decode()
         {
             Source = Utils.BytesToString(AssetData);
             return true;

@@ -33,7 +33,7 @@ namespace OpenMetaverse.Assets
     public class AssetClothing : AssetWearable
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.Clothing; } }
+        public override AssetType AssetType => AssetType.Clothing;
 
         /// <summary>Initializes a new instance of an AssetScriptBinary object</summary>
         public AssetClothing() { }

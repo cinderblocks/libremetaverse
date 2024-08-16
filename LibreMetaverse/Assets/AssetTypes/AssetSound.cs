@@ -36,7 +36,7 @@ namespace OpenMetaverse.Assets
     public class AssetSound : Asset
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.Sound; } }
+        public override AssetType AssetType => AssetType.Sound;
 
         /// <summary>Initializes a new instance of an AssetSound object</summary>
         public AssetSound() { }
@@ -58,7 +58,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Converts a byte data for a wave PCM file @ 44100 to a OGG encoding
         /// </summary>
-        public override void Encode()
+        public sealed override void Encode()
         {
             if (encodedAudio == false)
             {
@@ -71,7 +71,7 @@ namespace OpenMetaverse.Assets
         /// its already ogg just play it or convert it yourself
         /// </summary>
         /// <returns>true</returns>
-        public override bool Decode() { return true; }
+        public sealed override bool Decode() { return true; }
 
 
         private static byte[] ConvertRawPCMFile(int outputSampleRate, int outputChannels, byte[] pcmSamples, PcmSample pcmSampleSize, int pcmSampleRate, int pcmChannels)
@@ -81,7 +81,7 @@ namespace OpenMetaverse.Assets
 
             int numOutputSamples = (int)(pcmDuraton * outputSampleRate);
             //Ensure that samble buffer is aligned to write chunk size
-            numOutputSamples = (numOutputSamples / WriteBufferSize) * WriteBufferSize;
+            numOutputSamples = (numOutputSamples / WRITE_BUFFER_SIZE) * WRITE_BUFFER_SIZE;
 
             float[][] outSamples = new float[outputChannels][];
 
@@ -127,7 +127,8 @@ namespace OpenMetaverse.Assets
             return pcmValue / 32768f;
         }
 
-        private static readonly int WriteBufferSize = 512;
+        private const int WRITE_BUFFER_SIZE = 512;
+
         private static byte[] GenerateFile(float[][] floatSamples, int sampleRate, int channels)
         {
             MemoryStream outputData = new MemoryStream();
@@ -166,7 +167,7 @@ namespace OpenMetaverse.Assets
             // =========================================================
             var processingState = ProcessingState.Create(info);
 
-            for (int readIndex = 0; readIndex <= floatSamples[0].Length; readIndex += WriteBufferSize)
+            for (int readIndex = 0; readIndex <= floatSamples[0].Length; readIndex += WRITE_BUFFER_SIZE)
             {
                 if (readIndex == floatSamples[0].Length)
                 {
@@ -174,7 +175,7 @@ namespace OpenMetaverse.Assets
                 }
                 else
                 {
-                    processingState.WriteData(floatSamples, WriteBufferSize, readIndex);
+                    processingState.WriteData(floatSamples, WRITE_BUFFER_SIZE, readIndex);
                 }
 
                 while (!oggStream.Finished && processingState.PacketOut(out OggPacket packet))

@@ -61,9 +61,7 @@ namespace OpenMetaverse.TestClient
                 id = SelectedObject;
             }
 
-            Primitive exportPrim;
-
-            exportPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(
+            var exportPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(
                 prim => prim.ID == id
             );
 
@@ -192,7 +190,7 @@ namespace OpenMetaverse.TestClient
 
                 if (asset.Decode())
                 {
-                    try { File.WriteAllBytes(asset.AssetID + ".tga", asset.Image.ExportTGA()); }
+                    try { File.WriteAllBytes(asset.AssetID + ".tga", Imaging.Targa.Encode(asset.Image)); }
                     catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
                 }
                 else

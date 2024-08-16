@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2019-2022, Sjofn LLC
+ * Copyright (c) 2019-2024, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -61,7 +61,7 @@ namespace LibreMetaverse.LslTools
       {
         if (this.m_next == null)
           return "?? null shift";
-        return string.Format("shift {0}", (object) this.m_next.m_state);
+        return $"shift {(object)this.m_next.m_state}";
       }
     }
 

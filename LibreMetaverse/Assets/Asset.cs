@@ -40,8 +40,8 @@ namespace OpenMetaverse.Assets
         /// <summary>The assets unique ID</summary>
         public UUID AssetID
         {
-            get { return _AssetID; }
-            internal set { _AssetID = value; }
+            get => _AssetID;
+            internal set => _AssetID = value;
         }
 
         /// <summary>

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2019-2022, Sjofn LLC
+ * Copyright (c) 2019-2024, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -36,9 +36,8 @@ namespace LibreMetaverse.LslTools
 
     public TokClassDef(GenBase gbs, string name, string bas)
     {
-      if (gbs is TokensGen)
+      if (gbs is TokensGen tokensGen)
       {
-        TokensGen tokensGen = (TokensGen) gbs;
         this.m_name = name;
         tokensGen.m_tokens.tokens[(object) name] = (object) this;
         this.m_refToken = bas;

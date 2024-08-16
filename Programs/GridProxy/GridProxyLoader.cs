@@ -69,7 +69,7 @@ namespace GridProxy
                     logLogin = true;
                 else if (arg.Substring(0, 2) == "--")
                 {
-                    int ipos = arg.IndexOf("=", StringComparison.Ordinal);
+                    int ipos = arg.IndexOf('=');
                     if (ipos != -1)
                     {
                         string sw = arg.Substring(0, ipos);

@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace mapgenerator
+namespace Mapgenerator
 {
-    class mapgenerator
+    class Mapgenerator
     {
         static void WriteFieldMember(TextWriter writer, MapField field)
         {
-            string type = String.Empty;
+            string type = string.Empty;
 
             switch (field.Type)
             {
@@ -175,7 +175,7 @@ namespace mapgenerator
                     writer.WriteLine("                    Buffer.BlockCopy(bytes, i, " + field.Name + ", 0, length); i += length;");
                     break;
                 default:
-                    writer.WriteLine("!!! ERROR: Unhandled FieldType: " + field.Type.ToString() + " !!!");
+                    writer.WriteLine("!!! ERROR: Unhandled FieldType: " + field.Type + " !!!");
                     break;
             }
         }
@@ -253,7 +253,7 @@ namespace mapgenerator
                         field.Name + ".Length); " + "i += " + field.Name + ".Length;");
                     break;
                 default:
-                    writer.WriteLine("!!! ERROR: Unhandled FieldType: " + field.Type.ToString() + " !!!");
+                    writer.WriteLine("!!! ERROR: Unhandled FieldType: " + field.Type + " !!!");
                     break;
             }
         }
@@ -291,7 +291,7 @@ namespace mapgenerator
                 case FieldType.Variable:
                     return 0;
                 default:
-                    writer.WriteLine("!!! ERROR: Unhandled FieldType " + field.Type.ToString() + " !!!");
+                    writer.WriteLine("!!! ERROR: Unhandled FieldType " + field.Type + " !!!");
                     return 0;
             }
         }
@@ -924,7 +924,7 @@ namespace mapgenerator
         {
             ProtocolManager protocol;
             List<string> unused = new List<string>();
-            TextWriter writer;
+            StreamWriter writer;
 
             try
             {
@@ -947,7 +947,7 @@ namespace mapgenerator
                 }
 
                 // Read in the template.cs file and write it to our output
-                TextReader reader = new StreamReader(args[1]);
+                var reader = new StreamReader(args[1]);
                 writer.WriteLine(reader.ReadToEnd());
                 reader.Close();
             }

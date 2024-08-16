@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2019-2022, Sjofn LLC
+ * Copyright (c) 2019-2024, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -6662,7 +6662,7 @@ namespace YYClass
 
     public static object error_factory(Parser yyp)
     {
-      return (object) new error(yyp);
+      return (object) new Error(yyp);
     }
 
     public static object Item_20_factory(Parser yyp)

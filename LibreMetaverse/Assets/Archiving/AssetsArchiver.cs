@@ -93,7 +93,7 @@ namespace OpenMetaverse.Assets
                         xtw.WriteElementString("filename", uuid + extension);
 
                         xtw.WriteElementString("name", uuid.ToString());
-                        xtw.WriteElementString("description", String.Empty);
+                        xtw.WriteElementString("description", string.Empty);
                         xtw.WriteElementString("asset-type", asset.AssetType.ToString());
 
                         xtw.WriteEndElement();
@@ -129,7 +129,7 @@ namespace OpenMetaverse.Assets
                 }
                 else
                 {
-                    Logger.Log(String.Format(
+                    Logger.Log(string.Format(
                         "Unrecognized asset type {0} with uuid {1}.  This asset will be saved but not reloaded",
                         asset.AssetType, asset.AssetID), Helpers.LogLevel.Warning);
                 }

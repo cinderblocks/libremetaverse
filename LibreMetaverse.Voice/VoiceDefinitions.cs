@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -110,13 +110,13 @@ namespace LibreMetaverse.Voice
         public class VoiceLoggingSettings
         {
             /// <summary>Enable logging</summary>
-            public bool Enabled;
+            public readonly bool Enabled;
             /// <summary>The folder where any logs will be created</summary>
-            public string Folder;
+            public readonly string Folder;
             /// <summary>This will be prepended to beginning of each log file</summary>
-            public string FileNamePrefix;
+            public readonly string FileNamePrefix;
             /// <summary>The suffix or extension to be appended to each log file</summary>
-            public string FileNameSuffix;
+            public readonly string FileNameSuffix;
             /// <summary>
             /// 0: NONE - No logging
             /// 1: ERROR - Log errors only
@@ -124,7 +124,7 @@ namespace LibreMetaverse.Voice
             /// 3: INFO - Log errors, warnings and info
             /// 4: DEBUG - Log errors, warnings, info and debug
             /// </summary>
-            public int LogLevel;
+            public readonly int LogLevel;
 
             /// <summary>
             /// Constructor for default logging settings
@@ -132,7 +132,7 @@ namespace LibreMetaverse.Voice
             public VoiceLoggingSettings()
             {
                 Enabled = false;
-                Folder = String.Empty;
+                Folder = string.Empty;
                 FileNamePrefix = "Connector";
                 FileNameSuffix = ".log";
                 LogLevel = 0;
@@ -174,7 +174,7 @@ namespace LibreMetaverse.Voice
         {
             public readonly string AccountHandle;
             public readonly string SessionHandle;
-            public readonly string URI;
+            public readonly string Uri;
             public readonly string Name;
             public readonly string AudioMedia;
 
@@ -182,7 +182,7 @@ namespace LibreMetaverse.Voice
             {
                 this.AccountHandle = AccountHandle;
                 this.SessionHandle = SessionHandle;
-                this.URI = URI;
+                this.Uri = URI;
                 this.Name = Name;
                 this.AudioMedia = AudioMedia;
             }
@@ -212,7 +212,7 @@ namespace LibreMetaverse.Voice
             public readonly int StatusCode;
             public readonly string StatusString;
             public readonly SessionState State;
-            public readonly string URI;
+            public readonly string Uri;
             public readonly bool IsChannel;
             public readonly string ChannelName;
             public SessionStateChangeEventArgs(string SessionHandle, int StatusCode, string StatusString, SessionState State, string URI, bool IsChannel, string ChannelName)
@@ -221,7 +221,7 @@ namespace LibreMetaverse.Voice
                 this.StatusCode = StatusCode;
                 this.StatusString = StatusString;
                 this.State = State;
-                this.URI = URI;
+                this.Uri = URI;
                 this.IsChannel = IsChannel;
                 this.ChannelName = ChannelName;
             }
@@ -232,7 +232,7 @@ namespace LibreMetaverse.Voice
         {
             public readonly string SessionHandle;
             public readonly string SessionGroupHandle;
-            public readonly string URI;
+            public readonly string Uri;
             public readonly string AccountName;
             public readonly string DisplayName;
             public readonly ParticipantType Type;
@@ -248,7 +248,7 @@ namespace LibreMetaverse.Voice
             {
                 this.SessionGroupHandle = SessionGroupHandle;
                 this.SessionHandle = SessionHandle;
-                this.URI = ParticipantUri;
+                this.Uri = ParticipantUri;
                 this.AccountName = AccountName;
                 this.DisplayName = DisplayName;
                 this.Type = type;
@@ -260,7 +260,7 @@ namespace LibreMetaverse.Voice
         {
             public readonly string SessionGroupHandle;
             public readonly string SessionHandle;
-            public readonly string URI;
+            public readonly string Uri;
             public readonly string AccountName;
             public readonly string Reason;
 
@@ -273,7 +273,7 @@ namespace LibreMetaverse.Voice
             {
                 this.SessionGroupHandle = SessionGroupHandle;
                 this.SessionHandle = SessionHandle;
-                this.URI = ParticipantUri;
+                this.Uri = ParticipantUri;
                 this.AccountName = AccountName;
                 this.Reason = Reason;
             }
@@ -285,7 +285,7 @@ namespace LibreMetaverse.Voice
             public readonly int StatusCode;
             public readonly string StatusString;
             public readonly ParticipantState State;
-            public readonly string URI;
+            public readonly string Uri;
             public readonly string AccountName;
             public readonly string DisplayName;
             public readonly ParticipantType Type;
@@ -298,7 +298,7 @@ namespace LibreMetaverse.Voice
                 this.StatusCode = StatusCode;
                 this.StatusString = StatusString;
                 this.State = State;
-                this.URI = ParticipantURI;
+                this.Uri = ParticipantURI;
                 this.AccountName = AccountName;
                 this.DisplayName = DisplayName;
                 this.Type = ParticipantType;
@@ -308,7 +308,7 @@ namespace LibreMetaverse.Voice
         public class ParticipantPropertiesEventArgs : EventArgs
         {
             public readonly string SessionHandle;
-            public readonly string URI;
+            public readonly string Uri;
             public readonly bool IsLocallyMuted;
             public readonly bool IsModeratorMuted;
             public readonly bool IsSpeaking;
@@ -319,7 +319,7 @@ namespace LibreMetaverse.Voice
                 bool IsLocallyMuted, bool IsModeratorMuted, bool IsSpeaking, int Volume, float Energy)
             {
                 this.SessionHandle = SessionHandle;
-                this.URI = ParticipantURI;
+                this.Uri = ParticipantURI;
                 this.IsLocallyMuted = IsLocallyMuted;
                 this.IsModeratorMuted = IsModeratorMuted;
                 this.IsSpeaking = IsSpeaking;
@@ -332,7 +332,7 @@ namespace LibreMetaverse.Voice
         public class ParticipantUpdatedEventArgs : EventArgs
         {
             public readonly string SessionHandle;
-            public readonly string URI;
+            public readonly string Uri;
             public readonly bool IsMuted;
             public readonly bool IsSpeaking;
             public readonly int Volume;
@@ -341,7 +341,7 @@ namespace LibreMetaverse.Voice
             public ParticipantUpdatedEventArgs(string sessionHandle, string URI, bool isMuted, bool isSpeaking, int volume, float energy)
             {
                 this.SessionHandle = sessionHandle;
-                this.URI = URI;
+                this.Uri = URI;
                 this.IsMuted = isMuted;
                 this.IsSpeaking = isSpeaking;
                 this.Volume = volume;
@@ -353,16 +353,16 @@ namespace LibreMetaverse.Voice
         {
             public readonly string SessionGroupHandle;
             public readonly string SessionHandle;
-            public readonly string URI;
+            public readonly string Uri;
             public readonly bool IsChannel;
             public readonly bool IsIncoming;
 
             public SessionAddedEventArgs(string sessionGroupHandle, string sessionHandle,
-                string URI, bool isChannel, bool isIncoming)
+                string uri, bool isChannel, bool isIncoming)
             {
                 this.SessionGroupHandle = sessionGroupHandle;
                 this.SessionHandle = sessionHandle;
-                this.URI = URI;
+                this.Uri = uri;
                 this.IsChannel = isChannel;
                 this.IsIncoming = isIncoming;
             }
@@ -372,7 +372,7 @@ namespace LibreMetaverse.Voice
         {
             public readonly string SessionGroupHandle;
             public readonly string SessionHandle;
-            public readonly string URI;
+            public readonly string Uri;
             public SessionRemovedEventArgs(
                 string SessionGroupHandle,
                 string SessionHandle,
@@ -380,7 +380,7 @@ namespace LibreMetaverse.Voice
             {
                 this.SessionGroupHandle = SessionGroupHandle;
                 this.SessionHandle = SessionHandle;
-                this.URI = Uri;
+                this.Uri = Uri;
             }
         }
 
@@ -388,7 +388,7 @@ namespace LibreMetaverse.Voice
         {
             public readonly string SessionGroupHandle;
             public readonly string SessionHandle;
-            public readonly string URI;
+            public readonly string Uri;
             public readonly bool IsMuted;
             public readonly int Volume;
             public readonly bool TransmitEnabled;
@@ -399,7 +399,7 @@ namespace LibreMetaverse.Voice
             {
                 this.SessionGroupHandle = SessionGroupHandle;
                 this.SessionHandle = SessionHandle;
-                this.URI = URI;
+                this.Uri = URI;
                 this.IsMuted = IsMuted;
                 this.Volume = Volume;
                 this.TransmitEnabled = TransmitEnabled;

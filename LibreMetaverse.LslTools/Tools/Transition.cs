@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2019-2022, Sjofn LLC
+ * Copyright (c) 2019-2024, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -157,7 +157,9 @@ namespace LibreMetaverse.LslTools
         if ((!t.m_ps.m_sgen.m_lalrParser ? (parserReduce2.m_prod.m_lhs.m_follow.Contains(t.m_A) ? 1 : 0) : (parserReduce2.m_lookAhead.Contains(t.m_A) ? 1 : 0)) != 0)
         {
           if (parserReduce1 != null)
-            symbols.erh.Error(new CSToolsException(12, string.Format("reduce/reduce conflict {0} vs {1}", (object) parserReduce1.m_prod.m_pno, (object) parserReduce2.m_prod.m_pno) + string.Format(" state {0} on {1}", (object) t.m_ps.m_state, (object) t.m_A.yytext)));
+            symbols.erh.Error(new CSToolsException(12,
+              $"reduce/reduce conflict {(object)parserReduce1.m_prod.m_pno} vs {(object)parserReduce2.m_prod.m_pno}" +
+              $" state {(object)t.m_ps.m_state} on {(object)t.m_A.yytext}"));
           parserReduce1 = parserReduce2;
         }
       }

@@ -196,7 +196,8 @@ namespace OpenMetaverse.ImportExport
                                 Client.Inventory.RequestFetchInventory(reply["new_inventory_item"].AsUUID(), Client.Self.AgentID);
                             }
                         }
-                        if (callback != null) callback(contents);
+
+                        callback?.Invoke(contents);
                     }));
                 }
             }));

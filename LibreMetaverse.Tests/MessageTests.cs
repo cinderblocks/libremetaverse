@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC
+ * Copyright (c) 2021-2024, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@ using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Messages.Linden;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 
 namespace LibreMetaverse.Tests
 {
@@ -97,21 +98,21 @@ namespace LibreMetaverse.Tests
             AgentGroupDataUpdateMessage t = new AgentGroupDataUpdateMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AgentID, t.AgentID);
+            ClassicAssert.AreEqual(s.AgentID, t.AgentID);
 
             for (int i = 0; i < t.GroupDataBlock.Length; i++)
             {
-                Assert.AreEqual(s.GroupDataBlock[i].AcceptNotices, t.GroupDataBlock[i].AcceptNotices);
-                Assert.AreEqual(s.GroupDataBlock[i].Contribution, t.GroupDataBlock[i].Contribution);
-                Assert.AreEqual(s.GroupDataBlock[i].GroupID, t.GroupDataBlock[i].GroupID);
-                Assert.AreEqual(s.GroupDataBlock[i].GroupInsigniaID, t.GroupDataBlock[i].GroupInsigniaID);
-                Assert.AreEqual(s.GroupDataBlock[i].GroupName, t.GroupDataBlock[i].GroupName);
-                Assert.AreEqual(s.GroupDataBlock[i].GroupPowers, t.GroupDataBlock[i].GroupPowers);
+                ClassicAssert.AreEqual(s.GroupDataBlock[i].AcceptNotices, t.GroupDataBlock[i].AcceptNotices);
+                ClassicAssert.AreEqual(s.GroupDataBlock[i].Contribution, t.GroupDataBlock[i].Contribution);
+                ClassicAssert.AreEqual(s.GroupDataBlock[i].GroupID, t.GroupDataBlock[i].GroupID);
+                ClassicAssert.AreEqual(s.GroupDataBlock[i].GroupInsigniaID, t.GroupDataBlock[i].GroupInsigniaID);
+                ClassicAssert.AreEqual(s.GroupDataBlock[i].GroupName, t.GroupDataBlock[i].GroupName);
+                ClassicAssert.AreEqual(s.GroupDataBlock[i].GroupPowers, t.GroupDataBlock[i].GroupPowers);
             }
 
             for (int i = 0; i < t.NewGroupDataBlock.Length; i++)
             {
-                Assert.AreEqual(s.NewGroupDataBlock[i].ListInProfile, t.NewGroupDataBlock[i].ListInProfile);
+                ClassicAssert.AreEqual(s.NewGroupDataBlock[i].ListInProfile, t.NewGroupDataBlock[i].ListInProfile);
             }
         }
 
@@ -133,14 +134,14 @@ namespace LibreMetaverse.Tests
             TeleportFinishMessage t = new TeleportFinishMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AgentID, t.AgentID);
-            Assert.AreEqual(s.Flags, t.Flags);
-            Assert.AreEqual(s.IP, t.IP);
-            Assert.AreEqual(s.LocationID, t.LocationID);
-            Assert.AreEqual(s.Port, t.Port);
-            Assert.AreEqual(s.RegionHandle, t.RegionHandle);
-            Assert.AreEqual(s.SeedCapability, t.SeedCapability);
-            Assert.AreEqual(s.SimAccess, t.SimAccess);
+            ClassicAssert.AreEqual(s.AgentID, t.AgentID);
+            ClassicAssert.AreEqual(s.Flags, t.Flags);
+            ClassicAssert.AreEqual(s.IP, t.IP);
+            ClassicAssert.AreEqual(s.LocationID, t.LocationID);
+            ClassicAssert.AreEqual(s.Port, t.Port);
+            ClassicAssert.AreEqual(s.RegionHandle, t.RegionHandle);
+            ClassicAssert.AreEqual(s.SeedCapability, t.SeedCapability);
+            ClassicAssert.AreEqual(s.SimAccess, t.SimAccess);
         }
 
         [Test]
@@ -157,10 +158,10 @@ namespace LibreMetaverse.Tests
             EstablishAgentCommunicationMessage t = new EstablishAgentCommunicationMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.Address, t.Address);
-            Assert.AreEqual(s.AgentID, t.AgentID);
-            Assert.AreEqual(s.Port, t.Port);
-            Assert.AreEqual(s.SeedCapability, t.SeedCapability);
+            ClassicAssert.AreEqual(s.Address, t.Address);
+            ClassicAssert.AreEqual(s.AgentID, t.AgentID);
+            ClassicAssert.AreEqual(s.Port, t.Port);
+            ClassicAssert.AreEqual(s.SeedCapability, t.SeedCapability);
         }
 
         [Test]
@@ -192,11 +193,11 @@ namespace LibreMetaverse.Tests
 
             for (int i = 0; i < t.PrimOwnersBlock.Length; i++)
             {
-                Assert.AreEqual(s.PrimOwnersBlock[i].Count, t.PrimOwnersBlock[i].Count);
-                Assert.AreEqual(s.PrimOwnersBlock[i].IsGroupOwned, t.PrimOwnersBlock[i].IsGroupOwned);
-                Assert.AreEqual(s.PrimOwnersBlock[i].OnlineStatus, t.PrimOwnersBlock[i].OnlineStatus);
-                Assert.AreEqual(s.PrimOwnersBlock[i].OwnerID, t.PrimOwnersBlock[i].OwnerID);
-                Assert.AreEqual(s.PrimOwnersBlock[i].TimeStamp, t.PrimOwnersBlock[i].TimeStamp);
+                ClassicAssert.AreEqual(s.PrimOwnersBlock[i].Count, t.PrimOwnersBlock[i].Count);
+                ClassicAssert.AreEqual(s.PrimOwnersBlock[i].IsGroupOwned, t.PrimOwnersBlock[i].IsGroupOwned);
+                ClassicAssert.AreEqual(s.PrimOwnersBlock[i].OnlineStatus, t.PrimOwnersBlock[i].OnlineStatus);
+                ClassicAssert.AreEqual(s.PrimOwnersBlock[i].OwnerID, t.PrimOwnersBlock[i].OwnerID);
+                ClassicAssert.AreEqual(s.PrimOwnersBlock[i].TimeStamp, t.PrimOwnersBlock[i].TimeStamp);
             }
         }
 
@@ -223,19 +224,19 @@ namespace LibreMetaverse.Tests
             ChatterBoxInvitationMessage t = new ChatterBoxInvitationMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.BinaryBucket, t.BinaryBucket);
-            Assert.AreEqual(s.Dialog, t.Dialog);
-            Assert.AreEqual(s.FromAgentID, t.FromAgentID);
-            Assert.AreEqual(s.FromAgentName, t.FromAgentName);
-            Assert.AreEqual(s.GroupIM, t.GroupIM);
-            Assert.AreEqual(s.IMSessionID, t.IMSessionID);
-            Assert.AreEqual(s.Message, t.Message);
-            Assert.AreEqual(s.Offline, t.Offline);
-            Assert.AreEqual(s.ParentEstateID, t.ParentEstateID);
-            Assert.AreEqual(s.Position, t.Position);
-            Assert.AreEqual(s.RegionID, t.RegionID);
-            Assert.AreEqual(s.Timestamp, t.Timestamp);
-            Assert.AreEqual(s.ToAgentID, t.ToAgentID);
+            ClassicAssert.AreEqual(s.BinaryBucket, t.BinaryBucket);
+            ClassicAssert.AreEqual(s.Dialog, t.Dialog);
+            ClassicAssert.AreEqual(s.FromAgentID, t.FromAgentID);
+            ClassicAssert.AreEqual(s.FromAgentName, t.FromAgentName);
+            ClassicAssert.AreEqual(s.GroupIM, t.GroupIM);
+            ClassicAssert.AreEqual(s.IMSessionID, t.IMSessionID);
+            ClassicAssert.AreEqual(s.Message, t.Message);
+            ClassicAssert.AreEqual(s.Offline, t.Offline);
+            ClassicAssert.AreEqual(s.ParentEstateID, t.ParentEstateID);
+            ClassicAssert.AreEqual(s.Position, t.Position);
+            ClassicAssert.AreEqual(s.RegionID, t.RegionID);
+            ClassicAssert.AreEqual(s.Timestamp, t.Timestamp);
+            ClassicAssert.AreEqual(s.ToAgentID, t.ToAgentID);
         }
 
         [Test]
@@ -250,8 +251,8 @@ namespace LibreMetaverse.Tests
             ChatterboxSessionEventReplyMessage t = new ChatterboxSessionEventReplyMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.SessionID, t.SessionID);
-            Assert.AreEqual(s.Success, t.Success);
+            ClassicAssert.AreEqual(s.SessionID, t.SessionID);
+            ClassicAssert.AreEqual(s.Success, t.Success);
         }
 
         [Test]
@@ -271,13 +272,13 @@ namespace LibreMetaverse.Tests
             ChatterBoxSessionStartReplyMessage t = new ChatterBoxSessionStartReplyMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.ModeratedVoice, t.ModeratedVoice);
-            Assert.AreEqual(s.SessionID, t.SessionID);
-            Assert.AreEqual(s.SessionName, t.SessionName);
-            Assert.AreEqual(s.Success, t.Success);
-            Assert.AreEqual(s.TempSessionID, t.TempSessionID);
-            Assert.AreEqual(s.Type, t.Type);
-            Assert.AreEqual(s.VoiceEnabled, t.VoiceEnabled);
+            ClassicAssert.AreEqual(s.ModeratedVoice, t.ModeratedVoice);
+            ClassicAssert.AreEqual(s.SessionID, t.SessionID);
+            ClassicAssert.AreEqual(s.SessionName, t.SessionName);
+            ClassicAssert.AreEqual(s.Success, t.Success);
+            ClassicAssert.AreEqual(s.TempSessionID, t.TempSessionID);
+            ClassicAssert.AreEqual(s.Type, t.Type);
+            ClassicAssert.AreEqual(s.VoiceEnabled, t.VoiceEnabled);
         }
 
         [Test]
@@ -311,15 +312,15 @@ namespace LibreMetaverse.Tests
             ChatterBoxSessionAgentListUpdatesMessage t = new ChatterBoxSessionAgentListUpdatesMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.SessionID, t.SessionID);
+            ClassicAssert.AreEqual(s.SessionID, t.SessionID);
             for (int i = 0; i < t.Updates.Length; i++)
             {
-                Assert.AreEqual(s.Updates[i].AgentID, t.Updates[i].AgentID);
-                Assert.AreEqual(s.Updates[i].CanVoiceChat, t.Updates[i].CanVoiceChat);
-                Assert.AreEqual(s.Updates[i].IsModerator, t.Updates[i].IsModerator);
-                Assert.AreEqual(s.Updates[i].MuteText, t.Updates[i].MuteText);
-                Assert.AreEqual(s.Updates[i].MuteVoice, t.Updates[i].MuteVoice);
-                Assert.AreEqual(s.Updates[i].Transition, t.Updates[i].Transition);
+                ClassicAssert.AreEqual(s.Updates[i].AgentID, t.Updates[i].AgentID);
+                ClassicAssert.AreEqual(s.Updates[i].CanVoiceChat, t.Updates[i].CanVoiceChat);
+                ClassicAssert.AreEqual(s.Updates[i].IsModerator, t.Updates[i].IsModerator);
+                ClassicAssert.AreEqual(s.Updates[i].MuteText, t.Updates[i].MuteText);
+                ClassicAssert.AreEqual(s.Updates[i].MuteVoice, t.Updates[i].MuteVoice);
+                ClassicAssert.AreEqual(s.Updates[i].Transition, t.Updates[i].Transition);
             }
         }
 
@@ -336,7 +337,7 @@ namespace LibreMetaverse.Tests
             s.SystemGPU = "Vesa VGA+";
             s.SystemGPUClass = 4;
             s.SystemGPUVendor = "China";
-            s.SystemGPUVersion = String.Empty;
+            s.SystemGPUVersion = string.Empty;
             s.InCompressedPackets = 5000;
             s.InKbytes = 6000;
             s.InPackets = 22000;
@@ -374,47 +375,47 @@ namespace LibreMetaverse.Tests
             ViewerStatsMessage t = new ViewerStatsMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AgentFPS, t.AgentFPS);
-            Assert.AreEqual(s.AgentsInView, t.AgentsInView);
-            Assert.AreEqual(s.SystemCPU, t.SystemCPU);
-            Assert.AreEqual(s.StatsDropped, t.StatsDropped);
-            Assert.AreEqual(s.StatsFailedResends, t.StatsFailedResends);
-            Assert.AreEqual(s.SystemGPU, t.SystemGPU);
-            Assert.AreEqual(s.SystemGPUClass, t.SystemGPUClass);
-            Assert.AreEqual(s.SystemGPUVendor, t.SystemGPUVendor);
-            Assert.AreEqual(s.SystemGPUVersion, t.SystemGPUVersion);
-            Assert.AreEqual(s.InCompressedPackets, t.InCompressedPackets);
-            Assert.AreEqual(s.InKbytes, t.InKbytes);
-            Assert.AreEqual(s.InPackets, t.InPackets);
-            Assert.AreEqual(s.InSavings, t.InSavings);
-            Assert.AreEqual(s.MiscInt1, t.MiscInt1);
-            Assert.AreEqual(s.MiscInt2, t.MiscInt2);
-            Assert.AreEqual(s.FailuresInvalid, t.FailuresInvalid);
-            Assert.AreEqual(s.AgentLanguage, t.AgentLanguage);
-            Assert.AreEqual(s.AgentMemoryUsed, t.AgentMemoryUsed);
-            Assert.AreEqual(s.MetersTraveled, t.MetersTraveled);
-            Assert.AreEqual(s.object_kbytes, t.object_kbytes);
-            Assert.AreEqual(s.FailuresOffCircuit, t.FailuresOffCircuit);
-            Assert.AreEqual(s.SystemOS, t.SystemOS);
-            Assert.AreEqual(s.OutCompressedPackets, t.OutCompressedPackets);
-            Assert.AreEqual(s.OutKbytes, t.OutKbytes);
-            Assert.AreEqual(s.OutPackets, t.OutPackets);
-            Assert.AreEqual(s.OutSavings, t.OutSavings);
-            Assert.AreEqual(s.AgentPing, t.AgentPing);
-            Assert.AreEqual(s.SystemInstalledRam, t.SystemInstalledRam);
-            Assert.AreEqual(s.RegionsVisited, t.RegionsVisited);
-            Assert.AreEqual(s.FailuresResent, t.FailuresResent);
-            Assert.AreEqual(s.AgentRuntime, t.AgentRuntime);
-            Assert.AreEqual(s.FailuresSendPacket, t.FailuresSendPacket);
-            Assert.AreEqual(s.SessionID, t.SessionID);
-            Assert.AreEqual(s.SimulatorFPS, t.SimulatorFPS);
-            Assert.AreEqual(s.AgentStartTime, t.AgentStartTime);
-            Assert.AreEqual(s.MiscString1, t.MiscString1);
-            Assert.AreEqual(s.texture_kbytes, t.texture_kbytes);
-            Assert.AreEqual(s.AgentVersion, t.AgentVersion);
-            Assert.AreEqual(s.MiscVersion, t.MiscVersion);
-            Assert.AreEqual(s.VertexBuffersEnabled, t.VertexBuffersEnabled);
-            Assert.AreEqual(s.world_kbytes, t.world_kbytes);
+            ClassicAssert.AreEqual(s.AgentFPS, t.AgentFPS);
+            ClassicAssert.AreEqual(s.AgentsInView, t.AgentsInView);
+            ClassicAssert.AreEqual(s.SystemCPU, t.SystemCPU);
+            ClassicAssert.AreEqual(s.StatsDropped, t.StatsDropped);
+            ClassicAssert.AreEqual(s.StatsFailedResends, t.StatsFailedResends);
+            ClassicAssert.AreEqual(s.SystemGPU, t.SystemGPU);
+            ClassicAssert.AreEqual(s.SystemGPUClass, t.SystemGPUClass);
+            ClassicAssert.AreEqual(s.SystemGPUVendor, t.SystemGPUVendor);
+            ClassicAssert.AreEqual(s.SystemGPUVersion, t.SystemGPUVersion);
+            ClassicAssert.AreEqual(s.InCompressedPackets, t.InCompressedPackets);
+            ClassicAssert.AreEqual(s.InKbytes, t.InKbytes);
+            ClassicAssert.AreEqual(s.InPackets, t.InPackets);
+            ClassicAssert.AreEqual(s.InSavings, t.InSavings);
+            ClassicAssert.AreEqual(s.MiscInt1, t.MiscInt1);
+            ClassicAssert.AreEqual(s.MiscInt2, t.MiscInt2);
+            ClassicAssert.AreEqual(s.FailuresInvalid, t.FailuresInvalid);
+            ClassicAssert.AreEqual(s.AgentLanguage, t.AgentLanguage);
+            ClassicAssert.AreEqual(s.AgentMemoryUsed, t.AgentMemoryUsed);
+            ClassicAssert.AreEqual(s.MetersTraveled, t.MetersTraveled);
+            ClassicAssert.AreEqual(s.object_kbytes, t.object_kbytes);
+            ClassicAssert.AreEqual(s.FailuresOffCircuit, t.FailuresOffCircuit);
+            ClassicAssert.AreEqual(s.SystemOS, t.SystemOS);
+            ClassicAssert.AreEqual(s.OutCompressedPackets, t.OutCompressedPackets);
+            ClassicAssert.AreEqual(s.OutKbytes, t.OutKbytes);
+            ClassicAssert.AreEqual(s.OutPackets, t.OutPackets);
+            ClassicAssert.AreEqual(s.OutSavings, t.OutSavings);
+            ClassicAssert.AreEqual(s.AgentPing, t.AgentPing);
+            ClassicAssert.AreEqual(s.SystemInstalledRam, t.SystemInstalledRam);
+            ClassicAssert.AreEqual(s.RegionsVisited, t.RegionsVisited);
+            ClassicAssert.AreEqual(s.FailuresResent, t.FailuresResent);
+            ClassicAssert.AreEqual(s.AgentRuntime, t.AgentRuntime);
+            ClassicAssert.AreEqual(s.FailuresSendPacket, t.FailuresSendPacket);
+            ClassicAssert.AreEqual(s.SessionID, t.SessionID);
+            ClassicAssert.AreEqual(s.SimulatorFPS, t.SimulatorFPS);
+            ClassicAssert.AreEqual(s.AgentStartTime, t.AgentStartTime);
+            ClassicAssert.AreEqual(s.MiscString1, t.MiscString1);
+            ClassicAssert.AreEqual(s.texture_kbytes, t.texture_kbytes);
+            ClassicAssert.AreEqual(s.AgentVersion, t.AgentVersion);
+            ClassicAssert.AreEqual(s.MiscVersion, t.MiscVersion);
+            ClassicAssert.AreEqual(s.VertexBuffersEnabled, t.VertexBuffersEnabled);
+            ClassicAssert.AreEqual(s.world_kbytes, t.world_kbytes);
 
 
         }
@@ -432,9 +433,9 @@ namespace LibreMetaverse.Tests
             ParcelVoiceInfoRequestMessage t = new ParcelVoiceInfoRequestMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.SipChannelUri, t.SipChannelUri);
-            Assert.AreEqual(s.ParcelID, t.ParcelID);
-            Assert.AreEqual(s.RegionName, t.RegionName);
+            ClassicAssert.AreEqual(s.SipChannelUri, t.SipChannelUri);
+            ClassicAssert.AreEqual(s.ParcelID, t.ParcelID);
+            ClassicAssert.AreEqual(s.RegionName, t.RegionName);
         }
 
         [Test]
@@ -451,10 +452,10 @@ namespace LibreMetaverse.Tests
             ScriptRunningReplyMessage t = new ScriptRunningReplyMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.ItemID, t.ItemID);
-            Assert.AreEqual(s.Mono, t.Mono);
-            Assert.AreEqual(s.ObjectID, t.ObjectID);
-            Assert.AreEqual(s.Running, t.Running);
+            ClassicAssert.AreEqual(s.ItemID, t.ItemID);
+            ClassicAssert.AreEqual(s.Mono, t.Mono);
+            ClassicAssert.AreEqual(s.ObjectID, t.ObjectID);
+            ClassicAssert.AreEqual(s.Running, t.Running);
 
         }
 
@@ -494,16 +495,16 @@ namespace LibreMetaverse.Tests
 
             t.Deserialize(map);
 
-            Assert.AreEqual(s.Flags, t.Flags);
+            ClassicAssert.AreEqual(s.Flags, t.Flags);
 
 
             for (int i = 0; i < s.LayerDataBlocks.Length; i++)
             {
-                Assert.AreEqual(s.LayerDataBlocks[i].ImageID, t.LayerDataBlocks[i].ImageID);
-                Assert.AreEqual(s.LayerDataBlocks[i].Top, t.LayerDataBlocks[i].Top);
-                Assert.AreEqual(s.LayerDataBlocks[i].Left, t.LayerDataBlocks[i].Left);
-                Assert.AreEqual(s.LayerDataBlocks[i].Right, t.LayerDataBlocks[i].Right);
-                Assert.AreEqual(s.LayerDataBlocks[i].Bottom, t.LayerDataBlocks[i].Bottom);
+                ClassicAssert.AreEqual(s.LayerDataBlocks[i].ImageID, t.LayerDataBlocks[i].ImageID);
+                ClassicAssert.AreEqual(s.LayerDataBlocks[i].Top, t.LayerDataBlocks[i].Top);
+                ClassicAssert.AreEqual(s.LayerDataBlocks[i].Left, t.LayerDataBlocks[i].Left);
+                ClassicAssert.AreEqual(s.LayerDataBlocks[i].Right, t.LayerDataBlocks[i].Right);
+                ClassicAssert.AreEqual(s.LayerDataBlocks[i].Bottom, t.LayerDataBlocks[i].Bottom);
             }
         }
 
@@ -521,11 +522,11 @@ namespace LibreMetaverse.Tests
             ChatSessionRequestStartConference t = new ChatSessionRequestStartConference();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.SessionID, t.SessionID);
-            Assert.AreEqual(s.Method, t.Method);
+            ClassicAssert.AreEqual(s.SessionID, t.SessionID);
+            ClassicAssert.AreEqual(s.Method, t.Method);
             for (int i = 0; i < t.AgentsBlock.Length; i++)
             {
-                Assert.AreEqual(s.AgentsBlock[i], t.AgentsBlock[i]);
+                ClassicAssert.AreEqual(s.AgentsBlock[i], t.AgentsBlock[i]);
             }
         }
 
@@ -543,11 +544,11 @@ namespace LibreMetaverse.Tests
             ChatSessionRequestMuteUpdate t = new ChatSessionRequestMuteUpdate();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AgentID, t.AgentID);
-            Assert.AreEqual(s.Method, t.Method);
-            Assert.AreEqual(s.RequestKey, t.RequestKey);
-            Assert.AreEqual(s.RequestValue, t.RequestValue);
-            Assert.AreEqual(s.SessionID, t.SessionID);
+            ClassicAssert.AreEqual(s.AgentID, t.AgentID);
+            ClassicAssert.AreEqual(s.Method, t.Method);
+            ClassicAssert.AreEqual(s.RequestKey, t.RequestKey);
+            ClassicAssert.AreEqual(s.RequestValue, t.RequestValue);
+            ClassicAssert.AreEqual(s.SessionID, t.SessionID);
         }
 
         [Test]
@@ -561,8 +562,8 @@ namespace LibreMetaverse.Tests
             ChatSessionAcceptInvitation t = new ChatSessionAcceptInvitation();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.Method, t.Method);
-            Assert.AreEqual(s.SessionID, t.SessionID);
+            ClassicAssert.AreEqual(s.Method, t.Method);
+            ClassicAssert.AreEqual(s.SessionID, t.SessionID);
         }
 
         [Test]
@@ -578,9 +579,9 @@ namespace LibreMetaverse.Tests
             RequiredVoiceVersionMessage t = new RequiredVoiceVersionMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.MajorVersion, t.MajorVersion);
-            Assert.AreEqual(s.MinorVersion, t.MinorVersion);
-            Assert.AreEqual(s.RegionName, t.RegionName);
+            ClassicAssert.AreEqual(s.MajorVersion, t.MajorVersion);
+            ClassicAssert.AreEqual(s.MinorVersion, t.MinorVersion);
+            ClassicAssert.AreEqual(s.RegionName, t.RegionName);
         }
 
         [Test]
@@ -598,11 +599,11 @@ namespace LibreMetaverse.Tests
             CopyInventoryFromNotecardMessage t = new CopyInventoryFromNotecardMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.CallbackID, t.CallbackID);
-            Assert.AreEqual(s.FolderID, t.FolderID);
-            Assert.AreEqual(s.ItemID, t.ItemID);
-            Assert.AreEqual(s.NotecardID, t.NotecardID);
-            Assert.AreEqual(s.ObjectID, t.ObjectID);
+            ClassicAssert.AreEqual(s.CallbackID, t.CallbackID);
+            ClassicAssert.AreEqual(s.FolderID, t.FolderID);
+            ClassicAssert.AreEqual(s.ItemID, t.ItemID);
+            ClassicAssert.AreEqual(s.NotecardID, t.NotecardID);
+            ClassicAssert.AreEqual(s.ObjectID, t.ObjectID);
         }
 
         [Test]
@@ -617,8 +618,8 @@ namespace LibreMetaverse.Tests
             ProvisionVoiceAccountRequestMessage t = new ProvisionVoiceAccountRequestMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.Password, t.Password);
-            Assert.AreEqual(s.Username, t.Username);
+            ClassicAssert.AreEqual(s.Password, t.Password);
+            ClassicAssert.AreEqual(s.Username, t.Username);
         }
 
         [Test]
@@ -633,8 +634,8 @@ namespace LibreMetaverse.Tests
             UpdateAgentLanguageMessage t = new UpdateAgentLanguageMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.Language, t.Language);
-            Assert.AreEqual(s.LanguagePublic, t.LanguagePublic);
+            ClassicAssert.AreEqual(s.Language, t.Language);
+            ClassicAssert.AreEqual(s.LanguagePublic, t.LanguagePublic);
 
         }
 
@@ -706,64 +707,64 @@ namespace LibreMetaverse.Tests
 
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AABBMax, t.AABBMax);
-            Assert.AreEqual(s.AABBMin, t.AABBMin);
-            Assert.AreEqual(s.AnyAVSounds, t.AnyAVSounds);
-            Assert.AreEqual(s.Area, t.Area);
-            Assert.AreEqual(s.AuctionID, t.AuctionID);
-            Assert.AreEqual(s.AuthBuyerID, t.AuthBuyerID);
-            Assert.AreEqual(s.Bitmap, t.Bitmap);
-            Assert.AreEqual(s.Category, t.Category);
-            Assert.AreEqual(s.ClaimDate, t.ClaimDate);
-            Assert.AreEqual(s.ClaimPrice, t.ClaimPrice);
-            Assert.AreEqual(s.Desc, t.Desc);
-            Assert.AreEqual(s.GroupAVSounds, t.GroupAVSounds);
-            Assert.AreEqual(s.GroupID, t.GroupID);
-            Assert.AreEqual(s.GroupPrims, t.GroupPrims);
-            Assert.AreEqual(s.IsGroupOwned, t.IsGroupOwned);
-            Assert.AreEqual(s.LandingType, t.LandingType);
-            Assert.AreEqual(s.LocalID, t.LocalID);
-            Assert.AreEqual(s.MaxPrims, t.MaxPrims);
-            Assert.AreEqual(s.MediaAutoScale, t.MediaAutoScale);
-            Assert.AreEqual(s.MediaDesc, t.MediaDesc);
-            Assert.AreEqual(s.MediaHeight, t.MediaHeight);
-            Assert.AreEqual(s.MediaID, t.MediaID);
-            Assert.AreEqual(s.MediaLoop, t.MediaLoop);
-            Assert.AreEqual(s.MediaType, t.MediaType);
-            Assert.AreEqual(s.MediaURL, t.MediaURL);
-            Assert.AreEqual(s.MediaWidth, t.MediaWidth);
-            Assert.AreEqual(s.MusicURL, t.MusicURL);
-            Assert.AreEqual(s.Name, t.Name);
-            Assert.AreEqual(s.ObscureMedia, t.ObscureMedia);
-            Assert.AreEqual(s.ObscureMusic, t.ObscureMusic);
-            Assert.AreEqual(s.OtherCleanTime, t.OtherCleanTime);
-            Assert.AreEqual(s.OtherCount, t.OtherCount);
-            Assert.AreEqual(s.OtherPrims, t.OtherPrims);
-            Assert.AreEqual(s.OwnerID, t.OwnerID);
-            Assert.AreEqual(s.OwnerPrims, t.OwnerPrims);
-            Assert.AreEqual(s.ParcelFlags, t.ParcelFlags);
-            Assert.AreEqual(s.ParcelPrimBonus, t.ParcelPrimBonus);
-            Assert.AreEqual(s.PassHours, t.PassHours);
-            Assert.AreEqual(s.PassPrice, t.PassPrice);
-            Assert.AreEqual(s.PublicCount, t.PublicCount);
-            Assert.AreEqual(s.RegionDenyAgeUnverified, t.RegionDenyAgeUnverified);
-            Assert.AreEqual(s.RegionDenyAnonymous, t.RegionDenyAnonymous);
-            Assert.AreEqual(s.RegionPushOverride, t.RegionPushOverride);
-            Assert.AreEqual(s.RentPrice, t.RentPrice);
-            Assert.AreEqual(s.RequestResult, t.RequestResult);
-            Assert.AreEqual(s.SalePrice, t.SalePrice);
-            Assert.AreEqual(s.SeeAVs, t.SeeAVs);
-            Assert.AreEqual(s.SelectedPrims, t.SelectedPrims);
-            Assert.AreEqual(s.SelfCount, t.SelfCount);
-            Assert.AreEqual(s.SequenceID, t.SequenceID);
-            Assert.AreEqual(s.SimWideMaxPrims, t.SimWideMaxPrims);
-            Assert.AreEqual(s.SimWideTotalPrims, t.SimWideTotalPrims);
-            Assert.AreEqual(s.SnapSelection, t.SnapSelection);
-            Assert.AreEqual(s.SnapshotID, t.SnapshotID);
-            Assert.AreEqual(s.Status, t.Status);
-            Assert.AreEqual(s.TotalPrims, t.TotalPrims);
-            Assert.AreEqual(s.UserLocation, t.UserLocation);
-            Assert.AreEqual(s.UserLookAt, t.UserLookAt);
+            ClassicAssert.AreEqual(s.AABBMax, t.AABBMax);
+            ClassicAssert.AreEqual(s.AABBMin, t.AABBMin);
+            ClassicAssert.AreEqual(s.AnyAVSounds, t.AnyAVSounds);
+            ClassicAssert.AreEqual(s.Area, t.Area);
+            ClassicAssert.AreEqual(s.AuctionID, t.AuctionID);
+            ClassicAssert.AreEqual(s.AuthBuyerID, t.AuthBuyerID);
+            ClassicAssert.AreEqual(s.Bitmap, t.Bitmap);
+            ClassicAssert.AreEqual(s.Category, t.Category);
+            ClassicAssert.AreEqual(s.ClaimDate, t.ClaimDate);
+            ClassicAssert.AreEqual(s.ClaimPrice, t.ClaimPrice);
+            ClassicAssert.AreEqual(s.Desc, t.Desc);
+            ClassicAssert.AreEqual(s.GroupAVSounds, t.GroupAVSounds);
+            ClassicAssert.AreEqual(s.GroupID, t.GroupID);
+            ClassicAssert.AreEqual(s.GroupPrims, t.GroupPrims);
+            ClassicAssert.AreEqual(s.IsGroupOwned, t.IsGroupOwned);
+            ClassicAssert.AreEqual(s.LandingType, t.LandingType);
+            ClassicAssert.AreEqual(s.LocalID, t.LocalID);
+            ClassicAssert.AreEqual(s.MaxPrims, t.MaxPrims);
+            ClassicAssert.AreEqual(s.MediaAutoScale, t.MediaAutoScale);
+            ClassicAssert.AreEqual(s.MediaDesc, t.MediaDesc);
+            ClassicAssert.AreEqual(s.MediaHeight, t.MediaHeight);
+            ClassicAssert.AreEqual(s.MediaID, t.MediaID);
+            ClassicAssert.AreEqual(s.MediaLoop, t.MediaLoop);
+            ClassicAssert.AreEqual(s.MediaType, t.MediaType);
+            ClassicAssert.AreEqual(s.MediaURL, t.MediaURL);
+            ClassicAssert.AreEqual(s.MediaWidth, t.MediaWidth);
+            ClassicAssert.AreEqual(s.MusicURL, t.MusicURL);
+            ClassicAssert.AreEqual(s.Name, t.Name);
+            ClassicAssert.AreEqual(s.ObscureMedia, t.ObscureMedia);
+            ClassicAssert.AreEqual(s.ObscureMusic, t.ObscureMusic);
+            ClassicAssert.AreEqual(s.OtherCleanTime, t.OtherCleanTime);
+            ClassicAssert.AreEqual(s.OtherCount, t.OtherCount);
+            ClassicAssert.AreEqual(s.OtherPrims, t.OtherPrims);
+            ClassicAssert.AreEqual(s.OwnerID, t.OwnerID);
+            ClassicAssert.AreEqual(s.OwnerPrims, t.OwnerPrims);
+            ClassicAssert.AreEqual(s.ParcelFlags, t.ParcelFlags);
+            ClassicAssert.AreEqual(s.ParcelPrimBonus, t.ParcelPrimBonus);
+            ClassicAssert.AreEqual(s.PassHours, t.PassHours);
+            ClassicAssert.AreEqual(s.PassPrice, t.PassPrice);
+            ClassicAssert.AreEqual(s.PublicCount, t.PublicCount);
+            ClassicAssert.AreEqual(s.RegionDenyAgeUnverified, t.RegionDenyAgeUnverified);
+            ClassicAssert.AreEqual(s.RegionDenyAnonymous, t.RegionDenyAnonymous);
+            ClassicAssert.AreEqual(s.RegionPushOverride, t.RegionPushOverride);
+            ClassicAssert.AreEqual(s.RentPrice, t.RentPrice);
+            ClassicAssert.AreEqual(s.RequestResult, t.RequestResult);
+            ClassicAssert.AreEqual(s.SalePrice, t.SalePrice);
+            ClassicAssert.AreEqual(s.SeeAVs, t.SeeAVs);
+            ClassicAssert.AreEqual(s.SelectedPrims, t.SelectedPrims);
+            ClassicAssert.AreEqual(s.SelfCount, t.SelfCount);
+            ClassicAssert.AreEqual(s.SequenceID, t.SequenceID);
+            ClassicAssert.AreEqual(s.SimWideMaxPrims, t.SimWideMaxPrims);
+            ClassicAssert.AreEqual(s.SimWideTotalPrims, t.SimWideTotalPrims);
+            ClassicAssert.AreEqual(s.SnapSelection, t.SnapSelection);
+            ClassicAssert.AreEqual(s.SnapshotID, t.SnapshotID);
+            ClassicAssert.AreEqual(s.Status, t.Status);
+            ClassicAssert.AreEqual(s.TotalPrims, t.TotalPrims);
+            ClassicAssert.AreEqual(s.UserLocation, t.UserLocation);
+            ClassicAssert.AreEqual(s.UserLookAt, t.UserLookAt);
         }
 
         [Test]
@@ -805,34 +806,34 @@ namespace LibreMetaverse.Tests
 
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AnyAVSounds, t.AnyAVSounds);
-            Assert.AreEqual(s.AuthBuyerID, t.AuthBuyerID);
-            Assert.AreEqual(s.Category, t.Category);
-            Assert.AreEqual(s.Desc, t.Desc);
-            Assert.AreEqual(s.GroupAVSounds, t.GroupAVSounds);
-            Assert.AreEqual(s.GroupID, t.GroupID);
-            Assert.AreEqual(s.Landing, t.Landing);
-            Assert.AreEqual(s.LocalID, t.LocalID);
-            Assert.AreEqual(s.MediaAutoScale, t.MediaAutoScale);
-            Assert.AreEqual(s.MediaDesc, t.MediaDesc);
-            Assert.AreEqual(s.MediaHeight, t.MediaHeight);
-            Assert.AreEqual(s.MediaID, t.MediaID);
-            Assert.AreEqual(s.MediaLoop, t.MediaLoop);
-            Assert.AreEqual(s.MediaType, t.MediaType);
-            Assert.AreEqual(s.MediaURL, t.MediaURL);
-            Assert.AreEqual(s.MediaWidth, t.MediaWidth);
-            Assert.AreEqual(s.MusicURL, t.MusicURL);
-            Assert.AreEqual(s.Name, t.Name);
-            Assert.AreEqual(s.ObscureMedia, t.ObscureMedia);
-            Assert.AreEqual(s.ObscureMusic, t.ObscureMusic);
-            Assert.AreEqual(s.ParcelFlags, t.ParcelFlags);
-            Assert.AreEqual(s.PassHours, t.PassHours);
-            Assert.AreEqual(s.PassPrice, t.PassPrice);
-            Assert.AreEqual(s.SalePrice, t.SalePrice);
-            Assert.AreEqual(s.SeeAVs, t.SeeAVs);
-            Assert.AreEqual(s.SnapshotID, t.SnapshotID);
-            Assert.AreEqual(s.UserLocation, t.UserLocation);
-            Assert.AreEqual(s.UserLookAt, t.UserLookAt);
+            ClassicAssert.AreEqual(s.AnyAVSounds, t.AnyAVSounds);
+            ClassicAssert.AreEqual(s.AuthBuyerID, t.AuthBuyerID);
+            ClassicAssert.AreEqual(s.Category, t.Category);
+            ClassicAssert.AreEqual(s.Desc, t.Desc);
+            ClassicAssert.AreEqual(s.GroupAVSounds, t.GroupAVSounds);
+            ClassicAssert.AreEqual(s.GroupID, t.GroupID);
+            ClassicAssert.AreEqual(s.Landing, t.Landing);
+            ClassicAssert.AreEqual(s.LocalID, t.LocalID);
+            ClassicAssert.AreEqual(s.MediaAutoScale, t.MediaAutoScale);
+            ClassicAssert.AreEqual(s.MediaDesc, t.MediaDesc);
+            ClassicAssert.AreEqual(s.MediaHeight, t.MediaHeight);
+            ClassicAssert.AreEqual(s.MediaID, t.MediaID);
+            ClassicAssert.AreEqual(s.MediaLoop, t.MediaLoop);
+            ClassicAssert.AreEqual(s.MediaType, t.MediaType);
+            ClassicAssert.AreEqual(s.MediaURL, t.MediaURL);
+            ClassicAssert.AreEqual(s.MediaWidth, t.MediaWidth);
+            ClassicAssert.AreEqual(s.MusicURL, t.MusicURL);
+            ClassicAssert.AreEqual(s.Name, t.Name);
+            ClassicAssert.AreEqual(s.ObscureMedia, t.ObscureMedia);
+            ClassicAssert.AreEqual(s.ObscureMusic, t.ObscureMusic);
+            ClassicAssert.AreEqual(s.ParcelFlags, t.ParcelFlags);
+            ClassicAssert.AreEqual(s.PassHours, t.PassHours);
+            ClassicAssert.AreEqual(s.PassPrice, t.PassPrice);
+            ClassicAssert.AreEqual(s.SalePrice, t.SalePrice);
+            ClassicAssert.AreEqual(s.SeeAVs, t.SeeAVs);
+            ClassicAssert.AreEqual(s.SnapshotID, t.SnapshotID);
+            ClassicAssert.AreEqual(s.UserLocation, t.UserLocation);
+            ClassicAssert.AreEqual(s.UserLookAt, t.UserLookAt);
         }
         [Test]
         public void EnableSimulatorMessage()
@@ -859,9 +860,9 @@ namespace LibreMetaverse.Tests
 
             for (int i = 0; i < t.Simulators.Length; i++)
             {
-                Assert.AreEqual(s.Simulators[i].IP, t.Simulators[i].IP);
-                Assert.AreEqual(s.Simulators[i].Port, t.Simulators[i].Port);
-                Assert.AreEqual(s.Simulators[i].RegionHandle, t.Simulators[i].RegionHandle);
+                ClassicAssert.AreEqual(s.Simulators[i].IP, t.Simulators[i].IP);
+                ClassicAssert.AreEqual(s.Simulators[i].Port, t.Simulators[i].Port);
+                ClassicAssert.AreEqual(s.Simulators[i].RegionHandle, t.Simulators[i].RegionHandle);
             }
         }
 
@@ -875,7 +876,7 @@ namespace LibreMetaverse.Tests
             RemoteParcelRequestReply t = new RemoteParcelRequestReply();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.ParcelID, t.ParcelID);
+            ClassicAssert.AreEqual(s.ParcelID, t.ParcelID);
         }
 
         [Test]
@@ -891,10 +892,10 @@ namespace LibreMetaverse.Tests
             UpdateScriptTaskUpdateMessage t = new UpdateScriptTaskUpdateMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.ItemID, t.ItemID);
-            Assert.AreEqual(s.ScriptRunning, t.ScriptRunning);
-            Assert.AreEqual(s.Target, t.Target);
-            Assert.AreEqual(s.TaskID, t.TaskID);
+            ClassicAssert.AreEqual(s.ItemID, t.ItemID);
+            ClassicAssert.AreEqual(s.ScriptRunning, t.ScriptRunning);
+            ClassicAssert.AreEqual(s.Target, t.Target);
+            ClassicAssert.AreEqual(s.TaskID, t.TaskID);
         }
 
         [Test]
@@ -909,8 +910,8 @@ namespace LibreMetaverse.Tests
             UpdateScriptAgentRequestMessage t = new UpdateScriptAgentRequestMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.ItemID, t.ItemID);
-            Assert.AreEqual(s.Target, t.Target);
+            ClassicAssert.AreEqual(s.ItemID, t.ItemID);
+            ClassicAssert.AreEqual(s.Target, t.Target);
         }
 
         [Test]
@@ -929,12 +930,12 @@ namespace LibreMetaverse.Tests
             SendPostcardMessage t = new SendPostcardMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.FromEmail, t.FromEmail);
-            Assert.AreEqual(s.FromName, t.FromName);
-            Assert.AreEqual(s.GlobalPosition, t.GlobalPosition);
-            Assert.AreEqual(s.Message, t.Message);
-            Assert.AreEqual(s.Subject, t.Subject);
-            Assert.AreEqual(s.ToEmail, t.ToEmail);
+            ClassicAssert.AreEqual(s.FromEmail, t.FromEmail);
+            ClassicAssert.AreEqual(s.FromName, t.FromName);
+            ClassicAssert.AreEqual(s.GlobalPosition, t.GlobalPosition);
+            ClassicAssert.AreEqual(s.Message, t.Message);
+            ClassicAssert.AreEqual(s.Subject, t.Subject);
+            ClassicAssert.AreEqual(s.ToEmail, t.ToEmail);
         }
 
         [Test]
@@ -948,7 +949,7 @@ namespace LibreMetaverse.Tests
             UpdateAgentInventoryRequestMessage t = new UpdateAgentInventoryRequestMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.ItemID, t.ItemID);
+            ClassicAssert.AreEqual(s.ItemID, t.ItemID);
         }
 
         [Test]
@@ -987,20 +988,20 @@ namespace LibreMetaverse.Tests
             LandStatReplyMessage t = new LandStatReplyMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.ReportType, t.ReportType);
-            Assert.AreEqual(s.RequestFlags, t.RequestFlags);
-            Assert.AreEqual(s.TotalObjectCount, t.TotalObjectCount);
+            ClassicAssert.AreEqual(s.ReportType, t.ReportType);
+            ClassicAssert.AreEqual(s.RequestFlags, t.RequestFlags);
+            ClassicAssert.AreEqual(s.TotalObjectCount, t.TotalObjectCount);
 
             for (int i = 0; i < t.ReportDataBlocks.Length; i++)
             {
-                Assert.AreEqual(s.ReportDataBlocks[i].Location, t.ReportDataBlocks[i].Location);
-                Assert.AreEqual(s.ReportDataBlocks[i].MonoScore, t.ReportDataBlocks[i].MonoScore);
-                Assert.AreEqual(s.ReportDataBlocks[i].OwnerName, t.ReportDataBlocks[i].OwnerName);
-                Assert.AreEqual(s.ReportDataBlocks[i].Score, t.ReportDataBlocks[i].Score);
-                Assert.AreEqual(s.ReportDataBlocks[i].TaskID, t.ReportDataBlocks[i].TaskID);
-                Assert.AreEqual(s.ReportDataBlocks[i].TaskLocalID, t.ReportDataBlocks[i].TaskLocalID);
-                Assert.AreEqual(s.ReportDataBlocks[i].TaskName, t.ReportDataBlocks[i].TaskName);
-                Assert.AreEqual(s.ReportDataBlocks[i].TimeStamp, t.ReportDataBlocks[i].TimeStamp);
+                ClassicAssert.AreEqual(s.ReportDataBlocks[i].Location, t.ReportDataBlocks[i].Location);
+                ClassicAssert.AreEqual(s.ReportDataBlocks[i].MonoScore, t.ReportDataBlocks[i].MonoScore);
+                ClassicAssert.AreEqual(s.ReportDataBlocks[i].OwnerName, t.ReportDataBlocks[i].OwnerName);
+                ClassicAssert.AreEqual(s.ReportDataBlocks[i].Score, t.ReportDataBlocks[i].Score);
+                ClassicAssert.AreEqual(s.ReportDataBlocks[i].TaskID, t.ReportDataBlocks[i].TaskID);
+                ClassicAssert.AreEqual(s.ReportDataBlocks[i].TaskLocalID, t.ReportDataBlocks[i].TaskLocalID);
+                ClassicAssert.AreEqual(s.ReportDataBlocks[i].TaskName, t.ReportDataBlocks[i].TaskName);
+                ClassicAssert.AreEqual(s.ReportDataBlocks[i].TimeStamp, t.ReportDataBlocks[i].TimeStamp);
             }
         }
 
@@ -1011,17 +1012,17 @@ namespace LibreMetaverse.Tests
             s.AgentID = UUID.Random();
             s.MessageKey = "Key";
             s.Reason = "Unable To Teleport for some unspecified reason";
-            s.ExtraParams = String.Empty;
+            s.ExtraParams = string.Empty;
 
             OSDMap map = s.Serialize();
 
             TeleportFailedMessage t = new TeleportFailedMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AgentID, t.AgentID);
-            Assert.AreEqual(s.ExtraParams, t.ExtraParams);
-            Assert.AreEqual(s.MessageKey, t.MessageKey);
-            Assert.AreEqual(s.Reason, t.Reason);
+            ClassicAssert.AreEqual(s.AgentID, t.AgentID);
+            ClassicAssert.AreEqual(s.ExtraParams, t.ExtraParams);
+            ClassicAssert.AreEqual(s.MessageKey, t.MessageKey);
+            ClassicAssert.AreEqual(s.Reason, t.Reason);
 
         }
 
@@ -1035,7 +1036,7 @@ namespace LibreMetaverse.Tests
             UpdateAgentInformationMessage t = new UpdateAgentInformationMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.MaxAccess, t.MaxAccess);
+            ClassicAssert.AreEqual(s.MaxAccess, t.MaxAccess);
         }
 
         [Test]
@@ -1088,26 +1089,26 @@ namespace LibreMetaverse.Tests
             PlacesReplyMessage t = new PlacesReplyMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AgentID, t.AgentID);
-            Assert.AreEqual(s.TransactionID, t.TransactionID);
-            Assert.AreEqual(s.QueryID, t.QueryID);
+            ClassicAssert.AreEqual(s.AgentID, t.AgentID);
+            ClassicAssert.AreEqual(s.TransactionID, t.TransactionID);
+            ClassicAssert.AreEqual(s.QueryID, t.QueryID);
 
             for (int i = 0; i < s.QueryDataBlocks.Length; i++)
             {
-                Assert.AreEqual(s.QueryDataBlocks[i].ActualArea, t.QueryDataBlocks[i].ActualArea);
-                Assert.AreEqual(s.QueryDataBlocks[i].BillableArea, t.QueryDataBlocks[i].BillableArea);
-                Assert.AreEqual(s.QueryDataBlocks[i].Description, t.QueryDataBlocks[i].Description);
-                Assert.AreEqual(s.QueryDataBlocks[i].Dwell, t.QueryDataBlocks[i].Dwell);
-                Assert.AreEqual(s.QueryDataBlocks[i].Flags, t.QueryDataBlocks[i].Flags);
-                Assert.AreEqual(s.QueryDataBlocks[i].GlobalX, t.QueryDataBlocks[i].GlobalX);
-                Assert.AreEqual(s.QueryDataBlocks[i].GlobalY, t.QueryDataBlocks[i].GlobalY);
-                Assert.AreEqual(s.QueryDataBlocks[i].GlobalZ, t.QueryDataBlocks[i].GlobalZ);
-                Assert.AreEqual(s.QueryDataBlocks[i].Name, t.QueryDataBlocks[i].Name);
-                Assert.AreEqual(s.QueryDataBlocks[i].OwnerID, t.QueryDataBlocks[i].OwnerID);
-                Assert.AreEqual(s.QueryDataBlocks[i].Price, t.QueryDataBlocks[i].Price);
-                Assert.AreEqual(s.QueryDataBlocks[i].ProductSku, t.QueryDataBlocks[i].ProductSku);
-                Assert.AreEqual(s.QueryDataBlocks[i].SimName, t.QueryDataBlocks[i].SimName);
-                Assert.AreEqual(s.QueryDataBlocks[i].SnapShotID, t.QueryDataBlocks[i].SnapShotID);
+                ClassicAssert.AreEqual(s.QueryDataBlocks[i].ActualArea, t.QueryDataBlocks[i].ActualArea);
+                ClassicAssert.AreEqual(s.QueryDataBlocks[i].BillableArea, t.QueryDataBlocks[i].BillableArea);
+                ClassicAssert.AreEqual(s.QueryDataBlocks[i].Description, t.QueryDataBlocks[i].Description);
+                ClassicAssert.AreEqual(s.QueryDataBlocks[i].Dwell, t.QueryDataBlocks[i].Dwell);
+                ClassicAssert.AreEqual(s.QueryDataBlocks[i].Flags, t.QueryDataBlocks[i].Flags);
+                ClassicAssert.AreEqual(s.QueryDataBlocks[i].GlobalX, t.QueryDataBlocks[i].GlobalX);
+                ClassicAssert.AreEqual(s.QueryDataBlocks[i].GlobalY, t.QueryDataBlocks[i].GlobalY);
+                ClassicAssert.AreEqual(s.QueryDataBlocks[i].GlobalZ, t.QueryDataBlocks[i].GlobalZ);
+                ClassicAssert.AreEqual(s.QueryDataBlocks[i].Name, t.QueryDataBlocks[i].Name);
+                ClassicAssert.AreEqual(s.QueryDataBlocks[i].OwnerID, t.QueryDataBlocks[i].OwnerID);
+                ClassicAssert.AreEqual(s.QueryDataBlocks[i].Price, t.QueryDataBlocks[i].Price);
+                ClassicAssert.AreEqual(s.QueryDataBlocks[i].ProductSku, t.QueryDataBlocks[i].ProductSku);
+                ClassicAssert.AreEqual(s.QueryDataBlocks[i].SimName, t.QueryDataBlocks[i].SimName);
+                ClassicAssert.AreEqual(s.QueryDataBlocks[i].SnapShotID, t.QueryDataBlocks[i].SnapShotID);
             }
         }
 
@@ -1146,18 +1147,18 @@ namespace LibreMetaverse.Tests
             DirLandReplyMessage t = new DirLandReplyMessage();
             t.Deserialize(map);
 
-            Assert.AreEqual(s.AgentID, t.AgentID);
-            Assert.AreEqual(s.QueryID, t.QueryID);
+            ClassicAssert.AreEqual(s.AgentID, t.AgentID);
+            ClassicAssert.AreEqual(s.QueryID, t.QueryID);
 
             for (int i = 0; i < s.QueryReplies.Length; i++)
             {
-                Assert.AreEqual(s.QueryReplies[i].ActualArea, t.QueryReplies[i].ActualArea);
-                Assert.AreEqual(s.QueryReplies[i].Auction, t.QueryReplies[i].Auction);
-                Assert.AreEqual(s.QueryReplies[i].ForSale, t.QueryReplies[i].ForSale);
-                Assert.AreEqual(s.QueryReplies[i].Name, t.QueryReplies[i].Name);
-                Assert.AreEqual(s.QueryReplies[i].ProductSku, t.QueryReplies[i].ProductSku);
-                Assert.AreEqual(s.QueryReplies[i].ParcelID, t.QueryReplies[i].ParcelID);
-                Assert.AreEqual(s.QueryReplies[i].SalePrice, t.QueryReplies[i].SalePrice);
+                ClassicAssert.AreEqual(s.QueryReplies[i].ActualArea, t.QueryReplies[i].ActualArea);
+                ClassicAssert.AreEqual(s.QueryReplies[i].Auction, t.QueryReplies[i].Auction);
+                ClassicAssert.AreEqual(s.QueryReplies[i].ForSale, t.QueryReplies[i].ForSale);
+                ClassicAssert.AreEqual(s.QueryReplies[i].Name, t.QueryReplies[i].Name);
+                ClassicAssert.AreEqual(s.QueryReplies[i].ProductSku, t.QueryReplies[i].ProductSku);
+                ClassicAssert.AreEqual(s.QueryReplies[i].ParcelID, t.QueryReplies[i].ParcelID);
+                ClassicAssert.AreEqual(s.QueryReplies[i].SalePrice, t.QueryReplies[i].SalePrice);
             }
         }
         #region Performance Testing
@@ -1178,7 +1179,7 @@ namespace LibreMetaverse.Tests
                 RemoteParcelRequestReply t = new RemoteParcelRequestReply();
                 t.Deserialize(map);
 
-                Assert.AreEqual(s.ParcelID, t.ParcelID);
+                ClassicAssert.AreEqual(s.ParcelID, t.ParcelID);
             }
             TimeSpan duration = DateTime.UtcNow - messageTestTime;
             Console.WriteLine("RemoteParcelRequestReply: OMV Message System Serialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, duration);
@@ -1197,7 +1198,7 @@ namespace LibreMetaverse.Tests
                 stream.Seek(0, SeekOrigin.Begin);
                 RemoteParcelRequestReply t = (RemoteParcelRequestReply)formatter.Deserialize(stream);
 
-                Assert.AreEqual(s.ParcelID, t.ParcelID);
+                ClassicAssert.AreEqual(s.ParcelID, t.ParcelID);
             }
             TimeSpan durationxml = DateTime.UtcNow - xmlTestTime;
             Console.WriteLine("RemoteParcelRequestReply: .NET BinarySerialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, durationxml);
@@ -1243,18 +1244,18 @@ namespace LibreMetaverse.Tests
                 DirLandReplyMessage t = new DirLandReplyMessage();
 
                 t.Deserialize(map);
-                Assert.AreEqual(s.AgentID, t.AgentID);
-                Assert.AreEqual(s.QueryID, t.QueryID);
+                ClassicAssert.AreEqual(s.AgentID, t.AgentID);
+                ClassicAssert.AreEqual(s.QueryID, t.QueryID);
 
                 for (int i = 0; i < s.QueryReplies.Length; i++)
                 {
-                    Assert.AreEqual(s.QueryReplies[i].ActualArea, t.QueryReplies[i].ActualArea);
-                    Assert.AreEqual(s.QueryReplies[i].Auction, t.QueryReplies[i].Auction);
-                    Assert.AreEqual(s.QueryReplies[i].ForSale, t.QueryReplies[i].ForSale);
-                    Assert.AreEqual(s.QueryReplies[i].Name, t.QueryReplies[i].Name);
-                    Assert.AreEqual(s.QueryReplies[i].ProductSku, t.QueryReplies[i].ProductSku);
-                    Assert.AreEqual(s.QueryReplies[i].ParcelID, t.QueryReplies[i].ParcelID);
-                    Assert.AreEqual(s.QueryReplies[i].SalePrice, t.QueryReplies[i].SalePrice);
+                    ClassicAssert.AreEqual(s.QueryReplies[i].ActualArea, t.QueryReplies[i].ActualArea);
+                    ClassicAssert.AreEqual(s.QueryReplies[i].Auction, t.QueryReplies[i].Auction);
+                    ClassicAssert.AreEqual(s.QueryReplies[i].ForSale, t.QueryReplies[i].ForSale);
+                    ClassicAssert.AreEqual(s.QueryReplies[i].Name, t.QueryReplies[i].Name);
+                    ClassicAssert.AreEqual(s.QueryReplies[i].ProductSku, t.QueryReplies[i].ProductSku);
+                    ClassicAssert.AreEqual(s.QueryReplies[i].ParcelID, t.QueryReplies[i].ParcelID);
+                    ClassicAssert.AreEqual(s.QueryReplies[i].SalePrice, t.QueryReplies[i].SalePrice);
                 }
             }
             TimeSpan duration = DateTime.UtcNow - messageTestTime;
@@ -1298,18 +1299,18 @@ namespace LibreMetaverse.Tests
                 stream.Seek(0, SeekOrigin.Begin);
                 DirLandReplyMessage t = (DirLandReplyMessage)formatter.Deserialize(stream);
 
-                Assert.AreEqual(s.AgentID, t.AgentID);
-                Assert.AreEqual(s.QueryID, t.QueryID);
+                ClassicAssert.AreEqual(s.AgentID, t.AgentID);
+                ClassicAssert.AreEqual(s.QueryID, t.QueryID);
 
                 for (int i = 0; i < s.QueryReplies.Length; i++)
                 {
-                    Assert.AreEqual(s.QueryReplies[i].ActualArea, t.QueryReplies[i].ActualArea);
-                    Assert.AreEqual(s.QueryReplies[i].Auction, t.QueryReplies[i].Auction);
-                    Assert.AreEqual(s.QueryReplies[i].ForSale, t.QueryReplies[i].ForSale);
-                    Assert.AreEqual(s.QueryReplies[i].Name, t.QueryReplies[i].Name);
-                    Assert.AreEqual(s.QueryReplies[i].ProductSku, t.QueryReplies[i].ProductSku);
-                    Assert.AreEqual(s.QueryReplies[i].ParcelID, t.QueryReplies[i].ParcelID);
-                    Assert.AreEqual(s.QueryReplies[i].SalePrice, t.QueryReplies[i].SalePrice);
+                    ClassicAssert.AreEqual(s.QueryReplies[i].ActualArea, t.QueryReplies[i].ActualArea);
+                    ClassicAssert.AreEqual(s.QueryReplies[i].Auction, t.QueryReplies[i].Auction);
+                    ClassicAssert.AreEqual(s.QueryReplies[i].ForSale, t.QueryReplies[i].ForSale);
+                    ClassicAssert.AreEqual(s.QueryReplies[i].Name, t.QueryReplies[i].Name);
+                    ClassicAssert.AreEqual(s.QueryReplies[i].ProductSku, t.QueryReplies[i].ProductSku);
+                    ClassicAssert.AreEqual(s.QueryReplies[i].ParcelID, t.QueryReplies[i].ParcelID);
+                    ClassicAssert.AreEqual(s.QueryReplies[i].SalePrice, t.QueryReplies[i].SalePrice);
                 }
             }
             TimeSpan durationxml = DateTime.UtcNow - xmlTestTime;
@@ -1445,61 +1446,61 @@ namespace LibreMetaverse.Tests
 
                 t.Deserialize(map);
 
-                Assert.AreEqual(s.AABBMax, t.AABBMax);
-                Assert.AreEqual(s.AABBMin, t.AABBMin);
-                Assert.AreEqual(s.Area, t.Area);
-                Assert.AreEqual(s.AuctionID, t.AuctionID);
-                Assert.AreEqual(s.AuthBuyerID, t.AuthBuyerID);
-                Assert.AreEqual(s.Bitmap, t.Bitmap);
-                Assert.AreEqual(s.Category, t.Category);
-                Assert.AreEqual(s.ClaimDate, t.ClaimDate);
-                Assert.AreEqual(s.ClaimPrice, t.ClaimPrice);
-                Assert.AreEqual(s.Desc, t.Desc);
-                Assert.AreEqual(s.GroupID, t.GroupID);
-                Assert.AreEqual(s.GroupPrims, t.GroupPrims);
-                Assert.AreEqual(s.IsGroupOwned, t.IsGroupOwned);
-                Assert.AreEqual(s.LandingType, t.LandingType);
-                Assert.AreEqual(s.LocalID, t.LocalID);
-                Assert.AreEqual(s.MaxPrims, t.MaxPrims);
-                Assert.AreEqual(s.MediaAutoScale, t.MediaAutoScale);
-                Assert.AreEqual(s.MediaDesc, t.MediaDesc);
-                Assert.AreEqual(s.MediaHeight, t.MediaHeight);
-                Assert.AreEqual(s.MediaID, t.MediaID);
-                Assert.AreEqual(s.MediaLoop, t.MediaLoop);
-                Assert.AreEqual(s.MediaType, t.MediaType);
-                Assert.AreEqual(s.MediaURL, t.MediaURL);
-                Assert.AreEqual(s.MediaWidth, t.MediaWidth);
-                Assert.AreEqual(s.MusicURL, t.MusicURL);
-                Assert.AreEqual(s.Name, t.Name);
-                Assert.AreEqual(s.ObscureMedia, t.ObscureMedia);
-                Assert.AreEqual(s.ObscureMusic, t.ObscureMusic);
-                Assert.AreEqual(s.OtherCleanTime, t.OtherCleanTime);
-                Assert.AreEqual(s.OtherCount, t.OtherCount);
-                Assert.AreEqual(s.OtherPrims, t.OtherPrims);
-                Assert.AreEqual(s.OwnerID, t.OwnerID);
-                Assert.AreEqual(s.OwnerPrims, t.OwnerPrims);
-                Assert.AreEqual(s.ParcelFlags, t.ParcelFlags);
-                Assert.AreEqual(s.ParcelPrimBonus, t.ParcelPrimBonus);
-                Assert.AreEqual(s.PassHours, t.PassHours);
-                Assert.AreEqual(s.PassPrice, t.PassPrice);
-                Assert.AreEqual(s.PublicCount, t.PublicCount);
-                Assert.AreEqual(s.RegionDenyAgeUnverified, t.RegionDenyAgeUnverified);
-                Assert.AreEqual(s.RegionDenyAnonymous, t.RegionDenyAnonymous);
-                Assert.AreEqual(s.RegionPushOverride, t.RegionPushOverride);
-                Assert.AreEqual(s.RentPrice, t.RentPrice);
-                Assert.AreEqual(s.RequestResult, t.RequestResult);
-                Assert.AreEqual(s.SalePrice, t.SalePrice);
-                Assert.AreEqual(s.SelectedPrims, t.SelectedPrims);
-                Assert.AreEqual(s.SelfCount, t.SelfCount);
-                Assert.AreEqual(s.SequenceID, t.SequenceID);
-                Assert.AreEqual(s.SimWideMaxPrims, t.SimWideMaxPrims);
-                Assert.AreEqual(s.SimWideTotalPrims, t.SimWideTotalPrims);
-                Assert.AreEqual(s.SnapSelection, t.SnapSelection);
-                Assert.AreEqual(s.SnapshotID, t.SnapshotID);
-                Assert.AreEqual(s.Status, t.Status);
-                Assert.AreEqual(s.TotalPrims, t.TotalPrims);
-                Assert.AreEqual(s.UserLocation, t.UserLocation);
-                Assert.AreEqual(s.UserLookAt, t.UserLookAt);
+                ClassicAssert.AreEqual(s.AABBMax, t.AABBMax);
+                ClassicAssert.AreEqual(s.AABBMin, t.AABBMin);
+                ClassicAssert.AreEqual(s.Area, t.Area);
+                ClassicAssert.AreEqual(s.AuctionID, t.AuctionID);
+                ClassicAssert.AreEqual(s.AuthBuyerID, t.AuthBuyerID);
+                ClassicAssert.AreEqual(s.Bitmap, t.Bitmap);
+                ClassicAssert.AreEqual(s.Category, t.Category);
+                ClassicAssert.AreEqual(s.ClaimDate, t.ClaimDate);
+                ClassicAssert.AreEqual(s.ClaimPrice, t.ClaimPrice);
+                ClassicAssert.AreEqual(s.Desc, t.Desc);
+                ClassicAssert.AreEqual(s.GroupID, t.GroupID);
+                ClassicAssert.AreEqual(s.GroupPrims, t.GroupPrims);
+                ClassicAssert.AreEqual(s.IsGroupOwned, t.IsGroupOwned);
+                ClassicAssert.AreEqual(s.LandingType, t.LandingType);
+                ClassicAssert.AreEqual(s.LocalID, t.LocalID);
+                ClassicAssert.AreEqual(s.MaxPrims, t.MaxPrims);
+                ClassicAssert.AreEqual(s.MediaAutoScale, t.MediaAutoScale);
+                ClassicAssert.AreEqual(s.MediaDesc, t.MediaDesc);
+                ClassicAssert.AreEqual(s.MediaHeight, t.MediaHeight);
+                ClassicAssert.AreEqual(s.MediaID, t.MediaID);
+                ClassicAssert.AreEqual(s.MediaLoop, t.MediaLoop);
+                ClassicAssert.AreEqual(s.MediaType, t.MediaType);
+                ClassicAssert.AreEqual(s.MediaURL, t.MediaURL);
+                ClassicAssert.AreEqual(s.MediaWidth, t.MediaWidth);
+                ClassicAssert.AreEqual(s.MusicURL, t.MusicURL);
+                ClassicAssert.AreEqual(s.Name, t.Name);
+                ClassicAssert.AreEqual(s.ObscureMedia, t.ObscureMedia);
+                ClassicAssert.AreEqual(s.ObscureMusic, t.ObscureMusic);
+                ClassicAssert.AreEqual(s.OtherCleanTime, t.OtherCleanTime);
+                ClassicAssert.AreEqual(s.OtherCount, t.OtherCount);
+                ClassicAssert.AreEqual(s.OtherPrims, t.OtherPrims);
+                ClassicAssert.AreEqual(s.OwnerID, t.OwnerID);
+                ClassicAssert.AreEqual(s.OwnerPrims, t.OwnerPrims);
+                ClassicAssert.AreEqual(s.ParcelFlags, t.ParcelFlags);
+                ClassicAssert.AreEqual(s.ParcelPrimBonus, t.ParcelPrimBonus);
+                ClassicAssert.AreEqual(s.PassHours, t.PassHours);
+                ClassicAssert.AreEqual(s.PassPrice, t.PassPrice);
+                ClassicAssert.AreEqual(s.PublicCount, t.PublicCount);
+                ClassicAssert.AreEqual(s.RegionDenyAgeUnverified, t.RegionDenyAgeUnverified);
+                ClassicAssert.AreEqual(s.RegionDenyAnonymous, t.RegionDenyAnonymous);
+                ClassicAssert.AreEqual(s.RegionPushOverride, t.RegionPushOverride);
+                ClassicAssert.AreEqual(s.RentPrice, t.RentPrice);
+                ClassicAssert.AreEqual(s.RequestResult, t.RequestResult);
+                ClassicAssert.AreEqual(s.SalePrice, t.SalePrice);
+                ClassicAssert.AreEqual(s.SelectedPrims, t.SelectedPrims);
+                ClassicAssert.AreEqual(s.SelfCount, t.SelfCount);
+                ClassicAssert.AreEqual(s.SequenceID, t.SequenceID);
+                ClassicAssert.AreEqual(s.SimWideMaxPrims, t.SimWideMaxPrims);
+                ClassicAssert.AreEqual(s.SimWideTotalPrims, t.SimWideTotalPrims);
+                ClassicAssert.AreEqual(s.SnapSelection, t.SnapSelection);
+                ClassicAssert.AreEqual(s.SnapshotID, t.SnapshotID);
+                ClassicAssert.AreEqual(s.Status, t.Status);
+                ClassicAssert.AreEqual(s.TotalPrims, t.TotalPrims);
+                ClassicAssert.AreEqual(s.UserLocation, t.UserLocation);
+                ClassicAssert.AreEqual(s.UserLookAt, t.UserLookAt);
             }
             TimeSpan duration = DateTime.UtcNow - messageTestTime;
             Console.WriteLine("ParcelPropertiesMessage: OMV Message System Serialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, duration);
@@ -1575,61 +1576,61 @@ namespace LibreMetaverse.Tests
 
                 ParcelPropertiesMessage t = (ParcelPropertiesMessage)formatter.Deserialize(stream);
 
-                Assert.AreEqual(s.AABBMax, t.AABBMax);
-                Assert.AreEqual(s.AABBMin, t.AABBMin);
-                Assert.AreEqual(s.Area, t.Area);
-                Assert.AreEqual(s.AuctionID, t.AuctionID);
-                Assert.AreEqual(s.AuthBuyerID, t.AuthBuyerID);
-                Assert.AreEqual(s.Bitmap, t.Bitmap);
-                Assert.AreEqual(s.Category, t.Category);
-                Assert.AreEqual(s.ClaimDate, t.ClaimDate);
-                Assert.AreEqual(s.ClaimPrice, t.ClaimPrice);
-                Assert.AreEqual(s.Desc, t.Desc);
-                Assert.AreEqual(s.GroupID, t.GroupID);
-                Assert.AreEqual(s.GroupPrims, t.GroupPrims);
-                Assert.AreEqual(s.IsGroupOwned, t.IsGroupOwned);
-                Assert.AreEqual(s.LandingType, t.LandingType);
-                Assert.AreEqual(s.LocalID, t.LocalID);
-                Assert.AreEqual(s.MaxPrims, t.MaxPrims);
-                Assert.AreEqual(s.MediaAutoScale, t.MediaAutoScale);
-                Assert.AreEqual(s.MediaDesc, t.MediaDesc);
-                Assert.AreEqual(s.MediaHeight, t.MediaHeight);
-                Assert.AreEqual(s.MediaID, t.MediaID);
-                Assert.AreEqual(s.MediaLoop, t.MediaLoop);
-                Assert.AreEqual(s.MediaType, t.MediaType);
-                Assert.AreEqual(s.MediaURL, t.MediaURL);
-                Assert.AreEqual(s.MediaWidth, t.MediaWidth);
-                Assert.AreEqual(s.MusicURL, t.MusicURL);
-                Assert.AreEqual(s.Name, t.Name);
-                Assert.AreEqual(s.ObscureMedia, t.ObscureMedia);
-                Assert.AreEqual(s.ObscureMusic, t.ObscureMusic);
-                Assert.AreEqual(s.OtherCleanTime, t.OtherCleanTime);
-                Assert.AreEqual(s.OtherCount, t.OtherCount);
-                Assert.AreEqual(s.OtherPrims, t.OtherPrims);
-                Assert.AreEqual(s.OwnerID, t.OwnerID);
-                Assert.AreEqual(s.OwnerPrims, t.OwnerPrims);
-                Assert.AreEqual(s.ParcelFlags, t.ParcelFlags);
-                Assert.AreEqual(s.ParcelPrimBonus, t.ParcelPrimBonus);
-                Assert.AreEqual(s.PassHours, t.PassHours);
-                Assert.AreEqual(s.PassPrice, t.PassPrice);
-                Assert.AreEqual(s.PublicCount, t.PublicCount);
-                Assert.AreEqual(s.RegionDenyAgeUnverified, t.RegionDenyAgeUnverified);
-                Assert.AreEqual(s.RegionDenyAnonymous, t.RegionDenyAnonymous);
-                Assert.AreEqual(s.RegionPushOverride, t.RegionPushOverride);
-                Assert.AreEqual(s.RentPrice, t.RentPrice);
-                Assert.AreEqual(s.RequestResult, t.RequestResult);
-                Assert.AreEqual(s.SalePrice, t.SalePrice);
-                Assert.AreEqual(s.SelectedPrims, t.SelectedPrims);
-                Assert.AreEqual(s.SelfCount, t.SelfCount);
-                Assert.AreEqual(s.SequenceID, t.SequenceID);
-                Assert.AreEqual(s.SimWideMaxPrims, t.SimWideMaxPrims);
-                Assert.AreEqual(s.SimWideTotalPrims, t.SimWideTotalPrims);
-                Assert.AreEqual(s.SnapSelection, t.SnapSelection);
-                Assert.AreEqual(s.SnapshotID, t.SnapshotID);
-                Assert.AreEqual(s.Status, t.Status);
-                Assert.AreEqual(s.TotalPrims, t.TotalPrims);
-                Assert.AreEqual(s.UserLocation, t.UserLocation);
-                Assert.AreEqual(s.UserLookAt, t.UserLookAt);
+                ClassicAssert.AreEqual(s.AABBMax, t.AABBMax);
+                ClassicAssert.AreEqual(s.AABBMin, t.AABBMin);
+                ClassicAssert.AreEqual(s.Area, t.Area);
+                ClassicAssert.AreEqual(s.AuctionID, t.AuctionID);
+                ClassicAssert.AreEqual(s.AuthBuyerID, t.AuthBuyerID);
+                ClassicAssert.AreEqual(s.Bitmap, t.Bitmap);
+                ClassicAssert.AreEqual(s.Category, t.Category);
+                ClassicAssert.AreEqual(s.ClaimDate, t.ClaimDate);
+                ClassicAssert.AreEqual(s.ClaimPrice, t.ClaimPrice);
+                ClassicAssert.AreEqual(s.Desc, t.Desc);
+                ClassicAssert.AreEqual(s.GroupID, t.GroupID);
+                ClassicAssert.AreEqual(s.GroupPrims, t.GroupPrims);
+                ClassicAssert.AreEqual(s.IsGroupOwned, t.IsGroupOwned);
+                ClassicAssert.AreEqual(s.LandingType, t.LandingType);
+                ClassicAssert.AreEqual(s.LocalID, t.LocalID);
+                ClassicAssert.AreEqual(s.MaxPrims, t.MaxPrims);
+                ClassicAssert.AreEqual(s.MediaAutoScale, t.MediaAutoScale);
+                ClassicAssert.AreEqual(s.MediaDesc, t.MediaDesc);
+                ClassicAssert.AreEqual(s.MediaHeight, t.MediaHeight);
+                ClassicAssert.AreEqual(s.MediaID, t.MediaID);
+                ClassicAssert.AreEqual(s.MediaLoop, t.MediaLoop);
+                ClassicAssert.AreEqual(s.MediaType, t.MediaType);
+                ClassicAssert.AreEqual(s.MediaURL, t.MediaURL);
+                ClassicAssert.AreEqual(s.MediaWidth, t.MediaWidth);
+                ClassicAssert.AreEqual(s.MusicURL, t.MusicURL);
+                ClassicAssert.AreEqual(s.Name, t.Name);
+                ClassicAssert.AreEqual(s.ObscureMedia, t.ObscureMedia);
+                ClassicAssert.AreEqual(s.ObscureMusic, t.ObscureMusic);
+                ClassicAssert.AreEqual(s.OtherCleanTime, t.OtherCleanTime);
+                ClassicAssert.AreEqual(s.OtherCount, t.OtherCount);
+                ClassicAssert.AreEqual(s.OtherPrims, t.OtherPrims);
+                ClassicAssert.AreEqual(s.OwnerID, t.OwnerID);
+                ClassicAssert.AreEqual(s.OwnerPrims, t.OwnerPrims);
+                ClassicAssert.AreEqual(s.ParcelFlags, t.ParcelFlags);
+                ClassicAssert.AreEqual(s.ParcelPrimBonus, t.ParcelPrimBonus);
+                ClassicAssert.AreEqual(s.PassHours, t.PassHours);
+                ClassicAssert.AreEqual(s.PassPrice, t.PassPrice);
+                ClassicAssert.AreEqual(s.PublicCount, t.PublicCount);
+                ClassicAssert.AreEqual(s.RegionDenyAgeUnverified, t.RegionDenyAgeUnverified);
+                ClassicAssert.AreEqual(s.RegionDenyAnonymous, t.RegionDenyAnonymous);
+                ClassicAssert.AreEqual(s.RegionPushOverride, t.RegionPushOverride);
+                ClassicAssert.AreEqual(s.RentPrice, t.RentPrice);
+                ClassicAssert.AreEqual(s.RequestResult, t.RequestResult);
+                ClassicAssert.AreEqual(s.SalePrice, t.SalePrice);
+                ClassicAssert.AreEqual(s.SelectedPrims, t.SelectedPrims);
+                ClassicAssert.AreEqual(s.SelfCount, t.SelfCount);
+                ClassicAssert.AreEqual(s.SequenceID, t.SequenceID);
+                ClassicAssert.AreEqual(s.SimWideMaxPrims, t.SimWideMaxPrims);
+                ClassicAssert.AreEqual(s.SimWideTotalPrims, t.SimWideTotalPrims);
+                ClassicAssert.AreEqual(s.SnapSelection, t.SnapSelection);
+                ClassicAssert.AreEqual(s.SnapshotID, t.SnapshotID);
+                ClassicAssert.AreEqual(s.Status, t.Status);
+                ClassicAssert.AreEqual(s.TotalPrims, t.TotalPrims);
+                ClassicAssert.AreEqual(s.UserLocation, t.UserLocation);
+                ClassicAssert.AreEqual(s.UserLookAt, t.UserLookAt);
             }
             TimeSpan durationxml = DateTime.UtcNow - xmlTestTime;
             Console.WriteLine("ParcelPropertiesMessage: .NET BinarySerialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, durationxml);

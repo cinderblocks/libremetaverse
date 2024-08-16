@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -31,13 +31,12 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.IO;
 using System.Xml;
-using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Xml.Serialization;
+using CSJ2K;
 using OpenMetaverse.ImportExport.Collada14;
 using OpenMetaverse.Rendering;
-using OpenMetaverse.Imaging;
+using SkiaSharp;
 
 namespace OpenMetaverse.ImportExport
 {
@@ -120,7 +119,7 @@ namespace OpenMetaverse.ImportExport
             {
                 string ext = System.IO.Path.GetExtension(material.Texture).ToLower();
 
-                Bitmap bitmap = null;
+                SKBitmap bitmap;
 
                 switch (ext)
                 {
@@ -129,10 +128,12 @@ namespace OpenMetaverse.ImportExport
                         material.TextureData = File.ReadAllBytes(fname);
                         return;
                     case ".tga":
-                        bitmap = LoadTGAClass.LoadTGA(fname);
+                    case ".targa":
+                        bitmap = Imaging.Targa.Decode(fname);
                         break;
                     default:
-                        bitmap = (Bitmap)Image.FromFile(fname);
+                        var img = SKImage.FromEncodedData(fname);
+                        bitmap = SKBitmap.FromImage(img);
                         break;
                 }
 
@@ -153,28 +154,20 @@ namespace OpenMetaverse.ImportExport
 
                     Logger.Log("Image has irregular dimensions " + origWidth + "x" + origHieght + ". Resizing to " + width + "x" + height, Helpers.LogLevel.Info);
 
-                    Bitmap resized = new Bitmap(width, height, bitmap.PixelFormat);
-                    Graphics graphics = Graphics.FromImage(resized);
-
-                    graphics.SmoothingMode = SmoothingMode.HighQuality;
-                    graphics.InterpolationMode =
-                       InterpolationMode.HighQualityBicubic;
-                    graphics.DrawImage(bitmap, 0, 0, width, height);
-
+                    var info = new SKImageInfo(width, height);
+                    var scaledImage = new SKBitmap(info);
+                    bitmap.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
                     bitmap.Dispose();
-                    bitmap = resized;
+                    bitmap = scaledImage;
                 }
 
-                using (var writer = new OpenJpegDotNet.IO.Writer(bitmap))
-                {
-                    material.TextureData = writer.Encode();
-                }
+                material.TextureData = J2kImage.ToBytes(J2kImage.CreateEncodableSource(bitmap));
 
                 Logger.Log("Successfully encoded " + fname, Helpers.LogLevel.Info);
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed loading " + fname + ": " + ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log($"Failed loading {fname}: {ex.Message}", Helpers.LogLevel.Warning);
             }
 
         }
@@ -709,7 +702,7 @@ namespace OpenMetaverse.ImportExport
                 p = triangles.p
             };
 
-            string str = "3 ";
+            const string str = "3 ";
             System.Text.StringBuilder builder = new System.Text.StringBuilder(str.Length * (int)poly.count);
             for (int i = 0; i < (int)poly.count; i++) builder.Append(str);
             poly.vcount = builder.ToString();

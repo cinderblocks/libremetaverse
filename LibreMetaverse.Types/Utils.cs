@@ -181,7 +181,7 @@ namespace OpenMetaverse
         /// </summary>
         public static bool IsFinite(float value)
         {
-            return !(Single.IsNaN(value) || Single.IsInfinity(value));
+            return !(float.IsNaN(value) || float.IsInfinity(value));
         }
 
         /// <summary>
@@ -189,7 +189,7 @@ namespace OpenMetaverse
         /// </summary>
         public static bool IsFinite(double value)
         {
-            return !(Double.IsNaN(value) || Double.IsInfinity(value));
+            return !(double.IsNaN(value) || double.IsInfinity(value));
         }
 
         /// <summary>
@@ -366,7 +366,7 @@ namespace OpenMetaverse
         public static string MD5(string str)
         {
             StringBuilder digest = new StringBuilder(32);
-            byte[] hash = MD5(Encoding.Default.GetBytes(str));
+            byte[] hash = MD5(Encoding.UTF8.GetBytes(str));
 
             // Convert the hash to a hex string
             foreach (byte b in hash)

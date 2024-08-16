@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2019-2022, Sjofn LLC
+ * Copyright (c) 2019-2024, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -42,7 +42,7 @@ namespace LibreMetaverse.Tests
             string test = "Your squirrel, your imagination";
             byte[] bytes = Utils.StringToBytes(test);
             string decoded = Utils.BytesToString(bytes);
-            Assert.AreEqual(test, decoded);
+            Assert.That(decoded, Is.EqualTo(test));
         }
     }
 }

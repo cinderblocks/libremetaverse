@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2019-2022, Sjofn LLC.
+ * Copyright (c) 2019-2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -296,8 +296,7 @@ namespace OpenMetaverse.Http
                             }
 
                             // Fire the download progress callback for each chunk of received data
-                            if (state.DownloadProgressCallback != null)
-                                state.DownloadProgressCallback(state.Request, response, totalBytesRead, totalSize);
+                            state.DownloadProgressCallback?.Invoke(state.Request, response, totalBytesRead, totalSize);
                         }
 
                         if (nolength)

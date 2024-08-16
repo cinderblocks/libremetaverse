@@ -102,7 +102,7 @@ namespace OpenMetaverse.Assets
             }
 
             if (failedAssetRestores > 0)
-                Logger.Log(String.Format("[OarFile]: Failed to load {0} assets", failedAssetRestores), Helpers.LogLevel.Warning);
+                Logger.Log($"[OarFile]: Failed to load {failedAssetRestores} assets", Helpers.LogLevel.Warning);
         }
 
         private static bool LoadAsset(string assetPath, byte[] data, AssetLoadedCallback assetCallback, long bytesRead, long totalBytes)
@@ -206,6 +206,7 @@ namespace OpenMetaverse.Assets
 
         private static bool LoadTerrain(string filePath, byte[] data, TerrainLoadedCallback terrainCallback, long bytesRead, long totalBytes)
         {
+            // TODO: This needs to be re-written to read data from a saved varregion (sizeX != 256)
             float[,] terrain = new float[256, 256];
             bool loaded = false;
 
@@ -350,10 +351,10 @@ namespace OpenMetaverse.Assets
             BinaryWriter bs = new BinaryWriter(s);
             
             int y;
-            for (y = 0; y < 256; y++)
+            for (y = 0; y < sim.SizeY; y++)
             {
                 int x;
-                for (x = 0; x < 256; x++)
+                for (x = 0; x < sim.SizeX; x++)
                 {
                     float height;
                     sim.TerrainHeightAtPoint(x, y, out height);
@@ -371,7 +372,7 @@ namespace OpenMetaverse.Assets
             Thread.Sleep(100);
             Directory.CreateDirectory(parcelPath);
             Thread.Sleep(100);
-            sim.Parcels.ForEach((Parcel parcel) =>
+            sim.Parcels.ForEach(parcel =>
                 {
                     UUID globalID = UUID.Random();
                     SerializeParcel(parcel, globalID, Path.Combine(parcelPath, globalID + ".xml"));
@@ -675,9 +676,9 @@ namespace OpenMetaverse.Assets
 
         public static void SOGToXml2(XmlTextWriter writer, AssetPrim prim)
         {
-            writer.WriteStartElement(String.Empty, "SceneObjectGroup", String.Empty);
+            writer.WriteStartElement(string.Empty, "SceneObjectGroup", string.Empty);
             SOPToXml(writer, prim.Parent, null);
-            writer.WriteStartElement(String.Empty, "OtherParts", String.Empty);
+            writer.WriteStartElement(string.Empty, "OtherParts", string.Empty);
 
             foreach (PrimObject child in prim.Children)
                 SOPToXml(writer, child, prim.Parent);

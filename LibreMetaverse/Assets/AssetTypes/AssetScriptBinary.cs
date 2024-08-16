@@ -33,7 +33,7 @@ namespace OpenMetaverse.Assets
     public class AssetScriptBinary : Asset
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.LSLBytecode; } }
+        public override AssetType AssetType => AssetType.LSLBytecode;
 
         /// <summary>Initializes a new instance of an AssetScriptBinary object</summary>
         public AssetScriptBinary() { }
@@ -49,12 +49,12 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// TODO: Encodes a scripts contents into a LSO Bytecode file
         /// </summary>
-        public override void Encode() { }
+        public sealed override void Encode() { }
 
         /// <summary>
         /// TODO: Decode LSO Bytecode into a string
         /// </summary>
         /// <returns>true</returns>
-        public override bool Decode() { return true; }
+        public sealed override bool Decode() { return true; }
     }
 }

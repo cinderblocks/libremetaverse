@@ -42,15 +42,13 @@ namespace PacketDump
 		[STAThread]
 		static void Main(string[] args)
 		{
-			GridClient client;
-
-			if (args.Length != 4)
+            if (args.Length != 4)
 			{
 				Console.WriteLine("Usage: PacketDump [firstname] [lastname] [password] [seconds (0 for infinite)]");
 				return;
 			}
 
-            client = new GridClient();
+            var client = new GridClient();
             // Turn off some unnecessary things
             client.Settings.MULTIPLE_SIMS = false;
             // Throttle packets that we don't want all the way down
@@ -78,7 +76,7 @@ namespace PacketDump
 
                     // Determine how long to run for
                     int start = Environment.TickCount;
-                    int milliseconds = Int32.Parse(args[3]) * 1000;
+                    int milliseconds = int.Parse(args[3]) * 1000;
                     bool forever = (milliseconds <= 0);
 
                     // Packet handling is done with asynchronous callbacks. Run a sleeping loop in the main
@@ -107,7 +105,7 @@ namespace PacketDump
 
         static void LoginHandler(object sender, LoginProgressEventArgs e)
         {
-            Logger.Log(String.Format("Login: {0} ({1})", e.Status, e.Message), Helpers.LogLevel.Info);
+            Logger.Log($"Login: {e.Status} ({e.Message})", Helpers.LogLevel.Info);
 
             switch (e.Status)
             {

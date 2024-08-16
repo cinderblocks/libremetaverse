@@ -36,20 +36,20 @@ namespace LibreMetaverse.Voice
     {
         private string AvatarName { get; set; }
 
-        private bool muted;
-        private int volume;
-        private readonly VoiceSession session;
+        private bool _muted;
+        private int _volume;
+        private readonly VoiceSession _session;
 
         public float Energy { get; private set; }
         public bool IsSpeaking { get; private set; }
-        public string URI { get; }
+        private string Uri { get; }
         public UUID ID { get; }
 
         public VoiceParticipant(string puri, VoiceSession s)
         {
             ID = IDFromName(puri);
-            URI = puri;
-            session = s;
+            Uri = puri;
+            _session = s;
         }
 
         /// <summary>
@@ -101,13 +101,11 @@ namespace LibreMetaverse.Voice
         {
             Regex sip = new Regex("^sip:([^@]*)@.*$");
             Match m = sip.Match(uri);
-            if (m.Success)
-            {
-                GroupCollection g = m.Groups;
-                return g[1].Value;
-            }
+            if (!m.Success) { return null; }
+            
+            GroupCollection g = m.Groups;
+            return g[1].Value;
 
-            return null;
         }
 
         public string Name
@@ -118,36 +116,36 @@ namespace LibreMetaverse.Voice
 
         public bool IsMuted
         {
-            get => muted;
+            get => _muted;
             set
             {
-                muted = value;
+                _muted = value;
                 StringBuilder sb = new StringBuilder();
-                sb.Append(VoiceGateway.MakeXML("SessionHandle", session.Handle));
-                sb.Append(VoiceGateway.MakeXML("ParticipantURI", URI));
-                sb.Append(VoiceGateway.MakeXML("Mute", muted ? "1" : "0"));
-                session.Connector.Request("Session.SetParticipantMuteForMe.1", sb.ToString());
+                sb.Append(VoiceGateway.MakeXML("SessionHandle", _session.Handle));
+                sb.Append(VoiceGateway.MakeXML("ParticipantURI", Uri));
+                sb.Append(VoiceGateway.MakeXML("Mute", _muted ? "1" : "0"));
+                _session.Connector.Request("Session.SetParticipantMuteForMe.1", sb.ToString());
             }
         }
 
         public int Volume
         {
-            get => volume;
+            get => _volume;
             set
             {
-                volume = value;
+                _volume = value;
                 StringBuilder sb = new StringBuilder();
-                sb.Append(VoiceGateway.MakeXML("SessionHandle", session.Handle));
-                sb.Append(VoiceGateway.MakeXML("ParticipantURI", URI));
-                sb.Append(VoiceGateway.MakeXML("Volume", volume.ToString()));
-                session.Connector.Request("Session.SetParticipantVolumeForMe.1", sb.ToString());
+                sb.Append(VoiceGateway.MakeXML("SessionHandle", _session.Handle));
+                sb.Append(VoiceGateway.MakeXML("ParticipantURI", Uri));
+                sb.Append(VoiceGateway.MakeXML("Volume", _volume.ToString()));
+                _session.Connector.Request("Session.SetParticipantVolumeForMe.1", sb.ToString());
             }
         }
 
         internal void SetProperties(bool speak, bool mute, float en)
         {
             IsSpeaking = speak;
-            muted = mute;
+            _muted = mute;
             Energy = en;
         }
     }

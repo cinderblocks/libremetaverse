@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2019-2022, Sjofn LLC
+ * Copyright (c) 2019-2024, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -162,7 +162,7 @@ namespace LibreMetaverse.LslTools
         {
             if (s == null)
                 return (object)"";
-            Encoding encoding = (Encoding)new UnicodeEncoding();
+            var encoding = new UnicodeEncoding();
             if (s.Encode)
             {
                 byte[] bytes = encoding.GetBytes((string)o);
@@ -206,7 +206,7 @@ namespace LibreMetaverse.LslTools
 
         private static object CharSerialise(object o, Serialiser s)
         {
-            Encoding encoding = (Encoding)new UnicodeEncoding();
+            var encoding = new UnicodeEncoding();
             if (s.Encode)
             {
                 byte[] bytes = encoding.GetBytes(new string((char)o, 1));

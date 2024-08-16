@@ -171,7 +171,7 @@ namespace OpenMetaverse
             public int ConnectTime;
             /// <summary>Total number of packets that have been resent</summary>
             public int ResentPackets;
-            /// <summary>Total number of resent packets recieved</summary>
+            /// <summary>Total number of resent packets received</summary>
             public int ReceivedResends;
             /// <summary>Total number of pings sent to this simulator by this agent</summary>
             public int SentPings;
@@ -180,7 +180,7 @@ namespace OpenMetaverse
             /// <summary>
             /// Incoming bytes per second
             /// </summary>
-            /// <remarks>It would be nice to have this claculated on the fly, but
+            /// <remarks>It would be nice to have this calculated on the fly, but
             /// this is far, far easier</remarks>
             public int IncomingBPS;
             /// <summary>
@@ -252,6 +252,11 @@ namespace OpenMetaverse
         #endregion Structs
 
         #region Public Members        
+
+        // Default legacy simulator/region size
+        public const uint DefaultRegionSizeX = 256;
+        public const uint DefaultRegionSizeY = 256;
+
         /// <summary>A public reference to the client that this Simulator object is attached to</summary>
         public GridClient Client;
         /// <summary>A Unique Cache identifier for this simulator</summary>
@@ -260,10 +265,14 @@ namespace OpenMetaverse
         public Caps Caps;
         /// <summary>Unique identified for this region generated via it's coordinates on the world map</summary>
         public ulong Handle;
+        /// <summary>Simulator land size in X direction in meters</summary>
+        public uint SizeX;
+        /// <summary>Simulator land size in Y direction in meters</summary>
+        public uint SizeY;
         /// <summary>The current version of software this simulator is running</summary>
-        public string SimVersion = String.Empty;
+        public string SimVersion = string.Empty;
         /// <summary>Human readable name given to the simulator</summary>
-        public string Name = String.Empty;
+        public string Name = string.Empty;
         /// <summary>A 64x64 grid of parcel coloring values. The values stored 
         /// in this array are of the <seealso cref="ParcelArrayType"/> type</summary>
         public byte[] ParcelOverlay = new byte[4096];
@@ -503,10 +512,7 @@ namespace OpenMetaverse
         public readonly SimulatorDataPool DataPool;
         internal bool DownloadingParcelMap
         {
-            get
-            {
-                return Client.Settings.POOL_PARCEL_DATA ? DataPool.DownloadingParcelMap : _DownloadingParcelMap;
-            }
+            get => Client.Settings.POOL_PARCEL_DATA ? DataPool.DownloadingParcelMap : _DownloadingParcelMap;
             set
             {
                 if (Client.Settings.POOL_PARCEL_DATA) DataPool.DownloadingParcelMap = value;
@@ -556,7 +562,9 @@ namespace OpenMetaverse
         /// <param name="client">Reference to the <seealso cref="GridClient"/> object</param>
         /// <param name="address">IPEndPoint of the simulator</param>
         /// <param name="handle">Region handle for the simulator</param>
-        public Simulator(GridClient client, IPEndPoint address, ulong handle)
+        /// <param name="sizeX">Region size X</param>
+        /// <param name="sizeY">Region size Y</param>
+        public Simulator(GridClient client, IPEndPoint address, ulong handle, uint sizeX = DefaultRegionSizeX, uint sizeY = DefaultRegionSizeY)
             : base(address)
         {
             Client = client;            
@@ -568,14 +576,16 @@ namespace OpenMetaverse
 
             Handle = handle;
             Network = Client.Network;
+            SizeX = sizeX;
+            SizeY = sizeY;
             PacketArchive = new IncomingPacketIDCollection(Settings.PACKET_ARCHIVE_SIZE);
             InBytes = new Queue<long>(Client.Settings.STATS_QUEUE_SIZE);
             OutBytes = new Queue<long>(Client.Settings.STATS_QUEUE_SIZE);
 
             if (client.Settings.STORE_LAND_PATCHES)
             {
-                Terrain = new TerrainPatch[16 * 16];
-                WindSpeeds = new Vector2[16 * 16];
+                Terrain = new TerrainPatch[sizeX/16 * sizeY/16];
+                WindSpeeds = new Vector2[sizeX/16 * sizeY/16];
             }
         }
 
@@ -717,7 +727,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Initiates connection to the simulator
         /// </summary>
-        /// <param name="waitForAck">Should we block until ack for this packet is recieved</param>
+        /// <param name="waitForAck">Should we block until ack for this packet is received</param>
         public void UseCircuitCode(bool waitForAck)
         {
             // Send the UseCircuitCode packet to initiate the connection
@@ -759,17 +769,14 @@ namespace OpenMetaverse
                 Caps = null;
             }
 
-            if (Client.Settings.ENABLE_CAPS)
+            // Connect to the CAPS system
+            if (seedcaps != null)
             {
-                // Connect to the new CAPS system
-                if (seedcaps != null)
-                {
-                    Caps = new Caps(this, seedcaps);
-                }
-                else
-                {
-                    Logger.Log("Setting up a sim without a valid capabilities server!", Helpers.LogLevel.Error, Client);
-                }
+                Caps = new Caps(this, seedcaps);
+            }
+            else
+            {
+                Logger.Log("Setting up a sim without valid http capabilities", Helpers.LogLevel.Error, Client);
             }
         }
 
@@ -778,6 +785,8 @@ namespace OpenMetaverse
         /// </summary>
         public void Disconnect(bool sendCloseCircuit)
         {
+            DisconnectCandidate = false;
+
             if (!connected) return;
 
             connected = false;
@@ -866,7 +875,7 @@ namespace OpenMetaverse
         /// <returns>True if the lookup was successful, otherwise false</returns>
         public bool TerrainHeightAtPoint(int x, int y, out float height)
         {
-            if (Terrain != null && x >= 0 && x < 256 && y >= 0 && y < 256)
+            if (Terrain != null && x >= 0 && x < SizeX && y >= 0 && y < SizeY)
             {
                 int patchX = x / 16;
                 int patchY = y / 16;
@@ -1073,10 +1082,10 @@ namespace OpenMetaverse
         /// <summary>
         /// Returns Simulator Name as a String
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Simulator name as String</returns>
         public override string ToString()
         {
-            return !String.IsNullOrEmpty(Name)
+            return !string.IsNullOrEmpty(Name)
                 ? $"{Name} ({remoteEndPoint})"
                 : $"({remoteEndPoint})";
         }
@@ -1130,8 +1139,8 @@ namespace OpenMetaverse
             // Check if this packet came from the server we expected it to come from
             if (!remoteEndPoint.Address.Equals(((IPEndPoint)buffer.RemoteEndPoint).Address))
             {
-                Logger.Log("Received " + buffer.DataLength + " bytes of data from unrecognized source " +
-                    ((IPEndPoint)buffer.RemoteEndPoint), Helpers.LogLevel.Warning, Client);
+                Logger.Log($"Received {buffer.DataLength} bytes of data from unrecognized source {(IPEndPoint)buffer.RemoteEndPoint}",
+                    Helpers.LogLevel.Warning, Client);
                 return;
             }
 
@@ -1150,8 +1159,8 @@ namespace OpenMetaverse
             }
             catch (MalformedDataException)
             {
-                Logger.Log(String.Format("Malformed data, cannot parse packet:\n{0}",
-                    Utils.BytesToHexString(buffer.Data, buffer.DataLength, null)), Helpers.LogLevel.Error);
+                Logger.Log(
+                    $"Malformed data, cannot parse packet:\n{Utils.BytesToHexString(buffer.Data, buffer.DataLength, null)}", Helpers.LogLevel.Error);
             }
 
             // Fail-safe check
@@ -1272,7 +1281,7 @@ namespace OpenMetaverse
 
         
         /// <summary>
-        /// Sends out pending acknowledgements
+        /// Sends out pending acknowledgments
         /// </summary>
         /// <returns>Number of ACKs sent</returns>
         private int SendAcks()
@@ -1331,7 +1340,7 @@ namespace OpenMetaverse
                 {
                     if (Client.Settings.LOG_RESENDS)
                     {
-                        Logger.DebugLog(String.Format("Resending {2} packet #{0}, {1}ms have passed",
+                        Logger.DebugLog(string.Format("Resending {2} packet #{0}, {1}ms have passed",
                             outgoing.SequenceNumber, now - outgoing.TickCount, outgoing.Type), Client);
                     }
 
@@ -1350,7 +1359,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    Logger.DebugLog(String.Format("Dropping packet #{0} after {1} failed attempts",
+                    Logger.DebugLog(string.Format("Dropping packet #{0} after {1} failed attempts",
                         outgoing.SequenceNumber, outgoing.ResendCount));
 
                     lock (NeedAck) NeedAck.Remove(outgoing.SequenceNumber);

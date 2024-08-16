@@ -66,15 +66,16 @@ namespace LibreMetaverse.Tests
             Console.Write($"Logging in {fullusername}...");
             // Connect to the grid
             string startLoc = NetworkManager.StartLocation("Hooper", 179, 18, 32);
-            Assert.IsTrue(Client.Network.Login(username[0], username[1], password, "Unit Test Framework", startLoc,
-                "contact@radegast.life"), "Client failed to login, reason: " + Client.Network.LoginMessage);
+            Assert.That(Client.Network.Login(username[0], username[1], password, "Unit Test Framework", 
+                    startLoc, "contact@radegast.life"), Is.True,
+                "Client failed to login, reason: " + Client.Network.LoginMessage);
             Console.WriteLine("Done");
 
-            Assert.IsTrue(Client.Network.Connected, "Client is not connected to the grid");
+            Assert.That(Client.Network.Connected, Is.True, "Client is not connected to the grid");
 
             //int start = Environment.TickCount;
 
-            Assert.AreEqual("hooper", Client.Network.CurrentSim.Name.ToLower(),
+            Assert.That(Client.Network.CurrentSim.Name, Is.EqualTo("hooper").IgnoreCase,
                 $"Logged in to region {Client.Network.CurrentSim.Name} instead of Hooper");
         }
 
@@ -144,7 +145,8 @@ namespace LibreMetaverse.Tests
         [Test]
         public void CapsQueue()
         {
-            Assert.IsTrue(CapsQueueRunning(), "CAPS Event Queue is not running and failed to start");
+            Assert.That(CapsQueueRunning(), Is.True, 
+                "CAPS Event Queue is not running and failed to start");
         }
 
         public bool CapsQueueRunning()

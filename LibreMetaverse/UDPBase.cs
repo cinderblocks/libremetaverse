@@ -119,7 +119,7 @@ namespace OpenMetaverse
 
             // kick off an async receive.  The Start() method will return, the
             // actual receives will occur asynchronously and will be caught in
-            // AsyncEndRecieve().
+            // AsyncEndReceive().
             AsyncBeginReceive();
         }
 

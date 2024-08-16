@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-		<TargetFrameworks>net48;netstandard2.1;net6.0;net7.0</TargetFrameworks>
+		<TargetFrameworks>net481;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
 		<AssemblyName>LibreMetaverse.LslTools</AssemblyName>
 	    <PackageId>LibreMetaverse.LslTools</PackageId>
 	    <Description>Lexer for LSL scrripting language</Description>
@@ -8,8 +8,8 @@
 	    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	    <IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-	    <NoWarn>0419,1574,1591,0618</NoWarn>
-        <Platforms>x64;x86;AnyCPU</Platforms>
+		<NoWarn>$(NoWarn);SYSLIB0001;CS1591;CS1574</NoWarn>
+        <PlatformTarget>AnyCPU</PlatformTarget>
 	    <OutputPath>..\bin\</OutputPath>
     </PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">

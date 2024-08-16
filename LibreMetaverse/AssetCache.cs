@@ -266,10 +266,7 @@ namespace OpenMetaverse
 
             string fileName = FileName(assetID);
 
-            if (File.Exists(fileName))
-                return fileName;
-            else
-                return null;
+            return File.Exists(fileName) ? fileName : null;
         }
 
         /// <summary>
@@ -364,7 +361,7 @@ namespace OpenMetaverse
             if (!cleanerEvent.IsSet)
             {
                 cleanerEvent.Set();
-                ThreadPool.QueueUserWorkItem((_) => Prune());
+                ThreadPool.QueueUserWorkItem(_ => Prune());
             }
         }
 
@@ -406,11 +403,11 @@ namespace OpenMetaverse
         {
             string size = "0 Bytes";
             if (byteCount >= 1073741824)
-                size = String.Format("{0:##.##}", byteCount / 1073741824) + " GB";
+                size = $"{byteCount / 1073741824:##.##}" + " GB";
             else if (byteCount >= 1048576)
-                size = String.Format("{0:##.##}", byteCount / 1048576) + " MB";
+                size = $"{byteCount / 1048576:##.##}" + " MB";
             else if (byteCount >= 1024)
-                size = String.Format("{0:##.##}", byteCount / 1024) + " KB";
+                size = $"{byteCount / 1024:##.##}" + " KB";
             else if (byteCount > 0 && byteCount < 1024)
                 size = byteCount + " Bytes";
 

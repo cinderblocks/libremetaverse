@@ -22,10 +22,7 @@ namespace OpenMetaverse.TestClient
         {
             lock (m_AgentList)
             {
-                if (m_AgentList.ContainsKey(e.SourceID))
-                    m_AgentList[e.SourceID] = true;
-                else
-                    m_AgentList.Add(e.SourceID, true);
+                m_AgentList[e.SourceID] = true;
             }
         }
 
@@ -33,10 +30,7 @@ namespace OpenMetaverse.TestClient
         {
             lock (m_AgentList)
             {
-                if (m_AgentList.ContainsKey(e.SourceID))
-                    m_AgentList[e.SourceID] = true;
-                else
-                    m_AgentList.Add(e.SourceID, true);
+                m_AgentList[e.SourceID] = true;
             }
         }
 
@@ -44,10 +38,7 @@ namespace OpenMetaverse.TestClient
         {
             lock (m_AgentList)
             {
-                if (m_AgentList.ContainsKey(e.SourceID))
-                    m_AgentList[e.SourceID] = true;
-                else
-                    m_AgentList.Add(e.SourceID, true);
+                m_AgentList[e.SourceID] = true;
             }
         }
         

@@ -111,7 +111,7 @@ namespace OpenMetaverse.TestClient
                             Console.WriteLine(groupRetrieved.GroupName + "\t\t\t(" +
                                 Name + " UUID " + groupRetrieved.GroupID + ")");
 
-                            if (groupRetrieved.GroupName.ToLower() == groupName.ToLower())
+                            if (string.Equals(groupRetrieved.GroupName, groupName, StringComparison.CurrentCultureIgnoreCase))
                             {
                                 resolvedGroupID = groupRetrieved.GroupID;
                                 resolvedGroupName = groupRetrieved.GroupName;

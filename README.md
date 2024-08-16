@@ -23,15 +23,13 @@ You may, however, opt to use Visual Studio as you would any other .NET applicati
 
 ### Linux/macOS
 
--  Make sure you have at least `dotnet` installed, with a valid SDK _and_ runtime of at least .NET5 available!
+-  Make sure you have at least `dotnet` installed, with a valid SDK _and_ runtime of at least .NET6 available!
 
--  This update includes a solution file to skip GUI applications for non-Windows platforms. Use `LibreMetaverse.ReleaseNoGUI.sln` instead
-
--  From the root, run `dotnet restore LibreMetaverse.ReleaseNoGUI.sln`. You should get some errors regarding missing Windows libraries; 
+-  From the root, run `dotnet restore LibreMetaverse.Release.sln`. You should get some errors regarding missing Windows libraries; 
 that's ok, you can ignore those, they're to be expected since Linux/macOS do _not_ include such libraries. Some test applications are Windows-only.  
 If all goes well, you should now have all dependent packages properly installed.
 
--  From the root, run `dotnet msbuild LibreMetaverse.ReleaseNoGUI.sln`, and enjoy the superfast Roslyn compiler at work 😄 
+-  From the root, run `dotnet msbuild LibreMetaverse.Release.sln`, and enjoy the superfast Roslyn compiler at work 😄 
 It should finish after a few minutes, depending on the speed of your machine.
 
 -  Your binaries will be under `../bin/net6.0` or `../bin/net7.0` (there might be a few more directories under `../bin`),

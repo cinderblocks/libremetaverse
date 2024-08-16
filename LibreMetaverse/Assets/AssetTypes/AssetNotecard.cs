@@ -37,7 +37,7 @@ namespace OpenMetaverse.Assets
     public class AssetNotecard : Asset
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.Notecard; } }
+        public override AssetType AssetType => AssetType.Notecard;
 
         /// <summary>A text string containing main text of the notecard</summary>
         public string BodyText;
@@ -61,9 +61,9 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Encode the raw contents of a string with the specific Linden Text properties
         /// </summary>
-        public override void Encode()
+        public sealed override void Encode()
         {
-            string body = BodyText ?? String.Empty;
+            string body = BodyText ?? string.Empty;
 
             StringBuilder output = new StringBuilder();
             output.Append("Linden text version 2\n");
@@ -156,7 +156,7 @@ namespace OpenMetaverse.Assets
         /// Decode the raw asset data including the Linden Text properties
         /// </summary>
         /// <returns>true if the AssetData was successfully decoded</returns>
-        public override bool Decode()
+        public sealed override bool Decode()
         {
             string data = Utils.BytesToString(AssetData);
             EmbeddedItems = new List<InventoryItem>();
@@ -341,11 +341,11 @@ namespace OpenMetaverse.Assets
                         }
                         else if (key == "name")
                         {
-                            name = val.Remove(val.LastIndexOf("|", StringComparison.Ordinal));
+                            name = val.Remove(val.LastIndexOf('|'));
                         }
                         else if (key == "desc")
                         {
-                            description = val.Remove(val.LastIndexOf("|", StringComparison.Ordinal));
+                            description = val.Remove(val.LastIndexOf('|'));
                         }
                         else if (key == "creation_date")
                         {
@@ -387,7 +387,7 @@ namespace OpenMetaverse.Assets
                 {
                     BodyText += lines[i++] + "\n";
                 }
-                BodyText = BodyText.Remove(BodyText.LastIndexOf("}", StringComparison.Ordinal));
+                BodyText = BodyText.Remove(BodyText.LastIndexOf('}'));
                 return true;
             }
             catch (Exception ex)

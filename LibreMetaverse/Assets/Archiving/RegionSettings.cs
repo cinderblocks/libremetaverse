@@ -55,43 +55,43 @@ namespace OpenMetaverse.Assets
                     switch (xtr.Name)
                     {
                         case "AllowDamage":
-                            settings.AllowDamage = Boolean.Parse(xtr.ReadElementContentAsString());
+                            settings.AllowDamage = bool.Parse(xtr.ReadElementContentAsString());
                             break;
                         case "AllowLandResell":
-                            settings.AllowLandResell = Boolean.Parse(xtr.ReadElementContentAsString());
+                            settings.AllowLandResell = bool.Parse(xtr.ReadElementContentAsString());
                             break;
                         case "AllowLandJoinDivide":
-                            settings.AllowLandJoinDivide = Boolean.Parse(xtr.ReadElementContentAsString());
+                            settings.AllowLandJoinDivide = bool.Parse(xtr.ReadElementContentAsString());
                             break;
                         case "BlockFly":
-                            settings.BlockFly = Boolean.Parse(xtr.ReadElementContentAsString());
+                            settings.BlockFly = bool.Parse(xtr.ReadElementContentAsString());
                             break;
                         case "BlockLandShowInSearch":
-                            settings.BlockLandShowInSearch = Boolean.Parse(xtr.ReadElementContentAsString());
+                            settings.BlockLandShowInSearch = bool.Parse(xtr.ReadElementContentAsString());
                             break;
                         case "BlockTerraform":
-                            settings.BlockTerraform = Boolean.Parse(xtr.ReadElementContentAsString());
+                            settings.BlockTerraform = bool.Parse(xtr.ReadElementContentAsString());
                             break;
                         case "DisableCollisions":
-                            settings.DisableCollisions = Boolean.Parse(xtr.ReadElementContentAsString());
+                            settings.DisableCollisions = bool.Parse(xtr.ReadElementContentAsString());
                             break;
                         case "DisablePhysics":
-                            settings.DisablePhysics = Boolean.Parse(xtr.ReadElementContentAsString());
+                            settings.DisablePhysics = bool.Parse(xtr.ReadElementContentAsString());
                             break;
                         case "DisableScripts":
-                            settings.DisableScripts = Boolean.Parse(xtr.ReadElementContentAsString());
+                            settings.DisableScripts = bool.Parse(xtr.ReadElementContentAsString());
                             break;
                         case "MaturityRating":
-                            settings.MaturityRating = Int32.Parse(xtr.ReadElementContentAsString());
+                            settings.MaturityRating = int.Parse(xtr.ReadElementContentAsString());
                             break;
                         case "RestrictPushing":
-                            settings.RestrictPushing = Boolean.Parse(xtr.ReadElementContentAsString());
+                            settings.RestrictPushing = bool.Parse(xtr.ReadElementContentAsString());
                             break;
                         case "AgentLimit":
-                            settings.AgentLimit = Int32.Parse(xtr.ReadElementContentAsString());
+                            settings.AgentLimit = int.Parse(xtr.ReadElementContentAsString());
                             break;
                         case "ObjectBonus":
-                            settings.ObjectBonus = Single.Parse(xtr.ReadElementContentAsString(), nfi);
+                            settings.ObjectBonus = float.Parse(xtr.ReadElementContentAsString(), nfi);
                             break;
                     }
                 }
@@ -116,28 +116,28 @@ namespace OpenMetaverse.Assets
                             settings.TerrainDetail3 = UUID.Parse(xtr.ReadElementContentAsString());
                             break;
                         case "ElevationLowSW":
-                            settings.TerrainStartHeight00 = Single.Parse(xtr.ReadElementContentAsString(), nfi);
+                            settings.TerrainStartHeight00 = float.Parse(xtr.ReadElementContentAsString(), nfi);
                             break;
                         case "ElevationLowNW":
-                            settings.TerrainStartHeight01 = Single.Parse(xtr.ReadElementContentAsString(), nfi);
+                            settings.TerrainStartHeight01 = float.Parse(xtr.ReadElementContentAsString(), nfi);
                             break;
                         case "ElevationLowSE":
-                            settings.TerrainStartHeight10 = Single.Parse(xtr.ReadElementContentAsString(), nfi);
+                            settings.TerrainStartHeight10 = float.Parse(xtr.ReadElementContentAsString(), nfi);
                             break;
                         case "ElevationLowNE":
-                            settings.TerrainStartHeight11 = Single.Parse(xtr.ReadElementContentAsString(), nfi);
+                            settings.TerrainStartHeight11 = float.Parse(xtr.ReadElementContentAsString(), nfi);
                             break;
                         case "ElevationHighSW":
-                            settings.TerrainHeightRange00 = Single.Parse(xtr.ReadElementContentAsString(), nfi);
+                            settings.TerrainHeightRange00 = float.Parse(xtr.ReadElementContentAsString(), nfi);
                             break;
                         case "ElevationHighNW":
-                            settings.TerrainHeightRange01 = Single.Parse(xtr.ReadElementContentAsString(), nfi);
+                            settings.TerrainHeightRange01 = float.Parse(xtr.ReadElementContentAsString(), nfi);
                             break;
                         case "ElevationHighSE":
-                            settings.TerrainHeightRange10 = Single.Parse(xtr.ReadElementContentAsString(), nfi);
+                            settings.TerrainHeightRange10 = float.Parse(xtr.ReadElementContentAsString(), nfi);
                             break;
                         case "ElevationHighNE":
-                            settings.TerrainHeightRange11 = Single.Parse(xtr.ReadElementContentAsString(), nfi);
+                            settings.TerrainHeightRange11 = float.Parse(xtr.ReadElementContentAsString(), nfi);
                             break;
                     }
                 }
@@ -150,19 +150,19 @@ namespace OpenMetaverse.Assets
                     switch (xtr.Name)
                     {
                         case "WaterHeight":
-                            settings.WaterHeight = Single.Parse(xtr.ReadElementContentAsString(), nfi);
+                            settings.WaterHeight = float.Parse(xtr.ReadElementContentAsString(), nfi);
                             break;
                         case "TerrainRaiseLimit":
-                            settings.TerrainRaiseLimit = Single.Parse(xtr.ReadElementContentAsString(), nfi);
+                            settings.TerrainRaiseLimit = float.Parse(xtr.ReadElementContentAsString(), nfi);
                             break;
                         case "TerrainLowerLimit":
-                            settings.TerrainLowerLimit = Single.Parse(xtr.ReadElementContentAsString(), nfi);
+                            settings.TerrainLowerLimit = float.Parse(xtr.ReadElementContentAsString(), nfi);
                             break;
                         case "UseEstateSun":
-                            settings.UseEstateSun = Boolean.Parse(xtr.ReadElementContentAsString());
+                            settings.UseEstateSun = bool.Parse(xtr.ReadElementContentAsString());
                             break;
                         case "FixedSun":
-                            settings.FixedSun = Boolean.Parse(xtr.ReadElementContentAsString());
+                            settings.FixedSun = bool.Parse(xtr.ReadElementContentAsString());
                             break;
                     }
                 }
@@ -177,8 +177,8 @@ namespace OpenMetaverse.Assets
             XmlTextWriter writer = new XmlTextWriter(sw) { Formatting = Formatting.Indented };
             writer.WriteStartDocument();
 
-            writer.WriteStartElement(String.Empty, "RegionSettings", String.Empty);
-            writer.WriteStartElement(String.Empty, "General", String.Empty);
+            writer.WriteStartElement(string.Empty, "RegionSettings", string.Empty);
+            writer.WriteStartElement(string.Empty, "General", string.Empty);
 
             WriteBoolean(writer, "AllowDamage", AllowDamage);
             WriteBoolean(writer, "AllowLandResell", AllowLandResell);
@@ -195,7 +195,7 @@ namespace OpenMetaverse.Assets
             writer.WriteElementString("ObjectBonus", ObjectBonus.ToString(CultureInfo.InvariantCulture));
             writer.WriteEndElement();
 
-            writer.WriteStartElement(String.Empty, "GroundTextures", String.Empty);
+            writer.WriteStartElement(string.Empty, "GroundTextures", string.Empty);
                 
             writer.WriteElementString("Texture1", TerrainDetail0.ToString());
             writer.WriteElementString("Texture2", TerrainDetail1.ToString());
@@ -211,7 +211,7 @@ namespace OpenMetaverse.Assets
             writer.WriteElementString("ElevationHighNE", TerrainHeightRange11.ToString(CultureInfo.InvariantCulture));
             writer.WriteEndElement();
                 
-            writer.WriteStartElement(String.Empty, "Terrain", String.Empty);
+            writer.WriteStartElement(string.Empty, "Terrain", string.Empty);
 
             writer.WriteElementString("WaterHeight", WaterHeight.ToString(CultureInfo.InvariantCulture));
             writer.WriteElementString("TerrainRaiseLimit", TerrainRaiseLimit.ToString(CultureInfo.InvariantCulture));

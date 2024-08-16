@@ -393,7 +393,7 @@ namespace OpenMetaverse.Packets
             // Floating text
             if ((flags & CompressedFlags.HasText) != 0)
             {
-                string text = String.Empty;
+                string text = string.Empty;
                 while (block[i] != 0)
                 {
                     text += (char) block[i];
@@ -419,7 +419,7 @@ namespace OpenMetaverse.Packets
             // Media URL
             if ((flags & CompressedFlags.MediaURL) != 0)
             {
-                string text = String.Empty;
+                string text = string.Empty;
                 while (block[i] != 0)
                 {
                     text += (char) block[i];
@@ -499,7 +499,7 @@ namespace OpenMetaverse.Packets
 
                     for (int j = 0; j < lines.Length; j++)
                     {
-                        if (!String.IsNullOrEmpty(lines[j]))
+                        if (!string.IsNullOrEmpty(lines[j]))
                         {
                             NameValue nv = new NameValue(lines[j]);
                             nameValues[j] = nv;
@@ -614,7 +614,7 @@ namespace OpenMetaverse.Packets
             int textureEntryLength = (int) Utils.BytesToUInt(block, i);
             i += 4;
             //prim.Textures = new Primitive.TextureEntry(block, i, textureEntryLength);
-            String s = DecodeTextureEntry("TextureEntry", new Primitive.TextureEntry(block, i, textureEntryLength));
+            string s = DecodeTextureEntry("TextureEntry", new Primitive.TextureEntry(block, i, textureEntryLength));
             result.AppendLine(s);
             i += textureEntryLength;
 
@@ -757,14 +757,9 @@ namespace OpenMetaverse.Packets
         {
             byte[] bytes = (byte[]) fieldData;
 
-            if (bytes.Length == 17)
-            {
-                return $"{fieldName,30}: {new UUID((byte[]) fieldData, 0),-40} [UUID]";
-            }
-            else
-            {
-                return $"{fieldName,30}: {Utils.BytesToString((byte[]) fieldData),-40} [Byte[]]";
-            }
+            return bytes.Length == 17 
+                ? $"{fieldName,30}: {new UUID((byte[]) fieldData, 0),-40} [UUID]" 
+                : $"{fieldName,30}: {Utils.BytesToString((byte[]) fieldData),-40} [Byte[]]";
         }
 
         private static string DecodeNameValue(string fieldName, object fieldData)
@@ -1313,7 +1308,7 @@ namespace OpenMetaverse.Packets
             FieldInfo[] fields = parcelType.GetFields();
             foreach (FieldInfo field in fields)
             {
-                String special;
+                string special;
                 if (SpecialDecoder("a" + "." + "b" + "." + field.Name,
                     field.GetValue(obj), out special))
                 {
@@ -1335,7 +1330,7 @@ namespace OpenMetaverse.Packets
             PropertyInfo[] propertyInfos = parcelType.GetProperties();
             foreach (PropertyInfo property in propertyInfos)
             {
-                String special;
+                string special;
                 if (SpecialDecoder("a" + "." + "b" + "." + property.Name,
                     property.GetValue(obj, null), out special))
                 {
@@ -1506,7 +1501,7 @@ namespace OpenMetaverse.Packets
 
                 foreach (FieldInfo t in fields)
                 {
-                    String special;
+                    string special;
                     if (SpecialDecoder(packet.GetType().Name + "." + fieldInfo.Name + "." + t.Name,
                         t.GetValue(nestedArrayRecord), out special))
                     {
@@ -1650,7 +1645,7 @@ namespace OpenMetaverse.Packets
         public static string MessageToString(object message, int recurseLevel)
         {
             if (message == null)
-                return String.Empty;
+                return string.Empty;
 
             StringBuilder result = new StringBuilder();
             // common/custom types
@@ -1676,7 +1671,7 @@ namespace OpenMetaverse.Packets
                 }
                 // a byte array
                 else if (messageField.GetValue(message) != null &&
-                         messageField.GetValue(message).GetType() == typeof(Byte[]))
+                         messageField.GetValue(message).GetType() == typeof(byte[]))
                 {
                     result.AppendFormat("{0, 30}:" + Environment.NewLine, messageField.Name);
 

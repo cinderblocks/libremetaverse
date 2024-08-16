@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2019-2022, Sjofn LLC
+ * Copyright (c) 2019-2024, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@ namespace LibreMetaverse.LslTools
 
     protected bool Error(ref ParseStackEntry top, string str)
     {
-      SYMBOL ns = (SYMBOL) new error(this, top);
+      var ns = (SYMBOL) new Error(this, top);
       if (this.m_debug)
         Console.WriteLine("Error encountered: " + str);
       ns.pos = top.m_value.pos;
@@ -138,9 +138,10 @@ namespace LibreMetaverse.LslTools
             if (this.m_debug)
             {
               if (yyname.Equals("TOKEN"))
-                Console.WriteLine(string.Format("State {0} with {1} \"{2}\"", (object) s.m_state, (object) yyname, (object) ((TOKEN) s.m_value).yytext));
+                Console.WriteLine(
+                  $"State {(object)s.m_state} with {(object)yyname} \"{(object)((TOKEN)s.m_value).yytext}\"");
               else
-                Console.WriteLine(string.Format("State {0} with {1}", (object) s.m_state, (object) yyname));
+                Console.WriteLine($"State {(object)s.m_state} with {(object)yyname}");
             }
             ParserEntry entry;
             if (s.m_value != null && s.m_value.Pass(this.m_symbols, s.m_state, out entry))

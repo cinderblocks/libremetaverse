@@ -39,7 +39,7 @@ namespace OpenMetaverse.StructuredData
                     return OSD.FromReal((double)json);
                 case JsonType.String:
                     string str = (string)json;
-                    return String.IsNullOrEmpty(str) ? new OSD() : OSD.FromString(str);
+                    return string.IsNullOrEmpty(str) ? new OSD() : OSD.FromString(str);
                 case JsonType.Array:
                     OSDArray array = new OSDArray(json.Count);
                     for (int i = 0; i < json.Count; i++)
@@ -141,7 +141,7 @@ namespace OpenMetaverse.StructuredData
                 case OSDType.Date:
                 case OSDType.URI:
                     string str = osd.AsString();
-                    return String.IsNullOrEmpty(str) ? null : new JsonData(str);
+                    return string.IsNullOrEmpty(str) ? null : new JsonData(str);
 
                 case OSDType.UUID:
                     UUID uuid = osd.AsUUID();

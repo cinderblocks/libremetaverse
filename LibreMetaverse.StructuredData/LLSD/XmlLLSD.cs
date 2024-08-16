@@ -67,7 +67,7 @@ namespace OpenMetaverse.StructuredData
                 IgnoreProcessingInstructions = false,
                 DtdProcessing = DtdProcessing.Ignore
             };
-            using (XmlReader xrd = XmlReader.Create(xmlStream))
+            using (XmlReader xrd = XmlReader.Create(xmlStream, settings))
             {
                 return DeserializeLLSDXml(xrd);
             }

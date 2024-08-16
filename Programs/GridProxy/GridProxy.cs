@@ -96,6 +96,7 @@ namespace GridProxy
         /// <param name="author">Email address of the proxy application's author</param>
         /// <param name="args">An array containing the parameters to use to override the proxy
         /// servers default settings</param>
+        /// <param name="exitOnError">Does what it says on the tin</param>
         public ProxyConfig(string userAgent, string author, string[] args, bool exitOnError)
             : this(userAgent, author)
         {
@@ -296,19 +297,16 @@ namespace GridProxy
                     return;
                 }
                 List<PacketDelegate> delegateArray = delegates[packetType];
-                if (delegateArray.Contains(packetDelegate))
-                {
-                    delegateArray.Remove(packetDelegate);
-                }
+                delegateArray.Remove(packetDelegate);
             }
         }
 
-        private Packet callDelegates(Dictionary<PacketType, List<PacketDelegate>> delegates, Packet packet, IPEndPoint remoteEndPoint)
+        private Packet callDelegates(Dictionary<PacketType, List<PacketDelegate>> delegates, Packet packet, IPEndPoint endpoint)
         {
             PacketType origType = packet.Type;
             foreach (PacketDelegate del in delegates[origType])
             {
-                try { packet = del(packet, remoteEndPoint); }
+                try { packet = del(packet, endpoint); }
                 catch (Exception ex) { OpenMetaverse.Logger.Log("Error in packet delegate", Helpers.LogLevel.Warning, ex); }
 
                 // FIXME: how should we handle the packet type changing?
@@ -490,9 +488,6 @@ namespace GridProxy
             int reqNo;
             int contentLength = 0;
             string contentType = "";
-            Match match;
-            string uri;
-            string meth;
             Dictionary<string, string> headers = new Dictionary<string, string>();
 
             lock (this)
@@ -515,7 +510,7 @@ namespace GridProxy
             if (line == null)
                 throw new Exception("EOF in client HTTP header");
 
-            match = new Regex(@"^(\S+)\s+(\S+)\s+(HTTP/\d\.\d)$").Match(line);
+            var match = new Regex(@"^(\S+)\s+(\S+)\s+(HTTP/\d\.\d)$").Match(line);
 
             if (!match.Success)
             {
@@ -526,10 +521,10 @@ namespace GridProxy
                 return;
             }
 
-            meth = match.Groups[1].Captures[0].ToString();
-            uri = match.Groups[2].Captures[0].ToString();
+            var meth = match.Groups[1].Captures[0].ToString();
+            var uri = match.Groups[2].Captures[0].ToString();
 
-            OpenMetaverse.Logger.Log(String.Format("[{0}] {1}:{2}", reqNo, meth, uri), Helpers.LogLevel.Debug);
+            OpenMetaverse.Logger.Log($"[{reqNo}] {meth}:{uri}", Helpers.LogLevel.Debug);
 
             // read HTTP header
             do
@@ -547,7 +542,7 @@ namespace GridProxy
 
                 if (!match.Success)
                 {
-                    OpenMetaverse.Logger.Log(String.Format("[{0}] Bad Header: '{1}'", reqNo, line), Helpers.LogLevel.Warning);
+                    OpenMetaverse.Logger.Log($"[{reqNo}] Bad Header: '{line}'", Helpers.LogLevel.Warning);
                     byte[] wr = Encoding.ASCII.GetBytes("HTTP/1.0 400 Bad Request\r\nContent-Length: 0\r\n\r\n");
                     netStream.Write(wr, 0, wr.Length);
                     netStream.Close(); client.Close();
@@ -574,7 +569,7 @@ namespace GridProxy
             reader.Read(content, 0, contentLength);
 
             if (contentLength < 8192)
-                OpenMetaverse.Logger.Log(String.Format("[{0}] request length={1}:\n{2}", reqNo, contentLength, Utils.BytesToString(content)), Helpers.LogLevel.Debug);
+                OpenMetaverse.Logger.Log($"[{reqNo}] request length={contentLength}:\n{Utils.BytesToString(content)}", Helpers.LogLevel.Debug);
 
             if (uri == "/")
             {
@@ -587,11 +582,11 @@ namespace GridProxy
                     ProxyLogin(netStream, content);
                 }
             }
-            else if (new Regex(@"^/https?://.*$").Match(uri).Success)
+            else if (new Regex("^/https?://.*$").Match(uri).Success)
             {
                 ProxyCaps(netStream, meth, uri.Substring(1), headers, content, reqNo);
             }
-            else if (new Regex(@"^/https?:/.*$").Match(uri).Success)
+            else if (new Regex("^/https?:/.*$").Match(uri).Success)
             {
                 //This is a libomv client and the proxy CAPS URI has been munged by the C# URI class
                 //Part of the LIBOMV-457 work around, TODO make this much nicer.
@@ -661,7 +656,7 @@ namespace GridProxy
             }
 
             byte[] respBuf = null;
-            string consoleMsg = String.Empty;
+            string consoleMsg = string.Empty;
 
             if (shortCircuit)
             {
@@ -748,7 +743,7 @@ namespace GridProxy
                     }
                     else if (cap == null)
                     {
-                        OpenMetaverse.Logger.Log(string.Format("{0} {1}", req.Method, req.Address.ToString()), Helpers.LogLevel.Info);
+                        OpenMetaverse.Logger.Log($"{req.Method} {req.Address}", Helpers.LogLevel.Info);
                     }
                     resp = (HttpWebResponse)req.GetResponse();
                 }
@@ -848,7 +843,7 @@ namespace GridProxy
                     }
                     catch (InvalidCastException ex)
                     {
-                        OpenMetaverse.Logger.Log("Invalid Cast thrown trying to cast OSD to OSDMap: \n'" + capReq.Response.AsString() + "' Length=" + capReq.RawResponse.Length.ToString() + "\n",
+                        OpenMetaverse.Logger.Log("Invalid Cast thrown trying to cast OSD to OSDMap: \n'" + capReq.Response.AsString() + "' Length=" + capReq.RawResponse.Length + "\n",
                             Helpers.LogLevel.Error, ex);
                     }
                     catch (Exception ex)
@@ -913,12 +908,12 @@ namespace GridProxy
                 {
                     string val = m[key].AsString();
 
-                    if (!String.IsNullOrEmpty(val))
+                    if (!string.IsNullOrEmpty(val))
                     {
                         if (!KnownCaps.ContainsKey(val))
                         {
                             CapsDataFormat resFmt = BinaryResponseCaps.Contains(key) ? CapsDataFormat.Binary : CapsDataFormat.OSD;
-                            CapsDataFormat reqFmt = CapsDataFormat.OSD;
+                            const CapsDataFormat reqFmt = CapsDataFormat.OSD;
                             CapInfo newCap = new CapInfo(val, capReq.Info.Sim, key, reqFmt, resFmt);
                             newCap.AddDelegate(new CapsDelegate(KnownCapDelegate));
                             lock (this) { KnownCaps[val] = newCap; }
@@ -971,10 +966,7 @@ namespace GridProxy
                     return;
                 }
                 List<CapsDelegate> delegateArray = KnownCapsDelegates[CapName];
-                if (delegateArray.Contains(capsDelegate))
-                {
-                    delegateArray.Remove(capsDelegate);
-                }
+                delegateArray.Remove(capsDelegate);
             }
         }
 
@@ -1240,7 +1232,7 @@ namespace GridProxy
                 {
                     if (map != null)
                     {
-                        OpenMetaverse.Logger.Log("Connection to server failed, returned LLSD error follows:\n" + map.ToString(), Helpers.LogLevel.Error);
+                        OpenMetaverse.Logger.Log("Connection to server failed, returned LLSD error follows:\n" + map, Helpers.LogLevel.Error);
                     }
                     byte[] wr = Encoding.ASCII.GetBytes("HTTP/1.0 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n");
                     netStream.Write(wr, 0, wr.Length);
@@ -1330,8 +1322,7 @@ namespace GridProxy
                     // pause listening and fetch the packet
                     bool needsZero = false;
                     bool needsCopy = true;
-                    int length;
-                    length = simFacingSocket.EndReceiveFrom(ar, ref remoteEndPoint);
+                    var length = simFacingSocket.EndReceiveFrom(ar, ref remoteEndPoint);
 
                     if (proxyHandlers.ContainsKey(remoteEndPoint))
                     {
@@ -1339,10 +1330,9 @@ namespace GridProxy
                         SimProxy simProxy = (SimProxy)proxyHandlers[remoteEndPoint];
 
                         // interpret the packet according to the SL protocol
-                        Packet packet;
                         int end = length - 1;
 
-                        packet = Packet.BuildPacket(receiveBuffer, ref end, zeroBuffer);
+                        var packet = Packet.BuildPacket(receiveBuffer, ref end, zeroBuffer);
 
                         // check for ACKs we're waiting for
                         packet = simProxy.CheckAcks(packet, Direction.Incoming, ref length, ref needsCopy);
@@ -1585,54 +1575,54 @@ namespace GridProxy
                     int outgoingSeenAcksPoint = 0;
 
                     for (; ; Thread.Sleep(1000)) lock (proxy)
+                    {
+                        if ((tick = (tick + 1) % 60) == 0)
                         {
-                            if ((tick = (tick + 1) % 60) == 0)
+                            for (int i = 0; i < incomingInjectionsPoint; ++i)
                             {
-                                for (int i = 0; i < incomingInjectionsPoint; ++i)
-                                {
-                                    incomingInjections.RemoveAt(0);
-                                    ++incomingOffset;
-                                }
-                                incomingInjectionsPoint = incomingInjections.Count;
+                                incomingInjections.RemoveAt(0);
+                                ++incomingOffset;
+                            }
+                            incomingInjectionsPoint = incomingInjections.Count;
 
-                                for (int i = 0; i < outgoingInjectionsPoint; ++i)
-                                {
-                                    outgoingInjections.RemoveAt(0);
-                                    ++outgoingOffset;
-                                }
-                                outgoingInjectionsPoint = outgoingInjections.Count;
+                            for (int i = 0; i < outgoingInjectionsPoint; ++i)
+                            {
+                                outgoingInjections.RemoveAt(0);
+                                ++outgoingOffset;
+                            }
+                            outgoingInjectionsPoint = outgoingInjections.Count;
 
-                                for (int i = 0; i < incomingSeenAcksPoint; ++i)
-                                {
-                                    incomingAcks.Remove(incomingSeenAcks[0]);
-                                    incomingSeenAcks.RemoveAt(0);
-                                }
-                                incomingSeenAcksPoint = incomingSeenAcks.Count;
+                            for (int i = 0; i < incomingSeenAcksPoint; ++i)
+                            {
+                                incomingAcks.Remove(incomingSeenAcks[0]);
+                                incomingSeenAcks.RemoveAt(0);
+                            }
+                            incomingSeenAcksPoint = incomingSeenAcks.Count;
 
-                                for (int i = 0; i < outgoingSeenAcksPoint; ++i)
-                                {
-                                    outgoingAcks.Remove(outgoingSeenAcks[0]);
-                                    outgoingSeenAcks.RemoveAt(0);
-                                }
-                                outgoingSeenAcksPoint = outgoingSeenAcks.Count;
+                            for (int i = 0; i < outgoingSeenAcksPoint; ++i)
+                            {
+                                outgoingAcks.Remove(outgoingSeenAcks[0]);
+                                outgoingSeenAcks.RemoveAt(0);
+                            }
+                            outgoingSeenAcksPoint = outgoingSeenAcks.Count;
+                        }
+
+                        foreach (uint id in incomingAcks.Keys)
+                            if (!incomingSeenAcks.Contains(id))
+                            {
+                                Packet packet = (Packet)incomingAcks[id];
+                                packet.Header.Resent = true;
+                                SendPacket(packet, false);
                             }
 
-                            foreach (uint id in incomingAcks.Keys)
-                                if (!incomingSeenAcks.Contains(id))
-                                {
-                                    Packet packet = (Packet)incomingAcks[id];
-                                    packet.Header.Resent = true;
-                                    SendPacket(packet, false);
-                                }
-
-                            foreach (uint id in outgoingAcks.Keys)
-                                if (!outgoingSeenAcks.Contains(id))
-                                {
-                                    Packet packet = (Packet)outgoingAcks[id];
-                                    packet.Header.Resent = true;
-                                    proxy.SendPacket(packet, remoteEndPoint, false);
-                                }
-                        }
+                        foreach (uint id in outgoingAcks.Keys)
+                            if (!outgoingSeenAcks.Contains(id))
+                            {
+                                Packet packet = (Packet)outgoingAcks[id];
+                                packet.Header.Resent = true;
+                                proxy.SendPacket(packet, remoteEndPoint, false);
+                            }
+                    }
                 }
                 catch (Exception e)
                 {
@@ -2147,10 +2137,7 @@ namespace GridProxy
         {
             lock (this)
             {
-                if (Delegates.Contains(deleg))
-                {
-                    Delegates.Remove(deleg);
-                }
+                Delegates.Remove(deleg);
             }
         }
 

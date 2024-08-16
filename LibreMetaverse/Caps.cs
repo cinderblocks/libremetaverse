@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2019-2022, Sjofn LLC.
+ * Copyright (c) 2019-2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -332,12 +332,8 @@ namespace OpenMetaverse
 
         private void EventQueueConnectedHandler()
         {
-            const bool detailedLogging = false;
-            if (detailedLogging)
-            {
-                Logger.DebugLog($"Event queue for {Simulator} is connected", Simulator.Client);
-            }
-
+            Logger.DebugLog($"Event queue for {Simulator} is connected", Simulator.Client);
+            Simulator.DisconnectCandidate = false;
             Simulator.Client.Network.RaiseConnectedEvent(Simulator);
         }
 
@@ -364,7 +360,7 @@ namespace OpenMetaverse
             {
                 Logger.Log($"No Message handler exists for event {eventName}. Unable to decode. Will try Generic Handler next", 
                     Helpers.LogLevel.Warning);
-                Logger.Log("Please report this information at https://radegast.life/bugs/issue-entry/: " + Environment.NewLine + body, 
+                Logger.Log("Please report this information at https://github.com/cinderblocks/libremetaverse/issues: " + Environment.NewLine + body, 
                     Helpers.LogLevel.Debug);
 
                 // try generic decoder next which takes a caps event and tries to match it to an existing packet

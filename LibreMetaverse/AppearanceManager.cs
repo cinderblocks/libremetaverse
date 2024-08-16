@@ -2548,7 +2548,7 @@ namespace OpenMetaverse
                 #region Agent Size
 
                 // Takes into account the Shoe Heel/Platform offsets but not the HeadSize offset. Seems to work.
-                double agentSizeBase = 1.706;
+                const double agentSizeBase = 1.706;
 
                 // The calculation for the HeadSize scalar may be incorrect, but it seems to work
                 double agentHeight = agentSizeBase + (agentSizeVPLegLength * .1918) + (agentSizeVPHipLength * .0375) +

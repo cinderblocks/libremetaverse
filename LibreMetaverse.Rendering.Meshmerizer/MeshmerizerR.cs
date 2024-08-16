@@ -1,5 +1,5 @@
 /* Copyright (c) 2008 Robert Adams
- * Copyright (c) 2021-2022, Sjofn LLC. All rights reserved.
+ * Copyright (c) 2021-2024, Sjofn LLC. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -35,8 +35,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
+using SkiaSharp;
 using OpenMetaverse.StructuredData;
 using LibreMetaverse.PrimMesher;
 
@@ -130,7 +130,7 @@ namespace OpenMetaverse.Rendering
         /// <param name="sculptTexture">Sculpt texture</param>
         /// <param name="lod">Level of detail to generate the mesh at</param>
         /// <returns>The generated mesh or null on failure</returns>
-        public SimpleMesh GenerateSimpleSculptMesh(Primitive prim, Bitmap sculptTexture, DetailLevel lod)
+        public SimpleMesh GenerateSimpleSculptMesh(Primitive prim, SKBitmap sculptTexture, DetailLevel lod)
         {
             var faceted = GenerateFacetedSculptMesh(prim, sculptTexture, lod);
 
@@ -225,7 +225,7 @@ namespace OpenMetaverse.Rendering
         /// routine since all the context for finding teh texture is elsewhere.
         /// </summary>
         /// <returns>The faceted mesh or null if can't do it</returns>
-        public FacetedMesh GenerateFacetedSculptMesh(Primitive prim, Bitmap scupltTexture, DetailLevel lod)
+        public FacetedMesh GenerateFacetedSculptMesh(Primitive prim, SKBitmap scupltTexture, DetailLevel lod)
         {
             LibreMetaverse.PrimMesher.SculptMesh.SculptType smSculptType;
             switch (prim.Sculpt.Type)
@@ -266,7 +266,7 @@ namespace OpenMetaverse.Rendering
             SculptMesh newMesh =
                 new SculptMesh(scupltTexture, smSculptType, mesherLod, true, prim.Sculpt.Mirror, prim.Sculpt.Invert);
 
-            int numPrimFaces = 1;       // a scuplty has only one face
+            const int numPrimFaces = 1; // a scuplty has only one face
 
             // copy the vertex information into IRendering structures
             FacetedMesh omvrmesh = new FacetedMesh

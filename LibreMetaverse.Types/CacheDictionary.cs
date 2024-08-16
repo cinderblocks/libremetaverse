@@ -79,7 +79,7 @@ namespace LibreMetaverse
             if (maxSize == 0)
                 throw new ArgumentException("maxSize must be a positive integer value");
             _maxSize = maxSize;
-            _removalStrategy = removalStrategy ?? throw new ArgumentNullException("removalStrategy");
+            _removalStrategy = removalStrategy ?? throw new ArgumentNullException(nameof(removalStrategy));
             _data = new Dictionary<TKey, TValue>();
 
             _removalStrategy.Initialize(maxSize);
@@ -98,7 +98,8 @@ namespace LibreMetaverse
                 if (_data.ContainsKey(keyToRemove))
                     _data.Remove(keyToRemove);
                 else
-                    throw new Exception(String.Format("Could not find a valid key to remove from cache, key = {0}", key == null ? "null" : key.ToString()));
+                    throw new Exception(
+                        $"Could not find a valid key to remove from cache, key = {(key == null ? "null" : key.ToString())}");
             }
             _data.Add(key, value);
             _removalStrategy.KeyAdded(key);
@@ -195,8 +196,8 @@ namespace LibreMetaverse
 
             internal CacheDictionaryEnumerator(IEnumerator<KeyValuePair<TKey, TValue>> innerEnumerator, ICacheDictionaryRemovalStrategy<TKey> removalStrategy)
             {
-                _innerEnumerator = innerEnumerator ?? throw new ArgumentNullException("innerEnumerator");
-                _removalStrategy = removalStrategy ?? throw new ArgumentNullException("removalStrategy");
+                _innerEnumerator = innerEnumerator ?? throw new ArgumentNullException(nameof(innerEnumerator));
+                _removalStrategy = removalStrategy ?? throw new ArgumentNullException(nameof(removalStrategy));
             }
 
             public KeyValuePair<TKey, TValue> Current

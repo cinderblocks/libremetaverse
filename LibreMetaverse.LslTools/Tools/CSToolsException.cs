@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2019-2022, Sjofn LLC
+ * Copyright (c) 2019-2024, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -69,7 +69,7 @@ namespace LibreMetaverse.LslTools
     }
 
     public CSToolsException(int en, SourceLineInfo s, string y, string m)
-      : base(s.ToString() + ": " + m)
+      : base(s + ": " + m)
     {
       this.nExceptionNumber = en;
       this.slInfo = s;

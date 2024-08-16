@@ -4,8 +4,8 @@
 	<OutputType>Exe</OutputType>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <OutputPath>..\..\..\bin\</OutputPath>
-    <TargetFrameworks>net48;net6.0;net7.0</TargetFrameworks>
-    <Platforms>x64;x86</Platforms>
+    <TargetFrameworks>net481;net6.0;net7.0;net8.0</TargetFrameworks>
+    <PlatformTarget>AnyCPU</PlatformTarget>
 	<IncludeSymbols>true</IncludeSymbols>
 	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
@@ -16,6 +16,7 @@
     <ProjectReference Include="..\..\..\LibreMetaverse.Voice\LibreMetaverse.Voice.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Pfim" Version="0.11.2" />
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
   </ItemGroup>
   <ItemGroup>

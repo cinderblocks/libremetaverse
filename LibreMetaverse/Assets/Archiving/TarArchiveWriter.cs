@@ -80,16 +80,7 @@ namespace OpenMetaverse.Assets
             if (filePath.Length > 100)
                 WriteEntry("././@LongLink", m_asciiEncoding.GetBytes(filePath), 'L');
 
-            char fileType;
-
-            if (filePath.EndsWith("/"))
-            {
-                fileType = '5';
-            }
-            else
-            {
-                fileType = '0';
-            }
+            var fileType = filePath.EndsWith("/") ? '5' : '0';
 
             WriteEntry(filePath, data, fileType);
         }

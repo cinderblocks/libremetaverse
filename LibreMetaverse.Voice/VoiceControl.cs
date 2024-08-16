@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -54,53 +54,53 @@ namespace LibreMetaverse.Voice
             SessionRunning
         }
 
-        internal string sipServer = "";
-        private string acctServer = "https://www.bhr.vivox.com/api2/";
-        private string connectionHandle;
-        private string accountHandle;
-        private string sessionHandle;
+        private string _sipServer = "";
+        private string _acctServer = "https://www.bhr.vivox.com/api2/";
+        private string _connectionHandle;
+        private string _accountHandle;
+        private string _sessionHandle;
 
         // Parameters to Vivox daemon
-        private string slvoicePath = "";
-        private string slvoiceArgs = "-ll 5";
-        private string daemonNode = "127.0.0.1";
-        private int daemonPort = 37331;
+        private string _slvoicePath = "";
+        private readonly string _slvoiceArgs = "-ll 5";
+        private const string DAEMON_NODE = "127.0.0.1";
+        private readonly int _daemonPort = 37331;
 
-        private string voiceUser;
-        private string voicePassword;
-        private string spatialUri;
-        private string spatialCredentials;
+        private string _voiceUser;
+        private string _voicePassword;
+        private string _spatialUri;
+        private string _spatialCredentials;
 
         // Session management
-        private readonly Dictionary<string, VoiceSession> sessions;
-        private VoiceSession spatialSession;
-        private Uri currentParcelCap;
-        private Uri nextParcelCap;
-        private string regionName;
+        private readonly Dictionary<string, VoiceSession> _sessions;
+        private VoiceSession _spatialSession;
+        private Uri _currentParcelCap;
+        private Uri _nextParcelCap;
+        private string _regionName;
 
         // Position update thread
-        private Thread posThread;
-        private CancellationTokenSource posTokenSource;
-        private ManualResetEvent posRestart;
-        public GridClient Client;
-        private readonly VoicePosition position;
-        private Vector3d oldPosition;
-        private Vector3d oldAt;
+        private Thread _posThread;
+        private CancellationTokenSource _posTokenSource;
+        private ManualResetEvent _posRestart;
+        private readonly GridClient _client;
+        private readonly VoicePosition _position;
+        private Vector3d _oldPosition;
+        private Vector3d _oldAt;
 
         // Audio interfaces
         /// <summary>
         /// List of audio input devices
         /// </summary>
-        public List<string> CaptureDevices { get; private set; }
+        private List<string> CaptureDevices { get; set; }
 
         /// <summary>
         /// List of audio output devices
         /// </summary>
-        public List<string> PlaybackDevices { get; private set; }
+        private List<string> PlaybackDevices { get; set; }
 
-        private string currentCaptureDevice;
-        private string currentPlaybackDevice;
-        private bool testing = false;
+        private string _currentCaptureDevice;
+        private string _currentPlaybackDevice;
+        private bool _testing;
 
         public event EventHandler OnSessionCreate;
         public event EventHandler OnSessionRemove;
@@ -112,21 +112,21 @@ namespace LibreMetaverse.Voice
         public VoiceGateway(GridClient c)
         {
             var rand = new Random();
-            daemonPort = rand.Next(34000, 44000);
+            _daemonPort = rand.Next(34000, 44000);
 
-            Client = c;
+            _client = c;
 
-            sessions = new Dictionary<string, VoiceSession>();
-            position = new VoicePosition
+            _sessions = new Dictionary<string, VoiceSession>();
+            _position = new VoicePosition
             {
                 UpOrientation = new Vector3d(0.0, 1.0, 0.0),
                 Velocity = new Vector3d(0.0, 0.0, 0.0)
             };
-            oldPosition = new Vector3d(0, 0, 0);
-            oldAt = new Vector3d(1, 0, 0);
+            _oldPosition = new Vector3d(0, 0, 0);
+            _oldAt = new Vector3d(1, 0, 0);
 
-            slvoiceArgs = " -ll -1";    // Min logging
-            slvoiceArgs += " -i 127.0.0.1:" + daemonPort.ToString();
+            _slvoiceArgs = " -ll -1";    // Min logging
+            _slvoiceArgs += " -i 127.0.0.1:" + _daemonPort;
             //            slvoiceArgs += " -lf " + control.instance.ClientDir;
         }
 
@@ -136,22 +136,22 @@ namespace LibreMetaverse.Voice
         public void Start()
         {
             // Start the background thread
-            if (posThread != null && posThread.IsAlive)
+            if (_posThread != null && _posThread.IsAlive)
             {
-                posRestart.Set();
-                posTokenSource.Cancel();
+                _posRestart.Set();
+                _posTokenSource.Cancel();
             }
             
-            posTokenSource = new CancellationTokenSource();
-            posThread = new Thread(PositionThreadBody)
+            _posTokenSource = new CancellationTokenSource();
+            _posThread = new Thread(PositionThreadBody)
             {
                 Name = "VoicePositionUpdate",
                 IsBackground = true
             };
-            posRestart = new ManualResetEvent(false);
-            posThread.Start();
+            _posRestart = new ManualResetEvent(false);
+            _posThread.Start();
 
-            Client.Network.EventQueueRunning += Network_EventQueueRunning;
+            _client.Network.EventQueueRunning += Network_EventQueueRunning;
 
             // Connection events
             OnDaemonRunning += connector_OnDaemonRunning;
@@ -184,7 +184,7 @@ namespace LibreMetaverse.Voice
             // If voice provisioning capability is already available,
             // proceed with voice startup.   Otherwise the EventQueueRunning
             // event will do it.
-            var vCap = Client.Network.CurrentSim.Caps.CapabilityURI("ProvisionVoiceAccountRequest");
+            var vCap = _client.Network.CurrentSim.Caps.CapabilityURI("ProvisionVoiceAccountRequest");
             if (vCap != null)
             {
                 RequestVoiceProvision(vCap);
@@ -205,7 +205,7 @@ namespace LibreMetaverse.Voice
 
         public void Stop()
         {
-            Client.Network.EventQueueRunning -= Network_EventQueueRunning;
+            _client.Network.EventQueueRunning -= Network_EventQueueRunning;
 
             // Connection events
             OnDaemonRunning -= connector_OnDaemonRunning;
@@ -232,36 +232,36 @@ namespace LibreMetaverse.Voice
             OnAccountLoginResponse -= connector_OnAccountLoginResponse;
 
             // Stop the background thread
-            if (posThread != null)
+            if (_posThread != null)
             {
-                if (posThread.IsAlive)
+                if (_posThread.IsAlive)
                 {
-                    posRestart.Set();
-                    posTokenSource.Cancel();
+                    _posRestart.Set();
+                    _posTokenSource.Cancel();
                 }
-                posThread = null;
+                _posThread = null;
             }
 
             // Close all sessions
-            foreach (var s in sessions.Values)
+            foreach (var s in _sessions.Values)
             {
                 OnSessionRemove?.Invoke(s, EventArgs.Empty);
                 s.Close();
             }
 
             // Clear out lots of state so in case of restart we begin at the beginning.
-            currentParcelCap = null;
-            sessions.Clear();
-            accountHandle = null;
-            voiceUser = null;
-            voicePassword = null;
+            _currentParcelCap = null;
+            _sessions.Clear();
+            _accountHandle = null;
+            _voiceUser = null;
+            _voicePassword = null;
 
-            SessionTerminate(sessionHandle);
-            sessionHandle = null;
-            AccountLogout(accountHandle);
-            accountHandle = null;
-            ConnectorInitiateShutdown(connectionHandle);
-            connectionHandle = null;
+            SessionTerminate(_sessionHandle);
+            _sessionHandle = null;
+            AccountLogout(_accountHandle);
+            _accountHandle = null;
+            ConnectorInitiateShutdown(_connectionHandle);
+            _connectionHandle = null;
             StopDaemon();
         }
 
@@ -282,7 +282,7 @@ namespace LibreMetaverse.Voice
             }
         }
 
-        internal string GetVoiceDaemonPath()
+        private string GetVoiceDaemonPath()
         {
             var myDir =
                 Path.GetDirectoryName(
@@ -302,25 +302,22 @@ namespace LibreMetaverse.Voice
                     !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ProgramFiles(x86)")) 
                         ? "ProgramFiles(x86)" : "ProgramFiles");
 
-                return progFiles != null && File.Exists(Path.Combine(progFiles, @"SecondLife" + Path.DirectorySeparatorChar + @"SLVoice.exe")) 
-                    ? Path.Combine(progFiles, @"SecondLife" + Path.DirectorySeparatorChar + @"SLVoice.exe") 
-                    : Path.Combine(myDir, @"SLVoice.exe");
+                return progFiles != null && File.Exists(Path.Combine(progFiles, "SecondLife" + Path.DirectorySeparatorChar + "SLVoice.exe")) 
+                    ? Path.Combine(progFiles, "SecondLife" + Path.DirectorySeparatorChar + "SLVoice.exe") 
+                    : Path.Combine(myDir, "SLVoice.exe");
             }
 
-            if (myDir != null)
-            {
-                var localDaemon = Path.Combine(myDir, Path.Combine("voice", "SLVoice"));
-                return File.Exists(localDaemon) ? localDaemon : Path.Combine(myDir,"SLVoice");
-            }
-
-            return string.Empty;
+            if (myDir == null) { return string.Empty; }
+            
+            var local = Path.Combine(myDir, Path.Combine("voice", "SLVoice"));
+            return File.Exists(local) ? local : Path.Combine(myDir, "SLVoice");
         }
 
         void RequestVoiceProvision(Uri cap)
         {
             Logger.Log("Requesting voice capability", Helpers.LogLevel.Info);
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(),
-                posTokenSource.Token, cClient_OnComplete);
+            _ = _client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(),
+                _posTokenSource.Token, cClient_OnComplete);
         }
 
         /// <summary>
@@ -329,11 +326,11 @@ namespace LibreMetaverse.Voice
         void Network_EventQueueRunning(object sender, EventQueueRunningEventArgs e)
         {
             // We only care about the sim we are in.
-            if (e.Simulator != Client.Network.CurrentSim)
+            if (e.Simulator != _client.Network.CurrentSim)
                 return;
 
             // Did we provision voice login info?
-            if (string.IsNullOrEmpty(voiceUser))
+            if (string.IsNullOrEmpty(_voiceUser))
             {
                 // The startup steps are
                 //  0. Get voice account info
@@ -344,7 +341,7 @@ namespace LibreMetaverse.Voice
                 //  5. Create session
 
                 // Get the voice provisioning data
-                var vCap = Client.Network.CurrentSim.Caps.CapabilityURI("ProvisionVoiceAccountRequest");
+                var vCap = _client.Network.CurrentSim.Caps.CapabilityURI("ProvisionVoiceAccountRequest");
 
                 // Do we have voice capability?
                 if (vCap == null)
@@ -371,15 +368,12 @@ namespace LibreMetaverse.Voice
         void connector_OnSessionParticipantUpdatedEvent(object sender, ParticipantUpdatedEventArgs e)
         {
             var s = FindSession(e.SessionHandle, false);
-            s?.ParticipantUpdate(e.URI, e.IsMuted, e.IsSpeaking, e.Volume, e.Energy);
+            s?.ParticipantUpdate(e.Uri, e.IsMuted, e.IsSpeaking, e.Volume, e.Energy);
         }
 
         public string SIPFromUUID(UUID id)
         {
-            return "sip:" +
-                nameFromID(id) +
-                "@" +
-                sipServer;
+            return "sip:" + nameFromID(id) + "@" + _sipServer;
         }
 
         private static string nameFromID(UUID id)
@@ -411,31 +405,31 @@ namespace LibreMetaverse.Voice
                 Logger.Log("Orphan participant", Helpers.LogLevel.Error);
                 return;
             }
-            s.AddParticipant(e.URI);
+            s.AddParticipant(e.Uri);
         }
 
         void connector_OnSessionParticipantRemovedEvent(object sender, ParticipantRemovedEventArgs e)
         {
             var s = FindSession(e.SessionHandle, false);
-            s?.RemoveParticipant(e.URI);
+            s?.RemoveParticipant(e.Uri);
         }
         #endregion
 
         #region Sessions
         void connector_OnSessionAddedEvent(object sender, SessionAddedEventArgs e)
         {
-            sessionHandle = e.SessionHandle;
+            _sessionHandle = e.SessionHandle;
 
             // Create our session context.
-            var s = FindSession(sessionHandle, true);
-            s.RegionName = regionName;
+            var s = FindSession(_sessionHandle, true);
+            s.RegionName = _regionName;
 
-            spatialSession = s;
+            _spatialSession = s;
 
             // Tell any user-facing code.
             OnSessionCreate?.Invoke(s, null);
 
-            Logger.Log("Added voice session in " + regionName, Helpers.LogLevel.Info);
+            Logger.Log("Added voice session in " + _regionName, Helpers.LogLevel.Info);
         }
 
         /// <summary>
@@ -449,18 +443,18 @@ namespace LibreMetaverse.Voice
             {
                 case SessionState.Connected:
                     s = FindSession(e.SessionHandle, true);
-                    sessionHandle = e.SessionHandle;
-                    s.RegionName = regionName;
-                    spatialSession = s;
+                    _sessionHandle = e.SessionHandle;
+                    s.RegionName = _regionName;
+                    _spatialSession = s;
 
-                    Logger.Log("Voice connected in " + regionName, Helpers.LogLevel.Info);
+                    Logger.Log("Voice connected in " + _regionName, Helpers.LogLevel.Info);
                     // Tell any user-facing code.
                     OnSessionCreate?.Invoke(s, null);
                     break;
 
                 case SessionState.Disconnected:
-                    s = FindSession(sessionHandle, false);
-                    sessions.Remove(sessionHandle);
+                    s = FindSession(_sessionHandle, false);
+                    _sessions.Remove(_sessionHandle);
 
                     if (s != null)
                     {
@@ -469,17 +463,17 @@ namespace LibreMetaverse.Voice
                         // Inform interested parties
                         OnSessionRemove?.Invoke(s, null);
 
-                        if (s == spatialSession)
-                            spatialSession = null;
+                        if (s == _spatialSession)
+                            _spatialSession = null;
                     }
 
                     // The previous session is now ended.  Check for a new one and
                     // start it going.
-                    if (nextParcelCap != null)
+                    if (_nextParcelCap != null)
                     {
-                        currentParcelCap = nextParcelCap;
-                        nextParcelCap = null;
-                        RequestParcelInfo(currentParcelCap);
+                        _currentParcelCap = _nextParcelCap;
+                        _nextParcelCap = null;
+                        RequestParcelInfo(_currentParcelCap);
                     }
                     break;
                 case SessionState.Idle:
@@ -505,24 +499,24 @@ namespace LibreMetaverse.Voice
         /// Close a voice session
         /// </summary>
         /// <param name="sessionHandle"></param>
-        internal void CloseSession(string sessionHandle)
+        private void CloseSession(string sessionHandle)
         {
-            if (!sessions.ContainsKey(sessionHandle))
+            if (!_sessions.ContainsKey(sessionHandle))
                 return;
 
             PosUpdating(false);
             ReportConnectionState(ConnectionState.AccountLogin);
 
             // Clean up spatial pointers.
-            var s = sessions[sessionHandle];
+            var s = _sessions[sessionHandle];
             if (s.IsSpatial)
             {
-                spatialSession = null;
-                currentParcelCap = null;
+                _spatialSession = null;
+                _currentParcelCap = null;
             }
 
             // Remove this session from the master session list
-            sessions.Remove(sessionHandle);
+            _sessions.Remove(sessionHandle);
 
             // Let any user-facing code clean up.
             OnSessionRemove?.Invoke(s, null);
@@ -537,8 +531,8 @@ namespace LibreMetaverse.Voice
         /// <remarks>Creates the session context if it does not exist.</remarks>
         VoiceSession FindSession(string sessionHandle, bool make)
         {
-            if (sessions.ContainsKey(sessionHandle))
-                return sessions[sessionHandle];
+            if (_sessions.ContainsKey(sessionHandle))
+                return _sessions[sessionHandle];
 
             if (!make) return null;
 
@@ -551,7 +545,7 @@ namespace LibreMetaverse.Voice
                 PosUpdating(true);
 
             // Register the session by its handle
-            sessions.Add(sessionHandle, s);
+            _sessions.Add(sessionHandle, s);
             return s;
         }
 
@@ -574,8 +568,8 @@ namespace LibreMetaverse.Voice
         /// <summary>
         /// Handle completion of main voice cap request.
         /// </summary>
-        /// <param name="client"></param>
-        /// <param name="result"></param>
+        /// <param name="response"></param>
+        /// <param name="responseData"></param>
         /// <param name="error"></param>
         void cClient_OnComplete(HttpResponseMessage response, byte[] responseData, Exception error)
         {
@@ -588,7 +582,7 @@ namespace LibreMetaverse.Voice
             Logger.Log("Voice provisioned", Helpers.LogLevel.Info);
             ReportConnectionState(ConnectionState.Provisioned);
 
-            OSD result = OSDParser.Deserialize(responseData);
+            var result = OSDParser.Deserialize(responseData);
             // We can get back 4 interesting values:
             //      voice_sip_uri_hostname
             //      voice_account_server_name   (actually a full URI)
@@ -597,25 +591,25 @@ namespace LibreMetaverse.Voice
             if (result is OSDMap pMap)
             {
                 if (pMap.ContainsKey("voice_sip_uri_hostname"))
-                    sipServer = pMap["voice_sip_uri_hostname"].AsString();
+                    _sipServer = pMap["voice_sip_uri_hostname"].AsString();
                 if (pMap.ContainsKey("voice_account_server_name"))
-                    acctServer = pMap["voice_account_server_name"].AsString();
-                voiceUser = pMap["username"].AsString();
-                voicePassword = pMap["password"].AsString();
+                    _acctServer = pMap["voice_account_server_name"].AsString();
+                _voiceUser = pMap["username"].AsString();
+                _voicePassword = pMap["password"].AsString();
             }
 
             // Start the SLVoice daemon
-            slvoicePath = GetVoiceDaemonPath();
+            _slvoicePath = GetVoiceDaemonPath();
 
             // Test if the executable exists
-            if (!File.Exists(slvoicePath))
+            if (!File.Exists(_slvoicePath))
             {
                 Logger.Log("SLVoice is missing", Helpers.LogLevel.Error);
                 return;
             }
 
             // STEP 1
-            StartDaemon(slvoicePath, slvoiceArgs);
+            StartDaemon(_slvoicePath, _slvoiceArgs);
         }
 
         #region Daemon
@@ -634,14 +628,13 @@ namespace LibreMetaverse.Voice
         /// </summary>
         void connector_OnDaemonRunning()
         {
-            OnDaemonRunning -=
-                connector_OnDaemonRunning;
+            OnDaemonRunning -= connector_OnDaemonRunning;
 
             Logger.Log("Daemon started", Helpers.LogLevel.Info);
             ReportConnectionState(ConnectionState.DaemonStarted);
 
             // STEP 2
-            ConnectToDaemon(daemonNode, daemonPort);
+            ConnectToDaemon(DAEMON_NODE, _daemonPort);
 
         }
 
@@ -666,7 +659,7 @@ namespace LibreMetaverse.Voice
             // STEP 3
             var reqId = ConnectorCreate(
                 "V2 SDK",       // Magic value keeps SLVoice happy
-                acctServer,     // Account manager server
+                _acctServer,     // Account manager server
                 30000, 30099,   // port range
                 vLog);
             if (reqId < 0)
@@ -684,16 +677,16 @@ namespace LibreMetaverse.Voice
         {
             Logger.Log("Voice daemon protocol started " + e.Message, Helpers.LogLevel.Info);
 
-            connectionHandle = e.Handle;
+            _connectionHandle = e.Handle;
 
             if (e.StatusCode != 0)
                 return;
 
             // STEP 4
             AccountLogin(
-                connectionHandle,
-                voiceUser,
-                voicePassword,
+                _connectionHandle,
+                _voiceUser,
+                _voicePassword,
                 "VerifyAnswer",   // This can also be "AutoAnswer"
                 "",             // Default account management server URI
                 10,            // Throttle state changes
@@ -706,7 +699,7 @@ namespace LibreMetaverse.Voice
             VoiceAccountEventArgs e)
         {
             Logger.Log($"Account Login {e.Message}", Helpers.LogLevel.Info);
-            accountHandle = e.AccountHandle;
+            _accountHandle = e.AccountHandle;
             ReportConnectionState(ConnectionState.AccountLogin);
             ParcelChanged();
         }
@@ -720,7 +713,7 @@ namespace LibreMetaverse.Voice
             VoiceDevicesEventArgs e)
         {
             PlaybackDevices = e.Devices;
-            currentPlaybackDevice = e.CurrentDevice;
+            _currentPlaybackDevice = e.CurrentDevice;
         }
 
         /// <summary>
@@ -731,45 +724,45 @@ namespace LibreMetaverse.Voice
             VoiceDevicesEventArgs e)
         {
             CaptureDevices = e.Devices;
-            currentCaptureDevice = e.CurrentDevice;
+            _currentCaptureDevice = e.CurrentDevice;
         }
 
         public string CurrentCaptureDevice
         {
-            get => currentCaptureDevice;
+            get => _currentCaptureDevice;
             set
             {
-                currentCaptureDevice = value;
+                _currentCaptureDevice = value;
                 AuxSetCaptureDevice(value);
             }
         }
         public string PlaybackDevice
         {
-            get => currentPlaybackDevice;
+            get => _currentPlaybackDevice;
             set
             {
-                currentPlaybackDevice = value;
+                _currentPlaybackDevice = value;
                 AuxSetRenderDevice(value);
             }
         }
 
         public int MicLevel
         {
-            set => ConnectorSetLocalMicVolume(connectionHandle, value);
+            set => ConnectorSetLocalMicVolume(_connectionHandle, value);
         }
         public int SpkrLevel
         {
-            set => ConnectorSetLocalSpeakerVolume(connectionHandle, value);
+            set => ConnectorSetLocalSpeakerVolume(_connectionHandle, value);
         }
 
         public bool MicMute
         {
-            set => ConnectorMuteLocalMic(connectionHandle, value);
+            set => ConnectorMuteLocalMic(_connectionHandle, value);
         }
 
         public bool SpkrMute
         {
-            set => ConnectorMuteLocalSpeaker(connectionHandle, value);
+            set => ConnectorMuteLocalSpeaker(_connectionHandle, value);
         }
 
         /// <summary>
@@ -777,16 +770,16 @@ namespace LibreMetaverse.Voice
         /// </summary>
         public bool TestMode
         {
-            get => testing;
+            get => _testing;
             set
             {
-                testing = value;
-                if (testing)
+                _testing = value;
+                if (_testing)
                 {
-                    if (spatialSession != null)
+                    if (_spatialSession != null)
                     {
-                        spatialSession.Close();
-                        spatialSession = null;
+                        _spatialSession.Close();
+                        _spatialSession = null;
                     }
                     AuxCaptureAudioStart(0);
                 }
@@ -806,10 +799,10 @@ namespace LibreMetaverse.Voice
         /// Set voice channel for new parcel
         /// </summary>
         ///
-        internal void ParcelChanged()
+        private void ParcelChanged()
         {
             // Get the capability for this parcel.
-            var c = Client.Network.CurrentSim.Caps;
+            var c = _client.Network.CurrentSim.Caps;
             var pCap = c.CapabilityURI("ParcelVoiceInfoRequest");
 
             if (pCap == null)
@@ -819,10 +812,10 @@ namespace LibreMetaverse.Voice
             }
 
             // Parcel has changed.  If we were already in a spatial session, we have to close it first.
-            if (spatialSession != null)
+            if (_spatialSession != null)
             {
-                nextParcelCap = pCap;
-                CloseSession(spatialSession.Handle);
+                _nextParcelCap = pCap;
+                CloseSession(_spatialSession.Handle);
             }
 
             // Not already in a session, so can start the new one.
@@ -838,9 +831,9 @@ namespace LibreMetaverse.Voice
         {
             Logger.Log("Requesting region voice info", Helpers.LogLevel.Info);
 
-            currentParcelCap = cap;
-            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(),
-                posTokenSource.Token, pCap_OnComplete);
+            _currentParcelCap = cap;
+            var req = _client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(),
+                _posTokenSource.Token, pCap_OnComplete);
         }
 
         /// <summary>
@@ -857,10 +850,10 @@ namespace LibreMetaverse.Voice
                 return;
             }
 
-            OSD result = OSDParser.Deserialize(responseData);
+            var result = OSDParser.Deserialize(responseData);
             if (result is OSDMap pMap)
             {
-                regionName = pMap["region_name"].AsString();
+                _regionName = pMap["region_name"].AsString();
                 ReportConnectionState(ConnectionState.RegionCapAvailable);
 
                 if (pMap.ContainsKey("voice_credentials"))
@@ -869,26 +862,26 @@ namespace LibreMetaverse.Voice
                         pMap["voice_credentials"] as OSDMap;
 
                     if (cred.ContainsKey("channel_uri"))
-                        spatialUri = cred["channel_uri"].AsString();
+                        _spatialUri = cred["channel_uri"].AsString();
                     if (cred.ContainsKey("channel_credentials"))
-                        spatialCredentials = cred["channel_credentials"].AsString();
+                        _spatialCredentials = cred["channel_credentials"].AsString();
                 }
             }
 
-            if (string.IsNullOrEmpty(spatialUri))
+            if (string.IsNullOrEmpty(_spatialUri))
             {
                 // "No voice chat allowed here");
                 return;
             }
 
-            Logger.Log("Voice connecting for region " + regionName, Helpers.LogLevel.Info);
+            Logger.Log("Voice connecting for region " + _regionName, Helpers.LogLevel.Info);
 
             // STEP 5
             var reqId = SessionCreate(
-                accountHandle,
-                spatialUri, // uri
+                _accountHandle,
+                _spatialUri, // uri
                 "", // Channel name seems to be always null
-                spatialCredentials, // spatialCredentials, // session password
+                _spatialCredentials, // spatialCredentials, // session password
                 true,   // Join Audio
                 false,   // Join Text
                 "");
@@ -903,21 +896,21 @@ namespace LibreMetaverse.Voice
         /// Tell Vivox where we are standing
         /// </summary>
         /// <remarks>This has to be called when we move or turn.</remarks>
-        internal void UpdatePosition(AgentManager self)
+        private void UpdatePosition(AgentManager self)
         {
             // Get position in Global coordinates
             var OMVpos = new Vector3d(self.GlobalPosition);
 
             // Do not send trivial updates.
-            if (OMVpos.ApproxEquals(oldPosition, 1.0))
+            if (OMVpos.ApproxEquals(_oldPosition, 1.0))
                 return;
 
-            oldPosition = OMVpos;
+            _oldPosition = OMVpos;
 
             // Convert to the coordinate space that Vivox uses
             // OMV X is East, Y is North, Z is up
             // VVX X is East, Y is up, Z is South
-            position.Position = new Vector3d(OMVpos.X, OMVpos.Z, -OMVpos.Y);
+            _position.Position = new Vector3d(OMVpos.X, OMVpos.Z, -OMVpos.Y);
 
             // TODO Rotate these two vectors
 
@@ -925,37 +918,37 @@ namespace LibreMetaverse.Voice
             // By definition, facing.W = Cos( angle/2 )
             var angle = 2.0 * Math.Acos(self.Movement.BodyRotation.W);
 
-            position.LeftOrientation = new Vector3d(-1.0, 0.0, 0.0);
-            position.AtOrientation = new Vector3d((float)Math.Acos(angle), 0.0, -(float)Math.Asin(angle));
+            _position.LeftOrientation = new Vector3d(-1.0, 0.0, 0.0);
+            _position.AtOrientation = new Vector3d((float)Math.Acos(angle), 0.0, -(float)Math.Asin(angle));
 
             SessionSet3DPosition(
-                sessionHandle,
-                position,
-                position);
+                _sessionHandle,
+                _position,
+                _position);
         }
 
         /// <summary>
         /// Start and stop updating out position.
         /// </summary>
         /// <param name="go"></param>
-        internal void PosUpdating(bool go)
+        private void PosUpdating(bool go)
         {
             if (go)
-                posRestart.Set();
+                _posRestart.Set();
             else
-                posRestart.Reset();
+                _posRestart.Reset();
         }
 
         private void PositionThreadBody()
         {
-            var token = posTokenSource.Token;
+            var token = _posTokenSource.Token;
             while (!token.IsCancellationRequested)
             {
-                posRestart.WaitOne();
+                _posRestart.WaitOne();
                 token.ThrowIfCancellationRequested();
                 
                 Thread.Sleep(1500);
-                UpdatePosition(Client.Self);
+                UpdatePosition(_client.Self);
             }
         }
         #endregion

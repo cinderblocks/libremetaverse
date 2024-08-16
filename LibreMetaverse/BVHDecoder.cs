@@ -43,8 +43,8 @@ namespace OpenMetaverse
         /// </summary>
         private int positionkeys;
 
-        public UInt16 unknown0; // Always 1
-        public UInt16 unknown1; // Always 0
+        public ushort unknown0; // Always 1
+        public ushort unknown1; // Always 0
 
         /// <summary>
         /// Animation Priority
@@ -54,7 +54,7 @@ namespace OpenMetaverse
         /// <summary>
         /// The animation length in seconds.
         /// </summary>
-        public Single Length;
+        public float Length;
 
         /// <summary>
         /// Expression set in the client.  Null if [None] is selected
@@ -64,12 +64,12 @@ namespace OpenMetaverse
         /// <summary>
         /// The time in seconds to start the animation
         /// </summary>
-        public Single InPoint;
+        public float InPoint;
 
         /// <summary>
         /// The time in seconds to end the animation
         /// </summary>
-        public Single OutPoint;
+        public float OutPoint;
 
         /// <summary>
         /// Loop the animation
@@ -79,12 +79,12 @@ namespace OpenMetaverse
         /// <summary>
         /// Meta data. Ease in Seconds.
         /// </summary>
-        public Single EaseInTime;
+        public float EaseInTime;
 
         /// <summary>
         /// Meta data. Ease out seconds.
         /// </summary>
-        public Single EaseOutTime;
+        public float EaseOutTime;
 
         /// <summary>
         /// Meta Data for the Hand Pose
@@ -174,15 +174,14 @@ namespace OpenMetaverse
         /// <returns>a string</returns>
         public string ReadBytesUntilNull(byte[] data, ref int i)
         {
-            char nterm = '\0'; // Null terminator
             int endpos = i;
             int startpos = i;
 
             // Find the null character
-            for (int j = i; j < data.Length; j++)
+            for (var j = i; j < data.Length; j++)
             {
                 char spot = Convert.ToChar(data[j]);
-                if (spot == nterm)
+                if (spot == '\n')
                 {
                     endpos = j;
                     break;
@@ -222,10 +221,6 @@ namespace OpenMetaverse
         /// <returns>The Joint data serialized into the binBVHJoint structure</returns>
         public binBVHJoint readJoint(byte[] data, ref int i)
         {
-
-            binBVHJointKey[] positions;
-            binBVHJointKey[] rotations;
-
             binBVHJoint pJoint = new binBVHJoint();
 
             /*
@@ -279,7 +274,7 @@ namespace OpenMetaverse
                 rotationkeys = 0;
             }
 
-            rotations = readKeys(data, ref i, rotationkeys, -1.0f, 1.0f);
+            var rotations = readKeys(data, ref i, rotationkeys, -1.0f, 1.0f);
             
             if (!BitConverter.IsLittleEndian)
             {
@@ -297,7 +292,7 @@ namespace OpenMetaverse
             }
 
             // Read in position keyframes
-            positions = readKeys(data, ref i, positionkeys, -0.5f, 1.5f);
+            var positions = readKeys(data, ref i, positionkeys, -0.5f, 1.5f);
 
             pJoint.rotationkeys = rotations;
             pJoint.positionkeys = positions;
@@ -377,9 +372,8 @@ namespace OpenMetaverse
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != typeof(BinBVHAnimationReader)) return false;
-            return Equals((BinBVHAnimationReader)obj);
-    }
+            return obj.GetType() == typeof(BinBVHAnimationReader) && Equals((BinBVHAnimationReader)obj);
+        }
 
     /// <summary>
         /// Serves as a hash function for a particular type.  
@@ -468,8 +462,7 @@ namespace OpenMetaverse
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj)) return false;
-            if (obj.GetType() != typeof(binBVHJoint)) return false;
-            return Equals((binBVHJoint)obj);
+            return obj.GetType() == typeof(binBVHJoint) && Equals((binBVHJoint)obj);
         }
 
         /// <summary> 

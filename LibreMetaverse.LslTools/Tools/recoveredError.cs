@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2019-2022, Sjofn LLC
+ * Copyright (c) 2019-2024, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,7 @@ using System;
 
 namespace LibreMetaverse.LslTools
 {
-  public class recoveredError : error
+  public class recoveredError : Error
   {
     public recoveredError(Parser yyp, ParseStackEntry s)
       : base(yyp, s)

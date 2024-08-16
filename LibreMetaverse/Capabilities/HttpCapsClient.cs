@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2022, Sjofn, LLC.
+ * Copyright (c) 2022-2023, Sjofn, LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -245,15 +245,12 @@ namespace LibreMetaverse
             try
             {
                 using (var response = (cancellationToken.HasValue)
-                                          ? await SendAsync(request, HttpCompletionOption.ResponseHeadersRead,
-                                                            cancellationToken.Value)
+                                          ? await SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken.Value)
                                           : await SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
                 {
                     if (!response.IsSuccessStatusCode)
                     {
-                        completeHandler?.Invoke(response, null,
-                                                new HttpRequestException(response.StatusCode + " " +
-                                                                         response.ReasonPhrase));
+                        completeHandler?.Invoke(response, null, new HttpRequestException(response.StatusCode + " " + response.ReasonPhrase));
                     }
 
                     connectedHandler?.Invoke(response);

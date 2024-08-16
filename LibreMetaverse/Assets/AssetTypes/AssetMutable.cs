@@ -34,7 +34,7 @@ namespace OpenMetaverse.Assets
         public AssetType currentType;
 
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return currentType; } }
+        public override AssetType AssetType => currentType;
 
         /// <summary>Default Constructor</summary>
         public AssetMutable(AssetType type)

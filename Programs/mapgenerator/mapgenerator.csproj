@@ -5,8 +5,8 @@
 	<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	<OutputPath>..\..\bin\</OutputPath>
 	<PackageId>LibreMetaverse.MapGenerator</PackageId>
-	<TargetFrameworks>net6.0;net7.0</TargetFrameworks>
-	<Platforms>AnyCPU</Platforms>
+	<TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
+	<PlatformTarget>AnyCPU</PlatformTarget>
 	<IncludeSymbols>true</IncludeSymbols>
 	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>

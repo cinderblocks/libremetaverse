@@ -115,9 +115,9 @@ namespace OpenMetaverse.ImportExport
                 positionDomain["Max"] = new Vector3(0.5f, 0.5f, 0.5f);
                 faceMap["PositionDomain"] = positionDomain;
 
-                List<byte> posBytes = new List<byte>(face.Vertices.Count * sizeof(UInt16) * 3);
-                List<byte> norBytes = new List<byte>(face.Vertices.Count * sizeof(UInt16) * 3);
-                List<byte> uvBytes = new List<byte>(face.Vertices.Count * sizeof(UInt16) * 2);
+                List<byte> posBytes = new List<byte>(face.Vertices.Count * sizeof(ushort) * 3);
+                List<byte> norBytes = new List<byte>(face.Vertices.Count * sizeof(ushort) * 3);
+                List<byte> uvBytes = new List<byte>(face.Vertices.Count * sizeof(ushort) * 2);
 
                 foreach (var v in face.Vertices)
                 {
@@ -137,7 +137,7 @@ namespace OpenMetaverse.ImportExport
                 faceMap["Normal"] = norBytes.ToArray();
                 faceMap["TexCoord0"] = uvBytes.ToArray();
 
-                List<byte> indexBytes = new List<byte>(face.Indices.Count * sizeof(UInt16));
+                List<byte> indexBytes = new List<byte>(face.Indices.Count * sizeof(ushort));
                 foreach (var t in face.Indices)
                 {
                     indexBytes.AddRange(Utils.UInt16ToBytes((ushort)t));

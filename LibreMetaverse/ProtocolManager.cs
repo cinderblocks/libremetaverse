@@ -491,7 +491,7 @@ namespace OpenMetaverse
                                                 tokens[2] = tokens[2].Substring(2, tokens[2].Length - 2);
                                             }
 
-                                            uint fixedID = UInt32.Parse(tokens[2], System.Globalization.NumberStyles.HexNumber);
+                                            uint fixedID = uint.Parse(tokens[2], System.Globalization.NumberStyles.HexNumber);
                                             // Truncate the id to a short
                                             fixedID ^= 0xFFFF0000;
                                             LowMaps[fixedID] = new MapPacket
@@ -618,7 +618,7 @@ namespace OpenMetaverse
                                         }
                                         else if (tokens[1] == "Multiple")
                                         {
-                                            currentBlock.Count = Int32.Parse(tokens[2]);
+                                            currentBlock.Count = int.Parse(tokens[2]);
                                         }
                                         else if (tokens[1] == "Variable")
                                         {

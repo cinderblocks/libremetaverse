@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,7 @@ namespace LibreMetaverse.Voice
     /// </summary>
     public class VoiceSession
     {
-        private static Dictionary<string, VoiceParticipant> knownParticipants;
+        private static Dictionary<string, VoiceParticipant> _knownParticipants;
         public string RegionName;
         public bool IsSpatial { get; }
 
@@ -53,7 +53,7 @@ namespace LibreMetaverse.Voice
             Connector = conn;
 
             IsSpatial = true;
-            knownParticipants = new Dictionary<string, VoiceParticipant>();
+            _knownParticipants = new Dictionary<string, VoiceParticipant>();
         }
 
         /// <summary>
@@ -61,36 +61,37 @@ namespace LibreMetaverse.Voice
         /// </summary>
         internal void Close()
         {
-
-            knownParticipants.Clear();
+            lock (_knownParticipants)
+            {
+                _knownParticipants.Clear();
+            }
         }
 
-        internal void ParticipantUpdate(string URI,
+        internal void ParticipantUpdate(string uri,
             bool isMuted,
             bool isSpeaking,
             int volume,
             float energy)
         {
-            lock (knownParticipants)
+            lock (_knownParticipants)
             {
                 // Locate in this session
-                VoiceParticipant p = FindParticipant(URI);
+                var p = FindParticipant(uri);
                 if (p == null) return;
 
                 // Set properties
                 p.SetProperties(isSpeaking, isMuted, energy);
 
                 // Inform interested parties.
-                if (OnParticipantUpdate != null)
-                    OnParticipantUpdate(p, null);
+                OnParticipantUpdate?.Invoke(p, null);
             }
         }
 
-        internal void AddParticipant(string URI)
+        internal void AddParticipant(string uri)
         {
-            lock (knownParticipants)
+            lock (_knownParticipants)
             {
-                VoiceParticipant p = FindParticipant(URI);
+                var p = FindParticipant(uri);
 
                 // We expect that to come back null.  If it is not
                 // null, this is a duplicate
@@ -100,8 +101,8 @@ namespace LibreMetaverse.Voice
                 }
 
                 // It was not found, so add it.
-                p = new VoiceParticipant(URI, this);
-                knownParticipants.Add(URI, p);
+                p = new VoiceParticipant(uri, this);
+                _knownParticipants.Add(uri, p);
 
                 /* TODO
                            // Fill in the name.
@@ -111,24 +112,22 @@ namespace LibreMetaverse.Voice
                */
 
                 // Inform interested parties.
-                if (OnParticipantAdded != null)
-                    OnParticipantAdded(p, null);
+                OnParticipantAdded?.Invoke(p, null);
             }
         }
 
-        internal void RemoveParticipant(string URI)
+        internal void RemoveParticipant(string uri)
         {
-            lock (knownParticipants)
+            lock (_knownParticipants)
             {
-                VoiceParticipant p = FindParticipant(URI);
+                var p = FindParticipant(uri);
                 if (p == null) return;
 
                 // Remove from list for this session.
-                knownParticipants.Remove(URI);
+                _knownParticipants.Remove(uri);
 
                 // Inform interested parties.
-                if (OnParticipantRemoved != null)
-                    OnParticipantRemoved(p, null);
+                OnParticipantRemoved?.Invoke(p, null);
             }
         }
 
@@ -139,15 +138,12 @@ namespace LibreMetaverse.Voice
         /// <returns></returns>
         private VoiceParticipant FindParticipant(string puri)
         {
-            if (knownParticipants.ContainsKey(puri))
-                return knownParticipants[puri];
-
-            return null;
+            return _knownParticipants.ContainsKey(puri) ? _knownParticipants[puri] : null;
         }
 
-        public void Set3DPosition(VoicePosition SpeakerPosition, VoicePosition ListenerPosition)
+        public void Set3DPosition(VoicePosition speakerPosition, VoicePosition listenerPosition)
         {
-            Connector.SessionSet3DPosition(Handle, SpeakerPosition, ListenerPosition);
+            Connector.SessionSet3DPosition(Handle, speakerPosition, listenerPosition);
         }
     }
 
@@ -156,30 +152,30 @@ namespace LibreMetaverse.Voice
         /// <summary>
         /// Create a Session
         /// Sessions typically represent a connection to a media session with one or more
-        /// participants. This is used to generate an ‘outbound’ call to another user or
+        /// participants. This is used to generate an ï¿½outboundï¿½ call to another user or
         /// channel. The specifics depend on the media types involved. A session handle is
         /// required to control the local user functions within the session (or remote
         /// users if the current account has rights to do so). Currently creating a
         /// session automatically connects to the audio media, there is no need to call
         /// Session.Connect at this time, this is reserved for future use.
         /// </summary>
-        /// <param name="AccountHandle">Handle returned from successful Connector ‘create’ request</param>
-        /// <param name="URI">This is the URI of the terminating point of the session (ie who/what is being called)</param>
+        /// <param name="AccountHandle">Handle returned from successful Connector ï¿½createï¿½ request</param>
+        /// <param name="session_uri">This is the URI of the terminating point of the session (ie who/what is being called)</param>
         /// <param name="Name">This is the display name of the entity being called (user or channel)</param>
         /// <param name="Password">Only needs to be supplied when the target URI is password protected</param>
         /// <param name="PasswordHashAlgorithm">This indicates the format of the password as passed in. This can either be
-        /// “ClearText” or “SHA1UserName”. If this element does not exist, it is assumed to be “ClearText”. If it is
-        /// “SHA1UserName”, the password as passed in is the SHA1 hash of the password and username concatenated together,
-        /// then base64 encoded, with the final “=” character stripped off.</param>
+        /// ï¿½ClearTextï¿½ or ï¿½SHA1UserNameï¿½. If this element does not exist, it is assumed to be ï¿½ClearTextï¿½. If it is
+        /// ï¿½SHA1UserNameï¿½, the password as passed in is the SHA1 hash of the password and username concatenated together,
+        /// then base64 encoded, with the final ï¿½=ï¿½ character stripped off.</param>
         /// <param name="JoinAudio"></param>
         /// <param name="JoinText"></param>
         /// <returns></returns>
-        public int SessionCreate(string AccountHandle, string URI, string Name, string Password,
+        public int SessionCreate(string AccountHandle, string session_uri, string Name, string Password,
             bool JoinAudio, bool JoinText, string PasswordHashAlgorithm)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             sb.Append(VoiceGateway.MakeXML("AccountHandle", AccountHandle));
-            sb.Append(VoiceGateway.MakeXML("URI", URI));
+            sb.Append(VoiceGateway.MakeXML("URI", session_uri));
             sb.Append(VoiceGateway.MakeXML("Name", Name));
             if (!string.IsNullOrEmpty(Password))
             {
@@ -203,7 +199,7 @@ namespace LibreMetaverse.Voice
         /// <returns></returns>
         public int SessionConnect(string SessionHandle, string AudioMedia)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             sb.Append(VoiceGateway.MakeXML("SessionHandle", SessionHandle));
             sb.Append(VoiceGateway.MakeXML("AudioMedia", AudioMedia));
             return Request("Session.Connect.1", sb.ToString());
@@ -214,13 +210,13 @@ namespace LibreMetaverse.Voice
         /// the passed in file through the selected audio render device. This command
         /// should not be issued if the user is on a call.
         /// </summary>
-        /// <param name="SoundFilePath">The fully qualified path to the sound file.</param>
+        /// <param name="soundFilePath">The fully qualified path to the sound file.</param>
         /// <param name="Loop">True if the file is to be played continuously and false if it is should be played once.</param>
         /// <returns></returns>
-        public int SessionRenderAudioStart(string SoundFilePath, bool Loop)
+        public int SessionRenderAudioStart(string soundFilePath, bool Loop)
         {
-            StringBuilder sb = new StringBuilder();
-            sb.Append(VoiceGateway.MakeXML("SoundFilePath", SoundFilePath));
+            var sb = new StringBuilder();
+            sb.Append(VoiceGateway.MakeXML("SoundFilePath", soundFilePath));
             sb.Append(VoiceGateway.MakeXML("Loop", Loop ? "1" : "0"));
             return Request("Session.RenderAudioStart.1", sb.ToString());
         }
@@ -232,31 +228,31 @@ namespace LibreMetaverse.Voice
         /// <returns></returns>
         public int SessionRenderAudioStop(string SoundFilePath)
         {
-            string RequestXML = VoiceGateway.MakeXML("SoundFilePath", SoundFilePath);
-            return Request("Session.RenderAudioStop.1", RequestXML);
+            var requestXml = VoiceGateway.MakeXML("SoundFilePath", SoundFilePath);
+            return Request("Session.RenderAudioStop.1", requestXml);
         }
 
         /// <summary>
-        /// This is used to ‘end’ an established session (i.e. hang-up or disconnect).
+        /// This is used to ï¿½endï¿½ an established session (i.e. hang-up or disconnect).
         /// </summary>
-        /// <param name="SessionHandle">Handle returned from successful Session ‘create’ request or a SessionNewEvent</param>
+        /// <param name="SessionHandle">Handle returned from successful Session ï¿½createï¿½ request or a SessionNewEvent</param>
         /// <returns></returns>
         public int SessionTerminate(string SessionHandle)
         {
-            string RequestXML = VoiceGateway.MakeXML("SessionHandle", SessionHandle);
-            return Request("Session.Terminate.1", RequestXML);
+            var requestXml = VoiceGateway.MakeXML("SessionHandle", SessionHandle);
+            return Request("Session.Terminate.1", requestXml);
         }
 
         /// <summary>
         /// Set the combined speaking and listening position in 3D space.
         /// </summary>
-        /// <param name="SessionHandle">Handle returned from successful Session ‘create’ request or a SessionNewEvent</param>
+        /// <param name="SessionHandle">Handle returned from successful Session ï¿½createï¿½ request or a SessionNewEvent</param>
         /// <param name="SpeakerPosition">Speaking position</param>
         /// <param name="ListenerPosition">Listening position</param>
         /// <returns></returns>
         public int SessionSet3DPosition(string SessionHandle, VoicePosition SpeakerPosition, VoicePosition ListenerPosition)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             sb.Append(VoiceGateway.MakeXML("SessionHandle", SessionHandle));
             sb.Append("<SpeakerPosition>");
             sb.Append("<Position>");
@@ -318,13 +314,13 @@ namespace LibreMetaverse.Voice
         /// <summary>
         /// Set User Volume for a particular user. Does not affect how other users hear that user.
         /// </summary>
-        /// <param name="SessionHandle">Handle returned from successful Session ‘create’ request or a SessionNewEvent</param>
+        /// <param name="SessionHandle">Handle returned from successful Session ï¿½createï¿½ request or a SessionNewEvent</param>
         /// <param name="ParticipantURI"></param>
-        /// <param name="Volume">The level of the audio, a number between -100 and 100 where 0 represents ‘normal’ speaking volume</param>
+        /// <param name="Volume">The level of the audio, a number between -100 and 100 where 0 represents ï¿½normalï¿½ speaking volume</param>
         /// <returns></returns>
         public int SessionSetParticipantVolumeForMe(string SessionHandle, string ParticipantURI, int Volume)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             sb.Append(VoiceGateway.MakeXML("SessionHandle", SessionHandle));
             sb.Append(VoiceGateway.MakeXML("ParticipantURI", ParticipantURI));
             sb.Append(VoiceGateway.MakeXML("Volume", Volume.ToString()));

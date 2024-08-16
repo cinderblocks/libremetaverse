@@ -167,8 +167,7 @@ namespace OpenMetaverse
         protected virtual void OnTopCollidersReply(TopCollidersReplyEventArgs e)
         {
             EventHandler<TopCollidersReplyEventArgs> handler = m_TopCollidersReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -190,8 +189,7 @@ namespace OpenMetaverse
         protected virtual void OnTopScriptsReply(TopScriptsReplyEventArgs e)
         {
             EventHandler<TopScriptsReplyEventArgs> handler = m_TopScriptsReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -214,8 +212,7 @@ namespace OpenMetaverse
         protected virtual void OnEstateUsersReply(EstateUsersReplyEventArgs e)
         {
             EventHandler<EstateUsersReplyEventArgs> handler = m_EstateUsersReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -238,8 +235,7 @@ namespace OpenMetaverse
         protected virtual void OnEstateGroupsReply(EstateGroupsReplyEventArgs e)
         {
             EventHandler<EstateGroupsReplyEventArgs> handler = m_EstateGroupsReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -261,8 +257,7 @@ namespace OpenMetaverse
         protected virtual void OnEstateManagersReply(EstateManagersReplyEventArgs e)
         {
             EventHandler<EstateManagersReplyEventArgs> handler = m_EstateManagersReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -284,8 +279,7 @@ namespace OpenMetaverse
         protected virtual void OnEstateBansReply(EstateBansReplyEventArgs e)
         {
             EventHandler<EstateBansReplyEventArgs> handler = m_EstateBansReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -307,8 +301,7 @@ namespace OpenMetaverse
         protected virtual void OnEstateCovenantReply(EstateCovenantReplyEventArgs e)
         {
             EventHandler<EstateCovenantReplyEventArgs> handler = m_EstateCovenantReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -331,8 +324,7 @@ namespace OpenMetaverse
         protected virtual void OnEstateUpdateInfoReply(EstateUpdateInfoReplyEventArgs e)
         {
             EventHandler<EstateUpdateInfoReplyEventArgs> handler = m_EstateUpdateInfoReply;
-            if (handler != null)
-                handler(this, e);
+            handler?.Invoke(this, e);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -648,7 +640,7 @@ namespace OpenMetaverse
             Client.Assets.SetPendingAssetUploadData(upload);
 
             // Create and populate a list with commands specific to uploading a raw terrain file
-            List<String> paramList = new List<string>();
+            List<string> paramList = new List<string>();
             paramList.Add("upload filename");
             paramList.Add(fileName);
 
@@ -1164,7 +1156,7 @@ namespace OpenMetaverse
         /// <summary>
         /// The Estate name
         /// </summary>
-        public String EstateName { get; }
+        public string EstateName { get; }
 
         /// <summary>
         /// The Estate Owner's ID (can be a GroupID)
@@ -1193,7 +1185,7 @@ namespace OpenMetaverse
         /// <summary>
         /// The estate's name
         /// </summary>
-        public String EstateName { get; }
+        public string EstateName { get; }
 
         /// <summary>
         /// The Estate Owner's ID (can be a GroupID)

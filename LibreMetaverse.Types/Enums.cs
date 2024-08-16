@@ -126,7 +126,13 @@ namespace OpenMetaverse
         Widget = 40,
         /// <summary>Person?</summary>
         [EnumInfo(Text = "person")]
-        Person = 45
+        Person = 45,
+        /// <summary> Settings blob </summary>
+        [EnumInfo(Text = "settings")]
+        Settings,
+        /// <summary> Render material </summary>
+        [EnumInfo(Text = "material")]
+        Material,
     }
 
     /// <summary>
@@ -216,11 +222,11 @@ namespace OpenMetaverse
         Landmark = 3,
         /*
         /// <summary>Script</summary>
-        //[Obsolete("See LSL")] Script = 4,
+        [Obsolete("See LSL")] Script = 4,
         /// <summary>Clothing</summary>
-        //[Obsolete("See Wearable")] Clothing = 5,
+        [Obsolete("See Wearable")] Clothing = 5,
+        */
         /// <summary>Object, both single and coalesced</summary>
-         */
         Object = 6,
         /// <summary>Notecard</summary>
         Notecard = 7,
@@ -256,9 +262,12 @@ namespace OpenMetaverse
         Animation = 19,
         /// <summary></summary>
         Gesture = 20,
-
         /// <summary></summary>
         Mesh = 22,
+        /// <summary></summary>
+        Settings = 23,
+        /// <summary></summary>
+        Material = 24,
     }
 
     /// <summary>
@@ -330,10 +339,10 @@ namespace OpenMetaverse
         [EnumInfo(Text = "Physics")]
         Physics,
         /// <summary>Universal</summary>
-	[EnumInfo(Text = "Universal")]
+	    [EnumInfo(Text = "Universal")]
         Universal,
         /// <summary>Invalid wearable asset</summary>
         [EnumInfo(Text = "Invalid")]
         Invalid = 255
-    };
+    }
 }

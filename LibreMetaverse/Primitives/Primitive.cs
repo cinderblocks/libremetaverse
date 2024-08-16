@@ -430,7 +430,7 @@ namespace OpenMetaverse
             /// <returns></returns>
             public override string ToString()
             {
-                return String.Format("Color: {0} Intensity: {1} Radius: {2} Cutoff: {3} Falloff: {4}",
+                return string.Format("Color: {0} Intensity: {1} Radius: {2} Cutoff: {3} Falloff: {4}",
                     Color, Intensity, Radius, Cutoff, Falloff);
             }
         }
@@ -522,7 +522,7 @@ namespace OpenMetaverse
             /// <returns></returns>
             public override string ToString()
             {
-                return String.Format("LightTexture: {0} Params; {1}", LightTexture, Params);
+                return $"LightTexture: {LightTexture} Params; {Params}";
             }
         }
 
@@ -680,10 +680,10 @@ namespace OpenMetaverse
             /// </summary>
             public ObjectProperties()
             {
-                Name = String.Empty;
-                Description = String.Empty;
-                TouchName = String.Empty;
-                SitName = String.Empty;
+                Name = string.Empty;
+                Description = string.Empty;
+                TouchName = string.Empty;
+                SitName = string.Empty;
             }
 
             /// <summary>
@@ -964,8 +964,8 @@ namespace OpenMetaverse
         public Primitive()
         {
             // Default a few null property values to String.Empty
-            Text = String.Empty;
-            MediaURL = String.Empty;
+            Text = string.Empty;
+            MediaURL = string.Empty;
         }
 
         public Primitive(Primitive prim)
@@ -1073,7 +1073,7 @@ namespace OpenMetaverse
             else
             {
                 prim["name"] = OSD.FromString("Object");
-                prim["description"] = OSD.FromString(String.Empty);
+                prim["description"] = OSD.FromString(string.Empty);
             }
 
             prim["phantom"] = OSD.FromBoolean(((Flags & PrimFlags.Phantom) != 0));
@@ -1355,9 +1355,9 @@ namespace OpenMetaverse
             switch (PrimData.PCode)
             {
                 case PCode.Prim:
-                    return String.Format("{0} ({1})", Type, ID);
+                    return $"{Type} ({ID})";
                 default:
-                    return String.Format("{0} ({1})", PrimData.PCode, ID);
+                    return $"{PrimData.PCode} ({ID})";
             }
         }
 
@@ -1416,18 +1416,18 @@ namespace OpenMetaverse
 
         public static bool operator ==(Primitive lhs, Primitive rhs)
         {
-            if ((Object)lhs == null || (Object)rhs == null)
+            if ((object)lhs == null || (object)rhs == null)
             {
-                return (Object)rhs == (Object)lhs;
+                return (object)rhs == (object)lhs;
             }
             return (lhs.ID == rhs.ID);
         }
 
         public static bool operator !=(Primitive lhs, Primitive rhs)
         {
-            if ((Object)lhs == null || (Object)rhs == null)
+            if ((object)lhs == null || (object)rhs == null)
             {
-                return (Object)rhs != (Object)lhs;
+                return (object)rhs != (object)lhs;
             }
             return !(lhs.ID == rhs.ID);
         }

@@ -91,7 +91,7 @@ namespace OpenMetaverse.Rendering
 
         public override string ToString()
         {
-            return String.Format("P: {0} N: {1} T: {2}", Position, Normal, TexCoord);
+            return $"P: {Position} N: {Normal} T: {TexCoord}";
         }
 
         public override int GetHashCode()
@@ -138,7 +138,7 @@ namespace OpenMetaverse.Rendering
         {
             return Type.ToString();
         }
-    };
+    }
 
     public struct Profile
     {

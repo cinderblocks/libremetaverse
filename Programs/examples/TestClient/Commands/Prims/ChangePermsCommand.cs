@@ -25,9 +25,7 @@ namespace OpenMetaverse.TestClient
         public override string Execute(string[] args, UUID fromAgentID)
         {
             UUID rootID;
-            Primitive rootPrim;
-            List<Primitive> childPrims;
-            List<uint> localIDs = new List<uint>();
+            var localIDs = new List<uint>();
 
             // Reset class-wide variables
             PermsSent = false;
@@ -62,7 +60,7 @@ namespace OpenMetaverse.TestClient
             Logger.DebugLog($"Using PermissionMask: {Perms}", Client);
 
             // Find the requested prim
-            rootPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(prim => prim.ID == rootID);
+            var rootPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(prim => prim.ID == rootID);
             if (rootPrim == null)
                 return $"Cannot find requested prim {rootID}";
             else
@@ -78,7 +76,7 @@ namespace OpenMetaverse.TestClient
             }
 
             // Find all of the child objects linked to this root
-            childPrims = Client.Network.CurrentSim.ObjectsPrimitives.FindAll(prim => prim.ParentID == rootPrim.LocalID);
+            var childPrims = Client.Network.CurrentSim.ObjectsPrimitives.FindAll(prim => prim.ParentID == rootPrim.LocalID);
 
             // Build a dictionary of primitives for referencing later
             Objects[rootPrim.ID] = rootPrim;

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2019-2022, Sjofn LLC
+ * Copyright (c) 2019-2024, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -90,7 +90,7 @@ namespace LibreMetaverse.LslTools
       {
         if (this.m_prod == null)
           return "?? null reduce";
-        return string.Format("reduce {0}", (object) this.m_prod.m_pno);
+        return $"reduce {(object)this.m_prod.m_pno}";
       }
     }
 
