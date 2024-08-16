@@ -1548,9 +1548,8 @@ namespace OpenMetaverse.Messages.Linden
             public UUID GroupID;
             /// <summary>The <seealso cref="UUID"/> of the groups insignia</summary>
             public UUID GroupInsigniaID;
-            /// <summary>The user title from the group</summary>
-            public string GroupTitle;
             /// <summary>The name of the group</summary>
+            public string GroupTitle;
             public string GroupName;
             /// <summary>The aggregate permissions the agent has in the group for all roles the agent
             /// is assigned</summary>
@@ -1627,7 +1626,7 @@ namespace OpenMetaverse.Messages.Linden
             OSDArray agentArray = (OSDArray)map["AgentData"];
             OSDMap agentMap = (OSDMap)agentArray[0];
             AgentID = agentMap["AgentID"].AsUUID();
-            if (agentArray.Count == 0)
+            if (agentArray.Count <= 1)
             {
                 AvatarID = AgentID;
             }
