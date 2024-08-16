@@ -19,9 +19,13 @@ namespace OpenMetaverse.TestClient
             output.AppendLine(Client.Network.CurrentSim.ToString());
             output.Append("UUID: ");
             output.AppendLine(Client.Network.CurrentSim.ID.ToString());
+
             uint x, y;
             Utils.LongToUInts(Client.Network.CurrentSim.Handle, out x, out y);
             output.AppendLine($"Handle: {Client.Network.CurrentSim.Handle} (X: {x} Y: {y})");
+
+            output.AppendLine($"Size: X: {Client.Network.CurrentSim.SizeX}, Y: {Client.Network.CurrentSim.SizeY}");
+
             output.Append("Access: ");
             output.AppendLine(Client.Network.CurrentSim.Access.ToString());
             output.Append("Flags: ");

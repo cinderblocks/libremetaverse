@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 
@@ -32,13 +33,13 @@ namespace OpenMetaverse.TestClient
             Vector3 location = Client.Self.SimPosition;
 
             // *** find all objects in radius ***
-            List<Primitive> prims = Client.Network.CurrentSim.ObjectsPrimitives.FindAll(
-                delegate(Primitive prim)
+            List<Primitive> prims = Client.Network.CurrentSim.ObjectsPrimitives.Where(
+                delegate(KeyValuePair<uint, Primitive> pair)
                 {
-                    Vector3 pos = prim.Position;
-                    return ((prim.ParentID == 0) && (pos != Vector3.Zero) && (Vector3.Distance(pos, location) < radius));
+                    Vector3 pos = pair.Value.Position;
+                    return ((pair.Value.ParentID == 0) && (pos != Vector3.Zero) && (Vector3.Distance(pos, location) < radius));
                 }
-            );
+            ).Select(i=>i.Value).ToList();
 
             // *** request properties of these objects ***
             bool complete = RequestObjectProperties(prims, 250);

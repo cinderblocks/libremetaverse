@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OpenMetaverse.TestClient
 {
@@ -15,9 +16,12 @@ namespace OpenMetaverse.TestClient
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            List<Primitive> attachments = Client.Network.CurrentSim.ObjectsPrimitives.FindAll(
-                prim => prim.ParentID == Client.Self.LocalID
-            );
+            var attachments = Client.Network.CurrentSim.ObjectsPrimitives
+                                    .Where(
+                                           prim => prim.Value.ParentID == Client.Self.LocalID
+                                          )
+                                    .Select(i => i.Value)
+                                    .ToList();
 
             foreach (var prim in attachments)
             {

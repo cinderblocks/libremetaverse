@@ -210,11 +210,9 @@ namespace OpenMetaverse.TestClient
 
         private void bwBackup_DoWork(object sender, DoWorkEventArgs e)
         {
-            string[] args;
-
             TextItemsFound = 0;
 
-            args = (string[])e.Argument;
+            var args = (string[])e.Argument;
 
             lock (CurrentDownloads) CurrentDownloads.Clear();
 

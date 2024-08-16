@@ -61,15 +61,13 @@ namespace OpenMetaverse.TestClient
                 id = SelectedObject;
             }
 
-            Primitive exportPrim;
-
-            exportPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(
-                prim => prim.ID == id
+            var exportPrim = Client.Network.CurrentSim.ObjectsPrimitives.FirstOrDefault(
+                prim => prim.Value.ID == id
             );
 
-            if (exportPrim != null)
+            if (exportPrim.Value != null)
             {
-                localid = exportPrim.ParentID != 0 ? exportPrim.ParentID : exportPrim.LocalID;
+                localid = exportPrim.Value.ParentID != 0 ? exportPrim.Value.ParentID : exportPrim.Value.LocalID;
 
                 // Check for export permission first
                 Client.Objects.RequestObjectPropertiesFamily(Client.Network.CurrentSim, id);
@@ -90,9 +88,9 @@ namespace OpenMetaverse.TestClient
                     }
                 }
 
-                List<Primitive> prims = Client.Network.CurrentSim.ObjectsPrimitives.FindAll(
-                    prim => (prim.LocalID == localid || prim.ParentID == localid)
-                );
+                List<Primitive> prims = Client.Network.CurrentSim.ObjectsPrimitives.Where(
+                    prim => (prim.Value.LocalID == localid || prim.Value.ParentID == localid)
+                ).Select(i=>i.Value).ToList();
 
                 bool complete = RequestObjectProperties(prims, 250);
 
@@ -192,7 +190,7 @@ namespace OpenMetaverse.TestClient
 
                 if (asset.Decode())
                 {
-                    try { File.WriteAllBytes(asset.AssetID + ".tga", asset.Image.ExportTGA()); }
+                    try { File.WriteAllBytes(asset.AssetID + ".tga", Imaging.Targa.Encode(asset.Image)); }
                     catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
                 }
                 else

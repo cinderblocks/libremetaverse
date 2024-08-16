@@ -23,20 +23,20 @@ namespace OpenMetaverse.TestClient
             if (int.TryParse(args[0], out faceIndex) &&
                 UUID.TryParse(args[1], out textureID))
             {
-                Client.Network.CurrentSim.ObjectsPrimitives.ForEach(
-                    delegate(Primitive prim)
+                foreach (var pair in Client.Network.CurrentSim.ObjectsPrimitives)
+                {
+                    var prim = pair.Value;
+
+                    if (prim.Textures?.FaceTextures[faceIndex] != null)
                     {
-                        if (prim.Textures?.FaceTextures[faceIndex] != null)
+                        if (prim.Textures.FaceTextures[faceIndex].TextureID == textureID)
                         {
-                            if (prim.Textures.FaceTextures[faceIndex].TextureID == textureID)
-                            {
-                                Logger.Log(
-                                    $"Primitive {prim.ID.ToString()} ({prim.LocalID}) has face index {faceIndex} set to {textureID.ToString()}",
-                                    Helpers.LogLevel.Info, Client);
-                            }
+                            Logger.Log(
+                                       $"Primitive {prim.ID.ToString()} ({prim.LocalID}) has face index {faceIndex} set to {textureID.ToString()}",
+                                       Helpers.LogLevel.Info, Client);
                         }
                     }
-                );
+                }
 
                 return "Done searching";
             }

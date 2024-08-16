@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text;
 
 namespace OpenMetaverse.TestClient
@@ -25,9 +26,11 @@ namespace OpenMetaverse.TestClient
             {
                 foreach (var sim in Client.Network.Simulators)
                 {
-                    Primitive exportPrim = sim.ObjectsPrimitives.Find(
-                        prim => prim.ID == id
+                    var exportPrimPair = sim.ObjectsPrimitives.FirstOrDefault(
+                        prim => prim.Value.ID == id
                     );
+
+                    var exportPrim = exportPrimPair.Value;
 
                     if (exportPrim != null)
                     {

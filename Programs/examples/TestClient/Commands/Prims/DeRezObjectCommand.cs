@@ -1,4 +1,6 @@
-﻿namespace OpenMetaverse.TestClient
+﻿using System.Linq;
+
+namespace OpenMetaverse.TestClient
 {
     public class DeRezCommand : Command
     {
@@ -18,13 +20,13 @@
 
             if (UUID.TryParse(args[0], out primID))
             {
-                Primitive target = Client.Network.CurrentSim.ObjectsPrimitives.Find(
-                    prim => prim.ID == primID
+                var target = Client.Network.CurrentSim.ObjectsPrimitives.FirstOrDefault(
+                    prim => prim.Value.ID == primID
                 );
 
-                if (target != null)
+                if (target.Value != null)
                 {
-                    uint objectLocalID = target.LocalID;
+                    uint objectLocalID = target.Value.LocalID;
                     Client.Inventory.RequestDeRezToInventory(objectLocalID, DeRezDestination.AgentInventoryTake,
                                                              Client.Inventory.FindFolderForType(FolderType.Trash),
                                                              UUID.Random());

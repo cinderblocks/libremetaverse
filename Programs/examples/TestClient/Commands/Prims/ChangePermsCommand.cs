@@ -25,9 +25,7 @@ namespace OpenMetaverse.TestClient
         public override string Execute(string[] args, UUID fromAgentID)
         {
             UUID rootID;
-            Primitive rootPrim;
-            List<Primitive> childPrims;
-            List<uint> localIDs = new List<uint>();
+            var localIDs = new List<uint>();
 
             // Reset class-wide variables
             PermsSent = false;
@@ -62,11 +60,17 @@ namespace OpenMetaverse.TestClient
             Logger.DebugLog($"Using PermissionMask: {Perms}", Client);
 
             // Find the requested prim
-            rootPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(prim => prim.ID == rootID);
-            if (rootPrim == null)
+            var rootPrimPair = Client.Network.CurrentSim.ObjectsPrimitives.FirstOrDefault(prim => prim.Value.ID == rootID);
+            if (rootPrimPair.Value == null)
+            {
                 return $"Cannot find requested prim {rootID}";
+            }
             else
-                Logger.DebugLog($"Found requested prim {rootPrim.ID}", Client);
+            {
+                Logger.DebugLog($"Found requested prim {rootPrimPair.Value.ID}", Client);
+            }
+
+            var rootPrim = rootPrimPair.Value;
 
             if (rootPrim.ParentID != 0)
             {
@@ -78,16 +82,16 @@ namespace OpenMetaverse.TestClient
             }
 
             // Find all of the child objects linked to this root
-            childPrims = Client.Network.CurrentSim.ObjectsPrimitives.FindAll(prim => prim.ParentID == rootPrim.LocalID);
+            var childPrims = Client.Network.CurrentSim.ObjectsPrimitives.Where(prim => prim.Value.ParentID == rootPrim.LocalID);
 
             // Build a dictionary of primitives for referencing later
             Objects[rootPrim.ID] = rootPrim;
             foreach (var p in childPrims)
-                Objects[p.ID] = p;
+                Objects[p.Value.ID] = p.Value;
 
             // Build a list of all the localIDs to set permissions for
             localIDs.Add(rootPrim.LocalID);
-            localIDs.AddRange(childPrims.Select(t => t.LocalID));
+            localIDs.AddRange(childPrims.Select(t => t.Value.LocalID));
 
             // Go through each of the three main permissions and enable or disable them
             #region Set Linkset Permissions

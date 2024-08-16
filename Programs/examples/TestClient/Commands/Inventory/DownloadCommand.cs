@@ -46,10 +46,8 @@ namespace OpenMetaverse.TestClient
 
             if (DownloadHandle.WaitOne(120 * 1000, false))
             {
-                if (Success)
-                    return $"Saved {AssetID}.{assetType.ToString().ToLower()}";
-                else
-                    return $"Failed to download asset {AssetID}, perhaps {assetType} is the incorrect asset type?";
+                return Success ? $"Saved {AssetID}.{assetType.ToString().ToLower()}" 
+                    : $"Failed to download asset {AssetID}, perhaps {assetType} is the incorrect asset type?";
             }
             else
             {

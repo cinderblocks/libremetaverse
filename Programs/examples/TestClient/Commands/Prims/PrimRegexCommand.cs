@@ -31,35 +31,38 @@ namespace OpenMetaverse.TestClient
                 Logger.Log(
                     $"Searching prim for [{predicatPrim}] ({Client.Network.CurrentSim.ObjectsPrimitives.Count} prims loaded in simulator)\n", Helpers.LogLevel.Info, Client);
 
-                Client.Network.CurrentSim.ObjectsPrimitives.ForEach(
-                    delegate(Primitive prim)
+                foreach (var pair in Client.Network.CurrentSim.ObjectsPrimitives)
+                {
+                    var prim = pair.Value;
+
+                    bool match = false;
+                    string name = "(unknown)";
+                    string description = "(unknown)";
+
+
+                    match = (prim.Text != null && regexPrimName.IsMatch(prim.Text.ToLower()));
+
+                    if (prim.Properties != null && !match)
                     {
-                        bool match = false;
-                        string name = "(unknown)";
-                        string description = "(unknown)";
-
-
-                        match = (prim.Text != null && regexPrimName.IsMatch(prim.Text.ToLower()));
-
-                        if (prim.Properties != null && !match)
-                        {
-                            match = regexPrimName.IsMatch(prim.Properties.Name.ToLower());
-                            if (!match)
-                                match = regexPrimName.IsMatch(prim.Properties.Description.ToLower());
-                        }
-
-                        if (match)
-                        {
-                            if (prim.Properties != null)
-                            {
-                                name = prim.Properties.Name;
-                                description = prim.Properties.Description;
-                            }
-                            Logger.Log(
-                                $"\nNAME={name}\nID = {prim.ID}\nFLAGS = {prim.Flags.ToString()}\nTEXT = '{prim.Text}'\nDESC='{description}'", Helpers.LogLevel.Info, Client);
-                        }
+                        match = regexPrimName.IsMatch(prim.Properties.Name.ToLower());
+                        if (!match)
+                            match = regexPrimName.IsMatch(prim.Properties.Description.ToLower());
                     }
-                );
+
+                    if (match)
+                    {
+                        if (prim.Properties != null)
+                        {
+                            name = prim.Properties.Name;
+                            description = prim.Properties.Description;
+                        }
+
+                        Logger.Log(
+                                   $"\nNAME={name}\nID = {prim.ID}\nFLAGS = {prim.Flags.ToString()}\nTEXT = '{prim.Text}'\nDESC='{description}'",
+                                   Helpers.LogLevel.Info,
+                                   Client);
+                    }
+                }
             }
             catch (System.Exception e)
             {

@@ -16,18 +16,16 @@ namespace OpenMetaverse.TestClient
             Primitive closest = null;
 		    double closestDistance = double.MaxValue;
 
-            Client.Network.CurrentSim.ObjectsPrimitives.ForEach(
-                delegate(Primitive prim)
-                {
-                    float distance = Vector3.Distance(Client.Self.SimPosition, prim.Position);
+            foreach (var primPair in Client.Network.CurrentSim.ObjectsPrimitives)
+            {
+                float distance = Vector3.Distance(Client.Self.SimPosition, primPair.Value.Position);
 
-                    if (closest == null || distance < closestDistance)
-                    {
-                        closest = prim;
-                        closestDistance = distance;
-                    }
+                if (closest == null || distance < closestDistance)
+                {
+                    closest = primPair.Value;
+                    closestDistance = distance;
                 }
-            );
+            }
 
             if (closest != null)
             {

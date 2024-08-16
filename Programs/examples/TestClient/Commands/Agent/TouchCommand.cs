@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace OpenMetaverse.TestClient
 {
     public class TouchCommand: Command
@@ -18,14 +20,16 @@ namespace OpenMetaverse.TestClient
             
             if (UUID.TryParse(args[0], out target))
             {
-                Primitive targetPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(
-                    prim => prim.ID == target
+                var targetPrim = Client.Network.CurrentSim.ObjectsPrimitives.FirstOrDefault(
+                    prim => prim.Value.ID == target
                 );
 
-                if (targetPrim != null)
+                var primitive = targetPrim.Value;
+
+                if (primitive != null)
                 {
-                    Client.Self.Touch(targetPrim.LocalID);
-                    return "Touched prim " + targetPrim.LocalID;
+                    Client.Self.Touch(primitive.LocalID);
+                    return "Touched prim " + primitive.LocalID;
                 }
             }
 

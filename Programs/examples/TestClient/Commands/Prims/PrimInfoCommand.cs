@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 
 namespace OpenMetaverse.TestClient
@@ -21,9 +22,11 @@ namespace OpenMetaverse.TestClient
 
             if (UUID.TryParse(args[0], out primID))
             {
-                Primitive target = Client.Network.CurrentSim.ObjectsPrimitives.Find(
-                    prim => prim.ID == primID
+                var targetPair = Client.Network.CurrentSim.ObjectsPrimitives.FirstOrDefault(
+                    prim => prim.Value.ID == primID
                 );
+
+                var target = targetPair.Value;
 
                 if (target != null)
                 {
