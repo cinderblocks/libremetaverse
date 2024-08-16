@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2022, Sjofn LLC.
+ * Copyright (c) 2022-2023, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,6 @@ namespace OpenMetaverse.Http
         public static int REQUEST_BACKOFF_SECONDS = 5 * 1000; // 5 seconds start
         public static int REQUEST_BACKOFF_SECONDS_INC = 5 * 1000; // 5 seconds increase
         public static int REQUEST_BACKOFF_SECONDS_MAX = 1 * 30 * 1000; // 30 seconds
-
         public delegate void ConnectedCallback();
 
         public delegate void EventCallback(string eventName, OSDMap body);
@@ -50,7 +49,13 @@ namespace OpenMetaverse.Http
         public ConnectedCallback OnConnected;
         public EventCallback OnEvent;
 
-        public bool Running => _Running;
+        public bool Running { get; private set; }
+
+        private readonly Uri _Address;
+        private readonly Simulator _Simulator;
+        private readonly CancellationTokenSource _queueCts;
+        private bool _Dead;
+        private OSD _AckPayload;
 
         protected readonly Uri _Address;
         protected readonly Simulator _Simulator;
@@ -69,6 +74,7 @@ namespace OpenMetaverse.Http
         {
             _Address = eventQueueLocation;
             _Simulator = sim;
+            _queueCts = new CancellationTokenSource();
         }
 
         ~EventQueueClient()
@@ -87,7 +93,20 @@ namespace OpenMetaverse.Http
         public void Start()
         {
             _Dead = false;
-            _Running = true;
+            Running = true;
+
+            Task.Factory.StartNew(() =>
+            {
+                // Initial request
+                _AckPayload = new OSDMap { ["ack"] = new OSD(), ["done"] = OSD.FromBoolean(false) };
+                var initialTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(_queueCts.Token);
+                initialTimeoutCts.CancelAfter(TimeSpan.FromSeconds(30));
+
+                Task initialReq = _Simulator.Client.HttpCapsClient.PostRequestAsync(_Address, OSDFormat.Xml, _AckPayload,
+                    initialTimeoutCts.Token, RequestCompletedHandler, null, ConnectedResponseHandler);
+
+                initialReq.Wait(initialTimeoutCts.Token);
+                initialTimeoutCts.Dispose();
 
             // Create an EventQueueGet request
             OSDMap payload = new OSDMap { ["ack"] = new OSD(), ["done"] = OSD.FromBoolean(false) };
@@ -105,9 +124,10 @@ namespace OpenMetaverse.Http
 
             if (immediate)
             {
-                _Running = false;
+                Running = false;
             }
 
+            _queueCts.Cancel();
             _httpCancellationTokenSource.Cancel();
         }
 
@@ -118,7 +138,7 @@ namespace OpenMetaverse.Http
                 return;
             }
 
-            _Running = true;
+            Running = true;
 
             // The event queue is starting up for the first time
             if (OnConnected != null)
