@@ -93,7 +93,7 @@ namespace OpenMetaverse.Http
             OSDMap payload = new OSDMap { ["ack"] = new OSD(), ["done"] = OSD.FromBoolean(false) };
 
             _httpCancellationTokenSource = new CancellationTokenSource();
-            Task req = _Simulator.Client.HttpCapsClient.PostRequestAsync(_Address, OSDFormat.Xml, payload,
+            _ = _Simulator.Client.HttpCapsClient.PostRequestAsync(_Address, OSDFormat.Xml, payload,
                                                                          _httpCancellationTokenSource.Token,
                                                                          RequestCompletedHandler, null,
                                                                          ConnectedResponseHandler);
