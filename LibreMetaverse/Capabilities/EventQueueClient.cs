@@ -39,10 +39,9 @@ namespace OpenMetaverse.Http
     public class EventQueueClient
     {
         /// <summary>For exponential backoff on error.</summary>
-        public const int REQUEST_BACKOFF_SECONDS = 5 * 1000; // 5 seconds start
-
-        public const int REQUEST_BACKOFF_SECONDS_INC = 5 * 1000; // 5 seconds increase
-        public const int REQUEST_BACKOFF_SECONDS_MAX = 1 * 30 * 1000; // 30 seconds
+        public static int REQUEST_BACKOFF_SECONDS = 5 * 1000; // 5 seconds start
+        public static int REQUEST_BACKOFF_SECONDS_INC = 5 * 1000; // 5 seconds increase
+        public static int REQUEST_BACKOFF_SECONDS_MAX = 1 * 30 * 1000; // 30 seconds
 
         public delegate void ConnectedCallback();
 
@@ -59,7 +58,7 @@ namespace OpenMetaverse.Http
         protected bool _Broken;
         protected bool _Running;
         protected string _LastError = "Undefined";
-        private CancellationTokenSource _HttpCts;
+        private CancellationTokenSource _httpCancellationTokenSource;
 
         /// <summary>Number of times we've received an unknown CAPS exception in series.</summary>
         private int _errorCount;
@@ -70,6 +69,11 @@ namespace OpenMetaverse.Http
         {
             _Address = eventQueueLocation;
             _Simulator = sim;
+        }
+
+        ~EventQueueClient()
+        {
+            _httpCancellationTokenSource?.Dispose();
         }
 
         public void RestartIfDead()
@@ -88,9 +92,9 @@ namespace OpenMetaverse.Http
             // Create an EventQueueGet request
             OSDMap payload = new OSDMap { ["ack"] = new OSD(), ["done"] = OSD.FromBoolean(false) };
 
-            _HttpCts = new CancellationTokenSource();
+            _httpCancellationTokenSource = new CancellationTokenSource();
             Task req = _Simulator.Client.HttpCapsClient.PostRequestAsync(_Address, OSDFormat.Xml, payload,
-                                                                         _HttpCts.Token,
+                                                                         _httpCancellationTokenSource.Token,
                                                                          RequestCompletedHandler, null,
                                                                          ConnectedResponseHandler);
         }
@@ -104,7 +108,7 @@ namespace OpenMetaverse.Http
                 _Running = false;
             }
 
-            _HttpCts.Cancel();
+            _httpCancellationTokenSource.Cancel();
         }
 
         void ConnectedResponseHandler(HttpResponseMessage response)
@@ -363,7 +367,7 @@ namespace OpenMetaverse.Http
 
                     // Resume the connection.
                     Task req = _Simulator.Client.HttpCapsClient.PostRequestAsync(_Address, OSDFormat.Xml, payload,
-                                                                                 _HttpCts.Token,
+                                                                                 _httpCancellationTokenSource.Token,
                                                                                  RequestCompletedHandler);
 
                     // If the event queue is dead at this point, turn it off since
