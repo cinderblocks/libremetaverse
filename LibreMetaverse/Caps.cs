@@ -279,8 +279,11 @@ namespace OpenMetaverse
         {
             if (Simulator == null || !Simulator.Client.Network.Connected) { return; }
 
-            Task loginReq = Simulator.Client.HttpCapsClient.PostRequestAsync(_SeedCapsURI, OSDFormat.Xml, Caps.AllCapabilities, 
-                _HttpCts.Token, SeedRequestCompleteHandler);
+            _ = Simulator.Client.HttpCapsClient.PostRequestAsync(_SeedCapsURI,
+                                                                 OSDFormat.Xml,
+                                                                 Caps.AllCapabilities,
+                                                                 _HttpCts.Token,
+                                                                 SeedRequestCompleteHandler);
         }
 
         private void SeedRequestCompleteHandler(HttpResponseMessage response, byte[] responseData, Exception error)
