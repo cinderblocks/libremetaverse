@@ -294,16 +294,26 @@ namespace OpenMetaverse
         ///
         /// See also: Primitive.ChildCount
         /// </summary>
-        public struct Attachment
+        public struct Attachment : IEquatable<Attachment>
         {
             /// <summary>
             /// The attachment point (see avatar_lad.xml for a list)
             /// </summary>
-            public byte AttachmentPoint;
+            public readonly byte AttachmentPoint;
             /// <summary>
             /// The UUID (global) of the attachment on this point.
             /// </summary>
-            public UUID AttachmentID;
+            public readonly UUID AttachmentID;
+
+            /// <summary>
+            /// Determine if this is the same as another attachment object.
+            /// </summary>
+            /// <param name="other">Target for comparison</param>
+            /// <returns>Are these attachments the same object?</returns>
+            public bool Equals(Attachment other)
+            {
+                return other.AttachmentPoint == AttachmentPoint && other.AttachmentID == AttachmentID;
+            }
         }
 
         #endregion Subclasses
