@@ -25,9 +25,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using CSJ2K;
+using CoreJ2K;
 using OpenMetaverse.Imaging;
-using SkiaSharp;
 
 namespace OpenMetaverse.Assets
 {
@@ -79,8 +78,7 @@ namespace OpenMetaverse.Assets
         /// </summary>
         public sealed override void Encode()
         {
-            var bitmap = Image.ExportBitmap();
-            AssetData = J2kImage.ToBytes(J2kImage.CreateEncodableSource(bitmap));
+            AssetData = J2kImage.ToBytes(Image.ExportBitmap());
         }
 
         /// <summary>

@@ -29,7 +29,7 @@ using System;
 using System.Text;
 using System.IO;
 using System.Collections.Generic;
-using CSJ2K;
+using CoreJ2K;
 using OpenMetaverse.Assets;
 using OpenMetaverse.Imaging;
 using Pfim;

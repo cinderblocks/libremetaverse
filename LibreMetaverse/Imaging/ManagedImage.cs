@@ -26,7 +26,7 @@
  */
 
 using System;
-using CSJ2K.Util;
+using CoreJ2K.Util;
 using SkiaSharp;
 
 namespace OpenMetaverse.Imaging

@@ -33,7 +33,7 @@ using System.IO;
 using System.Xml;
 using System.Linq;
 using System.Xml.Serialization;
-using CSJ2K;
+using CoreJ2K;
 using OpenMetaverse.ImportExport.Collada14;
 using OpenMetaverse.Rendering;
 using SkiaSharp;
@@ -161,7 +161,7 @@ namespace OpenMetaverse.ImportExport
                     bitmap = scaledImage;
                 }
 
-                material.TextureData = J2kImage.ToBytes(J2kImage.CreateEncodableSource(bitmap));
+                material.TextureData = J2kImage.ToBytes(bitmap);
 
                 Logger.Log("Successfully encoded " + fname, Helpers.LogLevel.Info);
             }
