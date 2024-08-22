@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -27,11 +27,17 @@
 
 using System;
 using System.Runtime.Serialization;
+#if NET7_0_OR_GREATER
+using MemoryPack;
+#endif
 
 namespace OpenMetaverse
 {
     [Serializable]
-    public class InventoryNode : ISerializable
+#if NET7_0_OR_GREATER
+    [MemoryPackable]
+#endif
+    public partial class InventoryNode : ISerializable
     {
         private InventoryBase data;
         private InventoryNode parent;
@@ -39,6 +45,9 @@ namespace OpenMetaverse
         private InventoryNodeDictionary nodes;
         private bool needsUpdate = true;
         [NonSerialized]
+#if NET7_0_OR_GREATER
+        [MemoryPackIgnore]
+#endif
         private object tag;
 
         public InventoryBase Data
@@ -48,6 +57,9 @@ namespace OpenMetaverse
         }
 
         /// <summary>User data</summary>
+#if NET7_0_OR_GREATER
+        [MemoryPackIgnore]
+#endif
         public object Tag
         {
             get => tag;
@@ -108,6 +120,9 @@ namespace OpenMetaverse
             Nodes.Sort();
         }
 
+#if NET7_0_OR_GREATER
+        [MemoryPackConstructor]
+#endif
         public InventoryNode()
         {
         }

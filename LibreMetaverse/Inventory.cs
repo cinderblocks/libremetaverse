@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -29,7 +29,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+#if NET7_0_OR_GREATER
+using MemoryPack;
+#else
 using System.Runtime.Serialization.Formatters.Binary;
+#endif
+
 
 namespace OpenMetaverse
 {
@@ -339,13 +344,19 @@ namespace OpenMetaverse
 	        {
                 using (Stream stream = File.Open(filename, FileMode.Create))
                 {
+#if !NET7_0_OR_GREATER
                     BinaryFormatter bformatter = new BinaryFormatter();
+#endif
                     lock (Items)
                     {
                         Logger.Log($"Caching {Items.Count} inventory items to {filename}", Helpers.LogLevel.Info);
-                        foreach (KeyValuePair<UUID, InventoryNode> kvp in Items)
+                        foreach (var kvp in Items)
                         {
+#if NET7_0_OR_GREATER
+                            MemoryPackSerializer.SerializeAsync(stream, kvp.Value);
+#else
                             bformatter.Serialize(stream, kvp.Value);
+#endif
                         }
                     }
                 }
@@ -373,11 +384,18 @@ namespace OpenMetaverse
 
                 using (Stream stream = File.Open(filename, FileMode.Open))
                 {
+#if !NET7_0_OR_GREATER
                     BinaryFormatter bformatter = new BinaryFormatter();
+#endif
                     while (stream.Position < stream.Length)
                     {
+#if NET7_0_OR_GREATER                  
+                        var node = MemoryPackSerializer.DeserializeAsync<InventoryNode>(stream);
+                        nodes.Add(node.Result);
+#else
                         var node = (InventoryNode)bformatter.Deserialize(stream);
                         nodes.Add(node);
+#endif
                         item_count++;
                     }
                 }
@@ -394,7 +412,7 @@ namespace OpenMetaverse
             List<InventoryNode> del_nodes = new List<InventoryNode>(); //nodes that we have processed and will delete
             List<UUID> dirty_folders = new List<UUID>(); // Tainted folders that we will not restore items into
 
-            // Because we could get child nodes before parents we must itterate around and only add nodes who have
+            // Because we could get child nodes before parents we must iterate around and only add nodes who have
             // a parent already in the list because we must update both child and parent to link together
             // But sometimes we have seen orphin nodes due to bad/incomplete data when caching so we have an emergency abort route
             int stuck = 0;
