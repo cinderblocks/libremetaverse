@@ -950,7 +950,6 @@ namespace OpenMetaverse
                     }
                 };
 
-
             Client.Network.SendPacket(request);
         }
 
@@ -1751,30 +1750,31 @@ namespace OpenMetaverse
 
         protected void AgentGroupDataUpdateMessageHandler(string capsKey, IMessage message, Simulator simulator)
         {
+            AgentGroupDataUpdateMessage msg = (AgentGroupDataUpdateMessage)message;
+
+            Dictionary<UUID, Group> currentGroups = new Dictionary<UUID, Group>();
+            for (int i = 0; i < msg.GroupDataBlock.Length; i++)
+            {
+                Group group = new Group();
+                group.ID = msg.GroupDataBlock[i].GroupID;
+                group.InsigniaID = msg.GroupDataBlock[i].GroupInsigniaID;
+                group.Name = msg.GroupDataBlock[i].GroupName;
+                group.Contribution = msg.GroupDataBlock[i].Contribution;
+                group.AcceptNotices = msg.GroupDataBlock[i].AcceptNotices;
+                group.Powers = msg.GroupDataBlock[i].GroupPowers;
+                group.ListInProfile = msg.NewGroupDataBlock[i].ListInProfile;
+
+                currentGroups.Add(group.ID, group);
+
+                lock (GroupName2KeyCache.Dictionary)
+                {
+                    if (!GroupName2KeyCache.Dictionary.ContainsKey(group.ID))
+                        GroupName2KeyCache.Dictionary.Add(group.ID, group.Name);
+                }
+            }
+
             if (m_CurrentGroups != null)
             {
-                AgentGroupDataUpdateMessage msg = (AgentGroupDataUpdateMessage)message;
-
-                Dictionary<UUID, Group> currentGroups = new Dictionary<UUID, Group>();
-                for (int i = 0; i < msg.GroupDataBlock.Length; i++)
-                {
-                    Group group = new Group();
-                    group.ID = msg.GroupDataBlock[i].GroupID;
-                    group.InsigniaID = msg.GroupDataBlock[i].GroupInsigniaID;
-                    group.Name = msg.GroupDataBlock[i].GroupName;
-                    group.Contribution = msg.GroupDataBlock[i].Contribution;
-                    group.AcceptNotices = msg.GroupDataBlock[i].AcceptNotices;
-                    group.Powers = msg.GroupDataBlock[i].GroupPowers;
-                    group.ListInProfile = msg.NewGroupDataBlock[i].ListInProfile;
-
-                    currentGroups.Add(group.ID, group);
-
-                    lock (GroupName2KeyCache.Dictionary)
-                    {
-                        if (!GroupName2KeyCache.Dictionary.ContainsKey(group.ID))
-                            GroupName2KeyCache.Dictionary.Add(group.ID, group.Name);
-                    }
-                }
                 OnCurrentGroups(new CurrentGroupsEventArgs(currentGroups));
             }
         }
@@ -1793,7 +1793,6 @@ namespace OpenMetaverse
 
         protected void AgentDropGroupMessageHandler(string capsKey, IMessage message, Simulator simulator)
         {
-
             if (m_GroupDropped != null)
             {
                 AgentDropGroupMessage msg = (AgentDropGroupMessage)message;
