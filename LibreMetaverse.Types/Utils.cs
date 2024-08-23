@@ -399,9 +399,10 @@ namespace OpenMetaverse
         /// <returns>The PBKDF2 hash of the supplied string</returns>
         public static string PBKDF2(string str)
         {
-            var derivebytes = new Rfc2898DeriveBytes(str, 32, 10000, HashAlgorithmName.SHA1);
+            var salt = new byte[32];
+            using (var generator = RandomNumberGenerator.Create()) { generator.GetBytes(salt); }
+            var derivebytes = new Rfc2898DeriveBytes(str, salt, 10000);
             byte[] hash = derivebytes.GetBytes(20);
-            byte[] salt = derivebytes.Salt;
             return Convert.ToBase64String(salt) + "|" + Convert.ToBase64String(hash);
         }
 
