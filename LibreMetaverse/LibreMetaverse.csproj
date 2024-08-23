@@ -11,7 +11,7 @@
 	<IncludeSymbols>true</IncludeSymbols>
 	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <NoWarn>$(NoWarn);CS8981;CS1591;CS1574</NoWarn>
-    <TargetFrameworks>net481;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net7.0;net8.0</TargetFrameworks>
     <PlatformTarget>AnyCPU</PlatformTarget>
 	<OutputPath>..\bin\</OutputPath>
   </PropertyGroup>
