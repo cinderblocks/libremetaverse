@@ -16,7 +16,7 @@ environment:
     configuration: Release
   - job_name: Mac Build
     platform: Any CPU
-    appveyor_build_worker_image: macos-monterey
+    appveyor_build_worker_image: macos-sonoma
     configuration: Release
 
   LMVTestAgentUsername: SecretAgentTest Resident
@@ -32,7 +32,7 @@ environment:
 matrix:
   allow_failures:
   - image: Ubuntu2204
-  - image: macos-monterey
+  - image: macos-sonoma
 
 pull_requests:
   do_not_increment_build_number: false
