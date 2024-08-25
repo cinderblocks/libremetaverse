@@ -100,8 +100,8 @@ for:
 -
   matrix:
     only: # remove either when mono stops crashing or we stop supporting net481
-      - image: Ubuntu2204
-      - image: macos-sonoma
+      - job_name: Linux Build
+      - job_name: Mac Build
   
   test: off
 -
