@@ -607,7 +607,7 @@ namespace OpenMetaverse
             GridRegion foundRegion = default(GridRegion);
             bool found = false;
 
-            void RegionCallback(object sender, GridRegionEventArgs e)
+            void RegionCallback(object? sender, GridRegionEventArgs e)
             {   // See note in HandleCallback, above.
                 if (e.Region.RegionHandle == handle)
                 {
