@@ -524,7 +524,7 @@ namespace OpenMetaverse
         {
             if (Client.Settings.USE_INTERPOLATION_TIMER)
             {
-                InterpolationTimer = new Timer(InterpolationTimer_Elapsed, null, Settings.INTERPOLATION_INTERVAL, Timeout.Infinite);
+                InterpolationTimer = new Timer(InterpolationTimer_Elapsed, null, Client.Settings.INTERPOLATION_INTERVAL, Timeout.Infinite);
             }
         }
 
@@ -3297,7 +3297,7 @@ namespace OpenMetaverse
             }
 
             // Start the timer again. Use a minimum of a 50ms pause in between calculations
-            int delay = Math.Max(50, Settings.INTERPOLATION_INTERVAL - elapsed);
+            int delay = Math.Max(50, Client.Settings.INTERPOLATION_INTERVAL - elapsed);
             InterpolationTimer?.Change(delay, Timeout.Infinite);
 
         }
