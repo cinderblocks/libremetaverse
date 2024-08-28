@@ -388,7 +388,7 @@ namespace OpenMetaverse
         /// <summary>
         /// A thread-safe dictionary containing primitives in a simulator
         /// </summary>
-        public ConcurrentDictionary<uint, Primitive> ObjectsPrimitives = new ConcurrentDictionary<uint, Primitive>();
+        public InternalDictionary<uint, Primitive> ObjectsPrimitives = new InternalDictionary<uint, Primitive>();
 
         /// <summary>
         /// A thread-safe dictionary which can be used to find the local ID of a specified UUID.
