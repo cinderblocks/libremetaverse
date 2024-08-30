@@ -299,11 +299,11 @@ namespace OpenMetaverse
             /// <summary>
             /// The attachment point (see avatar_lad.xml for a list)
             /// </summary>
-            public readonly byte AttachmentPoint;
+            public byte AttachmentPoint;
             /// <summary>
             /// The UUID (global) of the attachment on this point.
             /// </summary>
-            public readonly UUID AttachmentID;
+            public UUID AttachmentID;
 
             /// <summary>
             /// Determine if this is the same as another attachment object.
