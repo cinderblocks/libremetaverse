@@ -1260,12 +1260,12 @@ namespace OpenMetaverse
         /// <summary>Currently playing animations for the agent. Can be used to
         /// check the current movement status such as walking, hovering, aiming,
         /// etc. by checking against system animations found in the Animations class</summary>
-        public InternalDictionary<UUID, int> SignaledAnimations = new InternalDictionary<UUID, int>();
+        public LockingDictionary<UUID, int> SignaledAnimations = new LockingDictionary<UUID, int>();
         /// <summary>Dictionary containing current Group Chat sessions and members</summary>
-        public InternalDictionary<UUID, List<ChatSessionMember>> GroupChatSessions = new InternalDictionary<UUID, List<ChatSessionMember>>();
+        public LockingDictionary<UUID, List<ChatSessionMember>> GroupChatSessions = new LockingDictionary<UUID, List<ChatSessionMember>>();
         /// <summary>Dictionary containing mute list keyed on mute name and key</summary>
-        public InternalDictionary<string, MuteEntry> MuteList = new InternalDictionary<string, MuteEntry>();
-        public InternalDictionary<UUID, UUID> ActiveGestures { get; } = new InternalDictionary<UUID, UUID>();
+        public LockingDictionary<string, MuteEntry> MuteList = new LockingDictionary<string, MuteEntry>();
+        public LockingDictionary<UUID, UUID> ActiveGestures { get; } = new LockingDictionary<UUID, UUID>();
 
         #region Properties
 
@@ -5467,13 +5467,13 @@ namespace OpenMetaverse
     public class AnimationsChangedEventArgs : EventArgs
     {
         /// <summary>Get the dictionary that contains the changed animations</summary>
-        public InternalDictionary<UUID, int> Animations { get; }
+        public LockingDictionary<UUID, int> Animations { get; }
 
         /// <summary>
         /// Construct a new instance of the AnimationsChangedEventArgs class
         /// </summary>
         /// <param name="agentAnimations">The dictionary that contains the changed animations</param>
-        public AnimationsChangedEventArgs(InternalDictionary<UUID, int> agentAnimations)
+        public AnimationsChangedEventArgs(LockingDictionary<UUID, int> agentAnimations)
         {
             Animations = agentAnimations;
         }

@@ -864,13 +864,13 @@ namespace OpenMetaverse
         /// <summary>Currently-active group role-member requests</summary>
         private List<UUID> GroupRolesMembersRequests;
         /// <summary>Dictionary keeping group members while request is in progress</summary>
-        private InternalDictionary<UUID, Dictionary<UUID, GroupMember>> TempGroupMembers;
+        private LockingDictionary<UUID, Dictionary<UUID, GroupMember>> TempGroupMembers;
         /// <summary>Dictionary keeping mebmer/role mapping while request is in progress</summary>
-        private InternalDictionary<UUID, List<KeyValuePair<UUID, UUID>>> TempGroupRolesMembers;
+        private LockingDictionary<UUID, List<KeyValuePair<UUID, UUID>>> TempGroupRolesMembers;
         /// <summary>Dictionary keeping GroupRole information while request is in progress</summary>
-        private InternalDictionary<UUID, Dictionary<UUID, GroupRole>> TempGroupRoles;
+        private LockingDictionary<UUID, Dictionary<UUID, GroupRole>> TempGroupRoles;
         /// <summary>Caches group name lookups</summary>
-        public InternalDictionary<UUID, string> GroupName2KeyCache;
+        public LockingDictionary<UUID, string> GroupName2KeyCache;
 
         /// <summary>
         /// Construct a new instance of the GroupManager class
@@ -880,13 +880,13 @@ namespace OpenMetaverse
         {
             Client = client;
 
-            TempGroupMembers = new InternalDictionary<UUID, Dictionary<UUID, GroupMember>>();
+            TempGroupMembers = new LockingDictionary<UUID, Dictionary<UUID, GroupMember>>();
             GroupMembersRequests = new List<UUID>();
-            TempGroupRoles = new InternalDictionary<UUID, Dictionary<UUID, GroupRole>>();
+            TempGroupRoles = new LockingDictionary<UUID, Dictionary<UUID, GroupRole>>();
             GroupRolesRequests = new List<UUID>();
-            TempGroupRolesMembers = new InternalDictionary<UUID, List<KeyValuePair<UUID, UUID>>>();
+            TempGroupRolesMembers = new LockingDictionary<UUID, List<KeyValuePair<UUID, UUID>>>();
             GroupRolesMembersRequests = new List<UUID>();
-            GroupName2KeyCache = new InternalDictionary<UUID, string>();
+            GroupName2KeyCache = new LockingDictionary<UUID, string>();
 
             Client.Self.IM += Self_IM;
 

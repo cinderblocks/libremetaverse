@@ -421,7 +421,7 @@ namespace OpenMetaverse
         /// The Key is the <seealso cref="UUID"/> of the friend, the value is a <seealso cref="FriendInfo"/>
         /// object that contains detailed information including permissions you have and have given to the friend
         /// </summary>
-        public InternalDictionary<UUID, FriendInfo> FriendList = new InternalDictionary<UUID, FriendInfo>();
+        public LockingDictionary<UUID, FriendInfo> FriendList = new LockingDictionary<UUID, FriendInfo>();
 
         /// <summary>
         /// A Dictionary of key/value pairs containing current pending frienship offers.
@@ -430,7 +430,7 @@ namespace OpenMetaverse
         /// the value is the <seealso cref="UUID"/> of the request which is used to accept
         /// or decline the friendship offer
         /// </summary>
-        public InternalDictionary<UUID, UUID> FriendRequests = new InternalDictionary<UUID, UUID>();
+        public LockingDictionary<UUID, UUID> FriendRequests = new LockingDictionary<UUID, UUID>();
 
         /// <summary>
         /// Internal constructor
@@ -1028,7 +1028,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Populate FriendList <seealso cref="InternalDictionary"/> with data from the login reply
+        /// Populate FriendList <seealso cref="LockingDictionary{TKey,TValue}"/> with data from the login reply
         /// </summary>
         /// <param name="loginSuccess">true if login was successful</param>
         /// <param name="redirect">true if login request is requiring a redirect</param>

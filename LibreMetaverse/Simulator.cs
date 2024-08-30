@@ -383,12 +383,12 @@ namespace OpenMetaverse
         /// <summary>
         /// A thread-safe dictionary containing avatars in a simulator        
         /// </summary>
-        public InternalDictionary<uint, Avatar> ObjectsAvatars = new InternalDictionary<uint, Avatar>();
+        public LockingDictionary<uint, Avatar> ObjectsAvatars = new LockingDictionary<uint, Avatar>();
 
         /// <summary>
         /// A thread-safe dictionary containing primitives in a simulator
         /// </summary>
-        public InternalDictionary<uint, Primitive> ObjectsPrimitives = new InternalDictionary<uint, Primitive>();
+        public LockingDictionary<uint, Primitive> ObjectsPrimitives = new LockingDictionary<uint, Primitive>();
 
         /// <summary>
         /// A thread-safe dictionary which can be used to find the local ID of a specified UUID.
@@ -403,7 +403,7 @@ namespace OpenMetaverse
         /// Provides access to an internal thread-safe dictionary containing parcel
         /// information found in this simulator
         /// </summary>
-        public InternalDictionary<int, Parcel> Parcels
+        public LockingDictionary<int, Parcel> Parcels
         {
             get
             {
@@ -411,10 +411,10 @@ namespace OpenMetaverse
                 {
                     return DataPool.Parcels;
                 }
-                return _Parcels ?? (_Parcels = new InternalDictionary<int, Parcel>());
+                return _Parcels ?? (_Parcels = new LockingDictionary<int, Parcel>());
             }
         }
-        private InternalDictionary<int, Parcel> _Parcels;
+        private LockingDictionary<int, Parcel> _Parcels;
 
         /// <summary>
         /// Provides access to an internal thread-safe multidimensional array containing a x,y grid mapped
@@ -468,7 +468,7 @@ namespace OpenMetaverse
         /// not</summary>
         public bool Connected { get { return connected; } }
         /// <summary>Coarse locations of avatars in this simulator</summary>
-        public InternalDictionary<UUID, Vector3> AvatarPositions { get { return avatarPositions; } }
+        public LockingDictionary<UUID, Vector3> AvatarPositions { get { return avatarPositions; } }
         /// <summary>AvatarPositions key representing TrackAgent target</summary>
         public UUID PreyID { get { return preyID; } }
         /// <summary>Indicates if UDP connection to the sim is fully established</summary>
@@ -486,7 +486,7 @@ namespace OpenMetaverse
         /// to the property Connected</summary>
         internal bool connected;
         /// <summary>Coarse locations of avatars in this simulator</summary>
-        internal InternalDictionary<UUID, Vector3> avatarPositions = new InternalDictionary<UUID, Vector3>();
+        internal LockingDictionary<UUID, Vector3> avatarPositions = new LockingDictionary<UUID, Vector3>();
         /// <summary>AvatarPositions key representing TrackAgent target</summary>
         internal UUID preyID = UUID.Zero;
         /// <summary>Sequence numbers of packets we've received
@@ -1521,7 +1521,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Shared parcel info only when POOL_PARCEL_DATA == true
         /// </summary>
-        public InternalDictionary<int, Parcel> Parcels = new InternalDictionary<int, Parcel>();
+        public LockingDictionary<int, Parcel> Parcels = new LockingDictionary<int, Parcel>();
         public int[,] ParcelMap = new int[64, 64];
         public bool DownloadingParcelMap = false;
 

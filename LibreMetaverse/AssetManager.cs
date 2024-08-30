@@ -201,13 +201,13 @@ namespace OpenMetaverse
         public AssetManager.AssetReceivedCallback Callback;
 
         public int nextPacket;
-        public InternalDictionary<int, byte[]> outOfOrderPackets;
+        public LockingDictionary<int, byte[]> outOfOrderPackets;
         internal ManualResetEvent HeaderReceivedEvent = new ManualResetEvent(false);
 
         public AssetDownload()
         {
             nextPacket = 0;
-            outOfOrderPackets = new InternalDictionary<int, byte[]>();
+            outOfOrderPackets = new LockingDictionary<int, byte[]>();
         }
     }
 

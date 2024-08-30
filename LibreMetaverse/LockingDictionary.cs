@@ -34,15 +34,14 @@ using System.Runtime.Serialization;
 namespace OpenMetaverse
 {
     /// <summary>
-    /// The InternalDictionary class is used through the library for storing key/value pairs.
+    /// The LockingDictionary class is used through the library for storing key/value pairs.
     /// It is intended to be a replacement for the generic Dictionary class and should
     /// be used in its place. It contains several methods for allowing access to the data from
     /// outside the library that are read only and thread safe.
-    ///
     /// </summary>
     /// <typeparam name="TKey">Key <see langword="Tkey"/></typeparam>
     /// <typeparam name="TValue">Value <see langword="TValue"/></typeparam>
-    public class InternalDictionary<TKey, TValue> : IDictionary<TKey, TValue>
+    public class LockingDictionary<TKey, TValue> : IDictionary<TKey, TValue>
     {
         /// <summary>
         /// Internal dictionary that this class wraps around. Do not
@@ -104,6 +103,7 @@ namespace OpenMetaverse
                 Dictionary.OnDeserialization(sender);
         }
 
+        /// <inheritdoc/>
         public IEqualityComparer<TKey> Comparer
         {
             get { lock (Dictionary) return Dictionary.Comparer; }
@@ -126,7 +126,7 @@ namespace OpenMetaverse
         /// public InternalDictionary&lt;string, int&gt; testDict = new InternalDictionary&lt;string, int&gt;();
         /// </code>
         /// </example>
-        public InternalDictionary()
+        public LockingDictionary()
         {
             Dictionary = new Dictionary<TKey, TValue>();
         }
@@ -152,7 +152,7 @@ namespace OpenMetaverse
         /// public InternalDictionary&lt;UUID, string&gt; testAvName = new InternalDictionary&lt;UUID, string&gt;(KeyNameCache);
         /// </code>
         /// </example>
-        public InternalDictionary(IDictionary<TKey, TValue> dictionary)
+        public LockingDictionary(IDictionary<TKey, TValue> dictionary)
         {
             Dictionary = new Dictionary<TKey, TValue>(dictionary);
         }
@@ -169,7 +169,7 @@ namespace OpenMetaverse
         /// public InternalDictionary&lt;string, int&gt; testDict = new InternalDictionary&lt;string, int&gt;(10);
         /// </code>
         /// </example>
-        public InternalDictionary(int capacity)
+        public LockingDictionary(int capacity)
         {
             Dictionary = new Dictionary<TKey, TValue>(capacity);
         }
@@ -416,6 +416,7 @@ namespace OpenMetaverse
             }
         }
 
+        /// <inheritdoc />
         public ICollection<TKey> Keys
         {
             get
@@ -427,6 +428,7 @@ namespace OpenMetaverse
             }
         }
         
+        /// <inheritdoc />
         public ICollection<TValue> Values
         {
             get
@@ -438,6 +440,7 @@ namespace OpenMetaverse
             }
         }
 
+        /// <inheritdoc />
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
         {
             lock (Dictionary)
@@ -446,6 +449,7 @@ namespace OpenMetaverse
             }
         }
 
+        /// <inheritdoc />
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();

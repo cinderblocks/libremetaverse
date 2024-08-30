@@ -2339,7 +2339,7 @@ namespace OpenMetaverse
         public Simulator Simulator { get; }
 
         /// <summary>A dictionary containing the parcel data where the key correlates to the ParcelMap entry</summary>
-        public InternalDictionary<int, Parcel> Parcels { get; }
+        public LockingDictionary<int, Parcel> Parcels { get; }
 
         /// <summary>Get the multidimensional array containing a x,y grid mapped
         /// to each 64x64 parcel's LocalID.</summary>
@@ -2352,7 +2352,7 @@ namespace OpenMetaverse
         /// <param name="simParcels">The dictionary containing the parcel data</param>
         /// <param name="parcelMap">The multidimensional array containing a x,y grid mapped
         /// to each 64x64 parcel's LocalID.</param>
-        public SimParcelsDownloadedEventArgs(Simulator simulator, InternalDictionary<int, Parcel> simParcels, int[,] parcelMap)
+        public SimParcelsDownloadedEventArgs(Simulator simulator, LockingDictionary<int, Parcel> simParcels, int[,] parcelMap)
         {
             Simulator = simulator;
             Parcels = simParcels;
