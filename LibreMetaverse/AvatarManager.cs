@@ -1053,12 +1053,6 @@ namespace OpenMetaverse
                             }
 
                             childCount = av.ChildCount = av.Attachments.Count;
-
-                            const bool log = false;
-                            if (log)
-                            {
-                                Logger.Log($"Attachment count for {av.Name}: {av.Attachments.Count}", Helpers.LogLevel.Info, Client);
-                            }
                         }
                     }
                 }

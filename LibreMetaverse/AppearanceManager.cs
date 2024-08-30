@@ -456,17 +456,13 @@ namespace OpenMetaverse
 
         private bool HasSentAppearanceInThisSession { get; set; }
 
-        const bool ReattachAttachmentsWhenMovingSimulator = false;
-
         private async void NetworkOnSimChanged(object sender, SimChangedEventArgs e)
         {
             _pendingServerBake = true;
-
-            if (ReattachAttachmentsWhenMovingSimulator)
-            {
-                await Task.Delay(5000);
-                SendOutfitToCurrentSimulator();
-            }
+            
+            // ReattachAttachmentsWhenMovingSimulator???
+            //await Task.Delay(5000);
+            //SendOutfitToCurrentSimulator();
         }
 
 #region Publics Methods
