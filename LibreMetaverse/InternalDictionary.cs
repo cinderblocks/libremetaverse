@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2024, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -25,7 +26,10 @@
  */
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.Serialization;
 
 namespace OpenMetaverse
 {
@@ -38,11 +42,13 @@ namespace OpenMetaverse
     /// </summary>
     /// <typeparam name="TKey">Key <see langword="Tkey"/></typeparam>
     /// <typeparam name="TValue">Value <see langword="TValue"/></typeparam>
-    public class InternalDictionary<TKey, TValue>
+    public class InternalDictionary<TKey, TValue> : IDictionary<TKey, TValue>
     {
-        /// <summary>Internal dictionary that this class wraps around. Do not
+        /// <summary>
+        /// Internal dictionary that this class wraps around. Do not
         /// modify or enumerate the contents of this dictionary without locking
-        /// on this member</summary>
+        /// on this member
+        /// </summary>
         internal Dictionary<TKey, TValue> Dictionary;
 
         public Dictionary<TKey,TValue> Copy()
@@ -51,10 +57,68 @@ namespace OpenMetaverse
                 return new Dictionary<TKey, TValue>(Dictionary);
         }
 
+        public void Add(KeyValuePair<TKey, TValue> item)
+        {
+            lock (Dictionary)
+                Dictionary.Add(item.Key, item.Value);
+        }
+
+        public void Clear()
+        {
+            lock (Dictionary)
+                Dictionary.Clear();
+        }
+
+        public bool Contains(KeyValuePair<TKey, TValue> item)
+        {
+            TValue v;
+            lock (Dictionary)
+                return (Dictionary.TryGetValue(item.Key, out v) && v.Equals(item.Key));
+        }
+
+        public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+        {
+            lock (Dictionary)
+                ((ICollection<KeyValuePair<TKey, TValue>>)Dictionary).CopyTo(array, arrayIndex);
+        }
+
+        public bool Remove(KeyValuePair<TKey, TValue> item)
+        {
+            lock (Dictionary)
+            {
+                if (Contains(item))
+                {
+                    Dictionary.Remove(item.Key);
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            lock (Dictionary)
+                Dictionary.GetObjectData(info, context);
+        }
+
+        public void OnDeserialization(object sender)
+        {
+            lock( Dictionary)
+                Dictionary.OnDeserialization(sender);
+        }
+
+        public IEqualityComparer<TKey> Comparer
+        {
+            get { lock (Dictionary) return Dictionary.Comparer; }
+        }
+        
         /// <summary>
         /// Gets the number of Key/Value pairs contained in the <seealso cref="T:InternalDictionary"/>
         /// </summary>
         public int Count { get { lock (Dictionary) return Dictionary.Count; } }
+
+        public bool IsReadOnly { get; private set; }
 
         /// <summary>
         /// Initializes a new instance of the <seealso cref="T:InternalDictionary"/> Class
@@ -73,7 +137,7 @@ namespace OpenMetaverse
 
         /// <summary>
         /// Initializes a new instance of the <seealso cref="T:InternalDictionary"/> Class
-        /// with the specified key/value, has its initial valies copied from the specified
+        /// with the specified key/value, has its initial values copied from the specified
         /// <seealso cref="T:System.Collections.Generic.Dictionary"/>
         /// </summary>
         /// <param name="dictionary"><seealso cref="T:System.Collections.Generic.Dictionary"/>
@@ -112,6 +176,11 @@ namespace OpenMetaverse
         public InternalDictionary(int capacity)
         {
             Dictionary = new Dictionary<TKey, TValue>(capacity);
+        }
+
+        bool IDictionary<TKey, TValue>.Remove(TKey key)
+        {
+            return Remove(key);
         }
 
         /// <summary>
@@ -155,10 +224,9 @@ namespace OpenMetaverse
         {
             lock (Dictionary)
             {
-                foreach (TValue value in Dictionary.Values)
+                foreach (var value in Dictionary.Values.Where(value => match(value)))
                 {
-                    if (match(value))
-                        return value;
+                    return value;
                 }
             }
             return default(TValue);
@@ -181,14 +249,10 @@ namespace OpenMetaverse
         ///</example>
         public List<TValue> FindAll(Predicate<TValue> match)
         {
-            List<TValue> found = new List<TValue>();
+            var found = new List<TValue>();
             lock (Dictionary)
             {
-                foreach (KeyValuePair<TKey, TValue> kvp in Dictionary)
-                {
-                    if (match(kvp.Value))
-                        found.Add(kvp.Value);
-                }
+                found.AddRange(from kvp in Dictionary where match(kvp.Value) select kvp.Value);
             }
             return found;
         }
@@ -208,14 +272,10 @@ namespace OpenMetaverse
         ///</example>
         public List<TKey> FindAll(Predicate<TKey> match)
         {
-            List<TKey> found = new List<TKey>();
+            var found = new List<TKey>();
             lock (Dictionary)
             {
-                foreach (KeyValuePair<TKey, TValue> kvp in Dictionary)
-                {
-                    if (match(kvp.Key))
-                        found.Add(kvp.Key);
-                }
+                found.AddRange(from kvp in Dictionary where match(kvp.Key) select kvp.Key);
             }
             return found;
         }
@@ -240,7 +300,7 @@ namespace OpenMetaverse
         {
             lock (Dictionary)
             {
-                foreach (TValue value in Dictionary.Values)
+                foreach (var value in Dictionary.Values)
                 {
                     action(value);
                 }
@@ -253,7 +313,7 @@ namespace OpenMetaverse
         {
             lock (Dictionary)
             {
-                foreach (TKey key in Dictionary.Keys)
+                foreach (var key in Dictionary.Keys)
                 {
                     action(key);
                 }
@@ -268,11 +328,16 @@ namespace OpenMetaverse
         {
             lock (Dictionary)
             {
-                foreach (KeyValuePair<TKey, TValue> entry in Dictionary)
+                foreach (var entry in Dictionary)
                 {
                     action(entry);
                 }
             }
+        }
+
+        void IDictionary<TKey, TValue>.Add(TKey key, TValue value)
+        {
+            Add(key, value);
         }
 
         /// <summary>Check if Key exists in Dictionary</summary>
@@ -324,13 +389,70 @@ namespace OpenMetaverse
             get
             {
                 lock (Dictionary)
+                {
                     return Dictionary[key];
+                }
             }
-            internal set
+            set
             {
                 lock (Dictionary)
+                {
                     Dictionary[key] = value;
+                }
             }
+        }
+        
+        public object this[object key]
+        {
+            get
+            {
+                lock (Dictionary)
+                {
+                    return Dictionary[(TKey) key];
+                }
+            }
+            set
+            {
+                lock (Dictionary)
+                {
+                    Dictionary[(TKey) key] = (TValue) value;
+                }
+            }
+        }
+
+        public ICollection<TKey> Keys
+        {
+            get
+            {
+                lock (Dictionary)
+                {
+                    return Dictionary.Keys;
+                }
+            }
+        }
+        
+        public ICollection<TValue> Values
+        {
+            get
+            {
+                lock (Dictionary)
+                {
+                    return Dictionary.Values;
+                }
+            }
+        }
+
+        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+        {
+            lock (Dictionary)
+            {
+                return Dictionary.GetEnumerator();
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }
