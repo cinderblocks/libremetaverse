@@ -871,12 +871,10 @@ namespace OpenMetaverse
         public virtual IEnumerable<Primitive> GetChildren(GridClient client)
         {
             var sim = client.Network.FindSimulator(RegionHandle);
-            if (sim != null)
-            {
-                return sim.ObjectsPrimitives.Where(p => p.Value.ParentID == LocalID).Select(p => p.Value);
-            }
-
-            return Array.Empty<Primitive>();
+            return sim != null 
+                ? sim.ObjectsPrimitives.Where(p => p.Value.ParentID == LocalID)
+                    .Select(p => p.Value) 
+                : Array.Empty<Primitive>();
         }
 
 #endregion Public Members
