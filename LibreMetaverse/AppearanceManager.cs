@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -33,7 +34,6 @@ using System.Threading.Tasks;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Imaging;
 using OpenMetaverse.Assets;
-using OpenMetaverse.Http;
 using OpenMetaverse.StructuredData;
 using LibreMetaverse;
 
@@ -386,12 +386,12 @@ namespace OpenMetaverse
         private int SetAppearanceSerialNum = 0;
         /// <summary>Indicates if WearablesRequest succeeded</summary>
         private bool GotWearables = false;
-        /// <summary>Indicates whether or not the appearance thread is currently
+        /// <summary>Indicates whether the appearance thread is currently
         /// running, to prevent multiple appearance threads from running
         /// simultaneously</summary>
         private int AppearanceThreadRunning = 0;
         /// <summary>Reference to our agent</summary>
-        private GridClient Client;
+        private readonly GridClient Client;
         /// <summary>
         /// Timer used for delaying rebake on changing outfit
         /// </summary>
@@ -459,10 +459,6 @@ namespace OpenMetaverse
         private void NetworkOnSimChanged(object sender, SimChangedEventArgs e)
         {
             _pendingServerBake = true;
-            
-            // ReattachAttachmentsWhenMovingSimulator???
-            //await Task.Delay(5000);
-            //SendOutfitToCurrentSimulator();
         }
 
 #region Publics Methods
@@ -520,13 +516,13 @@ namespace OpenMetaverse
                 () =>
                 {
                     var cancellationToken = CancellationTokenSource.Token;
-                    bool success = true;
+                    var success = true;
                     try
                     {
                         if (forceRebake)
                         {
-                            // Set all of the baked textures to UUID.Zero to force rebaking
-                            for (int bakedIndex = 0; bakedIndex < BAKED_TEXTURE_COUNT; bakedIndex++)
+                            // Set all the baked textures to UUID.Zero to force rebaking
+                            for (var bakedIndex = 0; bakedIndex < BAKED_TEXTURE_COUNT; bakedIndex++)
                                 Textures[(int)BakeTypeToAgentTextureIndex((BakeType)bakedIndex)].TextureID = UUID.Zero;
                         }
 
@@ -682,7 +678,7 @@ namespace OpenMetaverse
         /// </summary>
         public void RequestAgentWearables()
         {
-            AgentWearablesRequestPacket request = new AgentWearablesRequestPacket
+            var request = new AgentWearablesRequestPacket
             {
                 AgentData =
                 {
@@ -705,17 +701,17 @@ namespace OpenMetaverse
             // Build hashes for each of the bake layers from the individual components
             lock (Wearables)
             {
-                for (int bakedIndex = 0; bakedIndex < BAKED_TEXTURE_COUNT; bakedIndex++)
+                for (var bakedIndex = 0; bakedIndex < BAKED_TEXTURE_COUNT; bakedIndex++)
                 {
                     // Don't do a cache request for a skirt bake if we're not wearing a skirt
                     if (bakedIndex == (int)BakeType.Skirt && !Wearables.ContainsKey(WearableType.Skirt))
                         continue;
 
                     // Build a hash of all the texture asset IDs in this baking layer
-                    UUID hash = UUID.Zero;
-                    for (int wearableIndex = 0; wearableIndex < WEARABLES_PER_LAYER; wearableIndex++)
+                    var hash = UUID.Zero;
+                    for (var wearableIndex = 0; wearableIndex < WEARABLES_PER_LAYER; wearableIndex++)
                     {
-                        WearableType type = WEARABLE_BAKE_MAP[bakedIndex][wearableIndex];
+                        var type = WEARABLE_BAKE_MAP[bakedIndex][wearableIndex];
 
                         if (type == WearableType.Invalid) continue;
                         hash = Wearables.Where(e => e.Key == type)
@@ -728,7 +724,7 @@ namespace OpenMetaverse
                         hash ^= BAKED_TEXTURE_HASH[bakedIndex];
 
                         // Add this to the list of hashes to send out
-                        AgentCachedTexturePacket.WearableDataBlock block =
+                        var block =
                             new AgentCachedTexturePacket.WearableDataBlock
                             {
                                 ID = hash,
@@ -736,14 +732,14 @@ namespace OpenMetaverse
                             };
                         hashes.Add(block);
 
-                        Logger.DebugLog("Checking cache for " + (BakeType)block.TextureIndex + ", hash=" + block.ID, Client);
+                        Logger.DebugLog($"Checking cache for {(BakeType)block.TextureIndex}, hash={block.ID}", Client);
                     }
                 }
             }
 
             // Only send the packet out if there's something to check
             if (hashes.Count <= 0) return;
-            AgentCachedTexturePacket cache = new AgentCachedTexturePacket
+            var cache = new AgentCachedTexturePacket
             {
                 AgentData =
                 {
@@ -766,7 +762,7 @@ namespace OpenMetaverse
         /// <returns>The UUID of the asset being worn in the given slot, or
         /// UUID.Zero if no wearable is attached to the given slot or wearables
         /// have not been downloaded yet</returns>
-        [Obsolete]
+        [Obsolete("Returns the first asset currently being worn, prefer GetWearableAssets")]
         public UUID GetWearableAsset(WearableType type)
         {
             return Wearables.TryGetValue(type, out var wearableList)
@@ -829,7 +825,7 @@ namespace OpenMetaverse
             lock (Wearables)
             {
                 // Add the given wearables to the wearables collection
-                foreach (InventoryWearable wearableItem in wearables)
+                foreach (var wearableItem in wearables)
                 {
                     var wd = new WearableData
                     {
@@ -865,7 +861,7 @@ namespace OpenMetaverse
         /// <param name="wearableItem">Wearable to be removed from the outfit</param>
         public void RemoveFromOutfit(InventoryItem wearableItem)
         {
-            List<InventoryItem> wearableItems = new List<InventoryItem> { wearableItem };
+            var wearableItems = new List<InventoryItem> { wearableItem };
             RemoveFromOutfit(wearableItems);
         }
 
@@ -884,18 +880,18 @@ namespace OpenMetaverse
             var attachments = wearableItems.Where(item => item is InventoryAttachment || item is InventoryObject)
                 .ToList();
 
-            bool needSetAppearance = false;
+            var needSetAppearance = false;
             lock (Wearables)
             {
                 // Remove the given wearables from the wearables collection
-                foreach (InventoryWearable wearable in wearables)
+                foreach (var wearable in wearables)
                 {
                     if (wearable.AssetType != AssetType.Bodypart        // Remove if it's not a body part
                         && Wearables.ContainsKey(wearable.WearableType)) // And we have that wearable type
                     {
                         var worn = Wearables.Where(e => e.Key == wearable.WearableType)
                             .SelectMany(e => e.Value);
-                        WearableData wearableData = worn.FirstOrDefault(item => item.ItemID == wearable.UUID);
+                        var wearableData = worn.FirstOrDefault(item => item.ItemID == wearable.UUID);
                         if (wearableData == null) continue;
 
                         Wearables.Remove(wearable.WearableType, wearableData);
@@ -948,12 +944,12 @@ namespace OpenMetaverse
                 // new set of wearables that doesn't have all of the bodyparts can leave the avatar
                 // in an inconsistent state. If any bodypart entries are empty, we need to fetch the
                 // current wearables first
-                bool needsCurrentWearables = false;
+                var needsCurrentWearables = false;
                 lock (Wearables)
                 {
-                    for (int i = 0; i < WEARABLE_COUNT; i++)
+                    for (var i = 0; i < WEARABLE_COUNT; i++)
                     {
-                        WearableType wearableType = (WearableType)i;
+                        var wearableType = (WearableType)i;
                         if (WearableTypeToAssetType(wearableType) == AssetType.Bodypart
                             && !Wearables.ContainsKey(wearableType))
                         {
@@ -1069,7 +1065,7 @@ namespace OpenMetaverse
         public void AddAttachments(List<InventoryItem> attachments, bool removeExistingFirst, bool replace = true)
         {
             // Use RezMultipleAttachmentsFromInv  to clear out current attachments, and attach new ones
-            RezMultipleAttachmentsFromInvPacket attachmentsPacket = new RezMultipleAttachmentsFromInvPacket
+            var attachmentsPacket = new RezMultipleAttachmentsFromInvPacket
             {
                 AgentData =
                 {
@@ -1090,11 +1086,11 @@ namespace OpenMetaverse
                 Attachments.Clear();
             }
 
-            for (int i = 0; i < attachments.Count; i++)
+            for (var i = 0; i < attachments.Count; i++)
             {
                 if (attachments[i] is InventoryAttachment)
                 {
-                    InventoryAttachment attachment = (InventoryAttachment)attachments[i];
+                    var attachment = (InventoryAttachment)attachments[i];
                     attachmentsPacket.ObjectData[i] = new RezMultipleAttachmentsFromInvPacket.ObjectDataBlock
                     {
                         AttachmentPt =
@@ -1103,7 +1099,7 @@ namespace OpenMetaverse
                                 : (byte)(ATTACHMENT_ADD | (byte)attachment.AttachmentPoint),
                         EveryoneMask = (uint)attachment.Permissions.EveryoneMask,
                         GroupMask = (uint)attachment.Permissions.GroupMask,
-                        ItemFlags = (uint)attachment.Flags,
+                        ItemFlags = attachment.Flags,
                         ItemID = attachment.UUID,
                         Name = Utils.StringToBytes(attachment.Name),
                         Description = Utils.StringToBytes(attachment.Description),
@@ -1117,13 +1113,13 @@ namespace OpenMetaverse
                 }
                 else if (attachments[i] is InventoryObject)
                 {
-                    InventoryObject attachment = (InventoryObject)attachments[i];
+                    var attachment = (InventoryObject)attachments[i];
                     attachmentsPacket.ObjectData[i] = new RezMultipleAttachmentsFromInvPacket.ObjectDataBlock
                     {
                         AttachmentPt = replace ? (byte)0 : ATTACHMENT_ADD,
                         EveryoneMask = (uint)attachment.Permissions.EveryoneMask,
                         GroupMask = (uint)attachment.Permissions.GroupMask,
-                        ItemFlags = (uint)attachment.Flags,
+                        ItemFlags = attachment.Flags,
                         ItemID = attachment.UUID,
                         Name = Utils.StringToBytes(attachment.Name),
                         Description = Utils.StringToBytes(attachment.Description),
@@ -1202,7 +1198,7 @@ namespace OpenMetaverse
         {
             // TODO: At some point it might be beneficial to have AppearanceManager track what we
             // are currently wearing for attachments to make enumeration and detachment easier
-            RezSingleAttachmentFromInvPacket attach = new RezSingleAttachmentFromInvPacket
+            var attach = new RezSingleAttachmentFromInvPacket
             {
                 AgentData =
                 {
@@ -1328,10 +1324,7 @@ namespace OpenMetaverse
         /// a copy of all of the wearable data each time</remarks>
         public IEnumerable<InventoryItem> GetAttachments()
         {
-            foreach (var item in Attachments)
-            {
-                yield return Client.Inventory.Store[item.Key] as InventoryItem;
-            }
+            return Attachments.Select(item => Client.Inventory.Store[item.Key] as InventoryItem);
         }
 
         public Dictionary<UUID, AttachmentPoint> GetAttachmentsByItemId()
@@ -1394,7 +1387,7 @@ namespace OpenMetaverse
         /// </summary>
         private void SendAgentIsNowWearing()
         {
-            AgentIsNowWearingPacket wearing = new AgentIsNowWearingPacket
+            var wearing = new AgentIsNowWearingPacket
             {
                 AgentData =
                 {
@@ -1406,15 +1399,15 @@ namespace OpenMetaverse
 
             lock (Wearables)
             {
-                for (int i = 0; i < WEARABLE_COUNT; i++)
+                for (var i = 0; i < WEARABLE_COUNT; i++)
                 {
-                    WearableType type = (WearableType)i;
+                    var type = (WearableType)i;
                     wearing.WearableData[i] = new AgentIsNowWearingPacket.WearableDataBlock
                     {
                         WearableType = (byte)i,
                         // This appears to be hacked on SL server side to support multi-layers
-                        ItemID = Wearables.ContainsKey(type) ?
-                            (Wearables[type].First()?.ItemID ?? UUID.Zero)
+                        ItemID = Wearables.TryGetValue(type, out var wearable) ?
+                            (wearable.First()?.ItemID ?? UUID.Zero)
                             : UUID.Zero
                     };
                 }
@@ -1454,7 +1447,7 @@ namespace OpenMetaverse
                 // Add the given wearables to the new wearables collection
                 foreach (var wearableItem in wearableItems)
                 {
-                    WearableData wd = new WearableData
+                    var wd = new WearableData
                     {
                         AssetID = wearableItem.AssetUUID,
                         AssetType = wearableItem.AssetType,
@@ -1505,14 +1498,14 @@ namespace OpenMetaverse
         public static Color4 GetColorFromParams(List<ColorParamInfo> param)
         {
             // Start off with a blank slate, black, fully transparent
-            Color4 res = new Color4(0, 0, 0, 0);
+            var res = new Color4(0, 0, 0, 0);
 
             // Apply color modification from each color parameter
-            foreach (ColorParamInfo p in param)
+            foreach (var p in param)
             {
-                int n = p.VisualColorParam.Colors.Length;
+                var n = p.VisualColorParam.Colors.Length;
 
-                Color4 paramColor = new Color4(0, 0, 0, 0);
+                var paramColor = new Color4(0, 0, 0, 0);
 
                 if (n == 1)
                 {
@@ -1527,15 +1520,15 @@ namespace OpenMetaverse
                     // between which two elements of the array our value lands
 
                     // Size of the step using which we iterate from Min to Max
-                    float step = (p.VisualParam.MaxValue - p.VisualParam.MinValue) / ((float)n - 1);
+                    var step = (p.VisualParam.MaxValue - p.VisualParam.MinValue) / ((float)n - 1);
 
                     // Our color should land inbetween colors in the array with index a and b
-                    int indexa = 0;
-                    int indexb = 0;
+                    var indexa = 0;
+                    var indexb = 0;
 
-                    int i = 0;
+                    var i = 0;
 
-                    for (float a = p.VisualParam.MinValue; a <= p.VisualParam.MaxValue; a += step)
+                    for (var a = p.VisualParam.MinValue; a <= p.VisualParam.MaxValue; a += step)
                     {
                         if (a <= p.Value)
                         {
@@ -1557,7 +1550,7 @@ namespace OpenMetaverse
 
                     // How far is our value from Index A on the 
                     // line from Index A to Index B
-                    float distance = p.Value - indexa * step;
+                    var distance = p.Value - indexa * step;
 
                     // We are at Index A (allowing for some floating point math fuzz),
                     // use the color on that index
@@ -1572,8 +1565,8 @@ namespace OpenMetaverse
                         // and then find the value for each ARGB element that is
                         // somewhere on the line between color1 and color2 at some
                         // distance from the first color
-                        Color4 c1 = p.VisualColorParam.Colors[indexa];
-                        Color4 c2 = p.VisualColorParam.Colors[indexb];
+                        var c1 = p.VisualColorParam.Colors[indexa];
+                        var c2 = p.VisualColorParam.Colors[indexb];
 
                         // Distance is some fraction of the step, use that fraction
                         // to find the value in the range from color1 to color2
@@ -1615,14 +1608,14 @@ namespace OpenMetaverse
         /// <returns>True on success, otherwise false</returns>
         bool GetAgentWearables()
         {
-            AutoResetEvent wearablesEvent = new AutoResetEvent(false);
+            var wearablesEvent = new AutoResetEvent(false);
             EventHandler<AgentWearablesReplyEventArgs> WearablesCallback = ((s, e) => wearablesEvent.Set());
 
             AgentWearablesReply += WearablesCallback;
 
             RequestAgentWearables();
 
-            bool success = wearablesEvent.WaitOne(WEARABLE_TIMEOUT, false);
+            var success = wearablesEvent.WaitOne(WEARABLE_TIMEOUT, false);
 
             AgentWearablesReply -= WearablesCallback;
 
@@ -1635,14 +1628,14 @@ namespace OpenMetaverse
         /// <returns>True on success, otherwise false</returns>
         bool GetCachedBakes()
         {
-            AutoResetEvent cacheCheckEvent = new AutoResetEvent(false);
+            var cacheCheckEvent = new AutoResetEvent(false);
             EventHandler<AgentCachedBakesReplyEventArgs> CacheCallback = (sender, e) => cacheCheckEvent.Set();
 
             CachedBakesReply += CacheCallback;
 
             RequestCachedBakes();
 
-            bool success = cacheCheckEvent.WaitOne(WEARABLE_TIMEOUT, false);
+            var success = cacheCheckEvent.WaitOne(WEARABLE_TIMEOUT, false);
 
             CachedBakesReply -= CacheCallback;
 
@@ -1663,11 +1656,9 @@ namespace OpenMetaverse
             // also add color tinting information
             foreach (var kvp in wearable.Asset.Params)
             {
-                if (!VisualParams.Params.ContainsKey(kvp.Key)) continue;
+                if (!VisualParams.Params.TryGetValue(kvp.Key, out var p)) continue;
 
-                VisualParam p = VisualParams.Params[kvp.Key];
-
-                ColorParamInfo colorInfo = new ColorParamInfo
+                var colorInfo = new ColorParamInfo
                 {
                     WearableType = wearable.WearableType,
                     VisualParam = p,
@@ -1729,11 +1720,10 @@ namespace OpenMetaverse
                 // Alhpa masks can also be specified in sub "driver" params
                 if (p.Drivers != null)
                 {
-                    foreach (int t in p.Drivers)
+                    foreach (var t in p.Drivers)
                     {
-                        if (VisualParams.Params.ContainsKey(t))
+                        if (VisualParams.Params.TryGetValue(t, out var driver))
                         {
-                            VisualParam driver = VisualParams.Params[t];
                             if (driver.AlphaParams.HasValue && driver.AlphaParams.Value.TGAFile != string.Empty && !driver.IsBumpAttribute && !alphaMasks.ContainsKey(driver.AlphaParams.Value))
                             {
                                 alphaMasks.Add(driver.AlphaParams.Value, Math.Abs(kvp.Value) < float.Epsilon ? 0.01f : kvp.Value);
@@ -1743,17 +1733,17 @@ namespace OpenMetaverse
                 }
             }
 
-            Color4 wearableColor = Color4.White; // Never actually used
+            var wearableColor = Color4.White; // Never actually used
             if (colorParams.Count > 0)
             {
                 wearableColor = GetColorFromParams(colorParams);
-                Logger.DebugLog("Setting tint " + wearableColor + " for " + wearable.WearableType);
+                Logger.DebugLog($"Setting tint {wearableColor} for {wearable.WearableType}");
             }
 
-            // Loop through all of the texture IDs in this decoded asset and put them in our cache of worn textures
+            // Loop through all the texture IDs in this decoded asset and put them in our cache of worn textures
             foreach (var entry in wearable.Asset.Textures)
             {
-                int i = (int)entry.Key;
+                var i = (int)entry.Key;
 
                 // Update information about color and alpha masks for this texture
                 textures[i].AlphaMasks = alphaMasks;
@@ -1775,24 +1765,22 @@ namespace OpenMetaverse
         /// <returns>True on success, otherwise false</returns>
         private bool DownloadWearables()
         {
-            bool success = true;
+            var success = true;
             // Make a copy of the wearables dictionary to enumerate over
             var wearables = new List<WearableData>(GetWearables());
 
             // We will refresh the textures (zero out all non bake textures)
-            for (int i = 0; i < Textures.Length; i++)
+            for (var i = 0; i < Textures.Length; i++)
             {
-                bool isBake = BakeIndexToTextureIndex.Any(t => t == i);
+                var isBake = BakeIndexToTextureIndex.Any(t => t == i);
                 if (!isBake)
                     Textures[i] = new TextureData();
             }
 
-            int pendingWearables = wearables.Count;
+            var pendingWearables = wearables.Count;
 
-            foreach (var wearable in wearables)
+            foreach (var wearable in wearables.Where(wearable => wearable.Asset != null))
             {
-                if (wearable.Asset == null) continue;
-
                 DecodeWearableParams(wearable, ref Textures);
                 --pendingWearables;
             }
@@ -1806,7 +1794,7 @@ namespace OpenMetaverse
                 wearable =>
                 {
                     if (wearable.Asset != null) return;
-                    AutoResetEvent downloadEvent = new AutoResetEvent(false);
+                    var downloadEvent = new AutoResetEvent(false);
 
                     // Fetch this wearable asset
                     Client.Assets.RequestAsset(wearable.AssetID, wearable.AssetType, true,
@@ -1866,16 +1854,13 @@ namespace OpenMetaverse
             var indices = BakeTypeToTextures(bakeType);
             var textures = new List<UUID>();
 
-            foreach (AvatarTextureIndex index in indices)
+            foreach (var textureData in from index in indices 
+                     where index != AvatarTextureIndex.Skirt || Wearables.ContainsKey(WearableType.Skirt) 
+                     select Textures[(int)index] into textureData 
+                     where textureData.TextureID != UUID.Zero && textureData.Texture == null
+                                                              && !textures.Contains(textureData.TextureID) select textureData)
             {
-                if (index == AvatarTextureIndex.Skirt && !Wearables.ContainsKey(WearableType.Skirt))
-                    continue;
-
-                TextureData textureData = Textures[(int)index];
-                // Add the textureID to the list if this layer has a valid textureID set, it has not already
-                // been downloaded, and it is not already in the download list
-                if (textureData.TextureID != UUID.Zero && textureData.Texture == null && !textures.Contains(textureData.TextureID))
-                    textures.Add(textureData.TextureID);
+                textures.Add(textureData.TextureID);
             }
 
             return textures;
@@ -1890,17 +1875,13 @@ namespace OpenMetaverse
         /// whether or not all textures are successfully downloaded</remarks>
         private void DownloadTextures(List<BakeType> bakeLayers)
         {
-            List<UUID> textureIDs = new List<UUID>();
+            var textureIDs = new List<UUID>();
 
-            foreach (BakeType t in bakeLayers)
+            foreach (var uuid in from t in bakeLayers 
+                     select GetTextureDownloadList(t) into layerTextureIDs 
+                     from uuid in layerTextureIDs where !textureIDs.Contains(uuid) select uuid)
             {
-                var layerTextureIDs = GetTextureDownloadList(t);
-
-                foreach (UUID uuid in layerTextureIDs)
-                {
-                    if (!textureIDs.Contains(uuid))
-                        textureIDs.Add(uuid);
-                }
+                textureIDs.Add(uuid);
             }
 
             Logger.DebugLog("Downloading " + textureIDs.Count + " textures for baking");
@@ -1910,7 +1891,7 @@ namespace OpenMetaverse
                 {
                     try
                     {
-                        AutoResetEvent downloadEvent = new AutoResetEvent(false);
+                        var downloadEvent = new AutoResetEvent(false);
 
                         Client.Assets.RequestImage(textureId,
                             delegate (TextureRequestState state, AssetTexture assetTexture)
@@ -1919,7 +1900,7 @@ namespace OpenMetaverse
                                 {
                                     assetTexture.Decode();
 
-                                    for (int i = 0; i < Textures.Length; i++)
+                                    for (var i = 0; i < Textures.Length; i++)
                                     {
                                         if (Textures[i].TextureID == textureId)
                                             Textures[i].Texture = assetTexture;
@@ -1954,13 +1935,13 @@ namespace OpenMetaverse
         /// <returns>True on success, otherwise false</returns>
         private bool CreateBakes()
         {
-            bool success = true;
-            List<BakeType> pendingBakes = new List<BakeType>();
+            var success = true;
+            var pendingBakes = new List<BakeType>();
 
             // Check each bake layer in the Textures array for missing bakes
-            for (int bakedIndex = 0; bakedIndex < BAKED_TEXTURE_COUNT; bakedIndex++)
+            for (var bakedIndex = 0; bakedIndex < BAKED_TEXTURE_COUNT; bakedIndex++)
             {
-                AvatarTextureIndex textureIndex = BakeTypeToAgentTextureIndex((BakeType)bakedIndex);
+                var textureIndex = BakeTypeToAgentTextureIndex((BakeType)bakedIndex);
 
 
                 if (Textures[(int)textureIndex].TextureID == UUID.Zero)
@@ -1969,15 +1950,15 @@ namespace OpenMetaverse
                     // If this is the skirt layer and we're not wearing a skirt then skip it
                     if (bakedIndex == (int)BakeType.Skirt && !Wearables.ContainsKey(WearableType.Skirt))
                     {
-                        Logger.DebugLog("texture: " + (AvatarTextureIndex)textureIndex + " skipping not attached");
+                        Logger.DebugLog($"texture: {textureIndex} skipping not attached");
                         continue;
                     }
-                    Logger.DebugLog("texture: " + (AvatarTextureIndex)textureIndex + " is needed adding to pending Bakes");
+                    Logger.DebugLog($"texture: {textureIndex} is needed adding to pending Bakes");
                     pendingBakes.Add((BakeType)bakedIndex);
                 }
                 else
                 {
-                    Logger.DebugLog("texture: " + (AvatarTextureIndex)textureIndex + " is ready");
+                    Logger.DebugLog($"texture: {textureIndex} is ready");
                 }
             }
 
@@ -1995,7 +1976,7 @@ namespace OpenMetaverse
             }
 
             // Free up all the textures we're holding on to
-            for (int i = 0; i < Textures.Length; i++)
+            for (var i = 0; i < Textures.Length; i++)
             {
                 Textures[i].Texture = null;
             }
@@ -2014,20 +1995,20 @@ namespace OpenMetaverse
             var textureIndices = BakeTypeToTextures(bakeType);
             var oven = new Baker(bakeType);
 
-            foreach (AvatarTextureIndex textureIndex in textureIndices)
+            foreach (var textureIndex in textureIndices)
             {
-                TextureData texture = Textures[(int)textureIndex];
+                var texture = Textures[(int)textureIndex];
                 texture.TextureIndex = textureIndex;
 
                 oven.AddTexture(texture);
             }
 
-            int start = Environment.TickCount;
+            var start = Environment.TickCount;
             oven.Bake();
-            Logger.DebugLog("Baking " + bakeType + " took " + (Environment.TickCount - start) + "ms");
+            Logger.DebugLog($"Baking {bakeType} took {Environment.TickCount - start}ms");
 
-            UUID newAssetID = UUID.Zero;
-            int retries = UPLOAD_RETRIES;
+            var newAssetID = UUID.Zero;
+            var retries = UPLOAD_RETRIES;
 
             while (newAssetID == UUID.Zero && retries > 0)
             {
@@ -2035,14 +2016,14 @@ namespace OpenMetaverse
                 --retries;
             }
 
-            int bakeIndex = (int)BakeTypeToAgentTextureIndex(bakeType);
-            Logger.DebugLog("Saving back to " + (AvatarTextureIndex)bakeIndex);
+            var bakeIndex = (int)BakeTypeToAgentTextureIndex(bakeType);
+            Logger.DebugLog($"Saving back to {(AvatarTextureIndex)bakeIndex}");
 
             Textures[bakeIndex].TextureID = newAssetID;
 
             if (newAssetID == UUID.Zero)
             {
-                Logger.Log("Failed uploading bake " + bakeType, Helpers.LogLevel.Warning);
+                Logger.Log($"Failed uploading bake {bakeType}", Helpers.LogLevel.Warning);
                 return false;
             }
 
@@ -2056,7 +2037,7 @@ namespace OpenMetaverse
         /// <returns>UUID of the newly created asset on success, otherwise UUID.Zero</returns>
         private UUID UploadBake(byte[] textureData)
         {
-            UUID bakeID = UUID.Zero;
+            var bakeID = UUID.Zero;
             var uploadEvent = new AutoResetEvent(false);
 
             Client.Assets.RequestUploadBakedTexture(textureData,
@@ -2090,8 +2071,8 @@ namespace OpenMetaverse
                 {
                     // Only Group-0 parameters are sent in AgentSetAppearance packets
                     if (kvp.Value.Group != 0) continue;
-                    bool found = false;
-                    VisualParam vp = kvp.Value;
+                    var found = false;
+                    var vp = kvp.Value;
 
                     // Try and find this value in our collection of downloaded wearables
                     foreach (var wearableType in Wearables)
@@ -2141,13 +2122,13 @@ namespace OpenMetaverse
             }
 
             Logger.Log("Updating appearance via bake URL", Helpers.LogLevel.Info, Client);
-            Caps caps = Client.Network.CurrentSim.Caps;
+            var caps = Client.Network.CurrentSim.Caps;
             if (caps == null) { return false; }
             
-            Uri cap = caps.CapabilityURI("UpdateAvatarAppearance");
+            var cap = caps.CapabilityURI("UpdateAvatarAppearance");
             if (cap == null) { return false; }
 
-            InventoryFolder currentoutfitfolder = GetCOF();
+            var currentoutfitfolder = GetCOF();
             if (currentoutfitfolder == null)
             {
                 return false;
@@ -2157,19 +2138,19 @@ namespace OpenMetaverse
                 // TODO: create Current Outfit Folder
             }
 
-            OSDMap request = new OSDMap(1) { ["cof_version"] = currentoutfitfolder.Version };
+            var request = new OSDMap(1) { ["cof_version"] = currentoutfitfolder.Version };
 
-            string msg = "Server side baking failed";
+            var msg = "Server side baking failed";
 
             OSD res = null;
 
-            int maxRetries = 1000; // About a minute. (50,000ms)
+            var maxRetries = 1000; // About a minute. (50,000ms)
 
             while (maxRetries-- > 0)
             {
                 if (!Client.Network.Connected)
                 {
-                    await Task.Delay(50);
+                    await Task.Delay(50, cancellationToken);
                 }
                 else
                 {
@@ -2177,7 +2158,7 @@ namespace OpenMetaverse
 
                     if (self == null)
                     {
-                        await Task.Delay(50);
+                        await Task.Delay(50, cancellationToken);
                     }
                     else
                     {
@@ -2241,13 +2222,10 @@ namespace OpenMetaverse
 
                     MyVisualParameters = visualParams;
                     
-                    const bool debugTextureMessages = true;
-
-                    if (textures != null && debugTextureMessages)
+                    if (textures != null)
                     {
-                        Logger.Log("Baked Texture Array: " + string.Join(", ", textures.Select((uuid, index) => index + ": " + uuid.ToString())), Helpers.LogLevel.Info, Client);
+                        Logger.Log("Baked Texture Array: " + string.Join(", ", textures.Select((uuid, index) => index + ": " + uuid)), Helpers.LogLevel.Debug, Client);
                     }
-                    //Logger.DebugLog(result.ToString(), Client);
 
                     if (textures != null && textures.Length > 20)
                     {
@@ -2255,7 +2233,7 @@ namespace OpenMetaverse
                             (textures[8] == DEFAULT_AVATAR_TEXTURE || textures[9] == DEFAULT_AVATAR_TEXTURE || textures[10] == DEFAULT_AVATAR_TEXTURE || textures[11] == DEFAULT_AVATAR_TEXTURE))
                         {
                             // This hasn't actually baked. Retry after a delay.
-                            await Task.Delay(REBAKE_DELAY);
+                            await Task.Delay(REBAKE_DELAY, cancellationToken);
                             return await UpdateAvatarAppearanceAsync(cancellationToken, totalRetries - 1);
                         }
                     }
@@ -2276,7 +2254,7 @@ namespace OpenMetaverse
                             if (textures != null)
                             {
 
-                                for (int i = 0; i < textures.Length; i++)
+                                for (var i = 0; i < textures.Length; i++)
                                 {
                                     selfAvatarTextures.FaceTextures[i] = new Primitive.TextureEntryFace(null);
                                     selfAvatarTextures.FaceTextures[i].TextureID = textures[i];
@@ -2317,7 +2295,7 @@ namespace OpenMetaverse
                 else
                 {
                     // This hasn't actually baked. Retry after a delay.
-                    await Task.Delay(REBAKE_DELAY);
+                    await Task.Delay(REBAKE_DELAY, cancellationToken);
                     return await UpdateAvatarAppearanceAsync(cancellationToken, totalRetries - 1);
                 }
             }
@@ -2353,8 +2331,8 @@ namespace OpenMetaverse
 
             InventoryFolder COF = null;
 
-            // COF should be in the root folder. Request update to get the latest versio number
-            if (root == null) return COF;
+            // COF should be in the root folder. Request update to get the latest versiom number
+            if (root == null) { return null; }
             foreach (var baseItem in root)
             {
                 if (baseItem is InventoryFolder folder && folder.PreferredType == FolderType.CurrentOutfit)
@@ -2372,14 +2350,14 @@ namespace OpenMetaverse
         /// </summary>
         private void RequestAgentSetAppearance()
         {
-            AgentSetAppearancePacket set = MakeAppearancePacket();
+            var set = MakeAppearancePacket();
             Client.Network.SendPacket(set);
             Logger.DebugLog("Send AgentSetAppearance packet");
         }
 
         public AgentSetAppearancePacket MakeAppearancePacket()
         {
-            AgentSetAppearancePacket set = new AgentSetAppearancePacket
+            var set = new AgentSetAppearancePacket
             {
                 AgentData =
                 {
@@ -2390,41 +2368,30 @@ namespace OpenMetaverse
             };
 
             // Visual params used in the agent height calculation
-            float agentSizeVPHeight = 0.0f;
-            float agentSizeVPHeelHeight = 0.0f;
-            float agentSizeVPPlatformHeight = 0.0f;
-            float agentSizeVPHeadSize = 0.5f;
-            float agentSizeVPLegLength = 0.0f;
-            float agentSizeVPNeckLength = 0.0f;
-            float agentSizeVPHipLength = 0.0f;
+            var agentSizeVPHeight = 0.0f;
+            var agentSizeVPHeelHeight = 0.0f;
+            var agentSizeVPPlatformHeight = 0.0f;
+            var agentSizeVPHeadSize = 0.5f;
+            var agentSizeVPLegLength = 0.0f;
+            var agentSizeVPNeckLength = 0.0f;
+            var agentSizeVPHipLength = 0.0f;
 
             lock (Wearables)
             {
                 #region VisualParam
 
-                int vpIndex = 0;
-                bool wearingPhysics = Wearables.ContainsKey(WearableType.Physics);
+                var vpIndex = 0;
+                var wearingPhysics = Wearables.ContainsKey(WearableType.Physics);
 
                 var nrParams = wearingPhysics ? 251 : 218;
                 set.VisualParam = new AgentSetAppearancePacket.VisualParamBlock[nrParams];
 
                 foreach (var kvp in VisualParams.Params)
                 {
-                    VisualParam vp = kvp.Value;
-                    float paramValue = 0f;
+                    var vp = kvp.Value;
+                    var paramValue = 0f;
 
-                    bool found = false;
-                    foreach (var wearableList in Wearables)
-                    {
-                        if (wearableList.Value.Any(wearable => wearable.Asset != null &&
-                                                            wearable.Asset.Params
-                                                                .TryGetValue(vp.ParamID, out paramValue)))
-                        {
-                            found = true;
-                            break;
-                        }
-                    }
-
+                    var found = Wearables.Any(wearableList => wearableList.Value.Any(wearable => wearable.Asset != null && wearable.Asset.Params.TryGetValue(vp.ParamID, out paramValue)));
 
 
                     // Try and find this value in our collection of downloaded wearables
@@ -2473,7 +2440,7 @@ namespace OpenMetaverse
                 }
 
                 MyVisualParameters = new byte[set.VisualParam.Length];
-                for (int i = 0; i < set.VisualParam.Length; i++)
+                for (var i = 0; i < set.VisualParam.Length; i++)
                 {
                     if (set.VisualParam[i] != null)
                     {
@@ -2485,11 +2452,11 @@ namespace OpenMetaverse
 
                 #region TextureEntry
 
-                Primitive.TextureEntry te = new Primitive.TextureEntry(DEFAULT_AVATAR_TEXTURE);
+                var te = new Primitive.TextureEntry(DEFAULT_AVATAR_TEXTURE);
 
                 for (uint i = 0; i < Textures.Length; i++)
                 {
-                    Primitive.TextureEntryFace face = te.CreateFace(i);
+                    var face = te.CreateFace(i);
                     if (Textures[i].TextureID != UUID.Zero)
                     {
                         face.TextureID = Textures[i].TextureID;
@@ -2511,12 +2478,12 @@ namespace OpenMetaverse
                 set.WearableData = new AgentSetAppearancePacket.WearableDataBlock[BAKED_TEXTURE_COUNT];
 
                 // Build hashes for each of the bake layers from the individual components
-                for (int bakedIndex = 0; bakedIndex < BAKED_TEXTURE_COUNT; bakedIndex++)
+                for (var bakedIndex = 0; bakedIndex < BAKED_TEXTURE_COUNT; bakedIndex++)
                 {
-                    UUID hash = UUID.Zero;
-                    for (int wearableIndex = 0; wearableIndex < WEARABLES_PER_LAYER; wearableIndex++)
+                    var hash = UUID.Zero;
+                    for (var wearableIndex = 0; wearableIndex < WEARABLES_PER_LAYER; wearableIndex++)
                     {
-                        WearableType type = WEARABLE_BAKE_MAP[bakedIndex][wearableIndex];
+                        var type = WEARABLE_BAKE_MAP[bakedIndex][wearableIndex];
 
                         if (type == WearableType.Invalid) continue;
                         hash = Wearables.Where(e => e.Key == type)
@@ -2546,9 +2513,9 @@ namespace OpenMetaverse
                 const double agentSizeBase = 1.706;
 
                 // The calculation for the HeadSize scalar may be incorrect, but it seems to work
-                double agentHeight = agentSizeBase + (agentSizeVPLegLength * .1918) + (agentSizeVPHipLength * .0375) +
-                    (agentSizeVPHeight * .12022) + (agentSizeVPHeadSize * .01117) + (agentSizeVPNeckLength * .038) +
-                    (agentSizeVPHeelHeight * .08) + (agentSizeVPPlatformHeight * .07);
+                var agentHeight = agentSizeBase + (agentSizeVPLegLength * .1918) + (agentSizeVPHipLength * .0375) +
+                                  (agentSizeVPHeight * .12022) + (agentSizeVPHeadSize * .01117) + (agentSizeVPNeckLength * .038) +
+                                  (agentSizeVPHeelHeight * .08) + (agentSizeVPPlatformHeight * .07);
 
                 set.AgentData.Size = new Vector3(0.45f, 0.6f, (float)agentHeight);
 
@@ -2587,7 +2554,7 @@ namespace OpenMetaverse
 
         private bool GetFolderWearables(string[] folderPath, out List<InventoryWearable> wearables, out List<InventoryItem> attachments)
         {
-            UUID folder = Client.Inventory.FindObjectByPath(
+            var folder = Client.Inventory.FindObjectByPath(
                 Client.Inventory.Store.RootFolder.UUID, Client.Self.AgentID, string.Join("/", folderPath), INVENTORY_TIMEOUT);
 
             if (folder != UUID.Zero)
@@ -2647,7 +2614,7 @@ namespace OpenMetaverse
 
         protected void AgentWearablesUpdateHandler(object sender, PacketReceivedEventArgs e)
         {
-            bool changed = false;
+            var changed = false;
             var update = (AgentWearablesUpdatePacket)e.Packet;
 
             lock (Wearables)
@@ -2658,11 +2625,11 @@ namespace OpenMetaverse
                 {
                     if (block.AssetID != UUID.Zero)
                     {
-                        WearableType type = (WearableType)block.WearableType;
+                        var type = (WearableType)block.WearableType;
                         if (Wearables.ContainsKey(type))
                         {
                             // HACK: I'm so tired and this is so bad.
-                            bool match = false;
+                            var match = false;
                             foreach (var wearable in Wearables.Where(w => w.Key == type).SelectMany(w => w.Value))
                             {
                                 if (wearable.AssetID == block.AssetID || wearable.ItemID == block.ItemID)
@@ -2695,12 +2662,12 @@ namespace OpenMetaverse
                     Logger.DebugLog("New wearables received in AgentWearablesUpdate");
                     Wearables.Clear();
 
-                    foreach (AgentWearablesUpdatePacket.WearableDataBlock block in update.WearableData)
+                    foreach (var block in update.WearableData)
                     {
                         if (block.AssetID == UUID.Zero) continue;
 
-                        WearableType type = (WearableType)block.WearableType;
-                        WearableData data = new WearableData
+                        var type = (WearableType)block.WearableType;
+                        var data = new WearableData
                         {
                             Asset = null,
                             AssetID = block.AssetID,
@@ -2721,7 +2688,7 @@ namespace OpenMetaverse
 
         protected void RebakeAvatarTexturesHandler(object sender, PacketReceivedEventArgs e)
         {
-            RebakeAvatarTexturesPacket rebake = (RebakeAvatarTexturesPacket)e.Packet;
+            var rebake = (RebakeAvatarTexturesPacket)e.Packet;
 
             // allow the library to do the rebake
             if (Client.Settings.SEND_AGENT_APPEARANCE)
@@ -2738,8 +2705,8 @@ namespace OpenMetaverse
 
             foreach (var block in response.WearableData)
             {
-                BakeType bakeType = (BakeType)block.TextureIndex;
-                AvatarTextureIndex index = BakeTypeToAgentTextureIndex(bakeType);
+                var bakeType = (BakeType)block.TextureIndex;
+                var index = BakeTypeToAgentTextureIndex(bakeType);
 
                 Logger.DebugLog("Cache response for " + bakeType + ", TextureID=" + block.TextureID, Client);
 
@@ -2748,7 +2715,7 @@ namespace OpenMetaverse
                     // A simulator has a cache of this bake layer
 
                     // FIXME: Use this. Right now we don't bother to check if this is a foreign host
-                    string host = Utils.BytesToString(block.HostName);
+                    var host = Utils.BytesToString(block.HostName);
 
                     Textures[(int)index].TextureID = block.TextureID;
                 }
@@ -2808,28 +2775,20 @@ namespace OpenMetaverse
                 contents = Client.Inventory.FolderContents(cof.UUID, cof.OwnerID, true, true, InventorySortOrder.ByDate, 60000);
             }
 
-            Logger.Log(contents.Count + " inventory items in 'Current Outfit' folder", Helpers.LogLevel.Info, Client);
+            Logger.Log($"{contents.Count} inventory items in 'Current Outfit' folder", Helpers.LogLevel.Info, Client);
 
-            foreach (var inventoryBase in contents)
+            foreach (var inventoryBase in contents.Where(inventoryBase => inventoryBase != null))
             {
-                if (inventoryBase == null)
-                    continue;
-
-                Logger.Log(inventoryBase.Name + " found in 'Current Outfit' folder " + inventoryBase.GetType().Name, Helpers.LogLevel.Info, Client);
-
-                var replace = false;
+                Logger.Log($"{inventoryBase.Name} found in 'Current Outfit' folder {inventoryBase.GetType().Name}", Helpers.LogLevel.Info, Client);
 
                 if (inventoryBase is InventoryAttachment attachment)
                 {
                     var block = new RezMultipleAttachmentsFromInvPacket.ObjectDataBlock
                     {
-                        AttachmentPt =
-                            replace
-                                ? (byte)attachment.AttachmentPoint
-                                : (byte)(ATTACHMENT_ADD | (byte)attachment.AttachmentPoint),
+                        AttachmentPt = (byte)(ATTACHMENT_ADD | (byte)attachment.AttachmentPoint),
                         EveryoneMask = (uint)attachment.Permissions.EveryoneMask,
                         GroupMask = (uint)attachment.Permissions.GroupMask,
-                        ItemFlags = (uint)attachment.Flags,
+                        ItemFlags = attachment.Flags,
                         ItemID = attachment.UUID,
                         Name = Utils.StringToBytes(attachment.Name),
                         Description = Utils.StringToBytes(attachment.Description),
@@ -2837,7 +2796,7 @@ namespace OpenMetaverse
                         OwnerID = attachment.OwnerID
                     };
 
-                    Logger.Log("Wearing " + attachment.UUID + " (" + attachment.Name + ")", Helpers.LogLevel.Info, Client);
+                    Logger.Log($"Wearing {attachment.UUID} ({attachment.Name})", Helpers.LogLevel.Info, Client);
 
                     blocks.Add(block);
                 }
@@ -2845,10 +2804,10 @@ namespace OpenMetaverse
                 {
                     var block = new RezMultipleAttachmentsFromInvPacket.ObjectDataBlock
                     {
-                        AttachmentPt = replace ? (byte)0 : ATTACHMENT_ADD,
+                        AttachmentPt = ATTACHMENT_ADD,
                         EveryoneMask = (uint)attachmentIO.Permissions.EveryoneMask,
                         GroupMask = (uint)attachmentIO.Permissions.GroupMask,
-                        ItemFlags = (uint)attachmentIO.Flags,
+                        ItemFlags = attachmentIO.Flags,
                         ItemID = attachmentIO.UUID,
                         Name = Utils.StringToBytes(attachmentIO.Name),
                         Description = Utils.StringToBytes(attachmentIO.Description),
@@ -2856,13 +2815,13 @@ namespace OpenMetaverse
                         OwnerID = attachmentIO.OwnerID
                     };
 
-                    Logger.Log("Wearing " + attachmentIO.UUID + " (" + attachmentIO.Name + ")", Helpers.LogLevel.Info, Client);
+                    Logger.Log($"Wearing {attachmentIO.UUID} ({attachmentIO.Name})", Helpers.LogLevel.Info, Client);
 
                     blocks.Add(block);
                 }
             }
 
-            RezMultipleAttachmentsFromInvPacket attachmentsPacket = new RezMultipleAttachmentsFromInvPacket
+            var attachmentsPacket = new RezMultipleAttachmentsFromInvPacket
             {
                 AgentData =
                 {
