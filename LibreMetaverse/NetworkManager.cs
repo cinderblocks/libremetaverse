@@ -933,6 +933,19 @@ namespace OpenMetaverse
 
             return null;
         }
+        
+        public Simulator FindSimulator(ulong handle)
+        {
+            lock (Simulators)
+            {
+                foreach (var t in Simulators.Where(t => t.Handle == handle))
+                {
+                    return t;
+                }
+            }
+
+            return null;
+        }
 
         internal void RaisePacketSentEvent(byte[] data, int bytesSent, Simulator simulator)
         {
