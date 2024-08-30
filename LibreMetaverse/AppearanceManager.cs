@@ -456,7 +456,7 @@ namespace OpenMetaverse
 
         private bool HasSentAppearanceInThisSession { get; set; }
 
-        private async void NetworkOnSimChanged(object sender, SimChangedEventArgs e)
+        private void NetworkOnSimChanged(object sender, SimChangedEventArgs e)
         {
             _pendingServerBake = true;
             
@@ -2186,14 +2186,18 @@ namespace OpenMetaverse
                 }
             }
 
-            Logger.Log("Passed wait for own avatar, " + maxRetries + " retries left.", Helpers.LogLevel.Info, Client);
+            Logger.Log($"Passed wait for own avatar, {maxRetries} retries left.", Helpers.LogLevel.Info, Client);
 
             await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, request, cancellationToken,
                                                          (response, data, error) => res = OSDParser.Deserialize(data));
 
             if (res is OSDMap result)
             {
-                if (result["success"])
+                if (result.ContainsKey("error"))
+                {
+                    msg += ": " + result["error"].AsString();
+                }
+                if (result.ContainsKey("success"))
                 {
                     /* Sample Reply:
                     {
@@ -2315,11 +2319,6 @@ namespace OpenMetaverse
                     // This hasn't actually baked. Retry after a delay.
                     await Task.Delay(REBAKE_DELAY);
                     return await UpdateAvatarAppearanceAsync(cancellationToken, totalRetries - 1);
-                }
-
-                if (result.ContainsKey("error"))
-                {
-                    msg += ": " + result["error"].AsString();
                 }
             }
 
@@ -2773,7 +2772,7 @@ namespace OpenMetaverse
 
                 _ = UpdateAvatarAppearanceAsync(CancellationToken.None);
 
-                if(ReattachAttachmentsWhenMovingSimulator || !HasSentAppearanceInThisSession)
+                if(!HasSentAppearanceInThisSession)
                 {
                     HasSentAppearanceInThisSession = true;
                     ThreadPool.QueueUserWorkItem((o) => { SendOutfitToCurrentSimulator(); });
