@@ -84,16 +84,11 @@ namespace OpenMetaverse
 
         public bool Remove(KeyValuePair<TKey, TValue> item)
         {
+            if (!Contains(item)) { return false; }
             lock (Dictionary)
-            {
-                if (Contains(item))
-                {
-                    Dictionary.Remove(item.Key);
-                    return true;
-                }
+                Dictionary.Remove(item.Key);
+            return true;
 
-                return false;
-            }
         }
 
         [Obsolete("This API supports obsolete formatter-based serialization. It should not be called or extended by application code.")]
