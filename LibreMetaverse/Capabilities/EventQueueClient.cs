@@ -39,9 +39,9 @@ namespace OpenMetaverse.Http
     public class EventQueueClient
     {
         /// <summary>For exponential backoff on error.</summary>
-        private const int REQUEST_BACKOFF_SECONDS = 15 * 1000; // 15 seconds start
-        private const int REQUEST_BACKOFF_SECONDS_INC = 5 * 1000; // 5 seconds increase
-        private const int REQUEST_BACKOFF_SECONDS_MAX = 5 * 60 * 1000; // 5 minutes
+        public static int RequestBackoffSeconds = 15 * 1000; // 15 seconds start
+        public static int RequestBackoffSecondsInc = 5 * 1000; // 5 seconds increase
+        public static int RequestBackoffSecondsMax = 5 * 60 * 1000; // 5 minutes
 
         public delegate void ConnectedCallback();
         public delegate void EventCallback(string eventName, OSDMap body);
@@ -67,6 +67,11 @@ namespace OpenMetaverse.Http
             _httpCts = new CancellationTokenSource();
         }
 
+        ~EventQueueClient()
+        {
+            _httpCts?.Dispose();
+        }
+        
         public void RestartIfDead()
         {
             if (Dead)
@@ -338,8 +343,8 @@ namespace OpenMetaverse.Http
                     if (_errorCount > 0)
                     {
                         // Exponentially back off, so we don't hammer the CPU
-                        Thread.Sleep(Math.Min(REQUEST_BACKOFF_SECONDS + _errorCount * REQUEST_BACKOFF_SECONDS_INC,
-                                              REQUEST_BACKOFF_SECONDS_MAX));
+                        Thread.Sleep(Math.Min(RequestBackoffSeconds + _errorCount * RequestBackoffSecondsInc,
+                                              RequestBackoffSecondsMax));
                     }
 
                     // Resume the connection.
