@@ -2638,7 +2638,7 @@ namespace OpenMetaverse
 
                     if (cachedPrimitives)
                     {
-                        if (!simulator.DataPool.NeedsRequest(localID))
+                        if (!simulator.DataPool.NeedsRequest(localID, odb.CRC))
                         {
                             continue;
                         }

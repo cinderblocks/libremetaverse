@@ -1559,10 +1559,13 @@ namespace OpenMetaverse
             }
         }
 
-        internal bool NeedsRequest(uint localID)
+        internal bool NeedsRequest(uint localID, uint crc32)
         {
             var dict = PrimCache;
-            lock (dict) return !dict.ContainsKey(localID);
+            lock (dict)
+            {
+                return !dict.TryGetValue(localID, out var prim) || prim.CRC != crc32;
+            }
         }
         #endregion Factories
 
