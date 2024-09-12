@@ -2534,13 +2534,21 @@ namespace OpenMetaverse
             return set;
         }
 
-        private void DelayedRequestSetAppearance()
+        /// <summary>
+        /// Request appearance update after delay. Rewrites existing appearance
+        /// rebake timer.
+        /// </summary>
+        /// <param name="due">the rebake delay (ms)</param>
+        public void DelayedRequestSetAppearance(int due = REBAKE_DELAY)
         {
             if (RebakeScheduleTimer == null)
             {
                 RebakeScheduleTimer = new Timer(RebakeScheduleTimerTick);
             }
-            try { RebakeScheduleTimer.Change(REBAKE_DELAY, Timeout.Infinite); }
+
+            try {
+                RebakeScheduleTimer.Change(due, Timeout.Infinite);
+            }
             catch { }
         }
 
