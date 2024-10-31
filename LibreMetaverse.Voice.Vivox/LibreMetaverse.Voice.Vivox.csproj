@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <AssemblyName>LibreMetaverse.Voice</AssemblyName>
-	<PackageId>LibreMetaverse.Voice</PackageId>
+	<PackageId>LibreMetaverse.Voice.Vivox</PackageId>
 	<Description>Library interface for Vivox voice client</Description>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse</RootNamespace>

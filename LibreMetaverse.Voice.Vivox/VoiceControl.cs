@@ -36,7 +36,7 @@ using OpenMetaverse.StructuredData;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace LibreMetaverse.Voice
+namespace LibreMetaverse.Voice.Vivox
 {
     public partial class VoiceGateway : IDisposable
     {

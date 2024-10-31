@@ -34,7 +34,7 @@ using System.Threading;
 using System.Text;
 using OpenMetaverse;
 
-namespace LibreMetaverse.Voice
+namespace LibreMetaverse.Voice.Vivox
 {
     public partial class VoiceGateway
     {

@@ -27,7 +27,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PacketDump", "Programs\exam
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestClient", "Programs\examples\TestClient\TestClient.csproj", "{9F71FDB3-0000-0000-0000-000000000000}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VoiceTest", "Programs\VoiceTest\VoiceTest.csproj", "{EE4EA934-0000-0000-0000-000000000000}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VivoxTest", "Programs\VivoxTest\VivoxTest.csproj", "{EE4EA934-0000-0000-0000-000000000000}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse.PrimMesher", "PrimMesher\LibreMetaverse.PrimMesher.csproj", "{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}"
 EndProject
@@ -43,7 +43,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse.LslTools", "LibreMetaverse.LslTools\LibreMetaverse.LslTools.csproj", "{989E5E15-D99B-4CF1-AF64-90C568FC979A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse.Voice", "LibreMetaverse.Voice\LibreMetaverse.Voice.csproj", "{FB07C6DE-F791-4336-B6E2-B32EEAC34792}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse.Voice.Vivox", "LibreMetaverse.Voice.Vivox\LibreMetaverse.Voice.Vivox.csproj", "{FB07C6DE-F791-4336-B6E2-B32EEAC34792}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

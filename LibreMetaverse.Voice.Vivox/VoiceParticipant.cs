@@ -30,7 +30,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using OpenMetaverse;
 
-namespace LibreMetaverse.Voice
+namespace LibreMetaverse.Voice.Vivox
 {
     public class VoiceParticipant
     {

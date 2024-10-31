@@ -40,7 +40,7 @@ using OpenMetaverse.Messages.Linden;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace LibreMetaverse.Voice
+namespace LibreMetaverse.Voice.Vivox
 {
     public enum VoiceStatus
     {
@@ -187,7 +187,7 @@ namespace LibreMetaverse.Voice
         {
             if (!_enabled) return false;
 
-            _daemonPipe = new Voice.TCPPipe();
+            _daemonPipe = new TCPPipe();
             _daemonPipe.OnDisconnected += _DaemonPipe_OnDisconnected;
             _daemonPipe.OnReceiveLine += _DaemonPipe_OnReceiveLine;
 

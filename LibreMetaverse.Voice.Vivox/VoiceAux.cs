@@ -25,7 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace LibreMetaverse.Voice
+namespace LibreMetaverse.Voice.Vivox
 {
     public partial class VoiceGateway
     {

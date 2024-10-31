@@ -28,7 +28,7 @@
 using System.Collections.Generic;
 using System.Threading;
 
-namespace LibreMetaverse.Voice
+namespace LibreMetaverse.Voice.Vivox
 {
     public partial class VoiceManager
     {

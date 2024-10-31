@@ -30,7 +30,7 @@ using System.Collections.Generic;
 using System.Xml.Serialization;
 using OpenMetaverse;
 
-namespace LibreMetaverse.Voice
+namespace LibreMetaverse.Voice.Vivox
 {
     public partial class VoiceGateway
     {

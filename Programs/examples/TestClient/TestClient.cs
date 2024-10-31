@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Reflection;
 using OpenMetaverse.Packets;
-using LibreMetaverse.Voice;
+using LibreMetaverse.Voice.Vivox;
 
 namespace OpenMetaverse.TestClient
 {

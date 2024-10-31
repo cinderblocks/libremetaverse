@@ -27,7 +27,7 @@
 
 using System.Text;
 
-namespace LibreMetaverse.Voice
+namespace LibreMetaverse.Voice.Vivox
 {
     public partial class VoiceGateway
     {

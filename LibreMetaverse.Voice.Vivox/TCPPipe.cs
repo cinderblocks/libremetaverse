@@ -30,7 +30,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 
-namespace LibreMetaverse.Voice
+namespace LibreMetaverse.Voice.Vivox
 {
     public class TCPPipe
     {

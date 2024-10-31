@@ -28,7 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using OpenMetaverse;
-using LibreMetaverse.Voice;
+using LibreMetaverse.Voice.Vivox;
 
 namespace VoiceTest
 {
@@ -62,7 +62,7 @@ namespace VoiceTest
         {
             if (args.Length < 3)
             {
-                Console.WriteLine("Usage: VoiceTest.exe [firstname] [lastname] [password]");
+                Console.WriteLine("Usage: VivoxTest.exe [firstname] [lastname] [password]");
                 return;
             }
 
