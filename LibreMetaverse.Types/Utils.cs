@@ -401,7 +401,9 @@ namespace OpenMetaverse
         {
             var salt = new byte[32];
             using (var generator = RandomNumberGenerator.Create()) { generator.GetBytes(salt); }
+#pragma warning disable SYSLIB0041
             var derivebytes = new Rfc2898DeriveBytes(str, salt, 10000);
+#pragma warning restore SYSLIB0041
             byte[] hash = derivebytes.GetBytes(20);
             return Convert.ToBase64String(salt) + "|" + Convert.ToBase64String(hash);
         }
