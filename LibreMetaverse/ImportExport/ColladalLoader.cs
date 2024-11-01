@@ -152,7 +152,8 @@ namespace OpenMetaverse.ImportExport
                     width = width > 1024 ? 1024 : width;
                     height = height > 1024 ? 1024 : height;
 
-                    Logger.Log("Image has irregular dimensions " + origWidth + "x" + origHieght + ". Resizing to " + width + "x" + height, Helpers.LogLevel.Info);
+                    Logger.Log($"Image has irregular dimensions {origWidth}x{origHieght}. Resizing to {width}x{height}", 
+                        Helpers.LogLevel.Info);
 
                     var info = new SKImageInfo(width, height);
                     var scaledImage = new SKBitmap(info);
@@ -161,9 +162,9 @@ namespace OpenMetaverse.ImportExport
                     bitmap = scaledImage;
                 }
 
-                material.TextureData = J2kImage.ToBytes(bitmap);
+                material.TextureData = Imaging.J2K.ToBytes(bitmap);
 
-                Logger.Log("Successfully encoded " + fname, Helpers.LogLevel.Info);
+                Logger.Log($"Successfully encoded {fname}", Helpers.LogLevel.Info);
             }
             catch (Exception ex)
             {

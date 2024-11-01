@@ -28,6 +28,7 @@
 using System;
 using System.Threading;
 using CoreJ2K;
+using CoreJ2K.j2k.util;
 using SkiaSharp;
 
 namespace OpenMetaverse.TestClient
@@ -150,7 +151,8 @@ namespace OpenMetaverse.TestClient
                         bitmap = scaledImage;
                     }
                 }
-                uploadData = J2kImage.ToBytes(bitmap);
+                
+                uploadData = Imaging.J2K.ToBytes(bitmap);
             }
             catch (Exception ex)
             {
