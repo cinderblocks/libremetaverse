@@ -44,11 +44,11 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CoreJ2K.Skia" Version="1.0.3.18" />
-    <PackageReference Include="log4net" Version="2.0.17" />
-    <PackageReference Include="MemoryPack" Version="1.21.1" />
-    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="8.0.8" />
+    <PackageReference Include="log4net" Version="3.0.2" />
+    <PackageReference Include="MemoryPack" Version="1.21.3" />
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="8.0.10" />
     <PackageReference Include="OggVorbisEncoder" Version="1.2.2" />
-    <PackageReference Include="Pfim" Version="0.11.2" />
+    <PackageReference Include="Pfim" Version="0.11.3" />
     <PackageReference Include="SkiaSharp" Version="2.88.8" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
