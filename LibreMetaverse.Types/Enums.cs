@@ -129,10 +129,10 @@ namespace OpenMetaverse
         Person = 45,
         /// <summary> Settings blob </summary>
         [EnumInfo(Text = "settings")]
-        Settings,
+        Settings = 56,
         /// <summary> Render material </summary>
         [EnumInfo(Text = "material")]
-        Material,
+        Material = 57,
     }
 
     /// <summary>
