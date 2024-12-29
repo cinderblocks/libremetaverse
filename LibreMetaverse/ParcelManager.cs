@@ -1686,8 +1686,9 @@ namespace OpenMetaverse
         /// <param name="location">Location of the parcel in the remote region</param>
         /// <param name="regionHandle">Remote region handle</param>
         /// <param name="regionID">Remote region UUID</param>
+        /// <param name="cancellationToken">Thread cancellation token</param>
         /// <returns>If successful UUID of the remote parcel, UUID.Zero otherwise</returns>
-        public async Task<UUID> RequestRemoteParcelIDAsync(Vector3 location, ulong regionHandle, UUID regionID)
+        public async Task<UUID> RequestRemoteParcelIDAsync(Vector3 location, ulong regionHandle, UUID regionID, CancellationToken cancellationToken)
         {
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
                 return UUID.Zero;
@@ -1706,7 +1707,7 @@ namespace OpenMetaverse
                 try
                 {
                     OSD res = null;
-                    await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), CancellationToken.None,
+                    await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken,
                         (response, data, error) =>
                         {
                             if (data != null)
@@ -1745,7 +1746,7 @@ namespace OpenMetaverse
         /// <returns>If successful UUID of the remote parcel, UUID.Zero otherwise</returns>
         public UUID RequestRemoteParcelID(Vector3 location, ulong regionHandle, UUID regionID)
         {
-            return RequestRemoteParcelIDAsync(location, regionHandle, regionID).Result;
+            return RequestRemoteParcelIDAsync(location, regionHandle, regionID, CancellationToken.None).Result;
         }
 
         /// <summary>
