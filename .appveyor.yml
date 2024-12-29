@@ -109,7 +109,6 @@ for:
     only:
       - job_name: Windows x64 Build
 
-  test: off
   after_build:
 #    - ps: util/InstallRemotePfx.ps1 -PfxDownloadUrl $env:PfxDownloadUrl -PfxDownloadUser AppVeyor -PfxDownloadPasswd $env:PfxDownloadPasswd -PfxPasswd $env:PfxPassword
 #    - ps: util/SignPackages.ps1 -PfxPasswd $env:PfxPassword
