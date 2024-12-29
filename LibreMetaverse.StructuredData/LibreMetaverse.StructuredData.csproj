@@ -3,7 +3,7 @@
     <AssemblyName>LibreMetaverse.StructuredData</AssemblyName>
 	<Description>LibreMetaverse structured data library</Description>
 	<PackageId>LibreMetaverse.StructuredData</PackageId>
-    <TargetFrameworks>netstandard2.0;net7.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse.StructuredData</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>

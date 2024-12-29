@@ -4,7 +4,7 @@
 	<Description>Library interface for Vivox voice client</Description>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse</RootNamespace>
-    <TargetFrameworks>netstandard2.0;net7.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	<IncludeSymbols>true</IncludeSymbols>
 	<SymbolPackageFormat>snupkg</SymbolPackageFormat>

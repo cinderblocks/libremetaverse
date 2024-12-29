@@ -32,7 +32,7 @@ If all goes well, you should now have all dependent packages properly installed.
 -  From the root, run `dotnet msbuild LibreMetaverse.Release.sln`, and enjoy the superfast Roslyn compiler at work 😄 
 It should finish after a few minutes, depending on the speed of your machine.
 
--  Your binaries will be under `../bin/net6.0` or `../bin/net7.0` (there might be a few more directories under `../bin`),
+-  Your binaries will be under `../bin/net8.0` or `../bin/net9.0` (there might be a few more directories under `../bin`),
 depending on what runtimes you have installed on your system. Make sure you `cd` to the correct directory depending on the runtime you have, 
 and then search for all your binaries there: they should be normal-looking executable files (with the `x` attribute set) and having the name 
 of the appropriate test application (e.g. `TestClient` for the interactive testing tool).

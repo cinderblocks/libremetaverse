@@ -3,7 +3,7 @@
 	<OutputType>Exe</OutputType>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <OutputPath>..\..\bin\</OutputPath>
-    <TargetFrameworks>net481;net7.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>net481;net8.0;net9.0</TargetFrameworks>
     <PlatformTarget>AnyCPU</PlatformTarget>
 	<IsPackable>false</IsPackable>
 	<PackageId>VivoxTest</PackageId>
