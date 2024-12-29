@@ -1600,7 +1600,7 @@ namespace OpenMetaverse
                     chunkid++;
                 }
             }
-            else if ((message.Length > 0) && (message.Length < 1000))
+            else
             {
                 ChatFromViewerPacket chat = new ChatFromViewerPacket
                 {
