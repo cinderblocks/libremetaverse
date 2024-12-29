@@ -1253,7 +1253,9 @@ namespace OpenMetaverse.StructuredData
             if (!stream.CanSeek) { throw new OSDException("Cannot deserialize structured data from unseekable streams"); }
 
             byte[] headerData = new byte[14];
-            stream.Read(headerData, 0, 14);
+            int read = stream.Read(headerData, 0, 14);
+            if (read == 0) { throw new System.IO.EndOfStreamException(); }
+
             stream.Seek(0, SeekOrigin.Begin);
             string header = Encoding.ASCII.GetString(headerData);
 
