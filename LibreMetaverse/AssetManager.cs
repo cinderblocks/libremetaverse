@@ -822,7 +822,7 @@ namespace OpenMetaverse
             }
             
             // If ViewerAsset capability exists, use that, if not, fallback to UDP
-            if (Client.Network.CurrentSim?.Caps?.CapabilityURI("ViewerAsset") != null)
+            if (CanFetchAsset(assetType) && Client.Network.CurrentSim?.Caps?.CapabilityURI("ViewerAsset") != null)
             {
                 RequestInventoryAssetHTTP(assetID, transfer, callback);
             }
