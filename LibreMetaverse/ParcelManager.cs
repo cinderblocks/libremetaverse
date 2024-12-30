@@ -1710,14 +1710,15 @@ namespace OpenMetaverse
                     await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken,
                         (response, data, error) =>
                         {
-                            if (data != null)
+                            if (error != null)
+                            {
+                                throw error;
+                            }
+                            if (response.IsSuccessStatusCode && data != null)
                             {
                                 res = OSDParser.Deserialize(data);
                             }
-                            else if (error != null)
-                            {
-                                Logger.Log("Did not receive response from RemoteParcelRequest: " + error.Message, Helpers.LogLevel.Warning, Client);
-                            }
+                            
                         });
 
                     if (res is OSDMap result)
@@ -1729,7 +1730,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Failed to fetch remote parcel ID", Helpers.LogLevel.Debug, Client, ex);
+                    Logger.Log("Failed to fetch remote parcel ID: ", Helpers.LogLevel.Debug, Client, ex);
                 }
             }
             

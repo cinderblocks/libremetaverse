@@ -104,7 +104,7 @@ namespace LibreMetaverse
                 }
                 catch (Exception e)
                 {
-                    Logger.Log("Error in HTTP request; " + e, Helpers.LogLevel.Error, null, e);
+                    Logger.Log("Error in HTTP request: " + e, Helpers.LogLevel.Error, null, e);
                 }
             }
         }
@@ -252,7 +252,7 @@ namespace LibreMetaverse
                     if (!response.IsSuccessStatusCode)
                     {
                         completeHandler?.Invoke(response, null,
-                                                new HttpRequestException(response.StatusCode + " " +
+                                                new HttpRequestException(response.StatusCode + ": " +
                                                                          response.ReasonPhrase));
                     }
 
