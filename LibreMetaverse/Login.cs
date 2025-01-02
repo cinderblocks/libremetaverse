@@ -1516,10 +1516,6 @@ namespace OpenMetaverse
             
             #endregion
 
-            // TODO: Allow a user callback to be defined for handling the cert
-            ServicePointManager.ServerCertificateValidationCallback = 
-                (sender, certificate, chain, sslPolicyErrors) => true;
-
             if (Client.Settings.USE_LLSD_LOGIN)
             {
                 #region LLSD Based Login

@@ -2,6 +2,7 @@
  * GridProxy.cs: implementation of OpenMetaverse proxy library
  *
  * Copyright (c) 2006 Austin Jennings
+ * Copyright (c) 2025, Sjofn LLC.
  * Pregen modifications made by Andrew Ortman on Dec 10, 2006 -> Dec 20, 2006
  * 
  * 
@@ -204,9 +205,6 @@ namespace GridProxy
         public Proxy(ProxyConfig proxyConfig)
         {
             this.proxyConfig = proxyConfig;
-
-            ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
-            ServicePointManager.Expect100Continue = false;
 
             InitializeLoginProxy();
             InitializeSimProxy();
@@ -725,7 +723,7 @@ namespace GridProxy
 
                 // can't do gets on requests with a content body
                 // without throwing a protocol exception. So force it to post 
-                // incase our parser stupidly set it to GET due to the viewer 
+                // in case our parser stupidly set it to GET due to the viewer 
                 // doing something stupid like sending an empty request
                 if (content.Length > 0)
                     req.Method = "POST";

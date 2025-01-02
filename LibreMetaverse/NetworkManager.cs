@@ -369,9 +369,6 @@ namespace OpenMetaverse
             RegisterCallback(PacketType.LogoutReply, LogoutReplyHandler);
             RegisterCallback(PacketType.CompletePingCheck, CompletePingCheckHandler, false);
             RegisterCallback(PacketType.SimStats, SimStatsHandler, false);
-
-            // GLOBAL SETTING: Don't force Expect-100: Continue headers on HTTP POST calls
-            ServicePointManager.Expect100Continue = false;
         }
 
         /// <summary>
