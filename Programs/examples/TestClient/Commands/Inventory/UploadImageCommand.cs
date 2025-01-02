@@ -128,7 +128,7 @@ namespace OpenMetaverse.TestClient
                     {
                         var info = new SKImageInfo(256, 256);
                         var scaledImage = new SKBitmap(info);
-                        bitmap.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
+                        bitmap.ScalePixels(scaledImage.PeekPixels(), new SKSamplingOptions(SKFilterMode.Linear));
 
                         bitmap.Dispose();
                         bitmap = scaledImage;
@@ -145,7 +145,7 @@ namespace OpenMetaverse.TestClient
 
                         var info = new SKImageInfo(newwidth, newheight);
                         var scaledImage = new SKBitmap(info);
-                        bitmap.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
+                        bitmap.ScalePixels(scaledImage.PeekPixels(), new SKSamplingOptions(SKFilterMode.Linear));
 
                         bitmap.Dispose();
                         bitmap = scaledImage;

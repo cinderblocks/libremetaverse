@@ -157,7 +157,7 @@ namespace OpenMetaverse.ImportExport
 
                     var info = new SKImageInfo(width, height);
                     var scaledImage = new SKBitmap(info);
-                    bitmap.ScalePixels(scaledImage.PeekPixels(), SKFilterQuality.High);
+                    bitmap.ScalePixels(scaledImage.PeekPixels(), new SKSamplingOptions(SKFilterMode.Linear));
                     bitmap.Dispose();
                     bitmap = scaledImage;
                 }
