@@ -7,9 +7,9 @@
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <IsPackable>false</IsPackable>
     <PlatformTarget>AnyCPU</PlatformTarget>
-	<OutputPath>..\bin\</OutputPath>
-	<NoWarn>$(NoWarn);SYSLIB0001;SYSLIB0011</NoWarn>
-	<EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
+    <OutputPath>..\bin\</OutputPath>
+    <NoWarn>$(NoWarn);SYSLIB0001;SYSLIB0011</NoWarn>
+    <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>TRACE;DEBUG</DefineConstants>
@@ -33,14 +33,14 @@
   <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
-	<ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
+    <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <ItemGroup>
-	<None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
-	<None Include="..\README.md" Pack="true" PackagePath="\" />
-	<None Include="..\data\logo.png" Pack="true" PackagePath="\" />
+    <None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\data\logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>

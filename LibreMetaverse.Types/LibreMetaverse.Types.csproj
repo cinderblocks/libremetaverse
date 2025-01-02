@@ -1,17 +1,17 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>LibreMetaverse.Types</AssemblyName>
-	<PackageId>LibreMetaverse.Types</PackageId>
-	<Description>LibreMetaverse type library</Description>
+    <PackageId>LibreMetaverse.Types</PackageId>
+    <Description>LibreMetaverse type library</Description>
     <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-	<IncludeSymbols>true</IncludeSymbols>
-	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <NoWarn>$(NoWarn);CS0419;CS1591;CS1574</NoWarn>
     <PlatformTarget>AnyCPU</PlatformTarget>
-	<OutputPath>..\bin\</OutputPath>
+    <OutputPath>..\bin\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>TRACE;DEBUG</DefineConstants>
@@ -24,8 +24,8 @@
     <Optimize>True</Optimize>
   </PropertyGroup>
   <ItemGroup>
-	<None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
-	<None Include="..\README.md" Pack="true" PackagePath="\" />
-	<None Include="..\data\logo.png" Pack="true" PackagePath="\" />
+    <None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\data\logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>

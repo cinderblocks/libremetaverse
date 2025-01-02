@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>GridProxy</AssemblyName>
-	<PackageId>GridProxy</PackageId>
-	<OutputType>Library</OutputType>
+    <PackageId>GridProxy</PackageId>
+    <OutputType>Library</OutputType>
     <RootNamespace>GridProxy</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-	<TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <OutputPath>..\..\bin\</OutputPath>
-	<IsPackable>false</IsPackable>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="log4net" Version="3.0.3" />
@@ -20,8 +20,8 @@
     <ProjectReference Include="..\..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
   </ItemGroup>
   <ItemGroup>
-	<None Include="..\..\LICENSE.txt" Pack="true" PackagePath="\" />
-	<None Include="..\..\README.md" Pack="true" PackagePath="\" />
-	<None Include="..\..\data\logo.png" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="\" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\data\logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>
