@@ -6,7 +6,7 @@ init:
 
 environment:
   matrix:
-  - job_name: Windows x64 Build
+  - job_name: Windows Build
     platform: Any CPU
     appveyor_build_worker_image: Visual Studio 2022
     configuration: Release
@@ -28,6 +28,7 @@ environment:
     secure: nAIqrjhaoamhiuAcae/xNw==
   PfxPassword:
     secure: +vWSGzLkiBGVIxfPb+iRtD+/maQjI2d92hN4PoNAxMc=
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 matrix:
   allow_failures:
@@ -80,7 +81,7 @@ deploy:
     draft: false
     prerelease: false
     on:
-      job_name: Windows x64 build
+      job_name: Windows build
       APPVEYOR_REPO_TAG: true
   - provider: GitHub
     name: github_releases
@@ -92,25 +93,32 @@ deploy:
     draft: false
     prerelease: false
     on:
-      job_name: Windows x64 build
+      job_name: Windows build
       APPVEYOR_REPO_TAG: true
 
 for:
 -
   matrix:
-    only: # remove either when mono stops crashing or we stop supporting net481
+    only: 
       - job_name: Linux Build
-      - job_name: Mac Build
   
-  test: off
-  install:
-    # workaround until AppVeyor updates Linux/Mac images for .NET9
-    - sh: curl -sSL https://dot.net/v1/dotnet-install.sh | sudo bash /dev/stdin --verbose --version latest
+  test: off # remove either when mono stops crashing or we stop supporting net481
+  install: # workaround until AppVeyor updates Linux/Mac images for .NET9 
+    - sh: curl -sSL https://dot.net/v1/dotnet-install.sh | sudo bash /dev/stdin --jsonfile global.json --version latest --install-dir '/usr/share/dotnet'
 
 -
   matrix:
     only:
-      - job_name: Windows x64 Build
+      - job_name: Mac Build
+
+  test: off # remove either when mono stops crashing or we stop supporting net481
+  install:
+    - sh: curl -sSL https://dot.net/v1/dotnet-install.sh | sudo bash /dev/stdin --jsonfile global.json --version latest --install-dir '/usr/local/share/dotnet'
+
+-
+  matrix:
+    only:
+      - job_name: Windows Build
 
   test: off
   after_build:
