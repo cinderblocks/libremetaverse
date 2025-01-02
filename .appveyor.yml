@@ -105,8 +105,7 @@ for:
   test: off
   install:
     # workaround until AppVeyor updates Linux/Mac images for .NET9
-    - sh: curl -o '/tmp/dotnet-install.sh' https://dot.net/v1/dotnet-install.sh && chmod +x /tmp/dotnet-install.sh
-    - sh: sudo sh /tmp/dotnet-install.sh --verbose --version latest
+    - sh: curl -sSL https://dot.net/v1/dotnet-install.sh | sudo bash /dev/stdin --verbose --version latest
 
 -
   matrix:
