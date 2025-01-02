@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -31,32 +32,36 @@ using OpenMetaverse.Packets;
 
 namespace PacketDump
 {
-    class PacketDump
+    internal class PacketDump
 	{
-        static bool LoginSuccess = false;
-        static AutoResetEvent LoginEvent = new AutoResetEvent(false);
+        private static bool LoginSuccess = false;
+        private static AutoResetEvent LoginEvent = new AutoResetEvent(false);
 
 		/// <summary>
 		/// The main entry point for the application.
 		/// </summary>
 		[STAThread]
-		static void Main(string[] args)
+        private static void Main(string[] args)
 		{
             if (args.Length != 4)
 			{
-				Console.WriteLine("Usage: PacketDump [firstname] [lastname] [password] [seconds (0 for infinite)]");
+				Console.WriteLine("Usage: LMV.PacketDump [firstname] [lastname] [password] [seconds (0 for infinite)]");
 				return;
 			}
 
-            var client = new GridClient();
-            // Turn off some unnecessary things
-            client.Settings.MULTIPLE_SIMS = false;
-            // Throttle packets that we don't want all the way down
-            client.Throttle.Land = 0;
-            client.Throttle.Wind = 0;
-            client.Throttle.Cloud = 0;
+            var client = new GridClient
+            {
+                Settings = { MULTIPLE_SIMS = false },
+                Throttle =
+                {
+                    // Throttle packets that we don't want all the way down
+                    Land = 0,
+                    Wind = 0,
+                    Cloud = 0
+                }
+            };
 
-			// Setup a packet callback that is called for every packet (PacketType.Default)
+            // Setup a packet callback that is called for every packet (PacketType.Default)
             client.Network.RegisterCallback(PacketType.Default, DefaultHandler);
             
             // Register handlers for when we login, and when we are disconnected
@@ -75,9 +80,9 @@ namespace PacketDump
                     Logger.Log("Message of the day: " + client.Network.LoginMessage, Helpers.LogLevel.Info);
 
                     // Determine how long to run for
-                    int start = Environment.TickCount;
-                    int milliseconds = int.Parse(args[3]) * 1000;
-                    bool forever = (milliseconds <= 0);
+                    var start = Environment.TickCount;
+                    var milliseconds = int.Parse(args[3]) * 1000;
+                    var forever = (milliseconds <= 0);
 
                     // Packet handling is done with asynchronous callbacks. Run a sleeping loop in the main
                     // thread until we run out of time or the program is closed
@@ -103,7 +108,7 @@ namespace PacketDump
             }
 		}
 
-        static void LoginHandler(object sender, LoginProgressEventArgs e)
+        private static void LoginHandler(object sender, LoginProgressEventArgs e)
         {
             Logger.Log($"Login: {e.Status} ({e.Message})", Helpers.LogLevel.Info);
 

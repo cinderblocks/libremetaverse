@@ -1,14 +1,41 @@
+/*
+ * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
+ * All rights reserved.
+ *
+ * - Redistribution and use in source and binary forms, with or without 
+ *   modification, are permitted provided that the following conditions are met:
+ *
+ * - Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * - Neither the name of the openmetaverse.co nor the names 
+ *   of its contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 
 namespace Mapgenerator
 {
-    class Mapgenerator
+    internal class MapGenerator
     {
-        static void WriteFieldMember(TextWriter writer, MapField field)
+        private static void WriteFieldMember(TextWriter writer, MapField field)
         {
-            string type = string.Empty;
+            var type = string.Empty;
 
             switch (field.Type)
             {
@@ -89,7 +116,7 @@ namespace Mapgenerator
             }
         }
 
-        static void WriteFieldFromBytes(TextWriter writer, MapField field)
+        private static void WriteFieldFromBytes(TextWriter writer, MapField field)
         {
             switch (field.Type)
             {
@@ -180,7 +207,7 @@ namespace Mapgenerator
             }
         }
 
-        static void WriteFieldToBytes(TextWriter writer, MapField field)
+        private static void WriteFieldToBytes(TextWriter writer, MapField field)
         {
             writer.Write("                ");
 
@@ -258,7 +285,7 @@ namespace Mapgenerator
             }
         }
 
-        static int GetFieldLength(TextWriter writer, MapField field)
+        private static int GetFieldLength(TextWriter writer, MapField field)
         {
             switch (field.Type)
             {
@@ -296,15 +323,15 @@ namespace Mapgenerator
             }
         }
 
-        static void WriteBlockClass(TextWriter writer, MapBlock block, MapPacket packet)
+        private static void WriteBlockClass(TextWriter writer, MapBlock block, MapPacket packet)
         {
-            int variableFieldCountBytes = 0;
+            var variableFieldCountBytes = 0;
 
             //writer.WriteLine("        /// <summary>" + block.Name + " block</summary>");
             writer.WriteLine("        /// <exclude/>");
             writer.WriteLine("        public sealed class " + block.Name + "Block : PacketBlock" + Environment.NewLine + "        {");
 
-            foreach (MapField field in block.Fields)
+            foreach (var field in block.Fields)
             {
                 WriteFieldMember(writer, field);
                 if (field.Type == FieldType.Variable) { variableFieldCountBytes += field.Count; }
@@ -317,10 +344,10 @@ namespace Mapgenerator
                              "            {" + Environment.NewLine +
                              "                get" + Environment.NewLine +
                              "                {");
-            int length = variableFieldCountBytes;
+            var length = variableFieldCountBytes;
 
             // Figure out the length of this block
-            foreach (MapField field in block.Fields)
+            foreach (var field in block.Fields)
             {
                 length += GetFieldLength(writer, field);
             }
@@ -333,7 +360,7 @@ namespace Mapgenerator
             {
                 writer.WriteLine("                    int length = " + length + ";");
 
-                foreach (MapField field in block.Fields)
+                foreach (var field in block.Fields)
                 {
                     if (field.Type == FieldType.Variable)
                     {
@@ -368,7 +395,7 @@ namespace Mapgenerator
             // Start of the try catch block
             writer.WriteLine("                try" + Environment.NewLine + "                {");
 
-            foreach (MapField field in block.Fields)
+            foreach (var field in block.Fields)
             {
                 WriteFieldFromBytes(writer, field);
             }
@@ -384,7 +411,7 @@ namespace Mapgenerator
             writer.WriteLine("            public override void ToBytes(byte[] bytes, ref int i)" + Environment.NewLine +
                 "            {");
 
-            foreach (MapField field in block.Fields)
+            foreach (var field in block.Fields)
             {
                 WriteFieldToBytes(writer, field);
             }
@@ -393,9 +420,9 @@ namespace Mapgenerator
             writer.WriteLine("        }" + Environment.NewLine);
         }
 
-        static void WritePacketClass(TextWriter writer, MapPacket packet)
+        private static void WritePacketClass(TextWriter writer, MapPacket packet)
         {
-            bool hasVariableBlocks = false;
+            var hasVariableBlocks = false;
             string sanitizedName;
 
             //writer.WriteLine("    /// <summary>" + packet.Name + " packet</summary>");
@@ -403,7 +430,7 @@ namespace Mapgenerator
             writer.WriteLine("    public sealed class " + packet.Name + "Packet : Packet" + Environment.NewLine + "    {");
 
             // Write out each block class
-            foreach (MapBlock block in packet.Blocks)
+            foreach (var block in packet.Blocks)
             {
                 WriteBlockClass(writer, block, packet);
             }
@@ -413,12 +440,12 @@ namespace Mapgenerator
                 "        {" + Environment.NewLine + "            get" + Environment.NewLine +
                 "            {");
 
-            int length = 0;
+            var length = 0;
             if (packet.Frequency == PacketFrequency.Low) { length = 10; }
             else if (packet.Frequency == PacketFrequency.Medium) { length = 8; }
             else { length = 7; }
 
-            foreach (MapBlock block in packet.Blocks)
+            foreach (var block in packet.Blocks)
             {
                 if (block.Count == -1)
                 {
@@ -429,7 +456,7 @@ namespace Mapgenerator
 
             writer.WriteLine("                int length = " + length + ";");
 
-            foreach (MapBlock block in packet.Blocks)
+            foreach (var block in packet.Blocks)
             {
                 if (block.Name == "Header") { sanitizedName = "_" + block.Name; }
                 else { sanitizedName = block.Name; }
@@ -455,7 +482,7 @@ namespace Mapgenerator
             writer.WriteLine("            }" + Environment.NewLine + "        }");
 
             // Block members
-            foreach (MapBlock block in packet.Blocks)
+            foreach (var block in packet.Blocks)
             {
                 // TODO: More thorough name blacklisting
                 if (block.Name == "Header") { sanitizedName = "_" + block.Name; }
@@ -478,7 +505,7 @@ namespace Mapgenerator
             writer.WriteLine("            Header.ID = " + packet.ID + ";");
             writer.WriteLine("            Header.Reliable = true;"); // Turn the reliable flag on by default
             if (packet.Encoded) { writer.WriteLine("            Header.Zerocoded = true;"); }
-            foreach (MapBlock block in packet.Blocks)
+            foreach (var block in packet.Blocks)
             {
                 if (block.Name == "Header") { sanitizedName = "_" + block.Name; }
                 else { sanitizedName = block.Name; }
@@ -502,7 +529,7 @@ namespace Mapgenerator
             writer.WriteLine("        }" + Environment.NewLine);
 
             // Constructor that takes a byte array and beginning position only (no prebuilt header)
-            bool seenVariable = false;
+            var seenVariable = false;
             //writer.WriteLine("        /// <summary>Constructor that takes a byte array and beginning position (no prebuilt header)</summary>");
             writer.WriteLine("        public " + packet.Name + "Packet(byte[] bytes, ref int i) : this()" + Environment.NewLine +
                 "        {" + Environment.NewLine +
@@ -518,7 +545,7 @@ namespace Mapgenerator
             writer.WriteLine("                bytes = zeroBuffer;");
             writer.WriteLine("            }");
 
-            foreach (MapBlock block in packet.Blocks)
+            foreach (var block in packet.Blocks)
             {
                 if (block.Name == "Header") { sanitizedName = "_" + block.Name; }
                 else { sanitizedName = block.Name; }
@@ -575,7 +602,7 @@ namespace Mapgenerator
             writer.WriteLine("        override public void FromBytes(Header header, byte[] bytes, ref int i, ref int packetEnd)" + Environment.NewLine +
                 "        {");
             writer.WriteLine("            Header = header;");
-            foreach (MapBlock block in packet.Blocks)
+            foreach (var block in packet.Blocks)
             {
                 if (block.Name == "Header") { sanitizedName = "_" + block.Name; }
                 else { sanitizedName = block.Name; }
@@ -629,7 +656,7 @@ namespace Mapgenerator
             else if (packet.Frequency == PacketFrequency.Medium) { writer.WriteLine("8;"); }
             else { writer.WriteLine("7;"); }
 
-            foreach (MapBlock block in packet.Blocks)
+            foreach (var block in packet.Blocks)
             {
                 if (block.Name == "Header") { sanitizedName = "_" + block.Name; }
                 else { sanitizedName = block.Name; }
@@ -641,7 +668,7 @@ namespace Mapgenerator
                 }
             }
 
-            foreach (MapBlock block in packet.Blocks)
+            foreach (var block in packet.Blocks)
             {
                 if (block.Name == "Header") { sanitizedName = "_" + block.Name; }
                 else { sanitizedName = block.Name; }
@@ -663,7 +690,7 @@ namespace Mapgenerator
             writer.WriteLine("            byte[] bytes = new byte[length];");
             writer.WriteLine("            int i = 0;");
             writer.WriteLine("            Header.ToBytes(bytes, ref i);");
-            foreach (MapBlock block in packet.Blocks)
+            foreach (var block in packet.Blocks)
             {
                 if (block.Name == "Header") { sanitizedName = "_" + block.Name; }
                 else { sanitizedName = block.Name; }
@@ -697,16 +724,16 @@ namespace Mapgenerator
             writer.WriteLine("    }" + Environment.NewLine);
         }
 
-        static void WriteToBytesMultiple(TextWriter writer, MapPacket packet)
+        private static void WriteToBytesMultiple(TextWriter writer, MapPacket packet)
         {
             writer.WriteLine(
                 "        public override byte[][] ToBytesMultiple()" + Environment.NewLine +
                 "        {");
 
             // Check if there are any variable blocks
-            bool hasVariable = false;
-            bool cannotSplit = false;
-            foreach (MapBlock block in packet.Blocks)
+            var hasVariable = false;
+            var cannotSplit = false;
+            foreach (var block in packet.Blocks)
             {
                 if (block.Count == -1)
                 {
@@ -745,7 +772,7 @@ namespace Mapgenerator
                 writer.WriteLine();
 
                 // Count fixed blocks
-                foreach (MapBlock block in packet.Blocks)
+                foreach (var block in packet.Blocks)
                 {
                     string sanitizedName;
                     if (block.Name == "Header") { sanitizedName = "_" + block.Name; }
@@ -768,7 +795,7 @@ namespace Mapgenerator
                     "            byte[] fixedBytes = new byte[fixedLength];");
                 writer.WriteLine(
                     "            Header.ToBytes(fixedBytes, ref i);");
-                foreach (MapBlock block in packet.Blocks)
+                foreach (var block in packet.Blocks)
                 {
                     string sanitizedName;
                     if (block.Name == "Header") { sanitizedName = "_" + block.Name; }
@@ -786,8 +813,8 @@ namespace Mapgenerator
                     }
                 }
 
-                int variableCountBlock = 0;
-                foreach (MapBlock block in packet.Blocks)
+                var variableCountBlock = 0;
+                foreach (var block in packet.Blocks)
                 {
                     string sanitizedName;
                     if (block.Name == "Header") { sanitizedName = "_" + block.Name; }
@@ -802,7 +829,7 @@ namespace Mapgenerator
                 writer.WriteLine("            fixedLength += " + variableCountBlock + ";");
                 writer.WriteLine();
 
-                foreach (MapBlock block in packet.Blocks)
+                foreach (var block in packet.Blocks)
                 {
                     string sanitizedName;
                     if (block.Name == "Header") { sanitizedName = "_" + block.Name; }
@@ -821,7 +848,7 @@ namespace Mapgenerator
                 // Count how many variable blocks can go in this packet
                 writer.WriteLine("                int variableLength = 0;");
 
-                foreach (MapBlock block in packet.Blocks)
+                foreach (var block in packet.Blocks)
                 {
                     string sanitizedName;
                     if (block.Name == "Header") { sanitizedName = "_" + block.Name; }
@@ -835,7 +862,7 @@ namespace Mapgenerator
                 }
                 writer.WriteLine();
 
-                foreach (MapBlock block in packet.Blocks)
+                foreach (var block in packet.Blocks)
                 {
                     string sanitizedName;
                     if (block.Name == "Header") { sanitizedName = "_" + block.Name; }
@@ -866,7 +893,7 @@ namespace Mapgenerator
                 writer.WriteLine("                if (packets.Count > 0) { packet[0] = (byte)(packet[0] & ~0x10); }");
                 writer.WriteLine();
 
-                foreach (MapBlock block in packet.Blocks)
+                foreach (var block in packet.Blocks)
                 {
                     string sanitizedName;
                     if (block.Name == "Header") { sanitizedName = "_" + block.Name; }
@@ -892,8 +919,8 @@ namespace Mapgenerator
                 writer.WriteLine("                packets.Add(packet);");
                 
                 writer.WriteLine("            } while (");
-                bool first = true;
-                foreach (MapBlock block in packet.Blocks)
+                var first = true;
+                foreach (var block in packet.Blocks)
                 {
                     string sanitizedName;
                     if (block.Name == "Header") { sanitizedName = "_" + block.Name; }
@@ -920,10 +947,10 @@ namespace Mapgenerator
             }
         }
 
-        static int Main(string[] args)
+        private static int Main(string[] args)
         {
             ProtocolManager protocol;
-            List<string> unused = new List<string>();
+            var unused = new List<string>();
             StreamWriter writer;
 
             try
@@ -938,11 +965,11 @@ namespace Mapgenerator
                 protocol = new ProtocolManager(args[0]);
 
                 // Build a list of unused packets
-                using (StreamReader unusedReader = new StreamReader(args[2]))
+                using (var unusedReader = new StreamReader(args[2]))
                 {
                     while (unusedReader.Peek() >= 0)
                     {
-                        unused.Add(unusedReader.ReadLine().Trim());
+                        unused.Add(unusedReader.ReadLine()?.Trim());
                     }
                 }
 
@@ -958,23 +985,23 @@ namespace Mapgenerator
             }
 
 
-            // Prune all of the unused packets out of the protocol
-            int i = 0;
-            foreach (MapPacket packet in protocol.LowMaps)
+            // Prune all the unused packets out of the protocol
+            var i = 0;
+            foreach (var packet in protocol.LowMaps)
             {
                 if (packet != null && unused.Contains(packet.Name))
                     protocol.LowMaps[i] = null;
                 i++;
             }
             i = 0;
-            foreach (MapPacket packet in protocol.MediumMaps)
+            foreach (var packet in protocol.MediumMaps)
             {
                 if (packet != null && unused.Contains(packet.Name))
                     protocol.MediumMaps[i] = null;
                 i++;
             }
             i = 0;
-            foreach (MapPacket packet in protocol.HighMaps)
+            foreach (var packet in protocol.HighMaps)
             {
                 if (packet != null && unused.Contains(packet.Name))
                     protocol.HighMaps[i] = null;
@@ -986,13 +1013,13 @@ namespace Mapgenerator
             writer.WriteLine("    public enum PacketType" + Environment.NewLine + "    {" + Environment.NewLine +
                 "        /// <summary>A generic value, not an actual packet type</summary>" + Environment.NewLine +
                 "        Default,");
-            foreach (MapPacket packet in protocol.LowMaps)
+            foreach (var packet in protocol.LowMaps)
                 if (packet != null)
                     writer.WriteLine("        " + packet.Name + " = " + (0x10000 | packet.ID) + ",");
-            foreach (MapPacket packet in protocol.MediumMaps)
+            foreach (var packet in protocol.MediumMaps)
                 if (packet != null)
                     writer.WriteLine("        " + packet.Name + " = " + (0x20000 | packet.ID) + ",");
-            foreach (MapPacket packet in protocol.HighMaps)
+            foreach (var packet in protocol.HighMaps)
                 if (packet != null)
                     writer.WriteLine("        " + packet.Name + " = " + (0x30000 | packet.ID) + ",");
             writer.WriteLine("    }" + Environment.NewLine);
@@ -1022,21 +1049,21 @@ namespace Mapgenerator
                 "                case PacketFrequency.Low:" + Environment.NewLine +
                 "                    switch (id)" + Environment.NewLine +
                 "                    {");
-            foreach (MapPacket packet in protocol.LowMaps)
+            foreach (var packet in protocol.LowMaps)
                 if (packet != null)
                     writer.WriteLine("                        case " + packet.ID + ": return PacketType." + packet.Name + ";");
             writer.WriteLine("                    }" + Environment.NewLine +
                 "                    break;" + Environment.NewLine +
                 "                case PacketFrequency.Medium:" + Environment.NewLine +
                 "                    switch (id)" + Environment.NewLine + "                    {");
-            foreach (MapPacket packet in protocol.MediumMaps)
+            foreach (var packet in protocol.MediumMaps)
                 if (packet != null)
                     writer.WriteLine("                        case " + packet.ID + ": return PacketType." + packet.Name + ";");
             writer.WriteLine("                    }" + Environment.NewLine +
                 "                    break;" + Environment.NewLine +
                 "                case PacketFrequency.High:" + Environment.NewLine +
                 "                    switch (id)" + Environment.NewLine + "                    {");
-            foreach (MapPacket packet in protocol.HighMaps)
+            foreach (var packet in protocol.HighMaps)
                 if (packet != null)
                     writer.WriteLine("                        case " + packet.ID + ": return PacketType." + packet.Name + ";");
             writer.WriteLine("                    }" + Environment.NewLine +
@@ -1046,13 +1073,13 @@ namespace Mapgenerator
             // Write the Packet.BuildPacket(PacketType) function
             writer.WriteLine("        public static Packet BuildPacket(PacketType type)");
             writer.WriteLine("        {");
-            foreach (MapPacket packet in protocol.HighMaps)
+            foreach (var packet in protocol.HighMaps)
                 if (packet != null)
                     writer.WriteLine("            if(type == PacketType." + packet.Name + ") return new " + packet.Name + "Packet();");
-            foreach (MapPacket packet in protocol.MediumMaps)
+            foreach (var packet in protocol.MediumMaps)
                 if (packet != null)
                     writer.WriteLine("            if(type == PacketType." + packet.Name + ") return new " + packet.Name + "Packet();");
-            foreach (MapPacket packet in protocol.LowMaps)
+            foreach (var packet in protocol.LowMaps)
                 if (packet != null)
                     writer.WriteLine("            if(type == PacketType." + packet.Name + ") return new " + packet.Name + "Packet();");
             writer.WriteLine("            return null;" + Environment.NewLine);
@@ -1081,7 +1108,7 @@ namespace Mapgenerator
                 case PacketFrequency.Low:
                     switch (header.ID)
                     {");
-            foreach (MapPacket packet in protocol.LowMaps)
+            foreach (var packet in protocol.LowMaps)
                 if (packet != null)
                     writer.WriteLine("                        case " + packet.ID + ": return new " + packet.Name + "Packet(header, bytes, ref i);");
             writer.WriteLine(@"
@@ -1090,7 +1117,7 @@ namespace Mapgenerator
                 case PacketFrequency.Medium:
                     switch (header.ID)
                     {");
-            foreach (MapPacket packet in protocol.MediumMaps)
+            foreach (var packet in protocol.MediumMaps)
                 if (packet != null)
                     writer.WriteLine("                        case " + packet.ID + ": return new " + packet.Name + "Packet(header, bytes, ref i);");
             writer.WriteLine(@"
@@ -1099,7 +1126,7 @@ namespace Mapgenerator
                 case PacketFrequency.High:
                     switch (header.ID)
                     {");
-            foreach (MapPacket packet in protocol.HighMaps)
+            foreach (var packet in protocol.HighMaps)
                 if (packet != null)
                     writer.WriteLine("                        case " + packet.ID + ": return new " + packet.Name + "Packet(header, bytes, ref i);");
             writer.WriteLine(@"
@@ -1112,11 +1139,11 @@ namespace Mapgenerator
     }");
 
             // Write the packet classes
-            foreach (MapPacket packet in protocol.LowMaps)
+            foreach (var packet in protocol.LowMaps)
                 if (packet != null) { WritePacketClass(writer, packet); }
-            foreach (MapPacket packet in protocol.MediumMaps)
+            foreach (var packet in protocol.MediumMaps)
                 if (packet != null) { WritePacketClass(writer, packet); }
-            foreach (MapPacket packet in protocol.HighMaps)
+            foreach (var packet in protocol.HighMaps)
                 if (packet != null) { WritePacketClass(writer, packet); }
 
 

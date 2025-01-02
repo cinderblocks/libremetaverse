@@ -1,3 +1,30 @@
+/*
+ * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
+ * All rights reserved.
+ *
+ * - Redistribution and use in source and binary forms, with or without 
+ *   modification, are permitted provided that the following conditions are met:
+ *
+ * - Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * - Neither the name of the openmetaverse.co nor the names 
+ *   of its contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -87,24 +114,22 @@ namespace Mapgenerator
         /// <returns></returns>
 		public int CompareTo(object obj)
 		{
-			MapField temp = (MapField)obj;
+			var temp = (MapField)obj;
 
 			if (KeywordPosition > temp.KeywordPosition)
 			{
 				return 1;
 			}
-			else
-			{
-				if(temp.KeywordPosition == KeywordPosition)
-				{
-					return 0;
-				}
-				else
-				{
-					return -1;
-				}
-			}
-		}
+
+            if(temp.KeywordPosition == KeywordPosition)
+            {
+                return 0;
+            }
+            else
+            {
+                return -1;
+            }
+        }
 	}
 
     /// <summary>
@@ -128,24 +153,22 @@ namespace Mapgenerator
         /// <returns></returns>
 		public int CompareTo(object obj)
 		{
-			MapBlock temp = (MapBlock)obj;
+			var temp = (MapBlock)obj;
 
 			if (KeywordPosition > temp.KeywordPosition)
 			{
 				return 1;
 			}
-			else
-			{
-				if(temp.KeywordPosition == KeywordPosition)
-				{
-					return 0;
-				}
-				else
-				{
-					return -1;
-				}
-			}
-		}
+
+            if(temp.KeywordPosition == KeywordPosition)
+            {
+                return 0;
+            }
+            else
+            {
+                return -1;
+            }
+        }
 	}
 
     /// <summary>
@@ -229,38 +252,35 @@ namespace Mapgenerator
         /// <returns></returns>
 		public MapPacket Command(string command)
 		{
-			foreach (MapPacket map in HighMaps)
-			{
-				if (map != null)
-				{
-					if (command == map.Name)
-					{
-						return map;
-					}
-				}
-			}
+			foreach (var map in HighMaps)
+            {
+                if (map == null) { continue; }
 
-			foreach (MapPacket map in MediumMaps)
-			{
-				if (map != null)
-				{
-					if (command == map.Name)
-					{
-						return map;
-					}
-				}
-			}
+                if (command == map.Name)
+                {
+                    return map;
+                }
+            }
 
-			foreach (MapPacket map in LowMaps)
-			{
-				if (map != null)
-				{
-					if (command == map.Name)
-					{
-						return map;
-					}
-				}
-			}
+			foreach (var map in MediumMaps)
+            {
+                if (map == null) { continue; }
+
+                if (command == map.Name)
+                {
+                    return map;
+                }
+            }
+
+			foreach (var map in LowMaps)
+            {
+                if (map == null) { continue; }
+
+                if (command == map.Name)
+                {
+                    return map;
+                }
+            }
 
 			throw new Exception("Cannot find map for command \"" + command + "\"");
 		}
@@ -343,32 +363,31 @@ namespace Mapgenerator
 			int i;
 
 			for (i = 0; i < map.Length; ++i)
-			{
-				if (map[i] != null)
-				{
-					writer.WriteLine("{0} {1,5} - {2} - {3} - {4}", frequency, i, map[i].Name,
-						map[i].Trusted ? "Trusted" : "Untrusted",
-                        map[i].Encoded ? "Zerocoded" : "Unencoded");
+            {
+                if (map[i] == null) { continue; }
 
-					foreach (MapBlock block in map[i].Blocks)
-					{
-						if (block.Count == -1) 
-						{
-							writer.WriteLine("\t{0,4} {1} (Variable)", block.KeywordPosition, block.Name);
-						} 
-						else 
-						{
-							writer.WriteLine("\t{0,4} {1} ({2})", block.KeywordPosition, block.Name, block.Count);
-						}
+                writer.WriteLine("{0} {1,5} - {2} - {3} - {4}", frequency, i, map[i].Name,
+                    map[i].Trusted ? "Trusted" : "Untrusted",
+                    map[i].Encoded ? "Zerocoded" : "Unencoded");
 
-						foreach (MapField field in block.Fields)
-						{
-							writer.WriteLine("\t\t{0,4} {1} ({2} / {3})", field.KeywordPosition, field.Name,
-								field.Type, field.Count);
-						}
-					}
-				}
-			}
+                foreach (var block in map[i].Blocks)
+                {
+                    if (block.Count == -1) 
+                    {
+                        writer.WriteLine("\t{0,4} {1} (Variable)", block.KeywordPosition, block.Name);
+                    } 
+                    else 
+                    {
+                        writer.WriteLine("\t{0,4} {1} ({2})", block.KeywordPosition, block.Name, block.Count);
+                    }
+
+                    foreach (var field in block.Fields)
+                    {
+                        writer.WriteLine("\t\t{0,4} {1} ({2} / {3})", field.KeywordPosition, field.Name,
+                            field.Type, field.Count);
+                    }
+                }
+            }
 		}
 
         /// <summary>
@@ -379,7 +398,7 @@ namespace Mapgenerator
 		public static void DecodeMapFile(string mapFile, string outputFile)
 		{
 			byte magicKey = 0;
-			byte[] buffer = new byte[2048];
+			var buffer = new byte[2048];
 			int nread;
 			BinaryReader map;
 			BinaryWriter output;
@@ -404,7 +423,7 @@ namespace Mapgenerator
 
 			while ((nread = map.Read(buffer, 0, 2048)) != 0)
 			{
-				for (int i = 0; i < nread; ++i)
+				for (var i = 0; i < nread; ++i)
 				{
 					buffer[i] ^= magicKey;
 					magicKey += 43;
@@ -435,28 +454,26 @@ namespace Mapgenerator
 				throw new Exception("Map file error", e);
 			}
 
-			StreamReader r = new StreamReader(map);        
+			var r = new StreamReader(map);        
 			r.BaseStream.Seek(0, SeekOrigin.Begin);
-			string newline;
-			string trimmedline;
-			bool inPacket = false;
-			bool inBlock = false;
+            var inPacket = false;
+			var inBlock = false;
 			MapPacket currentPacket = null;
 			MapBlock currentBlock = null;
-			char[] trimArray = new char[] {' ', '\t'};
+			var trimArray = new char[] {' ', '\t'};
 
 			// While not at the end of the file
 			while (r.Peek() > -1) 
 			{
 				#region ParseMap
 
-				newline = r.ReadLine();
-				trimmedline = System.Text.RegularExpressions.Regex.Replace(newline, @"\s+", " ");
+				var newline = r.ReadLine();
+				var trimmedline = System.Text.RegularExpressions.Regex.Replace(newline, @"\s+", " ");
 				trimmedline = trimmedline.Trim(trimArray);
 
 				if (!inPacket)
 				{
-					// Outside of all packet blocks
+					// Outside all packet blocks
 
 					if (trimmedline == "{")
 					{
@@ -465,11 +482,11 @@ namespace Mapgenerator
 				}
 				else
 				{
-					// Inside of a packet block
+					// Inside a packet block
 
 					if (!inBlock)
 					{
-						// Inside a packet block, outside of the blocks
+						// Inside a packet block, outside the blocks
 
 						if (trimmedline == "{")
 						{
@@ -490,7 +507,7 @@ namespace Mapgenerator
 							#region ParsePacketHeader
 
 							// Splice the string in to tokens
-							string[] tokens = trimmedline.Split(new char[] {' ', '\t'});
+							var tokens = trimmedline.Split(new char[] {' ', '\t'});
 
 							if (tokens.Length > 3)
 							{
@@ -588,10 +605,10 @@ namespace Mapgenerator
 							// A field
 							#region ParseField
 
-							MapField field = new MapField();
+							var field = new MapField();
 
 							// Splice the string in to tokens
-							string[] tokens = trimmedline.Split(new char[] {' ', '\t'});
+							var tokens = trimmedline.Split(new char[] {' ', '\t'});
 
 							field.Name = tokens[1];
 							field.KeywordPosition = KeywordPosition(field.Name);
@@ -617,7 +634,7 @@ namespace Mapgenerator
 							currentBlock = new MapBlock();
 
 							// Splice the string in to tokens
-							string[] tokens = trimmedline.Split(new char[] {' ', '\t'});
+							var tokens = trimmedline.Split(new char[] {' ', '\t'});
 
 							currentBlock.Name = tokens[0];
 							currentBlock.KeywordPosition = KeywordPosition(currentBlock.Name);
@@ -656,12 +673,12 @@ namespace Mapgenerator
 
 		private int KeywordPosition(string keyword)
 		{
-			if (KeywordPositions.ContainsKey(keyword)) 
+			if (KeywordPositions.TryGetValue(keyword, out var position)) 
 			{
-				return KeywordPositions[keyword];
+				return position;
 			}
 
-            int hash = 0;
+            var hash = 0;
             for (var i = 1; i < keyword.Length; ++i)
             {
                 hash = (hash + (int)(keyword[i])) * 2;
@@ -669,7 +686,7 @@ namespace Mapgenerator
             hash *= 2;
             hash &= 0x1FFF;
 
-            int startHash = hash;
+            var startHash = hash;
 
             while (KeywordPositions.ContainsValue(hash))
             {

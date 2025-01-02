@@ -31,7 +31,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VivoxTest", "Programs\Vivox
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse.PrimMesher", "PrimMesher\LibreMetaverse.PrimMesher.csproj", "{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "mapgenerator", "Programs\mapgenerator\mapgenerator.csproj", "{2867B4B3-0000-0000-0000-000000000000}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MapGenerator", "Programs\mapgenerator\MapGenerator.csproj", "{2867B4B3-0000-0000-0000-000000000000}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F8CE4DE6-82E5-49D1-BCDF-BB3E63A52867}"
 	ProjectSection(SolutionItems) = preProject
@@ -51,6 +51,14 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{79B51DAA-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79B51DAA-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79B51DAA-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79B51DAA-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
+		{89049BBC-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89049BBC-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89049BBC-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89049BBC-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
 		{27C70F3A-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{27C70F3A-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{27C70F3A-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -83,6 +91,10 @@ Global
 		{58443010-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{58443010-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{58443010-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9F71FDB3-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9F71FDB3-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9F71FDB3-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9F71FDB3-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
 		{EE4EA934-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EE4EA934-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EE4EA934-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -103,18 +115,6 @@ Global
 		{FB07C6DE-F791-4336-B6E2-B32EEAC34792}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FB07C6DE-F791-4336-B6E2-B32EEAC34792}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FB07C6DE-F791-4336-B6E2-B32EEAC34792}.Release|Any CPU.Build.0 = Release|Any CPU
-		{79B51DAA-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{79B51DAA-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{79B51DAA-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{79B51DAA-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
-		{89049BBC-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{89049BBC-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{89049BBC-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{89049BBC-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9F71FDB3-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9F71FDB3-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9F71FDB3-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9F71FDB3-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
