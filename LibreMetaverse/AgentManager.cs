@@ -3178,6 +3178,7 @@ namespace OpenMetaverse
         /// <param name="regionHandle">handle of region to teleport agent to</param>
         /// <param name="position"><seealso cref="Vector3"/> position in destination sim to teleport to</param>
         /// <param name="lookAt"><seealso cref="Vector3"/> direction in destination sim agent will look at</param>
+        /// <param name="ignoreCapsStatus">Ignores the connection state of <seealso cref="Simulator.Caps" /></param>
         public void RequestTeleport(ulong regionHandle, Vector3 position, Vector3 lookAt, bool ignoreCapsStatus = false)
         {
             if (ignoreCapsStatus || (Client.Network?.CurrentSim?.Caps != null &&

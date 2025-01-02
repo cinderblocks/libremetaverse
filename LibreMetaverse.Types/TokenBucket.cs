@@ -72,7 +72,7 @@ namespace OpenMetaverse
         /// number of tokens that are added to the bucket per second
         /// </summary>
         /// <remarks>Tokens are added to the bucket any time 
-        /// <seealso cref="TokenBucket.RemoveTokens"/> is called, at the granularity of
+        /// <seealso cref="TokenBucket.RemoveTokens(int)"/> is called, at the granularity of
         /// the system tick interval (typically around 15-22ms)</remarks>
         public int DripRate
         {
@@ -92,7 +92,7 @@ namespace OpenMetaverse
         /// The number of bytes that can be sent at this moment. This is the
         /// current number of tokens in the bucket
         /// <remarks>If this bucket has a parent bucket that does not have
-        /// enough tokens for a request, <seealso cref="TokenBucket.RemoveTokens"/> will 
+        /// enough tokens for a request, <seealso cref="TokenBucket.RemoveTokens(int)"/> will 
         /// return false regardless of the content of this bucket</remarks>
         /// </summary>
         public int Content => content;
