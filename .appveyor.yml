@@ -104,7 +104,7 @@ for:
   
   test: off # remove either when mono stops crashing or we stop supporting net481
   install: # workaround until AppVeyor updates Linux/Mac images for .NET9 
-    - sh: curl -sSL https://dot.net/v1/dotnet-install.sh | sudo bash /dev/stdin --jsonfile global.json --version latest --install-dir '/usr/share/dotnet'
+    - sh: curl -sSL https://dot.net/v1/dotnet-install.sh | sudo bash /dev/stdin --jsonfile global.json --version '9.0.100' --install-dir '/usr/share/dotnet'
 
 -
   matrix:
@@ -113,7 +113,7 @@ for:
 
   test: off # remove either when mono stops crashing or we stop supporting net481
   install:
-    - sh: curl -sSL https://dot.net/v1/dotnet-install.sh | sudo bash /dev/stdin --jsonfile global.json --version latest --install-dir '/usr/local/share/dotnet'
+    - sh: curl -sSL https://dot.net/v1/dotnet-install.sh | sudo bash /dev/stdin --jsonfile global.json --version '9.0.100' --install-dir '/usr/local/share/dotnet'
 
 -
   matrix:
