@@ -103,6 +103,11 @@ for:
       - job_name: Mac Build
   
   test: off
+  install:
+    # workaround until AppVeyor updates Linux/Mac images for .NET9
+    - sh: curl -o '/tmp/dotnet-install.sh' https://dot.net/v1/dotnet-install.sh && chmod +x /tmp/dotnet-install.sh
+    - sh: sudo sh /tmp/dotnet-install.sh --verbose --version latest
+
 -
   matrix:
     only:
@@ -114,4 +119,3 @@ for:
 #    - ps: util/SignPackages.ps1 -PfxPasswd $env:PfxPassword
     - ps: Get-ChildItem -Filter "*.nupkg" -Path "C:\Users\appveyor\AppData\Local\Temp\" -recurse | Compress-Archive -DestinationPath "nuget_libraries.zip" -Verbose
     - ps: Get-ChildItem -Filter "*.snupkg" -Path "C:\Users\appveyor\AppData\Local\Temp\" -recurse | Compress-Archive -DestinationPath "nuget_libraries_symbols.zip" -Verbose
-
