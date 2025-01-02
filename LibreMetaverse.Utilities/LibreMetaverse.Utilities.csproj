@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 	  <AssemblyName>LibreMetaverse.Utilities</AssemblyName>
       <PackageId>LibreMetaverse.Utilities</PackageId>
@@ -13,30 +13,10 @@
 	  <PlatformTarget>AnyCPU</PlatformTarget>
       <OutputPath>..\bin\</OutputPath>
 	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
-	  <DefineConstants>TRACE;DEBUG</DefineConstants>
-	  <Optimize>False</Optimize>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-	  <DefineConstants>TRACE;DEBUG</DefineConstants>
-	  <Optimize>False</Optimize>
-	</PropertyGroup>
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-      <DefineConstants>TRACE;DEBUG</DefineConstants>
-      <Optimize>False</Optimize>
-    </PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-	  <GenerateDocumentationFile>true</GenerateDocumentationFile>
-	  <DebugType>pdbonly</DebugType>
-	  <DefineConstants>TRACE</DefineConstants>
-	  <Optimize>True</Optimize>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-	  <GenerateDocumentationFile>true</GenerateDocumentationFile>
-	  <DebugType>pdbonly</DebugType>
-	  <DefineConstants>TRACE</DefineConstants>
-	  <Optimize>True</Optimize>
-	</PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <Optimize>False</Optimize>
+  </PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
       <GenerateDocumentationFile>true</GenerateDocumentationFile>
 	  <DebugType>pdbonly</DebugType>
