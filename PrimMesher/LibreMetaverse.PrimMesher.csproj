@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
 	<RootNamespace>LibreMetaverse.PrimMesher</RootNamespace>
     <AssemblyName>LibreMetaverse.PrimMesher</AssemblyName>
@@ -52,6 +52,6 @@
 	<None Include="..\data\logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="SkiaSharp" Version="2.88.8" />
+    <PackageReference Include="SkiaSharp" Version="3.116.1" />
   </ItemGroup>
 </Project>
