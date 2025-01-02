@@ -1,19 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>LibreMetaverse</AssemblyName>
-	<PackageId>LibreMetaverse</PackageId>
-	<Description>LibreMetaverse allows your code to read and work with data send across a SecondLife, Halcyon, OpenSimulator, or related connection.</Description>
+    <PackageId>LibreMetaverse</PackageId>
+    <Description>LibreMetaverse allows your code to read and work with data send across a SecondLife, Halcyon, OpenSimulator, or related connection.</Description>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-	<EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
-	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	<IncludeSymbols>true</IncludeSymbols>
-	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <NoWarn>$(NoWarn);CS0419;CS8981;CS1591;CS1574</NoWarn>
     <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
     <PlatformTarget>AnyCPU</PlatformTarget>
-	<OutputPath>..\bin\</OutputPath>
+    <OutputPath>..\bin\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>TRACE;DEBUG</DefineConstants>
@@ -42,8 +42,8 @@
     <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
   </ItemGroup>
   <ItemGroup>
-	<None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
-	<None Include="..\README.md" Pack="true" PackagePath="\" />
-	<None Include="..\data\logo.png" Pack="true" PackagePath="\" />
+    <None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\data\logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>

@@ -1,13 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-	<AssemblyName>TestClient</AssemblyName>
-	<OutputType>Exe</OutputType>
+    <AssemblyName>TestClient</AssemblyName>
+    <OutputType>Exe</OutputType>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <OutputPath>..\..\..\bin\</OutputPath>
     <TargetFrameworks>net481;net8.0;net9.0</TargetFrameworks>
     <PlatformTarget>AnyCPU</PlatformTarget>
-	<IncludeSymbols>true</IncludeSymbols>
-	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>TRACE;DEBUG</DefineConstants>
@@ -33,8 +34,8 @@
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
   </ItemGroup>
   <ItemGroup>
-	<None Include="..\..\..\LICENSE.txt" Pack="true" PackagePath="\" />
-	<None Include="..\..\..\README.md" Pack="true" PackagePath="\" />
-	<None Include="..\..\..\data\logo.png" Pack="true" PackagePath="\" />
+    <None Include="..\..\..\LICENSE.txt" Pack="true" PackagePath="\" />
+    <None Include="..\..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\..\data\logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>
