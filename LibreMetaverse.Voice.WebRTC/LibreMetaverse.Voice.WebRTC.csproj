@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageId>LibreMetaverse.Voice.WebRTC</PackageId>
+    <Description>Client library for Second Life WebRTC</Description>
+    <OutputType>Library</OutputType>
+    <RootNamespace>LibreMetaverse</RootNamespace>
+    <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <NoWarn>$(NoWarn);CS0419;CS1591;CS1574</NoWarn>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <OutputPath>..\bin\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DebugType>pdbonly</DebugType>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>True</Optimize>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
+    <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\data\logo.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>
