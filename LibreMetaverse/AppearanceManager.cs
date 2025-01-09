@@ -2221,11 +2221,6 @@ namespace OpenMetaverse
                     var cofVersion = result["cof_version"].AsInteger();
 
                     MyVisualParameters = visualParams;
-                    
-                    if (textures != null)
-                    {
-                        Logger.Log("Baked Texture Array: " + string.Join(", ", textures.Select((uuid, index) => index + ": " + uuid)), Helpers.LogLevel.Debug, Client);
-                    }
 
                     if (textures != null && textures.Length > 20)
                     {
