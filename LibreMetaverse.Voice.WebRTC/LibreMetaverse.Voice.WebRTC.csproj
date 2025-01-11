@@ -8,7 +8,7 @@
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <NoWarn>$(NoWarn);CS0419;CS1591;CS1574</NoWarn>
+    <NoWarn>$(NoWarn)</NoWarn>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <OutputPath>..\bin\</OutputPath>
   </PropertyGroup>
@@ -30,4 +30,136 @@
     <None Include="..\README.md" Pack="true" PackagePath="\" />
     <None Include="..\data\logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="SIPSorcery" Version="8.0.7" />
+    <PackageReference Include="SIPSorceryMedia.SDL2" Version="8.0.7" />
+  </ItemGroup>
 </Project>
+
+
+<!--<llsd>
+  <map>
+    <key>voice_server_type</key>
+    <string>webrtc</string>
+    <key>viewer_session</key>
+    <uuid>ac21ae0f-7168-6b29-ea43-f33073b186d0</uuid>
+    <key>candidates</key>
+    <array>
+      <map>
+        <key>sdpMLineIndex</key>
+        <integer>0</integer>
+        <key>sdpMid</key>
+        <string>0</string>
+        <key>candidate</key>
+        <string>3518741735 1 udp 2122260223 10.10.0.209 60003 typ host</string>
+      </map>
+      <map>
+        <key>sdpMLineIndex</key>
+        <integer>1</integer>
+        <key>sdpMid</key>
+        <string>1</string>
+        <key>candidate</key>
+        <string>3518741735 1 udp 2122260223 10.10.0.209 60004 typ host</string>
+      </map>
+      <map>
+        <key>sdpMLineIndex</key>
+        <integer>1</integer>
+        <key>sdpMid</key>
+        <string>1</string>
+        <key>candidate</key>
+        <string>1766992845 1 udp 1686052607 136.50.157.204 60004 typ srflx raddr 10.10.0.209 rport 60004</string>
+      </map>
+      <map>
+        <key>sdpMLineIndex</key>
+        <integer>0</integer>
+        <key>sdpMid</key>
+        <string>0</string>
+        <key>candidate</key>
+        <string>1766992845 1 udp 1686052607 136.50.157.204 60003 typ srflx raddr 10.10.0.209 rport 60003</string>
+      </map>
+      <map>
+        <key>sdpMLineIndex</key>
+        <integer>0</integer>
+        <key>sdpMid</key>
+        <string>0</string>
+        <key>candidate</key>
+        <string>2943639167 1 tcp 1518280447 10.10.0.209 60003 typ host tcptype passive</string>
+      </map>
+      <map>
+        <key>sdpMLineIndex</key>
+        <integer>1</integer>
+        <key>sdpMid</key>
+        <string>1</string>
+        <key>candidate</key>
+        <string>2943639167 1 tcp 1518280447 10.10.0.209 60004 typ host tcptype passive</string>
+      </map>
+    </array>
+  </map>
+</llsd>-->
+
+<!--PROVISION-->
+
+
+<!--<llsd>
+  <map>
+    <key>voice_server_type</key>
+    <string>webrtc</string>
+    <key>channel_type</key>
+    <string>local</string>
+    <key>jsep</key>
+    <map>
+      <key>type</key>
+      <string>offer</string>
+      <key>sdp</key>
+      <string>
+        v=0
+        o=- 358488224422708801 2 IN IP4 127.0.0.1
+        s=-
+        t=0 0
+        a=group:BUNDLE 0 1
+        a=extmap-allow-mixed
+        a=msid-semantic: WMS SLStream
+        m=audio 9 UDP/TLS/RTP/SAVPF 111 63 9 102 0 8 13 110 126
+        c=IN IP4 0.0.0.0
+        a=rtcp:9 IN IP4 0.0.0.0
+        a=ice-ufrag:A4VQ
+        a=ice-pwd:H0CdfiKlSywwjRITy6xtKCTM
+        a=ice-options:trickle
+        a=fingerprint:sha-256 BB:B0:03:72:B3:EC:8D:F1:B2:44:93:71:29:A5:50:EA:9C:12:6D:7F:C9:1A:A7:0D:78:B5:BD:C6:9D:59:54:84
+        a=setup:actpass
+        a=mid:0
+        a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
+        a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+        a=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+        a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid
+        a=sendrecv
+        a=msid:SLStream SLAudio
+        a=rtcp-mux
+        a=rtpmap:111 opus/48000/2
+        a=rtcp-fb:111 transport-cc
+        a=fmtp:111 minptime=10;useinbandfec=1a=fmtp:111 minptime=10;useinbandfec=1;stereo=1;sprop-stereo=1;maxplaybackrate=48000;sprop-maxplaybackrate=48000;sprop-maxcapturerate=48000
+        a=rtpmap:63 red/48000/2
+        a=fmtp:63 111/111
+        a=rtpmap:9 G722/8000
+        a=rtpmap:102 ILBC/8000
+        a=rtpmap:0 PCMU/8000
+        a=rtpmap:8 PCMA/8000
+        a=rtpmap:13 CN/8000
+        a=rtpmap:110 telephone-event/48000
+        a=rtpmap:126 telephone-event/8000
+        a=ssrc:3926293441 cname:XjCxstBrcs17qkZV
+        a=ssrc:3926293441 msid:SLStream SLAudio
+        m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+        c=IN IP4 0.0.0.0
+        a=ice-ufrag:A4VQ
+        a=ice-pwd:H0CdfiKlSywwjRITy6xtKCTM
+        a=ice-options:trickle
+        a=fingerprint:sha-256 BB:B0:03:72:B3:EC:8D:F1:B2:44:93:71:29:A5:50:EA:9C:12:6D:7F:C9:1A:A7:0D:78:B5:BD:C6:9D:59:54:84
+        a=setup:actpass
+        a=mid:1
+        a=sctp-port:5000
+        a=max-message-size:262144
+      </string>
+    </map>
+  </map>
+</llsd>-->

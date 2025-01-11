@@ -47,6 +47,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse.Voice.Vivox"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibreMetaverse.Voice.WebRTC", "LibreMetaverse.Voice.WebRTC\LibreMetaverse.Voice.WebRTC.csproj", "{40B22CB8-0597-49BF-B25C-01F3E8ACB791}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebRtcTest", "Programs\WebRtcTest\WebRtcTest.csproj", "{04BB39B5-3B21-4271-AEFB-F51AAE58EE32}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -100,7 +102,6 @@ Global
 		{EE4EA934-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EE4EA934-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EE4EA934-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EE4EA934-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
 		{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -121,6 +122,9 @@ Global
 		{40B22CB8-0597-49BF-B25C-01F3E8ACB791}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{40B22CB8-0597-49BF-B25C-01F3E8ACB791}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{40B22CB8-0597-49BF-B25C-01F3E8ACB791}.Release|Any CPU.Build.0 = Release|Any CPU
+		{04BB39B5-3B21-4271-AEFB-F51AAE58EE32}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{04BB39B5-3B21-4271-AEFB-F51AAE58EE32}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{04BB39B5-3B21-4271-AEFB-F51AAE58EE32}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

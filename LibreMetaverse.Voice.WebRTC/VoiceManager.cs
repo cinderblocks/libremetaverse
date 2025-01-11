@@ -25,13 +25,52 @@
  */
 
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using OpenMetaverse;
+using OpenMetaverse.Interfaces;
+using OpenMetaverse.Messages.Linden;
+using OpenMetaverse.StructuredData;
+using SIPSorcery.Net;
 
 namespace LibreMetaverse.Voice.WebRTC
 {
     public class VoiceManager
     {
+        private readonly GridClient Client;
+        private VoiceSession CurrentSession;
 
+        public string sdpLocal => CurrentSession.SdpLocal;
+        public string sdpRemote => CurrentSession.SdpRemote;
+        public bool connected { get; private set; }
+
+        private CancellationTokenSource Cts = new CancellationTokenSource();
+
+        public VoiceManager(GridClient client)
+        {
+            Client = client;
+            Client.Network.RegisterEventCallback("RequiredVoiceVersion", RequiredVoiceVersionEventHandler);
+        }
+
+        public bool ConnectPrimaryRegion()
+        {
+            if (!Client.Network.Connected) { return false; }
+
+            CurrentSession = new VoiceSession(VoiceSession.ESessionType.LOCAL, Client);
+            Task task = CurrentSession.RequestProvision();
+            task.Wait();
+
+            return true;
+        }
+
+        public void Disconnect()
+        {
+            CurrentSession.CloseSession();
+        }
+        private void RequiredVoiceVersionEventHandler(string capsKey, IMessage message, Simulator simulator)
+        {
+            var msg = (RequiredVoiceVersionMessage)message;
+            Logger.DebugLog($"Voice version {msg.MajorVersion}.{msg.MinorVersion} required", Client);
+        }
     }
 }
