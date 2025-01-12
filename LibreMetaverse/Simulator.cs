@@ -506,7 +506,6 @@ namespace OpenMetaverse
         private Timer AckTimer;
         private Timer PingTimer;
         private Timer StatsTimer;
-        private Timer EventQueueTimer;
         // simulator <> parcel LocalID Map
         private int[,] _parcelMap;
         public readonly SimulatorDataPool DataPool;
@@ -539,7 +538,7 @@ namespace OpenMetaverse
                 if (Caps != null)
                 {
                     Logger.Log("Event queue restart requested.", Helpers.LogLevel.Info, Client);
-                    Client.Network.CurrentSim.Caps.EventQueue.RestartIfDead();
+                    Client.Network.CurrentSim.Caps.EventQueue.Start();
                 }
 
                 Client.Network.EventQueueRunning += queueCallback;
@@ -605,7 +604,6 @@ namespace OpenMetaverse
             AckTimer?.Dispose();
             PingTimer?.Dispose();
             StatsTimer?.Dispose();
-            EventQueueTimer?.Dispose();
             ConnectedEvent?.Close();
 
             // Force all the CAPS connections closed for this simulator
@@ -646,9 +644,6 @@ namespace OpenMetaverse
             // Timer for periodically pinging the simulator
             if (PingTimer == null && Client.Settings.SEND_PINGS)
                 PingTimer = new Timer(PingTimer_Elapsed, null, Settings.PING_INTERVAL, Settings.PING_INTERVAL);
-
-            if (EventQueueTimer == null)
-                EventQueueTimer = new Timer(EventQueueTimer_Elapsed, null, 2000, 2000);
 
             #endregion Start Timers
 
@@ -698,30 +693,6 @@ namespace OpenMetaverse
             }
 
             return false;
-        }
-
-        /// <summary>
-        /// The event queue can sometimes randomly, and permanently die.
-        ///
-        /// This is due to a bug somewhere in the event queue code, but thus far,
-        /// it has completely eluded me. This hacky mechanism, solves that problem.
-        /// </summary>
-        /// <param name="state"></param>
-        private void EventQueueTimer_Elapsed(object state)
-        {
-            if (Connected && Client.Network.Connected)
-            {
-                if (Caps != null)
-                {
-                    if (!Caps.IsEventQueueRunning)
-                    {
-                        if (Caps.EventQueue != null)
-                        {
-                            Caps.EventQueue.RestartIfDead();
-                        }
-                    }
-                }
-            }
         }
 
         /// <summary>
@@ -794,12 +765,10 @@ namespace OpenMetaverse
             AckTimer?.Dispose();
             StatsTimer?.Dispose();
             PingTimer?.Dispose();
-            EventQueueTimer?.Dispose();
 
             AckTimer = null;
             StatsTimer = null;
             PingTimer = null;
-            EventQueueTimer = null;
 
             // Kill the current CAPS system
             if (Caps != null)

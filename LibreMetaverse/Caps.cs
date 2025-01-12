@@ -64,16 +64,16 @@ namespace OpenMetaverse
         internal Dictionary<string, Uri> _Caps = new Dictionary<string, Uri>();
 
         private CancellationTokenSource _HttpCts = new CancellationTokenSource();
-        private EventQueueClient _EventQueueCap = null;
+        private EventQueueClient _EventQueueClient = null;
 
         /// <summary>Capabilities URI this system was initialized with</summary>
         public Uri SeedCapsURI => _SeedCapsURI;
 
         /// <summary>Whether the capabilities event queue is connected and
         /// listening for incoming events</summary>
-        public bool IsEventQueueRunning => _EventQueueCap != null && _EventQueueCap.Running;
+        public bool IsEventQueueRunning => _EventQueueClient != null && _EventQueueClient.Running;
 
-        public EventQueueClient EventQueue => _EventQueueCap;
+        public EventQueueClient EventQueue => _EventQueueClient;
 
         /// <summary>
         /// Default constructor
@@ -95,7 +95,7 @@ namespace OpenMetaverse
 
             _HttpCts.Cancel();
 
-            _EventQueueCap?.Stop(immediate);
+            _EventQueueClient?.Stop(immediate);
         }
 
         /// <summary>
@@ -309,14 +309,14 @@ namespace OpenMetaverse
                         _Caps[cap] = respMap[cap].AsUri();
                     }
 
-                    if (_Caps.ContainsKey("EventQueueGet"))
+                    if (_Caps.TryGetValue("EventQueueGet", out var eventQueueGetCap))
                     {
                         Logger.DebugLog($"Starting event queue for {Simulator}", Simulator.Client);
 
-                        _EventQueueCap = new EventQueueClient(_Caps["EventQueueGet"], Simulator);
-                        _EventQueueCap.OnConnected += EventQueueConnectedHandler;
-                        _EventQueueCap.OnEvent += EventQueueEventHandler;
-                        _EventQueueCap.Start();
+                        _EventQueueClient = new EventQueueClient(eventQueueGetCap, Simulator);
+                        _EventQueueClient.OnConnected += EventQueueConnectedHandler;
+                        _EventQueueClient.OnEvent += EventQueueEventHandler;
+                        _EventQueueClient.Start();
                     }
 
                     OnCapabilitiesReceived(Simulator);

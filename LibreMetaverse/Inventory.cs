@@ -52,10 +52,10 @@ namespace OpenMetaverse
 
     /// <summary>
     /// Responsible for maintaining inventory structure. Inventory constructs nodes
-    /// and manages node children as is necessary to maintain a coherant hirarchy.
+    /// and manages node children as is necessary to maintain a coherent hierarchy.
     /// Other classes should not manipulate or create InventoryNodes explicitly. When
     /// A node's parent changes (when a folder is moved, for example) simply pass
-    /// Inventory the updated InventoryFolder and it will make the appropriate changes
+    /// Inventory the updated InventoryFolder, and it will make the appropriate changes
     /// to its internal representation.
     /// </summary>
     public class Inventory
