@@ -24,6 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using System;
 using System.Text;
 
 namespace OpenMetaverse.TestClient.Commands
@@ -116,7 +117,7 @@ namespace OpenMetaverse.TestClient.Commands
             // send the request to the directory manager
             Client.Directory.StartLandSearch(queryFlags, searchTypeFlags, maxPrice, minSize, 0);
 
-            if (!waitQuery.WaitOne(20000, false) && Client.Network.Connected)
+            if (!waitQuery.WaitOne(TimeSpan.FromSeconds(20), false) && Client.Network.Connected)
             {
                 result.AppendLine("Timeout waiting for simulator to respond.");
             }

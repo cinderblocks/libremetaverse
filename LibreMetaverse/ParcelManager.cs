@@ -1144,7 +1144,7 @@ namespace OpenMetaverse
         /// <param name="simulator">Simulator to request parcels from (must be connected)</param>
         public void RequestAllSimParcels(Simulator simulator)
         {
-            RequestAllSimParcels(simulator, false, 750);
+            RequestAllSimParcels(simulator, false, TimeSpan.FromMilliseconds(750));
         }
 
         /// <summary>
@@ -1153,8 +1153,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="simulator">Simulator to request parcels from (must be connected)</param>
         /// <param name="refresh">If TRUE, will force a full refresh</param>
-        /// <param name="msDelay">Number of milliseconds to pause in between each request</param>
-        public void RequestAllSimParcels(Simulator simulator, bool refresh, int msDelay)
+        /// <param name="delay">Pause time in between each request</param>
+        public void RequestAllSimParcels(Simulator simulator, bool refresh, TimeSpan delay)
         {
             if (simulator.DownloadingParcelMap)
             {
@@ -1194,7 +1194,7 @@ namespace OpenMetaverse
                                                              y * 4.0f, x * 4.0f, int.MaxValue, false);
 
                             // Wait the given amount of time for a reply before sending the next request
-                            if (!WaitForSimParcel.WaitOne(msDelay, false))
+                            if (!WaitForSimParcel.WaitOne(delay, false))
                                 ++timeouts;
 
                             ++count;

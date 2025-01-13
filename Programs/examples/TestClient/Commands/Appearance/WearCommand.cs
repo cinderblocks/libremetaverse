@@ -23,14 +23,14 @@ namespace OpenMetaverse.TestClient
 
             target = target.TrimEnd();
 
-            UUID folder = Client.Inventory.FindObjectByPath(Client.Inventory.Store.RootFolder.UUID, Client.Self.AgentID, target, 20 * 1000);
+            UUID folder = Client.Inventory.FindObjectByPath(Client.Inventory.Store.RootFolder.UUID, Client.Self.AgentID, target, TimeSpan.FromSeconds(20));
 
             if (folder == UUID.Zero)
             {
                 return "Outfit path " + target + " not found";
             }
 
-            List<InventoryBase> contents =  Client.Inventory.FolderContents(folder, Client.Self.AgentID, true, true, InventorySortOrder.ByName, 20 * 1000);
+            List<InventoryBase> contents =  Client.Inventory.FolderContents(folder, Client.Self.AgentID, true, true, InventorySortOrder.ByName, TimeSpan.FromSeconds(20));
             List<InventoryItem> items = new List<InventoryItem>();
 
             if (contents == null)

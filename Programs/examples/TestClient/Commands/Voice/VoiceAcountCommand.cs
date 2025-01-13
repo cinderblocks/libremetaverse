@@ -42,7 +42,7 @@ namespace OpenMetaverse.TestClient
             {
                 return "RequestProvisionAccount failed. Not available for the current grid?";
             }
-            ProvisionEvent.WaitOne(30 * 1000, false);
+            ProvisionEvent.WaitOne(TimeSpan.FromSeconds(30), false);
 
             if (string.IsNullOrEmpty(VoiceAccount) && string.IsNullOrEmpty(VoicePassword))
             {

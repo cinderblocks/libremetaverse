@@ -46,7 +46,7 @@ namespace OpenMetaverse.TestClient
                 
 
                 Client.Parcels.RequestObjectOwners(Client.Network.CurrentSim, parcelID);
-                if (!wait.WaitOne(30000, false))
+                if (!wait.WaitOne(TimeSpan.FromSeconds(30), false))
                 {
                     result.AppendLine("Timed out waiting for packet.");
                 }

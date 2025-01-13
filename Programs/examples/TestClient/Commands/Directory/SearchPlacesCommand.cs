@@ -41,7 +41,7 @@ namespace OpenMetaverse.TestClient.Commands
             Client.Directory.PlacesReply += callback;
             Client.Directory.StartPlacesSearch(searchText);            
 
-            if (!waitQuery.WaitOne(20000, false) && Client.Network.Connected)
+            if (!waitQuery.WaitOne(TimeSpan.FromSeconds(20), false) && Client.Network.Connected)
             {
                 result.AppendLine("Timeout waiting for simulator to respond to query.");
             }

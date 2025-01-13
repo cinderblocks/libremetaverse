@@ -23,7 +23,7 @@ namespace OpenMetaverse.TestClient
             Client.Self.MoneyBalance += balance;            
             Client.Self.RequestBalance();
             string result = "Timeout waiting for balance reply";
-            if (waitBalance.WaitOne(10000, false))
+            if (waitBalance.WaitOne(TimeSpan.FromSeconds(10), false))
             {
                 result = Client + " has L$: " + Client.Self.Balance;
             }

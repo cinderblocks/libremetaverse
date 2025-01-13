@@ -57,7 +57,7 @@ namespace OpenMetaverse.TestClient
 
             // Wait for all the packets to arrive
             ReceivedProfileEvent.Reset();
-            ReceivedProfileEvent.WaitOne(5000, false);
+            ReceivedProfileEvent.WaitOne(TimeSpan.FromSeconds(5), false);
 
             // Check if everything showed up
             if (!ReceivedInterests || !ReceivedProperties || !ReceivedGroups)

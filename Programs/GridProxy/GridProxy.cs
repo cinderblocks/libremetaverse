@@ -1206,7 +1206,7 @@ namespace GridProxy
                     }
                     );
                 loginRequest.PostRequestAsync(content, "application/llsd+xml", 1000 * 100);
-                remoteComplete.WaitOne(1000 * 100, false);
+                remoteComplete.WaitOne(TimeSpan.FromSeconds(100), false);
 
                 if (response == null)
                 {

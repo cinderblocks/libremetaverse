@@ -47,7 +47,7 @@ namespace OpenMetaverse.TestClient
                     WaitForSessionStart.Set();
                 }
                 
-                if (WaitForSessionStart.WaitOne(20000, false))
+                if (WaitForSessionStart.WaitOne(TimeSpan.FromSeconds(20), false))
                 {
                     Client.Self.InstantMessageGroup(ToGroupID, message);
                 }

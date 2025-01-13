@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -497,10 +498,10 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="itemID">The items <seealso cref="UUID"/></param>
         /// <param name="ownerID">The item Owners <seealso cref="OpenMetaverse.UUID"/></param>
-        /// <param name="timeoutMS">a integer representing the number of milliseconds to wait for results</param>
+        /// <param name="timeout">time to wait for results represented by <seealso cref="TimeSpan"/></param>
         /// <returns>An <seealso cref="InventoryItem"/> object on success, or null if no item was found</returns>
         /// <remarks>Items will also be sent to the <seealso cref="InventoryManager.OnItemReceived"/> event</remarks>
-        public InventoryItem FetchItem(UUID itemID, UUID ownerID, int timeoutMS)
+        public InventoryItem FetchItem(UUID itemID, UUID ownerID, TimeSpan timeout)
         {
             var fetchEvent = new AutoResetEvent(false);
             InventoryItem fetchedItem = null;
@@ -517,7 +518,7 @@ namespace OpenMetaverse
             ItemReceived += Callback;
             RequestFetchInventory(itemID, ownerID);
 
-            fetchEvent.WaitOne(timeoutMS, false);
+            fetchEvent.WaitOne(timeout, false);
             ItemReceived -= Callback;
 
             return fetchedItem;
@@ -639,14 +640,14 @@ namespace OpenMetaverse
         /// <param name="folders">true to retrieve folders</param>
         /// <param name="items">true to retrieve items</param>
         /// <param name="order">sort order to return results in</param>
-        /// <param name="timeoutMS">a integer representing the number of milliseconds to wait for results</param>
-        /// <param name="fast_loading">when false uses links and does not attempt to get the real object</param>
+        /// <param name="timeout">time given to wait for results</param>
+        /// <param name="fastLoading">when false uses links and does not attempt to get the real object</param>
         /// <returns>A list of inventory items matching search criteria within folder</returns>
         /// <seealso cref="InventoryManager.RequestFolderContents"/>
         /// <remarks>InventoryFolder.DescendentCount will only be accurate if both folders and items are
         /// requested</remarks>
         public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool folders, bool items,
-            InventorySortOrder order, int timeoutMS, bool fast_loading = false)
+            InventorySortOrder order, TimeSpan timeout, bool fastLoading = false)
         {
             List<InventoryBase> objects = null;
             var fetchEvent = new AutoResetEvent(false);
@@ -670,7 +671,7 @@ namespace OpenMetaverse
             FolderUpdated += FolderUpdatedCB;
 
             RequestFolderContents(folder, owner, folders, items, order);
-            if (fetchEvent.WaitOne(timeoutMS, false))
+            if (fetchEvent.WaitOne(timeout, false))
             {
                 objects = _Store.GetContents(folder);
             }
@@ -685,11 +686,11 @@ namespace OpenMetaverse
             {
                 foreach (var ob in objects.Where(o => o.GetType() != typeof(InventoryFolder)).Cast<InventoryItem>())
                 {
-                    if (ob.IsLink() && !fast_loading)
+                    if (ob.IsLink() && !fastLoading)
                     {
                         if (Store.Items.ContainsKey(ob.AssetUUID))
                         {
-                            cleaned_list.Add(Client.Inventory.FetchItem(ob.AssetUUID, Client.Self.AgentID, 1000 * 5));
+                            cleaned_list.Add(Client.Inventory.FetchItem(ob.AssetUUID, Client.Self.AgentID, TimeSpan.FromSeconds(5)));
                         }
                         else
                         {
@@ -716,10 +717,10 @@ namespace OpenMetaverse
         }
 
         public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool folders, bool items,
-    InventorySortOrder order, int timeoutMS)
+    InventorySortOrder order, TimeSpan timeout)
         {
             return FolderContents(folder, owner, folders, items,
-    order, timeoutMS, false);
+    order, timeout, false);
         }
 
 
@@ -1005,10 +1006,10 @@ namespace OpenMetaverse
         /// <param name="baseFolder">The folder to begin the search in</param>
         /// <param name="inventoryOwner">The object owners <seealso cref="UUID"/></param>
         /// <param name="path">A string path to search</param>
-        /// <param name="timeoutMS">milliseconds to wait for a reply</param>
+        /// <param name="timeout">time to wait for reply</param>
         /// <returns>Found items <seealso cref="UUID"/> or <seealso cref="UUID.Zero"/> if 
         /// timeout occurs or item is not found</returns>
-        public UUID FindObjectByPath(UUID baseFolder, UUID inventoryOwner, string path, int timeoutMS)
+        public UUID FindObjectByPath(UUID baseFolder, UUID inventoryOwner, string path, TimeSpan timeout)
         {
             var findEvent = new AutoResetEvent(false);
             var foundItem = UUID.Zero;
@@ -1025,7 +1026,7 @@ namespace OpenMetaverse
             FindObjectByPathReply += Callback;
 
             RequestFindObjectByPath(baseFolder, inventoryOwner, path);
-            findEvent.WaitOne(timeoutMS, false);
+            findEvent.WaitOne(timeout, false);
 
             FindObjectByPathReply -= Callback;
 
@@ -2601,7 +2602,7 @@ namespace OpenMetaverse
         {
 
             var contents = Client.Inventory.FolderContents(
-                folderID, owner, true, true, InventorySortOrder.ByDate, 1000 * 15);
+                folderID, owner, true, true, InventorySortOrder.ByDate, TimeSpan.FromSeconds(15));
 
             foreach (var entry in contents)
             {
@@ -2612,7 +2613,7 @@ namespace OpenMetaverse
                         GetInventoryRecursive(folder.UUID, owner, ref cats, ref items);
                         break;
                     case InventoryItem _:
-                        items.Add(Client.Inventory.FetchItem(entry.UUID, owner, 1000 * 10));
+                        items.Add(Client.Inventory.FetchItem(entry.UUID, owner, TimeSpan.FromSeconds(10)));
                         break;
                     default: // shouldn't happen
                         Logger.Log("Retrieved inventory contents of invalid type", Helpers.LogLevel.Error);
@@ -2764,12 +2765,12 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="objectID">The tasks <seealso cref="UUID"/></param>
         /// <param name="objectLocalID">The tasks simulator local ID</param>
-        /// <param name="timeoutMS">milliseconds to wait for reply from simulator</param>
+        /// <param name="timeout">time to wait for reply from simulator</param>
         /// <returns>A list containing the inventory items inside the task or null
         /// if a timeout occurs</returns>
         /// <remarks>This request blocks until the response from the simulator arrives 
-        /// or timeoutMS is exceeded</remarks>
-        public List<InventoryBase> GetTaskInventory(UUID objectID, uint objectLocalID, int timeoutMS)
+        /// before timeout is exceeded</remarks>
+        public List<InventoryBase> GetTaskInventory(UUID objectID, uint objectLocalID, TimeSpan timeout)
         {
             string filename = null;
             var taskReplyEvent = new AutoResetEvent(false);
@@ -2787,7 +2788,7 @@ namespace OpenMetaverse
 
             RequestTaskInventory(objectLocalID);
 
-            if (taskReplyEvent.WaitOne(timeoutMS, false))
+            if (taskReplyEvent.WaitOne(timeout, false))
             {
                 TaskInventoryReply -= Callback;
 
@@ -2811,7 +2812,7 @@ namespace OpenMetaverse
                     // Start the actual asset xfer
                     xferID = Client.Assets.RequestAssetXfer(filename, true, false, UUID.Zero, AssetType.Unknown, true);
 
-                    if (taskDownloadEvent.WaitOne(timeoutMS, false))
+                    if (taskDownloadEvent.WaitOne(timeout, false))
                     {
                         Client.Assets.XferReceived -= XferCallback;
 

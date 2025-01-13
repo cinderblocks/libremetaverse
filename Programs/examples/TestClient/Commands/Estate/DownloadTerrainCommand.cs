@@ -61,9 +61,11 @@ namespace OpenMetaverse.TestClient
             Client.Assets.InitiateDownload += initiateDownloadDelegate;
 
             // configure request to tell the simulator to send us the file
-            List<string> parameters = new List<string>();
-            parameters.Add("download filename");
-            parameters.Add(fileName);
+            List<string> parameters = new List<string>
+            {
+                "download filename",
+                fileName
+            };
             // send the request
             Client.Estate.EstateOwnerMessage("terrain", parameters);
 

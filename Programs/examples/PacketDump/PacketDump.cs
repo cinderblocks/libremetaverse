@@ -72,7 +72,7 @@ namespace PacketDump
             client.Network.BeginLogin(client.Network.DefaultLoginParams(args[0], args[1], args[2], "PacketDump", "1.0.0"));
 
             // Wait until LoginEvent is set in the LoginHandler callback, or we time out
-            if (LoginEvent.WaitOne(1000 * 20, false))
+            if (LoginEvent.WaitOne(TimeSpan.FromSeconds(20), false))
             {
                 if (LoginSuccess)
                 {

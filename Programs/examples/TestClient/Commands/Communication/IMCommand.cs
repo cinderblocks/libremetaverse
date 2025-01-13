@@ -39,7 +39,7 @@ namespace OpenMetaverse.TestClient
                 // Send the Query
                 Client.Avatars.RequestAvatarNameSearch(ToAvatarName, UUID.Random());
 
-                NameSearchEvent.WaitOne(6000, false);
+                NameSearchEvent.WaitOne(TimeSpan.FromMinutes(1), false);
             }
 
             if (Name2Key.ContainsKey(ToAvatarName.ToLower()))

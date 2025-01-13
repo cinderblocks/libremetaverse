@@ -542,7 +542,7 @@ namespace OpenMetaverse
                 }
 
                 Client.Network.EventQueueRunning += queueCallback;
-                queueEvent.WaitOne(10 * 1000, false);
+                queueEvent.WaitOne(TimeSpan.FromSeconds(10), false);
                 Client.Network.EventQueueRunning -= queueCallback;
             }
 

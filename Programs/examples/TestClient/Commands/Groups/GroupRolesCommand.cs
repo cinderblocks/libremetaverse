@@ -37,7 +37,7 @@ namespace OpenMetaverse.TestClient
             if (UUID.Zero != GroupUUID) {
                 Client.Groups.GroupRoleDataReply += Groups_GroupRoles;                
                 GroupRequestID = Client.Groups.RequestGroupRoles(GroupUUID);
-                GroupsEvent.WaitOne(30000, false);
+                GroupsEvent.WaitOne(TimeSpan.FromSeconds(30), false);
                 GroupsEvent.Reset();
                 Client.Groups.GroupRoleDataReply += Groups_GroupRoles;
                 return Client + " got group roles";
