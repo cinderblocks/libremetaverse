@@ -163,16 +163,8 @@ namespace OpenMetaverse.ImportExport
         /// <summary>
         /// Performs model upload in one go, without first checking for the price
         /// </summary>
-        public void Upload()
-        {
-            Upload(null);
-        }
-
-        /// <summary>
-        /// Performs model upload in one go, without first checking for the price
-        /// </summary>
-        /// <param name="callback">Callback that will be invoke upon completion of the upload. Null is sent on request failure</param>
-        public void Upload(ModelUploadCallback callback)
+        /// <param name="callback">Callback that will be invoked upon completion of the upload. Null is sent on request failure</param>
+        public void Upload(ModelUploadCallback callback = null)
         {
             PrepareUpload((result =>
             {
