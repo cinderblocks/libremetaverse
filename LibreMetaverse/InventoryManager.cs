@@ -149,7 +149,7 @@ namespace OpenMetaverse
         public delegate void ItemCreatedCallback(bool success, InventoryItem item);
 
         /// <summary>
-        /// Callback for an inventory item being create from an uploaded asset
+        /// Callback for an inventory item being created from an uploaded asset
         /// </summary>
         /// <param name="success">true if inventory item creation was successful</param>
         /// <param name="status"></param>
@@ -336,7 +336,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Delegate that is invoked when script upload is completed
         /// </summary>
-        /// <param name="uploadSuccess">Has upload succeded (note, there still might be compile errors)</param>
+        /// <param name="uploadSuccess">Has upload succeeded (note, there still might be compiler errors)</param>
         /// <param name="uploadStatus">Upload status message</param>
         /// <param name="compileSuccess">Is compilation successful</param>
         /// <param name="compileMessages">If compilation failed, list of error messages, null on compilation success</param>
@@ -630,6 +630,7 @@ namespace OpenMetaverse
                 });
             }
         }
+
         /// <summary>
         /// Get contents of a folder
         /// </summary>
@@ -640,12 +641,12 @@ namespace OpenMetaverse
         /// <param name="order">sort order to return results in</param>
         /// <param name="timeoutMS">a integer representing the number of milliseconds to wait for results</param>
         /// <param name="fast_loading">when false uses links and does not attempt to get the real object</param>
-        /// <returns>keypair with a status message, and List<seealso cref="InventoryBase"/>
-        /// if the status message is retry you should check again in a bit is is currently loading
-        /// links using RequestFetchInventoryCap
-        /// </returns>
-        public KeyValuePair<string, List<InventoryBase>> FolderContentsWithReply(UUID folder, UUID owner, bool folders, bool items,
-    InventorySortOrder order, int timeoutMS, bool fast_loading)
+        /// <returns>A list of inventory items matching search criteria within folder</returns>
+        /// <seealso cref="InventoryManager.RequestFolderContents"/>
+        /// <remarks>InventoryFolder.DescendentCount will only be accurate if both folders and items are
+        /// requested</remarks>
+        public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool folders, bool items,
+            InventorySortOrder order, int timeoutMS, bool fast_loading = false)
         {
             List<InventoryBase> objects = null;
             var fetchEvent = new AutoResetEvent(false);
@@ -706,11 +707,11 @@ namespace OpenMetaverse
             if (load_items.Count > 0)
             {
                 Client.Inventory.RequestFetchInventoryCap(load_items, owner_ids);
-                return new KeyValuePair<string, List<InventoryBase>>("retry", cleaned_list);
+                return cleaned_list;
             }
             else
             {
-                return new KeyValuePair<string, List<InventoryBase>>("ok", cleaned_list);
+                return cleaned_list;
             }
         }
 
@@ -720,26 +721,8 @@ namespace OpenMetaverse
             return FolderContents(folder, owner, folders, items,
     order, timeoutMS, false);
         }
-        /// <summary>
-        /// Get contents of a folder
-        /// </summary>
-        /// <param name="folder">The <seealso cref="UUID"/> of the folder to search</param>
-        /// <param name="owner">The <seealso cref="UUID"/> of the folders owner</param>
-        /// <param name="folders">true to retrieve folders</param>
-        /// <param name="items">true to retrieve items</param>
-        /// <param name="order">sort order to return results in</param>
-        /// <param name="timeoutMS">a integer representing the number of milliseconds to wait for results</param>
-        /// <param name="fast_loading">when false uses links and does not attempt to get the real object</param>
-        /// <returns>A list of inventory items matching search criteria within folder</returns>
-        /// <seealso cref="InventoryManager.RequestFolderContents"/>
-        /// <remarks>InventoryFolder.DescendentCount will only be accurate if both folders and items are
-        /// requested</remarks>
-        public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool folders, bool items,
-            InventorySortOrder order, int timeoutMS, bool fast_loading = false)
-        {
-            return FolderContentsWithReply(folder, owner, folders, items,
-    order, timeoutMS, fast_loading).Value;
-        }
+
+
 
         /// <summary>
         /// Request the contents of an inventory folder
@@ -852,9 +835,9 @@ namespace OpenMetaverse
 
                         var result = OSDParser.Deserialize(data);
                         var resultMap = ((OSDMap)result);
-                        if (resultMap.ContainsKey("folders"))
+                        if (resultMap.TryGetValue("folders", out var foldersSd))
                         {
-                            var fetchedFolders = (OSDArray)resultMap["folders"];
+                            var fetchedFolders = (OSDArray)foldersSd;
                             foreach (var fetchedFolderNr in fetchedFolders)
                             {
                                 var res = (OSDMap)fetchedFolderNr;
@@ -894,7 +877,8 @@ namespace OpenMetaverse
                                         {
                                             var descFolder = (OSDMap)cat;
                                             InventoryFolder folder;
-                                            UUID folderID = descFolder.ContainsKey("category_id") ? descFolder["category_id"] : descFolder["folder_id"];
+                                            UUID folderID = descFolder.TryGetValue("category_id", out var category_id)
+                                                ? category_id : descFolder["folder_id"];
                                             if (!_Store.Contains(folderID))
                                             {
                                                 folder = new InventoryFolder(folderID)
@@ -951,7 +935,6 @@ namespace OpenMetaverse
                 {
                     OnFolderUpdated(new FolderUpdatedEventArgs(f.UUID, false));
                 }
-                return;
             }
         }
 
