@@ -1623,7 +1623,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Request any instant messages sent while the client was offline to be resent.
         /// </summary>
-        public void RetrieveInstantMessages()
+        public async Task RetrieveInstantMessages()
         {
             Uri offlineMsgsCap = Client.Network.CurrentSim.Caps.CapabilityURI("ReadOfflineMsgs");
             if (offlineMsgsCap == null 
@@ -1635,7 +1635,7 @@ namespace OpenMetaverse
                 return;
             }
 
-            Task req = Client.HttpCapsClient.GetRequestAsync(offlineMsgsCap, CancellationToken.None, OfflineMessageHandlerCallback);
+            await Client.HttpCapsClient.GetRequestAsync(offlineMsgsCap, CancellationToken.None, OfflineMessageHandlerCallback);
         }
 
         /// <summary>
@@ -3788,12 +3788,12 @@ namespace OpenMetaverse
         /// Fetches resource usage by agents attachments
         /// </summary>
         /// <param name="callback">Called when the requested information is collected</param>
-        public void GetAttachmentResources(AttachmentResourcesCallback callback)
+        public async Task GetAttachmentResources(AttachmentResourcesCallback callback)
         {
             try
             {
                 Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("AttachmentResources");
-                Task req = Client.HttpCapsClient.GetRequestAsync(cap, CancellationToken.None, 
+                await Client.HttpCapsClient.GetRequestAsync(cap, CancellationToken.None, 
                     (response, data, error) =>
                 {
                     if (error != null)
@@ -4111,10 +4111,9 @@ namespace OpenMetaverse
             }
             catch
             {
-                Logger.Log("Failed to decode offline messages from data trying legacy method (Switch from OSD to OSDMap failed)",
+                Logger.Log("Failed to decode offline messages from data; trying legacy method",
                   Helpers.LogLevel.Warning);
                 RetrieveInstantMessagesLegacy();
-                return;
             }
         }
 

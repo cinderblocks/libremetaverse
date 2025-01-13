@@ -708,7 +708,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="ids">List of UUIDs to lookup</param>
         /// <param name="callback">Callback to report result of the operation</param>
-        public void GetDisplayNames(List<UUID> ids, DisplayNamesCallback callback)
+        public async Task GetDisplayNames(List<UUID> ids, DisplayNamesCallback callback)
         {
             if (!DisplayNamesAvailable() || ids.Count == 0)
             {
@@ -727,7 +727,7 @@ namespace OpenMetaverse
 
             Uri uri = new Uri(Client.Network.CurrentSim.Caps.CapabilityURI("GetDisplayNames").AbsoluteUri + "/?" + query);
 
-            Task req = Client.HttpCapsClient.GetRequestAsync(uri, CancellationToken.None, (response, data, error) =>
+            await Client.HttpCapsClient.GetRequestAsync(uri, CancellationToken.None, (response, data, error) =>
             {
                 try
                 {
