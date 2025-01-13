@@ -737,41 +737,12 @@ namespace OpenMetaverse
         public void RequestFolderContents(UUID folder, UUID owner, bool folders, bool items,
             InventorySortOrder order)
         {
-            var cap = owner == Client.Self.AgentID ? "FetchInventoryDescendents2" : "FetchLibDescendents2";
+            var cap = (owner == Client.Self.AgentID) ? "FetchInventoryDescendents2" : "FetchLibDescendents2";
 
             if (Client.Network.CurrentSim.Caps?.CapabilityURI(cap) != null)
             {
                 RequestFolderContentsCap(folder, owner, folders, items, order);
             }
-            else // Legacy UDP - REMOVED FROM SECOND LIFE
-            {
-#pragma warning disable CS0618 // Type or member is obsolete
-                RequestFolderContentsLegacy(folder, owner, folders, items, order);
-#pragma warning restore CS0618 // Type or member is obsolete
-            }
-        }
-
-        [Obsolete("Support removed from most simulators")]
-        public void RequestFolderContentsLegacy(UUID folder, UUID owner, bool folders, bool items,
-            InventorySortOrder order)
-        {
-            var fetch = new FetchInventoryDescendentsPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                InventoryData =
-                {
-                    FetchFolders = folders,
-                    FetchItems = items,
-                    FolderID = folder,
-                    OwnerID = owner,
-                    SortOrder = (int) order
-                }
-            };
-            Client.Network.SendPacket(fetch);
         }
 
         /// <summary>
