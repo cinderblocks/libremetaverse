@@ -1,5 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -40,7 +41,7 @@ namespace OpenMetaverse.ImportExport
     public class ModelUploader
     {
         /// <summary>
-        /// Inlcude stub convex hull physics, required for uploading to Second Life
+        /// Include stub convex hull physics, required for uploading to Second Life
         /// </summary>
         public bool IncludePhysicsStub;
 
@@ -93,10 +94,11 @@ namespace OpenMetaverse.ImportExport
 
                 foreach (var face in prim.Faces)
                 {
-                    OSDMap faceMap = new OSDMap();
-
-                    faceMap["diffuse_color"] = face.Material.DiffuseColor;
-                    faceMap["fullbright"] = false;
+                    OSDMap faceMap = new OSDMap
+                    {
+                        ["diffuse_color"] = face.Material.DiffuseColor,
+                        ["fullbright"] = false
+                    };
 
                     if (face.Material.TextureData != null)
                     {
@@ -137,8 +139,10 @@ namespace OpenMetaverse.ImportExport
                 instanceList.Add(primMap);
             }
 
-            OSDMap resources = new OSDMap();
-            resources["instance_list"] = instanceList;
+            OSDMap resources = new OSDMap
+            {
+                ["instance_list"] = instanceList
+            };
 
             OSDArray meshList = new OSDArray();
             foreach (var mesh in meshes)
@@ -164,43 +168,45 @@ namespace OpenMetaverse.ImportExport
         /// Performs model upload in one go, without first checking for the price
         /// </summary>
         /// <param name="callback">Callback that will be invoked upon completion of the upload. Null is sent on request failure</param>
-        public void Upload(ModelUploadCallback callback = null)
+        public async Task Upload(ModelUploadCallback callback, CancellationToken cancellationToken)
         {
-            PrepareUpload((result =>
+            await PrepareUpload(async result =>
             {
-                if (result == null && callback != null)
+                switch (result)
                 {
-                    callback(null);
-                    return;
-                }
-
-                if (result is OSDMap res)
-                {
-                    Uri uploader = new Uri(res["uploader"]);
-                    PerformUpload(uploader, (contents =>
+                    case null when callback != null:
+                        callback(null);
+                        return;
+                    case OSDMap res:
                     {
-                        if (contents != null)
+                        Uri uploader = new Uri(res["uploader"]);
+                        await PerformUpload(uploader, contents =>
                         {
-                            var reply = (OSDMap)contents;
-                            if (reply.ContainsKey("new_inventory_item") && reply.ContainsKey("new_asset"))
+                            if (contents != null)
                             {
-                                // Request full update on the item in order to update the local store
-                                Client.Inventory.RequestFetchInventory(reply["new_inventory_item"].AsUUID(), Client.Self.AgentID);
+                                var reply = (OSDMap)contents;
+                                if (reply.ContainsKey("new_inventory_item") && reply.ContainsKey("new_asset"))
+                                {
+                                    // Request full update on the item in order to update the local store
+                                    Client.Inventory.RequestFetchInventory(reply["new_inventory_item"].AsUUID(), Client.Self.AgentID);
+                                }
                             }
-                        }
 
-                        callback?.Invoke(contents);
-                    }));
+                            callback?.Invoke(contents);
+                        }, cancellationToken);
+                        break;
+                    }
                 }
-            }));
+            }, cancellationToken);
 
         }
 
         /// <summary>
         /// Ask server for details of cost and impact of the mesh upload
         /// </summary>
-        /// <param name="callback">Callback that will be invoke upon completion of the upload. Null is sent on request failure</param>
-        public void PrepareUpload(ModelUploadCallback callback)
+        /// <param name="callback">Callback that will be invoked upon completion of the upload. Null is sent on request failure</param>
+        /// <param name="cancellationToken">Cancellation token for network operation</param>
+        public async Task PrepareUpload(ModelUploadCallback callback, CancellationToken cancellationToken)
         {
             Uri cap = null;
             if (Client.Network.CurrentSim == null ||
@@ -229,7 +235,7 @@ namespace OpenMetaverse.ImportExport
                 ["next_owner_mask"] = (int) PermissionMask.All
             };
 
-            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None,
+            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, cancellationToken,
                 (response, data, error) =>
             {
                 if (error != null)
@@ -258,7 +264,6 @@ namespace OpenMetaverse.ImportExport
                 {
                     Logger.Log($"Mesh upload request failure: {ex.Message}", Helpers.LogLevel.Error, Client, ex);
                     callback?.Invoke(null);
-                    return;
                 }
             });
         }
@@ -268,12 +273,13 @@ namespace OpenMetaverse.ImportExport
         /// </summary>
         /// <param name="uploader">Uri received in the upload prepare stage</param>
         /// <param name="callback">Callback that will be invoke upon completion of the upload. Null is sent on request failure</param>
-        public void PerformUpload(Uri uploader, ModelUploadCallback callback)
+        /// <param name="cancellationToken">Cancellation token for network operation</param>
+        public async Task PerformUpload(Uri uploader, ModelUploadCallback callback, CancellationToken cancellationToken)
         {
             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("MeshUploader");
 
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, AssetResources(true),
-                CancellationToken.None, (response, data, error) =>
+            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, AssetResources(true),
+                cancellationToken, (response, data, error) =>
                 {
                     if (error != null)
                     {
@@ -296,7 +302,6 @@ namespace OpenMetaverse.ImportExport
                     {
                         Logger.Log($"Mesh upload request failure: {ex.Message}", Helpers.LogLevel.Error, Client, ex);
                         callback?.Invoke(null);
-                        return;
                     }
                 });
         }
