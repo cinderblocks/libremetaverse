@@ -680,7 +680,7 @@ namespace OpenMetaverse
                 {
                     if (ob.IsLink() && !fastLoading)
                     {
-                        if (Store.Items.ContainsKey(ob.AssetUUID))
+                        if (Store.Contains(ob.AssetUUID))
                         {
                             cleanedList.Add(Client.Inventory.FetchItem(ob.AssetUUID, Client.Self.AgentID, TimeSpan.FromSeconds(5)));
                         }
@@ -2370,7 +2370,7 @@ namespace OpenMetaverse
             Client.Network.SendPacket(add, simulator);
 
             // Remove from store if the item is no copy
-            if (Store.Items.ContainsKey(item.UUID) && Store[item.UUID] is InventoryItem invItem)
+            if (Store.Contains(item.UUID) && Store[item.UUID] is InventoryItem invItem)
             {
                 if ((invItem.Permissions.OwnerMask & PermissionMask.Copy) == PermissionMask.None)
                 {
@@ -2510,7 +2510,7 @@ namespace OpenMetaverse
             }
 
             // Remove from store if the item is no copy
-            if (Store.Items.ContainsKey(itemID) && Store[itemID] is InventoryItem item)
+            if (Store.Contains(itemID) && Store[itemID] is InventoryItem item)
             {
                 if ((item.Permissions.OwnerMask & PermissionMask.Copy) == PermissionMask.None)
                 {
@@ -2620,7 +2620,7 @@ namespace OpenMetaverse
 
             // Remove from store if items were no copy
             foreach (var invItem in from item in items 
-                     where Store.Items.ContainsKey(item.UUID) && Store[item.UUID] is InventoryItem 
+                     where Store.Contains(item.UUID) && Store[item.UUID] is InventoryItem 
                      select (InventoryItem)Store[item.UUID] into invItem 
                      where (invItem.Permissions.OwnerMask & PermissionMask.Copy) == PermissionMask.None select invItem)
             {
@@ -3643,13 +3643,11 @@ namespace OpenMetaverse
 
         private void Network_OnLoginResponse(bool loginSuccess, bool redirect, string message, string reason, LoginResponseData replyData)
         {
-            if (!loginSuccess) return;
+            if (!loginSuccess) { return; }
+            if (replyData.InventorySkeleton == null || replyData.LibrarySkeleton == null) { return; }
 
-            if (replyData.InventorySkeleton == null || replyData.LibrarySkeleton == null)
-                return;
-
-            // Initialize the store here so we know who owns it:
-            _Store = new Inventory(Client, this, Client.Self.AgentID);
+            // Initialize the store here to link it with the owner
+            _Store = new Inventory(Client, Client.Self.AgentID);
             Logger.DebugLog($"Setting InventoryRoot to {replyData.InventoryRoot}", Client);
             var rootFolder = new InventoryFolder(replyData.InventoryRoot)
             {

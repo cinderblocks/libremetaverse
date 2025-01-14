@@ -26,6 +26,7 @@
  */
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -169,19 +170,18 @@ namespace OpenMetaverse
 
         private GridClient Client;
         //private InventoryManager Manager;
-        public Dictionary<UUID, InventoryNode> Items;
+        private ConcurrentDictionary<UUID, InventoryNode> Items;
 
-        public Inventory(GridClient client, InventoryManager manager)
-            : this(client, manager, client.Self.AgentID) { }
+        public Inventory(GridClient client)
+            : this(client, client.Self.AgentID) { }
 
-        public Inventory(GridClient client, InventoryManager manager, UUID owner)
+        public Inventory(GridClient client, UUID owner)
         {
             Client = client;
-            //Manager = manager;
             Owner = owner;
             if (owner == UUID.Zero)
                 Logger.Log("Inventory owned by nobody!", Helpers.LogLevel.Warning, Client);
-            Items = new Dictionary<UUID, InventoryNode>();
+            Items = new ConcurrentDictionary<UUID, InventoryNode>();
         }
 
         public List<InventoryBase> GetContents(InventoryFolder folder)
@@ -268,8 +268,8 @@ namespace OpenMetaverse
                 else // We're adding.
                 {
                     itemNode = new InventoryNode(item, itemParent);
-                    Items.Add(item.UUID, itemNode);
-                    if (m_InventoryObjectAdded != null)
+                    bool added = Items.TryAdd(item.UUID, itemNode);
+                    if (added && m_InventoryObjectAdded != null)
                     {
                         OnInventoryObjectAdded(new InventoryObjectAddedEventArgs(item));
                     }
@@ -298,8 +298,8 @@ namespace OpenMetaverse
                             node.Parent.Nodes.Remove(item.UUID);
                     }
 
-                    Items.Remove(item.UUID);
-                    if (m_InventoryObjectRemoved != null)
+                    bool removed = Items.TryRemove(item.UUID, out node);
+                    if (removed && m_InventoryObjectRemoved != null)
                     {
                         OnInventoryObjectRemoved(new InventoryObjectRemovedEventArgs(item));
                     }                    
@@ -458,12 +458,16 @@ namespace OpenMetaverse
 
                             //Only add new items, this is most likely to be run at login time before any inventory
                             //nodes other than the root are populated. Don't add non-existing folders.
-                            if (!Items.ContainsKey(node.Data.UUID) && !dirtyFolders.Contains(pnode.Data.UUID) && !(node.Data is InventoryFolder))
+                            if (!Items.ContainsKey(node.Data.UUID) 
+                                && !dirtyFolders.Contains(pnode.Data.UUID) 
+                                && !(node.Data is InventoryFolder))
                             {
-                                Items.Add(node.Data.UUID, node);
-                                node.Parent = pnode; //Update this node with its parent
-                                pnode.Nodes.Add(node.Data.UUID, node); // Add to the parents child list
-                                itemCount++;
+                                if (Items.TryAdd(node.Data.UUID, node))
+                                {
+                                    node.Parent = pnode; //Update this node with its parent
+                                    pnode.Nodes.Add(node.Data.UUID, node); // Add to the parents child list
+                                    itemCount++;
+                                }
                             }
                         }
 
@@ -478,8 +482,9 @@ namespace OpenMetaverse
 
                 //Clean up processed nodes this loop around.
                 foreach (var node in delNodes)
+                {
                     nodes.Remove(node);
-
+                }
                 delNodes.Clear();
             }
 
