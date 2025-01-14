@@ -2326,7 +2326,7 @@ namespace OpenMetaverse
 
             InventoryFolder COF = null;
 
-            // COF should be in the root folder. Request update to get the latest versiom number
+            // COF should be in the root folder. Request update to get the latest version number
             if (root == null) { return null; }
             foreach (var baseItem in root)
             {

@@ -633,12 +633,13 @@ namespace OpenMetaverse
         /// <param name="fetchItems">retrieve items</param>
         /// <param name="order">sort order to return results in</param>
         /// <param name="timeout">time given to wait for results</param>
+        /// <param name="followLinks">Resolve link items to the actual item</param>
         /// <returns>A list of inventory items matching search criteria within folder</returns>
         /// <seealso cref="RequestFolderContents(UUID,UUID,bool,bool,InventorySortOrder)"/>
         /// <remarks>InventoryFolder.DescendentCount will only be accurate if both folders and items are
         /// requested</remarks>
         public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool fetchFolders, bool fetchItems,
-            InventorySortOrder order, TimeSpan timeout)
+            InventorySortOrder order, TimeSpan timeout, bool followLinks = false)
         {
             List<InventoryBase> inventory = null;
             var fetchEvent = new AutoResetEvent(false);
@@ -669,7 +670,7 @@ namespace OpenMetaverse
 
             FolderUpdated -= FolderUpdatedCallback;
 
-            if (inventory != null)
+            if (inventory != null && followLinks)
             {
                 for (var i = 0; i < inventory.Count; ++i)
                 {
