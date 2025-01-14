@@ -27,7 +27,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -630,19 +629,18 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="folder">The <seealso cref="UUID"/> of the folder to search</param>
         /// <param name="owner">The <seealso cref="UUID"/> of the folders owner</param>
-        /// <param name="folders">retrieve folders</param>
-        /// <param name="items">retrieve items</param>
+        /// <param name="fetchFolders">retrieve folders</param>
+        /// <param name="fetchItems">retrieve items</param>
         /// <param name="order">sort order to return results in</param>
         /// <param name="timeout">time given to wait for results</param>
-        /// <param name="fastLoading">when false uses links and does not attempt to get the real object</param>
         /// <returns>A list of inventory items matching search criteria within folder</returns>
-        /// <seealso cref="RequestFolderContents(OpenMetaverse.UUID,OpenMetaverse.UUID,bool,bool,OpenMetaverse.InventorySortOrder)"/>
+        /// <seealso cref="RequestFolderContents(UUID,UUID,bool,bool,InventorySortOrder)"/>
         /// <remarks>InventoryFolder.DescendentCount will only be accurate if both folders and items are
         /// requested</remarks>
         public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool fetchFolders, bool fetchItems,
-            InventorySortOrder order, TimeSpan timeout, bool fastLoading = false)
+            InventorySortOrder order, TimeSpan timeout)
         {
-            List<InventoryBase> objects = null;
+            List<InventoryBase> inventory = null;
             var fetchEvent = new AutoResetEvent(false);
 
             void FolderUpdatedCallback(object sender, FolderUpdatedEventArgs e)
@@ -666,42 +664,26 @@ namespace OpenMetaverse
             RequestFolderContents(folder, owner, fetchFolders, fetchItems, order);
             if (fetchEvent.WaitOne(timeout, false))
             {
-                objects = _Store.GetContents(folder);
+                inventory = _Store.GetContents(folder);
             }
 
             FolderUpdated -= FolderUpdatedCallback;
 
-            var cleanedList = new List<InventoryBase>();
-
-            var items = new Dictionary<UUID, UUID>();
-            if (objects != null)
+            if (inventory != null)
             {
-                foreach (var ob in objects.Where(o => o.GetType() != typeof(InventoryFolder)).Cast<InventoryItem>())
+                for (var i = 0; i < inventory.Count; ++i)
                 {
-                    if (ob.IsLink() && !fastLoading)
+                    if (!(inventory[i] is InventoryItem item)) { continue; }
+                    if (item.IsLink())
                     {
-                        if (Store.Contains(ob.AssetUUID))
+                        if (!Store.Contains(item.AssetUUID))
                         {
-                            cleanedList.Add(Client.Inventory.FetchItem(ob.AssetUUID, Client.Self.AgentID, TimeSpan.FromSeconds(5)));
+                            inventory[i] = Client.Inventory.FetchItem(item.AssetUUID, owner, timeout);
                         }
-                        else
-                        {
-                            items.Add(ob.AssetUUID, Client.Self.AgentID);
-                        }
-                    }
-                    else
-                    {
-                        cleanedList.Add(ob);
                     }
                 }
             }
-
-            if (items.Count > 0)
-            {
-                Client.Inventory.RequestFetchInventoryCap(items);
-                
-            }
-            return cleanedList;
+            return inventory;
         }
 
         /// <summary>
