@@ -532,23 +532,19 @@ namespace OpenMetaverse
         /// <seealso cref="InventoryManager.OnItemReceived"/>
         public void RequestFetchInventory(UUID itemID, UUID ownerID)
         {
-            RequestFetchInventory(new List<UUID>(1) { itemID }, new List<UUID>(1) { ownerID });
+            RequestFetchInventory(new Dictionary<UUID, UUID>(1) { { itemID, ownerID } });
         }
 
         /// <summary>
         /// Request inventory items
         /// </summary>
-        /// <param name="itemIDs">Inventory items to request</param>
-        /// <param name="ownerIDs">Owners of the inventory items</param>
+        /// <param name="items">Inventory items to request with owner</param>
         /// <seealso cref="InventoryManager.OnItemReceived"/>
-        public void RequestFetchInventory(List<UUID> itemIDs, List<UUID> ownerIDs)
+        public void RequestFetchInventory(Dictionary<UUID, UUID> items)
         {
-            if (itemIDs.Count != ownerIDs.Count)
-                throw new ArgumentException("itemIDs and ownerIDs must contain the same number of entries");
-
             if (Client.Network.CurrentSim.Caps?.CapabilityURI("FetchInventory2") != null)
             {
-                RequestFetchInventoryCap(itemIDs, ownerIDs);
+                RequestFetchInventoryCap(items);
                 return;
             }
 
@@ -559,15 +555,15 @@ namespace OpenMetaverse
                     AgentID = Client.Self.AgentID,
                     SessionID = Client.Self.SessionID
                 },
-                InventoryData = new FetchInventoryPacket.InventoryDataBlock[itemIDs.Count]
+                InventoryData = new FetchInventoryPacket.InventoryDataBlock[items.Count]
             };
 
-            for (var i = 0; i < itemIDs.Count; ++i)
+            for (var i = 0; i < items.Count; ++i)
             {
                 fetch.InventoryData[i] = new FetchInventoryPacket.InventoryDataBlock
                 {
-                    ItemID = itemIDs[i],
-                    OwnerID = ownerIDs[i]
+                    ItemID = items.ElementAt(i).Key,
+                    OwnerID = items.ElementAt(i).Value
                 };
             }
 
@@ -577,68 +573,65 @@ namespace OpenMetaverse
         /// <summary>
         /// Request inventory items via Capabilities
         /// </summary>
-        /// <param name="itemIDs">Inventory items to request</param>
-        /// <param name="ownerIDs">Owners of the inventory items</param>
+        /// <param name="items">Inventory items to request with owners</param>
         /// <seealso cref="InventoryManager.OnItemReceived"/>
-        private void RequestFetchInventoryCap(IReadOnlyList<UUID> itemIDs, IReadOnlyList<UUID> ownerIDs)
+        private void RequestFetchInventoryCap(Dictionary<UUID, UUID> items)
         {
-            if (itemIDs.Count != ownerIDs.Count) 
+
+            var cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("FetchInventory2");
+            if (cap == null)
             {
-                throw new ArgumentException("itemIDs and ownerIDs must contain the same number of entries");
+                Logger.Log($"Failed to obtain FetchInventory2 capability on {Client.Network.CurrentSim.Name}",
+                    Helpers.LogLevel.Warning, Client);
             }
 
-            Uri cap;
-            if ((cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("FetchInventory2")) != null)
-            {
-                var payload = new OSDMap { ["agent_id"] = Client.Self.AgentID };
+            var payload = new OSDMap { ["agent_id"] = Client.Self.AgentID };
 
-                var items = new OSDArray(itemIDs.Count);
-                for (var i = 0; i < itemIDs.Count; i++)
+            var itemArray = new OSDArray(items.Count);
+            foreach (var item in items.Select(kvp => new OSDMap(2)
+                     {
+                         ["item_id"] = kvp.Key,
+                         ["owner_id"] = kvp.Value
+                     }))
+            {
+                itemArray.Add(item);
+            }
+
+            payload["items"] = itemArray;
+
+            var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, 
+                CancellationToken.None, (response, data, error) =>
+            {
+                if (error != null) { return; }
+
+                try
                 {
-                    var item = new OSDMap(2)
+                    var result = OSDParser.Deserialize(data);
+                    var res = (OSDMap)result;
+                    var itemsOSD = (OSDArray)res["items"];
+
+                    foreach (var it in itemsOSD)
                     {
-                        ["item_id"] = itemIDs[i],
-                        ["owner_id"] = ownerIDs[i]
-                    };
-                    items.Add(item);
+                        var item = InventoryItem.FromOSD(it);
+                        _Store[item.UUID] = item;
+                        OnItemReceived(new ItemReceivedEventArgs(item));
+                    }
                 }
-
-                payload["items"] = items;
-
-                var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, 
-                    CancellationToken.None, (response, data, error) =>
+                catch (Exception ex)
                 {
-                    if (error != null) { return; }
-
-                    try
-                    {
-                        var result = OSDParser.Deserialize(data);
-                        var res = (OSDMap)result;
-                        var itemsOSD = (OSDArray)res["items"];
-
-                        foreach (var it in itemsOSD)
-                        {
-                            var item = InventoryItem.FromOSD(it);
-                            _Store[item.UUID] = item;
-                            OnItemReceived(new ItemReceivedEventArgs(item));
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Log("Failed getting data from FetchInventory2 capability.",
-                            Helpers.LogLevel.Error, Client, ex);
-                    }
-                });
-            }
+                    Logger.Log("Failed getting data from FetchInventory2 capability.",
+                        Helpers.LogLevel.Error, Client, ex);
+                }
+            });
         }
 
         /// <summary>
-        /// Get contents of a folder
+        /// Retrieve contents of a folder
         /// </summary>
         /// <param name="folder">The <seealso cref="UUID"/> of the folder to search</param>
         /// <param name="owner">The <seealso cref="UUID"/> of the folders owner</param>
-        /// <param name="folders">true to retrieve folders</param>
-        /// <param name="items">true to retrieve items</param>
+        /// <param name="folders">retrieve folders</param>
+        /// <param name="items">retrieve items</param>
         /// <param name="order">sort order to return results in</param>
         /// <param name="timeout">time given to wait for results</param>
         /// <param name="fastLoading">when false uses links and does not attempt to get the real object</param>
@@ -646,13 +639,13 @@ namespace OpenMetaverse
         /// <seealso cref="RequestFolderContents(OpenMetaverse.UUID,OpenMetaverse.UUID,bool,bool,OpenMetaverse.InventorySortOrder)"/>
         /// <remarks>InventoryFolder.DescendentCount will only be accurate if both folders and items are
         /// requested</remarks>
-        public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool folders, bool items,
+        public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool fetchFolders, bool fetchItems,
             InventorySortOrder order, TimeSpan timeout, bool fastLoading = false)
         {
             List<InventoryBase> objects = null;
             var fetchEvent = new AutoResetEvent(false);
 
-            void FolderUpdatedCB(object sender, FolderUpdatedEventArgs e)
+            void FolderUpdatedCallback(object sender, FolderUpdatedEventArgs e)
             {
                 if (e.FolderID == folder && _Store[folder] is InventoryFolder invFolder)
                 {
@@ -668,20 +661,19 @@ namespace OpenMetaverse
                 }
             }
 
-            FolderUpdated += FolderUpdatedCB;
+            FolderUpdated += FolderUpdatedCallback;
 
-            RequestFolderContents(folder, owner, folders, items, order);
+            RequestFolderContents(folder, owner, fetchFolders, fetchItems, order);
             if (fetchEvent.WaitOne(timeout, false))
             {
                 objects = _Store.GetContents(folder);
             }
 
-            FolderUpdated -= FolderUpdatedCB;
+            FolderUpdated -= FolderUpdatedCallback;
 
-            var cleaned_list = new List<InventoryBase>();
+            var cleanedList = new List<InventoryBase>();
 
-            var load_items = new List<UUID>();
-            var owner_ids = new List<UUID>();
+            var items = new Dictionary<UUID, UUID>();
             if (objects != null)
             {
                 foreach (var ob in objects.Where(o => o.GetType() != typeof(InventoryFolder)).Cast<InventoryItem>())
@@ -690,40 +682,27 @@ namespace OpenMetaverse
                     {
                         if (Store.Items.ContainsKey(ob.AssetUUID))
                         {
-                            cleaned_list.Add(Client.Inventory.FetchItem(ob.AssetUUID, Client.Self.AgentID, TimeSpan.FromSeconds(5)));
+                            cleanedList.Add(Client.Inventory.FetchItem(ob.AssetUUID, Client.Self.AgentID, TimeSpan.FromSeconds(5)));
                         }
                         else
                         {
-                            load_items.Add(ob.AssetUUID);
-                            owner_ids.Add(Client.Self.AgentID);
+                            items.Add(ob.AssetUUID, Client.Self.AgentID);
                         }
                     }
                     else
                     {
-                        cleaned_list.Add(ob);
+                        cleanedList.Add(ob);
                     }
                 }
             }
 
-            if (load_items.Count > 0)
+            if (items.Count > 0)
             {
-                Client.Inventory.RequestFetchInventoryCap(load_items, owner_ids);
-                return cleaned_list;
+                Client.Inventory.RequestFetchInventoryCap(items);
+                
             }
-            else
-            {
-                return cleaned_list;
-            }
+            return cleanedList;
         }
-
-        public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool folders, bool items,
-    InventorySortOrder order, TimeSpan timeout)
-        {
-            return FolderContents(folder, owner, folders, items,
-    order, timeout, false);
-        }
-
-
 
         /// <summary>
         /// Request the contents of an inventory folder using HTTP capabilities
@@ -741,7 +720,7 @@ namespace OpenMetaverse
             Uri url = Client.Network.CurrentSim.Caps.CapabilityURI(cap);
             if (url == null)
             {
-                Logger.Log($"Failed to obtain {cap} capability in {Client.Network.CurrentSim.Name}",
+                Logger.Log($"Failed to obtain {cap} capability on {Client.Network.CurrentSim.Name}",
                     Helpers.LogLevel.Warning, Client);
                 OnFolderUpdated(new FolderUpdatedEventArgs(folderID, false));
                 return;
