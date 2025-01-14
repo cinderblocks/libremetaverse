@@ -643,7 +643,7 @@ namespace OpenMetaverse
         /// <param name="timeout">time given to wait for results</param>
         /// <param name="fastLoading">when false uses links and does not attempt to get the real object</param>
         /// <returns>A list of inventory items matching search criteria within folder</returns>
-        /// <seealso cref="InventoryManager.RequestFolderContents"/>
+        /// <seealso cref="RequestFolderContents(OpenMetaverse.UUID,OpenMetaverse.UUID,bool,bool,OpenMetaverse.InventorySortOrder)"/>
         /// <remarks>InventoryFolder.DescendentCount will only be accurate if both folders and items are
         /// requested</remarks>
         public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool folders, bool items,
@@ -726,26 +726,6 @@ namespace OpenMetaverse
 
 
         /// <summary>
-        /// Request the contents of an inventory folder
-        /// </summary>
-        /// <param name="folder">The folder to search</param>
-        /// <param name="owner">The folder owners <seealso cref="UUID"/></param>
-        /// <param name="folders">true to return <seealso cref="InventoryFolder"/>s contained in folder</param>
-        /// <param name="items">true to return <seealso cref="InventoryItem"/>s contained in folder</param>
-        /// <param name="order">the sort order to return items in</param>
-        /// <seealso cref="InventoryManager.FolderContents"/>
-        public void RequestFolderContents(UUID folder, UUID owner, bool folders, bool items,
-            InventorySortOrder order)
-        {
-            var cap = (owner == Client.Self.AgentID) ? "FetchInventoryDescendents2" : "FetchLibDescendents2";
-
-            if (Client.Network.CurrentSim.Caps?.CapabilityURI(cap) != null)
-            {
-                RequestFolderContentsCap(folder, owner, folders, items, order);
-            }
-        }
-
-        /// <summary>
         /// Request the contents of an inventory folder using HTTP capabilities
         /// </summary>
         /// <param name="folderID">The folder to search</param>
@@ -754,29 +734,28 @@ namespace OpenMetaverse
         /// <param name="fetchItems">true to return <seealso cref="InventoryItem"/>s contained in folder</param>
         /// <param name="order">the sort order to return items in</param>
         /// <seealso cref="InventoryManager.FolderContents"/>
-        public void RequestFolderContentsCap(UUID folderID, UUID ownerID, bool fetchFolders, bool fetchItems,
+        public void RequestFolderContents(UUID folderID, UUID ownerID, bool fetchFolders, bool fetchItems,
             InventorySortOrder order)
         {
-            Uri url;
-            var cap = ownerID == Client.Self.AgentID ? "FetchInventoryDescendents2" : "FetchLibDescendents2";
-            if (Client.Network.CurrentSim.Caps == null ||
-                (url = Client.Network.CurrentSim.Caps.CapabilityURI(cap)) == null)
+            var cap = (ownerID == Client.Self.AgentID) ? "FetchInventoryDescendents2" : "FetchLibDescendents2";
+            Uri url = Client.Network.CurrentSim.Caps.CapabilityURI(cap);
+            if (url == null)
             {
-                Logger.Log($"{cap} capability not available on this sim", Helpers.LogLevel.Warning, Client);
+                Logger.Log($"Failed to obtain {cap} capability in {Client.Network.CurrentSim.Name}",
+                    Helpers.LogLevel.Warning, Client);
                 OnFolderUpdated(new FolderUpdatedEventArgs(folderID, false));
+                return;
             }
-            else
+            var folder = new InventoryFolder(folderID)
             {
-                var folder = new InventoryFolder(folderID)
-                {
-                    OwnerID = ownerID,
-                    UUID = folderID
-                };
-                RequestFolderContentsCap(new List<InventoryFolder>() { folder }, url, fetchFolders, fetchItems, order);
-            }
+                OwnerID = ownerID,
+                UUID = folderID
+            };
+            RequestFolderContents(new List<InventoryFolder>() { folder }, url, fetchFolders, fetchItems, order);
         }
 
-        public void RequestFolderContentsCap(List<InventoryFolder> batch, Uri capabilityUri, bool fetchFolders, bool fetchItems, InventorySortOrder order)
+        public void RequestFolderContents(List<InventoryFolder> batch, Uri capabilityUri, bool fetchFolders, bool fetchItems,
+            InventorySortOrder order)
         {
 
             try

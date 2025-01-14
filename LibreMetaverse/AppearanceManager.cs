@@ -2320,7 +2320,7 @@ namespace OpenMetaverse
             };
 
             Client.Inventory.FolderUpdated += UpdatedCallback;
-            Client.Inventory.RequestFolderContentsCap(Client.Inventory.Store.RootFolder.UUID, Client.Self.AgentID, true, true, InventorySortOrder.ByDate);
+            Client.Inventory.RequestFolderContents(Client.Inventory.Store.RootFolder.UUID, Client.Self.AgentID, true, true, InventorySortOrder.ByDate);
             folderReceived.WaitOne(Client.Settings.CAPS_TIMEOUT);
             Client.Inventory.FolderUpdated -= UpdatedCallback;
 
