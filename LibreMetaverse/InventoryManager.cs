@@ -442,7 +442,6 @@ namespace OpenMetaverse
         private readonly GridClient Client;
         [NonSerialized]
         private Inventory _Store;
-        //private Random _RandNumbers = new Random();
         private object _CallbacksLock = new object();
         private uint _CallbackPos;
         private readonly Dictionary<uint, ItemCreatedCallback> _ItemCreatedCallbacks = new Dictionary<uint, ItemCreatedCallback>();
@@ -543,7 +542,7 @@ namespace OpenMetaverse
         {
             if (Client.Network.CurrentSim.Caps?.CapabilityURI("FetchInventory2") != null)
             {
-                RequestFetchInventoryCap(items);
+                RequestFetchInventoryHttp(items);
                 return;
             }
 
@@ -573,20 +572,34 @@ namespace OpenMetaverse
         /// Request inventory items via Capabilities
         /// </summary>
         /// <param name="items">Inventory items to request with owners</param>
-        /// <seealso cref="InventoryManager.OnItemReceived"/>
-        private void RequestFetchInventoryCap(Dictionary<UUID, UUID> items)
+        /// <seealso cref="OnItemReceived"/>
+        private void RequestFetchInventoryHttp(Dictionary<UUID, UUID> items)
         {
-            _ = RequestFetchInventoryCapAsync(items, CancellationToken.None);
+            _ = RequestFetchInventoryHttpAsync(items, CancellationToken.None);
         }
 
         /// <summary>
-        /// Request inventory items via Capabilities
+        /// Request inventory items via HTTP capability
         /// </summary>
-        /// <param name="items">Inventory items to request with owners</param>
-        /// <param name="cancellationToken">Task cancellation token</param>
-        /// <seealso cref="InventoryManager.OnItemReceived"/>
-        private async Task RequestFetchInventoryCapAsync(Dictionary<UUID, UUID> items,
-            CancellationToken cancellationToken)
+        /// <param name="itemID">The items <seealso cref="OpenMetaverse.UUID"/></param>
+        /// <param name="ownerID">The item Owners <seealso cref="OpenMetaverse.UUID"/></param>
+        /// <param name="cancellationToken">Cancellation token for operation</param>
+        /// <param name="callback">Action</param>
+        private async Task RequestFetchInventoryHttpAsync(UUID itemID, UUID ownerID,
+            CancellationToken cancellationToken, Action<List<InventoryItem>> callback = null)
+        {
+            await RequestFetchInventoryHttpAsync(new Dictionary<UUID, UUID>(1) { { itemID, ownerID } },
+                cancellationToken, callback);
+        }
+
+        /// <summary>
+        /// Request inventory items via HTTP capability
+        /// </summary>
+        /// <param name="items">Inventory items to request with owner</param>
+        /// <param name="cancellationToken">Cancellation token for operation</param>
+        /// <param name="callback">Action</param>
+        public async Task RequestFetchInventoryHttpAsync(Dictionary<UUID, UUID> items,
+            CancellationToken cancellationToken, Action<List<InventoryItem> > callback = null)
         {
 
             var cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("FetchInventory2");
@@ -622,12 +635,16 @@ namespace OpenMetaverse
                     var res = (OSDMap)result;
                     var itemsOSD = (OSDArray)res["items"];
 
+                    var retrievedItems = new List<InventoryItem>(itemsOSD.Count);
                     foreach (var it in itemsOSD)
                     {
                         var item = InventoryItem.FromOSD(it);
                         _Store[item.UUID] = item;
+                        retrievedItems.Add(item);
                         OnItemReceived(new ItemReceivedEventArgs(item));
                     }
+
+                    callback?.Invoke(retrievedItems);
                 }
                 catch (Exception ex)
                 {
@@ -1639,7 +1656,7 @@ namespace OpenMetaverse
             try { _Store[newFolder.UUID] = newFolder; }
             catch (InventoryException ie) { Logger.Log(ie.Message, Helpers.LogLevel.Warning, Client, ie); }
 
-            // Create the create folder packet and send it
+            // Create the CreateInventoryFolder packet and send it
             var create = new CreateInventoryFolderPacket
             {
                 AgentData =
