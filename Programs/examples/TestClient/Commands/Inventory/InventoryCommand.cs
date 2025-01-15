@@ -32,7 +32,7 @@ namespace OpenMetaverse.TestClient
         void PrintFolder(InventoryFolder f, StringBuilder result, int indent)
         {
             List<InventoryBase> contents = Manager.FolderContents(f.UUID, Client.Self.AgentID,
-                true, true, InventorySortOrder.ByName, 3000);
+                true, true, InventorySortOrder.ByName, TimeSpan.FromSeconds(3));
 
             if (contents != null)
             {

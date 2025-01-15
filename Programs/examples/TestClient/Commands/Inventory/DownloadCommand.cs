@@ -44,7 +44,7 @@ namespace OpenMetaverse.TestClient
             // Start the asset download
             Client.Assets.RequestAsset(AssetID, assetType, true, Assets_OnAssetReceived);
 
-            if (DownloadHandle.WaitOne(120 * 1000, false))
+            if (DownloadHandle.WaitOne(TimeSpan.FromMinutes(2), false))
             {
                 return Success ? $"Saved {AssetID}.{assetType.ToString().ToLower()}" 
                     : $"Failed to download asset {AssetID}, perhaps {assetType} is the incorrect asset type?";

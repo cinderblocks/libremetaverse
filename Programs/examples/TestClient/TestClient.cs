@@ -174,7 +174,7 @@ namespace OpenMetaverse.TestClient
         {
             Groups.CurrentGroups += Groups_CurrentGroups;            
             Groups.RequestCurrentGroups();
-            GroupsEvent.WaitOne(10000, false);
+            GroupsEvent.WaitOne(TimeSpan.FromSeconds(10), false);
             Groups.CurrentGroups -= Groups_CurrentGroups;
             GroupsEvent.Reset();
         }

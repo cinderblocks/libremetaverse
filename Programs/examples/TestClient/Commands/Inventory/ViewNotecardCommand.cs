@@ -1,3 +1,4 @@
+using System;
 using OpenMetaverse.Assets;
 
 namespace OpenMetaverse.TestClient
@@ -58,7 +59,7 @@ namespace OpenMetaverse.TestClient
                 );
 
                 // wait for reply or timeout
-                if (!waitEvent.WaitOne(10000, false))
+                if (!waitEvent.WaitOne(TimeSpan.FromSeconds(10), false))
                 {
                     result.Append("Timeout waiting for notecard to download.");
                 }

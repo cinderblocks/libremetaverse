@@ -475,14 +475,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Returns a list of map items
         /// </summary>
         /// <param name="regionHandle"></param>
         /// <param name="item"></param>
         /// <param name="layer"></param>
-        /// <param name="timeoutMS"></param>
-        /// <returns></returns>
-        public List<MapItem> MapItems(ulong regionHandle, GridItemType item, GridLayerType layer, int timeoutMS)
+        /// <param name="timeout"></param>
+        /// <returns>List of Map items</returns>
+        public List<MapItem> MapItems(ulong regionHandle, GridItemType item, GridLayerType layer, TimeSpan timeout)
         {
             List<MapItem> itemList = null;
             AutoResetEvent itemsEvent = new AutoResetEvent(false);
@@ -499,7 +499,7 @@ namespace OpenMetaverse
             GridItems += Callback;
 
             RequestMapItems(regionHandle, item, layer);
-            itemsEvent.WaitOne(timeoutMS, false);
+            itemsEvent.WaitOne(timeout, false);
 
             GridItems -= Callback;
 

@@ -141,22 +141,22 @@ namespace OpenMetaverse
         /// <summary>Mapping between BakeType and AvatarTextureIndex</summary>
         public static readonly byte[] BakeIndexToTextureIndex = new byte[BAKED_TEXTURE_COUNT] { 8, 9, 10, 11, 19, 20 };
         /// <summary>Maximum number of concurrent downloads for wearable assets and textures</summary>
-        const int MAX_CONCURRENT_DOWNLOADS = 5;
+        private const int MAX_CONCURRENT_DOWNLOADS = 5;
         /// <summary>Maximum number of concurrent uploads for baked textures</summary>
-        const int MAX_CONCURRENT_UPLOADS = 6;
+        private const int MAX_CONCURRENT_UPLOADS = 6;
         /// <summary>Timeout for fetching inventory listings</summary>
-        const int INVENTORY_TIMEOUT = 1000 * 30;
+        private readonly TimeSpan INVENTORY_TIMEOUT = TimeSpan.FromSeconds(30);
         /// <summary>Timeout for fetching a single wearable, or receiving a single packet response</summary>
-        const int WEARABLE_TIMEOUT = 1000 * 30;
+        private readonly TimeSpan WEARABLE_TIMEOUT = TimeSpan.FromSeconds(30);
         /// <summary>Timeout for fetching a single texture</summary>
-        const int TEXTURE_TIMEOUT = 1000 * 120;
+        private readonly TimeSpan TEXTURE_TIMEOUT = TimeSpan.FromSeconds(120);
         /// <summary>Timeout for uploading a single baked texture</summary>
-        const int UPLOAD_TIMEOUT = 1000 * 90;
+        private readonly TimeSpan UPLOAD_TIMEOUT = TimeSpan.FromSeconds(90);
         /// <summary>Number of times to retry bake upload</summary>
-        const int UPLOAD_RETRIES = 2;
+        private const int UPLOAD_RETRIES = 2;
         /// <summary>When changing outfit, kick off rebake after
         /// 20 seconds has passed since the last change</summary>
-        const int REBAKE_DELAY = 1000 * 5;
+        private const int REBAKE_DELAY = 1000 * 5;
 
         /// <summary>Total number of wearables allowed for each avatar</summary>
         public const int WEARABLE_COUNT_MAX = 60;
@@ -1347,7 +1347,7 @@ namespace OpenMetaverse
                 }
 
                 // Otherwise, retrieve the item off the asset server.
-                var inventoryItem = Client.Inventory.FetchItem(item.Key, Client.Self.AgentID, 1000 * 10);
+                var inventoryItem = Client.Inventory.FetchItem(item.Key, Client.Self.AgentID, TimeSpan.FromSeconds(10));
 
                 attachmentsByPoint.Add(item.Value, inventoryItem);
             }
@@ -1370,7 +1370,7 @@ namespace OpenMetaverse
                 }
 
                 // Otherwise, retrieve the item off the asset server.
-                var inventoryItem = Client.Inventory.FetchItem(item.Key, Client.Self.AgentID, 1000 * 10);
+                var inventoryItem = Client.Inventory.FetchItem(item.Key, Client.Self.AgentID, TimeSpan.FromSeconds(10));
 
                 attachmentsByInventoryItem.Add(inventoryItem, item.Value);
             }
@@ -1606,7 +1606,7 @@ namespace OpenMetaverse
         /// Blocking method to populate the Wearables dictionary
         /// </summary>
         /// <returns>True on success, otherwise false</returns>
-        bool GetAgentWearables()
+        private bool GetAgentWearables()
         {
             var wearablesEvent = new AutoResetEvent(false);
             EventHandler<AgentWearablesReplyEventArgs> WearablesCallback = ((s, e) => wearablesEvent.Set());
@@ -1626,7 +1626,7 @@ namespace OpenMetaverse
         /// Blocking method to populate the Textures array with cached bakes
         /// </summary>
         /// <returns>True on success, otherwise false</returns>
-        bool GetCachedBakes()
+        private bool GetCachedBakes()
         {
             var cacheCheckEvent = new AutoResetEvent(false);
             EventHandler<AgentCachedBakesReplyEventArgs> CacheCallback = (sender, e) => cacheCheckEvent.Set();
@@ -2320,13 +2320,14 @@ namespace OpenMetaverse
             };
 
             Client.Inventory.FolderUpdated += UpdatedCallback;
-            Client.Inventory.RequestFolderContentsCap(Client.Inventory.Store.RootFolder.UUID, Client.Self.AgentID, true, true, InventorySortOrder.ByDate);
+            Task task = Client.Inventory.RequestFolderContents(Client.Inventory.Store.RootFolder.UUID, 
+                Client.Self.AgentID, true, true, InventorySortOrder.ByDate);
             folderReceived.WaitOne(Client.Settings.CAPS_TIMEOUT);
             Client.Inventory.FolderUpdated -= UpdatedCallback;
 
             InventoryFolder COF = null;
 
-            // COF should be in the root folder. Request update to get the latest versiom number
+            // COF should be in the root folder. Request update to get the latest version number
             if (root == null) { return null; }
             foreach (var baseItem in root)
             {
@@ -2767,7 +2768,7 @@ namespace OpenMetaverse
             // If that fails, fetch from server...
             if (contents == null || contents.Count == 0)
             {
-                contents = Client.Inventory.FolderContents(cof.UUID, cof.OwnerID, true, true, InventorySortOrder.ByDate, 60000);
+                contents = Client.Inventory.FolderContents(cof.UUID, cof.OwnerID, true, true, InventorySortOrder.ByDate, TimeSpan.FromMinutes(1));
             }
 
             Logger.Log($"{contents.Count} inventory items in 'Current Outfit' folder", Helpers.LogLevel.Info, Client);

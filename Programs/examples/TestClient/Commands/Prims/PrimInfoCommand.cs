@@ -70,7 +70,7 @@ namespace OpenMetaverse.TestClient
 
                     Client.Objects.SelectObject(Client.Network.CurrentSim, target.LocalID, true);
 
-                    propsEvent.WaitOne(1000 * 10, false);
+                    propsEvent.WaitOne(TimeSpan.FromSeconds(10), false);
                     Client.Objects.ObjectProperties -= propsCallback;
 
                     return "Done.";

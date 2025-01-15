@@ -71,7 +71,7 @@ namespace OpenMetaverse.TestClient
 
                 // Check for export permission first
                 Client.Objects.RequestObjectPropertiesFamily(Client.Network.CurrentSim, id);
-                GotPermissionsEvent.WaitOne(1000 * 10, false);
+                GotPermissionsEvent.WaitOne(TimeSpan.FromSeconds(20), false);
 
                 if (!GotPermissions)
                 {

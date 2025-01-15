@@ -128,7 +128,7 @@ namespace VoiceTest
 
 
                 Console.WriteLine("Waiting for OnEventQueueRunning");
-                if (!EventQueueRunningEvent.WaitOne(45 * 1000, false)) 
+                if (!EventQueueRunningEvent.WaitOne(TimeSpan.FromSeconds(45), false)) 
                     throw new VoiceException("EventQueueRunning event did not occur", true);
                 Console.WriteLine("EventQueue running");
 
@@ -136,7 +136,7 @@ namespace VoiceTest
                 Console.WriteLine("Asking the current simulator to create a provisional account...");
                 if (!voice.RequestProvisionAccount()) 
                     throw new VoiceException("Failed to request a provisional account", true); 
-                if (!ProvisionEvent.WaitOne(120 * 1000, false)) 
+                if (!ProvisionEvent.WaitOne(TimeSpan.FromMinutes(2), false)) 
                     throw new VoiceException("Failed to create a provisional account", true);
                 Console.WriteLine("Provisional account created. Username: " + VoiceAccount + 
                                   ", Password: " + VoicePassword);
@@ -151,7 +151,7 @@ namespace VoiceTest
 
                 if (!voice.RequestParcelVoiceInfo()) 
                     throw new Exception("Failed to request parcel voice info");
-                if (!ParcelVoiceInfoEvent.WaitOne(45 * 1000, false)) 
+                if (!ParcelVoiceInfoEvent.WaitOne(TimeSpan.FromSeconds(45), false)) 
                     throw new VoiceException("Failed to obtain parcel info voice", true);
 
 

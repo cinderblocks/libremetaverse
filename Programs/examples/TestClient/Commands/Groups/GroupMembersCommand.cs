@@ -37,7 +37,7 @@ namespace OpenMetaverse.TestClient
             if (UUID.Zero != GroupUUID) {                
                 Client.Groups.GroupMembersReply += GroupMembersHandler;                
                 GroupRequestID = Client.Groups.RequestGroupMembers(GroupUUID);
-                GroupsEvent.WaitOne(30000, false);
+                GroupsEvent.WaitOne(TimeSpan.FromSeconds(30), false);
                 GroupsEvent.Reset();
                 Client.Groups.GroupMembersReply -= GroupMembersHandler;
                 return Client + " got group members";

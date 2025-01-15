@@ -108,7 +108,7 @@ namespace OpenMetaverse.TestClient
                     Client.Objects.AddPrim(Client.Network.CurrentSim, linkset.RootPrim.PrimData, GroupID,
                         linkset.RootPrim.Position, linkset.RootPrim.Scale, linkset.RootPrim.Rotation);
 
-                    if (!primDone.WaitOne(10000, false))
+                    if (!primDone.WaitOne(TimeSpan.FromSeconds(10), false))
                         return "Rez failed, timed out while creating the root prim.";
 
                     Client.Objects.SetPosition(Client.Network.CurrentSim, primsCreated[primsCreated.Count - 1].LocalID, linkset.RootPrim.Position);
@@ -124,7 +124,7 @@ namespace OpenMetaverse.TestClient
                         Client.Objects.AddPrim(Client.Network.CurrentSim, prim.PrimData, GroupID, currentPosition,
                             prim.Scale, prim.Rotation);
 
-                        if (!primDone.WaitOne(10000, false))
+                        if (!primDone.WaitOne(TimeSpan.FromSeconds(10), false))
                             return "Rez failed, timed out while creating child prim.";
                         Client.Objects.SetPosition(Client.Network.CurrentSim, primsCreated[primsCreated.Count - 1].LocalID, currentPosition);
 
@@ -144,7 +144,7 @@ namespace OpenMetaverse.TestClient
                         state = ImporterState.Linking;
                         Client.Objects.LinkPrims(Client.Network.CurrentSim, linkQueue);
 
-                        if (primDone.WaitOne(1000 * linkset.Children.Count, false))
+                        if (primDone.WaitOne(TimeSpan.FromSeconds(linkset.Children.Count), false))
                             Client.Objects.SetRotation(Client.Network.CurrentSim, rootLocalID, rootRotation);
                         else
                             Console.WriteLine("Warning: Failed to link {0} prims", linkQueue.Count);

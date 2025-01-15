@@ -1623,7 +1623,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Request any instant messages sent while the client was offline to be resent.
         /// </summary>
-        public void RetrieveInstantMessages()
+        public async Task RetrieveInstantMessages()
         {
             Uri offlineMsgsCap = Client.Network.CurrentSim.Caps.CapabilityURI("ReadOfflineMsgs");
             if (offlineMsgsCap == null 
@@ -1635,7 +1635,7 @@ namespace OpenMetaverse
                 return;
             }
 
-            Task req = Client.HttpCapsClient.GetRequestAsync(offlineMsgsCap, CancellationToken.None, OfflineMessageHandlerCallback);
+            await Client.HttpCapsClient.GetRequestAsync(offlineMsgsCap, CancellationToken.None, OfflineMessageHandlerCallback);
         }
 
         /// <summary>
@@ -2723,12 +2723,12 @@ namespace OpenMetaverse
         {
             ThreadPool.QueueUserWorkItem(_ =>
             {
-                // First fetch the guesture
+                // First fetch the gesture
                 AssetGesture gesture = null;
 
-                if (gestureCache.ContainsKey(gestureID))
+                if (gestureCache.TryGetValue(gestureID, out var gestureId))
                 {
-                    gesture = gestureCache[gestureID];
+                    gesture = gestureId;
                 }
                 else
                 {
@@ -2746,7 +2746,7 @@ namespace OpenMetaverse
                         }
                     );
 
-                    gotAsset.WaitOne(30 * 1000, false);
+                    gotAsset.WaitOne(TimeSpan.FromSeconds(30), false);
 
                     if (gesture != null && gesture.Decode())
                     {
@@ -3138,7 +3138,7 @@ namespace OpenMetaverse
                 }
 
                 Client.Network.EventQueueRunning += queueCallback;
-                queueEvent.WaitOne(10 * 1000, false);
+                queueEvent.WaitOne(TimeSpan.FromSeconds(10), false);
                 Client.Network.EventQueueRunning -= queueCallback;
             }
 
@@ -3788,12 +3788,12 @@ namespace OpenMetaverse
         /// Fetches resource usage by agents attachments
         /// </summary>
         /// <param name="callback">Called when the requested information is collected</param>
-        public void GetAttachmentResources(AttachmentResourcesCallback callback)
+        public async Task GetAttachmentResources(AttachmentResourcesCallback callback)
         {
             try
             {
                 Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("AttachmentResources");
-                Task req = Client.HttpCapsClient.GetRequestAsync(cap, CancellationToken.None, 
+                await Client.HttpCapsClient.GetRequestAsync(cap, CancellationToken.None, 
                     (response, data, error) =>
                 {
                     if (error != null)
@@ -4111,10 +4111,9 @@ namespace OpenMetaverse
             }
             catch
             {
-                Logger.Log("Failed to decode offline messages from data trying legacy method (Switch from OSD to OSDMap failed)",
+                Logger.Log("Failed to decode offline messages from data; trying legacy method",
                   Helpers.LogLevel.Warning);
                 RetrieveInstantMessagesLegacy();
-                return;
             }
         }
 
@@ -5028,7 +5027,7 @@ namespace OpenMetaverse
                     Client.Assets.XferReceived += xferCallback;
                     xferID = Client.Assets.RequestAssetXfer(fileName, true, false, UUID.Zero, AssetType.Unknown, true);
 
-                    if (gotMuteList.WaitOne(60 * 1000, false))
+                    if (gotMuteList.WaitOne(TimeSpan.FromMinutes(1), false))
                     {
                         muteList = Utils.BytesToString(assetData);
 

@@ -43,7 +43,7 @@ namespace OpenMetaverse.TestClient
             {
                 return "RequestParcelVoiceInfo failed. Not available for the current grid?";
             }
-            ParcelVoiceInfoEvent.WaitOne(30 * 1000, false);
+            ParcelVoiceInfoEvent.WaitOne(TimeSpan.FromSeconds(30), false);
 
             if (string.IsNullOrEmpty(VoiceRegionName) && -1 == VoiceLocalID)
             {

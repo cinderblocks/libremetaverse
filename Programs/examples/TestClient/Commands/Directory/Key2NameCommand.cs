@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace OpenMetaverse.TestClient.Commands
@@ -32,7 +33,7 @@ namespace OpenMetaverse.TestClient.Commands
             Client.Avatars.RequestAvatarName(key);            
             
             Client.Groups.RequestGroupProfile(key);
-            if (!waitQuery.WaitOne(10000, false))
+            if (!waitQuery.WaitOne(TimeSpan.FromSeconds(10), false))
             {
                 result.AppendLine("Timeout waiting for reply, this could mean the Key is not an avatar or a group");
             }

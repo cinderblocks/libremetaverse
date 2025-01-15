@@ -161,8 +161,11 @@ namespace LibreMetaverse
         public async Task PatchRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken? cancellationToken,
             DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
         {
-            // TODO: 2.1 Standard has built in HttpMethod.Patch. Fix when the time comes we can utilize it.
+#if (NETSTANDARD2_1_OR_GREATER || NET)
+            using (var request = new HttpRequestMessage(HttpMethod.Patch, uri))
+#else
             using (var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri))
+#endif
             {
                 request.Content = new ByteArrayContent(payload);
                 request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
@@ -180,8 +183,11 @@ namespace LibreMetaverse
             DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
-            // TODO: 2.1 Standard has built in HttpMethod.Patch. Fix when the time comes we can utilize it.
+#if (NETSTANDARD2_1_OR_GREATER || NET)
+            using (var request = new HttpRequestMessage(HttpMethod.Patch, uri))
+#else
             using (var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri))
+#endif
             {
                 request.Content = new ByteArrayContent(serialized);
                 request.Content.Headers.ContentType = contentType;
@@ -195,7 +201,7 @@ namespace LibreMetaverse
             await PatchRequestAsync(uri, format, payload, cancellationToken, completeHandler, null, null);
         }
 
-        #endregion PATCH requests
+#endregion PATCH requests
 
         #region DELETE requests
 

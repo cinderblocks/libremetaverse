@@ -1138,23 +1138,23 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Request all simulator parcel properties (used for populating the <code>Simulator.Parcels</code> 
+        /// Request all simulator parcel properties (used for populating the <see cref="Simulator.Parcels" /> 
         /// dictionary)
         /// </summary>
         /// <param name="simulator">Simulator to request parcels from (must be connected)</param>
         public void RequestAllSimParcels(Simulator simulator)
         {
-            RequestAllSimParcels(simulator, false, 750);
+            RequestAllSimParcels(simulator, false, TimeSpan.FromMilliseconds(750));
         }
 
         /// <summary>
-        /// Request all simulator parcel properties (used for populating the <code>Simulator.Parcels</code> 
+        /// Request all simulator parcel properties (used for populating the <see cref="Simulator.Parcels" /> 
         /// dictionary)
         /// </summary>
         /// <param name="simulator">Simulator to request parcels from (must be connected)</param>
         /// <param name="refresh">If TRUE, will force a full refresh</param>
-        /// <param name="msDelay">Number of milliseconds to pause in between each request</param>
-        public void RequestAllSimParcels(Simulator simulator, bool refresh, int msDelay)
+        /// <param name="delay">Pause time in between each request</param>
+        public void RequestAllSimParcels(Simulator simulator, bool refresh, TimeSpan delay)
         {
             if (simulator.DownloadingParcelMap)
             {
@@ -1194,7 +1194,7 @@ namespace OpenMetaverse
                                                              y * 4.0f, x * 4.0f, int.MaxValue, false);
 
                             // Wait the given amount of time for a reply before sending the next request
-                            if (!WaitForSimParcel.WaitOne(msDelay, false))
+                            if (!WaitForSimParcel.WaitOne(delay, false))
                                 ++timeouts;
 
                             ++count;
@@ -1447,7 +1447,7 @@ namespace OpenMetaverse
         /// <param name="simulator">Simulator parcel is in</param>
         /// <param name="position">Vector3 position in simulator (Z not used)</param>
         /// <returns>0 on failure, or parcel LocalID on success.</returns>
-        /// <remarks>A call to <code>Parcels.RequestAllSimParcels</code> is required to populate map and
+        /// <remarks>A call to <see cref="Parcels.RequestAllSimParcels" /> is required to populate map and
         /// dictionary.</remarks>
         public int GetParcelLocalID(Simulator simulator, Vector3 position)
         {
@@ -1472,7 +1472,7 @@ namespace OpenMetaverse
         /// <param name="brushSize">Size of area to modify</param>
         /// <returns>true on successful request sent.</returns>
         /// <remarks>Settings.STORE_LAND_PATCHES must be true, 
-        /// Parcel information must be downloaded using <code>RequestAllSimParcels()</code></remarks>
+        /// Parcel information must be downloaded using <see cref="RequestAllSimParcels" /></remarks>
         public bool Terraform(Simulator simulator, int localID, TerraformAction action, TerraformBrushSize brushSize)
         {
             return Terraform(simulator, localID, 0f, 0f, 0f, 0f, action, brushSize, 1);
@@ -1490,7 +1490,7 @@ namespace OpenMetaverse
         /// <param name="brushSize">Size of area to modify</param>
         /// <returns>true on successful request sent.</returns>
         /// <remarks>Settings.STORE_LAND_PATCHES must be true, 
-        /// Parcel information must be downloaded using <code>RequestAllSimParcels()</code></remarks>
+        /// Parcel information must be downloaded using <see cref="RequestAllSimParcels"/></remarks>
         public bool Terraform(Simulator simulator, float west, float south, float east, float north,
             TerraformAction action, TerraformBrushSize brushSize)
         {
@@ -1511,7 +1511,7 @@ namespace OpenMetaverse
         /// <param name="seconds">How many meters + or - to lower, 1 = 1 meter</param>
         /// <returns>true on successful request sent.</returns>
         /// <remarks>Settings.STORE_LAND_PATCHES must be true, 
-        /// Parcel information must be downloaded using <code>RequestAllSimParcels()</code></remarks>
+        /// Parcel information must be downloaded using <see cref="RequestAllSimParcels"/></remarks>
         public bool Terraform(Simulator simulator, int localID, float west, float south, float east, float north,
             TerraformAction action, TerraformBrushSize brushSize, int seconds)
         {
@@ -1756,13 +1756,13 @@ namespace OpenMetaverse
         /// <param name="parcelID">UUID of the parcel</param>
         /// <param name="getDetails">Should per object resource usage be requested</param>
         /// <param name="callback">Callback invoked when the request is complete</param>
-        public void GetParcelResources(UUID parcelID, bool getDetails, LandResourcesCallback callback)
+        public async Task GetParcelResources(UUID parcelID, bool getDetails, LandResourcesCallback callback)
         {
             try
             {
                 LandResourcesRequest req = new LandResourcesRequest { ParcelID = parcelID };
                 Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("LandResources");
-                Task httpReq = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(),
+                await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(),
                     CancellationToken.None, (httpResponse, data, error) =>
                     {
                         try

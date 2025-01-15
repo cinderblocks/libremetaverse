@@ -36,7 +36,7 @@ namespace OpenMetaverse.TestClient
 
                 Console.WriteLine("setting " + groupName + " as active group");
                 Client.Groups.ActivateGroup(groupUUID);
-                GroupsEvent.WaitOne(30000, false);
+                GroupsEvent.WaitOne(TimeSpan.FromSeconds(30), false);
 
                 Client.Network.UnregisterCallback(PacketType.AgentDataUpdate, pcallback);
                 GroupsEvent.Reset();

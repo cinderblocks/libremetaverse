@@ -49,7 +49,8 @@ namespace OpenMetaverse.Http
         public ConnectedCallback OnConnected;
         public EventCallback OnEvent;
 
-        public bool Running => !_eqTask.IsCompleted 
+        public bool Running => _eqTask != null 
+                               && !_eqTask.IsCompleted 
                                && (_eqTask.Status.Equals(TaskStatus.Running) 
                                    || _eqTask.Status.Equals(TaskStatus.WaitingToRun)
                                    || _eqTask.Status.Equals(TaskStatus.WaitingForActivation));

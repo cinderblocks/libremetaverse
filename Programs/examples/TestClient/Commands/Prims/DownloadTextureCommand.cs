@@ -42,7 +42,7 @@ namespace OpenMetaverse.TestClient
 
                 Client.Assets.RequestImage(TextureID, ImageType.Normal, Assets_OnImageReceived);
 
-                if (DownloadHandle.WaitOne(120 * 1000, false))
+                if (DownloadHandle.WaitOne(TimeSpan.FromMinutes(2), false))
                 {
                     if (resultState == TextureRequestState.Finished)
                     {

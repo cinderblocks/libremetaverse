@@ -28,7 +28,7 @@ namespace OpenMetaverse.TestClient
                 Client.Groups.GroupLeaveReply += Groups_GroupLeft;
                 Client.Groups.LeaveGroup(groupUUID);
 
-                GroupsEvent.WaitOne(30000, false);
+                GroupsEvent.WaitOne(TimeSpan.FromSeconds(30), false);
                 Client.Groups.GroupLeaveReply -= Groups_GroupLeft;
 
                 GroupsEvent.Reset();

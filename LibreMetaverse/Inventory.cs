@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2024, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -26,6 +26,7 @@
  */
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -68,7 +69,7 @@ namespace OpenMetaverse
         /// the data sent from the simulator</param>
         protected virtual void OnInventoryObjectUpdated(InventoryObjectUpdatedEventArgs e)
         {
-            EventHandler<InventoryObjectUpdatedEventArgs> handler = m_InventoryObjectUpdated;
+            var handler = m_InventoryObjectUpdated;
             handler?.Invoke(this, e);
         }
 
@@ -91,7 +92,7 @@ namespace OpenMetaverse
         /// the data sent from the simulator</param>
         protected virtual void OnInventoryObjectRemoved(InventoryObjectRemovedEventArgs e)
         {
-            EventHandler<InventoryObjectRemovedEventArgs> handler = m_InventoryObjectRemoved;
+            var handler = m_InventoryObjectRemoved;
             handler?.Invoke(this, e);
         }
 
@@ -114,7 +115,7 @@ namespace OpenMetaverse
         /// the data sent from the simulator</param>
         protected virtual void OnInventoryObjectAdded(InventoryObjectAddedEventArgs e)
         {
-            EventHandler<InventoryObjectAddedEventArgs> handler = m_InventoryObjectAdded;
+            var handler = m_InventoryObjectAdded;
             handler?.Invoke(this, e);
         }
 
@@ -169,19 +170,18 @@ namespace OpenMetaverse
 
         private GridClient Client;
         //private InventoryManager Manager;
-        public Dictionary<UUID, InventoryNode> Items;
+        private ConcurrentDictionary<UUID, InventoryNode> Items;
 
-        public Inventory(GridClient client, InventoryManager manager)
-            : this(client, manager, client.Self.AgentID) { }
+        public Inventory(GridClient client)
+            : this(client, client.Self.AgentID) { }
 
-        public Inventory(GridClient client, InventoryManager manager, UUID owner)
+        public Inventory(GridClient client, UUID owner)
         {
             Client = client;
-            //Manager = manager;
             Owner = owner;
             if (owner == UUID.Zero)
                 Logger.Log("Inventory owned by nobody!", Helpers.LogLevel.Warning, Client);
-            Items = new Dictionary<UUID, InventoryNode>();
+            Items = new ConcurrentDictionary<UUID, InventoryNode>();
         }
 
         public List<InventoryBase> GetContents(InventoryFolder folder)
@@ -193,16 +193,15 @@ namespace OpenMetaverse
         /// Returns the contents of the specified folder
         /// </summary>
         /// <param name="folder">A folder's UUID</param>
-        /// <returns>The contents of the folder corresponding to <code>folder</code></returns>
-        /// <exception cref="InventoryException">When <code>folder</code> does not exist in the inventory</exception>
+        /// <returns>The contents of the folder corresponding to <paramref name="folder"/></returns>
+        /// <exception cref="InventoryException">When <paramref name="folder"/> does not exist in the inventory</exception>
         public List<InventoryBase> GetContents(UUID folder)
         {
-            InventoryNode folderNode;
-            if (!Items.TryGetValue(folder, out folderNode))
+            if (!Items.TryGetValue(folder, out var folderNode))
                 throw new InventoryException("Unknown folder: " + folder);
             lock (folderNode.Nodes.SyncRoot)
             {
-                List<InventoryBase> contents = new List<InventoryBase>(folderNode.Nodes.Count);
+                var contents = new List<InventoryBase>(folderNode.Nodes.Count);
                 contents.AddRange(folderNode.Nodes.Values.Select(node => node.Data));
                 return contents;
             }
@@ -212,8 +211,8 @@ namespace OpenMetaverse
         /// Updates the state of the InventoryNode and inventory data structure that
         /// is responsible for the InventoryObject. If the item was previously not added to inventory,
         /// it adds the item, and updates structure accordingly. If it was, it updates the 
-        /// InventoryNode, changing the parent node if <code>item.parentUUID</code> does 
-        /// not match <code>node.Parent.Data.UUID</code>.
+        /// InventoryNode, changing the parent node if <see cref="item.parentUUID"/> does 
+        /// not match <see cref="node.Parent.Data.UUID" />.
         /// 
         /// You can not set the inventory root folder using this method
         /// </summary>
@@ -226,7 +225,7 @@ namespace OpenMetaverse
                 if (item.ParentUUID != UUID.Zero && !Items.TryGetValue(item.ParentUUID, out itemParent))
                 {
                     // OK, we have no data on the parent, let's create a fake one.
-                    InventoryFolder fakeParent = new InventoryFolder(item.ParentUUID)
+                    var fakeParent = new InventoryFolder(item.ParentUUID)
                     {
                         DescendentCount = 1 // Dear god, please forgive me.
                     };
@@ -239,10 +238,9 @@ namespace OpenMetaverse
                     //    item.ParentUUID.ToString() + " when we have no local reference to that folder", Client);
                 }
 
-                InventoryNode itemNode;
-                if (Items.TryGetValue(item.UUID, out itemNode)) // We're updating.
+                if (Items.TryGetValue(item.UUID, out var itemNode)) // We're updating.
                 {
-                    InventoryNode oldParent = itemNode.Parent;
+                    var oldParent = itemNode.Parent;
                     // Handle parent change
                     if (oldParent == null || itemParent == null || itemParent.Data.UUID != oldParent.Data.UUID)
                     {
@@ -270,8 +268,8 @@ namespace OpenMetaverse
                 else // We're adding.
                 {
                     itemNode = new InventoryNode(item, itemParent);
-                    Items.Add(item.UUID, itemNode);
-                    if (m_InventoryObjectAdded != null)
+                    bool added = Items.TryAdd(item.UUID, itemNode);
+                    if (added && m_InventoryObjectAdded != null)
                     {
                         OnInventoryObjectAdded(new InventoryObjectAddedEventArgs(item));
                     }
@@ -292,8 +290,7 @@ namespace OpenMetaverse
         {
             lock (Items)
             {
-                InventoryNode node;
-                if (Items.TryGetValue(item.UUID, out node))
+                if (Items.TryGetValue(item.UUID, out var node))
                 {
                     if (node.Parent != null)
                     {
@@ -301,16 +298,15 @@ namespace OpenMetaverse
                             node.Parent.Nodes.Remove(item.UUID);
                     }
 
-                    Items.Remove(item.UUID);
-                    if (m_InventoryObjectRemoved != null)
+                    bool removed = Items.TryRemove(item.UUID, out node);
+                    if (removed && m_InventoryObjectRemoved != null)
                     {
                         OnInventoryObjectRemoved(new InventoryObjectRemovedEventArgs(item));
                     }                    
                 }
 
                 // In case there's a new parent:
-                InventoryNode newParent;
-                if (Items.TryGetValue(item.ParentUUID, out newParent))
+                if (Items.TryGetValue(item.ParentUUID, out var newParent))
                 {
                     lock (newParent.Nodes.SyncRoot)
                         newParent.Nodes.Remove(item.UUID);
@@ -320,7 +316,7 @@ namespace OpenMetaverse
 
         /// <summary>
         /// Used to find out if Inventory contains the InventoryObject
-        /// specified by <code>uuid</code>.
+        /// specified by <paramref name="uuid"/>.
         /// </summary>
         /// <param name="uuid">The UUID to check.</param>
         /// <returns>true if inventory contains uuid, false otherwise</returns>
@@ -345,7 +341,7 @@ namespace OpenMetaverse
                 using (Stream stream = File.Open(filename, FileMode.Create))
                 {
 #if !NET7_0_OR_GREATER
-                    BinaryFormatter bformatter = new BinaryFormatter();
+                    var bformatter = new BinaryFormatter();
 #endif
                     lock (Items)
                     {
@@ -374,8 +370,8 @@ namespace OpenMetaverse
         /// <returns>The number of inventory items successfully reconstructed into the inventory node tree</returns>
         public int RestoreFromDisk(string filename)
         {
-            List<InventoryNode> nodes = new List<InventoryNode>();
-            int item_count = 0;
+            var nodes = new List<InventoryNode>();
+            var itemCount = 0;
 
             try
             {
@@ -385,7 +381,7 @@ namespace OpenMetaverse
                 using (Stream stream = File.Open(filename, FileMode.Open))
                 {
 #if !NET7_0_OR_GREATER
-                    BinaryFormatter bformatter = new BinaryFormatter();
+                    var bformatter = new BinaryFormatter();
 #endif
                     while (stream.Position < stream.Length)
                     {
@@ -396,7 +392,7 @@ namespace OpenMetaverse
                         var node = (InventoryNode)bformatter.Deserialize(stream);
                         nodes.Add(node);
 #endif
-                        item_count++;
+                        itemCount++;
                     }
                 }
             }
@@ -406,48 +402,47 @@ namespace OpenMetaverse
                 return -1;
             }
 
-            Logger.Log($"Read {item_count} items from inventory cache file", Helpers.LogLevel.Info);
+            Logger.Log($"Read {itemCount} items from inventory cache file", Helpers.LogLevel.Info);
 
-            item_count = 0;
-            List<InventoryNode> del_nodes = new List<InventoryNode>(); //nodes that we have processed and will delete
-            List<UUID> dirty_folders = new List<UUID>(); // Tainted folders that we will not restore items into
+            itemCount = 0;
+            var delNodes = new List<InventoryNode>(); //nodes that we have processed and will delete
+            var dirtyFolders = new List<UUID>(); // Tainted folders that we will not restore items into
 
             // Because we could get child nodes before parents we must iterate around and only add nodes who have
             // a parent already in the list because we must update both child and parent to link together
             // But sometimes we have seen orphin nodes due to bad/incomplete data when caching so we have an emergency abort route
-            int stuck = 0;
+            var stuck = 0;
             
             while (nodes.Count != 0 && stuck<5)
             {
-                foreach (InventoryNode node in nodes)
+                foreach (var node in nodes)
                 {
-                    InventoryNode pnode;
                     if (node.ParentID == UUID.Zero)
                     {
                         //We don't need the root nodes "My Inventory" etc as they will already exist for the correct
                         // user of this cache.
-                        del_nodes.Add(node);
-                        item_count--;
+                        delNodes.Add(node);
+                        itemCount--;
                     }
-                    else if(Items.TryGetValue(node.Data.UUID,out pnode))
+                    else if(Items.TryGetValue(node.Data.UUID,out var pnode))
                     {
                         //We already have this it must be a folder
                         if (node.Data is InventoryFolder cacheFolder)
                         {
-                            InventoryFolder server_folder = (InventoryFolder)pnode.Data;
+                            var serverFolder = (InventoryFolder)pnode.Data;
 
-                            if (cacheFolder.Version != server_folder.Version)
+                            if (cacheFolder.Version != serverFolder.Version)
                             {
-                                Logger.DebugLog("Inventory Cache/Server version mismatch on " + node.Data.Name + " " + cacheFolder.Version + " vs " + server_folder.Version);
+                                Logger.DebugLog("Inventory Cache/Server version mismatch on " + node.Data.Name + " " + cacheFolder.Version + " vs " + serverFolder.Version);
                                 pnode.NeedsUpdate = true;
-                                dirty_folders.Add(node.Data.UUID);
+                                dirtyFolders.Add(node.Data.UUID);
                             }
                             else
                             {
                                 pnode.NeedsUpdate = false;
                             }
 
-                            del_nodes.Add(node);
+                            delNodes.Add(node);
                         }
                     }
                     else if (Items.TryGetValue(node.ParentID, out pnode))
@@ -458,38 +453,43 @@ namespace OpenMetaverse
                             // dirty and don't process nodes that belong to it
                             if (node.Data is InventoryFolder && !(Items.ContainsKey(node.Data.UUID)))
                             {
-                                dirty_folders.Add(node.Data.UUID);
+                                dirtyFolders.Add(node.Data.UUID);
                             }
 
                             //Only add new items, this is most likely to be run at login time before any inventory
-                            //nodes other than the root are populated. Don't add non existing folders.
-                            if (!Items.ContainsKey(node.Data.UUID) && !dirty_folders.Contains(pnode.Data.UUID) && !(node.Data is InventoryFolder))
+                            //nodes other than the root are populated. Don't add non-existing folders.
+                            if (!Items.ContainsKey(node.Data.UUID) 
+                                && !dirtyFolders.Contains(pnode.Data.UUID) 
+                                && !(node.Data is InventoryFolder))
                             {
-                                Items.Add(node.Data.UUID, node);
-                                node.Parent = pnode; //Update this node with its parent
-                                pnode.Nodes.Add(node.Data.UUID, node); // Add to the parents child list
-                                item_count++;
+                                if (Items.TryAdd(node.Data.UUID, node))
+                                {
+                                    node.Parent = pnode; //Update this node with its parent
+                                    pnode.Nodes.Add(node.Data.UUID, node); // Add to the parents child list
+                                    itemCount++;
+                                }
                             }
                         }
 
-                        del_nodes.Add(node);
+                        delNodes.Add(node);
                     }
                 }
 
-                if (del_nodes.Count == 0)
+                if (delNodes.Count == 0)
                     ++stuck;
                 else
                     stuck = 0;
 
                 //Clean up processed nodes this loop around.
-                foreach (InventoryNode node in del_nodes)
+                foreach (var node in delNodes)
+                {
                     nodes.Remove(node);
-
-                del_nodes.Clear();
+                }
+                delNodes.Clear();
             }
 
-            Logger.Log($"Reassembled {item_count} items from inventory cache file", Helpers.LogLevel.Info);
-            return item_count;
+            Logger.Log($"Reassembled {itemCount} items from inventory cache file", Helpers.LogLevel.Info);
+            return itemCount;
         }
 
         #region Operators
@@ -497,17 +497,17 @@ namespace OpenMetaverse
         /// <summary>
         /// By using the bracket operator on this class, the program can get the 
         /// InventoryObject designated by the specified uuid. If the value for the corresponding
-        /// UUID is null, the call is equivelant to a call to <code>RemoveNodeFor(this[uuid])</code>.
-        /// If the value is non-null, it is equivelant to a call to <code>UpdateNodeFor(value)</code>,
+        /// UUID is null, the call is equivalent to a call to <see cref="RemoveNodeFor(InventoryBase)" />.
+        /// If the value is non-null, it is equivalent to a call to <see cref="UpdateNodeFor(InventoryBase)" />,
         /// the uuid parameter is ignored.
         /// </summary>
         /// <param name="uuid">The UUID of the InventoryObject to get or set, ignored if set to non-null value.</param>
-        /// <returns>The InventoryObject corresponding to <code>uuid</code>.</returns>
+        /// <returns>The InventoryObject corresponding to <see cref="UUID"/>.</returns>
         public InventoryBase this[UUID uuid]
         {
             get
             {
-                InventoryNode node = Items[uuid];
+                var node = Items[uuid];
                 return node.Data;
             }
             set
@@ -524,8 +524,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    InventoryNode node;
-                    if (Items.TryGetValue(uuid, out node))
+                    if (Items.TryGetValue(uuid, out var node))
                     {
                         RemoveNodeFor(node.Data);
                     }

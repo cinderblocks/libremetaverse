@@ -36,7 +36,7 @@ namespace OpenMetaverse.TestClient
             Client.Estate.UploadTerrain(fileData, fileName);
 
             // Wait for upload to complete. Upload request is fired in callback from first request
-            if (!WaitForUploadComplete.WaitOne(120000, false))
+            if (!WaitForUploadComplete.WaitOne(TimeSpan.FromMinutes(2), false))
             {
                 Cleanup();
                 return "Timeout waiting for terrain file upload";
