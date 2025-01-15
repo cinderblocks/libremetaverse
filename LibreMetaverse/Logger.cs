@@ -164,7 +164,7 @@ namespace OpenMetaverse
 
         /// <summary>
         /// If the library is compiled with DEBUG defined, an event will be
-        /// fired if an <code>OnLogMessage</code> handler is registered and the
+        /// fired if a <see cref="OnLogMessage" /> handler is registered and the
         /// message will be sent to the logging engine
         /// </summary>
         /// <param name="message">The message to log at the DEBUG level to the
@@ -176,8 +176,8 @@ namespace OpenMetaverse
 
         /// <summary>
         /// If the library is compiled with DEBUG defined and
-        /// <code>GridClient.Settings.DEBUG</code> is true, an event will be
-        /// fired if an <code>OnLogMessage</code> handler is registered and the
+        /// <see cref="GridClient.Settings.DEBUG" /> is true, an event will be
+        /// fired if a <see cref="OnLogMessage" /> handler is registered and the
         /// message will be sent to the logging engine
         /// </summary>
         /// <param name="message">The message to log at the DEBUG level to the

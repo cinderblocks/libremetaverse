@@ -603,7 +603,7 @@ namespace OpenMetaverse
             }
 
             /// <summary>
-            /// Constructor that takes a <code>TextureEntryFace</code> for the
+            /// Constructor that takes a <see cref="TextureEntryFace" /> for the
             /// default face
             /// </summary>
             /// <param name="defaultFace">Face to use as the default face</param>

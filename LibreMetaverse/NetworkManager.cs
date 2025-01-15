@@ -732,7 +732,7 @@ namespace OpenMetaverse
 
         /// <summary>
         /// Initiate a blocking logout request. This will return when the logout
-        /// handshake has completed or when <code>Settings.LOGOUT_TIMEOUT</code>
+        /// handshake has completed or when <see cref="Settings.LOGOUT_TIMEOUT" />
         /// has expired and the network layer is manually shut down
         /// </summary>
         public void Logout()
@@ -761,7 +761,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Initiate the logout process. The <code>Shutdown()</code> function
+        /// Initiate the logout process. The <see cref="Shutdown()" /> function
         /// needs to be manually called.
         /// </summary>
         public void RequestLogout()
@@ -836,7 +836,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <remarks>
         /// This should only be called if the logout process times out on
-        /// <code>RequestLogout</code>
+        /// <see cref="RequestLogout" />
         /// </remarks>
         /// <param name="type">Type of shutdown</param>
         public void Shutdown(DisconnectType type)
@@ -850,7 +850,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <remarks>
         /// This should only be called if the logout process times out on
-        /// <code>RequestLogout</code>
+        /// <see cref="RequestLogout" />
         /// </remarks>
         /// <param name="type">Type of shutdown</param>
         /// <param name="message">Shutdown message</param>

@@ -228,19 +228,19 @@ namespace OpenMetaverse
         /// re-establish a connection. Set this to true to log those 502 errors</summary>
         public bool LOG_ALL_CAPS_ERRORS = false;
 
-        /// <summary>If true, and <code>SEND_AGENT_UPDATES</code> is true,
+        /// <summary>If true, and <see cref="SEND_AGENT_UPDATES"/> is true,
         /// AgentUpdate packets will continuously be sent out to give the bot
         /// smoother movement and autopiloting</summary>
         public bool DISABLE_AGENT_UPDATE_DUPLICATE_CHECK = true;
 
         /// <summary>If true, currently visible avatars will be stored
-        /// in dictionaries inside <code>Simulator.ObjectAvatars</code>.
+        /// in dictionaries inside <see cref="Simulator.ObjectAvatars"/>.
         /// If false, a new Avatar or Primitive object will be created
         /// each time an object update packet is received</summary>
         public bool AVATAR_TRACKING = true;
 
         /// <summary>If true, currently visible avatars will be stored
-        /// in dictionaries inside <code>Simulator.ObjectPrimitives</code>.
+        /// in dictionaries inside <see cref="Simulator.ObjectPrimitives"/>.
         /// If false, a new Avatar or Primitive object will be created
         /// each time an object update packet is received</summary>
         public bool OBJECT_TRACKING = true;
@@ -261,7 +261,7 @@ namespace OpenMetaverse
         #region Parcel Tracking
 
         /// <summary>If true, parcel details will be stored in the 
-        /// <code>Simulator.Parcels</code> dictionary as they are received</summary>
+        /// <see cref="Simulator.Parcels" /> dictionary as they are received</summary>
         public bool PARCEL_TRACKING = true;
 
         /// <summary>

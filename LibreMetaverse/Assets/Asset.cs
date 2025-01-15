@@ -69,7 +69,7 @@ namespace OpenMetaverse.Assets
         }
 
         /// <summary>
-        /// Regenerates the <code>AssetData</code> byte array from the properties 
+        /// Regenerates the <see cref="AssetData"/>> byte array from the properties 
         /// of the derived class.
         /// </summary>
         public abstract void Encode();

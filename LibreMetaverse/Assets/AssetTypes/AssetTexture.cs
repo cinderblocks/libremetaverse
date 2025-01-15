@@ -82,7 +82,7 @@ namespace OpenMetaverse.Assets
         }
 
         /// <summary>
-        /// Decodes the JPEG2000 data in <code>AssetData</code> to the
+        /// Decodes the JPEG2000 data in <see cref="AssetData"/>> to the
         /// <seealso cref="ManagedImage"/> object <seealso cref="Image"/>
         /// </summary>
         /// <returns>True if the decoding was successful, otherwise false</returns>

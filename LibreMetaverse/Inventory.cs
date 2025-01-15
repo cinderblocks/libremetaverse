@@ -193,8 +193,8 @@ namespace OpenMetaverse
         /// Returns the contents of the specified folder
         /// </summary>
         /// <param name="folder">A folder's UUID</param>
-        /// <returns>The contents of the folder corresponding to <code>folder</code></returns>
-        /// <exception cref="InventoryException">When <code>folder</code> does not exist in the inventory</exception>
+        /// <returns>The contents of the folder corresponding to <paramref name="folder"/></returns>
+        /// <exception cref="InventoryException">When <paramref name="folder"/> does not exist in the inventory</exception>
         public List<InventoryBase> GetContents(UUID folder)
         {
             if (!Items.TryGetValue(folder, out var folderNode))
@@ -211,8 +211,8 @@ namespace OpenMetaverse
         /// Updates the state of the InventoryNode and inventory data structure that
         /// is responsible for the InventoryObject. If the item was previously not added to inventory,
         /// it adds the item, and updates structure accordingly. If it was, it updates the 
-        /// InventoryNode, changing the parent node if <code>item.parentUUID</code> does 
-        /// not match <code>node.Parent.Data.UUID</code>.
+        /// InventoryNode, changing the parent node if <see cref="item.parentUUID"/> does 
+        /// not match <see cref="node.Parent.Data.UUID" />.
         /// 
         /// You can not set the inventory root folder using this method
         /// </summary>
@@ -316,7 +316,7 @@ namespace OpenMetaverse
 
         /// <summary>
         /// Used to find out if Inventory contains the InventoryObject
-        /// specified by <code>uuid</code>.
+        /// specified by <paramref name="uuid"/>.
         /// </summary>
         /// <param name="uuid">The UUID to check.</param>
         /// <returns>true if inventory contains uuid, false otherwise</returns>
@@ -497,12 +497,12 @@ namespace OpenMetaverse
         /// <summary>
         /// By using the bracket operator on this class, the program can get the 
         /// InventoryObject designated by the specified uuid. If the value for the corresponding
-        /// UUID is null, the call is equivalent to a call to <code>RemoveNodeFor(this[uuid])</code>.
-        /// If the value is non-null, it is equivalent to a call to <code>UpdateNodeFor(value)</code>,
+        /// UUID is null, the call is equivalent to a call to <see cref="RemoveNodeFor(InventoryBase)" />.
+        /// If the value is non-null, it is equivalent to a call to <see cref="UpdateNodeFor(InventoryBase)" />,
         /// the uuid parameter is ignored.
         /// </summary>
         /// <param name="uuid">The UUID of the InventoryObject to get or set, ignored if set to non-null value.</param>
-        /// <returns>The InventoryObject corresponding to <code>uuid</code>.</returns>
+        /// <returns>The InventoryObject corresponding to <see cref="UUID"/>.</returns>
         public InventoryBase this[UUID uuid]
         {
             get

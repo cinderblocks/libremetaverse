@@ -1138,7 +1138,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Request all simulator parcel properties (used for populating the <code>Simulator.Parcels</code> 
+        /// Request all simulator parcel properties (used for populating the <see cref="Simulator.Parcels" /> 
         /// dictionary)
         /// </summary>
         /// <param name="simulator">Simulator to request parcels from (must be connected)</param>
@@ -1148,7 +1148,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Request all simulator parcel properties (used for populating the <code>Simulator.Parcels</code> 
+        /// Request all simulator parcel properties (used for populating the <see cref="Simulator.Parcels" /> 
         /// dictionary)
         /// </summary>
         /// <param name="simulator">Simulator to request parcels from (must be connected)</param>
@@ -1447,7 +1447,7 @@ namespace OpenMetaverse
         /// <param name="simulator">Simulator parcel is in</param>
         /// <param name="position">Vector3 position in simulator (Z not used)</param>
         /// <returns>0 on failure, or parcel LocalID on success.</returns>
-        /// <remarks>A call to <code>Parcels.RequestAllSimParcels</code> is required to populate map and
+        /// <remarks>A call to <see cref="Parcels.RequestAllSimParcels" /> is required to populate map and
         /// dictionary.</remarks>
         public int GetParcelLocalID(Simulator simulator, Vector3 position)
         {
@@ -1472,7 +1472,7 @@ namespace OpenMetaverse
         /// <param name="brushSize">Size of area to modify</param>
         /// <returns>true on successful request sent.</returns>
         /// <remarks>Settings.STORE_LAND_PATCHES must be true, 
-        /// Parcel information must be downloaded using <code>RequestAllSimParcels()</code></remarks>
+        /// Parcel information must be downloaded using <see cref="RequestAllSimParcels" /></remarks>
         public bool Terraform(Simulator simulator, int localID, TerraformAction action, TerraformBrushSize brushSize)
         {
             return Terraform(simulator, localID, 0f, 0f, 0f, 0f, action, brushSize, 1);
@@ -1490,7 +1490,7 @@ namespace OpenMetaverse
         /// <param name="brushSize">Size of area to modify</param>
         /// <returns>true on successful request sent.</returns>
         /// <remarks>Settings.STORE_LAND_PATCHES must be true, 
-        /// Parcel information must be downloaded using <code>RequestAllSimParcels()</code></remarks>
+        /// Parcel information must be downloaded using <see cref="RequestAllSimParcels"/></remarks>
         public bool Terraform(Simulator simulator, float west, float south, float east, float north,
             TerraformAction action, TerraformBrushSize brushSize)
         {
@@ -1511,7 +1511,7 @@ namespace OpenMetaverse
         /// <param name="seconds">How many meters + or - to lower, 1 = 1 meter</param>
         /// <returns>true on successful request sent.</returns>
         /// <remarks>Settings.STORE_LAND_PATCHES must be true, 
-        /// Parcel information must be downloaded using <code>RequestAllSimParcels()</code></remarks>
+        /// Parcel information must be downloaded using <see cref="RequestAllSimParcels"/></remarks>
         public bool Terraform(Simulator simulator, int localID, float west, float south, float east, float north,
             TerraformAction action, TerraformBrushSize brushSize, int seconds)
         {

@@ -740,13 +740,13 @@ namespace OpenMetaverse
         /// Request an asset download through the almost deprecated Xfer system
         /// </summary>
         /// <param name="filename">Filename of the asset to request</param>
-        /// <param name="deleteOnCompletion">Whether or not to delete the asset
+        /// <param name="deleteOnCompletion">Delete the asset
         /// off the server after it is retrieved</param>
         /// <param name="useBigPackets">Use large transfer packets or not</param>
         /// <param name="vFileID">UUID of the file to request, if filename is
         /// left empty</param>
-        /// <param name="vFileType">Asset type of <code>vFileID</code>, or
-        /// <code>AssetType.Unknown</code> if filename is not empty</param>
+        /// <param name="vFileType">Asset type of <paramref name="vFileID"/>, or
+        /// <seealso cref="AssetType.Unknown" /> if filename is not empty</param>
         /// <param name="fromCache">Sets the FilePath in the request to Cache
         /// (4) if true, otherwise Unknown (0) is used</param>
         /// <returns></returns>

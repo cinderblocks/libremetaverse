@@ -1596,11 +1596,11 @@ namespace OpenMetaverse
         /// <param name="parentID">ID of the folder to put this folder in</param>
         /// <param name="name">Name of the folder to create</param>
         /// <param name="preferredType">Sets this folder as the default folder
-        /// for new assets of the specified type. Use <code>FolderType.None</code>
+        /// for new assets of the specified type. Use <see cref="FolderType.None" />
         /// to create a normal folder, otherwise it will likely create a
         /// duplicate of an existing folder type</param>
         /// <returns>The UUID of the newly created folder</returns>
-        /// <remarks>If you specify a preferred type of <code>AsseType.Folder</code>
+        /// <remarks>If you specify a preferred type of <see cref="AsseType.Folder" />
         /// it will create a new root folder which may likely cause all sorts
         /// of strange problems</remarks>
         public UUID CreateFolder(UUID parentID, string name, FolderType preferredType)
