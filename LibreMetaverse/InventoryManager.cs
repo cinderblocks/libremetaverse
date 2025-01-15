@@ -576,12 +576,25 @@ namespace OpenMetaverse
         /// <seealso cref="InventoryManager.OnItemReceived"/>
         private void RequestFetchInventoryCap(Dictionary<UUID, UUID> items)
         {
+            _ = RequestFetchInventoryCapAsync(items, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Request inventory items via Capabilities
+        /// </summary>
+        /// <param name="items">Inventory items to request with owners</param>
+        /// <param name="cancellationToken">Task cancellation token</param>
+        /// <seealso cref="InventoryManager.OnItemReceived"/>
+        private async Task RequestFetchInventoryCapAsync(Dictionary<UUID, UUID> items,
+            CancellationToken cancellationToken)
+        {
 
             var cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("FetchInventory2");
             if (cap == null)
             {
                 Logger.Log($"Failed to obtain FetchInventory2 capability on {Client.Network.CurrentSim.Name}",
                     Helpers.LogLevel.Warning, Client);
+                return;
             }
 
             var payload = new OSDMap { ["agent_id"] = Client.Self.AgentID };
@@ -598,8 +611,8 @@ namespace OpenMetaverse
 
             payload["items"] = itemArray;
 
-            var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, 
-                CancellationToken.None, (response, data, error) =>
+            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, 
+                cancellationToken, (response, data, error) =>
             {
                 if (error != null) { return; }
 
@@ -662,7 +675,7 @@ namespace OpenMetaverse
 
             FolderUpdated += FolderUpdatedCallback;
 
-            RequestFolderContents(folder, owner, fetchFolders, fetchItems, order);
+            Task task = RequestFolderContents(folder, owner, fetchFolders, fetchItems, order);
             if (fetchEvent.WaitOne(timeout, false))
             {
                 inventory = _Store.GetContents(folder);
@@ -696,8 +709,8 @@ namespace OpenMetaverse
         /// <param name="fetchItems">true to return <seealso cref="InventoryItem"/>s contained in folder</param>
         /// <param name="order">the sort order to return items in</param>
         /// <seealso cref="InventoryManager.FolderContents"/>
-        public void RequestFolderContents(UUID folderID, UUID ownerID, bool fetchFolders, bool fetchItems,
-            InventorySortOrder order)
+        public async Task RequestFolderContents(UUID folderID, UUID ownerID, 
+            bool fetchFolders, bool fetchItems, InventorySortOrder order)
         {
             var cap = (ownerID == Client.Self.AgentID) ? "FetchInventoryDescendents2" : "FetchLibDescendents2";
             Uri url = Client.Network.CurrentSim.Caps.CapabilityURI(cap);
@@ -713,11 +726,11 @@ namespace OpenMetaverse
                 OwnerID = ownerID,
                 UUID = folderID
             };
-            RequestFolderContents(new List<InventoryFolder>() { folder }, url, fetchFolders, fetchItems, order);
+            await RequestFolderContents(new List<InventoryFolder>() { folder }, url, fetchFolders, fetchItems, order);
         }
 
-        public void RequestFolderContents(List<InventoryFolder> batch, Uri capabilityUri, bool fetchFolders, bool fetchItems,
-            InventorySortOrder order)
+        public async Task RequestFolderContents(List<InventoryFolder> batch, Uri capabilityUri, 
+            bool fetchFolders, bool fetchItems, InventorySortOrder order)
         {
 
             try
@@ -736,7 +749,7 @@ namespace OpenMetaverse
                 }
                 var payload = new OSDMap(1) { ["folders"] = requestedFolders };
                 
-                var req = Client.HttpCapsClient.PostRequestAsync(capabilityUri, OSDFormat.Xml, payload, 
+                await Client.HttpCapsClient.PostRequestAsync(capabilityUri, OSDFormat.Xml, payload, 
                     CancellationToken.None, (response, data, error) => 
                 {
                     try
@@ -937,7 +950,7 @@ namespace OpenMetaverse
 
             FindObjectByPathReply += Callback;
 
-            RequestFindObjectByPath(baseFolder, inventoryOwner, path);
+            Task task = RequestFindObjectByPath(baseFolder, inventoryOwner, path);
             findEvent.WaitOne(timeout, false);
 
             FindObjectByPathReply -= Callback;
@@ -952,7 +965,7 @@ namespace OpenMetaverse
         /// <param name="inventoryOwner">The object owners <seealso cref="UUID"/></param>
         /// <param name="path">A string path to search, folders/objects separated by a '/'</param>
         /// <remarks>Results are sent to the <seealso cref="InventoryManager.OnFindObjectByPath"/> event</remarks>
-        public void RequestFindObjectByPath(UUID baseFolder, UUID inventoryOwner, string path)
+        public async Task RequestFindObjectByPath(UUID baseFolder, UUID inventoryOwner, string path)
         {
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentException("Empty path is not supported");
@@ -966,7 +979,7 @@ namespace OpenMetaverse
             lock (_Searches) _Searches.Add(search);
 
             // Start the search
-            RequestFolderContents(baseFolder, inventoryOwner, true, true, InventorySortOrder.ByName);
+            await RequestFolderContents(baseFolder, inventoryOwner, true, true, InventorySortOrder.ByName);
         }
 
         /// <summary>
@@ -3934,13 +3947,13 @@ namespace OpenMetaverse
                 if (_Searches.Count > 0)
                 {
                     StartSearch:
-                    // Iterate over all of the outstanding searches
+                    // Iterate over all outstanding searches
                     for (var i = 0; i < _Searches.Count; ++i)
                     {
                         var search = _Searches[i];
                         var folderContents = _Store.GetContents(search.Folder);
 
-                        // Iterate over all of the inventory objects in the base search folder
+                        // Iterate over all inventory objects in the base search folder
                         foreach (var content in folderContents.Where(
                                      content => content.Name == search.Path[search.Level]))
                         {
@@ -3970,7 +3983,7 @@ namespace OpenMetaverse
                                 search.Level++;
                                 _Searches[i] = search;
 
-                                RequestFolderContents(search.Folder, search.Owner, true, true,
+                                Task task = RequestFolderContents(search.Folder, search.Owner, true, true,
                                     InventorySortOrder.ByName);
                             }
                         }
