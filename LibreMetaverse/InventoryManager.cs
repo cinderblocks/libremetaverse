@@ -605,7 +605,7 @@ namespace OpenMetaverse
             var cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("FetchInventory2");
             if (cap == null)
             {
-                Logger.Log($"Failed to obtain FetchInventory2 capability on {Client.Network.CurrentSim.Name}",
+                Logger.Log($"Failed to obtain FetchInventory2 capability on {Client.Network.CurrentSim?.Name}",
                     Helpers.LogLevel.Warning, Client);
                 return;
             }

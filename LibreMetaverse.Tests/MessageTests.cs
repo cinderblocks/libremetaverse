@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2024, Sjofn LLC
+ * Copyright (c) 2021-2025, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -54,41 +54,50 @@ namespace LibreMetaverse.Tests
         [Test]
         public void AgentGroupDataUpdateMessage()
         {
-            AgentGroupDataUpdateMessage s = new AgentGroupDataUpdateMessage();
-            s.AgentID = UUID.Random();
-
+            AgentGroupDataUpdateMessage s = new AgentGroupDataUpdateMessage
+            {
+                AgentID = UUID.Random()
+            };
 
 
             AgentGroupDataUpdateMessage.GroupData[] blocks = new AgentGroupDataUpdateMessage.GroupData[2];
-            AgentGroupDataUpdateMessage.GroupData g1 = new AgentGroupDataUpdateMessage.GroupData();
+            AgentGroupDataUpdateMessage.GroupData g1 = new AgentGroupDataUpdateMessage.GroupData
+            {
+                AcceptNotices = false,
+                Contribution = 1024,
+                GroupID = UUID.Random(),
+                GroupInsigniaID = UUID.Random(),
+                GroupName = "Group Name Test 1",
+                GroupPowers = GroupPowers.Accountable | GroupPowers.AllowLandmark | GroupPowers.AllowSetHome
+            };
 
-            g1.AcceptNotices = false;
-            g1.Contribution = 1024;
-            g1.GroupID = UUID.Random();
-            g1.GroupInsigniaID = UUID.Random();
-            g1.GroupName = "Group Name Test 1";
-            g1.GroupPowers = GroupPowers.Accountable | GroupPowers.AllowLandmark | GroupPowers.AllowSetHome;
             blocks[0] = g1;
 
-            AgentGroupDataUpdateMessage.GroupData g2 = new AgentGroupDataUpdateMessage.GroupData();
-            g2.AcceptNotices = false;
-            g2.Contribution = 16;
-            g2.GroupID = UUID.Random();
-            g2.GroupInsigniaID = UUID.Random();
-            g2.GroupName = "Group Name Test 2";
-            g2.GroupPowers = GroupPowers.ChangeActions | GroupPowers.DeedObject;
+            AgentGroupDataUpdateMessage.GroupData g2 = new AgentGroupDataUpdateMessage.GroupData
+            {
+                AcceptNotices = false,
+                Contribution = 16,
+                GroupID = UUID.Random(),
+                GroupInsigniaID = UUID.Random(),
+                GroupName = "Group Name Test 2",
+                GroupPowers = GroupPowers.ChangeActions | GroupPowers.DeedObject
+            };
             blocks[1] = g2;
 
             s.GroupDataBlock = blocks;
 
             AgentGroupDataUpdateMessage.NewGroupData[] nblocks = new AgentGroupDataUpdateMessage.NewGroupData[2];
 
-            AgentGroupDataUpdateMessage.NewGroupData ng1 = new AgentGroupDataUpdateMessage.NewGroupData();
-            ng1.ListInProfile = false;
+            AgentGroupDataUpdateMessage.NewGroupData ng1 = new AgentGroupDataUpdateMessage.NewGroupData
+                {
+                    ListInProfile = false
+                };
             nblocks[0] = ng1;
 
-            AgentGroupDataUpdateMessage.NewGroupData ng2 = new AgentGroupDataUpdateMessage.NewGroupData();
-            ng2.ListInProfile = true;
+            AgentGroupDataUpdateMessage.NewGroupData ng2 = new AgentGroupDataUpdateMessage.NewGroupData
+                {
+                    ListInProfile = true
+                };
             nblocks[1] = ng2;
 
             s.NewGroupDataBlock = nblocks;
@@ -119,15 +128,17 @@ namespace LibreMetaverse.Tests
         [Test]
         public void TeleportFinishMessage()
         {
-            TeleportFinishMessage s = new TeleportFinishMessage();
-            s.AgentID = UUID.Random();
-            s.Flags = TeleportFlags.ViaLocation | TeleportFlags.IsFlying;
-            s.IP = testIP;
-            s.LocationID = 32767;
-            s.Port = 3000;
-            s.RegionHandle = testHandle;
-            s.SeedCapability = testURI;
-            s.SimAccess = SimAccess.Mature;
+            TeleportFinishMessage s = new TeleportFinishMessage
+            {
+                AgentID = UUID.Random(),
+                Flags = TeleportFlags.ViaLocation | TeleportFlags.IsFlying,
+                IP = testIP,
+                LocationID = 32767,
+                Port = 3000,
+                RegionHandle = testHandle,
+                SeedCapability = testURI,
+                SimAccess = SimAccess.Mature
+            };
 
             OSDMap map = s.Serialize();
 
@@ -147,11 +158,13 @@ namespace LibreMetaverse.Tests
         [Test]
         public void EstablishAgentCommunicationMessage()
         {
-            EstablishAgentCommunicationMessage s = new EstablishAgentCommunicationMessage();
-            s.Address = testIP;
-            s.AgentID = UUID.Random();
-            s.Port = 3000;
-            s.SeedCapability = testURI;
+            EstablishAgentCommunicationMessage s = new EstablishAgentCommunicationMessage
+            {
+                Address = testIP,
+                AgentID = UUID.Random(),
+                Port = 3000,
+                SeedCapability = testURI
+            };
 
             OSDMap map = s.Serialize();
 
@@ -167,23 +180,29 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParcelObjectOwnersMessage()
         {
-            ParcelObjectOwnersReplyMessage s = new ParcelObjectOwnersReplyMessage();
-            s.PrimOwnersBlock = new ParcelObjectOwnersReplyMessage.PrimOwner[2];
+            ParcelObjectOwnersReplyMessage s = new ParcelObjectOwnersReplyMessage
+            {
+                PrimOwnersBlock = new ParcelObjectOwnersReplyMessage.PrimOwner[2]
+            };
 
-            ParcelObjectOwnersReplyMessage.PrimOwner obj = new ParcelObjectOwnersReplyMessage.PrimOwner();
-            obj.OwnerID = UUID.Random();
-            obj.Count = 10;
-            obj.IsGroupOwned = true;
-            obj.OnlineStatus = false;
-            obj.TimeStamp = new DateTime(2010, 4, 13, 7, 19, 43);
+            ParcelObjectOwnersReplyMessage.PrimOwner obj = new ParcelObjectOwnersReplyMessage.PrimOwner
+                {
+                    OwnerID = UUID.Random(),
+                    Count = 10,
+                    IsGroupOwned = true,
+                    OnlineStatus = false,
+                    TimeStamp = new DateTime(2010, 4, 13, 7, 19, 43)
+                };
             s.PrimOwnersBlock[0] = obj;
 
-            ParcelObjectOwnersReplyMessage.PrimOwner obj1 = new ParcelObjectOwnersReplyMessage.PrimOwner();
-            obj1.OwnerID = UUID.Random();
-            obj1.Count = 0;
-            obj1.IsGroupOwned = false;
-            obj1.OnlineStatus = false;
-            obj1.TimeStamp = new DateTime(1991, 1, 31, 3, 13, 31);
+            ParcelObjectOwnersReplyMessage.PrimOwner obj1 = new ParcelObjectOwnersReplyMessage.PrimOwner
+                {
+                    OwnerID = UUID.Random(),
+                    Count = 0,
+                    IsGroupOwned = false,
+                    OnlineStatus = false,
+                    TimeStamp = new DateTime(1991, 1, 31, 3, 13, 31)
+                };
             s.PrimOwnersBlock[1] = obj1;
 
             OSDMap map = s.Serialize();
@@ -204,12 +223,14 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ChatterBoxInvitationMessage()
         {
-            ChatterBoxInvitationMessage s = new ChatterBoxInvitationMessage();
-            s.BinaryBucket = Utils.EmptyBytes;
-            s.Dialog = InstantMessageDialog.InventoryOffered;
-            s.FromAgentID = UUID.Random();
-            s.FromAgentName = "Prokofy Neva";
-            s.GroupIM = false;
+            ChatterBoxInvitationMessage s = new ChatterBoxInvitationMessage
+            {
+                BinaryBucket = Utils.EmptyBytes,
+                Dialog = InstantMessageDialog.InventoryOffered,
+                FromAgentID = UUID.Random(),
+                FromAgentName = "Prokofy Neva",
+                GroupIM = false
+            };
             s.IMSessionID = s.FromAgentID ^ UUID.Random();
             s.Message = "Test Test Test";
             s.Offline = InstantMessageOnline.Online;
@@ -242,9 +263,11 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ChatterboxSessionEventReplyMessage()
         {
-            ChatterboxSessionEventReplyMessage s = new ChatterboxSessionEventReplyMessage();
-            s.SessionID = UUID.Random();
-            s.Success = true;
+            ChatterboxSessionEventReplyMessage s = new ChatterboxSessionEventReplyMessage
+            {
+                SessionID = UUID.Random(),
+                Success = true
+            };
 
             OSDMap map = s.Serialize();
 
@@ -258,14 +281,16 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ChatterBoxSessionStartReplyMessage()
         {
-            ChatterBoxSessionStartReplyMessage s = new ChatterBoxSessionStartReplyMessage();
-            s.ModeratedVoice = true;
-            s.SessionID = UUID.Random();
-            s.SessionName = "Test Session";
-            s.Success = true;
-            s.TempSessionID = UUID.Random();
-            s.Type = 1;
-            s.VoiceEnabled = true;
+            ChatterBoxSessionStartReplyMessage s = new ChatterBoxSessionStartReplyMessage
+            {
+                ModeratedVoice = true,
+                SessionID = UUID.Random(),
+                SessionName = "Test Session",
+                Success = true,
+                TempSessionID = UUID.Random(),
+                Type = 1,
+                VoiceEnabled = true
+            };
 
             OSDMap map = s.Serialize();
 
@@ -284,25 +309,31 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ChatterBoxSessionAgentListUpdatesMessage()
         {
-            ChatterBoxSessionAgentListUpdatesMessage s = new ChatterBoxSessionAgentListUpdatesMessage();
-            s.SessionID = UUID.Random();
-            s.Updates = new ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock[1];
+            ChatterBoxSessionAgentListUpdatesMessage s = new ChatterBoxSessionAgentListUpdatesMessage
+                {
+                    SessionID = UUID.Random(),
+                    Updates = new ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock[1]
+                };
 
-            ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock block1 = new ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock();
-            block1.AgentID = UUID.Random();
-            block1.CanVoiceChat = true;
-            block1.IsModerator = true;
-            block1.MuteText = true;
-            block1.MuteVoice = true;
-            block1.Transition = "ENTER";
+            ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock block1 = new ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock
+                {
+                    AgentID = UUID.Random(),
+                    CanVoiceChat = true,
+                    IsModerator = true,
+                    MuteText = true,
+                    MuteVoice = true,
+                    Transition = "ENTER"
+                };
 
-            ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock block2 = new ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock();
-            block2.AgentID = UUID.Random();
-            block2.CanVoiceChat = true;
-            block2.IsModerator = true;
-            block2.MuteText = true;
-            block2.MuteVoice = true;
-            block2.Transition = "LEAVE";
+            ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock block2 = new ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock
+                {
+                    AgentID = UUID.Random(),
+                    CanVoiceChat = true,
+                    IsModerator = true,
+                    MuteText = true,
+                    MuteVoice = true,
+                    Transition = "LEAVE"
+                };
 
             s.Updates[0] = block1;
             // s.Updates[1] = block2;
@@ -327,49 +358,50 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ViewerStatsMessage()
         {
-            ViewerStatsMessage s = new ViewerStatsMessage();
-
-            s.AgentFPS = 45.5f;
-            s.AgentsInView = 1;
-            s.SystemCPU = "Intel 80286";
-            s.StatsDropped = 2;
-            s.StatsFailedResends = 3;
-            s.SystemGPU = "Vesa VGA+";
-            s.SystemGPUClass = 4;
-            s.SystemGPUVendor = "China";
-            s.SystemGPUVersion = string.Empty;
-            s.InCompressedPackets = 5000;
-            s.InKbytes = 6000;
-            s.InPackets = 22000;
-            s.InSavings = 19;
-            s.MiscInt1 = 5;
-            s.MiscInt2 = 6;
-            s.FailuresInvalid = 20;
-            s.AgentLanguage = "en";
-            s.AgentMemoryUsed = 12878728;
-            s.MetersTraveled = 9999123;
-            s.object_kbytes = 70001;
-            s.FailuresOffCircuit = 201;
-            s.SystemOS = "Palm OS 3.1";
-            s.OutCompressedPackets = 8000;
-            s.OutKbytes = 9000999;
-            s.OutPackets = 21000210;
-            s.OutSavings = 181;
-            s.AgentPing = 135579;
-            s.SystemInstalledRam = 4000000;
-            s.RegionsVisited = 4579;
-            s.FailuresResent = 9;
-            s.AgentRuntime = 360023;
-            s.FailuresSendPacket = 565;
-            s.SessionID = UUID.Random();
-            s.SimulatorFPS = 454;
-            s.AgentStartTime = new DateTime(1973, 1, 16, 5, 23, 33);
-            s.MiscString1 = "Unused String";
-            s.texture_kbytes = 9367498382;
-            s.AgentVersion = "1";
-            s.MiscVersion = 1;
-            s.VertexBuffersEnabled = true;
-            s.world_kbytes = 232344439;
+            ViewerStatsMessage s = new ViewerStatsMessage
+            {
+                AgentFPS = 45.5f,
+                AgentsInView = 1,
+                SystemCPU = "Intel 80286",
+                StatsDropped = 2,
+                StatsFailedResends = 3,
+                SystemGPU = "Vesa VGA+",
+                SystemGPUClass = 4,
+                SystemGPUVendor = "China",
+                SystemGPUVersion = string.Empty,
+                InCompressedPackets = 5000,
+                InKbytes = 6000,
+                InPackets = 22000,
+                InSavings = 19,
+                MiscInt1 = 5,
+                MiscInt2 = 6,
+                FailuresInvalid = 20,
+                AgentLanguage = "en",
+                AgentMemoryUsed = 12878728,
+                MetersTraveled = 9999123,
+                object_kbytes = 70001,
+                FailuresOffCircuit = 201,
+                SystemOS = "Palm OS 3.1",
+                OutCompressedPackets = 8000,
+                OutKbytes = 9000999,
+                OutPackets = 21000210,
+                OutSavings = 181,
+                AgentPing = 135579,
+                SystemInstalledRam = 4000000,
+                RegionsVisited = 4579,
+                FailuresResent = 9,
+                AgentRuntime = 360023,
+                FailuresSendPacket = 565,
+                SessionID = UUID.Random(),
+                SimulatorFPS = 454,
+                AgentStartTime = new DateTime(1973, 1, 16, 5, 23, 33),
+                MiscString1 = "Unused String",
+                texture_kbytes = 9367498382,
+                AgentVersion = "1",
+                MiscVersion = 1,
+                VertexBuffersEnabled = true,
+                world_kbytes = 232344439
+            };
 
             OSDMap map = s.Serialize();
             ViewerStatsMessage t = new ViewerStatsMessage();
@@ -423,10 +455,12 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParcelVoiceInfoRequestMessage()
         {
-            ParcelVoiceInfoRequestMessage s = new ParcelVoiceInfoRequestMessage();
-            s.SipChannelUri = testURI;
-            s.ParcelID = 1;
-            s.RegionName = "Hooper";
+            ParcelVoiceInfoRequestMessage s = new ParcelVoiceInfoRequestMessage
+            {
+                SipChannelUri = testURI,
+                ParcelID = 1,
+                RegionName = "Hooper"
+            };
 
             OSDMap map = s.Serialize();
 
@@ -441,11 +475,13 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ScriptRunningReplyMessage()
         {
-            ScriptRunningReplyMessage s = new ScriptRunningReplyMessage();
-            s.ItemID = UUID.Random();
-            s.Mono = true;
-            s.Running = true;
-            s.ObjectID = UUID.Random();
+            ScriptRunningReplyMessage s = new ScriptRunningReplyMessage
+            {
+                ItemID = UUID.Random(),
+                Mono = true,
+                Running = true,
+                ObjectID = UUID.Random()
+            };
 
             OSDMap map = s.Serialize();
 
@@ -463,18 +499,21 @@ namespace LibreMetaverse.Tests
         public void MapLayerMessage()
         {
 
-            MapLayerReplyVariant s = new MapLayerReplyVariant();
-            s.Flags = 1;
+            MapLayerReplyVariant s = new MapLayerReplyVariant
+            {
+                Flags = 1
+            };
 
             MapLayerReplyVariant.LayerData[] blocks = new MapLayerReplyVariant.LayerData[2];
 
-            MapLayerReplyVariant.LayerData block = new MapLayerReplyVariant.LayerData();
-            block.ImageID = UUID.Random();
-            block.Bottom = 1;
-            block.Top = 2;
-            block.Left = 3;
-            block.Right = 4;
-
+            MapLayerReplyVariant.LayerData block = new MapLayerReplyVariant.LayerData
+            {
+                ImageID = UUID.Random(),
+                Bottom = 1,
+                Top = 2,
+                Left = 3,
+                Right = 4
+            };
 
 
             blocks[0] = block;
@@ -511,9 +550,11 @@ namespace LibreMetaverse.Tests
         [Test] // VARIANT A
         public void ChatSessionRequestStartConference()
         {
-            ChatSessionRequestStartConference s = new ChatSessionRequestStartConference();
-            s.SessionID = UUID.Random();
-            s.AgentsBlock = new UUID[2];
+            ChatSessionRequestStartConference s = new ChatSessionRequestStartConference
+            {
+                SessionID = UUID.Random(),
+                AgentsBlock = new UUID[2]
+            };
             s.AgentsBlock[0] = UUID.Random();
             s.AgentsBlock[0] = UUID.Random();
 
@@ -533,11 +574,13 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ChatSessionRequestMuteUpdate()
         {
-            ChatSessionRequestMuteUpdate s = new ChatSessionRequestMuteUpdate();
-            s.AgentID = UUID.Random();
-            s.RequestKey = "text";
-            s.RequestValue = true;
-            s.SessionID = UUID.Random();
+            ChatSessionRequestMuteUpdate s = new ChatSessionRequestMuteUpdate
+            {
+                AgentID = UUID.Random(),
+                RequestKey = "text",
+                RequestValue = true,
+                SessionID = UUID.Random()
+            };
 
             OSDMap map = s.Serialize();
 
@@ -554,8 +597,10 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ChatSessionAcceptInvitation()
         {
-            ChatSessionAcceptInvitation s = new ChatSessionAcceptInvitation();
-            s.SessionID = UUID.Random();
+            ChatSessionAcceptInvitation s = new ChatSessionAcceptInvitation
+            {
+                SessionID = UUID.Random()
+            };
 
             OSDMap map = s.Serialize();
 
@@ -569,10 +614,12 @@ namespace LibreMetaverse.Tests
         [Test]
         public void RequiredVoiceVersionMessage()
         {
-            RequiredVoiceVersionMessage s = new RequiredVoiceVersionMessage();
-            s.MajorVersion = 1;
-            s.MinorVersion = 0;
-            s.RegionName = "Hooper";
+            RequiredVoiceVersionMessage s = new RequiredVoiceVersionMessage
+            {
+                MajorVersion = 1,
+                MinorVersion = 0,
+                RegionName = "Hooper"
+            };
 
             OSDMap map = s.Serialize();
 
@@ -587,12 +634,14 @@ namespace LibreMetaverse.Tests
         [Test]
         public void CopyInventoryFromNotecardMessage()
         {
-            CopyInventoryFromNotecardMessage s = new CopyInventoryFromNotecardMessage();
-            s.CallbackID = 1;
-            s.FolderID = UUID.Random();
-            s.ItemID = UUID.Random();
-            s.NotecardID = UUID.Random();
-            s.ObjectID = UUID.Random();
+            CopyInventoryFromNotecardMessage s = new CopyInventoryFromNotecardMessage
+            {
+                CallbackID = 1,
+                FolderID = UUID.Random(),
+                ItemID = UUID.Random(),
+                NotecardID = UUID.Random(),
+                ObjectID = UUID.Random()
+            };
 
             OSDMap map = s.Serialize();
 
@@ -609,9 +658,11 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ProvisionVoiceAccountRequestMessage()
         {
-            ProvisionVoiceAccountRequestMessage s = new ProvisionVoiceAccountRequestMessage();
-            s.Username = "username";
-            s.Password = "password";
+            ProvisionVoiceAccountRequestMessage s = new ProvisionVoiceAccountRequestMessage
+            {
+                Username = "username",
+                Password = "password"
+            };
 
             OSDMap map = s.Serialize();
 
@@ -625,9 +676,11 @@ namespace LibreMetaverse.Tests
         [Test]
         public void UpdateAgentLanguageMessage()
         {
-            UpdateAgentLanguageMessage s = new UpdateAgentLanguageMessage();
-            s.Language = "en";
-            s.LanguagePublic = false;
+            UpdateAgentLanguageMessage s = new UpdateAgentLanguageMessage
+            {
+                Language = "en",
+                LanguagePublic = false
+            };
 
             OSDMap map = s.Serialize();
 
@@ -642,65 +695,67 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParcelPropertiesMessage()
         {
-            ParcelPropertiesMessage s = new ParcelPropertiesMessage();
-            s.AABBMax = Vector3.Parse("<1,2,3>");
-            s.AABBMin = Vector3.Parse("<2,3,1>");
-            s.AnyAVSounds = true;
-            s.Area = 1024;
-            s.AuctionID = uint.MaxValue;
-            s.AuthBuyerID = UUID.Random();
-            s.Bitmap = Utils.EmptyBytes;
-            s.Category = ParcelCategory.Educational;
-            s.ClaimDate = new DateTime(2008, 12, 25, 3, 15, 22);
-            s.ClaimPrice = 1000;
-            s.Desc = "Test Description";
-            s.GroupAVSounds = true;
-            s.GroupID = UUID.Random();
-            s.GroupPrims = 50;
-            s.IsGroupOwned = false;
-            s.LandingType = LandingType.None;
-            s.LocalID = 1;
-            s.MaxPrims = 234;
-            s.MediaAutoScale = false;
-            s.MediaDesc = "Example Media Description";
-            s.MediaHeight = 480;
-            s.MediaID = UUID.Random();
-            s.MediaLoop = false;
-            s.MediaType = "text/html";
-            s.MediaURL = "http://www.openmetaverse.co";
-            s.MediaWidth = 640;
-            s.MusicURL = "http://scfire-ntc-aa04.stream.aol.com:80/stream/1075"; // Yee Haw
-            s.Name = "Test Name";
-            s.ObscureMedia = false;
-            s.ObscureMusic = false;
-            s.OtherCleanTime = 5;
-            s.OtherCount = 200;
-            s.OtherPrims = 300;
-            s.OwnerID = UUID.Random();
-            s.OwnerPrims = 0;
-            s.ParcelFlags = ParcelFlags.AllowDamage | ParcelFlags.AllowGroupScripts | ParcelFlags.AllowVoiceChat;
-            s.ParcelPrimBonus = 0f;
-            s.PassHours = 1.5f;
-            s.PassPrice = 10;
-            s.PublicCount = 20;
-            s.RegionDenyAgeUnverified = false;
-            s.RegionDenyAnonymous = false;
-            s.RegionPushOverride = true;
-            s.RentPrice = 0;
-            s.RequestResult = ParcelResult.Single;
-            s.SalePrice = 9999;
-            s.SeeAVs = true;
-            s.SelectedPrims = 1;
-            s.SelfCount = 2;
-            s.SequenceID = -4000;
-            s.SimWideMaxPrims = 937;
-            s.SimWideTotalPrims = 117;
-            s.SnapSelection = false;
-            s.SnapshotID = UUID.Random();
-            s.Status = ParcelStatus.Leased;
-            s.TotalPrims = 219;
-            s.UserLocation = Vector3.Parse("<3,4,5>");
-            s.UserLookAt = Vector3.Parse("<5,4,3>");
+            ParcelPropertiesMessage s = new ParcelPropertiesMessage
+            {
+                AABBMax = Vector3.Parse("<1,2,3>"),
+                AABBMin = Vector3.Parse("<2,3,1>"),
+                AnyAVSounds = true,
+                Area = 1024,
+                AuctionID = uint.MaxValue,
+                AuthBuyerID = UUID.Random(),
+                Bitmap = Utils.EmptyBytes,
+                Category = ParcelCategory.Educational,
+                ClaimDate = new DateTime(2008, 12, 25, 3, 15, 22),
+                ClaimPrice = 1000,
+                Desc = "Test Description",
+                GroupAVSounds = true,
+                GroupID = UUID.Random(),
+                GroupPrims = 50,
+                IsGroupOwned = false,
+                LandingType = LandingType.None,
+                LocalID = 1,
+                MaxPrims = 234,
+                MediaAutoScale = false,
+                MediaDesc = "Example Media Description",
+                MediaHeight = 480,
+                MediaID = UUID.Random(),
+                MediaLoop = false,
+                MediaType = "text/html",
+                MediaURL = "http://www.openmetaverse.co",
+                MediaWidth = 640,
+                MusicURL = "http://scfire-ntc-aa04.stream.aol.com:80/stream/1075", // Yee Haw
+                Name = "Test Name",
+                ObscureMedia = false,
+                ObscureMusic = false,
+                OtherCleanTime = 5,
+                OtherCount = 200,
+                OtherPrims = 300,
+                OwnerID = UUID.Random(),
+                OwnerPrims = 0,
+                ParcelFlags = ParcelFlags.AllowDamage | ParcelFlags.AllowGroupScripts | ParcelFlags.AllowVoiceChat,
+                ParcelPrimBonus = 0f,
+                PassHours = 1.5f,
+                PassPrice = 10,
+                PublicCount = 20,
+                RegionDenyAgeUnverified = false,
+                RegionDenyAnonymous = false,
+                RegionPushOverride = true,
+                RentPrice = 0,
+                RequestResult = ParcelResult.Single,
+                SalePrice = 9999,
+                SeeAVs = true,
+                SelectedPrims = 1,
+                SelfCount = 2,
+                SequenceID = -4000,
+                SimWideMaxPrims = 937,
+                SimWideTotalPrims = 117,
+                SnapSelection = false,
+                SnapshotID = UUID.Random(),
+                Status = ParcelStatus.Leased,
+                TotalPrims = 219,
+                UserLocation = Vector3.Parse("<3,4,5>"),
+                UserLookAt = Vector3.Parse("<5,4,3>")
+            };
 
             OSDMap map = s.Serialize();
             ParcelPropertiesMessage t = new ParcelPropertiesMessage();
@@ -770,35 +825,37 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParcelPropertiesUpdateMessage()
         {
-            ParcelPropertiesUpdateMessage s = new ParcelPropertiesUpdateMessage();
-            s.AnyAVSounds = true;
-            s.AuthBuyerID = UUID.Random();
-            s.Category = ParcelCategory.Gaming;
-            s.Desc = "Example Description";
-            s.GroupAVSounds = true;
-            s.GroupID = UUID.Random();
-            s.Landing = LandingType.LandingPoint;
-            s.LocalID = 160;
-            s.MediaAutoScale = true;
-            s.MediaDesc = "Example Media Description";
-            s.MediaHeight = 600;
-            s.MediaID = UUID.Random();
-            s.MediaLoop = false;
-            s.MediaType = "image/jpeg";
-            s.MediaURL = "http://www.openmetaverse.co/test.jpeg";
-            s.MediaWidth = 800;
-            s.MusicURL = "http://scfire-ntc-aa04.stream.aol.com:80/stream/1075";
-            s.Name = "Example Parcel Description";
-            s.ObscureMedia = true;
-            s.ObscureMusic = true;
-            s.ParcelFlags = ParcelFlags.AllowVoiceChat | ParcelFlags.ContributeWithDeed;
-            s.PassHours = 5.5f;
-            s.PassPrice = 100;
-            s.SalePrice = 99;
-            s.SeeAVs = true;
-            s.SnapshotID = UUID.Random();
-            s.UserLocation = Vector3.Parse("<128,128,128>");
-            s.UserLookAt = Vector3.Parse("<256,256,256>");
+            ParcelPropertiesUpdateMessage s = new ParcelPropertiesUpdateMessage
+            {
+                AnyAVSounds = true,
+                AuthBuyerID = UUID.Random(),
+                Category = ParcelCategory.Gaming,
+                Desc = "Example Description",
+                GroupAVSounds = true,
+                GroupID = UUID.Random(),
+                Landing = LandingType.LandingPoint,
+                LocalID = 160,
+                MediaAutoScale = true,
+                MediaDesc = "Example Media Description",
+                MediaHeight = 600,
+                MediaID = UUID.Random(),
+                MediaLoop = false,
+                MediaType = "image/jpeg",
+                MediaURL = "http://www.openmetaverse.co/test.jpeg",
+                MediaWidth = 800,
+                MusicURL = "http://scfire-ntc-aa04.stream.aol.com:80/stream/1075",
+                Name = "Example Parcel Description",
+                ObscureMedia = true,
+                ObscureMusic = true,
+                ParcelFlags = ParcelFlags.AllowVoiceChat | ParcelFlags.ContributeWithDeed,
+                PassHours = 5.5f,
+                PassPrice = 100,
+                SalePrice = 99,
+                SeeAVs = true,
+                SnapshotID = UUID.Random(),
+                UserLocation = Vector3.Parse("<128,128,128>"),
+                UserLookAt = Vector3.Parse("<256,256,256>")
+            };
 
             OSDMap map = s.Serialize();
 
@@ -838,19 +895,25 @@ namespace LibreMetaverse.Tests
         [Test]
         public void EnableSimulatorMessage()
         {
-            EnableSimulatorMessage s = new EnableSimulatorMessage();
-            s.Simulators = new EnableSimulatorMessage.SimulatorInfoBlock[2];
+            EnableSimulatorMessage s = new EnableSimulatorMessage
+            {
+                Simulators = new EnableSimulatorMessage.SimulatorInfoBlock[2]
+            };
 
-            EnableSimulatorMessage.SimulatorInfoBlock block1 = new EnableSimulatorMessage.SimulatorInfoBlock();
-            block1.IP = testIP;
-            block1.Port = 3000;
-            block1.RegionHandle = testHandle;
+            EnableSimulatorMessage.SimulatorInfoBlock block1 = new EnableSimulatorMessage.SimulatorInfoBlock
+                {
+                    IP = testIP,
+                    Port = 3000,
+                    RegionHandle = testHandle
+                };
             s.Simulators[0] = block1;
 
-            EnableSimulatorMessage.SimulatorInfoBlock block2 = new EnableSimulatorMessage.SimulatorInfoBlock();
-            block2.IP = testIP;
-            block2.Port = 3001;
-            block2.RegionHandle = testHandle;
+            EnableSimulatorMessage.SimulatorInfoBlock block2 = new EnableSimulatorMessage.SimulatorInfoBlock
+                {
+                    IP = testIP,
+                    Port = 3001,
+                    RegionHandle = testHandle
+                };
             s.Simulators[1] = block2;
 
             OSDMap map = s.Serialize();
@@ -869,8 +932,10 @@ namespace LibreMetaverse.Tests
         [Test]
         public void RemoteParcelRequestReply()
         {
-            RemoteParcelRequestReply s = new RemoteParcelRequestReply();
-            s.ParcelID = UUID.Random();
+            RemoteParcelRequestReply s = new RemoteParcelRequestReply
+            {
+                ParcelID = UUID.Random()
+            };
             OSDMap map = s.Serialize();
 
             RemoteParcelRequestReply t = new RemoteParcelRequestReply();
@@ -882,11 +947,13 @@ namespace LibreMetaverse.Tests
         [Test]
         public void UpdateScriptTaskMessage()
         {
-            UpdateScriptTaskUpdateMessage s = new UpdateScriptTaskUpdateMessage();
-            s.TaskID = UUID.Random();
-            s.Target = "mono";
-            s.ScriptRunning = true;
-            s.ItemID = UUID.Random();
+            UpdateScriptTaskUpdateMessage s = new UpdateScriptTaskUpdateMessage
+            {
+                TaskID = UUID.Random(),
+                Target = "mono",
+                ScriptRunning = true,
+                ItemID = UUID.Random()
+            };
 
             OSDMap map = s.Serialize();
             UpdateScriptTaskUpdateMessage t = new UpdateScriptTaskUpdateMessage();
@@ -901,9 +968,11 @@ namespace LibreMetaverse.Tests
         [Test]
         public void UpdateScriptAgentMessage()
         {
-            UpdateScriptAgentRequestMessage s = new UpdateScriptAgentRequestMessage();
-            s.ItemID = UUID.Random();
-            s.Target = "lsl2";
+            UpdateScriptAgentRequestMessage s = new UpdateScriptAgentRequestMessage
+            {
+                ItemID = UUID.Random(),
+                Target = "lsl2"
+            };
 
             OSDMap map = s.Serialize();
 
@@ -917,13 +986,15 @@ namespace LibreMetaverse.Tests
         [Test]
         public void SendPostcardMessage()
         {
-            SendPostcardMessage s = new SendPostcardMessage();
-            s.FromEmail = "contact@openmetaverse.co";
-            s.FromName = "Jim Radford";
-            s.GlobalPosition = Vector3.One;
-            s.Message = "Hello, How are you today?";
-            s.Subject = "Postcard from the edge";
-            s.ToEmail = "test1@example.com";
+            SendPostcardMessage s = new SendPostcardMessage
+            {
+                FromEmail = "contact@openmetaverse.co",
+                FromName = "Jim Radford",
+                GlobalPosition = Vector3.One,
+                Message = "Hello, How are you today?",
+                Subject = "Postcard from the edge",
+                ToEmail = "test1@example.com"
+            };
 
             OSDMap map = s.Serialize();
 
@@ -941,8 +1012,10 @@ namespace LibreMetaverse.Tests
         [Test]
         public void UpdateNotecardAgentInventoryMessage()
         {
-            UpdateAgentInventoryRequestMessage s = new UpdateAgentInventoryRequestMessage();
-            s.ItemID = UUID.Random();
+            UpdateAgentInventoryRequestMessage s = new UpdateAgentInventoryRequestMessage
+            {
+                ItemID = UUID.Random()
+            };
 
             OSDMap map = s.Serialize();
 
@@ -955,32 +1028,38 @@ namespace LibreMetaverse.Tests
         [Test]
         public void LandStatReplyMessage()
         {
-            LandStatReplyMessage s = new LandStatReplyMessage();
-            s.ReportType = 22;
-            s.RequestFlags = 44;
-            s.TotalObjectCount = 2;
-            s.ReportDataBlocks = new LandStatReplyMessage.ReportDataBlock[2];
+            LandStatReplyMessage s = new LandStatReplyMessage
+            {
+                ReportType = 22,
+                RequestFlags = 44,
+                TotalObjectCount = 2,
+                ReportDataBlocks = new LandStatReplyMessage.ReportDataBlock[2]
+            };
 
-            LandStatReplyMessage.ReportDataBlock block1 = new LandStatReplyMessage.ReportDataBlock();
-            block1.Location = Vector3.One;
-            block1.MonoScore = 99;
-            block1.OwnerName = "Profoky Neva";
-            block1.Score = 10;
-            block1.TaskID = UUID.Random();
-            block1.TaskLocalID = 987341;
-            block1.TaskName = "Verbal Flogging";
-            block1.TimeStamp = new DateTime(2009, 5, 23, 4, 30, 0);
+            LandStatReplyMessage.ReportDataBlock block1 = new LandStatReplyMessage.ReportDataBlock
+            {
+                Location = Vector3.One,
+                MonoScore = 99,
+                OwnerName = "Profoky Neva",
+                Score = 10,
+                TaskID = UUID.Random(),
+                TaskLocalID = 987341,
+                TaskName = "Verbal Flogging",
+                TimeStamp = new DateTime(2009, 5, 23, 4, 30, 0)
+            };
             s.ReportDataBlocks[0] = block1;
 
-            LandStatReplyMessage.ReportDataBlock block2 = new LandStatReplyMessage.ReportDataBlock();
-            block2.Location = Vector3.One;
-            block2.MonoScore = 1;
-            block2.OwnerName = "Philip Linden";
-            block2.Score = 5;
-            block2.TaskID = UUID.Random();
-            block2.TaskLocalID = 987342;
-            block2.TaskName = "Happy Ant";
-            block2.TimeStamp = new DateTime(2008, 4, 22, 3, 29, 55);
+            LandStatReplyMessage.ReportDataBlock block2 = new LandStatReplyMessage.ReportDataBlock
+            {
+                Location = Vector3.One,
+                MonoScore = 1,
+                OwnerName = "Philip Linden",
+                Score = 5,
+                TaskID = UUID.Random(),
+                TaskLocalID = 987342,
+                TaskName = "Happy Ant",
+                TimeStamp = new DateTime(2008, 4, 22, 3, 29, 55)
+            };
             s.ReportDataBlocks[1] = block2;
 
             OSDMap map = s.Serialize();
@@ -1008,11 +1087,13 @@ namespace LibreMetaverse.Tests
         [Test]
         public void TelportFailedMessage()
         {
-            TeleportFailedMessage s = new TeleportFailedMessage();
-            s.AgentID = UUID.Random();
-            s.MessageKey = "Key";
-            s.Reason = "Unable To Teleport for some unspecified reason";
-            s.ExtraParams = string.Empty;
+            TeleportFailedMessage s = new TeleportFailedMessage
+            {
+                AgentID = UUID.Random(),
+                MessageKey = "Key",
+                Reason = "Unable To Teleport for some unspecified reason",
+                ExtraParams = string.Empty
+            };
 
             OSDMap map = s.Serialize();
 
@@ -1029,8 +1110,10 @@ namespace LibreMetaverse.Tests
         [Test]
         public void UpdateAgentInformationMessage()
         {
-            UpdateAgentInformationMessage s = new UpdateAgentInformationMessage();
-            s.MaxAccess = "PG";
+            UpdateAgentInformationMessage s = new UpdateAgentInformationMessage
+            {
+                MaxAccess = "PG"
+            };
             OSDMap map = s.Serialize();
 
             UpdateAgentInformationMessage t = new UpdateAgentInformationMessage();
@@ -1042,45 +1125,51 @@ namespace LibreMetaverse.Tests
         [Test]
         public void PlacesReplyMessage()
         {
-            PlacesReplyMessage s = new PlacesReplyMessage();
-            s.TransactionID = UUID.Random();
-            s.AgentID = UUID.Random();
-            s.QueryID = UUID.Random();
-            s.QueryDataBlocks = new PlacesReplyMessage.QueryData[2];
+            PlacesReplyMessage s = new PlacesReplyMessage
+            {
+                TransactionID = UUID.Random(),
+                AgentID = UUID.Random(),
+                QueryID = UUID.Random(),
+                QueryDataBlocks = new PlacesReplyMessage.QueryData[2]
+            };
 
-            PlacesReplyMessage.QueryData q1 = new PlacesReplyMessage.QueryData();
-            q1.ActualArea = 1024;
-            q1.BillableArea = 768;
-            q1.Description = "Test Description Q1";
-            q1.Dwell = 1435.4f;
-            q1.Flags = 1 << 6;
-            q1.GlobalX = 1;
-            q1.GlobalY = 2;
-            q1.GlobalZ = 3;
-            q1.Name = "Test Name Q1";
-            q1.OwnerID = UUID.Random();
-            q1.Price = 1;
-            q1.ProductSku = "021";
-            q1.SimName = "Hooper";
-            q1.SnapShotID = UUID.Random();
+            PlacesReplyMessage.QueryData q1 = new PlacesReplyMessage.QueryData
+            {
+                ActualArea = 1024,
+                BillableArea = 768,
+                Description = "Test Description Q1",
+                Dwell = 1435.4f,
+                Flags = 1 << 6,
+                GlobalX = 1,
+                GlobalY = 2,
+                GlobalZ = 3,
+                Name = "Test Name Q1",
+                OwnerID = UUID.Random(),
+                Price = 1,
+                ProductSku = "021",
+                SimName = "Hooper",
+                SnapShotID = UUID.Random()
+            };
 
             s.QueryDataBlocks[0] = q1;
 
-            PlacesReplyMessage.QueryData q2 = new PlacesReplyMessage.QueryData();
-            q2.ActualArea = 512;
-            q2.BillableArea = 384;
-            q2.Description = "Test Description Q2";
-            q2.Dwell = 1;
-            q2.Flags = 1 << 4;
-            q2.GlobalX = 4;
-            q2.GlobalY = 5;
-            q2.GlobalZ = 6;
-            q2.Name = "Test Name Q2";
-            q2.OwnerID = UUID.Random();
-            q2.Price = 2;
-            q2.ProductSku = "022";
-            q2.SimName = "Tethys";
-            q2.SnapShotID = UUID.Random();
+            PlacesReplyMessage.QueryData q2 = new PlacesReplyMessage.QueryData
+            {
+                ActualArea = 512,
+                BillableArea = 384,
+                Description = "Test Description Q2",
+                Dwell = 1,
+                Flags = 1 << 4,
+                GlobalX = 4,
+                GlobalY = 5,
+                GlobalZ = 6,
+                Name = "Test Name Q2",
+                OwnerID = UUID.Random(),
+                Price = 2,
+                ProductSku = "022",
+                SimName = "Tethys",
+                SnapShotID = UUID.Random()
+            };
 
             s.QueryDataBlocks[1] = q2;
 
@@ -1115,30 +1204,36 @@ namespace LibreMetaverse.Tests
         [Test]
         public void DirLandReplyMessage()
         {
-            DirLandReplyMessage s = new DirLandReplyMessage();
-            s.AgentID = UUID.Random();
-            s.QueryID = UUID.Random();
-            s.QueryReplies = new DirLandReplyMessage.QueryReply[2];
+            DirLandReplyMessage s = new DirLandReplyMessage
+            {
+                AgentID = UUID.Random(),
+                QueryID = UUID.Random(),
+                QueryReplies = new DirLandReplyMessage.QueryReply[2]
+            };
 
-            DirLandReplyMessage.QueryReply q1 = new DirLandReplyMessage.QueryReply();
-            q1.ActualArea = 1024;
-            q1.Auction = true;
-            q1.ForSale = true;
-            q1.Name = "For Sale Parcel Q1";
-            q1.ProductSku = "023";
-            q1.SalePrice = 2193;
-            q1.ParcelID = UUID.Random();
+            DirLandReplyMessage.QueryReply q1 = new DirLandReplyMessage.QueryReply
+            {
+                ActualArea = 1024,
+                Auction = true,
+                ForSale = true,
+                Name = "For Sale Parcel Q1",
+                ProductSku = "023",
+                SalePrice = 2193,
+                ParcelID = UUID.Random()
+            };
 
             s.QueryReplies[0] = q1;
 
-            DirLandReplyMessage.QueryReply q2 = new DirLandReplyMessage.QueryReply();
-            q2.ActualArea = 512;
-            q2.Auction = true;
-            q2.ForSale = true;
-            q2.Name = "For Sale Parcel Q2";
-            q2.ProductSku = "023";
-            q2.SalePrice = 22193;
-            q2.ParcelID = UUID.Random();
+            DirLandReplyMessage.QueryReply q2 = new DirLandReplyMessage.QueryReply
+            {
+                ActualArea = 512,
+                Auction = true,
+                ForSale = true,
+                Name = "For Sale Parcel Q2",
+                ProductSku = "023",
+                SalePrice = 22193,
+                ParcelID = UUID.Random()
+            };
 
             s.QueryReplies[1] = q2;
 
@@ -1172,8 +1267,10 @@ namespace LibreMetaverse.Tests
             DateTime messageTestTime = DateTime.UtcNow;
             for (int x = 0; x < TEST_ITER; x++)
             {
-                RemoteParcelRequestReply s = new RemoteParcelRequestReply();
-                s.ParcelID = UUID.Random();
+                RemoteParcelRequestReply s = new RemoteParcelRequestReply
+                {
+                    ParcelID = UUID.Random()
+                };
                 OSDMap map = s.Serialize();
 
                 RemoteParcelRequestReply t = new RemoteParcelRequestReply();
@@ -1183,25 +1280,6 @@ namespace LibreMetaverse.Tests
             }
             TimeSpan duration = DateTime.UtcNow - messageTestTime;
             Console.WriteLine("RemoteParcelRequestReply: OMV Message System Serialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, duration);
-
-            BinaryFormatter formatter = new BinaryFormatter();
-            DateTime xmlTestTime = DateTime.UtcNow;
-            for (int x = 0; x < TEST_ITER; x++)
-            {
-                RemoteParcelRequestReply s = new RemoteParcelRequestReply();
-                s.ParcelID = UUID.Random();
-
-                MemoryStream stream = new MemoryStream();
-
-                formatter.Serialize(stream, s);
-
-                stream.Seek(0, SeekOrigin.Begin);
-                RemoteParcelRequestReply t = (RemoteParcelRequestReply)formatter.Deserialize(stream);
-
-                ClassicAssert.AreEqual(s.ParcelID, t.ParcelID);
-            }
-            TimeSpan durationxml = DateTime.UtcNow - xmlTestTime;
-            Console.WriteLine("RemoteParcelRequestReply: .NET BinarySerialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, durationxml);
         }
 
 
@@ -1213,30 +1291,36 @@ namespace LibreMetaverse.Tests
             DateTime messageTestTime = DateTime.UtcNow;
             for (int x = 0; x < TEST_ITER; x++)
             {
-                DirLandReplyMessage s = new DirLandReplyMessage();
-                s.AgentID = UUID.Random();
-                s.QueryID = UUID.Random();
-                s.QueryReplies = new DirLandReplyMessage.QueryReply[2];
+                DirLandReplyMessage s = new DirLandReplyMessage
+                {
+                    AgentID = UUID.Random(),
+                    QueryID = UUID.Random(),
+                    QueryReplies = new DirLandReplyMessage.QueryReply[2]
+                };
 
-                DirLandReplyMessage.QueryReply q1 = new DirLandReplyMessage.QueryReply();
-                q1.ActualArea = 1024;
-                q1.Auction = true;
-                q1.ForSale = true;
-                q1.Name = "For Sale Parcel Q1";
-                q1.ProductSku = "023";
-                q1.SalePrice = 2193;
-                q1.ParcelID = UUID.Random();
+                DirLandReplyMessage.QueryReply q1 = new DirLandReplyMessage.QueryReply
+                {
+                    ActualArea = 1024,
+                    Auction = true,
+                    ForSale = true,
+                    Name = "For Sale Parcel Q1",
+                    ProductSku = "023",
+                    SalePrice = 2193,
+                    ParcelID = UUID.Random()
+                };
 
                 s.QueryReplies[0] = q1;
 
-                DirLandReplyMessage.QueryReply q2 = new DirLandReplyMessage.QueryReply();
-                q2.ActualArea = 512;
-                q2.Auction = true;
-                q2.ForSale = true;
-                q2.Name = "For Sale Parcel Q2";
-                q2.ProductSku = "023";
-                q2.SalePrice = 22193;
-                q2.ParcelID = UUID.Random();
+                DirLandReplyMessage.QueryReply q2 = new DirLandReplyMessage.QueryReply
+                {
+                    ActualArea = 512,
+                    Auction = true,
+                    ForSale = true,
+                    Name = "For Sale Parcel Q2",
+                    ProductSku = "023",
+                    SalePrice = 22193,
+                    ParcelID = UUID.Random()
+                };
 
                 s.QueryReplies[1] = q2;
 
@@ -1260,61 +1344,6 @@ namespace LibreMetaverse.Tests
             }
             TimeSpan duration = DateTime.UtcNow - messageTestTime;
             Console.WriteLine("DirLandReplyMessage: OMV Message System Serialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, duration);
-
-            BinaryFormatter formatter = new BinaryFormatter();
-            DateTime xmlTestTime = DateTime.UtcNow;
-            for (int x = 0; x < TEST_ITER; x++)
-            {
-                DirLandReplyMessage s = new DirLandReplyMessage();
-                s.AgentID = UUID.Random();
-                s.QueryID = UUID.Random();
-                s.QueryReplies = new DirLandReplyMessage.QueryReply[2];
-
-                DirLandReplyMessage.QueryReply q1 = new DirLandReplyMessage.QueryReply();
-                q1.ActualArea = 1024;
-                q1.Auction = true;
-                q1.ForSale = true;
-                q1.Name = "For Sale Parcel Q1";
-                q1.ProductSku = "023";
-                q1.SalePrice = 2193;
-                q1.ParcelID = UUID.Random();
-
-                s.QueryReplies[0] = q1;
-
-                DirLandReplyMessage.QueryReply q2 = new DirLandReplyMessage.QueryReply();
-                q2.ActualArea = 512;
-                q2.Auction = true;
-                q2.ForSale = true;
-                q2.Name = "For Sale Parcel Q2";
-                q2.ProductSku = "023";
-                q2.SalePrice = 22193;
-                q2.ParcelID = UUID.Random();
-
-                s.QueryReplies[1] = q2;
-
-                MemoryStream stream = new MemoryStream();
-
-                formatter.Serialize(stream, s);
-
-                stream.Seek(0, SeekOrigin.Begin);
-                DirLandReplyMessage t = (DirLandReplyMessage)formatter.Deserialize(stream);
-
-                ClassicAssert.AreEqual(s.AgentID, t.AgentID);
-                ClassicAssert.AreEqual(s.QueryID, t.QueryID);
-
-                for (int i = 0; i < s.QueryReplies.Length; i++)
-                {
-                    ClassicAssert.AreEqual(s.QueryReplies[i].ActualArea, t.QueryReplies[i].ActualArea);
-                    ClassicAssert.AreEqual(s.QueryReplies[i].Auction, t.QueryReplies[i].Auction);
-                    ClassicAssert.AreEqual(s.QueryReplies[i].ForSale, t.QueryReplies[i].ForSale);
-                    ClassicAssert.AreEqual(s.QueryReplies[i].Name, t.QueryReplies[i].Name);
-                    ClassicAssert.AreEqual(s.QueryReplies[i].ProductSku, t.QueryReplies[i].ProductSku);
-                    ClassicAssert.AreEqual(s.QueryReplies[i].ParcelID, t.QueryReplies[i].ParcelID);
-                    ClassicAssert.AreEqual(s.QueryReplies[i].SalePrice, t.QueryReplies[i].SalePrice);
-                }
-            }
-            TimeSpan durationxml = DateTime.UtcNow - xmlTestTime;
-            Console.WriteLine("DirLandReplyMessage: .NET BinarySerialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, durationxml);
         }
 
         [Test]
@@ -1323,30 +1352,36 @@ namespace LibreMetaverse.Tests
         {
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(DirLandReplyMessage));
 
-            DirLandReplyMessage s = new DirLandReplyMessage();
-            s.AgentID = UUID.Random();
-            s.QueryID = UUID.Random();
-            s.QueryReplies = new DirLandReplyMessage.QueryReply[2];
+            DirLandReplyMessage s = new DirLandReplyMessage
+            {
+                AgentID = UUID.Random(),
+                QueryID = UUID.Random(),
+                QueryReplies = new DirLandReplyMessage.QueryReply[2]
+            };
 
-            DirLandReplyMessage.QueryReply q1 = new DirLandReplyMessage.QueryReply();
-            q1.ActualArea = 1024;
-            q1.Auction = true;
-            q1.ForSale = true;
-            q1.Name = "For Sale Parcel Q1";
-            q1.ProductSku = "023";
-            q1.SalePrice = 2193;
-            q1.ParcelID = UUID.Random();
+            DirLandReplyMessage.QueryReply q1 = new DirLandReplyMessage.QueryReply
+            {
+                ActualArea = 1024,
+                Auction = true,
+                ForSale = true,
+                Name = "For Sale Parcel Q1",
+                ProductSku = "023",
+                SalePrice = 2193,
+                ParcelID = UUID.Random()
+            };
 
             s.QueryReplies[0] = q1;
 
-            DirLandReplyMessage.QueryReply q2 = new DirLandReplyMessage.QueryReply();
-            q2.ActualArea = 512;
-            q2.Auction = true;
-            q2.ForSale = true;
-            q2.Name = "For Sale Parcel Q2";
-            q2.ProductSku = "023";
-            q2.SalePrice = 22193;
-            q2.ParcelID = UUID.Random();
+            DirLandReplyMessage.QueryReply q2 = new DirLandReplyMessage.QueryReply
+            {
+                ActualArea = 512,
+                Auction = true,
+                ForSale = true,
+                Name = "For Sale Parcel Q2",
+                ProductSku = "023",
+                SalePrice = 22193,
+                ParcelID = UUID.Random()
+            };
 
             s.QueryReplies[1] = q2;
 
@@ -1384,62 +1419,64 @@ namespace LibreMetaverse.Tests
             DateTime messageTestTime = DateTime.UtcNow;
             for (int x = 0; x < TEST_ITER; x++)
             {
-                ParcelPropertiesMessage s = new ParcelPropertiesMessage();
-                s.AABBMax = Vector3.Parse("<1,2,3>");
-                s.AABBMin = Vector3.Parse("<2,3,1>");
-                s.Area = 1024;
-                s.AuctionID = uint.MaxValue;
-                s.AuthBuyerID = UUID.Random();
-                s.Bitmap = Utils.EmptyBytes;
-                s.Category = ParcelCategory.Educational;
-                s.ClaimDate = new DateTime(2008, 12, 25, 3, 15, 22);
-                s.ClaimPrice = 1000;
-                s.Desc = "Test Description";
-                s.GroupID = UUID.Random();
-                s.GroupPrims = 50;
-                s.IsGroupOwned = false;
-                s.LandingType = LandingType.None;
-                s.LocalID = 1;
-                s.MaxPrims = 234;
-                s.MediaAutoScale = false;
-                s.MediaDesc = "Example Media Description";
-                s.MediaHeight = 480;
-                s.MediaID = UUID.Random();
-                s.MediaLoop = false;
-                s.MediaType = "text/html";
-                s.MediaURL = "http://www.openmetaverse.co";
-                s.MediaWidth = 640;
-                s.MusicURL = "http://scfire-ntc-aa04.stream.aol.com:80/stream/1075"; // Yee Haw
-                s.Name = "Test Name";
-                s.ObscureMedia = false;
-                s.ObscureMusic = false;
-                s.OtherCleanTime = 5;
-                s.OtherCount = 200;
-                s.OtherPrims = 300;
-                s.OwnerID = UUID.Random();
-                s.OwnerPrims = 0;
-                s.ParcelFlags = ParcelFlags.AllowDamage | ParcelFlags.AllowGroupScripts | ParcelFlags.AllowVoiceChat;
-                s.ParcelPrimBonus = 0f;
-                s.PassHours = 1.5f;
-                s.PassPrice = 10;
-                s.PublicCount = 20;
-                s.RegionDenyAgeUnverified = false;
-                s.RegionDenyAnonymous = false;
-                s.RegionPushOverride = true;
-                s.RentPrice = 0;
-                s.RequestResult = ParcelResult.Single;
-                s.SalePrice = 9999;
-                s.SelectedPrims = 1;
-                s.SelfCount = 2;
-                s.SequenceID = -4000;
-                s.SimWideMaxPrims = 937;
-                s.SimWideTotalPrims = 117;
-                s.SnapSelection = false;
-                s.SnapshotID = UUID.Random();
-                s.Status = ParcelStatus.Leased;
-                s.TotalPrims = 219;
-                s.UserLocation = Vector3.Parse("<3,4,5>");
-                s.UserLookAt = Vector3.Parse("<5,4,3>");
+                ParcelPropertiesMessage s = new ParcelPropertiesMessage
+                {
+                    AABBMax = Vector3.Parse("<1,2,3>"),
+                    AABBMin = Vector3.Parse("<2,3,1>"),
+                    Area = 1024,
+                    AuctionID = uint.MaxValue,
+                    AuthBuyerID = UUID.Random(),
+                    Bitmap = Utils.EmptyBytes,
+                    Category = ParcelCategory.Educational,
+                    ClaimDate = new DateTime(2008, 12, 25, 3, 15, 22),
+                    ClaimPrice = 1000,
+                    Desc = "Test Description",
+                    GroupID = UUID.Random(),
+                    GroupPrims = 50,
+                    IsGroupOwned = false,
+                    LandingType = LandingType.None,
+                    LocalID = 1,
+                    MaxPrims = 234,
+                    MediaAutoScale = false,
+                    MediaDesc = "Example Media Description",
+                    MediaHeight = 480,
+                    MediaID = UUID.Random(),
+                    MediaLoop = false,
+                    MediaType = "text/html",
+                    MediaURL = "http://www.openmetaverse.co",
+                    MediaWidth = 640,
+                    MusicURL = "http://scfire-ntc-aa04.stream.aol.com:80/stream/1075", // Yee Haw
+                    Name = "Test Name",
+                    ObscureMedia = false,
+                    ObscureMusic = false,
+                    OtherCleanTime = 5,
+                    OtherCount = 200,
+                    OtherPrims = 300,
+                    OwnerID = UUID.Random(),
+                    OwnerPrims = 0,
+                    ParcelFlags = ParcelFlags.AllowDamage | ParcelFlags.AllowGroupScripts | ParcelFlags.AllowVoiceChat,
+                    ParcelPrimBonus = 0f,
+                    PassHours = 1.5f,
+                    PassPrice = 10,
+                    PublicCount = 20,
+                    RegionDenyAgeUnverified = false,
+                    RegionDenyAnonymous = false,
+                    RegionPushOverride = true,
+                    RentPrice = 0,
+                    RequestResult = ParcelResult.Single,
+                    SalePrice = 9999,
+                    SelectedPrims = 1,
+                    SelfCount = 2,
+                    SequenceID = -4000,
+                    SimWideMaxPrims = 937,
+                    SimWideTotalPrims = 117,
+                    SnapSelection = false,
+                    SnapshotID = UUID.Random(),
+                    Status = ParcelStatus.Leased,
+                    TotalPrims = 219,
+                    UserLocation = Vector3.Parse("<3,4,5>"),
+                    UserLookAt = Vector3.Parse("<5,4,3>")
+                };
 
                 OSDMap map = s.Serialize();
                 ParcelPropertiesMessage t = new ParcelPropertiesMessage();
@@ -1504,136 +1541,6 @@ namespace LibreMetaverse.Tests
             }
             TimeSpan duration = DateTime.UtcNow - messageTestTime;
             Console.WriteLine("ParcelPropertiesMessage: OMV Message System Serialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, duration);
-
-            BinaryFormatter formatter = new BinaryFormatter();
-
-            DateTime xmlTestTime = DateTime.UtcNow;
-            for (int x = 0; x < TEST_ITER; x++)
-            {
-
-                ParcelPropertiesMessage s = new ParcelPropertiesMessage();
-                s.AABBMax = Vector3.Parse("<1,2,3>");
-                s.AABBMin = Vector3.Parse("<2,3,1>");
-                s.Area = 1024;
-                s.AuctionID = uint.MaxValue;
-                s.AuthBuyerID = UUID.Random();
-                s.Bitmap = Utils.EmptyBytes;
-                s.Category = ParcelCategory.Educational;
-                s.ClaimDate = new DateTime(2008, 12, 25, 3, 15, 22);
-                s.ClaimPrice = 1000;
-                s.Desc = "Test Description";
-                s.GroupID = UUID.Random();
-                s.GroupPrims = 50;
-                s.IsGroupOwned = false;
-                s.LandingType = LandingType.None;
-                s.LocalID = 1;
-                s.MaxPrims = 234;
-                s.MediaAutoScale = false;
-                s.MediaDesc = "Example Media Description";
-                s.MediaHeight = 480;
-                s.MediaID = UUID.Random();
-                s.MediaLoop = false;
-                s.MediaType = "text/html";
-                s.MediaURL = "http://www.openmetaverse.co";
-                s.MediaWidth = 640;
-                s.MusicURL = "http://scfire-ntc-aa04.stream.aol.com:80/stream/1075"; // Yee Haw
-                s.Name = "Test Name";
-                s.ObscureMedia = false;
-                s.ObscureMusic = false;
-                s.OtherCleanTime = 5;
-                s.OtherCount = 200;
-                s.OtherPrims = 300;
-                s.OwnerID = UUID.Random();
-                s.OwnerPrims = 0;
-                s.ParcelFlags = ParcelFlags.AllowDamage | ParcelFlags.AllowGroupScripts | ParcelFlags.AllowVoiceChat;
-                s.ParcelPrimBonus = 0f;
-                s.PassHours = 1.5f;
-                s.PassPrice = 10;
-                s.PublicCount = 20;
-                s.RegionDenyAgeUnverified = false;
-                s.RegionDenyAnonymous = false;
-                s.RegionPushOverride = true;
-                s.RentPrice = 0;
-                s.RequestResult = ParcelResult.Single;
-                s.SalePrice = 9999;
-                s.SelectedPrims = 1;
-                s.SelfCount = 2;
-                s.SequenceID = -4000;
-                s.SimWideMaxPrims = 937;
-                s.SimWideTotalPrims = 117;
-                s.SnapSelection = false;
-                s.SnapshotID = UUID.Random();
-                s.Status = ParcelStatus.Leased;
-                s.TotalPrims = 219;
-                s.UserLocation = Vector3.Parse("<3,4,5>");
-                s.UserLookAt = Vector3.Parse("<5,4,3>");
-
-                MemoryStream stream = new MemoryStream();
-
-                formatter.Serialize(stream, s);
-
-                stream.Seek(0, SeekOrigin.Begin);
-
-                ParcelPropertiesMessage t = (ParcelPropertiesMessage)formatter.Deserialize(stream);
-
-                ClassicAssert.AreEqual(s.AABBMax, t.AABBMax);
-                ClassicAssert.AreEqual(s.AABBMin, t.AABBMin);
-                ClassicAssert.AreEqual(s.Area, t.Area);
-                ClassicAssert.AreEqual(s.AuctionID, t.AuctionID);
-                ClassicAssert.AreEqual(s.AuthBuyerID, t.AuthBuyerID);
-                ClassicAssert.AreEqual(s.Bitmap, t.Bitmap);
-                ClassicAssert.AreEqual(s.Category, t.Category);
-                ClassicAssert.AreEqual(s.ClaimDate, t.ClaimDate);
-                ClassicAssert.AreEqual(s.ClaimPrice, t.ClaimPrice);
-                ClassicAssert.AreEqual(s.Desc, t.Desc);
-                ClassicAssert.AreEqual(s.GroupID, t.GroupID);
-                ClassicAssert.AreEqual(s.GroupPrims, t.GroupPrims);
-                ClassicAssert.AreEqual(s.IsGroupOwned, t.IsGroupOwned);
-                ClassicAssert.AreEqual(s.LandingType, t.LandingType);
-                ClassicAssert.AreEqual(s.LocalID, t.LocalID);
-                ClassicAssert.AreEqual(s.MaxPrims, t.MaxPrims);
-                ClassicAssert.AreEqual(s.MediaAutoScale, t.MediaAutoScale);
-                ClassicAssert.AreEqual(s.MediaDesc, t.MediaDesc);
-                ClassicAssert.AreEqual(s.MediaHeight, t.MediaHeight);
-                ClassicAssert.AreEqual(s.MediaID, t.MediaID);
-                ClassicAssert.AreEqual(s.MediaLoop, t.MediaLoop);
-                ClassicAssert.AreEqual(s.MediaType, t.MediaType);
-                ClassicAssert.AreEqual(s.MediaURL, t.MediaURL);
-                ClassicAssert.AreEqual(s.MediaWidth, t.MediaWidth);
-                ClassicAssert.AreEqual(s.MusicURL, t.MusicURL);
-                ClassicAssert.AreEqual(s.Name, t.Name);
-                ClassicAssert.AreEqual(s.ObscureMedia, t.ObscureMedia);
-                ClassicAssert.AreEqual(s.ObscureMusic, t.ObscureMusic);
-                ClassicAssert.AreEqual(s.OtherCleanTime, t.OtherCleanTime);
-                ClassicAssert.AreEqual(s.OtherCount, t.OtherCount);
-                ClassicAssert.AreEqual(s.OtherPrims, t.OtherPrims);
-                ClassicAssert.AreEqual(s.OwnerID, t.OwnerID);
-                ClassicAssert.AreEqual(s.OwnerPrims, t.OwnerPrims);
-                ClassicAssert.AreEqual(s.ParcelFlags, t.ParcelFlags);
-                ClassicAssert.AreEqual(s.ParcelPrimBonus, t.ParcelPrimBonus);
-                ClassicAssert.AreEqual(s.PassHours, t.PassHours);
-                ClassicAssert.AreEqual(s.PassPrice, t.PassPrice);
-                ClassicAssert.AreEqual(s.PublicCount, t.PublicCount);
-                ClassicAssert.AreEqual(s.RegionDenyAgeUnverified, t.RegionDenyAgeUnverified);
-                ClassicAssert.AreEqual(s.RegionDenyAnonymous, t.RegionDenyAnonymous);
-                ClassicAssert.AreEqual(s.RegionPushOverride, t.RegionPushOverride);
-                ClassicAssert.AreEqual(s.RentPrice, t.RentPrice);
-                ClassicAssert.AreEqual(s.RequestResult, t.RequestResult);
-                ClassicAssert.AreEqual(s.SalePrice, t.SalePrice);
-                ClassicAssert.AreEqual(s.SelectedPrims, t.SelectedPrims);
-                ClassicAssert.AreEqual(s.SelfCount, t.SelfCount);
-                ClassicAssert.AreEqual(s.SequenceID, t.SequenceID);
-                ClassicAssert.AreEqual(s.SimWideMaxPrims, t.SimWideMaxPrims);
-                ClassicAssert.AreEqual(s.SimWideTotalPrims, t.SimWideTotalPrims);
-                ClassicAssert.AreEqual(s.SnapSelection, t.SnapSelection);
-                ClassicAssert.AreEqual(s.SnapshotID, t.SnapshotID);
-                ClassicAssert.AreEqual(s.Status, t.Status);
-                ClassicAssert.AreEqual(s.TotalPrims, t.TotalPrims);
-                ClassicAssert.AreEqual(s.UserLocation, t.UserLocation);
-                ClassicAssert.AreEqual(s.UserLookAt, t.UserLookAt);
-            }
-            TimeSpan durationxml = DateTime.UtcNow - xmlTestTime;
-            Console.WriteLine("ParcelPropertiesMessage: .NET BinarySerialization/Deserialization Passes: {0} Total time: {1}", TEST_ITER, durationxml);
         }
 
         #endregion
