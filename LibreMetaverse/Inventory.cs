@@ -61,6 +61,7 @@ namespace OpenMetaverse
     /// </summary>
     public class Inventory
     {
+        #region EventHandlers
         /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<InventoryObjectUpdatedEventArgs> m_InventoryObjectUpdated;
 
@@ -129,7 +130,10 @@ namespace OpenMetaverse
             add { lock (m_InventoryObjectAddedLock) { m_InventoryObjectAdded += value; } }
             remove { lock (m_InventoryObjectAddedLock) { m_InventoryObjectAdded -= value; } }
         }
-       
+        #endregion EventHandlers
+
+        #region Properties
+
         /// <summary>
         /// The root folder of this avatars inventory
         /// </summary>
@@ -166,7 +170,17 @@ namespace OpenMetaverse
         /// </summary>
         public InventoryNode LibraryRootNode { get; private set; }
 
+        /// <summary>
+        /// Returns owner of Inventory
+        /// </summary>
         public UUID Owner { get; }
+
+        /// <summary>
+        /// Returns number of stored entries
+        /// </summary>
+        public int Count => Items.Count;
+
+        #endregion Properties
 
         private GridClient Client;
         //private InventoryManager Manager;
@@ -315,8 +329,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Used to find out if Inventory contains the InventoryObject
-        /// specified by <paramref name="uuid"/>.
+        /// Check that Inventory contains the InventoryObject specified by <paramref name="uuid"/>.
         /// </summary>
         /// <param name="uuid">The UUID to check.</param>
         /// <returns>true if inventory contains uuid, false otherwise</returns>
@@ -325,9 +338,23 @@ namespace OpenMetaverse
             return Items.ContainsKey(uuid);
         }
 
+        /// <summary>
+        /// Check that Inventory contains the InventoryObject specified by <paramref name="obj"/>.
+        /// </summary>
+        /// <param name="obj">Object to check for</param>
+        /// <returns>true if inventory contains object, false otherwise</returns>
         public bool Contains(InventoryBase obj)
         {
             return Contains(obj.UUID);
+        }
+
+        /// <summary>
+        /// Clear all entries from Inventory <see cref="Items"/> store.
+        /// Useful for regenerating contents.
+        /// </summary>
+        public void Clear()
+        {
+            Items.Clear();
         }
 
         /// <summary>
