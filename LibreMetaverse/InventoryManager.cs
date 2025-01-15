@@ -3974,7 +3974,7 @@ namespace OpenMetaverse
                             }
                             else
                             {
-                                // We found a match but it is not the end of the path, request the next level
+                                // We found a match, but it is not the end of the path; request the next level
                                 Logger.DebugLog(
                                     $"Matched level {search.Level}/{search.Path.Length - 1} " +
                                     $"in a path search of {string.Join("/", search.Path)}", Client);

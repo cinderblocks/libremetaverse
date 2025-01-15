@@ -1643,23 +1643,23 @@ namespace OpenMetaverse
         /// Request a list of residents banned from joining a group
         /// </summary>
         /// <param name="groupID">UUID of the group</param>
-        public void RequestBannedAgents(UUID groupID)
+        public async Task RequestBannedAgents(UUID groupID)
         {
-            RequestBannedAgents(groupID, null);
+            await RequestBannedAgents(groupID, null);
         }
 
         /// <summary>
         /// Request a list of residents banned from joining a group
         /// </summary>
         /// <param name="groupID">UUID of the group</param>
-        /// <param name="callback">Callback on request completition</param>
-        public void RequestBannedAgents(UUID groupID, EventHandler<BannedAgentsEventArgs> callback)
+        /// <param name="callback">Callback on request completion</param>
+        public async Task RequestBannedAgents(UUID groupID, EventHandler<BannedAgentsEventArgs> callback)
         {
             Uri uri = GetGroupAPIUri(groupID);
             if (uri == null) { return; }
 
             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("GroupReqBanned");
-            _ = Client.HttpCapsClient.GetRequestAsync(cap, CancellationToken.None, (response, data, error) =>
+            await Client.HttpCapsClient.GetRequestAsync(cap, CancellationToken.None, (response, data, error) =>
             {
                 try
                 {

@@ -1756,13 +1756,13 @@ namespace OpenMetaverse
         /// <param name="parcelID">UUID of the parcel</param>
         /// <param name="getDetails">Should per object resource usage be requested</param>
         /// <param name="callback">Callback invoked when the request is complete</param>
-        public void GetParcelResources(UUID parcelID, bool getDetails, LandResourcesCallback callback)
+        public async Task GetParcelResources(UUID parcelID, bool getDetails, LandResourcesCallback callback)
         {
             try
             {
                 LandResourcesRequest req = new LandResourcesRequest { ParcelID = parcelID };
                 Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("LandResources");
-                Task httpReq = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(),
+                await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(),
                     CancellationToken.None, (httpResponse, data, error) =>
                     {
                         try
