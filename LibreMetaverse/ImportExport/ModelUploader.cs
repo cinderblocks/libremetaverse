@@ -168,6 +168,7 @@ namespace OpenMetaverse.ImportExport
         /// Performs model upload in one go, without first checking for the price
         /// </summary>
         /// <param name="callback">Callback that will be invoked upon completion of the upload. Null is sent on request failure</param>
+        /// <param name="cancellationToken">Cancellation token for upload operation</param>
         public async Task Upload(ModelUploadCallback callback, CancellationToken cancellationToken)
         {
             await PrepareUpload(async result =>
