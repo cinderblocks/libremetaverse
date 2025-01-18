@@ -2733,9 +2733,9 @@ namespace OpenMetaverse
             {
                 // Update appearance each time we enter a new sim and capabilities have been retrieved
 
-                _ = UpdateAvatarAppearanceAsync(CancellationToken.None);
+                bool updateSucceeded = UpdateAvatarAppearanceAsync(CancellationToken.None).Result;
 
-                if(!HasSentAppearanceInThisSession)
+                if(updateSucceeded && !HasSentAppearanceInThisSession)
                 {
                     HasSentAppearanceInThisSession = true;
                     ThreadPool.QueueUserWorkItem((o) => { SendOutfitToCurrentSimulator(); });
