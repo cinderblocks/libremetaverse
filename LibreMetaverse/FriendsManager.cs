@@ -513,8 +513,8 @@ namespace OpenMetaverse
             }
             UriBuilder builder = new UriBuilder(acceptFriendshipCap)
             {
-                // Second Life has some infintely stupid escaped agent name as part of the uri query.
-                // Hopefully we don't need it because it makes no goddamn sense at all. Period, but just in case:
+                // Second Life has some infinitely stupid escaped agent name as part of the uri query.
+                // Hopefully we don't need it because it makes no sense at all. Period, but just in case:
                 // ?from={fromAgentID}&agent_name=\"This%20Sucks\"
                 Query = $"from={fromAgentID}"
             };
