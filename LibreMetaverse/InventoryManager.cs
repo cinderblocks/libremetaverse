@@ -665,7 +665,7 @@ namespace OpenMetaverse
         /// <param name="timeout">time given to wait for results</param>
         /// <param name="followLinks">Resolve link items to the actual item</param>
         /// <returns>A list of inventory items matching search criteria within folder</returns>
-        /// <seealso cref="RequestFolderContents(UUID,UUID,bool,bool,InventorySortOrder)"/>
+        /// <seealso cref="RequestFolderContents(UUID,UUID,bool,bool,InventorySortOrder,CancellationToken)"/>
         /// <remarks>InventoryFolder.DescendentCount will only be accurate if both folders and items are
         /// requested</remarks>
         public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool fetchFolders, bool fetchItems,
@@ -725,9 +725,10 @@ namespace OpenMetaverse
         /// <param name="fetchFolders">true to return <seealso cref="InventoryFolder"/>s contained in folder</param>
         /// <param name="fetchItems">true to return <seealso cref="InventoryItem"/>s contained in folder</param>
         /// <param name="order">the sort order to return items in</param>
+        /// <param name="cancellationToken">CancellationToken for operation</param>
         /// <seealso cref="InventoryManager.FolderContents"/>
         public async Task RequestFolderContents(UUID folderID, UUID ownerID, 
-            bool fetchFolders, bool fetchItems, InventorySortOrder order)
+            bool fetchFolders, bool fetchItems, InventorySortOrder order, CancellationToken cancellationToken)
         {
             var cap = (ownerID == Client.Self.AgentID) ? "FetchInventoryDescendents2" : "FetchLibDescendents2";
             Uri url = Client.Network.CurrentSim.Caps.CapabilityURI(cap);
@@ -743,13 +744,28 @@ namespace OpenMetaverse
                 OwnerID = ownerID,
                 UUID = folderID
             };
-            await RequestFolderContents(new List<InventoryFolder>() { folder }, url, fetchFolders, fetchItems, order);
+            await RequestFolderContents(new List<InventoryFolder>(1) { folder }, url, fetchFolders, fetchItems, order, cancellationToken);
         }
 
-        public async Task RequestFolderContents(List<InventoryFolder> batch, Uri capabilityUri, 
+        public async Task RequestFolderContents(UUID folderID, UUID ownerID,
             bool fetchFolders, bool fetchItems, InventorySortOrder order)
         {
+            await RequestFolderContents(folderID, ownerID, fetchFolders, fetchItems, order, CancellationToken.None);
+        }
 
+        /// <summary>
+        /// Request the contents of an inventory folder using HTTP capabilities
+        /// </summary>
+        /// <param name="batch"><see cref="List" /> of folders to search</param>
+        /// <param name="capabilityUri">HTTP capability <see cref="Uri"/> to POST</param>
+        /// <param name="fetchFolders">true to return <seealso cref="InventoryFolder"/>s contained in folder</param>
+        /// <param name="fetchItems">true to return <seealso cref="InventoryItem"/>s contained in folder</param>
+        /// <param name="order">the sort order to return items in</param>
+        /// <param name="cancellationToken">CancellationToken for operation</param>
+        /// <seealso cref="InventoryManager.FolderContents"/>
+        public async Task RequestFolderContents(List<InventoryFolder> batch, Uri capabilityUri, 
+            bool fetchFolders, bool fetchItems, InventorySortOrder order, CancellationToken cancellationToken)
+        {
             try
             {
                 var requestedFolders = new OSDArray(1);
@@ -765,9 +781,9 @@ namespace OpenMetaverse
                     requestedFolders.Add(requestedFolder);
                 }
                 var payload = new OSDMap(1) { ["folders"] = requestedFolders };
-                
+
                 await Client.HttpCapsClient.PostRequestAsync(capabilityUri, OSDFormat.Xml, payload, 
-                    CancellationToken.None, (response, data, error) => 
+                    cancellationToken, (response, data, error) => 
                 {
                     try
                     {
@@ -866,7 +882,6 @@ namespace OpenMetaverse
                             OnFolderUpdated(new FolderUpdatedEventArgs(f.UUID, false));
                         }
                     }
-
                 });
             }
             catch (Exception ex)
@@ -879,6 +894,12 @@ namespace OpenMetaverse
                     OnFolderUpdated(new FolderUpdatedEventArgs(f.UUID, false));
                 }
             }
+        }
+
+        public async Task RequestFolderContents(List<InventoryFolder> batch, Uri capabilityUri,
+            bool fetchFolders, bool fetchItems, InventorySortOrder order)
+        {
+            await RequestFolderContents(batch, capabilityUri, fetchFolders, fetchItems, order, CancellationToken.None);
         }
 
         #endregion Fetch
@@ -3851,7 +3872,7 @@ namespace OpenMetaverse
 
             if (reply.AgentData.Descendents > 0)
             {
-                // InventoryDescendantsReply sends a null folder if the parent doesnt contain any folders
+                // InventoryDescendantsReply sends a null folder if the parent doesn't contain any folders
                 if (reply.FolderData[0].FolderID != UUID.Zero)
                 {
                     // Iterate folders in this packet
@@ -3874,7 +3895,7 @@ namespace OpenMetaverse
                     }
                 }
 
-                // InventoryDescendantsReply sends a null item if the parent doesnt contain any items.
+                // InventoryDescendantsReply sends a null item if the parent doesn't contain any items.
                 if (reply.ItemData[0].ItemID != UUID.Zero)
                 {
                     // Iterate items in this packet
@@ -4018,7 +4039,7 @@ namespace OpenMetaverse
         /// UpdateCreateInventoryItem packets are received when a new inventory item 
         /// is created. This may occur when an object that's rezzed in world is
         /// taken into inventory, when an item is created using the CreateInventoryItem
-        /// packet, or when an object is purchased
+        /// packet, or when an object has been purchased
         /// </summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
@@ -4062,7 +4083,7 @@ namespace OpenMetaverse
                      * When attaching new objects, an UpdateCreateInventoryItem packet will be
                      * returned by the server that has a FolderID/ParentUUID of zero. It is up
                      * to the client to make sure that the item gets a good folder, otherwise
-                     * it will end up inaccesible in inventory.
+                     * it will end up inaccessible in inventory.
                      */
                 if (item.ParentUUID == UUID.Zero)
                 {
