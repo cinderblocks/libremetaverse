@@ -2546,7 +2546,6 @@ namespace OpenMetaverse
                         // PCode-specific data
                         switch (pcode)
                         {
-                            case PCode.Grass:
                             case PCode.Tree:
                             case PCode.NewTree:
                                 if (block.Data.Length == 1)
