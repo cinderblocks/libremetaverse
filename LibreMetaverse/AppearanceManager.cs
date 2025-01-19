@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2024, Sjofn LLC.
+ * Copyright (c) 2024-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -588,7 +588,7 @@ namespace OpenMetaverse
                             // If we get back to server side backing region re-request server bake
                             ServerBakingDone = false;
 
-                            // Download and parse all of the agent wearables
+                            // Download and parse all agent wearables
                             if (!DownloadWearables())
                             {
                                 success = false;
@@ -599,7 +599,7 @@ namespace OpenMetaverse
 
                             cancellationToken.ThrowIfCancellationRequested();
 
-                            // If this is the first time setting appearance and we're not forcing rebakes, check the server
+                            // If this is the first time setting appearance, and we're not forcing a rebake, check the server
                             // for cached bakes
                             if (SetAppearanceSerialNum == 0 && !forceRebake)
                             {
