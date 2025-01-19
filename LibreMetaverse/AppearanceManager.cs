@@ -2128,8 +2128,8 @@ namespace OpenMetaverse
             var cap = caps.CapabilityURI("UpdateAvatarAppearance");
             if (cap == null) { return false; }
 
-            var currentoutfitfolder = GetCOF();
-            if (currentoutfitfolder == null)
+            var currentOutfitFolder = GetCOF();
+            if (currentOutfitFolder == null)
             {
                 return false;
             }
@@ -2138,7 +2138,7 @@ namespace OpenMetaverse
                 // TODO: create Current Outfit Folder
             }
 
-            var request = new OSDMap(1) { ["cof_version"] = currentoutfitfolder.Version };
+            var request = new OSDMap(1) { ["cof_version"] = currentOutfitFolder.Version };
 
             var msg = "Server side baking failed";
 
@@ -2251,8 +2251,10 @@ namespace OpenMetaverse
 
                                 for (var i = 0; i < textures.Length; i++)
                                 {
-                                    selfAvatarTextures.FaceTextures[i] = new Primitive.TextureEntryFace(null);
-                                    selfAvatarTextures.FaceTextures[i].TextureID = textures[i];
+                                    selfAvatarTextures.FaceTextures[i] = new Primitive.TextureEntryFace(null)
+                                        {
+                                            TextureID = textures[i]
+                                        };
                                 }
 
                                 selfPrim.Textures = selfAvatarTextures;

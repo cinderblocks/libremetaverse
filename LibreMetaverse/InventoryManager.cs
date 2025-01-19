@@ -820,15 +820,6 @@ namespace OpenMetaverse
                                 // Do we have any descendants
                                 if (fetchedFolder.DescendentCount > 0)
                                 {
-                                    // Delete the old items, because otherwise it merges in cache.
-                                    if (_Store.Contains(fetchedFolder.UUID))
-                                    {
-                                        foreach (var oldItem in _Store.GetContents(fetchedFolder.UUID).ToList())
-                                        {
-                                            _Store.RemoveNodeFor(oldItem);
-                                        }
-                                    }
-
                                     // Fetch descendent folders
                                     if (res["categories"] is OSDArray folders)
                                     {
@@ -842,7 +833,11 @@ namespace OpenMetaverse
                                             {
                                                 folder = new InventoryFolder(folderID)
                                                 {
-                                                    ParentUUID = descFolder["parent_id"]
+                                                    ParentUUID = descFolder["parent_id"],
+                                                    OwnerID = descFolder["agent_id"],
+                                                    Name = descFolder["name"],
+                                                    Version = descFolder["version"],
+                                                    PreferredType = (FolderType)(int)descFolder["type_default"]
                                                 };
                                                 _Store[folderID] = folder;
                                             }
@@ -851,11 +846,7 @@ namespace OpenMetaverse
                                                 folder = (InventoryFolder)_Store[folderID];
                                             }
 
-                                            folder.OwnerID = descFolder["agent_id"];
-                                            folder.ParentUUID = descFolder["parent_id"];
-                                            folder.Name = descFolder["name"];
-                                            folder.Version = descFolder["version"];
-                                            folder.PreferredType = (FolderType)(int)descFolder["type_default"];
+                                            
                                         }
 
                                         // Fetch descendent items
