@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2024, Sjofn LLC.
+ * Copyright (c) 2024-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -588,7 +588,7 @@ namespace OpenMetaverse
                             // If we get back to server side backing region re-request server bake
                             ServerBakingDone = false;
 
-                            // Download and parse all of the agent wearables
+                            // Download and parse all agent wearables
                             if (!DownloadWearables())
                             {
                                 success = false;
@@ -599,7 +599,7 @@ namespace OpenMetaverse
 
                             cancellationToken.ThrowIfCancellationRequested();
 
-                            // If this is the first time setting appearance and we're not forcing rebakes, check the server
+                            // If this is the first time setting appearance, and we're not forcing a rebake, check the server
                             // for cached bakes
                             if (SetAppearanceSerialNum == 0 && !forceRebake)
                             {
@@ -2128,8 +2128,8 @@ namespace OpenMetaverse
             var cap = caps.CapabilityURI("UpdateAvatarAppearance");
             if (cap == null) { return false; }
 
-            var currentoutfitfolder = GetCOF();
-            if (currentoutfitfolder == null)
+            var currentOutfitFolder = GetCOF();
+            if (currentOutfitFolder == null)
             {
                 return false;
             }
@@ -2138,7 +2138,7 @@ namespace OpenMetaverse
                 // TODO: create Current Outfit Folder
             }
 
-            var request = new OSDMap(1) { ["cof_version"] = currentoutfitfolder.Version };
+            var request = new OSDMap(1) { ["cof_version"] = currentOutfitFolder.Version };
 
             var msg = "Server side baking failed";
 
@@ -2251,8 +2251,10 @@ namespace OpenMetaverse
 
                                 for (var i = 0; i < textures.Length; i++)
                                 {
-                                    selfAvatarTextures.FaceTextures[i] = new Primitive.TextureEntryFace(null);
-                                    selfAvatarTextures.FaceTextures[i].TextureID = textures[i];
+                                    selfAvatarTextures.FaceTextures[i] = new Primitive.TextureEntryFace(null)
+                                        {
+                                            TextureID = textures[i]
+                                        };
                                 }
 
                                 selfPrim.Textures = selfAvatarTextures;
@@ -2733,9 +2735,9 @@ namespace OpenMetaverse
             {
                 // Update appearance each time we enter a new sim and capabilities have been retrieved
 
-                _ = UpdateAvatarAppearanceAsync(CancellationToken.None);
+                bool updateSucceeded = UpdateAvatarAppearanceAsync(CancellationToken.None).Result;
 
-                if(!HasSentAppearanceInThisSession)
+                if(updateSucceeded && !HasSentAppearanceInThisSession)
                 {
                     HasSentAppearanceInThisSession = true;
                     ThreadPool.QueueUserWorkItem((o) => { SendOutfitToCurrentSimulator(); });

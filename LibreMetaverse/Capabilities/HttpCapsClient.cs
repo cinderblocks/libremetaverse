@@ -260,6 +260,7 @@ namespace LibreMetaverse
                         completeHandler?.Invoke(response, null,
                                                 new HttpRequestException(response.StatusCode + ": " +
                                                                          response.ReasonPhrase));
+                        return;
                     }
 
                     connectedHandler?.Invoke(response);

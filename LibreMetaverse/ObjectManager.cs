@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -29,6 +30,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using LibreMetaverse.Materials;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Http;
 using OpenMetaverse.StructuredData;
@@ -104,7 +106,7 @@ namespace OpenMetaverse
         Scale = 0x04,
         /// <summary>Perform operation on link set</summary>
         Linked = 0x08,
-        /// <summary>Scale prims uniformly, same as selecing ctrl+shift in the
+        /// <summary>Scale prims uniformly, same as selecting ctrl+shift in the
         /// viewer. Used in conjunction with Scale</summary>
         Uniform = 0x10
     }
@@ -169,6 +171,31 @@ namespace OpenMetaverse
         public const float HAVOK_TIMESTEP = 1.0f / 45.0f;
 
         #region Delegates
+
+        #region ObjectAnimation event
+        /// <summary>The event subscribers, null if no subscribers</summary>
+        private EventHandler<ObjectAnimationEventArgs> m_ObjectAnimation;
+
+        ///<summary>Raises the ObjectAnimation Event</summary>
+        /// <param name="e">An ObjectAnimationEventArgs object containing
+        /// the data sent from the simulator</param>
+        protected virtual void OnObjectAnimation(ObjectAnimationEventArgs e)
+        {
+            EventHandler<ObjectAnimationEventArgs> handler = m_ObjectAnimation;
+            handler?.Invoke(this, e);
+        }
+
+        /// <summary>Thread sync lock object</summary>
+        private readonly object m_ObjectAnimationLock = new object();
+
+        /// <summary>Raised when the simulator sends us data containing
+        /// an agents animation playlist</summary>
+        public event EventHandler<ObjectAnimationEventArgs> ObjectAnimation
+        {
+            add { lock (m_ObjectAnimationLock) { m_ObjectAnimation += value; } }
+            remove { lock (m_ObjectAnimationLock) { m_ObjectAnimation -= value; } }
+        }
+        #endregion ObjectAnimation event
 
         #region ObjectUpdate event
         /// <summary>The event subscribers, null if no subscribers</summary>
@@ -451,7 +478,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Callback for getting object media data via CAP
         /// </summary>
-        /// <param name="success">Indicates if the operation was succesfull</param>
+        /// <param name="success">Indicates if the operation was successful</param>
         /// <param name="version">Object media version string</param>
         /// <param name="faceMedia">Array indexed on prim face of media entry data</param>
         public delegate void ObjectMediaCallback(bool success, string version, MediaEntry[] faceMedia);
@@ -506,6 +533,7 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.ObjectPropertiesFamily, ObjectPropertiesFamilyHandler);
             Client.Network.RegisterCallback(PacketType.ObjectProperties, ObjectPropertiesHandler);
             Client.Network.RegisterCallback(PacketType.PayPriceReply, PayPriceReplyHandler);
+            Client.Network.RegisterCallback(PacketType.ObjectAnimation, ObjectAnimationHandler);
             Client.Network.RegisterEventCallback("ObjectPhysicsProperties", ObjectPhysicsPropertiesHandler);
         }
 
@@ -540,13 +568,20 @@ namespace OpenMetaverse
         /// <param name="localID">The Local ID of the object</param>
         public void RequestObject(Simulator simulator, uint localID)
         {
-            RequestMultipleObjectsPacket request = new RequestMultipleObjectsPacket();
-            request.AgentData.AgentID = Client.Self.AgentID;
-            request.AgentData.SessionID = Client.Self.SessionID;
-            request.ObjectData = new RequestMultipleObjectsPacket.ObjectDataBlock[1];
-            request.ObjectData[0] = new RequestMultipleObjectsPacket.ObjectDataBlock();
-            request.ObjectData[0].ID = localID;
-            request.ObjectData[0].CacheMissType = 0;
+            RequestMultipleObjectsPacket request = new RequestMultipleObjectsPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new RequestMultipleObjectsPacket.ObjectDataBlock[1]
+            };
+            request.ObjectData[0] = new RequestMultipleObjectsPacket.ObjectDataBlock
+            {
+                ID = localID,
+                CacheMissType = 0
+            };
 
             Client.Network.SendPacket(request, simulator);
         }
@@ -559,16 +594,23 @@ namespace OpenMetaverse
         /// <param name="localIDs">An array containing the Local IDs of the objects</param>
         public void RequestObjects(Simulator simulator, List<uint> localIDs)
         {
-            RequestMultipleObjectsPacket request = new RequestMultipleObjectsPacket();
-            request.AgentData.AgentID = Client.Self.AgentID;
-            request.AgentData.SessionID = Client.Self.SessionID;
-            request.ObjectData = new RequestMultipleObjectsPacket.ObjectDataBlock[localIDs.Count];
-
-            for (int i = 0; i < localIDs.Count; i++)
+            RequestMultipleObjectsPacket request = new RequestMultipleObjectsPacket
             {
-                request.ObjectData[i] = new RequestMultipleObjectsPacket.ObjectDataBlock();
-                request.ObjectData[i].ID = localIDs[i];
-                request.ObjectData[i].CacheMissType = 0;
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new RequestMultipleObjectsPacket.ObjectDataBlock[localIDs.Count]
+            };
+
+            for (var i = 0; i < localIDs.Count; i++)
+            {
+                request.ObjectData[i] = new RequestMultipleObjectsPacket.ObjectDataBlock
+                {
+                    ID = localIDs[i],
+                    CacheMissType = 0
+                };
             }
 
             Client.Network.SendPacket(request, simulator);
@@ -581,7 +623,7 @@ namespace OpenMetaverse
         /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>        
         /// <param name="localID">The Local ID of the object</param>
         /// <param name="saleType">Whether the original, a copy, or the object
-        /// contents are on sale. This is used for verification, if the this
+        /// contents are on sale. This is used for verification, if the
         /// sale type is not valid for the object the purchase will fail</param>
         /// <param name="price">Price of the object. This is used for 
         /// verification, if it does not match the actual price the purchase
@@ -599,18 +641,24 @@ namespace OpenMetaverse
         public void BuyObject(Simulator simulator, uint localID, SaleType saleType, int price, UUID groupID,
             UUID categoryID)
         {
-            ObjectBuyPacket buy = new ObjectBuyPacket();
+            ObjectBuyPacket buy = new ObjectBuyPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    GroupID = groupID,
+                    CategoryID = categoryID
+                },
+                ObjectData = new ObjectBuyPacket.ObjectDataBlock[1]
+            };
 
-            buy.AgentData.AgentID = Client.Self.AgentID;
-            buy.AgentData.SessionID = Client.Self.SessionID;
-            buy.AgentData.GroupID = groupID;
-            buy.AgentData.CategoryID = categoryID;
-
-            buy.ObjectData = new ObjectBuyPacket.ObjectDataBlock[1];
-            buy.ObjectData[0] = new ObjectBuyPacket.ObjectDataBlock();
-            buy.ObjectData[0].ObjectLocalID = localID;
-            buy.ObjectData[0].SaleType = (byte)saleType;
-            buy.ObjectData[0].SalePrice = price;
+            buy.ObjectData[0] = new ObjectBuyPacket.ObjectDataBlock
+            {
+                ObjectLocalID = localID,
+                SaleType = (byte)saleType,
+                SalePrice = price
+            };
 
             Client.Network.SendPacket(buy, simulator);
         }
@@ -624,10 +672,13 @@ namespace OpenMetaverse
         /// <remarks>The result is raised in the <see cref="PayPriceReply"/> event</remarks>
         public void RequestPayPrice(Simulator simulator, UUID objectID)
         {
-            RequestPayPricePacket payPriceRequest = new RequestPayPricePacket();
-
-            payPriceRequest.ObjectData = new RequestPayPricePacket.ObjectDataBlock();
-            payPriceRequest.ObjectData.ObjectID = objectID;
+            RequestPayPricePacket payPriceRequest = new RequestPayPricePacket
+            {
+                ObjectData = new RequestPayPricePacket.ObjectDataBlock
+                {
+                    ObjectID = objectID
+                }
+            };
 
             Client.Network.SendPacket(payPriceRequest, simulator);
         }
@@ -655,14 +706,20 @@ namespace OpenMetaverse
         /// <seealso cref="ObjectPropertiesFamilyEventArgs"/>
         public void SelectObject(Simulator simulator, uint localID, bool automaticDeselect)
         {
-            ObjectSelectPacket select = new ObjectSelectPacket();
+            ObjectSelectPacket select = new ObjectSelectPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectSelectPacket.ObjectDataBlock[1]
+            };
 
-            select.AgentData.AgentID = Client.Self.AgentID;
-            select.AgentData.SessionID = Client.Self.SessionID;
-
-            select.ObjectData = new ObjectSelectPacket.ObjectDataBlock[1];
-            select.ObjectData[0] = new ObjectSelectPacket.ObjectDataBlock();
-            select.ObjectData[0].ObjectLocalID = localID;
+            select.ObjectData[0] = new ObjectSelectPacket.ObjectDataBlock
+            {
+                ObjectLocalID = localID
+            };
 
             Client.Network.SendPacket(select, simulator);
 
@@ -682,17 +739,22 @@ namespace OpenMetaverse
         /// <seealso cref="ObjectPropertiesFamilyEventArgs"/>
         public void SelectObjects(Simulator simulator, uint[] localIDs, bool automaticDeselect)
         {
-            ObjectSelectPacket select = new ObjectSelectPacket();
-
-            select.AgentData.AgentID = Client.Self.AgentID;
-            select.AgentData.SessionID = Client.Self.SessionID;
-
-            select.ObjectData = new ObjectSelectPacket.ObjectDataBlock[localIDs.Length];
-
-            for (int i = 0; i < localIDs.Length; i++)
+            ObjectSelectPacket select = new ObjectSelectPacket
             {
-                select.ObjectData[i] = new ObjectSelectPacket.ObjectDataBlock();
-                select.ObjectData[i].ObjectLocalID = localIDs[i];
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectSelectPacket.ObjectDataBlock[localIDs.Length]
+            };
+
+            for (var i = 0; i < localIDs.Length; i++)
+            {
+                select.ObjectData[i] = new ObjectSelectPacket.ObjectDataBlock
+                {
+                    ObjectLocalID = localIDs[i]
+                };
             }
 
             Client.Network.SendPacket(select, simulator);
@@ -738,30 +800,37 @@ namespace OpenMetaverse
         /// <param name="temporary">true to turn the objects temporary property on</param>
         /// <param name="phantom">true to turn the objects phantom property on</param>
         /// <param name="castsShadow">true to turn the objects cast shadows property on</param>
-        /// <param name="physicsType">Type of the represetnation prim will have in the physics engine</param>
+        /// <param name="physicsType">Type of the representation prim will have in the physics engine</param>
         /// <param name="density">Density - normal value 1000</param>
         /// <param name="friction">Friction - normal value 0.6</param>
         /// <param name="restitution">Restitution - standard value 0.5</param>
-        /// <param name="gravityMultiplier">Gravity multiplier - standar value 1.0</param>
+        /// <param name="gravityMultiplier">Gravity multiplier - standard value 1.0</param>
         public void SetFlags(Simulator simulator, uint localID, bool physical, bool temporary, bool phantom, bool castsShadow,
             PhysicsShapeType physicsType, float density, float friction, float restitution, float gravityMultiplier)
         {
-            ObjectFlagUpdatePacket flags = new ObjectFlagUpdatePacket();
-            flags.AgentData.AgentID = Client.Self.AgentID;
-            flags.AgentData.SessionID = Client.Self.SessionID;
-            flags.AgentData.ObjectLocalID = localID;
-            flags.AgentData.UsePhysics = physical;
-            flags.AgentData.IsTemporary = temporary;
-            flags.AgentData.IsPhantom = phantom;
-            flags.AgentData.CastsShadows = castsShadow;
+            ObjectFlagUpdatePacket flags = new ObjectFlagUpdatePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    ObjectLocalID = localID,
+                    UsePhysics = physical,
+                    IsTemporary = temporary,
+                    IsPhantom = phantom,
+                    CastsShadows = castsShadow
+                },
+                ExtraPhysics = new ObjectFlagUpdatePacket.ExtraPhysicsBlock[1]
+            };
 
-            flags.ExtraPhysics = new ObjectFlagUpdatePacket.ExtraPhysicsBlock[1];
-            flags.ExtraPhysics[0] = new ObjectFlagUpdatePacket.ExtraPhysicsBlock();
-            flags.ExtraPhysics[0].PhysicsShapeType = (byte)physicsType;
-            flags.ExtraPhysics[0].Density = density;
-            flags.ExtraPhysics[0].Friction = friction;
-            flags.ExtraPhysics[0].Restitution = restitution;
-            flags.ExtraPhysics[0].GravityMultiplier = gravityMultiplier;
+            flags.ExtraPhysics[0] = new ObjectFlagUpdatePacket.ExtraPhysicsBlock
+            {
+                PhysicsShapeType = (byte)physicsType,
+                Density = density,
+                Friction = friction,
+                Restitution = restitution,
+                GravityMultiplier = gravityMultiplier
+            };
 
             Client.Network.SendPacket(flags, simulator);
         }
@@ -775,14 +844,21 @@ namespace OpenMetaverse
         /// <param name="price">The price of the object</param>
         public void SetSaleInfo(Simulator simulator, uint localID, SaleType saleType, int price)
         {
-            ObjectSaleInfoPacket sale = new ObjectSaleInfoPacket();
-            sale.AgentData.AgentID = Client.Self.AgentID;
-            sale.AgentData.SessionID = Client.Self.SessionID;
-            sale.ObjectData = new ObjectSaleInfoPacket.ObjectDataBlock[1];
-            sale.ObjectData[0] = new ObjectSaleInfoPacket.ObjectDataBlock();
-            sale.ObjectData[0].LocalID = localID;
-            sale.ObjectData[0].SalePrice = price;
-            sale.ObjectData[0].SaleType = (byte)saleType;
+            ObjectSaleInfoPacket sale = new ObjectSaleInfoPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectSaleInfoPacket.ObjectDataBlock[1]
+            };
+            sale.ObjectData[0] = new ObjectSaleInfoPacket.ObjectDataBlock
+            {
+                LocalID = localID,
+                SalePrice = price,
+                SaleType = (byte)saleType
+            };
 
             Client.Network.SendPacket(sale, simulator);
         }
@@ -796,17 +872,24 @@ namespace OpenMetaverse
         /// <param name="price">The price of the object</param>
         public void SetSaleInfo(Simulator simulator, List<uint> localIDs, SaleType saleType, int price)
         {
-            ObjectSaleInfoPacket sale = new ObjectSaleInfoPacket();
-            sale.AgentData.AgentID = Client.Self.AgentID;
-            sale.AgentData.SessionID = Client.Self.SessionID;
-            sale.ObjectData = new ObjectSaleInfoPacket.ObjectDataBlock[localIDs.Count];
-
-            for (int i = 0; i < localIDs.Count; i++)
+            ObjectSaleInfoPacket sale = new ObjectSaleInfoPacket
             {
-                sale.ObjectData[i] = new ObjectSaleInfoPacket.ObjectDataBlock();
-                sale.ObjectData[i].LocalID = localIDs[i];
-                sale.ObjectData[i].SalePrice = price;
-                sale.ObjectData[i].SaleType = (byte)saleType;
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectSaleInfoPacket.ObjectDataBlock[localIDs.Count]
+            };
+
+            for (var i = 0; i < localIDs.Count; i++)
+            {
+                sale.ObjectData[i] = new ObjectSaleInfoPacket.ObjectDataBlock
+                {
+                    LocalID = localIDs[i],
+                    SalePrice = price,
+                    SaleType = (byte)saleType
+                };
             }
 
             Client.Network.SendPacket(sale, simulator);
@@ -819,14 +902,20 @@ namespace OpenMetaverse
         /// <param name="localID">The Local ID of the object</param>
         public void DeselectObject(Simulator simulator, uint localID)
         {
-            ObjectDeselectPacket deselect = new ObjectDeselectPacket();
+            ObjectDeselectPacket deselect = new ObjectDeselectPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectDeselectPacket.ObjectDataBlock[1]
+            };
 
-            deselect.AgentData.AgentID = Client.Self.AgentID;
-            deselect.AgentData.SessionID = Client.Self.SessionID;
-
-            deselect.ObjectData = new ObjectDeselectPacket.ObjectDataBlock[1];
-            deselect.ObjectData[0] = new ObjectDeselectPacket.ObjectDataBlock();
-            deselect.ObjectData[0].ObjectLocalID = localID;
+            deselect.ObjectData[0] = new ObjectDeselectPacket.ObjectDataBlock
+            {
+                ObjectLocalID = localID
+            };
 
             Client.Network.SendPacket(deselect, simulator);
         }
@@ -838,17 +927,22 @@ namespace OpenMetaverse
         /// <param name="localIDs">An array containing the Local IDs of the objects</param>
         public void DeselectObjects(Simulator simulator, uint[] localIDs)
         {
-            ObjectDeselectPacket deselect = new ObjectDeselectPacket();
-
-            deselect.AgentData.AgentID = Client.Self.AgentID;
-            deselect.AgentData.SessionID = Client.Self.SessionID;
-
-            deselect.ObjectData = new ObjectDeselectPacket.ObjectDataBlock[localIDs.Length];
-
-            for (int i = 0; i < localIDs.Length; i++)
+            ObjectDeselectPacket deselect = new ObjectDeselectPacket
             {
-                deselect.ObjectData[i] = new ObjectDeselectPacket.ObjectDataBlock();
-                deselect.ObjectData[i].ObjectLocalID = localIDs[i];
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectDeselectPacket.ObjectDataBlock[localIDs.Length]
+            };
+
+            for (var i = 0; i < localIDs.Length; i++)
+            {
+                deselect.ObjectData[i] = new ObjectDeselectPacket.ObjectDataBlock
+                {
+                    ObjectLocalID = localIDs[i]
+                };
             }
 
             Client.Network.SendPacket(deselect, simulator);
@@ -873,25 +967,35 @@ namespace OpenMetaverse
         /// <param name="stCoord">The surface coordinates to touch</param>
         /// <param name="faceIndex">The face of the position to touch</param>
         /// <param name="position">The region coordinates of the position to touch</param>
-        /// <param name="normal">The surface normal of the position to touch (A normal is a vector perpindicular to the surface)</param>
-        /// <param name="binormal">The surface binormal of the position to touch (A binormal is a vector tangen to the surface
+        /// <param name="normal">The surface normal of the position to touch (A normal is a vector perpendicular to the surface)</param>
+        /// <param name="binormal">The surface binormal of the position to touch (A binormal is a vector tangent to the surface
         /// pointing along the U direction of the tangent space</param>
         public void ClickObject(Simulator simulator, uint localID, Vector3 uvCoord, Vector3 stCoord, int faceIndex, Vector3 position,
             Vector3 normal, Vector3 binormal)
         {
-            ObjectGrabPacket grab = new ObjectGrabPacket();
-            grab.AgentData.AgentID = Client.Self.AgentID;
-            grab.AgentData.SessionID = Client.Self.SessionID;
-            grab.ObjectData.GrabOffset = Vector3.Zero;
-            grab.ObjectData.LocalID = localID;
-            grab.SurfaceInfo = new ObjectGrabPacket.SurfaceInfoBlock[1];
-            grab.SurfaceInfo[0] = new ObjectGrabPacket.SurfaceInfoBlock();
-            grab.SurfaceInfo[0].UVCoord = uvCoord;
-            grab.SurfaceInfo[0].STCoord = stCoord;
-            grab.SurfaceInfo[0].FaceIndex = faceIndex;
-            grab.SurfaceInfo[0].Position = position;
-            grab.SurfaceInfo[0].Normal = normal;
-            grab.SurfaceInfo[0].Binormal = binormal;
+            ObjectGrabPacket grab = new ObjectGrabPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData =
+                {
+                    GrabOffset = Vector3.Zero,
+                    LocalID = localID
+                },
+                SurfaceInfo = new ObjectGrabPacket.SurfaceInfoBlock[1]
+            };
+            grab.SurfaceInfo[0] = new ObjectGrabPacket.SurfaceInfoBlock
+            {
+                UVCoord = uvCoord,
+                STCoord = stCoord,
+                FaceIndex = faceIndex,
+                Position = position,
+                Normal = normal,
+                Binormal = binormal
+            };
 
             Client.Network.SendPacket(grab, simulator);
 
@@ -899,18 +1003,28 @@ namespace OpenMetaverse
             // and we'll be grabbing the object
             Thread.Sleep(50);
 
-            ObjectDeGrabPacket degrab = new ObjectDeGrabPacket();
-            degrab.AgentData.AgentID = Client.Self.AgentID;
-            degrab.AgentData.SessionID = Client.Self.SessionID;
-            degrab.ObjectData.LocalID = localID;
-            degrab.SurfaceInfo = new ObjectDeGrabPacket.SurfaceInfoBlock[1];
-            degrab.SurfaceInfo[0] = new ObjectDeGrabPacket.SurfaceInfoBlock();
-            degrab.SurfaceInfo[0].UVCoord = uvCoord;
-            degrab.SurfaceInfo[0].STCoord = stCoord;
-            degrab.SurfaceInfo[0].FaceIndex = faceIndex;
-            degrab.SurfaceInfo[0].Position = position;
-            degrab.SurfaceInfo[0].Normal = normal;
-            degrab.SurfaceInfo[0].Binormal = binormal;
+            ObjectDeGrabPacket degrab = new ObjectDeGrabPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData =
+                {
+                    LocalID = localID
+                },
+                SurfaceInfo = new ObjectDeGrabPacket.SurfaceInfoBlock[1]
+            };
+            degrab.SurfaceInfo[0] = new ObjectDeGrabPacket.SurfaceInfoBlock
+            {
+                UVCoord = uvCoord,
+                STCoord = stCoord,
+                FaceIndex = faceIndex,
+                Position = position,
+                Normal = normal,
+                Binormal = binormal
+            };
 
             Client.Network.SendPacket(degrab, simulator);
         }
@@ -957,45 +1071,47 @@ namespace OpenMetaverse
         public void AddPrim(Simulator simulator, Primitive.ConstructionData prim, UUID groupID, Vector3 position,
             Vector3 scale, Quaternion rotation, PrimFlags createFlags)
         {
-            ObjectAddPacket packet = new ObjectAddPacket();
-
-            packet.AgentData.AgentID = Client.Self.AgentID;
-            packet.AgentData.SessionID = Client.Self.SessionID;
-            packet.AgentData.GroupID = groupID;
-
-            packet.ObjectData.State = prim.State;
-            packet.ObjectData.AddFlags = (uint)createFlags;
-            packet.ObjectData.PCode = (byte)PCode.Prim;
-
-            packet.ObjectData.Material = (byte)prim.Material;
-            packet.ObjectData.Scale = scale;
-            packet.ObjectData.Rotation = rotation;
-
-            packet.ObjectData.PathCurve = (byte)prim.PathCurve;
-            packet.ObjectData.PathBegin = Primitive.PackBeginCut(prim.PathBegin);
-            packet.ObjectData.PathEnd = Primitive.PackEndCut(prim.PathEnd);
-            packet.ObjectData.PathRadiusOffset = Primitive.PackPathTwist(prim.PathRadiusOffset);
-            packet.ObjectData.PathRevolutions = Primitive.PackPathRevolutions(prim.PathRevolutions);
-            packet.ObjectData.PathScaleX = Primitive.PackPathScale(prim.PathScaleX);
-            packet.ObjectData.PathScaleY = Primitive.PackPathScale(prim.PathScaleY);
-            packet.ObjectData.PathShearX = (byte)Primitive.PackPathShear(prim.PathShearX);
-            packet.ObjectData.PathShearY = (byte)Primitive.PackPathShear(prim.PathShearY);
-            packet.ObjectData.PathSkew = Primitive.PackPathTwist(prim.PathSkew);
-            packet.ObjectData.PathTaperX = Primitive.PackPathTaper(prim.PathTaperX);
-            packet.ObjectData.PathTaperY = Primitive.PackPathTaper(prim.PathTaperY);
-            packet.ObjectData.PathTwist = Primitive.PackPathTwist(prim.PathTwist);
-            packet.ObjectData.PathTwistBegin = Primitive.PackPathTwist(prim.PathTwistBegin);
-
-            packet.ObjectData.ProfileCurve = prim.profileCurve;
-            packet.ObjectData.ProfileBegin = Primitive.PackBeginCut(prim.ProfileBegin);
-            packet.ObjectData.ProfileEnd = Primitive.PackEndCut(prim.ProfileEnd);
-            packet.ObjectData.ProfileHollow = Primitive.PackProfileHollow(prim.ProfileHollow);
-
-            packet.ObjectData.RayStart = position;
-            packet.ObjectData.RayEnd = position;
-            packet.ObjectData.RayEndIsIntersection = 0;
-            packet.ObjectData.RayTargetID = UUID.Zero;
-            packet.ObjectData.BypassRaycast = 1;
+            ObjectAddPacket packet = new ObjectAddPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    GroupID = groupID
+                },
+                ObjectData =
+                {
+                    State = prim.State,
+                    AddFlags = (uint)createFlags,
+                    PCode = (byte)PCode.Prim,
+                    Material = (byte)prim.Material,
+                    Scale = scale,
+                    Rotation = rotation,
+                    PathCurve = (byte)prim.PathCurve,
+                    PathBegin = Primitive.PackBeginCut(prim.PathBegin),
+                    PathEnd = Primitive.PackEndCut(prim.PathEnd),
+                    PathRadiusOffset = Primitive.PackPathTwist(prim.PathRadiusOffset),
+                    PathRevolutions = Primitive.PackPathRevolutions(prim.PathRevolutions),
+                    PathScaleX = Primitive.PackPathScale(prim.PathScaleX),
+                    PathScaleY = Primitive.PackPathScale(prim.PathScaleY),
+                    PathShearX = (byte)Primitive.PackPathShear(prim.PathShearX),
+                    PathShearY = (byte)Primitive.PackPathShear(prim.PathShearY),
+                    PathSkew = Primitive.PackPathTwist(prim.PathSkew),
+                    PathTaperX = Primitive.PackPathTaper(prim.PathTaperX),
+                    PathTaperY = Primitive.PackPathTaper(prim.PathTaperY),
+                    PathTwist = Primitive.PackPathTwist(prim.PathTwist),
+                    PathTwistBegin = Primitive.PackPathTwist(prim.PathTwistBegin),
+                    ProfileCurve = prim.profileCurve,
+                    ProfileBegin = Primitive.PackBeginCut(prim.ProfileBegin),
+                    ProfileEnd = Primitive.PackEndCut(prim.ProfileEnd),
+                    ProfileHollow = Primitive.PackProfileHollow(prim.ProfileHollow),
+                    RayStart = position,
+                    RayEnd = position,
+                    RayEndIsIntersection = 0,
+                    RayTargetID = UUID.Zero,
+                    BypassRaycast = 1
+                }
+            };
 
             Client.Network.SendPacket(packet, simulator);
         }
@@ -1014,21 +1130,28 @@ namespace OpenMetaverse
         public void AddTree(Simulator simulator, Vector3 scale, Quaternion rotation, Vector3 position,
             Tree treeType, UUID groupOwner, bool newTree)
         {
-            ObjectAddPacket add = new ObjectAddPacket();
-
-            add.AgentData.AgentID = Client.Self.AgentID;
-            add.AgentData.SessionID = Client.Self.SessionID;
-            add.AgentData.GroupID = groupOwner;
-            add.ObjectData.BypassRaycast = 1;
-            add.ObjectData.Material = 3;
-            add.ObjectData.PathCurve = 16;
-            add.ObjectData.PCode = newTree ? (byte)PCode.NewTree : (byte)PCode.Tree;
-            add.ObjectData.RayEnd = position;
-            add.ObjectData.RayStart = position;
-            add.ObjectData.RayTargetID = UUID.Zero;
-            add.ObjectData.Rotation = rotation;
-            add.ObjectData.Scale = scale;
-            add.ObjectData.State = (byte)treeType;
+            ObjectAddPacket add = new ObjectAddPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    GroupID = groupOwner
+                },
+                ObjectData =
+                {
+                    BypassRaycast = 1,
+                    Material = 3,
+                    PathCurve = 16,
+                    PCode = newTree ? (byte)PCode.NewTree : (byte)PCode.Tree,
+                    RayEnd = position,
+                    RayStart = position,
+                    RayTargetID = UUID.Zero,
+                    Rotation = rotation,
+                    Scale = scale,
+                    State = (byte)treeType
+                }
+            };
 
             Client.Network.SendPacket(add, simulator);
         }
@@ -1046,21 +1169,28 @@ namespace OpenMetaverse
         public void AddGrass(Simulator simulator, Vector3 scale, Quaternion rotation, Vector3 position,
             Grass grassType, UUID groupOwner)
         {
-            ObjectAddPacket add = new ObjectAddPacket();
-
-            add.AgentData.AgentID = Client.Self.AgentID;
-            add.AgentData.SessionID = Client.Self.SessionID;
-            add.AgentData.GroupID = groupOwner;
-            add.ObjectData.BypassRaycast = 1;
-            add.ObjectData.Material = 3;
-            add.ObjectData.PathCurve = 16;
-            add.ObjectData.PCode = (byte)PCode.Grass;
-            add.ObjectData.RayEnd = position;
-            add.ObjectData.RayStart = position;
-            add.ObjectData.RayTargetID = UUID.Zero;
-            add.ObjectData.Rotation = rotation;
-            add.ObjectData.Scale = scale;
-            add.ObjectData.State = (byte)grassType;
+            ObjectAddPacket add = new ObjectAddPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    GroupID = groupOwner
+                },
+                ObjectData =
+                {
+                    BypassRaycast = 1,
+                    Material = 3,
+                    PathCurve = 16,
+                    PCode = (byte)PCode.Grass,
+                    RayEnd = position,
+                    RayStart = position,
+                    RayTargetID = UUID.Zero,
+                    Rotation = rotation,
+                    Scale = scale,
+                    State = (byte)grassType
+                }
+            };
 
             Client.Network.SendPacket(add, simulator);
         }
@@ -1085,15 +1215,22 @@ namespace OpenMetaverse
         /// <param name="mediaUrl">A media URL (not used)</param>
         public void SetTextures(Simulator simulator, uint localID, Primitive.TextureEntry textures, string mediaUrl)
         {
-            ObjectImagePacket image = new ObjectImagePacket();
+            ObjectImagePacket image = new ObjectImagePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectImagePacket.ObjectDataBlock[1]
+            };
 
-            image.AgentData.AgentID = Client.Self.AgentID;
-            image.AgentData.SessionID = Client.Self.SessionID;
-            image.ObjectData = new ObjectImagePacket.ObjectDataBlock[1];
-            image.ObjectData[0] = new ObjectImagePacket.ObjectDataBlock();
-            image.ObjectData[0].ObjectLocalID = localID;
-            image.ObjectData[0].TextureEntry = textures.GetBytes();
-            image.ObjectData[0].MediaURL = Utils.StringToBytes(mediaUrl);
+            image.ObjectData[0] = new ObjectImagePacket.ObjectDataBlock
+            {
+                ObjectLocalID = localID,
+                TextureEntry = textures.GetBytes(),
+                MediaURL = Utils.StringToBytes(mediaUrl)
+            };
 
             Client.Network.SendPacket(image, simulator);
         }
@@ -1103,27 +1240,27 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="simulator">A reference to the <seealso cref="OpenMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
-        /// <param name="light">A <seealso cref="Primitive.LightData"/> object containing the data to set</param>
+        /// <param name="light"><seealso cref="Primitive.LightData"/> object containing the data to set</param>
         public void SetLight(Simulator simulator, uint localID, Primitive.LightData light)
         {
-            ObjectExtraParamsPacket extra = new ObjectExtraParamsPacket();
+            ObjectExtraParamsPacket extra = new ObjectExtraParamsPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectExtraParamsPacket.ObjectDataBlock[1]
+            };
 
-            extra.AgentData.AgentID = Client.Self.AgentID;
-            extra.AgentData.SessionID = Client.Self.SessionID;
-            extra.ObjectData = new ObjectExtraParamsPacket.ObjectDataBlock[1];
-            extra.ObjectData[0] = new ObjectExtraParamsPacket.ObjectDataBlock();
-            extra.ObjectData[0].ObjectLocalID = localID;
-            extra.ObjectData[0].ParamType = (byte)ExtraParamType.Light;
-            if (light.Intensity == 0.0f)
+            extra.ObjectData[0] = new ObjectExtraParamsPacket.ObjectDataBlock
             {
+                ObjectLocalID = localID,
+                ParamType = (byte)ExtraParamType.Light,
                 // Disables the light if intensity is 0
-                extra.ObjectData[0].ParamInUse = false;
-            }
-            else
-            {
-                extra.ObjectData[0].ParamInUse = true;
-            }
-            extra.ObjectData[0].ParamData = light.GetBytes();
+                ParamInUse = light.Intensity != 0.0f,
+                ParamData = light.GetBytes()
+            };
             extra.ObjectData[0].ParamSize = (uint)extra.ObjectData[0].ParamData.Length;
 
             Client.Network.SendPacket(extra, simulator);
@@ -1137,16 +1274,23 @@ namespace OpenMetaverse
         /// <param name="flexible">A <seealso cref="Primitive.FlexibleData"/> object containing the data to set</param>
         public void SetFlexible(Simulator simulator, uint localID, Primitive.FlexibleData flexible)
         {
-            ObjectExtraParamsPacket extra = new ObjectExtraParamsPacket();
+            ObjectExtraParamsPacket extra = new ObjectExtraParamsPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectExtraParamsPacket.ObjectDataBlock[1]
+            };
 
-            extra.AgentData.AgentID = Client.Self.AgentID;
-            extra.AgentData.SessionID = Client.Self.SessionID;
-            extra.ObjectData = new ObjectExtraParamsPacket.ObjectDataBlock[1];
-            extra.ObjectData[0] = new ObjectExtraParamsPacket.ObjectDataBlock();
-            extra.ObjectData[0].ObjectLocalID = localID;
-            extra.ObjectData[0].ParamType = (byte)ExtraParamType.Flexible;
-            extra.ObjectData[0].ParamInUse = true;
-            extra.ObjectData[0].ParamData = flexible.GetBytes();
+            extra.ObjectData[0] = new ObjectExtraParamsPacket.ObjectDataBlock
+            {
+                ObjectLocalID = localID,
+                ParamType = (byte)ExtraParamType.Flexible,
+                ParamInUse = true,
+                ParamData = flexible.GetBytes()
+            };
             extra.ObjectData[0].ParamSize = (uint)extra.ObjectData[0].ParamData.Length;
 
             Client.Network.SendPacket(extra, simulator);
@@ -1160,33 +1304,45 @@ namespace OpenMetaverse
         /// <param name="sculpt">A <seealso cref="Primitive.SculptData"/> object containing the data to set</param>
         public void SetSculpt(Simulator simulator, uint localID, Primitive.SculptData sculpt)
         {
-            ObjectExtraParamsPacket extra = new ObjectExtraParamsPacket();
+            ObjectExtraParamsPacket extra = new ObjectExtraParamsPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectExtraParamsPacket.ObjectDataBlock[1]
+            };
 
-            extra.AgentData.AgentID = Client.Self.AgentID;
-            extra.AgentData.SessionID = Client.Self.SessionID;
-
-            extra.ObjectData = new ObjectExtraParamsPacket.ObjectDataBlock[1];
-            extra.ObjectData[0] = new ObjectExtraParamsPacket.ObjectDataBlock();
-            extra.ObjectData[0].ObjectLocalID = localID;
-            extra.ObjectData[0].ParamType = (byte)ExtraParamType.Sculpt;
-            extra.ObjectData[0].ParamInUse = true;
-            extra.ObjectData[0].ParamData = sculpt.GetBytes();
+            extra.ObjectData[0] = new ObjectExtraParamsPacket.ObjectDataBlock
+            {
+                ObjectLocalID = localID,
+                ParamType = (byte)ExtraParamType.Sculpt,
+                ParamInUse = true,
+                ParamData = sculpt.GetBytes()
+            };
             extra.ObjectData[0].ParamSize = (uint)extra.ObjectData[0].ParamData.Length;
 
             Client.Network.SendPacket(extra, simulator);
 
             // Not sure why, but if you don't send this the sculpted prim disappears
-            ObjectShapePacket shape = new ObjectShapePacket();
+            ObjectShapePacket shape = new ObjectShapePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new OpenMetaverse.Packets.ObjectShapePacket.ObjectDataBlock[1]
+            };
 
-            shape.AgentData.AgentID = Client.Self.AgentID;
-            shape.AgentData.SessionID = Client.Self.SessionID;
-
-            shape.ObjectData = new OpenMetaverse.Packets.ObjectShapePacket.ObjectDataBlock[1];
-            shape.ObjectData[0] = new OpenMetaverse.Packets.ObjectShapePacket.ObjectDataBlock();
-            shape.ObjectData[0].ObjectLocalID = localID;
-            shape.ObjectData[0].PathScaleX = 100;
-            shape.ObjectData[0].PathScaleY = 150;
-            shape.ObjectData[0].PathCurve = 32;
+            shape.ObjectData[0] = new OpenMetaverse.Packets.ObjectShapePacket.ObjectDataBlock
+            {
+                ObjectLocalID = localID,
+                PathScaleX = 100,
+                PathScaleY = 150,
+                PathCurve = 32
+            };
 
             Client.Network.SendPacket(shape, simulator);
         }
@@ -1199,17 +1355,24 @@ namespace OpenMetaverse
         /// <param name="type">The extra parameters to set</param>
         public void SetExtraParamOff(Simulator simulator, uint localID, ExtraParamType type)
         {
-            ObjectExtraParamsPacket extra = new ObjectExtraParamsPacket();
+            ObjectExtraParamsPacket extra = new ObjectExtraParamsPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectExtraParamsPacket.ObjectDataBlock[1]
+            };
 
-            extra.AgentData.AgentID = Client.Self.AgentID;
-            extra.AgentData.SessionID = Client.Self.SessionID;
-            extra.ObjectData = new ObjectExtraParamsPacket.ObjectDataBlock[1];
-            extra.ObjectData[0] = new ObjectExtraParamsPacket.ObjectDataBlock();
-            extra.ObjectData[0].ObjectLocalID = localID;
-            extra.ObjectData[0].ParamType = (byte)type;
-            extra.ObjectData[0].ParamInUse = false;
-            extra.ObjectData[0].ParamData = Utils.EmptyBytes;
-            extra.ObjectData[0].ParamSize = 0;
+            extra.ObjectData[0] = new ObjectExtraParamsPacket.ObjectDataBlock
+            {
+                ObjectLocalID = localID,
+                ParamType = (byte)type,
+                ParamInUse = false,
+                ParamData = Utils.EmptyBytes,
+                ParamSize = 0
+            };
 
             Client.Network.SendPacket(extra, simulator);
         }
@@ -1219,20 +1382,25 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="simulator">A reference to the <seealso cref="OpenMetaverse.Simulator"/> object where the objects reside</param>
         /// <param name="localIDs">An array which contains the IDs of the objects to link</param>
-        /// <remarks>The last object in the array will be the root object of the linkset TODO: Is this true?</remarks>
+        /// <remarks>The last object in the array will be the root object of the linkset</remarks>
         public void LinkPrims(Simulator simulator, List<uint> localIDs)
         {
-            ObjectLinkPacket packet = new ObjectLinkPacket();
-
-            packet.AgentData.AgentID = Client.Self.AgentID;
-            packet.AgentData.SessionID = Client.Self.SessionID;
-
-            packet.ObjectData = new ObjectLinkPacket.ObjectDataBlock[localIDs.Count];
+            ObjectLinkPacket packet = new ObjectLinkPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectLinkPacket.ObjectDataBlock[localIDs.Count]
+            };
 
             for (int i = 0; i < localIDs.Count; i++)
             {
-                packet.ObjectData[i] = new ObjectLinkPacket.ObjectDataBlock();
-                packet.ObjectData[i].ObjectLocalID = localIDs[i];
+                packet.ObjectData[i] = new ObjectLinkPacket.ObjectDataBlock
+                {
+                    ObjectLocalID = localIDs[i]
+                };
             }
 
             Client.Network.SendPacket(packet, simulator);
@@ -1245,18 +1413,23 @@ namespace OpenMetaverse
         /// <param name="localIDs">An array which contains the IDs of the objects to delink</param>
         public void DelinkPrims(Simulator simulator, List<uint> localIDs)
         {
-            ObjectDelinkPacket packet = new ObjectDelinkPacket();
-
-            packet.AgentData.AgentID = Client.Self.AgentID;
-            packet.AgentData.SessionID = Client.Self.SessionID;
-
-            packet.ObjectData = new ObjectDelinkPacket.ObjectDataBlock[localIDs.Count];
+            ObjectDelinkPacket packet = new ObjectDelinkPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectDelinkPacket.ObjectDataBlock[localIDs.Count]
+            };
 
             int i = 0;
             foreach (uint localID in localIDs)
             {
-                packet.ObjectData[i] = new ObjectDelinkPacket.ObjectDataBlock();
-                packet.ObjectData[i].ObjectLocalID = localID;
+                packet.ObjectData[i] = new ObjectDelinkPacket.ObjectDataBlock
+                {
+                    ObjectLocalID = localID
+                };
 
                 i++;
             }
@@ -1272,15 +1445,21 @@ namespace OpenMetaverse
         /// <param name="rotation">The new rotation of the object</param>
         public void SetRotation(Simulator simulator, uint localID, Quaternion rotation)
         {
-            ObjectRotationPacket objRotPacket = new ObjectRotationPacket();
-            objRotPacket.AgentData.AgentID = Client.Self.AgentID;
-            objRotPacket.AgentData.SessionID = Client.Self.SessionID;
+            ObjectRotationPacket objRotPacket = new ObjectRotationPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectRotationPacket.ObjectDataBlock[1]
+            };
 
-            objRotPacket.ObjectData = new ObjectRotationPacket.ObjectDataBlock[1];
-
-            objRotPacket.ObjectData[0] = new ObjectRotationPacket.ObjectDataBlock();
-            objRotPacket.ObjectData[0].ObjectLocalID = localID;
-            objRotPacket.ObjectData[0].Rotation = rotation;
+            objRotPacket.ObjectData[0] = new ObjectRotationPacket.ObjectDataBlock
+            {
+                ObjectLocalID = localID,
+                Rotation = rotation
+            };
             Client.Network.SendPacket(objRotPacket, simulator);
         }
 
@@ -1303,17 +1482,23 @@ namespace OpenMetaverse
         /// <param name="names">An array which contains the new names of the objects</param>
         public void SetNames(Simulator simulator, uint[] localIDs, string[] names)
         {
-            ObjectNamePacket namePacket = new ObjectNamePacket();
-            namePacket.AgentData.AgentID = Client.Self.AgentID;
-            namePacket.AgentData.SessionID = Client.Self.SessionID;
-
-            namePacket.ObjectData = new ObjectNamePacket.ObjectDataBlock[localIDs.Length];
+            ObjectNamePacket namePacket = new ObjectNamePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectNamePacket.ObjectDataBlock[localIDs.Length]
+            };
 
             for (int i = 0; i < localIDs.Length; ++i)
             {
-                namePacket.ObjectData[i] = new ObjectNamePacket.ObjectDataBlock();
-                namePacket.ObjectData[i].LocalID = localIDs[i];
-                namePacket.ObjectData[i].Name = Utils.StringToBytes(names[i]);
+                namePacket.ObjectData[i] = new ObjectNamePacket.ObjectDataBlock
+                {
+                    LocalID = localIDs[i],
+                    Name = Utils.StringToBytes(names[i])
+                };
             }
 
             Client.Network.SendPacket(namePacket, simulator);
@@ -1338,17 +1523,23 @@ namespace OpenMetaverse
         /// <param name="descriptions">An array which contains the new descriptions of the objects</param>
         public void SetDescriptions(Simulator simulator, uint[] localIDs, string[] descriptions)
         {
-            ObjectDescriptionPacket descPacket = new ObjectDescriptionPacket();
-            descPacket.AgentData.AgentID = Client.Self.AgentID;
-            descPacket.AgentData.SessionID = Client.Self.SessionID;
-
-            descPacket.ObjectData = new ObjectDescriptionPacket.ObjectDataBlock[localIDs.Length];
+            ObjectDescriptionPacket descPacket = new ObjectDescriptionPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectDescriptionPacket.ObjectDataBlock[localIDs.Length]
+            };
 
             for (int i = 0; i < localIDs.Length; ++i)
             {
-                descPacket.ObjectData[i] = new ObjectDescriptionPacket.ObjectDataBlock();
-                descPacket.ObjectData[i].LocalID = localIDs[i];
-                descPacket.ObjectData[i].Description = Utils.StringToBytes(descriptions[i]);
+                descPacket.ObjectData[i] = new ObjectDescriptionPacket.ObjectDataBlock
+                {
+                    LocalID = localIDs[i],
+                    Description = Utils.StringToBytes(descriptions[i])
+                };
             }
 
             Client.Network.SendPacket(descPacket, simulator);
@@ -1363,15 +1554,22 @@ namespace OpenMetaverse
         /// <param name="rotation">The rotation of the attached object</param>
         public void AttachObject(Simulator simulator, uint localID, AttachmentPoint attachPoint, Quaternion rotation)
         {
-            ObjectAttachPacket attach = new ObjectAttachPacket();
-            attach.AgentData.AgentID = Client.Self.AgentID;
-            attach.AgentData.SessionID = Client.Self.SessionID;
-            attach.AgentData.AttachmentPoint = (byte)attachPoint;
+            ObjectAttachPacket attach = new ObjectAttachPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    AttachmentPoint = (byte)attachPoint
+                },
+                ObjectData = new ObjectAttachPacket.ObjectDataBlock[1]
+            };
 
-            attach.ObjectData = new ObjectAttachPacket.ObjectDataBlock[1];
-            attach.ObjectData[0] = new ObjectAttachPacket.ObjectDataBlock();
-            attach.ObjectData[0].ObjectLocalID = localID;
-            attach.ObjectData[0].Rotation = rotation;
+            attach.ObjectData[0] = new ObjectAttachPacket.ObjectDataBlock
+            {
+                ObjectLocalID = localID,
+                Rotation = rotation
+            };
 
             Client.Network.SendPacket(attach, simulator);
         }
@@ -1385,12 +1583,19 @@ namespace OpenMetaverse
         /// <param name="localID">The object's ID which is local to the simulator the object is in</param>
         public void DropObject(Simulator simulator, uint localID)
         {
-            ObjectDropPacket dropit = new ObjectDropPacket();
-            dropit.AgentData.AgentID = Client.Self.AgentID;
-            dropit.AgentData.SessionID = Client.Self.SessionID;
-            dropit.ObjectData = new ObjectDropPacket.ObjectDataBlock[1];
-            dropit.ObjectData[0] = new ObjectDropPacket.ObjectDataBlock();
-            dropit.ObjectData[0].ObjectLocalID = localID;
+            ObjectDropPacket dropit = new ObjectDropPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectDropPacket.ObjectDataBlock[1]
+            };
+            dropit.ObjectData[0] = new ObjectDropPacket.ObjectDataBlock
+            {
+                ObjectLocalID = localID
+            };
 
             Client.Network.SendPacket(dropit, simulator);
         }
@@ -1406,15 +1611,22 @@ namespace OpenMetaverse
         /// <param name="localIDs">An array which contains the IDs of the objects to detach</param>
         public void DetachObjects(Simulator simulator, List<uint> localIDs)
         {
-            ObjectDetachPacket detach = new ObjectDetachPacket();
-            detach.AgentData.AgentID = Client.Self.AgentID;
-            detach.AgentData.SessionID = Client.Self.SessionID;
-            detach.ObjectData = new ObjectDetachPacket.ObjectDataBlock[localIDs.Count];
+            ObjectDetachPacket detach = new ObjectDetachPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectDetachPacket.ObjectDataBlock[localIDs.Count]
+            };
 
             for (int i = 0; i < localIDs.Count; i++)
             {
-                detach.ObjectData[i] = new ObjectDetachPacket.ObjectDataBlock();
-                detach.ObjectData[i].ObjectLocalID = localIDs[i];
+                detach.ObjectData[i] = new ObjectDetachPacket.ObjectDataBlock
+                {
+                    ObjectLocalID = localIDs[i]
+                };
             }
 
             Client.Network.SendPacket(detach, simulator);
@@ -1483,16 +1695,22 @@ namespace OpenMetaverse
             if (!childOnly)
                 type |= UpdateType.Linked;
 
-            MultipleObjectUpdatePacket multiObjectUpdate = new MultipleObjectUpdatePacket();
-            multiObjectUpdate.AgentData.AgentID = Client.Self.AgentID;
-            multiObjectUpdate.AgentData.SessionID = Client.Self.SessionID;
+            MultipleObjectUpdatePacket multiObjectUpdate = new MultipleObjectUpdatePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new MultipleObjectUpdatePacket.ObjectDataBlock[1]
+            };
 
-            multiObjectUpdate.ObjectData = new MultipleObjectUpdatePacket.ObjectDataBlock[1];
-
-            multiObjectUpdate.ObjectData[0] = new MultipleObjectUpdatePacket.ObjectDataBlock();
-            multiObjectUpdate.ObjectData[0].Type = (byte)type;
-            multiObjectUpdate.ObjectData[0].ObjectLocalID = localID;
-            multiObjectUpdate.ObjectData[0].Data = quat.GetBytes();
+            multiObjectUpdate.ObjectData[0] = new MultipleObjectUpdatePacket.ObjectDataBlock
+            {
+                Type = (byte)type,
+                ObjectLocalID = localID,
+                Data = quat.GetBytes()
+            };
 
             Client.Network.SendPacket(multiObjectUpdate, simulator);
         }
@@ -1506,16 +1724,22 @@ namespace OpenMetaverse
         /// <param name="type">The flags from the <seealso cref="UpdateType"/> Enum</param>
         public void UpdateObject(Simulator simulator, uint localID, Vector3 data, UpdateType type)
         {
-            MultipleObjectUpdatePacket multiObjectUpdate = new MultipleObjectUpdatePacket();
-            multiObjectUpdate.AgentData.AgentID = Client.Self.AgentID;
-            multiObjectUpdate.AgentData.SessionID = Client.Self.SessionID;
+            MultipleObjectUpdatePacket multiObjectUpdate = new MultipleObjectUpdatePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new MultipleObjectUpdatePacket.ObjectDataBlock[1]
+            };
 
-            multiObjectUpdate.ObjectData = new MultipleObjectUpdatePacket.ObjectDataBlock[1];
-
-            multiObjectUpdate.ObjectData[0] = new MultipleObjectUpdatePacket.ObjectDataBlock();
-            multiObjectUpdate.ObjectData[0].Type = (byte)type;
-            multiObjectUpdate.ObjectData[0].ObjectLocalID = localID;
-            multiObjectUpdate.ObjectData[0].Data = data.GetBytes();
+            multiObjectUpdate.ObjectData[0] = new MultipleObjectUpdatePacket.ObjectDataBlock
+            {
+                Type = (byte)type,
+                ObjectLocalID = localID,
+                Data = data.GetBytes()
+            };
 
             Client.Network.SendPacket(multiObjectUpdate, simulator);
         }
@@ -1529,19 +1753,27 @@ namespace OpenMetaverse
         /// <param name="groupOwner">The <seealso cref="UUID"/> of the group to deed the object to</param>
         public void DeedObject(Simulator simulator, uint localID, UUID groupOwner)
         {
-            ObjectOwnerPacket objDeedPacket = new ObjectOwnerPacket();
-            objDeedPacket.AgentData.AgentID = Client.Self.AgentID;
-            objDeedPacket.AgentData.SessionID = Client.Self.SessionID;
+            ObjectOwnerPacket objDeedPacket = new ObjectOwnerPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                HeaderData =
+                {
+                    // Can only be use in God mode
+                    Override = false,
+                    OwnerID = UUID.Zero,
+                    GroupID = groupOwner
+                },
+                ObjectData = new ObjectOwnerPacket.ObjectDataBlock[1]
+            };
 
-            // Can only be use in God mode
-            objDeedPacket.HeaderData.Override = false;
-            objDeedPacket.HeaderData.OwnerID = UUID.Zero;
-            objDeedPacket.HeaderData.GroupID = groupOwner;
-
-            objDeedPacket.ObjectData = new ObjectOwnerPacket.ObjectDataBlock[1];
-            objDeedPacket.ObjectData[0] = new ObjectOwnerPacket.ObjectDataBlock();
-
-            objDeedPacket.ObjectData[0].ObjectLocalID = localID;
+            objDeedPacket.ObjectData[0] = new ObjectOwnerPacket.ObjectDataBlock
+            {
+                ObjectLocalID = localID
+            };
 
             Client.Network.SendPacket(objDeedPacket, simulator);
         }
@@ -1555,21 +1787,29 @@ namespace OpenMetaverse
         /// <param name="groupOwner">The <seealso cref="UUID"/> of the group to deed the object to</param>
         public void DeedObjects(Simulator simulator, List<uint> localIDs, UUID groupOwner)
         {
-            ObjectOwnerPacket packet = new ObjectOwnerPacket();
-            packet.AgentData.AgentID = Client.Self.AgentID;
-            packet.AgentData.SessionID = Client.Self.SessionID;
-
-            // Can only be use in God mode
-            packet.HeaderData.Override = false;
-            packet.HeaderData.OwnerID = UUID.Zero;
-            packet.HeaderData.GroupID = groupOwner;
-
-            packet.ObjectData = new ObjectOwnerPacket.ObjectDataBlock[localIDs.Count];
+            ObjectOwnerPacket packet = new ObjectOwnerPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                HeaderData =
+                {
+                    // Can only be use in God mode
+                    Override = false,
+                    OwnerID = UUID.Zero,
+                    GroupID = groupOwner
+                },
+                ObjectData = new ObjectOwnerPacket.ObjectDataBlock[localIDs.Count]
+            };
 
             for (int i = 0; i < localIDs.Count; i++)
             {
-                packet.ObjectData[i] = new ObjectOwnerPacket.ObjectDataBlock();
-                packet.ObjectData[i].ObjectLocalID = localIDs[i];
+                packet.ObjectData[i] = new ObjectOwnerPacket.ObjectDataBlock
+                {
+                    ObjectLocalID = localIDs[i]
+                };
             }
             Client.Network.SendPacket(packet, simulator);
         }
@@ -1585,24 +1825,30 @@ namespace OpenMetaverse
         public void SetPermissions(Simulator simulator, List<uint> localIDs, PermissionWho who,
             PermissionMask permissions, bool set)
         {
-            ObjectPermissionsPacket packet = new ObjectPermissionsPacket();
-
-            packet.AgentData.AgentID = Client.Self.AgentID;
-            packet.AgentData.SessionID = Client.Self.SessionID;
-
-            // Override can only be used by gods
-            packet.HeaderData.Override = false;
-
-            packet.ObjectData = new ObjectPermissionsPacket.ObjectDataBlock[localIDs.Count];
+            ObjectPermissionsPacket packet = new ObjectPermissionsPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                HeaderData =
+                {
+                    // Override can only be used by gods
+                    Override = false
+                },
+                ObjectData = new ObjectPermissionsPacket.ObjectDataBlock[localIDs.Count]
+            };
 
             for (int i = 0; i < localIDs.Count; i++)
             {
-                packet.ObjectData[i] = new ObjectPermissionsPacket.ObjectDataBlock();
-
-                packet.ObjectData[i].ObjectLocalID = localIDs[i];
-                packet.ObjectData[i].Field = (byte)who;
-                packet.ObjectData[i].Mask = (uint)permissions;
-                packet.ObjectData[i].Set = Convert.ToByte(set);
+                packet.ObjectData[i] = new ObjectPermissionsPacket.ObjectDataBlock
+                {
+                    ObjectLocalID = localIDs[i],
+                    Field = (byte)who,
+                    Mask = (uint)permissions,
+                    Set = Convert.ToByte(set)
+                };
             }
 
             Client.Network.SendPacket(packet, simulator);
@@ -1626,13 +1872,21 @@ namespace OpenMetaverse
         /// <param name="reliable">Whether to require server acknowledgement of this request</param>
         public void RequestObjectPropertiesFamily(Simulator simulator, UUID objectID, bool reliable)
         {
-            RequestObjectPropertiesFamilyPacket properties = new RequestObjectPropertiesFamilyPacket();
-            properties.AgentData.AgentID = Client.Self.AgentID;
-            properties.AgentData.SessionID = Client.Self.SessionID;
-            properties.ObjectData.ObjectID = objectID;
-            // TODO: RequestFlags is typically only for bug report submissions, but we might be able to
-            // use it to pass an arbitrary uint back to the callback
-            properties.ObjectData.RequestFlags = 0;
+            RequestObjectPropertiesFamilyPacket properties = new RequestObjectPropertiesFamilyPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData =
+                {
+                    ObjectID = objectID,
+                    // TODO: RequestFlags is typically only for bug report submissions, but we might be able to
+                    // use it to pass an arbitrary uint back to the callback
+                    RequestFlags = 0
+                }
+            };
 
             properties.Header.Reliable = reliable;
 
@@ -1647,16 +1901,23 @@ namespace OpenMetaverse
         /// <param name="groupID">The Groups ID</param>
         public void SetObjectsGroup(Simulator simulator, List<uint> localIds, UUID groupID)
         {
-            ObjectGroupPacket packet = new ObjectGroupPacket();
-            packet.AgentData.AgentID = Client.Self.AgentID;
-            packet.AgentData.GroupID = groupID;
-            packet.AgentData.SessionID = Client.Self.SessionID;
+            ObjectGroupPacket packet = new ObjectGroupPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    GroupID = groupID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectGroupPacket.ObjectDataBlock[localIds.Count]
+            };
 
-            packet.ObjectData = new ObjectGroupPacket.ObjectDataBlock[localIds.Count];
             for (int i = 0; i < localIds.Count; i++)
             {
-                packet.ObjectData[i] = new ObjectGroupPacket.ObjectDataBlock();
-                packet.ObjectData[i].ObjectLocalID = localIds[i];
+                packet.ObjectData[i] = new ObjectGroupPacket.ObjectDataBlock
+                {
+                    ObjectLocalID = localIds[i]
+                };
             }
 
             Client.Network.SendPacket(packet, simulator);
@@ -1672,7 +1933,7 @@ namespace OpenMetaverse
         public void NavigateObjectMedia(UUID primID, int face, string newURL, Simulator sim)
         {
             Uri cap;
-            if (sim.Caps == null || (cap = Client.Network.CurrentSim.Caps.CapabilityURI("ObjectMediaNavigate")) == null)
+            if ((cap = Client.Network.CurrentSim.Caps?.CapabilityURI("ObjectMediaNavigate")) == null)
             {
                 Logger.Log("ObjectMediaNavigate capability not available", Helpers.LogLevel.Error, Client);
                 return;
@@ -1699,7 +1960,7 @@ namespace OpenMetaverse
         /// <param name="primID">UUID of the prim</param>
         /// <param name="faceMedia">Array the length of prims number of faces. Null on face indexes where there is
         /// no media, <seealso cref="MediaEntry"/> on faces which contain the media</param>
-        /// <param name="sim">Simulatior in which prim is located</param>
+        /// <param name="sim">Simulator in which prim is located</param>
         public void UpdateObjectMedia(UUID primID, MediaEntry[] faceMedia, Simulator sim)
         {
             Uri cap;
@@ -1779,9 +2040,222 @@ namespace OpenMetaverse
                 catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
             }
         }
+
+        public async Task<IEnumerable<LegacyMaterial>> RequestMaterials(Simulator sim)
+        {
+            if (sim == null) { return null; }
+
+            if (sim.Caps == null)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10));
+            }
+
+            if (sim.Caps == null)
+            {
+                Logger.Log("Caps are down, unable to retrieve materials.", Helpers.LogLevel.Info, Client);
+                return null;
+            }
+
+            var uri = sim.Caps.CapabilityURI("RenderMaterials");
+
+            List<LegacyMaterial> matsToReturn = new List<LegacyMaterial>();
+
+            Logger.Log($"Awaiting materials from {uri}", Helpers.LogLevel.Info, Client);
+
+            await Client.HttpCapsClient.GetRequestAsync(uri, CancellationToken.None,
+                   ((response, data, error) =>
+                   {
+                       if (error != null)
+                       {
+                           Logger.Log("Failed fetching materials", Helpers.LogLevel.Error, Client, error);
+                           return;
+                       }
+
+                       if (data == null || data.Length == 0)
+                       {
+                           Logger.Log("Failed fetching materials; result was empty.", Helpers.LogLevel.Error, Client);
+
+                           return;
+                       }
+
+                       try
+                       {
+                           OSD result = OSDParser.Deserialize(data);
+                           RenderMaterialsMessage info = new RenderMaterialsMessage();
+                           info.Deserialize(result as OSDMap);
+
+                           if (info.MaterialData is OSDArray mats)
+                           {
+                               foreach (var entry in mats)
+                               {
+                                   if (entry is OSDMap map)
+                                   {
+                                       matsToReturn.Add(new LegacyMaterial(map));
+                                   }
+                                   else
+                                   {
+                                       Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJson(entry, true).ToJson(), 
+                                           Helpers.LogLevel.Info, Client);
+                                   }
+                               }
+                           }
+                           else
+                           {
+                               Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJson(result, true).ToJson(), 
+                                   Helpers.LogLevel.Info, Client);
+                           }
+
+                           Logger.Log($"Fetched (x{matsToReturn.Count}) from {uri}", Helpers.LogLevel.Info, Client);
+                       }
+                       catch (Exception ex)
+                       {
+                           Logger.Log("Failed fetching RenderMaterials", Helpers.LogLevel.Error, Client, ex);
+
+                           if (data.Length > 0)
+                           {
+                               Logger
+                                   .Log("Response unparsable; " + System.Text.Encoding.UTF8.GetString(data),
+                                        Helpers.LogLevel.Info, Client);
+                           }
+                       }
+                   }));
+
+            return matsToReturn;
+        }
+
+        public async Task<IEnumerable<LegacyMaterial>> RequestMaterials(Simulator sim, IEnumerable<UUID> materials)
+        {
+            if (sim == null) { return null; }
+
+            if (sim.Caps == null)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10));
+            }
+
+            if (sim.Caps == null)
+            {
+                Logger.Log("Caps are down, unable to retrieve materials.", Helpers.LogLevel.Info, Client);
+                return null;
+            }
+
+            var array = new OSDArray();
+
+            foreach (var material in materials)
+            {
+                array.Add(material);
+            }
+
+            OSDMap request = new OSDMap(new Dictionary<string, OSD>
+            {
+                {"Zipped", Helpers.ZCompressOSD(array)}
+            });
+
+            var uri = sim.Caps.CapabilityURI("RenderMaterials");
+
+            List<LegacyMaterial> matsToReturn = new List<LegacyMaterial>();
+
+            Logger.Log($"Awaiting materials (x{array.Count}) from {uri}", Helpers.LogLevel.Info, Client);
+
+            await Client.HttpCapsClient.PostRequestAsync(uri, OSDFormat.Xml, request, CancellationToken.None,
+                       (response, data, error) =>
+                       {
+                           if (error != null)
+                           {
+                               Logger.Log("Failed fetching materials",
+                                          Helpers.LogLevel.Error, Client, error);
+                               return;
+                           }
+
+                           if (data == null || data.Length == 0)
+                           {
+                               Logger.Log("Failed fetching materials; result was empty.",
+                                          Helpers.LogLevel.Error, Client);
+
+                               Logger
+                                   .Log($"Sent:\n{uri}\n{Convert.ToBase64String(OSDParser.SerializeLLSDBinary(request), Base64FormattingOptions.InsertLineBreaks)}",
+                                        Helpers.LogLevel.Info, Client);
+
+                               return;
+                           }
+
+                           try
+                           {
+                               OSD result = OSDParser.Deserialize(data);
+                               RenderMaterialsMessage info = new RenderMaterialsMessage();
+                               info.Deserialize(result as OSDMap);
+
+                               if (info.MaterialData is OSDArray mats)
+                               {
+                                   foreach (var entry in mats)
+                                   {
+                                       if (entry is OSDMap map)
+                                       {
+                                           matsToReturn.Add(new LegacyMaterial(map));
+                                       }
+                                       else
+                                       {
+                                           Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJson(entry, true).ToJson(), 
+                                               Helpers.LogLevel.Info, Client);
+                                       }
+                                   }
+                               }
+                               else
+                               {
+                                   Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJson(result, true).ToJson(), 
+                                       Helpers.LogLevel.Info, Client);
+                               }
+
+                               Logger.Log($"Fetched (x{matsToReturn.Count}) from {uri}", Helpers.LogLevel.Info, Client);
+                           }
+                           catch (Exception ex)
+                           {
+                               Logger.Log("Failed fetching RenderMaterials",
+                                          Helpers.LogLevel.Error, Client, ex);
+
+                               Logger.Log($"Sent:\n{uri}\n{System.Text.Encoding.UTF8.GetString(OSDParser.SerializeLLSDXmlBytes(request))}",
+                                        Helpers.LogLevel.Info, Client);
+
+                               Logger.Log("Requests: " + string.Join(",", materials.Select(m => m.ToString())),
+                                       Helpers.LogLevel.Info);
+
+                               if (data.Length > 0)
+                               {
+                                   Logger
+                                       .Log("Unable to parse response; " + System.Text.Encoding.UTF8.GetString(data),
+                                            Helpers.LogLevel.Info, Client);
+                               }
+                           }
+                       });
+
+            return matsToReturn;
+        }
         #endregion
 
         #region Packet Handlers
+
+        private void ObjectAnimationHandler(object sender, PacketReceivedEventArgs e)
+        {
+            if (!(e.Packet is ObjectAnimationPacket data)) { return; }
+
+            List<Animation> signaledAnimations = new List<Animation>(data.AnimationList.Length);
+
+            for (var i = 0; i < data.AnimationList.Length; i++)
+            {
+                Animation animation = new Animation
+                {
+                    AnimationID = data.AnimationList[i].AnimID,
+                    AnimationSequence = data.AnimationList[i].AnimSequenceID
+                };
+                if (i < data.AnimationList.Length)
+                {
+                    animation.AnimationSourceObjectID = data.Sender.ID;
+                }
+
+                signaledAnimations.Add(animation);
+            }
+
+            OnObjectAnimation(new ObjectAnimationEventArgs(data.Sender.ID, signaledAnimations));
+        }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
@@ -1857,28 +2331,31 @@ namespace OpenMetaverse
                 #endregion NameValue parsing
 
                 #region Decode Object (primitive) parameters
-                Primitive.ConstructionData data = new Primitive.ConstructionData();
-                data.State = block.State;
-                data.Material = (Material)block.Material;
-                data.PathCurve = (PathCurve)block.PathCurve;
-                data.profileCurve = block.ProfileCurve;
-                data.PathBegin = Primitive.UnpackBeginCut(block.PathBegin);
-                data.PathEnd = Primitive.UnpackEndCut(block.PathEnd);
-                data.PathScaleX = Primitive.UnpackPathScale(block.PathScaleX);
-                data.PathScaleY = Primitive.UnpackPathScale(block.PathScaleY);
-                data.PathShearX = Primitive.UnpackPathShear((sbyte)block.PathShearX);
-                data.PathShearY = Primitive.UnpackPathShear((sbyte)block.PathShearY);
-                data.PathTwist = Primitive.UnpackPathTwist(block.PathTwist);
-                data.PathTwistBegin = Primitive.UnpackPathTwist(block.PathTwistBegin);
-                data.PathRadiusOffset = Primitive.UnpackPathTwist(block.PathRadiusOffset);
-                data.PathTaperX = Primitive.UnpackPathTaper(block.PathTaperX);
-                data.PathTaperY = Primitive.UnpackPathTaper(block.PathTaperY);
-                data.PathRevolutions = Primitive.UnpackPathRevolutions(block.PathRevolutions);
-                data.PathSkew = Primitive.UnpackPathTwist(block.PathSkew);
-                data.ProfileBegin = Primitive.UnpackBeginCut(block.ProfileBegin);
-                data.ProfileEnd = Primitive.UnpackEndCut(block.ProfileEnd);
-                data.ProfileHollow = Primitive.UnpackProfileHollow(block.ProfileHollow);
-                data.PCode = pcode;
+                Primitive.ConstructionData data = new Primitive.ConstructionData
+                {
+                    State = block.State,
+                    Material = (Material)block.Material,
+                    PathCurve = (PathCurve)block.PathCurve,
+                    profileCurve = block.ProfileCurve,
+                    PathBegin = Primitive.UnpackBeginCut(block.PathBegin),
+                    PathEnd = Primitive.UnpackEndCut(block.PathEnd),
+                    PathScaleX = Primitive.UnpackPathScale(block.PathScaleX),
+                    PathScaleY = Primitive.UnpackPathScale(block.PathScaleY),
+                    PathShearX = Primitive.UnpackPathShear((sbyte)block.PathShearX),
+                    PathShearY = Primitive.UnpackPathShear((sbyte)block.PathShearY),
+                    PathTwist = Primitive.UnpackPathTwist(block.PathTwist),
+                    PathTwistBegin = Primitive.UnpackPathTwist(block.PathTwistBegin),
+                    PathRadiusOffset = Primitive.UnpackPathTwist(block.PathRadiusOffset),
+                    PathTaperX = Primitive.UnpackPathTaper(block.PathTaperX),
+                    PathTaperY = Primitive.UnpackPathTaper(block.PathTaperY),
+                    PathRevolutions = Primitive.UnpackPathRevolutions(block.PathRevolutions),
+                    PathSkew = Primitive.UnpackPathTwist(block.PathSkew),
+                    ProfileBegin = Primitive.UnpackBeginCut(block.ProfileBegin),
+                    ProfileEnd = Primitive.UnpackEndCut(block.ProfileEnd),
+                    ProfileHollow = Primitive.UnpackProfileHollow(block.ProfileHollow),
+                    PCode = pcode
+                };
+
                 #endregion
 
                 #region Decode Additional packed parameters in ObjectData
@@ -2069,7 +2546,6 @@ namespace OpenMetaverse
                         // PCode-specific data
                         switch (pcode)
                         {
-                            case PCode.Grass:
                             case PCode.Tree:
                             case PCode.NewTree:
                                 if (block.Data.Length == 1)
@@ -2264,14 +2740,16 @@ namespace OpenMetaverse
 
                     #region Decode update data
 
-                    ObjectMovementUpdate update = new ObjectMovementUpdate();
+                    ObjectMovementUpdate update = new ObjectMovementUpdate
+                    {
+                        // LocalID
+                        LocalID = localid,
+                        // State
+                        State = block.Data[pos++],
+                        // Avatar boolean
+                        Avatar = (block.Data[pos++] != 0)
+                    };
 
-                    // LocalID
-                    update.LocalID = localid;
-                    // State
-                    update.State = block.Data[pos++];
-                    // Avatar boolean
-                    update.Avatar = (block.Data[pos++] != 0);
                     // Collision normal for avatar
                     if (update.Avatar)
                     {
@@ -2315,8 +2793,8 @@ namespace OpenMetaverse
                     #endregion Decode update data
 
                     Primitive obj = !Client.Settings.OBJECT_TRACKING ? null : (update.Avatar) ?
-                        (Primitive)GetAvatar(simulator, update.LocalID, UUID.Zero) :
-                        (Primitive)GetPrimitive(simulator, update.LocalID, UUID.Zero);
+                        GetAvatar(simulator, update.LocalID, UUID.Zero) :
+                        GetPrimitive(simulator, update.LocalID, UUID.Zero);
 
                     // Fire the pre-emptive notice (before we stomp the object)
                     EventHandler<TerseObjectUpdateEventArgs> handler = m_TerseObjectUpdate;
@@ -2464,7 +2942,7 @@ namespace OpenMetaverse
                     // Scratch pad
                     else if ((flags & CompressedFlags.ScratchPad) != 0)
                     {
-                        prim.TreeSpecies = (Tree)0;
+                        prim.TreeSpecies = 0;
 
                         int size = block.Data[i++];
                         //prim.ScratchPad = new byte[size];
@@ -2685,13 +3163,10 @@ namespace OpenMetaverse
                         if (simulator.ObjectsPrimitives.Dictionary.ContainsKey(localID))
                             removePrims.Add(localID);
 
-                        foreach (KeyValuePair<uint, Primitive> prim in simulator.ObjectsPrimitives.Dictionary)
+                        foreach (var prim in simulator.ObjectsPrimitives.Dictionary.Where(prim => prim.Value.ParentID == localID))
                         {
-                            if (prim.Value.ParentID == localID)
-                            {
-                                OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
-                                removePrims.Add(prim.Key);
-                            }
+                            OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
+                            removePrims.Add(prim.Key);
                         }
                     }
                 }
@@ -2724,7 +3199,7 @@ namespace OpenMetaverse
                             }
                         }
 
-                        //Do the actual removing outside of the loops but still inside the lock.
+                        //Do the actual removing outside the loops but still inside the lock.
                         //This safely prevents the collection from being modified during a loop.
                         foreach (uint removeID in removeAvatars)
                             simulator.ObjectsAvatars.Dictionary.Remove(removeID);
@@ -2897,9 +3372,9 @@ namespace OpenMetaverse
                 {
                     lock (simulator.ObjectsPrimitives.Dictionary)
                     {
-                        if (simulator.ObjectsPrimitives.Dictionary.ContainsKey(prop.LocalID))
+                        if (simulator.ObjectsPrimitives.Dictionary.TryGetValue(prop.LocalID, out var primitive))
                         {
-                            simulator.ObjectsPrimitives.Dictionary[prop.LocalID].PhysicsProps = prop;
+                            primitive.PhysicsProps = prop;
                         }
                     }
                 }
@@ -2925,9 +3400,11 @@ namespace OpenMetaverse
         /// <returns>Construction data that can be plugged into a <seealso cref="Primitive"/></returns>
         public static Primitive.ConstructionData BuildBasicShape(PrimType type)
         {
-            Primitive.ConstructionData prim = new Primitive.ConstructionData();
-            prim.PCode = PCode.Prim;
-            prim.Material = Material.Wood;
+            Primitive.ConstructionData prim = new Primitive.ConstructionData
+            {
+                PCode = PCode.Prim,
+                Material = Material.Wood
+            };
 
             switch (type)
             {
@@ -3040,7 +3517,7 @@ namespace OpenMetaverse
         /// <param name="dilation"></param>
         protected void UpdateDilation(Simulator s, uint dilation)
         {
-            s.Stats.Dilation = (float)dilation / 65535.0f;
+            s.Stats.Dilation = dilation / 65535.0f;
         }
 
 
@@ -3052,35 +3529,38 @@ namespace OpenMetaverse
         /// <param name="prim">Data describing the prim shape</param>
         public void SetShape(Simulator simulator, uint localID, Primitive.ConstructionData prim)
         {
-            ObjectShapePacket shape = new ObjectShapePacket();
+            ObjectShapePacket shape = new ObjectShapePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new OpenMetaverse.Packets.ObjectShapePacket.ObjectDataBlock[1]
+            };
 
-            shape.AgentData.AgentID = Client.Self.AgentID;
-            shape.AgentData.SessionID = Client.Self.SessionID;
-
-            shape.ObjectData = new OpenMetaverse.Packets.ObjectShapePacket.ObjectDataBlock[1];
-            shape.ObjectData[0] = new OpenMetaverse.Packets.ObjectShapePacket.ObjectDataBlock();
-
-            shape.ObjectData[0].ObjectLocalID = localID;
-
-            shape.ObjectData[0].PathCurve = (byte)prim.PathCurve;
-            shape.ObjectData[0].PathBegin = Primitive.PackBeginCut(prim.PathBegin);
-            shape.ObjectData[0].PathEnd = Primitive.PackEndCut(prim.PathEnd);
-            shape.ObjectData[0].PathScaleX = Primitive.PackPathScale(prim.PathScaleX);
-            shape.ObjectData[0].PathScaleY = Primitive.PackPathScale(prim.PathScaleY);
-            shape.ObjectData[0].PathShearX = (byte)Primitive.PackPathShear(prim.PathShearX);
-            shape.ObjectData[0].PathShearY = (byte)Primitive.PackPathShear(prim.PathShearY);
-            shape.ObjectData[0].PathTwist = Primitive.PackPathTwist(prim.PathTwist);
-            shape.ObjectData[0].PathTwistBegin = Primitive.PackPathTwist(prim.PathTwistBegin);
-            shape.ObjectData[0].PathRadiusOffset = Primitive.PackPathTwist(prim.PathRadiusOffset);
-            shape.ObjectData[0].PathTaperX = Primitive.PackPathTaper(prim.PathTaperX);
-            shape.ObjectData[0].PathTaperY = Primitive.PackPathTaper(prim.PathTaperY);
-            shape.ObjectData[0].PathRevolutions = Primitive.PackPathRevolutions(prim.PathRevolutions);
-            shape.ObjectData[0].PathSkew = Primitive.PackPathTwist(prim.PathSkew);
-
-            shape.ObjectData[0].ProfileCurve = prim.profileCurve;
-            shape.ObjectData[0].ProfileBegin = Primitive.PackBeginCut(prim.ProfileBegin);
-            shape.ObjectData[0].ProfileEnd = Primitive.PackEndCut(prim.ProfileEnd);
-            shape.ObjectData[0].ProfileHollow = Primitive.PackProfileHollow(prim.ProfileHollow);
+            shape.ObjectData[0] = new OpenMetaverse.Packets.ObjectShapePacket.ObjectDataBlock
+            {
+                ObjectLocalID = localID,
+                PathCurve = (byte)prim.PathCurve,
+                PathBegin = Primitive.PackBeginCut(prim.PathBegin),
+                PathEnd = Primitive.PackEndCut(prim.PathEnd),
+                PathScaleX = Primitive.PackPathScale(prim.PathScaleX),
+                PathScaleY = Primitive.PackPathScale(prim.PathScaleY),
+                PathShearX = (byte)Primitive.PackPathShear(prim.PathShearX),
+                PathShearY = (byte)Primitive.PackPathShear(prim.PathShearY),
+                PathTwist = Primitive.PackPathTwist(prim.PathTwist),
+                PathTwistBegin = Primitive.PackPathTwist(prim.PathTwistBegin),
+                PathRadiusOffset = Primitive.PackPathTwist(prim.PathRadiusOffset),
+                PathTaperX = Primitive.PackPathTaper(prim.PathTaperX),
+                PathTaperY = Primitive.PackPathTaper(prim.PathTaperY),
+                PathRevolutions = Primitive.PackPathRevolutions(prim.PathRevolutions),
+                PathSkew = Primitive.PackPathTwist(prim.PathSkew),
+                ProfileCurve = prim.profileCurve,
+                ProfileBegin = Primitive.PackBeginCut(prim.ProfileBegin),
+                ProfileEnd = Primitive.PackEndCut(prim.ProfileEnd),
+                ProfileHollow = Primitive.PackProfileHollow(prim.ProfileHollow)
+            };
 
             Client.Network.SendPacket(shape, simulator);
         }
@@ -3093,16 +3573,21 @@ namespace OpenMetaverse
         /// <param name="material">The new material of the object</param>
         public void SetMaterial(Simulator simulator, uint localID, Material material)
         {
-            ObjectMaterialPacket matPacket = new ObjectMaterialPacket();
+            ObjectMaterialPacket matPacket = new ObjectMaterialPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ObjectData = new ObjectMaterialPacket.ObjectDataBlock[1]
+            };
 
-            matPacket.AgentData.AgentID = Client.Self.AgentID;
-            matPacket.AgentData.SessionID = Client.Self.SessionID;
-
-            matPacket.ObjectData = new ObjectMaterialPacket.ObjectDataBlock[1];
-            matPacket.ObjectData[0] = new ObjectMaterialPacket.ObjectDataBlock();
-
-            matPacket.ObjectData[0].ObjectLocalID = localID;
-            matPacket.ObjectData[0].Material = (byte)material;
+            matPacket.ObjectData[0] = new ObjectMaterialPacket.ObjectDataBlock
+            {
+                ObjectLocalID = localID,
+                Material = (byte)material
+            };
 
             Client.Network.SendPacket(matPacket, simulator);
         }
@@ -3137,25 +3622,24 @@ namespace OpenMetaverse
             {
                 lock (simulator.ObjectsPrimitives.Dictionary)
                 {
-
-                    Primitive prim;
-
-                    if (simulator.ObjectsPrimitives.Dictionary.TryGetValue(localID, out prim))
+                    if (simulator.ObjectsPrimitives.Dictionary.TryGetValue(localID, out var prim))
                     {
                         return prim;
                     }
                     else
                     {
-                        if (!createIfMissing) return null;
+                        if (!createIfMissing) { return null; }
                         if (Client.Settings.CACHE_PRIMITIVES)
                         {
                             prim = simulator.DataPool.MakePrimitive(localID);
                         }
                         else
                         {
-                            prim = new Primitive();
-                            prim.LocalID = localID;
-                            prim.RegionHandle = simulator.Handle;
+                            prim = new Primitive
+                            {
+                                LocalID = localID,
+                                RegionHandle = simulator.Handle
+                            };
                         }
                         prim.ActiveClients++;
                         prim.ID = fullID;
@@ -3185,24 +3669,21 @@ namespace OpenMetaverse
             {
                 lock (simulator.ObjectsAvatars.Dictionary)
                 {
-
-                    Avatar avatar;
-
-                    if (simulator.ObjectsAvatars.Dictionary.TryGetValue(localID, out avatar))
+                    if (simulator.ObjectsAvatars.Dictionary.TryGetValue(localID, out var avatar))
                     {
                         return avatar;
                     }
-                    else
+
+                    avatar = new Avatar
                     {
-                        avatar = new Avatar();
-                        avatar.LocalID = localID;
-                        avatar.ID = fullID;
-                        avatar.RegionHandle = simulator.Handle;
+                        LocalID = localID,
+                        ID = fullID,
+                        RegionHandle = simulator.Handle
+                    };
 
-                        simulator.ObjectsAvatars.Dictionary[localID] = avatar;
+                    simulator.ObjectsAvatars.Dictionary[localID] = avatar;
 
-                        return avatar;
-                    }
+                    return avatar;
                 }
             }
             else
@@ -3222,15 +3703,15 @@ namespace OpenMetaverse
                 int start = Environment.TickCount;
 
                 int interval = Environment.TickCount - Client.Self.lastInterpolation;
-                float seconds = (float)interval / 1000f;
+                float seconds = interval / 1000f;
 
-                // Iterate through all of the simulators
+                // Iterate through all simulators
                 Simulator[] sims = Client.Network.Simulators.ToArray();
                 foreach (var sim in sims)
                 {
                     float adjSeconds = seconds * sim.Stats.Dilation;
 
-                    // Iterate through all of this sims avatars
+                    // Iterate through all of this region's avatars
                     sim.ObjectsAvatars.ForEach(
                         delegate(Avatar avatar)
                         {
@@ -3247,7 +3728,7 @@ namespace OpenMetaverse
                         }
                     );
 
-                    // Iterate through all of this sims primitives
+                    // Iterate through all of this region's primitives
                     sim.ObjectsPrimitives.ForEach(
                         delegate(Primitive prim)
                         {
@@ -3371,7 +3852,7 @@ namespace OpenMetaverse
 
     /// <summary>Provides data for the <see cref="ObjectManager.AvatarUpdate"/> event</summary>
     /// <remarks><para>The <see cref="ObjectManager.AvatarUpdate"/> event occurs when the simulator sends
-    /// an <see cref="ObjectUpdatePacket"/> containing Avatar data</para>    
+    /// <see cref="ObjectUpdatePacket"/> containing Avatar data</para>    
     /// <para>Note 1: The <see cref="ObjectManager.AvatarUpdate"/> event will not be raised when the object is an Avatar</para>
     /// <para>Note 2: It is possible for the <see cref="ObjectManager.AvatarUpdate"/> to be 
     /// raised twice for the same avatar if for example the avatar moved to a new simulator, then returned to the current simulator</para>
@@ -3443,6 +3924,27 @@ namespace OpenMetaverse
         }
     }
 
+    public class ObjectAnimationEventArgs : EventArgs
+    {
+        /// <summary>Get the ID of the agent</summary>
+        public UUID ObjectID { get; }
+
+        /// <summary>Get the list of animations to start</summary>
+        public List<Animation> Animations { get; }
+
+        /// <summary>
+        /// Construct a new instance of the AvatarAnimationEventArgs class
+        /// </summary>
+        /// <param name="objectID">The ID of the agent</param>
+        /// <param name="anims">The list of animations to start</param>
+        public ObjectAnimationEventArgs(UUID objectID, List<Animation> anims)
+        {
+            this.ObjectID = objectID;
+            this.Animations = anims;
+        }
+    }
+
+
     public class ParticleUpdateEventArgs : EventArgs {
         /// <summary>Get the simulator the object originated from</summary>
         public Simulator Simulator { get; }
@@ -3468,7 +3970,7 @@ namespace OpenMetaverse
 
     /// <summary>Provides additional primitive data for the <see cref="ObjectManager.ObjectProperties"/> event</summary>
     /// <remarks><para>The <see cref="ObjectManager.ObjectProperties"/> event occurs when the simulator sends
-    /// an <see cref="ObjectPropertiesPacket"/> containing additional details for a Primitive, Foliage data or Attachment data</para>
+    /// <see cref="ObjectPropertiesPacket"/> containing additional details for a Primitive, Foliage data or Attachment data</para>
     /// <para>The <see cref="ObjectManager.ObjectProperties"/> event is also raised when a <see cref="ObjectManager.SelectObject"/> request is
     /// made.</para>
     /// </remarks>
@@ -3494,9 +3996,10 @@ namespace OpenMetaverse
         protected readonly Primitive.ObjectProperties m_Properties;
 
         /// <summary>Get the simulator the object is located</summary>
-        public Simulator Simulator { get { return m_Simulator; } }
+        public Simulator Simulator => m_Simulator;
+
         /// <summary>Get the primitive properties</summary>
-        public Primitive.ObjectProperties Properties { get { return m_Properties; } }
+        public Primitive.ObjectProperties Properties => m_Properties;
 
         /// <summary>
         /// Construct a new instance of the ObjectPropertiesEventArgs class
@@ -3733,7 +4236,7 @@ namespace OpenMetaverse
     }
 
     /// <summary>
-    /// Set when simulator sends us infomation on primitive's physical properties
+    /// Set when simulator sends us information on primitive's physical properties
     /// </summary>
     public class PhysicsPropertiesEventArgs : EventArgs
     {
