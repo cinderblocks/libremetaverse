@@ -1625,7 +1625,7 @@ namespace OpenMetaverse
         /// </summary>
         public async Task RetrieveInstantMessages()
         {
-            Uri offlineMsgsCap = Client.Network.CurrentSim.Caps.CapabilityURI("ReadOfflineMsgs");
+            Uri offlineMsgsCap = Client.Network.CurrentSim.Caps?.CapabilityURI("ReadOfflineMsgs");
             if (offlineMsgsCap == null 
                 || Client.Network.CurrentSim.Caps.CapabilityURI("AcceptFriendship") == null
                 || Client.Network.CurrentSim.Caps.CapabilityURI("AcceptGroupInvite") == null)
