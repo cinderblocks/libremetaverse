@@ -850,11 +850,14 @@ namespace OpenMetaverse
                                         }
 
                                         // Fetch descendent items
-                                        var items = (OSDArray)res["items"];
-                                        foreach (var it in items)
+                                        if (res.TryGetValue("items", out var items))
                                         {
-                                            var item = InventoryItem.FromOSD(it);
-                                            _Store[item.UUID] = item;
+                                            var arr = (OSDArray)items;
+                                            foreach (var it in arr)
+                                            {
+                                                var item = InventoryItem.FromOSD(it);
+                                                _Store[item.UUID] = item;
+                                            }
                                         }
                                     }
                                 }
