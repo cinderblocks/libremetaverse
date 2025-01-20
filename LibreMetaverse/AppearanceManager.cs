@@ -2095,10 +2095,20 @@ namespace OpenMetaverse
                 }
             }
 
-            Logger.Log($"Passed wait for own avatar, {maxRetries} retries left.", Helpers.LogLevel.Info, Client);
+            //Logger.Log($"Passed wait for own avatar, {maxRetries} retries left.", Helpers.LogLevel.Debug, Client);
 
             await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, request, cancellationToken,
-                                                         (response, data, error) => res = OSDParser.Deserialize(data));
+                (response, data, error) =>
+                {
+                    if (error != null)
+                    { 
+                        msg += $": {error.Message}";
+                    }
+                    else if (data != null)
+                    { 
+                        res = OSDParser.Deserialize(data);
+                    }
+                });
 
             if (res is OSDMap result)
             {
@@ -2167,8 +2177,7 @@ namespace OpenMetaverse
 
                         if (selfPrim == null)
                         {
-                            Logger.Log("Unable to find avatar to set appearance information to", Helpers.LogLevel.Error,
-                                       Client);
+                            Logger.Log("Unable to find avatar to set appearance information", Helpers.LogLevel.Error, Client);
                         }
                         else
                         {
@@ -2210,11 +2219,11 @@ namespace OpenMetaverse
                     }
                     catch (Exception e)
                     {
-                        Logger.Log("Error applying textures to avatar object " + e, Helpers.LogLevel.Error, Client);
+                        Logger.Log("Error applying textures to avatar object: " + e, Helpers.LogLevel.Error, Client);
                         throw;
                     }
 
-                    Logger.Log("Returning appearance information from server-side bake request", Helpers.LogLevel.Info, Client);
+                    Logger.Log("Returning appearance information from server-side bake request.", Helpers.LogLevel.Info, Client);
                     return true;
                 }
                 else
@@ -2251,11 +2260,11 @@ namespace OpenMetaverse
 
             Client.Inventory.FolderUpdated += UpdatedCallback;
             Task task = Client.Inventory.RequestFolderContents(Client.Inventory.Store.RootFolder.UUID, 
-                Client.Self.AgentID, true, true, InventorySortOrder.ByDate);
+                Client.Self.AgentID, true, false, InventorySortOrder.ByDate);
             folderReceived.WaitOne(Client.Settings.CAPS_TIMEOUT);
             Client.Inventory.FolderUpdated -= UpdatedCallback;
 
-            InventoryFolder COF = null;
+            InventoryFolder currentOutfitFolder = null;
 
             // COF should be in the root folder. Request update to get the latest version number
             if (root == null) { return null; }
@@ -2263,11 +2272,11 @@ namespace OpenMetaverse
             {
                 if (baseItem is InventoryFolder folder && folder.PreferredType == FolderType.CurrentOutfit)
                 {
-                    COF = folder;
+                    currentOutfitFolder = folder;
                     break;
                 }
             }
-            return COF;
+            return currentOutfitFolder;
         }
 
         /// <summary>
@@ -2682,30 +2691,26 @@ namespace OpenMetaverse
 
             if (cof == null)
             {
-                Logger.Log("Error, was not able to fetch current outfit", Helpers.LogLevel.Error, Client);
+                Logger.Log("Unable to fetch current outfit", Helpers.LogLevel.Error, Client);
                 return;
             }
-
-            Logger.Log("Outfit folder: " + cof.UUID + " (" + cof.DescendentCount + " children)", Helpers.LogLevel.Info, Client);
-
-            //Client.Inventory.Store.GetNodeFor(cof.UUID).
-
-            List<InventoryBase> contents;
+            Logger.Log($"Outfit folder: {cof.UUID} ({cof.DescendentCount} children)", Helpers.LogLevel.Info, Client);
 
             // Fetch from cache...
-            contents = Client.Inventory.Store.GetContents(cof.UUID);
+            List<InventoryBase> contents = Client.Inventory.Store.GetContents(cof.UUID);
 
             // If that fails, fetch from server...
             if (contents == null || contents.Count == 0)
             {
-                contents = Client.Inventory.FolderContents(cof.UUID, cof.OwnerID, true, true, InventorySortOrder.ByDate, TimeSpan.FromMinutes(1));
+                contents = Client.Inventory.FolderContents(cof.UUID, cof.OwnerID, true, true, 
+                    InventorySortOrder.ByDate, TimeSpan.FromMinutes(1));
             }
 
             Logger.Log($"{contents.Count} inventory items in 'Current Outfit' folder", Helpers.LogLevel.Info, Client);
 
             foreach (var inventoryBase in contents.Where(inventoryBase => inventoryBase != null))
             {
-                Logger.Log($"{inventoryBase.Name} found in 'Current Outfit' folder {inventoryBase.GetType().Name}", Helpers.LogLevel.Info, Client);
+                Logger.Log($"'{inventoryBase.Name}' found in 'Current Outfit' folder ({inventoryBase.GetType().Name})", Helpers.LogLevel.Info, Client);
 
                 if (inventoryBase is InventoryAttachment attachment)
                 {
@@ -2722,7 +2727,7 @@ namespace OpenMetaverse
                         OwnerID = attachment.OwnerID
                     };
 
-                    Logger.Log($"Wearing {attachment.UUID} ({attachment.Name})", Helpers.LogLevel.Info, Client);
+                    Logger.Log($"Wearing {attachment.UUID} ({attachment.Name})", Helpers.LogLevel.Debug, Client);
 
                     blocks.Add(block);
                 }
@@ -2741,7 +2746,7 @@ namespace OpenMetaverse
                         OwnerID = attachmentIO.OwnerID
                     };
 
-                    Logger.Log($"Wearing {attachmentIO.UUID} ({attachmentIO.Name})", Helpers.LogLevel.Info, Client);
+                    Logger.Log($"Wearing {attachmentIO.UUID} ({attachmentIO.Name})", Helpers.LogLevel.Debug, Client);
 
                     blocks.Add(block);
                 }
