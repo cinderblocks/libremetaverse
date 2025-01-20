@@ -2056,7 +2056,7 @@ namespace OpenMetaverse
             var cap = caps.CapabilityURI("UpdateAvatarAppearance");
             if (cap == null) { return false; }
 
-            var currentOutfitFolder = GetCOF();
+            var currentOutfitFolder = GetCurrentOutfitFolder();
             if (currentOutfitFolder == null)
             {
                 return false;
@@ -2243,7 +2243,7 @@ namespace OpenMetaverse
         /// Get the latest version of COF
         /// </summary>
         /// <returns>Current Outfit Folder (or null if getting the data failed)</returns>
-        private InventoryFolder GetCOF()
+        public InventoryFolder GetCurrentOutfitFolder()
         {
             List<InventoryBase> root = null;
             var folderReceived = new AutoResetEvent(false);
@@ -2687,7 +2687,7 @@ namespace OpenMetaverse
             var blocks = new List<RezMultipleAttachmentsFromInvPacket.ObjectDataBlock>();
 
             Logger.Log("Starting fetch of current outfit...", Helpers.LogLevel.Info, Client);
-            var cof = GetCOF();
+            var cof = GetCurrentOutfitFolder();
 
             if (cof == null)
             {
