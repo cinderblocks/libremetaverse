@@ -4428,7 +4428,6 @@ namespace OpenMetaverse
                     RegionSizeY = msg.RegionSizeY
                 }
             };
-            // FIXME: Check This
 
             // pass the packet onto the teleport handler
             TeleportHandler(this, new PacketReceivedEventArgs(p, simulator));
@@ -4470,6 +4469,14 @@ namespace OpenMetaverse
                 TeleportFailedPacket failed = (TeleportFailedPacket)packet;
 
                 TeleportMessage = Utils.BytesToString(failed.Info.Reason);
+
+                // expiry failure may come after teleport has finished. Ignore it.
+                if (teleportStatus == TeleportStatus.Finished || teleportStatus == TeleportStatus.None)
+                {
+                    Logger.DebugLog($"Received TeleportFailed after teleport finished, Reason: {TeleportMessage}");
+                    return;
+                }
+
                 teleportStatus = TeleportStatus.Failed;
                 finished = true;
 
