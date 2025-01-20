@@ -713,7 +713,7 @@ namespace OpenMetaverse.Rendering
         }
 
         /// <summary>Decodes mesh asset.</summary>
-        /// <returns>OSDMap of all of the submeshes in the mesh. The value of the submesh name
+        /// <returns>OSDMap of all submeshes in the mesh. The value of the submesh name
         /// is the uncompressed data for that mesh.
         /// The OSDMap is made up of the asset_header section (which includes a lot of stuff)
         /// plus each of the submeshes unpacked into compressed byte arrays.</returns>

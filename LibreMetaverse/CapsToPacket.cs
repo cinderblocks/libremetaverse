@@ -121,7 +121,7 @@ namespace OpenMetaverse.Packets
                 // Create an instance of the object
                 packet = (Packet)Activator.CreateInstance(type);
 
-                // Iterate over all of the fields in the packet class, looking for matches in the LLSD
+                // Iterate over all fields in the packet class, looking for matches in the LLSD
                 foreach (FieldInfo field in type.GetFields())
                 {
                     if (body.ContainsKey(field.Name))

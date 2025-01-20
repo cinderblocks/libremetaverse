@@ -370,7 +370,7 @@ namespace OpenMetaverse.StructuredData
         #endregion Implicit Conversions
 
         /// <summary>
-        /// Uses reflection to create an SDMap from all of the SD
+        /// Uses reflection to create an SDMap from all SD
         /// serializable types in an object
         /// </summary>
         /// <param name="obj">Class or struct containing serializable types</param>

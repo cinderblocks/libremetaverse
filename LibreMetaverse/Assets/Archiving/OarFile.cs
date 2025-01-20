@@ -493,7 +493,7 @@ namespace OpenMetaverse.Assets
         {
             Dictionary<UUID, UUID> textureList = new Dictionary<UUID, UUID>();
 
-            // Delete all of the old linkset files
+            // Delete all old linkset files
             try { Directory.Delete(primsPath, true); }
             catch (Exception) { }
 
@@ -531,7 +531,7 @@ namespace OpenMetaverse.Assets
         {
             if (prim.Textures != null)
             {
-                // Add all of the textures on this prim to the save list
+                // Add all textures on this prim to the save list
                 if (prim.Textures.DefaultTexture != null)
                     textureList[prim.Textures.DefaultTexture.TextureID] = prim.Textures.DefaultTexture.TextureID;
 

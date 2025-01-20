@@ -2001,7 +2001,7 @@ namespace OpenMetaverse
                 OnParcelProperties(new ParcelPropertiesEventArgs(simulator, parcel, result, selectedPrims, sequenceID, snapSelection));
             }
             
-            // Check if all of the simulator parcels have been retrieved, if so fire another callback
+            // Check if all simulator parcels have been retrieved, if so fire another callback
             if (simulator.IsParcelMapFull() && m_SimParcelsDownloaded != null)
             {
                 OnSimParcelsDownloaded(new SimParcelsDownloadedEventArgs(simulator, simulator.Parcels, simulator.ParcelMap));

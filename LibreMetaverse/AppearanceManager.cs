@@ -940,8 +940,8 @@ namespace OpenMetaverse
 
             if (safe)
             {
-                // If we don't already have a the current agent wearables downloaded, updating to a
-                // new set of wearables that doesn't have all of the bodyparts can leave the avatar
+                // If we don't already have the current agent wearables downloaded, updating to a
+                // new set of wearables that doesn't have all bodyparts can leave the avatar
                 // in an inconsistent state. If any bodypart entries are empty, we need to fetch the
                 // current wearables first
                 var needsCurrentWearables = false;
@@ -1014,7 +1014,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <returns>A copy of the agents currently worn wearables</returns>
         /// <remarks>Avoid calling this function multiple times as it will make
-        /// a copy of all of the wearable data each time</remarks>
+        /// a copy of all wearable data each time</remarks>
         public IEnumerable<WearableData> GetWearables()
         {
             lock (Wearables)
@@ -1321,7 +1321,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <returns>A copy of the agents currently worn wearables</returns>
         /// <remarks>Avoid calling this function multiple times as it will make
-        /// a copy of all of the wearable data each time</remarks>
+        /// a copy of all wearable data each time</remarks>
         public IEnumerable<InventoryItem> GetAttachments()
         {
             return Attachments.Select(item => Client.Inventory.Store[item.Key] as InventoryItem);
@@ -1471,7 +1471,7 @@ namespace OpenMetaverse
                     newWearables.Add(bodypart.Key, bodypart.Value);
                 }
 
-                // heavy handed body part sanity check
+                // heavy-handed body part sanity check
                 if (newWearables.ContainsKey(WearableType.Shape) &&
                     newWearables.ContainsKey(WearableType.Skin) &&
                     newWearables.ContainsKey(WearableType.Eyes) &&
@@ -1489,10 +1489,9 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Calculates base color/tint for a specific wearable
-        /// based on its params
+        /// Calculates base color/tint for a specific wearable based on its params
         /// </summary>
-        /// <param name="param">All the color info gathered from wearable's VisualParams
+        /// <param name="param">All the color info gathered from wearable VisualParams
         /// passed as list of ColorParamInfo tuples</param>
         /// <returns>Base color/tint for the wearable</returns>
         public static Color4 GetColorFromParams(List<ColorParamInfo> param)
@@ -1522,7 +1521,7 @@ namespace OpenMetaverse
                     // Size of the step using which we iterate from Min to Max
                     var step = (p.VisualParam.MaxValue - p.VisualParam.MinValue) / ((float)n - 1);
 
-                    // Our color should land inbetween colors in the array with index a and b
+                    // Our color should land in between colors in the array with index a and b
                     var indexa = 0;
                     var indexb = 0;
 
@@ -1844,8 +1843,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Get a list of all of the textures that need to be downloaded for a
-        /// single bake layer
+        /// Get a list of all textures that need to be downloaded for a single bake layer
         /// </summary>
         /// <param name="bakeType">Bake layer to get texture AssetIDs for</param>
         /// <returns>A list of texture AssetIDs to download</returns>
@@ -1867,12 +1865,12 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Blocking method to download all of the textures needed for baking 
+        /// Blocking method to download all textures needed for baking 
         /// the given bake layers
         /// </summary>
         /// <param name="bakeLayers">A list of layers that need baking</param>
         /// <remarks>No return value is given because the baking will happen
-        /// whether or not all textures are successfully downloaded</remarks>
+        /// whether all textures are successfully downloaded</remarks>
         private void DownloadTextures(List<BakeType> bakeLayers)
         {
             var textureIDs = new List<UUID>();
@@ -1929,8 +1927,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Blocking method to create and upload baked textures for all of the
-        /// missing bakes
+        /// Blocking method to create and upload baked textures for all missing bakes
         /// </summary>
         /// <returns>True on success, otherwise false</returns>
         private bool CreateBakes()

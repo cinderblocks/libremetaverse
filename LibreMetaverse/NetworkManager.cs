@@ -324,7 +324,7 @@ namespace OpenMetaverse
 
         #endregion Properties
 
-        /// <summary>All of the simulators we are currently connected to</summary>
+        /// <summary>All simulators we are currently connected to</summary>
         public List<Simulator> Simulators = new List<Simulator>();
 
         /// <summary>Handlers for incoming capability events</summary>
