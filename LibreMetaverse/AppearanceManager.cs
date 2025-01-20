@@ -485,16 +485,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Starts the appearance setting thread
         /// </summary>
-        public void RequestSetAppearance()
-        {
-            RequestSetAppearance(false);
-        }
-
-        /// <summary>
-        /// Starts the appearance setting thread
-        /// </summary>
         /// <param name="forceRebake">True to force rebaking, otherwise false</param>
-        public void RequestSetAppearance(bool forceRebake)
+        public void RequestSetAppearance(bool forceRebake = false)
         {
             if (Interlocked.CompareExchange(ref AppearanceThreadRunning, 1, 0) != 0)
             {
@@ -780,18 +772,8 @@ namespace OpenMetaverse
         /// Add a wearable to the current outfit and set appearance
         /// </summary>
         /// <param name="wearableItem">Wearable to be added to the outfit</param>
-        public void AddToOutfit(InventoryItem wearableItem)
-        {
-            var wearableItems = new List<InventoryItem> { wearableItem };
-            AddToOutfit(wearableItems);
-        }
-
-        /// <summary>
-        /// Add a wearable to the current outfit and set appearance
-        /// </summary>
-        /// <param name="wearableItem">Wearable to be added to the outfit</param>
         /// <param name="replace">Should existing item on the same point or of the same type be replaced</param>
-        public void AddToOutfit(InventoryItem wearableItem, bool replace)
+        public void AddToOutfit(InventoryItem wearableItem, bool replace = true)
         {
             var wearableItems = new List<InventoryItem> { wearableItem };
             AddToOutfit(wearableItems, replace);
@@ -802,25 +784,13 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="wearableItems">List of wearable inventory items to
         /// be added to the outfit</param>
-        public void AddToOutfit(List<InventoryItem> wearableItems)
-        {
-            AddToOutfit(wearableItems, true);
-        }
-
-        /// <summary>
-        /// Add a list of wearables to the current outfit and set appearance
-        /// </summary>
-        /// <param name="wearableItems">List of wearable inventory items to
-        /// be added to the outfit</param>
         /// <param name="replace">Should existing item on the same point or of the same type be replaced</param>
-        public void AddToOutfit(List<InventoryItem> wearableItems, bool replace)
+        public void AddToOutfit(List<InventoryItem> wearableItems, bool replace = true)
         {
             _pendingServerBake = true;
 
-            var wearables = wearableItems.OfType<InventoryWearable>()
-                .ToList();
-            var attachments = wearableItems.Where(item => item is InventoryAttachment || item is InventoryObject)
-                .ToList();
+            var wearables = wearableItems.OfType<InventoryWearable>().ToList();
+            var attachments = wearableItems.Where(item => item is InventoryAttachment || item is InventoryObject).ToList();
 
             lock (Wearables)
             {
@@ -1133,7 +1103,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    Logger.Log("Cannot attach inventory item " + attachments[i].Name, Helpers.LogLevel.Warning, Client);
+                    Logger.Log($"Cannot attach inventory item {attachments[i].Name}", Helpers.LogLevel.Warning, Client);
                 }
             }
 
@@ -1145,20 +1115,9 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="item">A <seealso cref="OpenMetaverse.InventoryItem"/> to attach</param>
         /// <param name="attachPoint">the <seealso cref="OpenMetaverse.AttachmentPoint"/> on the avatar 
-        /// to attach the item to</param>
-        public void Attach(InventoryItem item, AttachmentPoint attachPoint)
-        {
-            Attach(item, attachPoint, true);
-        }
-
-        /// <summary>
-        /// Attach an item to our agent at a specific attach point
-        /// </summary>
-        /// <param name="item">A <seealso cref="OpenMetaverse.InventoryItem"/> to attach</param>
-        /// <param name="attachPoint">the <seealso cref="OpenMetaverse.AttachmentPoint"/> on the avatar 
         /// <param name="replace">If true replace existing attachment on this attachment point, otherwise add to it (multi-attachments)</param>
         /// to attach the item to</param>
-        public void Attach(InventoryItem item, AttachmentPoint attachPoint, bool replace)
+        public void Attach(InventoryItem item, AttachmentPoint attachPoint, bool replace = true)
         {
             Attach(item.UUID, item.OwnerID, item.Name, item.Description, item.Permissions, item.Flags,
                 attachPoint, replace);
@@ -1170,34 +1129,15 @@ namespace OpenMetaverse
         /// <param name="itemID">The <seealso cref="OpenMetaverse.UUID"/> of the item to attach</param>
         /// <param name="ownerID">The <seealso cref="OpenMetaverse.UUID"/> attachments owner</param>
         /// <param name="name">The name of the attachment</param>
-        /// <param name="description">The description of the attahment</param>
-        /// <param name="perms">The <seealso cref="OpenMetaverse.Permissions"/> to apply when attached</param>
-        /// <param name="itemFlags">The <seealso cref="OpenMetaverse.InventoryItemFlags"/> of the attachment</param>
-        /// <param name="attachPoint">The <seealso cref="OpenMetaverse.AttachmentPoint"/> on the agent
-        /// to attach the item to</param>
-        public void Attach(UUID itemID, UUID ownerID, string name, string description,
-            Permissions perms, uint itemFlags, AttachmentPoint attachPoint)
-        {
-            Attach(itemID, ownerID, name, description, perms, itemFlags, attachPoint, true);
-        }
-
-        /// <summary>
-        /// Attach an item to our agent specifying attachment details
-        /// </summary>
-        /// <param name="itemID">The <seealso cref="OpenMetaverse.UUID"/> of the item to attach</param>
-        /// <param name="ownerID">The <seealso cref="OpenMetaverse.UUID"/> attachments owner</param>
-        /// <param name="name">The name of the attachment</param>
-        /// <param name="description">The description of the attahment</param>
+        /// <param name="description">The description of the attachment</param>
         /// <param name="perms">The <seealso cref="OpenMetaverse.Permissions"/> to apply when attached</param>
         /// <param name="itemFlags">The <seealso cref="OpenMetaverse.InventoryItemFlags"/> of the attachment</param>
         /// <param name="attachPoint">The <seealso cref="OpenMetaverse.AttachmentPoint"/> on the agent
         /// <param name="replace">If true replace existing attachment on this attachment point, otherwise add to it (multi-attachments)</param>
         /// to attach the item to</param>
         public void Attach(UUID itemID, UUID ownerID, string name, string description,
-            Permissions perms, uint itemFlags, AttachmentPoint attachPoint, bool replace)
+            Permissions perms, uint itemFlags, AttachmentPoint attachPoint, bool replace = true)
         {
-            // TODO: At some point it might be beneficial to have AppearanceManager track what we
-            // are currently wearing for attachments to make enumeration and detachment easier
             var attach = new RezSingleAttachmentFromInvPacket
             {
                 AgentData =
@@ -1282,18 +1222,12 @@ namespace OpenMetaverse
             foreach (var primitive in enumerable)
             {
                 // Find the inventory UUID from the primitive name-value collection.
-                if (primitive == null)
-                    continue;
-
-                if (primitive.NameValues == null || primitive.NameValues.Length == 0)
-                    continue;
+                if (primitive == null) { continue; }
+                if (primitive.NameValues == null || primitive.NameValues.Length == 0) { continue; }
 
                 var nameValue = primitive.NameValues.SingleOrDefault(item => item.Name.Equals("AttachItemID"));
 
-                if (nameValue.Equals(default(NameValue)))
-                {
-                    continue;
-                }
+                if (nameValue.Equals(default(NameValue))) { continue; }
 
                 // Retrieve the inventory item UUID from the name values.
                 var inventoryItemId = (string)nameValue.Value;
@@ -1309,10 +1243,7 @@ namespace OpenMetaverse
 
                 // Add or update the attachment list.
                 Attachments.AddOrUpdate(itemID, attachmentPoint, (id, point) => attachmentPoint);
-
-                
             }
-
             return true;
         }
 
@@ -1716,7 +1647,7 @@ namespace OpenMetaverse
                     alphaMasks.Add(p.AlphaParams.Value, kvp.Value == 0 ? 0.01f : kvp.Value);
                 }
 
-                // Alhpa masks can also be specified in sub "driver" params
+                // Alpha masks can also be specified in sub "driver" params
                 if (p.Drivers != null)
                 {
                     foreach (var t in p.Drivers)
