@@ -3868,7 +3868,12 @@ namespace OpenMetaverse
                     LanguagePublic = isPublic
                 };
 
-                Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentLanguage");
+                Uri cap = Client.Network.CurrentSim.Caps?.CapabilityURI("UpdateAgentLanguage");
+                if (cap == null)
+                {
+                    Logger.Log("Could not retrieve 'UpdateAgentLanguage' capability.", Helpers.LogLevel.Warning, Client);
+                    return;
+                }
                 Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), 
                     CancellationToken.None, null);
             }
