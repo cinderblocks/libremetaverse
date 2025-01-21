@@ -401,7 +401,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Main appearance cancellation token source
         /// </summary>
-        private CancellationTokenSource CancellationTokenSource;
+        private CancellationTokenSource AppearanceCts;
         /// <summary>
         /// Is server baking complete. It needs doing only once
         /// </summary>
@@ -470,13 +470,13 @@ namespace OpenMetaverse
                 RebakeScheduleTimer = null;
             }
 
-            CancellationTokenSource = new CancellationTokenSource();
+            AppearanceCts = new CancellationTokenSource();
 
             // This is the first time setting appearance, run through the entire sequence
             AppearanceThread = new Thread(
                 () =>
                 {
-                    var cancellationToken = CancellationTokenSource.Token;
+                    var cancellationToken = AppearanceCts.Token;
                     var success = true;
                     try
                     {
@@ -495,7 +495,7 @@ namespace OpenMetaverse
                         {
                             Logger.Log(
                                 "Failed to retrieve a list of current agent attachments, appearance cannot be set",
-                                Helpers.LogLevel.Error,
+                                Helpers.LogLevel.Warning,
                                 Client);
 
                             throw new AppearanceManagerException(
@@ -546,7 +546,7 @@ namespace OpenMetaverse
 
                             cancellationToken.ThrowIfCancellationRequested();
 
-                            // If we get back to server side backing region re-request server bake
+                            // If we get back to server side baking region re-request server bake
                             ServerBakingDone = false;
 
                             // Download and parse all agent wearables
@@ -2686,11 +2686,11 @@ namespace OpenMetaverse
                 RebakeScheduleTimer = null;
             }
 
-            if (CancellationTokenSource != null)
+            if (AppearanceCts != null)
             {
-                CancellationTokenSource.Cancel();
-                CancellationTokenSource.Dispose();
-                CancellationTokenSource = null;
+                AppearanceCts.Cancel();
+                AppearanceCts.Dispose();
+                AppearanceCts = null;
             }
 
             if (AppearanceThread != null)
