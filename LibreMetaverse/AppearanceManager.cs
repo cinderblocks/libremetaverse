@@ -2426,14 +2426,14 @@ namespace OpenMetaverse
                         EveryoneMask = (uint)attachment.Permissions.EveryoneMask,
                         GroupMask = (uint)attachment.Permissions.GroupMask,
                         ItemFlags = attachment.Flags,
-                        ItemID = attachment.UUID,
+                        ItemID = attachment.AssetUUID,
                         Name = Utils.StringToBytes(attachment.Name),
                         Description = Utils.StringToBytes(attachment.Description),
                         NextOwnerMask = (uint)attachment.Permissions.NextOwnerMask,
                         OwnerID = attachment.OwnerID
                     };
 
-                    Logger.Log($"Wearing {attachment.UUID} ({attachment.Name})", Helpers.LogLevel.Debug, Client);
+                    Logger.Log($"Wearing attachment {attachment.UUID} ({attachment.Name})", Helpers.LogLevel.Debug, Client);
 
                     blocks.Add(block);
                 }
@@ -2445,14 +2445,14 @@ namespace OpenMetaverse
                         EveryoneMask = (uint)attachmentIO.Permissions.EveryoneMask,
                         GroupMask = (uint)attachmentIO.Permissions.GroupMask,
                         ItemFlags = attachmentIO.Flags,
-                        ItemID = attachmentIO.UUID,
+                        ItemID = attachmentIO.AssetUUID,
                         Name = Utils.StringToBytes(attachmentIO.Name),
                         Description = Utils.StringToBytes(attachmentIO.Description),
                         NextOwnerMask = (uint)attachmentIO.Permissions.NextOwnerMask,
                         OwnerID = attachmentIO.OwnerID
                     };
 
-                    Logger.Log($"Wearing {attachmentIO.UUID} ({attachmentIO.Name})", Helpers.LogLevel.Debug, Client);
+                    Logger.Log($"Wearing object {attachmentIO.UUID} ({attachmentIO.Name})", Helpers.LogLevel.Debug, Client);
 
                     blocks.Add(block);
                 }
