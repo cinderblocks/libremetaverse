@@ -508,10 +508,7 @@ namespace OpenMetaverse
                             if (!GotWearables)
                             {
                                 // Fetch a list of the current agent wearables
-                                if (GetAgentWearables())
-                                {
-                                    GotWearables = true;
-                                }
+                                GotWearables = GetAgentWearables();
                             }
 
                             cancellationToken.ThrowIfCancellationRequested();
@@ -535,8 +532,7 @@ namespace OpenMetaverse
                                 // Fetch a list of the current agent wearables
                                 if (!GetAgentWearables())
                                 {
-                                    Logger.Log(
-                                        "Failed to retrieve a list of current agent wearables, appearance cannot be set",
+                                    Logger.Log("Failed to retrieve a list of current agent wearables, appearance cannot be set",
                                         Helpers.LogLevel.Error, Client);
                                     throw new AppearanceManagerException(
                                         "Failed to retrieve a list of current agent wearables, appearance cannot be set");
@@ -866,10 +862,8 @@ namespace OpenMetaverse
         /// if you know what you're doing</param>
         public void ReplaceOutfit(List<InventoryItem> wearableItems, bool safe)
         {
-            var wearables = wearableItems.OfType<InventoryWearable>()
-                .ToList();
-            var attachments = wearableItems.Where(item => item is InventoryAttachment || item is InventoryObject)
-                .ToList();
+            var wearables = wearableItems.OfType<InventoryWearable>().ToList();
+            var attachments = wearableItems.Where(item => item is InventoryAttachment || item is InventoryObject).ToList();
 
             if (safe)
             {
@@ -1937,8 +1931,8 @@ namespace OpenMetaverse
                 }
             );
 
-            // FIXME: evalute the need for timeout here, RequestUploadBakedTexture() will
-            // timout either on Client.Settings.TRANSFER_TIMEOUT or Client.Settings.CAPS_TIMEOUT
+            // FIXME: evaluate the need for timeout here, RequestUploadBakedTexture() will
+            // timeout either on Client.Settings.TRANSFER_TIMEOUT or Client.Settings.CAPS_TIMEOUT
             // depending on which upload method is used.
             uploadEvent.WaitOne(UPLOAD_TIMEOUT, false);
 

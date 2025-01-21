@@ -834,10 +834,6 @@ namespace OpenMetaverse
                                                 folder = new InventoryFolder(folderID)
                                                 {
                                                     ParentUUID = descFolder["parent_id"],
-                                                    OwnerID = descFolder["agent_id"],
-                                                    Name = descFolder["name"],
-                                                    Version = descFolder["version"],
-                                                    PreferredType = (FolderType)(int)descFolder["type_default"]
                                                 };
                                                 _Store[folderID] = folder;
                                             }
@@ -845,8 +841,10 @@ namespace OpenMetaverse
                                             {
                                                 folder = (InventoryFolder)_Store[folderID];
                                             }
-
-                                            
+                                            folder.OwnerID = descFolder["agent_id"];
+                                            folder.Name = descFolder["name"];
+                                            folder.Version = descFolder["version"];
+                                            folder.PreferredType = (FolderType)descFolder["type_default"].AsInteger();
                                         }
 
                                         // Fetch descendent items
