@@ -1076,7 +1076,7 @@ namespace OpenMetaverse
         /// to attach the item to</param>
         public void Attach(InventoryItem item, AttachmentPoint attachPoint, bool replace = true)
         {
-            Attach(item.UUID, item.OwnerID, item.Name, item.Description, item.Permissions, item.Flags,
+            Attach(item.AssetUUID, item.OwnerID, item.Name, item.Description, item.Permissions, item.Flags,
                 attachPoint, replace);
         }
 
