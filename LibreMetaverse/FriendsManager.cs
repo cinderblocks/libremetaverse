@@ -418,7 +418,7 @@ namespace OpenMetaverse
         /// <summary>
         /// A dictionary of key/value pairs containing known friends of this avatar. 
         /// 
-        /// The Key is the <seealso cref="UUID"/> of the friend, the value is a <seealso cref="FriendInfo"/>
+        /// The Key is the <see cref="UUID"/> of the friend, the value is a <see cref="FriendInfo"/>
         /// object that contains detailed information including permissions you have and have given to the friend
         /// </summary>
         public LockingDictionary<UUID, FriendInfo> FriendList = new LockingDictionary<UUID, FriendInfo>();
@@ -426,8 +426,8 @@ namespace OpenMetaverse
         /// <summary>
         /// A Dictionary of key/value pairs containing current pending frienship offers.
         /// 
-        /// The key is the <seealso cref="UUID"/> of the avatar making the request, 
-        /// the value is the <seealso cref="UUID"/> of the request which is used to accept
+        /// The key is the <see cref="UUID"/> of the avatar making the request, 
+        /// the value is the <see cref="UUID"/> of the request which is used to accept
         /// or decline the friendship offer
         /// </summary>
         public LockingDictionary<UUID, UUID> FriendRequests = new LockingDictionary<UUID, UUID>();
@@ -499,8 +499,8 @@ namespace OpenMetaverse
 
         /// <summary>
         /// Accept friendship request. Only to be used if request was sent via Offline Msg cap
-        /// This can be determined by the presence of a <seealso cref="InstantMessageEventArgs.Simulator"/>
-        /// value in <seealso cref="InstantMessageEventArgs" />
+        /// This can be determined by the presence of a <see cref="InstantMessageEventArgs.Simulator"/>
+        /// value in <see cref="InstantMessageEventArgs" />
         /// </summary>
         /// <param name="fromAgentID">agentID of avatar to form friendship with</param>
         public void AcceptFriendshipCapability(UUID fromAgentID)
@@ -550,7 +550,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Decline a friendship request
         /// </summary>
-        /// <param name="fromAgentID"><seealso cref="UUID"/> of friend</param>
+        /// <param name="fromAgentID"><see cref="UUID"/> of friend</param>
         /// <param name="imSessionID">imSessionID of the friendship request message</param>
         public void DeclineFriendship(UUID fromAgentID, UUID imSessionID)
         {
@@ -576,10 +576,10 @@ namespace OpenMetaverse
 
         /// <summary>
         /// Decline friendship request. Only to be used if request was sent via Offline Msg cap
-        /// This can be determined by the presence of a <seealso cref="InstantMessageEventArgs.Simulator"/>
-        /// value in <seealso cref="InstantMessageEventArgs" />
+        /// This can be determined by the presence of a <see cref="InstantMessageEventArgs.Simulator"/>
+        /// value in <see cref="InstantMessageEventArgs" />
         /// </summary>
-        /// <param name="fromAgentID"><seealso cref="UUID"/> of friend</param>
+        /// <param name="fromAgentID"><see cref="UUID"/> of friend</param>
         public void DeclineFriendshipCap(UUID fromAgentID)
         {
             Uri declineFriendshipCap = Client.Network.CurrentSim.Caps.CapabilityURI("DeclineFriendship");
@@ -696,7 +696,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Change the rights of a friend avatar.
         /// </summary>
-        /// <param name="friendID">the <seealso cref="UUID"/> of the friend</param>
+        /// <param name="friendID">the <see cref="UUID"/> of the friend</param>
         /// <param name="rights">the new rights to give the friend</param>
         /// <remarks>This method will implicitly set the rights to those passed in the rights parameter.</remarks>
         public void GrantRights(UUID friendID, FriendRights rights)
@@ -723,7 +723,7 @@ namespace OpenMetaverse
         /// Use to map a friends location on the grid.
         /// </summary>
         /// <param name="friendID">Friends UUID to find</param>
-        /// <remarks><seealso cref="E:OnFriendFound"/></remarks>
+        /// <remarks><see cref="E:OnFriendFound"/></remarks>
         public void MapFriend(UUID friendID)
         {
             FindAgentPacket stalk = new FindAgentPacket
@@ -1028,13 +1028,13 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Populate FriendList <seealso cref="LockingDictionary{TKey,TValue}"/> with data from the login reply
+        /// Populate FriendList <see cref="LockingDictionary{TKey,TValue}"/> with data from the login reply
         /// </summary>
         /// <param name="loginSuccess">true if login was successful</param>
         /// <param name="redirect">true if login request is requiring a redirect</param>
         /// <param name="message">A string containing the response to the login request</param>
         /// <param name="reason">A string containing the reason for the request</param>
-        /// <param name="replyData">A <seealso cref="LoginResponseData"/> object containing the decoded 
+        /// <param name="replyData">A <see cref="LoginResponseData"/> object containing the decoded 
         /// reply from the login server</param>
         private void Network_OnLoginResponse(bool loginSuccess, bool redirect, string message, string reason,
             LoginResponseData replyData)

@@ -689,7 +689,7 @@ namespace OpenMetaverse
             /// <summary>
             /// Set the properties that are set in an ObjectPropertiesFamily packet
             /// </summary>
-            /// <param name="props"><seealso cref="ObjectProperties"/> that has
+            /// <param name="props"><see cref="ObjectProperties"/> that has
             /// been partially filled by an ObjectPropertiesFamily packet</param>
             public void SetFamilyProperties(ObjectProperties props)
             {

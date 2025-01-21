@@ -960,8 +960,8 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Calls either <seealso cref="AppearanceManager.ReplaceOutfit"/> or
-        /// <seealso cref="AppearanceManager.AddToOutfit"/> depending on the value of
+        /// Calls either <see cref="AppearanceManager.ReplaceOutfit"/> or
+        /// <see cref="AppearanceManager.AddToOutfit"/> depending on the value of
         /// replaceItems
         /// </summary>
         /// <param name="wearables">List of wearable inventory items to add
@@ -1070,8 +1070,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Attach an item to our agent at a specific attach point
         /// </summary>
-        /// <param name="item">A <seealso cref="OpenMetaverse.InventoryItem"/> to attach</param>
-        /// <param name="attachPoint">the <seealso cref="OpenMetaverse.AttachmentPoint"/> on the avatar 
+        /// <param name="item">A <see cref="OpenMetaverse.InventoryItem"/> to attach</param>
+        /// <param name="attachPoint">the <see cref="OpenMetaverse.AttachmentPoint"/> on the avatar 
         /// <param name="replace">If true replace existing attachment on this attachment point, otherwise add to it (multi-attachments)</param>
         /// to attach the item to</param>
         public void Attach(InventoryItem item, AttachmentPoint attachPoint, bool replace = true)
@@ -1083,13 +1083,13 @@ namespace OpenMetaverse
         /// <summary>
         /// Attach an item to our agent specifying attachment details
         /// </summary>
-        /// <param name="itemID">The <seealso cref="OpenMetaverse.UUID"/> of the item to attach</param>
-        /// <param name="ownerID">The <seealso cref="OpenMetaverse.UUID"/> attachments owner</param>
+        /// <param name="itemID">The <see cref="OpenMetaverse.UUID"/> of the item to attach</param>
+        /// <param name="ownerID">The <see cref="OpenMetaverse.UUID"/> attachments owner</param>
         /// <param name="name">The name of the attachment</param>
         /// <param name="description">The description of the attachment</param>
-        /// <param name="perms">The <seealso cref="OpenMetaverse.Permissions"/> to apply when attached</param>
-        /// <param name="itemFlags">The <seealso cref="OpenMetaverse.InventoryItemFlags"/> of the attachment</param>
-        /// <param name="attachPoint">The <seealso cref="OpenMetaverse.AttachmentPoint"/> on the agent
+        /// <param name="perms">The <see cref="OpenMetaverse.Permissions"/> to apply when attached</param>
+        /// <param name="itemFlags">The <see cref="OpenMetaverse.InventoryItemFlags"/> of the attachment</param>
+        /// <param name="attachPoint">The <see cref="OpenMetaverse.AttachmentPoint"/> on the agent
         /// <param name="replace">If true replace existing attachment on this attachment point, otherwise add to it (multi-attachments)</param>
         /// to attach the item to</param>
         public void Attach(UUID itemID, UUID ownerID, string name, string description,
@@ -1122,9 +1122,9 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Detach an item from our agent using an <seealso cref="OpenMetaverse.InventoryItem"/> object
+        /// Detach an item from our agent using an <see cref="OpenMetaverse.InventoryItem"/> object
         /// </summary>
-        /// <param name="item">An <seealso cref="OpenMetaverse.InventoryItem"/> object</param>
+        /// <param name="item">An <see cref="OpenMetaverse.InventoryItem"/> object</param>
         public void Detach(InventoryItem item)
         {
             Detach(item.UUID);

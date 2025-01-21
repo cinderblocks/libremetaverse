@@ -251,8 +251,8 @@ namespace OpenMetaverse
         /// Instantiate LoginParams
         /// </summary>
         /// <remarks>Use this constructor if Application supports multi-factor authentication</remarks>
-        /// <param name="client">Instance of <seealso cref="GridClient"/></param>
-        /// <param name="credential">Instance of <seealso cref="LoginCredential"/></param>
+        /// <param name="client">Instance of <see cref="GridClient"/></param>
+        /// <param name="credential">Instance of <see cref="LoginCredential"/></param>
         /// <param name="channel">Login channel (application name)</param>
         /// <param name="version">Client version, as application name + version number</param>
         public LoginParams(GridClient client, LoginCredential credential, string channel, string version)
@@ -274,8 +274,8 @@ namespace OpenMetaverse
         /// Instantiate LoginParams
         /// </summary>
         /// <remarks>Use this constructor if Application supports multi-factor authentication</remarks>
-        /// <param name="client">Instance of <seealso cref="GridClient"/></param>
-        /// <param name="credential">Instance of <seealso cref="LoginCredential"/></param>
+        /// <param name="client">Instance of <see cref="GridClient"/></param>
+        /// <param name="credential">Instance of <see cref="LoginCredential"/></param>
         /// <param name="channel">Login channel (application name)</param>
         /// <param name="version">Client version, as application name + version number</param>
         /// <param name="loginUri">Address of login service</param>
@@ -413,7 +413,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Parse LLSD Login Reply Data
         /// </summary>
-        /// <param name="reply">An <seealso cref="OSDMap"/> 
+        /// <param name="reply">An <see cref="OSDMap"/> 
         /// containing the login response data</param>
         /// <remarks>XML-RPC logins do not require this as XML-RPC.NET 
         /// automatically populates the struct properly using attributes</remarks>
@@ -1205,7 +1205,7 @@ namespace OpenMetaverse
         /// <param name="password">Account password</param>
         /// <param name="channel">Client application name (channel)</param>
         /// <param name="version">Version string (typically x.x.x)</param>
-        /// <returns>A populated <seealso cref="LoginParams"/> object containing sane defaults</returns>
+        /// <returns>A populated <see cref="LoginParams"/> object containing sane defaults</returns>
         public LoginParams DefaultLoginParams(string firstName, string lastName, string password,
             string channel, string version)
         {
@@ -1839,9 +1839,9 @@ namespace OpenMetaverse
         /// <summary>
         /// Handle response from LLSD login replies
         /// </summary>
-        /// <param name="response">Server response as <seealso cref="HttpResponseMessage"/></param>
+        /// <param name="response">Server response as <see cref="HttpResponseMessage"/></param>
         /// <param name="responseData">Payload response data</param>
-        /// <param name="error">Any <seealso cref="Exception"/> returned from the request</param>
+        /// <param name="error">Any <see cref="Exception"/> returned from the request</param>
         private void LoginReplyLLSDHandler(HttpResponseMessage response, byte[] responseData, Exception error)
         {
             if (error != null)

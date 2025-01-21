@@ -38,7 +38,7 @@ namespace OpenMetaverse.Assets
         /// <summary>Override the base classes AssetType</summary>
         public override AssetType AssetType => AssetType.Texture;
 
-        /// <summary>A <seealso cref="ManagedImage"/> object containing image data</summary>
+        /// <summary>A <see cref="ManagedImage"/> object containing image data</summary>
         public ManagedImage Image;
 
         /// <summary></summary>
@@ -57,7 +57,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Initializes a new instance of an AssetTexture object
         /// </summary>
-        /// <param name="image">A <seealso cref="ManagedImage"/> object containing texture data</param>
+        /// <param name="image">A <see cref="ManagedImage"/> object containing texture data</param>
         public AssetTexture(ManagedImage image)
         {
             Image = image;
@@ -73,8 +73,8 @@ namespace OpenMetaverse.Assets
         }
 
         /// <summary>
-        /// Populates the <seealso cref="AssetData"/> byte array with a JPEG2000
-        /// encoded image created from the data in <seealso cref="Image"/>
+        /// Populates the <see cref="AssetData"/> byte array with a JPEG2000
+        /// encoded image created from the data in <see cref="Image"/>
         /// </summary>
         public sealed override void Encode()
         {
@@ -83,7 +83,7 @@ namespace OpenMetaverse.Assets
 
         /// <summary>
         /// Decodes the JPEG2000 data in <see cref="AssetData"/>> to the
-        /// <seealso cref="ManagedImage"/> object <seealso cref="Image"/>
+        /// <see cref="ManagedImage"/> object <see cref="Image"/>
         /// </summary>
         /// <returns>True if the decoding was successful, otherwise false</returns>
         public sealed override bool Decode()

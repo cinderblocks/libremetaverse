@@ -796,7 +796,7 @@ namespace OpenMetaverse
         private readonly object m_GroupNoticesListReplyLock = new object();
 
         /// <summary>Raised when the simulator sends us group notices</summary>
-        /// <seealso cref="RequestGroupNoticesList"/>
+        /// <see cref="RequestGroupNoticesList"/>
         public event EventHandler<GroupNoticesListReplyEventArgs> GroupNoticesListReply
         {
             add { lock (m_GroupNoticesListReplyLock) { m_GroupNoticesListReply += value; } }
@@ -855,7 +855,7 @@ namespace OpenMetaverse
         #endregion Delegates
 
 
-        /// <summary>A reference to the current <seealso cref="GridClient"/> instance</summary>
+        /// <summary>A reference to the current <see cref="GridClient"/> instance</summary>
         private GridClient Client;
         /// <summary>Currently-active group members requests</summary>
         private List<UUID> GroupMembersRequests;
@@ -875,7 +875,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct a new instance of the GroupManager class
         /// </summary>
-        /// <param name="client">A reference to the current <seealso cref="GridClient"/> instance</param>
+        /// <param name="client">A reference to the current <see cref="GridClient"/> instance</param>
         public GroupManager(GridClient client)
         {
             Client = client;

@@ -125,15 +125,15 @@ namespace OpenMetaverse
 
         /// <summary>Internal dictionary that this class wraps around. Do not
         /// modify or enumerate the contents of this dictionary without locking</summary>
-        private Dictionary<TKey, TValue> Dictionary;
+        private readonly Dictionary<TKey, TValue> Dictionary;
 
         /// <summary>
-        /// Gets the number of Key/Value pairs contained in the <seealso cref="T:ObservableDictionary"/>
+        /// Gets the number of Key/Value pairs contained in the <see cref="T:ObservableDictionary"/>
         /// </summary>
-        public int Count { get { return Dictionary.Count; } }
+        public int Count => Dictionary.Count;
 
         /// <summary>
-        /// Initializes a new instance of the <seealso cref="T:ObservableDictionary"/> Class
+        /// Initializes a new instance of the <see cref="T:ObservableDictionary"/> Class
         /// with the specified key/value, has the default initial capacity.
         /// </summary>
         /// <example>
@@ -149,7 +149,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Initializes a new instance of the <seealso cref="T:OpenMetaverse.ObservableDictionary"/> Class
+        /// Initializes a new instance of the <see cref="T:OpenMetaverse.ObservableDictionary"/> Class
         /// with the specified key/value, With its initial capacity specified.
         /// </summary>
         /// <param name="capacity">Initial size of dictionary</param>
@@ -167,7 +167,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Try to get entry from the <seealso cref="ObservableDictionary"/> with specified key
+        /// Try to get entry from the <see cref="ObservableDictionary"/> with specified key
         /// </summary>
         /// <param name="key">Key to use for lookup</param>
         /// <param name="value">Value returned</param>
@@ -210,9 +210,9 @@ namespace OpenMetaverse
                 return default(TValue);
         }
 
-        /// <summary>Find All items in an <seealso cref="T:ObservableDictionary"/></summary>
+        /// <summary>Find All items in an <see cref="T:ObservableDictionary"/></summary>
         /// <param name="match">return matching items.</param>
-        /// <returns>a <seealso cref="T:System.Collections.Generic.List"/> containing found items.</returns>
+        /// <returns>a <see cref="T:System.Collections.Generic.List"/> containing found items.</returns>
         /// <example>
         /// Find All prims within 20 meters and store them in a List
         /// <code>
@@ -237,9 +237,9 @@ namespace OpenMetaverse
                 return found;
         }
 
-        /// <summary>Find All items in an <seealso cref="T:ObservableDictionary"/></summary>
+        /// <summary>Find All items in an <see cref="T:ObservableDictionary"/></summary>
         /// <param name="match">return matching keys.</param>
-        /// <returns>a <seealso cref="T:System.Collections.Generic.List"/> containing found keys.</returns>
+        /// <returns>a <see cref="T:System.Collections.Generic.List"/> containing found keys.</returns>
         /// <example>
         /// Find All keys which also exist in another dictionary
         /// <code>

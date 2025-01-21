@@ -857,7 +857,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Starts a search for land sales using the directory
         /// 
-        /// The <seealso cref="OnDirLandReply"/> event is raised when a response is received from the simulator
+        /// The <see cref="OnDirLandReply"/> event is raised when a response is received from the simulator
         /// </summary>
         /// <param name="typeFlags">What type of land to search for. Auction, 
         /// estate, mainland, "first land", etc</param>
@@ -909,7 +909,7 @@ namespace OpenMetaverse
         /// <param name="queryStart">Each request is limited to 100 parcels
         /// being returned. To get the first 100 parcels of a request use 0,
         /// from 100-199 use 100, 200-299 use 200, etc.</param>
-        /// <remarks><para>The <seealso cref="OnDirLandReply"/> event will be raised with the response from the simulator 
+        /// <remarks><para>The <see cref="OnDirLandReply"/> event will be raised with the response from the simulator 
         /// 
         /// There is no way to determine how many results will be returned, or how many times the callback will be 
         /// fired other than you won't get more than 100 total parcels from 

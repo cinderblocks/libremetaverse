@@ -152,7 +152,7 @@ namespace OpenMetaverse
         /// <summary> 
         /// Agent movement and camera control
         /// 
-        /// Agent movement is controlled by setting specific <seealso cref="T:AgentManager.ControlFlags"/>
+        /// Agent movement is controlled by setting specific <see cref="T:AgentManager.ControlFlags"/>
         /// After the control flags are set, An AgentUpdate is required to update the simulator of the specified flags
         /// This is most easily accomplished by setting one or more of the AgentMovement properties
         /// 

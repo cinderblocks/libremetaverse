@@ -705,7 +705,7 @@ namespace OpenMetaverse.Messages.Linden
         /// <summary>
         /// A number which increments by 1, starting at 0 for each ParcelProperties request. 
         /// Can be overriden by specifying the sequenceID with the ParcelPropertiesRequest being sent. 
-        /// a Negative number indicates the action in <seealso cref="ParcelPropertiesStatus"/> has occurred. 
+        /// a Negative number indicates the action in <see cref="ParcelPropertiesStatus"/> has occurred. 
         /// </summary>
         public int SequenceID;
         /// <summary>Maximum primitives across the entire simulator</summary>
@@ -928,23 +928,23 @@ namespace OpenMetaverse.Messages.Linden
         }
     }
 
-    /// <summary>A message sent from the viewer to the simulator to updated a specific parcels settings</summary>
+    /// <summary>A message sent from the viewer to the simulator to update a specific parcels settings</summary>
     public class ParcelPropertiesUpdateMessage : IMessage
     {
-        /// <summary>The <seealso cref="UUID"/> of the agent authorized to purchase this
-        /// parcel of land or a NULL <seealso cref="UUID"/> if the sale is authorized to anyone</summary>
+        /// <summary>The <see cref="UUID"/> of the agent authorized to purchase this
+        /// parcel of land or a NULL <see cref="UUID"/> if the sale is authorized to anyone</summary>
         public UUID AuthBuyerID;
-        /// <summary>true to enable auto scaling of the parcel media</summary>
+        /// <summary>true to enable auto-scaling of the parcel media</summary>
         public bool MediaAutoScale;
         /// <summary>The category of this parcel used when search is enabled to restrict
         /// search results</summary>
         public ParcelCategory Category;
         /// <summary>A string containing the description to set</summary>
         public string Desc;
-        /// <summary>The <seealso cref="UUID"/> of the <seealso cref="Group"/> which allows for additional
+        /// <summary>The <see cref="UUID"/> of the <see cref="Group"/> which allows for additional
         /// powers and restrictions.</summary>
         public UUID GroupID;
-        /// <summary>The <seealso cref="LandingType"/> which specifies how avatars which teleport
+        /// <summary>The <see cref="LandingType"/> which specifies how avatars which teleport
         /// to this parcel are handled</summary>
         public LandingType Landing;
         /// <summary>The LocalID of the parcel to update settings on</summary>
@@ -1566,9 +1566,9 @@ namespace OpenMetaverse.Messages.Linden
             public bool AcceptNotices;
             /// <summary>The agents tier contribution to the group</summary>
             public int Contribution;
-            /// <summary>The Groups <seealso cref="UUID"/></summary>
+            /// <summary>The Groups <see cref="UUID"/></summary>
             public UUID GroupID;
-            /// <summary>The <seealso cref="UUID"/> of the groups insignia</summary>
+            /// <summary>The <see cref="UUID"/> of the groups insignia</summary>
             public UUID GroupInsigniaID;
             /// <summary>The user title from the group</summary>
             public string GroupTitle;
@@ -1587,10 +1587,10 @@ namespace OpenMetaverse.Messages.Linden
             public bool ListInProfile;
         }
 
-        /// <summary>An array containing <seealso cref="GroupData"/> information
+        /// <summary>An array containing <see cref="GroupData"/> information
         /// for each <see cref="Group"/> the agent is a member of</summary>
         public GroupData[] GroupDataBlock;
-        /// <summary>An array containing <seealso cref="NewGroupData"/> information
+        /// <summary>An array containing <see cref="NewGroupData"/> information
         /// for each <see cref="Group"/> the agent is a member of</summary>
         public NewGroupData[] NewGroupDataBlock;
 
@@ -2176,9 +2176,9 @@ namespace OpenMetaverse.Messages.Linden
         /// <summary>The Asset ID of the script</summary>
         public UUID ItemID;
         /// <summary>True of the script is compiled/ran using the mono interpreter, false indicates it 
-        /// uses the older less efficient lsl2 interprter</summary>
+        /// uses the older less efficient lsl2 interpreter</summary>
         public bool Mono;
-        /// <summary>The Task containing the scripts <seealso cref="UUID"/></summary>
+        /// <summary>The Task containing the scripts <see cref="UUID"/></summary>
         public UUID ObjectID;
         /// <summary>true of the script is in a running state</summary>
         public bool Running;
@@ -2266,9 +2266,9 @@ namespace OpenMetaverse.Messages.Linden
     /// </summary>
     public class UpdateNotecardTaskInventoryMessage : IMessage
     {
-        /// <summary>The <seealso cref="UUID"/> of the Task containing the notecard asset to update</summary>
+        /// <summary>The <see cref="UUID"/> of the Task containing the notecard asset to update</summary>
         public UUID TaskID;
-        /// <summary>The notecard assets <seealso cref="UUID"/> contained in the tasks inventory</summary>
+        /// <summary>The notecard assets <see cref="UUID"/> contained in the tasks inventory</summary>
         public UUID ItemID;
 
         /// <summary>

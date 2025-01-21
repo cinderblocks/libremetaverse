@@ -45,21 +45,21 @@ namespace OpenMetaverse.Assets
         public SaleType ForSale;
         /// <summary>An Integer representing the purchase price of the asset</summary>
         public int SalePrice;
-        /// <summary>The <seealso cref="UUID"/> of the assets creator</summary>
+        /// <summary>The <see cref="UUID"/> of the assets creator</summary>
         public UUID Creator;
-        /// <summary>The <seealso cref="UUID"/> of the assets current owner</summary>
+        /// <summary>The <see cref="UUID"/> of the assets current owner</summary>
         public UUID Owner;
-        /// <summary>The <seealso cref="UUID"/> of the assets prior owner</summary>
+        /// <summary>The <see cref="UUID"/> of the assets prior owner</summary>
         public UUID LastOwner;
-        /// <summary>The <seealso cref="UUID"/> of the Group this asset is set to</summary>
+        /// <summary>The <see cref="UUID"/> of the Group this asset is set to</summary>
         public UUID Group;
-        /// <summary>True if the asset is owned by a <seealso cref="Group"/></summary>
+        /// <summary>True if the asset is owned by a <see cref="Group"/></summary>
         public bool GroupOwned;
         /// <summary>The Permissions mask of the asset</summary>
         public Permissions Permissions;
         /// <summary>A Dictionary containing Key/Value pairs of the objects parameters</summary>
         public Dictionary<int, float> Params = new Dictionary<int, float>();
-        /// <summary>A Dictionary containing Key/Value pairs where the Key is the textures Index and the Value is the Textures <seealso cref="UUID"/></summary>
+        /// <summary>A Dictionary containing Key/Value pairs where the Key is the textures Index and the Value is the Textures <see cref="UUID"/></summary>
         public Dictionary<AvatarTextureIndex, UUID> Textures = new Dictionary<AvatarTextureIndex, UUID>();
 
         /// <summary>Initializes a new instance of an AssetWearable object</summary>

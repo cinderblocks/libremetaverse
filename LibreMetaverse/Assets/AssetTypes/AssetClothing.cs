@@ -27,7 +27,7 @@
 namespace OpenMetaverse.Assets
 {
     /// <summary>
-    /// Represents an <seealso cref="AssetWearable"/> that can be worn on an avatar
+    /// Represents an <see cref="AssetWearable"/> that can be worn on an avatar
     /// such as a Shirt, Pants, etc.
     /// </summary>
     public class AssetClothing : AssetWearable

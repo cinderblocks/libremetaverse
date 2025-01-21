@@ -34,7 +34,7 @@ namespace OpenMetaverse.Imaging
 {
     public static class Targa
     {
-        /// <summary>Decode Truvision TGA file to <seealso cref="SKBitmap" /></summary>
+        /// <summary>Decode Truvision TGA file to <see cref="SKBitmap" /></summary>
         public static SKBitmap Decode(string fileName)
         {
             using (var image = Pfimage.FromFile(fileName))
@@ -43,7 +43,7 @@ namespace OpenMetaverse.Imaging
             }
         }
 
-        /// <summary>Decode Truvision TGA stream to <seealso cref="SKBitmap" /></summary>
+        /// <summary>Decode Truvision TGA stream to <see cref="SKBitmap" /></summary>
         public static SKBitmap Decode(Stream stream)
         {
             using (var image = Pfimage.FromStream(stream))

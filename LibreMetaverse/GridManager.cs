@@ -402,7 +402,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Request a map layer from simulator capability
         /// </summary>
-        /// <param name="layer">Requested <seealso cref="GridLayerType"/></param>
+        /// <param name="layer">Requested <see cref="GridLayerType"/></param>
         public void RequestMapLayer(GridLayerType layer)
         {
             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("MapLayer");
@@ -418,7 +418,7 @@ namespace OpenMetaverse
         /// Request a map layer through the simulator
         /// </summary>
         /// <param name="regionName">The name of the region</param>
-        /// <param name="layer">Requested <seealso cref="GridLayerType"/></param>
+        /// <param name="layer">Requested <see cref="GridLayerType"/></param>
         public void RequestMapRegion(string regionName, GridLayerType layer)
         {
             MapNameRequestPacket request = new MapNameRequestPacket
@@ -507,11 +507,11 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Request <seealso cref="GridItemType"/> for a given region
+        /// Request <see cref="GridItemType"/> for a given region
         /// </summary>
         /// <param name="regionHandle">Requested region handle</param>
-        /// <param name="item"><seealso cref="GridItemType"/> being requested</param>
-        /// <param name="layer"><seealso cref="GridLayerType"/> being requested</param>
+        /// <param name="item"><see cref="GridItemType"/> being requested</param>
+        /// <param name="layer"><see cref="GridLayerType"/> being requested</param>
         public void RequestMapItems(ulong regionHandle, GridItemType item, GridLayerType layer)
         {
             MapItemRequestPacket request = new MapItemRequestPacket
@@ -576,15 +576,15 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Retrieves <seealso cref="GridRegion"/> information using the region name
+        /// Retrieves <see cref="GridRegion"/> information using the region name
         /// </summary>
         /// <remarks>This function will block until it can find the region or gives up</remarks>
-        /// <param name="handle">Region Handle of requested <seealso cref="GridRegion"/></param>
-        /// <param name="layer"><seealso cref="GridLayerType"/> for the
-        /// <seealso cref="GridRegion"/> being requested</param>
-        /// <param name="region">Output for the fetched <seealso cref="GridRegion"/>,
+        /// <param name="handle">Region Handle of requested <see cref="GridRegion"/></param>
+        /// <param name="layer"><see cref="GridLayerType"/> for the
+        /// <see cref="GridRegion"/> being requested</param>
+        /// <param name="region">Output for the fetched <see cref="GridRegion"/>,
         /// or empty struct if failure</param>
-        /// <returns>True if the <seealso cref="GridRegion"/> was fetched, otherwise false</returns>
+        /// <returns>True if the <see cref="GridRegion"/> was fetched, otherwise false</returns>
         public bool GetGridRegion(ulong handle, GridLayerType layer, out GridRegion region)
         {
             // Check if cached
@@ -632,15 +632,15 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Retrieves <seealso cref="GridRegion"/> information using the region name
+        /// Retrieves <see cref="GridRegion"/> information using the region name
         /// </summary>
         /// <remarks>This function will block until it can find the region or gives up</remarks>
-        /// <param name="name">Name of requested <seealso cref="GridRegion"/></param>
-        /// <param name="layer"><seealso cref="GridLayerType"/> for the
-        /// <seealso cref="GridRegion"/> being requested</param>
-        /// <param name="region">Output for the fetched <seealso cref="GridRegion"/>,
+        /// <param name="name">Name of requested <see cref="GridRegion"/></param>
+        /// <param name="layer"><see cref="GridLayerType"/> for the
+        /// <see cref="GridRegion"/> being requested</param>
+        /// <param name="region">Output for the fetched <see cref="GridRegion"/>,
         /// or empty struct if failure</param>
-        /// <returns>True if the <seealso cref="GridRegion"/> was fetched, otherwise false</returns>
+        /// <returns>True if the <see cref="GridRegion"/> was fetched, otherwise false</returns>
         public bool GetGridRegion(string name, GridLayerType layer, out GridRegion region)
         {
             if (string.IsNullOrEmpty(name))
