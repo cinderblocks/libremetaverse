@@ -442,23 +442,6 @@ namespace OpenMetaverse
         }
     }
 
-    /// <summary>Provides data for the <see cref="AvatarManager.AvatarAppearance"/> event</summary>
-    /// <remarks>The <see cref="AvatarManager.AvatarAppearance"/> event occurs when the simulator sends
-    /// the appearance data for an avatar</remarks>
-    /// <example>
-    /// The following code example uses the <see cref="AvatarAppearanceEventArgs.AvatarID"/> and <see cref="AvatarAppearanceEventArgs.VisualParams"/>
-    /// properties to display the selected shape of an avatar on the <see cref="Console"/> window.
-    /// <code>
-    ///     // subscribe to the event
-    ///     Client.Avatars.AvatarAppearance += Avatars_AvatarAppearance;
-    /// 
-    ///     // handle the data when the event is raised
-    ///     void Avatars_AvatarAppearance(object sender, AvatarAppearanceEventArgs e)
-    ///     {
-    ///         Console.WriteLine("The Agent {0} is using a {1} shape.", e.AvatarID, (e.VisualParams[31] &gt; 0) : "male" ? "female")
-    ///     }
-    /// </code>
-    /// </example>
     public class PreloadSoundEventArgs : EventArgs
     {
         /// <summary>Simulator where the event originated</summary>
