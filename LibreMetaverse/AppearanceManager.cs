@@ -257,7 +257,7 @@ namespace OpenMetaverse
 
         #region Event delegates, Raise Events
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<AgentWearablesReplyEventArgs> m_AgentWearablesReply;
 
         /// <summary>Raises the AgentWearablesReply event</summary>
@@ -2039,120 +2039,80 @@ namespace OpenMetaverse
         /// <returns>True if the server baking was successful</returns>
         private async Task<bool> UpdateAvatarAppearanceAsync(CancellationToken cancellationToken, int totalRetries = 3)
         {
-            if (cancellationToken.IsCancellationRequested)
+            while (true)
             {
-                return false;
-            }
+                if (cancellationToken.IsCancellationRequested) { return false; }
 
-            if (totalRetries < 0)
-            {
-                return false;
-            }
-
-            Logger.Log("Updating appearance via bake URL", Helpers.LogLevel.Info, Client);
-            var caps = Client.Network.CurrentSim.Caps;
-            if (caps == null) { return false; }
-            
-            var cap = caps.CapabilityURI("UpdateAvatarAppearance");
-            if (cap == null) { return false; }
-
-            var currentOutfitFolder = GetCurrentOutfitFolder();
-            if (currentOutfitFolder == null)
-            {
-                return false;
-            }
-            else
-            {
-                // TODO: create Current Outfit Folder
-            }
-
-            var request = new OSDMap(1) { ["cof_version"] = currentOutfitFolder.Version };
-
-            var msg = "Server side baking failed";
-
-            OSD res = null;
-
-            var maxRetries = 1000; // About a minute. (50,000ms)
-
-            while (maxRetries-- > 0)
-            {
-                if (!Client.Network.Connected)
+                if (totalRetries < 0)
                 {
-                    await Task.Delay(50, cancellationToken);
+                    return false;
+                }
+
+                var cap = Client.Network.CurrentSim.Caps?.CapabilityURI("UpdateAvatarAppearance");
+                if (cap == null)
+                {
+                    Logger.Log("Could not retrieve UpdateAvatarAppearance region capability", 
+                        Helpers.LogLevel.Warning, Client);
+                    return false;
+                }
+
+                var currentOutfitFolder = GetCurrentOutfitFolder();
+                if (currentOutfitFolder == null)
+                {
+                    Logger.Log("Could not retrieve Current Outfit folder",
+                        Helpers.LogLevel.Warning, Client);
+                    return false;
                 }
                 else
                 {
-                    var self = GetOwnAvatar();
+                    // TODO: create Current Outfit Folder
+                }
 
-                    if (self == null)
+                Logger.Log($"Requesting bake for COF version {currentOutfitFolder.Version}", 
+                    Helpers.LogLevel.Info, Client);
+
+                var request = new OSDMap(1) { ["cof_version"] = currentOutfitFolder.Version };
+
+                OSD res = null;
+
+                var maxRetries = 1000; // About a minute. (50,000ms)
+
+                while (maxRetries-- > 0)
+                {
+                    if (!Client.Network.Connected)
                     {
                         await Task.Delay(50, cancellationToken);
                     }
                     else
                     {
-                        break;
+                        if (GetOwnAvatar() == null)
+                        {
+                            await Task.Delay(50, cancellationToken);
+                        }
+                        else
+                        {
+                            break;
+                        }
                     }
                 }
-            }
 
-            //Logger.Log($"Passed wait for own avatar, {maxRetries} retries left.", Helpers.LogLevel.Debug, Client);
-
-            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, request, cancellationToken,
-                (response, data, error) =>
+                await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, request, cancellationToken, (response, data, error) =>
                 {
                     if (error != null)
-                    { 
-                        msg += $": {error.Message}";
+                    {
+                        Logger.Log($"UpdateAvatarAppearance failed. Server responded with: {error.Message}", 
+                            Helpers.LogLevel.Warning, Client);
                     }
                     else if (data != null)
-                    { 
+                    {
                         res = OSDParser.Deserialize(data);
                     }
                 });
 
-            if (res is OSDMap result)
-            {
-                if (result.ContainsKey("error"))
+                if (!(res is OSDMap result)) { return false; }
+
+                if (result.ContainsKey("success") && result["success"].AsBoolean())
                 {
-                    msg += ": " + result["error"].AsString();
-                }
-                if (result.ContainsKey("success"))
-                {
-                    /* Sample Reply:
-                    {
-	                    "agent_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-	                    "avatar_scale": [0.44999998807907104, 0.6000000238418579, 1.6885325908660889],
-	                    "cof_version": 20,
-	                    "error": null,
-	                    "success": true,
-	                    "textures": ["00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "7b1816e2-2526-8f0b-8205-11cf643ab6a1", 
-                                    "e3c1742e-cae2-b920-a80e-3d400b5e5b78", "95dc2db1-46e4-2789-9a58-88845c7c492d", "14599019-a2b5-eb43-a0d6-7e87e28deb48", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "c228d1cf-4b5d-4ba8-84f4-899a0796aa97", "89906514-19b6-f8fa-6868-8ead05383bc0", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "6bf927fd-ac09-b332-f75f-4ca94d37c4cf", "4e138fe7-ffab-ad71-6b30-476ee03f3c8c", 
-                                    "30681da5-6d1c-73c6-e391-e698cfc38018", "af04c2ec-8162-9357-3fa8-3a987930be25", "e6e08381-1d19-7280-3fff-a4f3a0ff3fc4"],
-	                    "visual_params": [33, 61, 85, 23, 58, 127, 63, 85, 63, 42, 0, 85, 63, 36, 85, 95, 153, 63, 34, 0, 63, 109, 88, 132, 63, 136, 
-                                          81, 85, 103, 136, 127, 0, 203, 0, 0, 127, 0, 0, 127, 0, 0, 127, 0, 0, 0, 127, 114, 127, 99, 63, 127, 140, 
-                                          127, 127, 0, 0, 0, 191, 0, 104, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 133, 0, 127, 0, 127, 170, 0, 0, 127, 127, 
-                                          109, 85, 127, 127, 63, 85, 42, 100, 216, 214, 204, 204, 204, 51, 25, 89, 76, 204, 0, 127, 0, 0, 144, 85, 
-                                          127, 132, 127, 85, 0, 127, 127, 127, 127, 127, 127, 59, 127, 85, 127, 127, 106, 47, 79, 127, 127, 204, 63, 
-                                          0, 0, 0, 0, 127, 127, 0, 0, 0, 0, 127, 0, 159, 0, 0, 178, 127, 36, 85, 131, 127, 127, 127, 153, 95, 0, 0, 74, 
-                                          27, 127, 127, 0, 214, 204, 198, 0, 0, 63, 30, 127, 226, 255, 198, 255, 255, 255, 255, 255, 255, 255, 255, 
-                                          255, 204, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 255, 255, 255, 255, 0, 127, 127, 
-                                          255, 25, 100, 255, 255, 255, 255, 84, 0, 0, 0, 51, 132, 255, 255, 255, 0, 0, 25, 0, 25, 23, 51, 0, 25, 23, 51, 
-                                          0, 0, 25, 0, 25, 23, 51, 0, 0, 25, 0, 25, 23, 51, 0, 25, 23, 51, 0, 25, 23, 51, 1, 127],
-	                    "warnings": []
-                    }
-                     */
 
                     var visualParams = result["visual_params"].AsBinary();
                     var textures = (result["textures"] as OSDArray)?.Select(arrayEntry => arrayEntry.AsUUID()).ToArray();
@@ -2162,15 +2122,15 @@ namespace OpenMetaverse
 
                     if (textures != null && textures.Length > 20)
                     {
-                        if ((textures[8] == UUID.Zero || textures[9] == UUID.Zero || textures[10] == UUID.Zero || textures[11] == UUID.Zero) ||
-                            (textures[8] == DEFAULT_AVATAR_TEXTURE || textures[9] == DEFAULT_AVATAR_TEXTURE || textures[10] == DEFAULT_AVATAR_TEXTURE || textures[11] == DEFAULT_AVATAR_TEXTURE))
+                        if ((textures[8] == UUID.Zero || textures[9] == UUID.Zero || textures[10] == UUID.Zero || textures[11] == UUID.Zero) || (textures[8] == DEFAULT_AVATAR_TEXTURE || textures[9] == DEFAULT_AVATAR_TEXTURE || textures[10] == DEFAULT_AVATAR_TEXTURE || textures[11] == DEFAULT_AVATAR_TEXTURE))
                         {
                             // This hasn't actually baked. Retry after a delay.
                             await Task.Delay(REBAKE_DELAY, cancellationToken);
-                            return await UpdateAvatarAppearanceAsync(cancellationToken, totalRetries - 1);
+                            totalRetries = totalRetries - 1;
+                            continue;
                         }
                     }
-                    
+
                     try
                     {
                         var selfPrim = GetOwnAvatar();
@@ -2185,13 +2145,9 @@ namespace OpenMetaverse
 
                             if (textures != null)
                             {
-
                                 for (var i = 0; i < textures.Length; i++)
                                 {
-                                    selfAvatarTextures.FaceTextures[i] = new Primitive.TextureEntryFace(null)
-                                        {
-                                            TextureID = textures[i]
-                                        };
+                                    selfAvatarTextures.FaceTextures[i] = new Primitive.TextureEntryFace(null) { TextureID = textures[i] };
                                 }
 
                                 selfPrim.Textures = selfAvatarTextures;
@@ -2203,15 +2159,15 @@ namespace OpenMetaverse
                             selfPrim.COFVersion = cofVersion;
                             selfPrim.AppearanceFlags = 0;
 
-                            var appearance = new AvatarAppearanceEventArgs(Client.Network.CurrentSim,
-                                                                           Client.Self.AgentID,
-                                                                           false,
-                                                                           selfPrim.Textures.DefaultTexture,
-                                                                           selfPrim.Textures.FaceTextures,
-                                                                           selfPrim.VisualParameters.ToList(), 1,
-                                                                           cofVersion,
-                                                                           AppearanceFlags.None, 
-                                                                           selfPrim.ChildCount);
+                            var appearance = new AvatarAppearanceEventArgs(Client.Network.CurrentSim, 
+                                Client.Self.AgentID,
+                                false,
+                                selfPrim.Textures.DefaultTexture,
+                                selfPrim.Textures.FaceTextures,
+                                selfPrim.VisualParameters.ToList(), 1,
+                                cofVersion,
+                                AppearanceFlags.None,
+                                selfPrim.ChildCount);
 
                             Client.Avatars.TriggerAvatarAppearanceMessage(appearance);
                             _pendingServerBake = false;
@@ -2219,24 +2175,33 @@ namespace OpenMetaverse
                     }
                     catch (Exception e)
                     {
-                        Logger.Log("Error applying textures to avatar object: " + e, Helpers.LogLevel.Error, Client);
+                        Logger.Log($"Error applying textures to avatar object: {e.Message}", Helpers.LogLevel.Error, Client);
                         throw;
                     }
 
                     Logger.Log("Returning appearance information from server-side bake request.", Helpers.LogLevel.Info, Client);
                     return true;
                 }
-                else
+                if (result.ContainsKey("expected"))
                 {
-                    // This hasn't actually baked. Retry after a delay.
-                    await Task.Delay(REBAKE_DELAY, cancellationToken);
-                    return await UpdateAvatarAppearanceAsync(cancellationToken, totalRetries - 1);
+                    Logger.Log($"Server expected {result["expected"].AsInteger()} as COF version. Version {currentOutfitFolder.Version} was sent.", 
+                        Helpers.LogLevel.Warning, Client);
                 }
+                if (result.ContainsKey("error"))
+                {
+                    var er = result["error"].AsString();
+                    if (string.IsNullOrEmpty(er))
+                    {
+                        Logger.Log($"UpdateAvatarAppearance failed. Server responded with: '{result["error"].AsString()}'",
+                            Helpers.LogLevel.Warning, Client);
+                    }
+                }
+
+                Logger.Log($"Avatar appearance update failed on {totalRetries} attempt.", Helpers.LogLevel.Info, Client);
+                await Task.Delay(REBAKE_DELAY, cancellationToken);
+                --totalRetries;
+                continue;
             }
-
-            Logger.Log(msg, Helpers.LogLevel.Error, Client);
-
-            return false;
         }
 
         /// <summary>
