@@ -281,7 +281,7 @@ namespace OpenMetaverse
         }
 
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<AgentCachedBakesReplyEventArgs> m_AgentCachedBakesReply;
 
         /// <summary>Raises the CachedBakesReply event</summary>
@@ -306,11 +306,11 @@ namespace OpenMetaverse
             remove { lock (m_AgentCachedBakesLock) { m_AgentCachedBakesReply -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<AppearanceSetEventArgs> m_AppearanceSet;
 
         /// <summary>Raises the AppearanceSet event</summary>
-        /// <param name="e">An AppearanceSetEventArgs object indicating if the operatin was successfull</param>
+        /// <param name="e">An AppearanceSetEventArgs object indicating if the operation was successful</param>
         protected virtual void OnAppearanceSet(AppearanceSetEventArgs e)
         {
             m_AppearanceSet?.Invoke(this, e);
@@ -331,7 +331,7 @@ namespace OpenMetaverse
         }
 
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<RebakeAvatarTexturesEventArgs> m_RebakeAvatarReply;
 
         /// <summary>Raises the RebakeAvatarRequested event</summary>

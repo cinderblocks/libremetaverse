@@ -230,7 +230,7 @@ namespace OpenMetaverse
             remove { lock (m_FriendsListReadyLock) { m_FriendsListReadyResponse -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<FriendInfoEventArgs> m_FriendOnline;
 
         /// <summary>Raises the FriendOnline event</summary>
@@ -252,7 +252,7 @@ namespace OpenMetaverse
             remove { lock (m_FriendOnlineLock) { m_FriendOnline -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<FriendInfoEventArgs> m_FriendOffline;
 
         /// <summary>Raises the FriendOffline event</summary>
@@ -274,7 +274,7 @@ namespace OpenMetaverse
             remove { lock (m_FriendOfflineLock) { m_FriendOffline -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<FriendInfoEventArgs> m_FriendRights;
 
         /// <summary>Raises the FriendRightsUpdate event</summary>
@@ -296,7 +296,7 @@ namespace OpenMetaverse
             remove { lock (m_FriendRightsLock) { m_FriendRights -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<FriendNamesEventArgs> m_FriendNames;
 
         /// <summary>Raises the FriendNames event</summary>
@@ -318,7 +318,7 @@ namespace OpenMetaverse
             remove { lock (m_FriendNamesLock) { m_FriendNames -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<FriendshipOfferedEventArgs> m_FriendshipOffered;
 
         /// <summary>Raises the FriendshipOffered event</summary>
@@ -340,7 +340,7 @@ namespace OpenMetaverse
             remove { lock (m_FriendshipOfferedLock) { m_FriendshipOffered -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<FriendshipResponseEventArgs> m_FriendshipResponse;
 
         /// <summary>Raises the FriendshipResponse event</summary>
@@ -362,7 +362,7 @@ namespace OpenMetaverse
             remove { lock (m_FriendshipResponseLock) { m_FriendshipResponse -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<FriendshipTerminatedEventArgs> m_FriendshipTerminated;
 
         /// <summary>Raises the FriendshipTerminated event</summary>
@@ -385,7 +385,7 @@ namespace OpenMetaverse
             remove { lock (m_FriendshipTerminatedLock) { m_FriendshipTerminated -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<FriendFoundReplyEventArgs> m_FriendFound;
 
         /// <summary>Raises the FriendFoundReply event</summary>

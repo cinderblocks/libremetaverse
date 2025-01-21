@@ -506,7 +506,7 @@ namespace OpenMetaverse
         
         #region Event delegates, Raise Events
         
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EventInfoReplyEventArgs> m_EventInfoReply;
 
         /// <summary>Raises the EventInfoReply event</summary>
@@ -528,7 +528,7 @@ namespace OpenMetaverse
             remove { lock (m_EventDetailLock) { m_EventInfoReply -= value; } }
         }
         
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<DirEventsReplyEventArgs> m_DirEvents;
 
         /// <summary>Raises the DirEventsReply event</summary>
@@ -594,7 +594,7 @@ namespace OpenMetaverse
             remove { lock (m_DirPlacesLock) { m_DirPlaces -= value; } }
         }
         
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<DirClassifiedsReplyEventArgs> m_DirClassifieds;
 
         /// <summary>Raises the DirClassifiedsReply event</summary>
@@ -616,7 +616,7 @@ namespace OpenMetaverse
             remove { lock (m_DirClassifiedsLock) { m_DirClassifieds -= value; } }
         }
         
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<DirGroupsReplyEventArgs> m_DirGroups;
 
         /// <summary>Raises the DirGroupsReply event</summary>
@@ -638,7 +638,7 @@ namespace OpenMetaverse
             remove { lock (m_DirGroupsLock) { m_DirGroups -= value; } }
         }
         
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<DirPeopleReplyEventArgs> m_DirPeople;
 
         /// <summary>Raises the DirPeopleReply event</summary>
@@ -660,7 +660,7 @@ namespace OpenMetaverse
             remove { lock (m_DirPeopleLock) { m_DirPeople -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<DirLandReplyEventArgs> m_DirLandReply;
 
         /// <summary>Raises the DirLandReply event</summary>

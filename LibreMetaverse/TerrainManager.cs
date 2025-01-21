@@ -32,7 +32,7 @@ namespace OpenMetaverse
     public class TerrainManager
     {
         #region EventHandling
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<LandPatchReceivedEventArgs> m_LandPatchReceivedEvent;
 
         /// <summary>Raises the LandPatchReceived event</summary>

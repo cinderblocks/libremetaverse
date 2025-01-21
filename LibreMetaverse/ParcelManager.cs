@@ -770,7 +770,7 @@ namespace OpenMetaverse
         /// <param name="info">Parcel resource usage information</param>
         public delegate void LandResourcesCallback(bool success, LandResourcesInfo info);
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ParcelDwellReplyEventArgs> m_DwellReply;
 
         /// <summary>Raises the ParcelDwellReply event</summary>
@@ -792,7 +792,7 @@ namespace OpenMetaverse
             remove { lock (m_DwellReplyLock) { m_DwellReply -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ParcelInfoReplyEventArgs> m_ParcelInfo;
 
         /// <summary>Raises the ParcelInfoReply event</summary>
@@ -814,7 +814,7 @@ namespace OpenMetaverse
             remove { lock (m_ParcelInfoLock) { m_ParcelInfo -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ParcelPropertiesEventArgs> m_ParcelProperties;
 
         /// <summary>Raises the ParcelProperties event</summary>
@@ -836,7 +836,7 @@ namespace OpenMetaverse
             remove { lock (m_ParcelPropertiesLock) { m_ParcelProperties -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ParcelAccessListReplyEventArgs> m_ParcelACL;
 
         /// <summary>Raises the ParcelAccessListReply event</summary>
@@ -858,7 +858,7 @@ namespace OpenMetaverse
             remove { lock (m_ParcelACLLock) { m_ParcelACL -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ParcelObjectOwnersReplyEventArgs> m_ParcelObjectOwnersReply;
 
         /// <summary>Raises the ParcelObjectOwnersReply event</summary>
@@ -880,7 +880,7 @@ namespace OpenMetaverse
             remove { lock (m_ParcelObjectOwnersLock) { m_ParcelObjectOwnersReply -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<SimParcelsDownloadedEventArgs> m_SimParcelsDownloaded;
 
         /// <summary>Raises the SimParcelsDownloaded event</summary>
@@ -902,7 +902,7 @@ namespace OpenMetaverse
             remove { lock (m_SimParcelsDownloadedLock) { m_SimParcelsDownloaded -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ForceSelectObjectsReplyEventArgs> m_ForceSelectObjects;
 
         /// <summary>Raises the ForceSelectObjectsReply event</summary>
@@ -924,7 +924,7 @@ namespace OpenMetaverse
             remove { lock (m_ForceSelectObjectsLock) { m_ForceSelectObjects -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ParcelMediaUpdateReplyEventArgs> m_ParcelMediaUpdateReply;
 
         /// <summary>Raises the ParcelMediaUpdateReply event</summary>
@@ -946,7 +946,7 @@ namespace OpenMetaverse
             remove { lock (m_ParcelMediaUpdateReplyLock) { m_ParcelMediaUpdateReply -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ParcelMediaCommandEventArgs> m_ParcelMediaCommand;
 
         /// <summary>Raises the ParcelMediaCommand event</summary>

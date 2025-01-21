@@ -310,7 +310,7 @@ namespace OpenMetaverse
         #region Events
 
         #region XferReceived
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<XferReceivedEventArgs> m_XferReceivedEvent;
 
         /// <summary>Raises the XferReceived event</summary>
@@ -334,7 +334,7 @@ namespace OpenMetaverse
         #endregion
 
         #region AssetUploaded
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<AssetUploadEventArgs> m_AssetUploadedEvent;
 
         /// <summary>Raises the AssetUploaded event</summary>
@@ -358,7 +358,7 @@ namespace OpenMetaverse
         #endregion
 
         #region UploadProgress
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<AssetUploadEventArgs> m_UploadProgressEvent;
 
         /// <summary>Raises the UploadProgress event</summary>
@@ -382,7 +382,7 @@ namespace OpenMetaverse
         #endregion UploadProgress
 
         #region InitiateDownload
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<InitiateDownloadEventArgs> m_InitiateDownloadEvent;
 
         /// <summary>Raises the InitiateDownload event</summary>
@@ -406,7 +406,7 @@ namespace OpenMetaverse
         #endregion InitiateDownload
 
         #region ImageReceiveProgress
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ImageReceiveProgressEventArgs> m_ImageReceiveProgressEvent;
 
         /// <summary>Raises the ImageReceiveProgress event</summary>
