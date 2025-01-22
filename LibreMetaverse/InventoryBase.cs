@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2024, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -162,34 +162,34 @@ namespace OpenMetaverse
         {
             return $"{AssetType} {AssetUUID} ({InventoryType} {UUID}) '{Name}'/'{Description}' {Permissions}";
         }
-        /// <summary>The <see cref="UUID"/> of this item</summary>
+        /// <summary><see cref="UUID"/> of the underlying asset</summary>
         public UUID AssetUUID;
-        /// <summary>The combined <see cref="OpenMetaverse.Permissions"/> of this item</summary>
+        /// <summary>Combined <see cref="OpenMetaverse.Permissions"/> of the item</summary>
         public Permissions Permissions;
-        /// <summary>The type of item from <see cref="OpenMetaverse.AssetType"/></summary>
+        /// <summary><see cref="OpenMetaverse.AssetType"/> of the underlying asset</summary>
         public AssetType AssetType;
-        /// <summary>The type of item from the <see cref="OpenMetaverse.InventoryType"/> enum</summary>
+        /// <summary><see cref="OpenMetaverse.InventoryType"/> of the item</summary>
         public InventoryType InventoryType;
-        /// <summary>The <see cref="UUID"/> of the creator of this item</summary>
+        /// <summary><see cref="UUID"/> of the creator of the item</summary>
         public UUID CreatorID;
-        /// <summary>A Description of this item</summary>
+        /// <summary>Description of the item</summary>
         public string Description;
-        /// <summary>The <see cref="Group"/>s <see cref="UUID"/> this item is set to or owned by</summary>
+        /// <summary><see cref="Group"/>s <see cref="UUID"/> the item is owned by</summary>
         public UUID GroupID;
         /// <summary>If true, item is owned by a group</summary>
         public bool GroupOwned;
-        /// <summary>The price this item can be purchased for</summary>
+        /// <summary>Price the item can be purchased for</summary>
         public int SalePrice;
-        /// <summary>The type of sale from the <see cref="OpenMetaverse.SaleType"/> enum</summary>
+        /// <summary><see cref="OpenMetaverse.SaleType"/> of the item</summary>
         public SaleType SaleType;
         /// <summary>Combined flags from <see cref="InventoryItemFlags"/></summary>
         public uint Flags;
-        /// <summary>Time and date this inventory item was created, stored as
+        /// <summary>Time and date the inventory item was created, stored as
         /// UTC (Coordinated Universal Time)</summary>
         public DateTime CreationDate;
         /// <summary>Used to update the AssetID in requests sent to the server</summary>
         public UUID TransactionID;
-        /// <summary>The <see cref="UUID"/> of the previous owner of the item</summary>
+        /// <summary><see cref="UUID"/> of the previous owner of the item</summary>
         public UUID LastOwnerID;
 
         /// <summary>
