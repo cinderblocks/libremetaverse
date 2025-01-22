@@ -575,7 +575,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Represents all of the texturable faces for an object
+        /// Represents all the texturable faces for an object
         /// </summary>
         /// <remarks>Grid objects have infinite faces, with each face
         /// using the properties of the default face unless set otherwise. So if

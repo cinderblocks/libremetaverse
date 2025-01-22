@@ -154,10 +154,8 @@ namespace OpenMetaverse
         private readonly TimeSpan UPLOAD_TIMEOUT = TimeSpan.FromSeconds(90);
         /// <summary>Number of times to retry bake upload</summary>
         private const int UPLOAD_RETRIES = 2;
-        /// <summary>When changing outfit, kick off rebake after
-        /// 20 seconds has passed since the last change</summary>
+        /// <summary>When changing outfit, kick off rebake after REBAKE_DELAY has passed since the last change</summary>
         private const int REBAKE_DELAY = 1000 * 5;
-
         /// <summary>Total number of wearables allowed for each avatar</summary>
         public const int WEARABLE_COUNT_MAX = 60;
         /// <summary>Total number of wearables for each avatar</summary>
@@ -257,7 +255,7 @@ namespace OpenMetaverse
 
         #region Event delegates, Raise Events
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<AgentWearablesReplyEventArgs> m_AgentWearablesReply;
 
         /// <summary>Raises the AgentWearablesReply event</summary>
@@ -281,7 +279,7 @@ namespace OpenMetaverse
         }
 
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<AgentCachedBakesReplyEventArgs> m_AgentCachedBakesReply;
 
         /// <summary>Raises the CachedBakesReply event</summary>
@@ -306,11 +304,11 @@ namespace OpenMetaverse
             remove { lock (m_AgentCachedBakesLock) { m_AgentCachedBakesReply -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<AppearanceSetEventArgs> m_AppearanceSet;
 
         /// <summary>Raises the AppearanceSet event</summary>
-        /// <param name="e">An AppearanceSetEventArgs object indicating if the operatin was successfull</param>
+        /// <param name="e">An AppearanceSetEventArgs object indicating if the operation was successful</param>
         protected virtual void OnAppearanceSet(AppearanceSetEventArgs e)
         {
             m_AppearanceSet?.Invoke(this, e);
@@ -331,7 +329,7 @@ namespace OpenMetaverse
         }
 
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<RebakeAvatarTexturesEventArgs> m_RebakeAvatarReply;
 
         /// <summary>Raises the RebakeAvatarRequested event</summary>
@@ -403,7 +401,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Main appearance cancellation token source
         /// </summary>
-        private CancellationTokenSource CancellationTokenSource;
+        private CancellationTokenSource AppearanceCts;
         /// <summary>
         /// Is server baking complete. It needs doing only once
         /// </summary>
@@ -415,12 +413,6 @@ namespace OpenMetaverse
         };
 
         #endregion Private Members
-
-        public void ResetServerBakeFlag()
-        {
-            _pendingServerBake = true;
-            ServerBakingDone = false;
-        }
 
         /// <summary>
         /// Default constructor
@@ -434,31 +426,8 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.AgentCachedTextureResponse, AgentCachedTextureResponseHandler);
             Client.Network.RegisterCallback(PacketType.RebakeAvatarTextures, RebakeAvatarTexturesHandler);
 
-            Client.Network.EventQueueRunning += Network_OnEventQueueRunning;
             Client.Network.Disconnected += Network_OnDisconnected;
-            Client.Network.SimChanged += NetworkOnSimChanged;
-
-            Client.Network.LoggedOut += NetworkOnLoggedOut;
-            Client.Network.LoginProgress += NetworkOnLoginProgress;
-        }
-
-        private void NetworkOnLoginProgress(object sender, LoginProgressEventArgs e)
-        {
-            HasSentAppearanceInThisSession = false;
-            _pendingServerBake = true;
-        }
-
-        private void NetworkOnLoggedOut(object sender, LoggedOutEventArgs e)
-        {
-            HasSentAppearanceInThisSession = false;
-            _pendingServerBake = true;
-        }
-
-        private bool HasSentAppearanceInThisSession { get; set; }
-
-        private void NetworkOnSimChanged(object sender, SimChangedEventArgs e)
-        {
-            _pendingServerBake = true;
+            Client.Network.SimChanged += Network_OnSimChanged;
         }
 
 #region Publics Methods
@@ -485,16 +454,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Starts the appearance setting thread
         /// </summary>
-        public void RequestSetAppearance()
-        {
-            RequestSetAppearance(false);
-        }
-
-        /// <summary>
-        /// Starts the appearance setting thread
-        /// </summary>
         /// <param name="forceRebake">True to force rebaking, otherwise false</param>
-        public void RequestSetAppearance(bool forceRebake)
+        public void RequestSetAppearance(bool forceRebake = false)
         {
             if (Interlocked.CompareExchange(ref AppearanceThreadRunning, 1, 0) != 0)
             {
@@ -509,13 +470,13 @@ namespace OpenMetaverse
                 RebakeScheduleTimer = null;
             }
 
-            CancellationTokenSource = new CancellationTokenSource();
+            AppearanceCts = new CancellationTokenSource();
 
             // This is the first time setting appearance, run through the entire sequence
             AppearanceThread = new Thread(
                 () =>
                 {
-                    var cancellationToken = CancellationTokenSource.Token;
+                    var cancellationToken = AppearanceCts.Token;
                     var success = true;
                     try
                     {
@@ -534,7 +495,7 @@ namespace OpenMetaverse
                         {
                             Logger.Log(
                                 "Failed to retrieve a list of current agent attachments, appearance cannot be set",
-                                Helpers.LogLevel.Error,
+                                Helpers.LogLevel.Warning,
                                 Client);
 
                             throw new AppearanceManagerException(
@@ -547,10 +508,7 @@ namespace OpenMetaverse
                             if (!GotWearables)
                             {
                                 // Fetch a list of the current agent wearables
-                                if (GetAgentWearables())
-                                {
-                                    GotWearables = true;
-                                }
+                                GotWearables = GetAgentWearables();
                             }
 
                             cancellationToken.ThrowIfCancellationRequested();
@@ -574,8 +532,7 @@ namespace OpenMetaverse
                                 // Fetch a list of the current agent wearables
                                 if (!GetAgentWearables())
                                 {
-                                    Logger.Log(
-                                        "Failed to retrieve a list of current agent wearables, appearance cannot be set",
+                                    Logger.Log("Failed to retrieve a list of current agent wearables, appearance cannot be set",
                                         Helpers.LogLevel.Error, Client);
                                     throw new AppearanceManagerException(
                                         "Failed to retrieve a list of current agent wearables, appearance cannot be set");
@@ -585,7 +542,7 @@ namespace OpenMetaverse
 
                             cancellationToken.ThrowIfCancellationRequested();
 
-                            // If we get back to server side backing region re-request server bake
+                            // If we get back to server side baking region re-request server bake
                             ServerBakingDone = false;
 
                             // Download and parse all agent wearables
@@ -780,18 +737,8 @@ namespace OpenMetaverse
         /// Add a wearable to the current outfit and set appearance
         /// </summary>
         /// <param name="wearableItem">Wearable to be added to the outfit</param>
-        public void AddToOutfit(InventoryItem wearableItem)
-        {
-            var wearableItems = new List<InventoryItem> { wearableItem };
-            AddToOutfit(wearableItems);
-        }
-
-        /// <summary>
-        /// Add a wearable to the current outfit and set appearance
-        /// </summary>
-        /// <param name="wearableItem">Wearable to be added to the outfit</param>
         /// <param name="replace">Should existing item on the same point or of the same type be replaced</param>
-        public void AddToOutfit(InventoryItem wearableItem, bool replace)
+        public void AddToOutfit(InventoryItem wearableItem, bool replace = true)
         {
             var wearableItems = new List<InventoryItem> { wearableItem };
             AddToOutfit(wearableItems, replace);
@@ -802,25 +749,11 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="wearableItems">List of wearable inventory items to
         /// be added to the outfit</param>
-        public void AddToOutfit(List<InventoryItem> wearableItems)
-        {
-            AddToOutfit(wearableItems, true);
-        }
-
-        /// <summary>
-        /// Add a list of wearables to the current outfit and set appearance
-        /// </summary>
-        /// <param name="wearableItems">List of wearable inventory items to
-        /// be added to the outfit</param>
         /// <param name="replace">Should existing item on the same point or of the same type be replaced</param>
-        public void AddToOutfit(List<InventoryItem> wearableItems, bool replace)
+        public void AddToOutfit(List<InventoryItem> wearableItems, bool replace = true)
         {
-            _pendingServerBake = true;
-
-            var wearables = wearableItems.OfType<InventoryWearable>()
-                .ToList();
-            var attachments = wearableItems.Where(item => item is InventoryAttachment || item is InventoryObject)
-                .ToList();
+            var wearables = wearableItems.OfType<InventoryWearable>().ToList();
+            var attachments = wearableItems.Where(item => item is InventoryAttachment || item is InventoryObject).ToList();
 
             lock (Wearables)
             {
@@ -873,8 +806,6 @@ namespace OpenMetaverse
         /// be removed from the outfit</param>
         public void RemoveFromOutfit(List<InventoryItem> wearableItems)
         {
-            _pendingServerBake = true;
-
             var wearables = wearableItems.OfType<InventoryWearable>()
                 .ToList();
             var attachments = wearableItems.Where(item => item is InventoryAttachment || item is InventoryObject)
@@ -931,17 +862,13 @@ namespace OpenMetaverse
         /// if you know what you're doing</param>
         public void ReplaceOutfit(List<InventoryItem> wearableItems, bool safe)
         {
-            _pendingServerBake = true;
-
-            var wearables = wearableItems.OfType<InventoryWearable>()
-                .ToList();
-            var attachments = wearableItems.Where(item => item is InventoryAttachment || item is InventoryObject)
-                .ToList();
+            var wearables = wearableItems.OfType<InventoryWearable>().ToList();
+            var attachments = wearableItems.Where(item => item is InventoryAttachment || item is InventoryObject).ToList();
 
             if (safe)
             {
-                // If we don't already have a the current agent wearables downloaded, updating to a
-                // new set of wearables that doesn't have all of the bodyparts can leave the avatar
+                // If we don't already have the current agent wearables downloaded, updating to a
+                // new set of wearables that doesn't have all bodyparts can leave the avatar
                 // in an inconsistent state. If any bodypart entries are empty, we need to fetch the
                 // current wearables first
                 var needsCurrentWearables = false;
@@ -993,7 +920,7 @@ namespace OpenMetaverse
         /// <param name="item">The inventory item to check against the agent
         /// wearables</param>
         /// <returns>The WearableType slot that the item is being worn in,
-        /// or WearbleType.Invalid if it is not currently being worn</returns>
+        /// or <see cref="WearableType.Invalid"/> if it is not currently being worn</returns>
         public WearableType IsItemWorn(InventoryItem item)
         {
             lock (Wearables)
@@ -1014,7 +941,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <returns>A copy of the agents currently worn wearables</returns>
         /// <remarks>Avoid calling this function multiple times as it will make
-        /// a copy of all of the wearable data each time</remarks>
+        /// a copy of all wearable data each time</remarks>
         public IEnumerable<WearableData> GetWearables()
         {
             lock (Wearables)
@@ -1033,8 +960,8 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Calls either <seealso cref="AppearanceManager.ReplaceOutfit"/> or
-        /// <seealso cref="AppearanceManager.AddToOutfit"/> depending on the value of
+        /// Calls either <see cref="AppearanceManager.ReplaceOutfit"/> or
+        /// <see cref="AppearanceManager.AddToOutfit"/> depending on the value of
         /// replaceItems
         /// </summary>
         /// <param name="wearables">List of wearable inventory items to add
@@ -1100,7 +1027,7 @@ namespace OpenMetaverse
                         EveryoneMask = (uint)attachment.Permissions.EveryoneMask,
                         GroupMask = (uint)attachment.Permissions.GroupMask,
                         ItemFlags = attachment.Flags,
-                        ItemID = attachment.UUID,
+                        ItemID = attachment.AssetUUID,
                         Name = Utils.StringToBytes(attachment.Name),
                         Description = Utils.StringToBytes(attachment.Description),
                         NextOwnerMask = (uint)attachment.Permissions.NextOwnerMask,
@@ -1120,7 +1047,7 @@ namespace OpenMetaverse
                         EveryoneMask = (uint)attachment.Permissions.EveryoneMask,
                         GroupMask = (uint)attachment.Permissions.GroupMask,
                         ItemFlags = attachment.Flags,
-                        ItemID = attachment.UUID,
+                        ItemID = attachment.AssetUUID,
                         Name = Utils.StringToBytes(attachment.Name),
                         Description = Utils.StringToBytes(attachment.Description),
                         NextOwnerMask = (uint)attachment.Permissions.NextOwnerMask,
@@ -1133,7 +1060,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    Logger.Log("Cannot attach inventory item " + attachments[i].Name, Helpers.LogLevel.Warning, Client);
+                    Logger.Log($"Cannot attach inventory item {attachments[i].Name}", Helpers.LogLevel.Warning, Client);
                 }
             }
 
@@ -1143,61 +1070,31 @@ namespace OpenMetaverse
         /// <summary>
         /// Attach an item to our agent at a specific attach point
         /// </summary>
-        /// <param name="item">A <seealso cref="OpenMetaverse.InventoryItem"/> to attach</param>
-        /// <param name="attachPoint">the <seealso cref="OpenMetaverse.AttachmentPoint"/> on the avatar 
-        /// to attach the item to</param>
-        public void Attach(InventoryItem item, AttachmentPoint attachPoint)
-        {
-            Attach(item, attachPoint, true);
-        }
-
-        /// <summary>
-        /// Attach an item to our agent at a specific attach point
-        /// </summary>
-        /// <param name="item">A <seealso cref="OpenMetaverse.InventoryItem"/> to attach</param>
-        /// <param name="attachPoint">the <seealso cref="OpenMetaverse.AttachmentPoint"/> on the avatar 
+        /// <param name="item">A <see cref="OpenMetaverse.InventoryItem"/> to attach</param>
+        /// <param name="attachPoint">the <see cref="OpenMetaverse.AttachmentPoint"/> on the avatar 
         /// <param name="replace">If true replace existing attachment on this attachment point, otherwise add to it (multi-attachments)</param>
         /// to attach the item to</param>
-        public void Attach(InventoryItem item, AttachmentPoint attachPoint, bool replace)
+        public void Attach(InventoryItem item, AttachmentPoint attachPoint, bool replace = true)
         {
-            Attach(item.UUID, item.OwnerID, item.Name, item.Description, item.Permissions, item.Flags,
+            Attach(item.AssetUUID, item.OwnerID, item.Name, item.Description, item.Permissions, item.Flags,
                 attachPoint, replace);
         }
 
         /// <summary>
         /// Attach an item to our agent specifying attachment details
         /// </summary>
-        /// <param name="itemID">The <seealso cref="OpenMetaverse.UUID"/> of the item to attach</param>
-        /// <param name="ownerID">The <seealso cref="OpenMetaverse.UUID"/> attachments owner</param>
+        /// <param name="itemID">The <see cref="OpenMetaverse.UUID"/> of the item to attach</param>
+        /// <param name="ownerID">The <see cref="OpenMetaverse.UUID"/> attachments owner</param>
         /// <param name="name">The name of the attachment</param>
-        /// <param name="description">The description of the attahment</param>
-        /// <param name="perms">The <seealso cref="OpenMetaverse.Permissions"/> to apply when attached</param>
-        /// <param name="itemFlags">The <seealso cref="OpenMetaverse.InventoryItemFlags"/> of the attachment</param>
-        /// <param name="attachPoint">The <seealso cref="OpenMetaverse.AttachmentPoint"/> on the agent
-        /// to attach the item to</param>
-        public void Attach(UUID itemID, UUID ownerID, string name, string description,
-            Permissions perms, uint itemFlags, AttachmentPoint attachPoint)
-        {
-            Attach(itemID, ownerID, name, description, perms, itemFlags, attachPoint, true);
-        }
-
-        /// <summary>
-        /// Attach an item to our agent specifying attachment details
-        /// </summary>
-        /// <param name="itemID">The <seealso cref="OpenMetaverse.UUID"/> of the item to attach</param>
-        /// <param name="ownerID">The <seealso cref="OpenMetaverse.UUID"/> attachments owner</param>
-        /// <param name="name">The name of the attachment</param>
-        /// <param name="description">The description of the attahment</param>
-        /// <param name="perms">The <seealso cref="OpenMetaverse.Permissions"/> to apply when attached</param>
-        /// <param name="itemFlags">The <seealso cref="OpenMetaverse.InventoryItemFlags"/> of the attachment</param>
-        /// <param name="attachPoint">The <seealso cref="OpenMetaverse.AttachmentPoint"/> on the agent
+        /// <param name="description">The description of the attachment</param>
+        /// <param name="perms">The <see cref="OpenMetaverse.Permissions"/> to apply when attached</param>
+        /// <param name="itemFlags">The <see cref="OpenMetaverse.InventoryItemFlags"/> of the attachment</param>
+        /// <param name="attachPoint">The <see cref="OpenMetaverse.AttachmentPoint"/> on the agent
         /// <param name="replace">If true replace existing attachment on this attachment point, otherwise add to it (multi-attachments)</param>
         /// to attach the item to</param>
         public void Attach(UUID itemID, UUID ownerID, string name, string description,
-            Permissions perms, uint itemFlags, AttachmentPoint attachPoint, bool replace)
+            Permissions perms, uint itemFlags, AttachmentPoint attachPoint, bool replace = true)
         {
-            // TODO: At some point it might be beneficial to have AppearanceManager track what we
-            // are currently wearing for attachments to make enumeration and detachment easier
             var attach = new RezSingleAttachmentFromInvPacket
             {
                 AgentData =
@@ -1225,9 +1122,9 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Detach an item from our agent using an <seealso cref="OpenMetaverse.InventoryItem"/> object
+        /// Detach an item from our agent using an <see cref="OpenMetaverse.InventoryItem"/> object
         /// </summary>
-        /// <param name="item">An <seealso cref="OpenMetaverse.InventoryItem"/> object</param>
+        /// <param name="item">An <see cref="OpenMetaverse.InventoryItem"/> object</param>
         public void Detach(InventoryItem item)
         {
             Detach(item.UUID);
@@ -1282,18 +1179,12 @@ namespace OpenMetaverse
             foreach (var primitive in enumerable)
             {
                 // Find the inventory UUID from the primitive name-value collection.
-                if (primitive == null)
-                    continue;
-
-                if (primitive.NameValues == null || primitive.NameValues.Length == 0)
-                    continue;
+                if (primitive == null) { continue; }
+                if (primitive.NameValues == null || primitive.NameValues.Length == 0) { continue; }
 
                 var nameValue = primitive.NameValues.SingleOrDefault(item => item.Name.Equals("AttachItemID"));
 
-                if (nameValue.Equals(default(NameValue)))
-                {
-                    continue;
-                }
+                if (nameValue.Equals(default(NameValue))) { continue; }
 
                 // Retrieve the inventory item UUID from the name values.
                 var inventoryItemId = (string)nameValue.Value;
@@ -1309,10 +1200,7 @@ namespace OpenMetaverse
 
                 // Add or update the attachment list.
                 Attachments.AddOrUpdate(itemID, attachmentPoint, (id, point) => attachmentPoint);
-
-                
             }
-
             return true;
         }
 
@@ -1321,7 +1209,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <returns>A copy of the agents currently worn wearables</returns>
         /// <remarks>Avoid calling this function multiple times as it will make
-        /// a copy of all of the wearable data each time</remarks>
+        /// a copy of all wearable data each time</remarks>
         public IEnumerable<InventoryItem> GetAttachments()
         {
             return Attachments.Select(item => Client.Inventory.Store[item.Key] as InventoryItem);
@@ -1422,8 +1310,6 @@ namespace OpenMetaverse
         /// <param name="wearableItems">Wearable items to replace the Wearables collection with</param>
         private void ReplaceOutfit(List<InventoryWearable> wearableItems)
         {
-            _pendingServerBake = true;
-
             // *TODO: This could use some love. We need to sanitize wearable layers, and this may not be
             //        the most efficient way of doing that.
             var newWearables = new MultiValueDictionary<WearableType, WearableData>();
@@ -1471,7 +1357,7 @@ namespace OpenMetaverse
                     newWearables.Add(bodypart.Key, bodypart.Value);
                 }
 
-                // heavy handed body part sanity check
+                // heavy-handed body part sanity check
                 if (newWearables.ContainsKey(WearableType.Shape) &&
                     newWearables.ContainsKey(WearableType.Skin) &&
                     newWearables.ContainsKey(WearableType.Eyes) &&
@@ -1489,10 +1375,9 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Calculates base color/tint for a specific wearable
-        /// based on its params
+        /// Calculates base color/tint for a specific wearable based on its params
         /// </summary>
-        /// <param name="param">All the color info gathered from wearable's VisualParams
+        /// <param name="param">All the color info gathered from wearable VisualParams
         /// passed as list of ColorParamInfo tuples</param>
         /// <returns>Base color/tint for the wearable</returns>
         public static Color4 GetColorFromParams(List<ColorParamInfo> param)
@@ -1522,7 +1407,7 @@ namespace OpenMetaverse
                     // Size of the step using which we iterate from Min to Max
                     var step = (p.VisualParam.MaxValue - p.VisualParam.MinValue) / ((float)n - 1);
 
-                    // Our color should land inbetween colors in the array with index a and b
+                    // Our color should land in between colors in the array with index a and b
                     var indexa = 0;
                     var indexb = 0;
 
@@ -1717,7 +1602,7 @@ namespace OpenMetaverse
                     alphaMasks.Add(p.AlphaParams.Value, kvp.Value == 0 ? 0.01f : kvp.Value);
                 }
 
-                // Alhpa masks can also be specified in sub "driver" params
+                // Alpha masks can also be specified in sub "driver" params
                 if (p.Drivers != null)
                 {
                     foreach (var t in p.Drivers)
@@ -1844,8 +1729,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Get a list of all of the textures that need to be downloaded for a
-        /// single bake layer
+        /// Get a list of all textures that need to be downloaded for a single bake layer
         /// </summary>
         /// <param name="bakeType">Bake layer to get texture AssetIDs for</param>
         /// <returns>A list of texture AssetIDs to download</returns>
@@ -1867,12 +1751,12 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Blocking method to download all of the textures needed for baking 
+        /// Blocking method to download all textures needed for baking 
         /// the given bake layers
         /// </summary>
         /// <param name="bakeLayers">A list of layers that need baking</param>
         /// <remarks>No return value is given because the baking will happen
-        /// whether or not all textures are successfully downloaded</remarks>
+        /// whether all textures are successfully downloaded</remarks>
         private void DownloadTextures(List<BakeType> bakeLayers)
         {
             var textureIDs = new List<UUID>();
@@ -1929,8 +1813,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Blocking method to create and upload baked textures for all of the
-        /// missing bakes
+        /// Blocking method to create and upload baked textures for all missing bakes
         /// </summary>
         /// <returns>True on success, otherwise false</returns>
         private bool CreateBakes()
@@ -2048,8 +1931,8 @@ namespace OpenMetaverse
                 }
             );
 
-            // FIXME: evalute the need for timeout here, RequestUploadBakedTexture() will
-            // timout either on Client.Settings.TRANSFER_TIMEOUT or Client.Settings.CAPS_TIMEOUT
+            // FIXME: evaluate the need for timeout here, RequestUploadBakedTexture() will
+            // timeout either on Client.Settings.TRANSFER_TIMEOUT or Client.Settings.CAPS_TIMEOUT
             // depending on which upload method is used.
             uploadEvent.WaitOne(UPLOAD_TIMEOUT, false);
 
@@ -2111,110 +1994,80 @@ namespace OpenMetaverse
         /// <returns>True if the server baking was successful</returns>
         private async Task<bool> UpdateAvatarAppearanceAsync(CancellationToken cancellationToken, int totalRetries = 3)
         {
-            if (cancellationToken.IsCancellationRequested)
+            while (true)
             {
-                return false;
-            }
+                if (cancellationToken.IsCancellationRequested) { return false; }
 
-            if (totalRetries < 0)
-            {
-                return false;
-            }
-
-            Logger.Log("Updating appearance via bake URL", Helpers.LogLevel.Info, Client);
-            var caps = Client.Network.CurrentSim.Caps;
-            if (caps == null) { return false; }
-            
-            var cap = caps.CapabilityURI("UpdateAvatarAppearance");
-            if (cap == null) { return false; }
-
-            var currentOutfitFolder = GetCOF();
-            if (currentOutfitFolder == null)
-            {
-                return false;
-            }
-            else
-            {
-                // TODO: create Current Outfit Folder
-            }
-
-            var request = new OSDMap(1) { ["cof_version"] = currentOutfitFolder.Version };
-
-            var msg = "Server side baking failed";
-
-            OSD res = null;
-
-            var maxRetries = 1000; // About a minute. (50,000ms)
-
-            while (maxRetries-- > 0)
-            {
-                if (!Client.Network.Connected)
+                if (totalRetries < 0)
                 {
-                    await Task.Delay(50, cancellationToken);
+                    return false;
+                }
+
+                var cap = Client.Network.CurrentSim.Caps?.CapabilityURI("UpdateAvatarAppearance");
+                if (cap == null)
+                {
+                    Logger.Log("Could not retrieve UpdateAvatarAppearance region capability", 
+                        Helpers.LogLevel.Warning, Client);
+                    return false;
+                }
+
+                var currentOutfitFolder = GetCurrentOutfitFolder();
+                if (currentOutfitFolder == null)
+                {
+                    Logger.Log("Could not retrieve Current Outfit folder",
+                        Helpers.LogLevel.Warning, Client);
+                    return false;
                 }
                 else
                 {
-                    var self = GetOwnAvatar();
+                    // TODO: create Current Outfit Folder
+                }
 
-                    if (self == null)
+                Logger.Log($"Requesting bake for COF version {currentOutfitFolder.Version}", 
+                    Helpers.LogLevel.Info, Client);
+
+                var request = new OSDMap(1) { ["cof_version"] = currentOutfitFolder.Version };
+
+                OSD res = null;
+
+                var maxRetries = 1000; // About a minute. (50,000ms)
+
+                while (maxRetries-- > 0)
+                {
+                    if (!Client.Network.Connected)
                     {
                         await Task.Delay(50, cancellationToken);
                     }
                     else
                     {
-                        break;
+                        if (GetOwnAvatar() == null)
+                        {
+                            await Task.Delay(50, cancellationToken);
+                        }
+                        else
+                        {
+                            break;
+                        }
                     }
                 }
-            }
 
-            Logger.Log($"Passed wait for own avatar, {maxRetries} retries left.", Helpers.LogLevel.Info, Client);
-
-            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, request, cancellationToken,
-                                                         (response, data, error) => res = OSDParser.Deserialize(data));
-
-            if (res is OSDMap result)
-            {
-                if (result.ContainsKey("error"))
+                await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, request, cancellationToken, (response, data, error) =>
                 {
-                    msg += ": " + result["error"].AsString();
-                }
-                if (result.ContainsKey("success"))
-                {
-                    /* Sample Reply:
+                    if (error != null)
                     {
-	                    "agent_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-	                    "avatar_scale": [0.44999998807907104, 0.6000000238418579, 1.6885325908660889],
-	                    "cof_version": 20,
-	                    "error": null,
-	                    "success": true,
-	                    "textures": ["00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "7b1816e2-2526-8f0b-8205-11cf643ab6a1", 
-                                    "e3c1742e-cae2-b920-a80e-3d400b5e5b78", "95dc2db1-46e4-2789-9a58-88845c7c492d", "14599019-a2b5-eb43-a0d6-7e87e28deb48", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "c228d1cf-4b5d-4ba8-84f4-899a0796aa97", "89906514-19b6-f8fa-6868-8ead05383bc0", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", 
-                                    "00000000-0000-0000-0000-000000000000", "6bf927fd-ac09-b332-f75f-4ca94d37c4cf", "4e138fe7-ffab-ad71-6b30-476ee03f3c8c", 
-                                    "30681da5-6d1c-73c6-e391-e698cfc38018", "af04c2ec-8162-9357-3fa8-3a987930be25", "e6e08381-1d19-7280-3fff-a4f3a0ff3fc4"],
-	                    "visual_params": [33, 61, 85, 23, 58, 127, 63, 85, 63, 42, 0, 85, 63, 36, 85, 95, 153, 63, 34, 0, 63, 109, 88, 132, 63, 136, 
-                                          81, 85, 103, 136, 127, 0, 203, 0, 0, 127, 0, 0, 127, 0, 0, 127, 0, 0, 0, 127, 114, 127, 99, 63, 127, 140, 
-                                          127, 127, 0, 0, 0, 191, 0, 104, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 133, 0, 127, 0, 127, 170, 0, 0, 127, 127, 
-                                          109, 85, 127, 127, 63, 85, 42, 100, 216, 214, 204, 204, 204, 51, 25, 89, 76, 204, 0, 127, 0, 0, 144, 85, 
-                                          127, 132, 127, 85, 0, 127, 127, 127, 127, 127, 127, 59, 127, 85, 127, 127, 106, 47, 79, 127, 127, 204, 63, 
-                                          0, 0, 0, 0, 127, 127, 0, 0, 0, 0, 127, 0, 159, 0, 0, 178, 127, 36, 85, 131, 127, 127, 127, 153, 95, 0, 0, 74, 
-                                          27, 127, 127, 0, 214, 204, 198, 0, 0, 63, 30, 127, 226, 255, 198, 255, 255, 255, 255, 255, 255, 255, 255, 
-                                          255, 204, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 255, 255, 255, 255, 0, 127, 127, 
-                                          255, 25, 100, 255, 255, 255, 255, 84, 0, 0, 0, 51, 132, 255, 255, 255, 0, 0, 25, 0, 25, 23, 51, 0, 25, 23, 51, 
-                                          0, 0, 25, 0, 25, 23, 51, 0, 0, 25, 0, 25, 23, 51, 0, 25, 23, 51, 0, 25, 23, 51, 1, 127],
-	                    "warnings": []
+                        Logger.Log($"UpdateAvatarAppearance failed. Server responded with: {error.Message}", 
+                            Helpers.LogLevel.Warning, Client);
                     }
-                     */
+                    else if (data != null)
+                    {
+                        res = OSDParser.Deserialize(data);
+                    }
+                });
+
+                if (!(res is OSDMap result)) { return false; }
+
+                if (result.ContainsKey("success") && result["success"].AsBoolean())
+                {
 
                     var visualParams = result["visual_params"].AsBinary();
                     var textures = (result["textures"] as OSDArray)?.Select(arrayEntry => arrayEntry.AsUUID()).ToArray();
@@ -2224,23 +2077,22 @@ namespace OpenMetaverse
 
                     if (textures != null && textures.Length > 20)
                     {
-                        if ((textures[8] == UUID.Zero || textures[9] == UUID.Zero || textures[10] == UUID.Zero || textures[11] == UUID.Zero) ||
-                            (textures[8] == DEFAULT_AVATAR_TEXTURE || textures[9] == DEFAULT_AVATAR_TEXTURE || textures[10] == DEFAULT_AVATAR_TEXTURE || textures[11] == DEFAULT_AVATAR_TEXTURE))
+                        if ((textures[8] == UUID.Zero || textures[9] == UUID.Zero || textures[10] == UUID.Zero || textures[11] == UUID.Zero) || (textures[8] == DEFAULT_AVATAR_TEXTURE || textures[9] == DEFAULT_AVATAR_TEXTURE || textures[10] == DEFAULT_AVATAR_TEXTURE || textures[11] == DEFAULT_AVATAR_TEXTURE))
                         {
                             // This hasn't actually baked. Retry after a delay.
                             await Task.Delay(REBAKE_DELAY, cancellationToken);
-                            return await UpdateAvatarAppearanceAsync(cancellationToken, totalRetries - 1);
+                            totalRetries = totalRetries - 1;
+                            continue;
                         }
                     }
-                    
+
                     try
                     {
                         var selfPrim = GetOwnAvatar();
 
                         if (selfPrim == null)
                         {
-                            Logger.Log("Unable to find avatar to set appearance information to", Helpers.LogLevel.Error,
-                                       Client);
+                            Logger.Log("Unable to find avatar to set appearance information", Helpers.LogLevel.Error, Client);
                         }
                         else
                         {
@@ -2248,13 +2100,9 @@ namespace OpenMetaverse
 
                             if (textures != null)
                             {
-
                                 for (var i = 0; i < textures.Length; i++)
                                 {
-                                    selfAvatarTextures.FaceTextures[i] = new Primitive.TextureEntryFace(null)
-                                        {
-                                            TextureID = textures[i]
-                                        };
+                                    selfAvatarTextures.FaceTextures[i] = new Primitive.TextureEntryFace(null) { TextureID = textures[i] };
                                 }
 
                                 selfPrim.Textures = selfAvatarTextures;
@@ -2266,47 +2114,55 @@ namespace OpenMetaverse
                             selfPrim.COFVersion = cofVersion;
                             selfPrim.AppearanceFlags = 0;
 
-                            var appearance = new AvatarAppearanceEventArgs(Client.Network.CurrentSim,
-                                                                           Client.Self.AgentID,
-                                                                           false,
-                                                                           selfPrim.Textures.DefaultTexture,
-                                                                           selfPrim.Textures.FaceTextures,
-                                                                           selfPrim.VisualParameters.ToList(), 1,
-                                                                           cofVersion,
-                                                                           AppearanceFlags.None, 
-                                                                           selfPrim.ChildCount);
+                            var appearance = new AvatarAppearanceEventArgs(Client.Network.CurrentSim, 
+                                Client.Self.AgentID,
+                                false,
+                                selfPrim.Textures.DefaultTexture,
+                                selfPrim.Textures.FaceTextures,
+                                selfPrim.VisualParameters.ToList(), 1,
+                                cofVersion,
+                                AppearanceFlags.None,
+                                selfPrim.ChildCount);
 
                             Client.Avatars.TriggerAvatarAppearanceMessage(appearance);
-                            _pendingServerBake = false;
                         }
                     }
                     catch (Exception e)
                     {
-                        Logger.Log("Error applying textures to avatar object " + e, Helpers.LogLevel.Error, Client);
+                        Logger.Log($"Error applying textures to avatar object: {e.Message}", Helpers.LogLevel.Error, Client);
                         throw;
                     }
 
-                    Logger.Log("Returning appearance information from server-side bake request", Helpers.LogLevel.Info, Client);
+                    Logger.Log("Returning appearance information from server-side bake request.", Helpers.LogLevel.Info, Client);
                     return true;
                 }
-                else
+                if (result.ContainsKey("expected"))
                 {
-                    // This hasn't actually baked. Retry after a delay.
-                    await Task.Delay(REBAKE_DELAY, cancellationToken);
-                    return await UpdateAvatarAppearanceAsync(cancellationToken, totalRetries - 1);
+                    Logger.Log($"Server expected {result["expected"].AsInteger()} as COF version. Version {currentOutfitFolder.Version} was sent.", 
+                        Helpers.LogLevel.Warning, Client);
                 }
+                if (result.ContainsKey("error"))
+                {
+                    var er = result["error"].AsString();
+                    if (string.IsNullOrEmpty(er))
+                    {
+                        Logger.Log($"UpdateAvatarAppearance failed. Server responded with: '{result["error"].AsString()}'",
+                            Helpers.LogLevel.Warning, Client);
+                    }
+                }
+
+                Logger.Log($"Avatar appearance update failed on {totalRetries} attempt.", Helpers.LogLevel.Info, Client);
+                await Task.Delay(REBAKE_DELAY, cancellationToken);
+                --totalRetries;
+                continue;
             }
-
-            Logger.Log(msg, Helpers.LogLevel.Error, Client);
-
-            return false;
         }
 
         /// <summary>
         /// Get the latest version of COF
         /// </summary>
         /// <returns>Current Outfit Folder (or null if getting the data failed)</returns>
-        private InventoryFolder GetCOF()
+        public InventoryFolder GetCurrentOutfitFolder()
         {
             List<InventoryBase> root = null;
             var folderReceived = new AutoResetEvent(false);
@@ -2323,11 +2179,11 @@ namespace OpenMetaverse
 
             Client.Inventory.FolderUpdated += UpdatedCallback;
             Task task = Client.Inventory.RequestFolderContents(Client.Inventory.Store.RootFolder.UUID, 
-                Client.Self.AgentID, true, true, InventorySortOrder.ByDate);
+                Client.Self.AgentID, true, false, InventorySortOrder.ByDate);
             folderReceived.WaitOne(Client.Settings.CAPS_TIMEOUT);
             Client.Inventory.FolderUpdated -= UpdatedCallback;
 
-            InventoryFolder COF = null;
+            InventoryFolder currentOutfitFolder = null;
 
             // COF should be in the root folder. Request update to get the latest version number
             if (root == null) { return null; }
@@ -2335,11 +2191,11 @@ namespace OpenMetaverse
             {
                 if (baseItem is InventoryFolder folder && folder.PreferredType == FolderType.CurrentOutfit)
                 {
-                    COF = folder;
+                    currentOutfitFolder = folder;
                     break;
                 }
             }
-            return COF;
+            return currentOutfitFolder;
         }
 
         /// <summary>
@@ -2532,6 +2388,95 @@ namespace OpenMetaverse
             return set;
         }
 
+        public void SendOutfitToCurrentSimulator()
+        {
+            var blocks = new List<RezMultipleAttachmentsFromInvPacket.ObjectDataBlock>();
+
+            Logger.Log("Starting fetch of current outfit...", Helpers.LogLevel.Info, Client);
+            var cof = GetCurrentOutfitFolder();
+
+            if (cof == null)
+            {
+                Logger.Log("Unable to fetch current outfit", Helpers.LogLevel.Error, Client);
+                return;
+            }
+            Logger.Log($"Outfit folder: {cof.UUID} ({cof.DescendentCount} children)", Helpers.LogLevel.Info, Client);
+
+            // Fetch from cache...
+            List<InventoryBase> contents = Client.Inventory.Store.GetContents(cof.UUID);
+
+            // If that fails, fetch from server...
+            if (contents == null || contents.Count == 0)
+            {
+                contents = Client.Inventory.FolderContents(cof.UUID, cof.OwnerID, true, true,
+                    InventorySortOrder.ByDate, TimeSpan.FromMinutes(1));
+            }
+
+            Logger.Log($"{contents.Count} inventory items in 'Current Outfit' folder", Helpers.LogLevel.Info, Client);
+
+            foreach (var inventoryBase in contents.Where(inventoryBase => inventoryBase != null))
+            {
+                Logger.Log($"'{inventoryBase.Name}' found in 'Current Outfit' folder ({inventoryBase.GetType().Name})", Helpers.LogLevel.Info, Client);
+
+                if (inventoryBase is InventoryAttachment attachment)
+                {
+                    var block = new RezMultipleAttachmentsFromInvPacket.ObjectDataBlock
+                    {
+                        AttachmentPt = (byte)(ATTACHMENT_ADD | (byte)attachment.AttachmentPoint),
+                        EveryoneMask = (uint)attachment.Permissions.EveryoneMask,
+                        GroupMask = (uint)attachment.Permissions.GroupMask,
+                        ItemFlags = attachment.Flags,
+                        ItemID = attachment.AssetUUID,
+                        Name = Utils.StringToBytes(attachment.Name),
+                        Description = Utils.StringToBytes(attachment.Description),
+                        NextOwnerMask = (uint)attachment.Permissions.NextOwnerMask,
+                        OwnerID = attachment.OwnerID
+                    };
+
+                    Logger.Log($"Wearing attachment {attachment.UUID} ({attachment.Name})", Helpers.LogLevel.Debug, Client);
+
+                    blocks.Add(block);
+                }
+                else if (inventoryBase is InventoryObject attachmentIO)
+                {
+                    var block = new RezMultipleAttachmentsFromInvPacket.ObjectDataBlock
+                    {
+                        AttachmentPt = ATTACHMENT_ADD,
+                        EveryoneMask = (uint)attachmentIO.Permissions.EveryoneMask,
+                        GroupMask = (uint)attachmentIO.Permissions.GroupMask,
+                        ItemFlags = attachmentIO.Flags,
+                        ItemID = attachmentIO.AssetUUID,
+                        Name = Utils.StringToBytes(attachmentIO.Name),
+                        Description = Utils.StringToBytes(attachmentIO.Description),
+                        NextOwnerMask = (uint)attachmentIO.Permissions.NextOwnerMask,
+                        OwnerID = attachmentIO.OwnerID
+                    };
+
+                    Logger.Log($"Wearing object {attachmentIO.UUID} ({attachmentIO.Name})", Helpers.LogLevel.Debug, Client);
+
+                    blocks.Add(block);
+                }
+            }
+
+            var attachmentsPacket = new RezMultipleAttachmentsFromInvPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                HeaderData =
+                {
+                    CompoundMsgID = UUID.Random(),
+                    FirstDetachAll = true,
+                    TotalObjects = (byte)blocks.Count
+                },
+                ObjectData = blocks.ToArray()
+            };
+
+            Client.Network.SendPacket(attachmentsPacket);
+        }
+
         private void DelayedRequestSetAppearance()
         {
             if (RebakeScheduleTimer == null)
@@ -2706,7 +2651,7 @@ namespace OpenMetaverse
                 var bakeType = (BakeType)block.TextureIndex;
                 var index = BakeTypeToAgentTextureIndex(bakeType);
 
-                Logger.DebugLog("Cache response for " + bakeType + ", TextureID=" + block.TextureID, Client);
+                Logger.DebugLog($"Cache response for {bakeType}, TextureID={block.TextureID}", Client);
 
                 if (block.TextureID != UUID.Zero)
                 {
@@ -2727,117 +2672,6 @@ namespace OpenMetaverse
             OnAgentCachedBakes(new AgentCachedBakesReplyEventArgs());
         }
 
-        private bool _pendingServerBake = true;
-
-        private void Network_OnEventQueueRunning(object sender, EventQueueRunningEventArgs e)
-        {
-            if (e.Simulator == Client.Network.CurrentSim && Client.Settings.SEND_AGENT_APPEARANCE && _pendingServerBake)
-            {
-                // Update appearance each time we enter a new sim and capabilities have been retrieved
-
-                bool updateSucceeded = UpdateAvatarAppearanceAsync(CancellationToken.None).Result;
-
-                if(updateSucceeded && !HasSentAppearanceInThisSession)
-                {
-                    HasSentAppearanceInThisSession = true;
-                    ThreadPool.QueueUserWorkItem((o) => { SendOutfitToCurrentSimulator(); });
-                }
-            }
-        }
-
-        public void SendOutfitToCurrentSimulator()
-        {
-            var blocks = new List<RezMultipleAttachmentsFromInvPacket.ObjectDataBlock>();
-
-            Logger.Log("Starting fetch of current outfit...", Helpers.LogLevel.Info, Client);
-            var cof = GetCOF();
-
-            if (cof == null)
-            {
-                Logger.Log("Error, was not able to fetch current outfit", Helpers.LogLevel.Error, Client);
-                return;
-            }
-
-            Logger.Log("Outfit folder: " + cof.UUID + " (" + cof.DescendentCount + " children)", Helpers.LogLevel.Info, Client);
-
-            //Client.Inventory.Store.GetNodeFor(cof.UUID).
-
-            List<InventoryBase> contents;
-
-            // Fetch from cache...
-            contents = Client.Inventory.Store.GetContents(cof.UUID);
-
-            // If that fails, fetch from server...
-            if (contents == null || contents.Count == 0)
-            {
-                contents = Client.Inventory.FolderContents(cof.UUID, cof.OwnerID, true, true, InventorySortOrder.ByDate, TimeSpan.FromMinutes(1));
-            }
-
-            Logger.Log($"{contents.Count} inventory items in 'Current Outfit' folder", Helpers.LogLevel.Info, Client);
-
-            foreach (var inventoryBase in contents.Where(inventoryBase => inventoryBase != null))
-            {
-                Logger.Log($"{inventoryBase.Name} found in 'Current Outfit' folder {inventoryBase.GetType().Name}", Helpers.LogLevel.Info, Client);
-
-                if (inventoryBase is InventoryAttachment attachment)
-                {
-                    var block = new RezMultipleAttachmentsFromInvPacket.ObjectDataBlock
-                    {
-                        AttachmentPt = (byte)(ATTACHMENT_ADD | (byte)attachment.AttachmentPoint),
-                        EveryoneMask = (uint)attachment.Permissions.EveryoneMask,
-                        GroupMask = (uint)attachment.Permissions.GroupMask,
-                        ItemFlags = attachment.Flags,
-                        ItemID = attachment.UUID,
-                        Name = Utils.StringToBytes(attachment.Name),
-                        Description = Utils.StringToBytes(attachment.Description),
-                        NextOwnerMask = (uint)attachment.Permissions.NextOwnerMask,
-                        OwnerID = attachment.OwnerID
-                    };
-
-                    Logger.Log($"Wearing {attachment.UUID} ({attachment.Name})", Helpers.LogLevel.Info, Client);
-
-                    blocks.Add(block);
-                }
-                else if (inventoryBase is InventoryObject attachmentIO)
-                {
-                    var block = new RezMultipleAttachmentsFromInvPacket.ObjectDataBlock
-                    {
-                        AttachmentPt = ATTACHMENT_ADD,
-                        EveryoneMask = (uint)attachmentIO.Permissions.EveryoneMask,
-                        GroupMask = (uint)attachmentIO.Permissions.GroupMask,
-                        ItemFlags = attachmentIO.Flags,
-                        ItemID = attachmentIO.UUID,
-                        Name = Utils.StringToBytes(attachmentIO.Name),
-                        Description = Utils.StringToBytes(attachmentIO.Description),
-                        NextOwnerMask = (uint)attachmentIO.Permissions.NextOwnerMask,
-                        OwnerID = attachmentIO.OwnerID
-                    };
-
-                    Logger.Log($"Wearing {attachmentIO.UUID} ({attachmentIO.Name})", Helpers.LogLevel.Info, Client);
-
-                    blocks.Add(block);
-                }
-            }
-
-            var attachmentsPacket = new RezMultipleAttachmentsFromInvPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                HeaderData =
-                {
-                    CompoundMsgID = UUID.Random(),
-                    FirstDetachAll = true,
-                    TotalObjects = (byte)blocks.Count
-                },
-                ObjectData = blocks.ToArray()
-            };
-
-            Client.Network.SendPacket(attachmentsPacket);
-        }
-
         private void Network_OnDisconnected(object sender, DisconnectedEventArgs e)
         {
             if (RebakeScheduleTimer != null)
@@ -2846,17 +2680,36 @@ namespace OpenMetaverse
                 RebakeScheduleTimer = null;
             }
 
-            if (CancellationTokenSource != null)
+            if (AppearanceCts != null)
             {
-                CancellationTokenSource.Cancel();
-                CancellationTokenSource.Dispose();
-                CancellationTokenSource = null;
+                AppearanceCts.Cancel();
+                AppearanceCts.Dispose();
+                AppearanceCts = null;
             }
 
             if (AppearanceThread != null)
             {
                 AppearanceThread = null;
                 AppearanceThreadRunning = 0;
+            }
+        }
+
+        private void Network_OnSimChanged(object sender, SimChangedEventArgs e)
+        {
+            Client.Network.CurrentSim.Caps.CapabilitiesReceived += Simulator_OnCapabilitiesReceived;
+        }
+
+        private void Simulator_OnCapabilitiesReceived(object sender, CapabilitiesReceivedEventArgs e)
+        {
+            e.Simulator.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived;
+
+            if (e.Simulator == Client.Network.CurrentSim && Client.Settings.SEND_AGENT_APPEARANCE)
+            {
+                bool updateSucceeded = UpdateAvatarAppearanceAsync(CancellationToken.None).Result;
+                if (updateSucceeded)
+                {
+                    ThreadPool.QueueUserWorkItem((o) => { SendOutfitToCurrentSimulator(); });
+                }
             }
         }
 

@@ -27,7 +27,7 @@
 namespace OpenMetaverse.Assets
 {
     /// <summary>
-    /// Represents an <seealso cref="AssetWearable"/> that represents an avatars body ie: Hair, Etc.
+    /// Represents an <see cref="AssetWearable"/> that represents an avatars body ie: Hair, Etc.
     /// </summary>
     public class AssetBodypart : AssetWearable
     {

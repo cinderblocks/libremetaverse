@@ -2158,7 +2158,7 @@ namespace LibreMetaverse.PrimMesher
         }
 
         /// <summary>
-        ///     Calculate surface normals for all of the faces in the list of faces in this mesh
+        ///     Calculate surface normals for all faces in the list of faces in this mesh
         /// </summary>
         public void CalcNormals()
         {

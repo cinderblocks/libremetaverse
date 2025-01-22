@@ -494,11 +494,11 @@ namespace OpenMetaverse
         /// <summary>
         /// Fetch an inventory item from the dataserver
         /// </summary>
-        /// <param name="itemID">The items <seealso cref="UUID"/></param>
-        /// <param name="ownerID">The item Owners <seealso cref="OpenMetaverse.UUID"/></param>
-        /// <param name="timeout">time to wait for results represented by <seealso cref="TimeSpan"/></param>
-        /// <returns>An <seealso cref="InventoryItem"/> object on success, or null if no item was found</returns>
-        /// <remarks>Items will also be sent to the <seealso cref="InventoryManager.OnItemReceived"/> event</remarks>
+        /// <param name="itemID">The items <see cref="UUID"/></param>
+        /// <param name="ownerID">The item Owners <see cref="OpenMetaverse.UUID"/></param>
+        /// <param name="timeout">time to wait for results represented by <see cref="TimeSpan"/></param>
+        /// <returns>An <see cref="InventoryItem"/> object on success, or null if no item was found</returns>
+        /// <remarks>Items will also be sent to the <see cref="InventoryManager.OnItemReceived"/> event</remarks>
         public InventoryItem FetchItem(UUID itemID, UUID ownerID, TimeSpan timeout)
         {
             var fetchEvent = new AutoResetEvent(false);
@@ -525,9 +525,9 @@ namespace OpenMetaverse
         /// <summary>
         /// Request A single inventory item
         /// </summary>
-        /// <param name="itemID">The items <seealso cref="OpenMetaverse.UUID"/></param>
-        /// <param name="ownerID">The item Owners <seealso cref="OpenMetaverse.UUID"/></param>
-        /// <seealso cref="InventoryManager.OnItemReceived"/>
+        /// <param name="itemID">The items <see cref="OpenMetaverse.UUID"/></param>
+        /// <param name="ownerID">The item Owners <see cref="OpenMetaverse.UUID"/></param>
+        /// <see cref="InventoryManager.OnItemReceived"/>
         public void RequestFetchInventory(UUID itemID, UUID ownerID)
         {
             RequestFetchInventory(new Dictionary<UUID, UUID>(1) { { itemID, ownerID } });
@@ -537,7 +537,7 @@ namespace OpenMetaverse
         /// Request inventory items
         /// </summary>
         /// <param name="items">Inventory items to request with owner</param>
-        /// <seealso cref="InventoryManager.OnItemReceived"/>
+        /// <see cref="InventoryManager.OnItemReceived"/>
         public void RequestFetchInventory(Dictionary<UUID, UUID> items)
         {
             if (Client.Network.CurrentSim.Caps?.CapabilityURI("FetchInventory2") != null)
@@ -572,7 +572,7 @@ namespace OpenMetaverse
         /// Request inventory items via Capabilities
         /// </summary>
         /// <param name="items">Inventory items to request with owners</param>
-        /// <seealso cref="OnItemReceived"/>
+        /// <see cref="OnItemReceived"/>
         private void RequestFetchInventoryHttp(Dictionary<UUID, UUID> items)
         {
             _ = RequestFetchInventoryHttpAsync(items, CancellationToken.None);
@@ -581,8 +581,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Request inventory items via HTTP capability
         /// </summary>
-        /// <param name="itemID">The items <seealso cref="OpenMetaverse.UUID"/></param>
-        /// <param name="ownerID">The item Owners <seealso cref="OpenMetaverse.UUID"/></param>
+        /// <param name="itemID">The items <see cref="OpenMetaverse.UUID"/></param>
+        /// <param name="ownerID">The item Owners <see cref="OpenMetaverse.UUID"/></param>
         /// <param name="cancellationToken">Cancellation token for operation</param>
         /// <param name="callback">Action</param>
         private async Task RequestFetchInventoryHttpAsync(UUID itemID, UUID ownerID,
@@ -657,15 +657,15 @@ namespace OpenMetaverse
         /// <summary>
         /// Retrieve contents of a folder
         /// </summary>
-        /// <param name="folder">The <seealso cref="UUID"/> of the folder to search</param>
-        /// <param name="owner">The <seealso cref="UUID"/> of the folders owner</param>
+        /// <param name="folder">The <see cref="UUID"/> of the folder to search</param>
+        /// <param name="owner">The <see cref="UUID"/> of the folders owner</param>
         /// <param name="fetchFolders">retrieve folders</param>
         /// <param name="fetchItems">retrieve items</param>
         /// <param name="order">sort order to return results in</param>
         /// <param name="timeout">time given to wait for results</param>
         /// <param name="followLinks">Resolve link items to the actual item</param>
         /// <returns>A list of inventory items matching search criteria within folder</returns>
-        /// <seealso cref="RequestFolderContents(UUID,UUID,bool,bool,InventorySortOrder,CancellationToken)"/>
+        /// <see cref="RequestFolderContents(UUID,UUID,bool,bool,InventorySortOrder,CancellationToken)"/>
         /// <remarks>InventoryFolder.DescendentCount will only be accurate if both folders and items are
         /// requested</remarks>
         public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool fetchFolders, bool fetchItems,
@@ -721,12 +721,12 @@ namespace OpenMetaverse
         /// Request the contents of an inventory folder using HTTP capabilities
         /// </summary>
         /// <param name="folderID">The folder to search</param>
-        /// <param name="ownerID">The folder owners <seealso cref="UUID"/></param>
-        /// <param name="fetchFolders">true to return <seealso cref="InventoryFolder"/>s contained in folder</param>
-        /// <param name="fetchItems">true to return <seealso cref="InventoryItem"/>s contained in folder</param>
+        /// <param name="ownerID">The folder owners <see cref="UUID"/></param>
+        /// <param name="fetchFolders">true to return <see cref="InventoryFolder"/>s contained in folder</param>
+        /// <param name="fetchItems">true to return <see cref="InventoryItem"/>s contained in folder</param>
         /// <param name="order">the sort order to return items in</param>
         /// <param name="cancellationToken">CancellationToken for operation</param>
-        /// <seealso cref="InventoryManager.FolderContents"/>
+        /// <see cref="InventoryManager.FolderContents"/>
         public async Task RequestFolderContents(UUID folderID, UUID ownerID, 
             bool fetchFolders, bool fetchItems, InventorySortOrder order, CancellationToken cancellationToken)
         {
@@ -758,11 +758,11 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="batch"><see cref="List" /> of folders to search</param>
         /// <param name="capabilityUri">HTTP capability <see cref="Uri"/> to POST</param>
-        /// <param name="fetchFolders">true to return <seealso cref="InventoryFolder"/>s contained in folder</param>
-        /// <param name="fetchItems">true to return <seealso cref="InventoryItem"/>s contained in folder</param>
+        /// <param name="fetchFolders">true to return <see cref="InventoryFolder"/>s contained in folder</param>
+        /// <param name="fetchItems">true to return <see cref="InventoryItem"/>s contained in folder</param>
         /// <param name="order">the sort order to return items in</param>
         /// <param name="cancellationToken">CancellationToken for operation</param>
-        /// <seealso cref="InventoryManager.FolderContents"/>
+        /// <see cref="InventoryManager.FolderContents"/>
         public async Task RequestFolderContents(List<InventoryFolder> batch, Uri capabilityUri, 
             bool fetchFolders, bool fetchItems, InventorySortOrder order, CancellationToken cancellationToken)
         {
@@ -834,10 +834,6 @@ namespace OpenMetaverse
                                                 folder = new InventoryFolder(folderID)
                                                 {
                                                     ParentUUID = descFolder["parent_id"],
-                                                    OwnerID = descFolder["agent_id"],
-                                                    Name = descFolder["name"],
-                                                    Version = descFolder["version"],
-                                                    PreferredType = (FolderType)(int)descFolder["type_default"]
                                                 };
                                                 _Store[folderID] = folder;
                                             }
@@ -845,16 +841,21 @@ namespace OpenMetaverse
                                             {
                                                 folder = (InventoryFolder)_Store[folderID];
                                             }
-
-                                            
+                                            folder.OwnerID = descFolder["agent_id"];
+                                            folder.Name = descFolder["name"];
+                                            folder.Version = descFolder["version"];
+                                            folder.PreferredType = (FolderType)descFolder["type_default"].AsInteger();
                                         }
 
                                         // Fetch descendent items
-                                        var items = (OSDArray)res["items"];
-                                        foreach (var it in items)
+                                        if (res.TryGetValue("items", out var items))
                                         {
-                                            var item = InventoryItem.FromOSD(it);
-                                            _Store[item.UUID] = item;
+                                            var arr = (OSDArray)items;
+                                            foreach (var it in arr)
+                                            {
+                                                var item = InventoryItem.FromOSD(it);
+                                                _Store[item.UUID] = item;
+                                            }
                                         }
                                     }
                                 }
@@ -958,10 +959,10 @@ namespace OpenMetaverse
         /// Find an object in inventory using a specific path to search
         /// </summary>
         /// <param name="baseFolder">The folder to begin the search in</param>
-        /// <param name="inventoryOwner">The object owners <seealso cref="UUID"/></param>
+        /// <param name="inventoryOwner">The object owners <see cref="UUID"/></param>
         /// <param name="path">A string path to search</param>
         /// <param name="timeout">time to wait for reply</param>
-        /// <returns>Found items <seealso cref="UUID"/> or <seealso cref="UUID.Zero"/> if 
+        /// <returns>Found items <see cref="UUID"/> or <see cref="UUID.Zero"/> if 
         /// timeout occurs or item is not found</returns>
         public UUID FindObjectByPath(UUID baseFolder, UUID inventoryOwner, string path, TimeSpan timeout)
         {
@@ -991,9 +992,9 @@ namespace OpenMetaverse
         /// Find inventory items by path
         /// </summary>
         /// <param name="baseFolder">The folder to begin the search in</param>
-        /// <param name="inventoryOwner">The object owners <seealso cref="UUID"/></param>
+        /// <param name="inventoryOwner">The object owners <see cref="UUID"/></param>
         /// <param name="path">A string path to search, folders/objects separated by a '/'</param>
-        /// <remarks>Results are sent to the <seealso cref="InventoryManager.OnFindObjectByPath"/> event</remarks>
+        /// <remarks>Results are sent to the <see cref="InventoryManager.OnFindObjectByPath"/> event</remarks>
         public async Task RequestFindObjectByPath(UUID baseFolder, UUID inventoryOwner, string path)
         {
             if (string.IsNullOrEmpty(path))
@@ -1048,8 +1049,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Move an inventory item or folder to a new location
         /// </summary>
-        /// <param name="item">The <seealso cref="T:InventoryBase"/> item or folder to move</param>
-        /// <param name="newParent">The <seealso cref="T:InventoryFolder"/> to move item or folder to</param>
+        /// <param name="item">The <see cref="T:InventoryBase"/> item or folder to move</param>
+        /// <param name="newParent">The <see cref="T:InventoryFolder"/> to move item or folder to</param>
         public void Move(InventoryBase item, InventoryFolder newParent)
         {
             if (item is InventoryFolder)
@@ -1061,8 +1062,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Move an inventory item or folder to a new location and change its name
         /// </summary>
-        /// <param name="item">The <seealso cref="T:InventoryBase"/> item or folder to move</param>
-        /// <param name="newParent">The <seealso cref="T:InventoryFolder"/> to move item or folder to</param>
+        /// <param name="item">The <see cref="T:InventoryBase"/> item or folder to move</param>
+        /// <param name="newParent">The <see cref="T:InventoryFolder"/> to move item or folder to</param>
         /// <param name="newName">The name to change the item or folder to</param>
         [Obsolete("Method broken with AIS3. Use Move(item, parent) instead.")]
         public void Move(InventoryBase item, InventoryFolder newParent, string newName)
@@ -1076,8 +1077,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Move and rename a folder
         /// </summary>
-        /// <param name="folderID">The source folders <seealso cref="UUID"/></param>
-        /// <param name="newparentID">The destination folders <seealso cref="UUID"/></param>
+        /// <param name="folderID">The source folders <see cref="UUID"/></param>
+        /// <param name="newparentID">The destination folders <see cref="UUID"/></param>
         /// <param name="newName">The name to change the folder to</param>
         [Obsolete("Method broken with AIS3. Use MoveFolder(folder, parent) and UpdateFolderProperties(folder, parent, name, type) instead")]
         public void MoveFolder(UUID folderID, UUID newparentID, string newName)
@@ -1088,8 +1089,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Update folder properties
         /// </summary>
-        /// <param name="folderID"><seealso cref="UUID"/> of the folder to update</param>
-        /// <param name="parentID">Sets folder's parent to <seealso cref="UUID"/></param>
+        /// <param name="folderID"><see cref="UUID"/> of the folder to update</param>
+        /// <param name="parentID">Sets folder's parent to <see cref="UUID"/></param>
         /// <param name="name">Folder name</param>
         /// <param name="type">Folder type</param>
         public void UpdateFolderProperties(UUID folderID, UUID parentID, string name, FolderType type)
@@ -1154,8 +1155,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Move a folder
         /// </summary>
-        /// <param name="folderID">The source folders <seealso cref="UUID"/></param>
-        /// <param name="newParentID">The destination folders <seealso cref="UUID"/></param>
+        /// <param name="folderID">The source folders <see cref="UUID"/></param>
+        /// <param name="newParentID">The destination folders <see cref="UUID"/></param>
         public void MoveFolder(UUID folderID, UUID newParentID)
         {
             lock (Store)
@@ -1192,8 +1193,8 @@ namespace OpenMetaverse
         /// to a new parents, the value of that folder's key.
         /// </summary>
         /// <param name="foldersNewParents">A Dictionary containing the 
-        /// <seealso cref="UUID"/> of the source as the key, and the 
-        /// <seealso cref="UUID"/> of the destination as the value</param>
+        /// <see cref="UUID"/> of the source as the key, and the 
+        /// <see cref="UUID"/> of the destination as the value</param>
         public void MoveFolders(Dictionary<UUID, UUID> foldersNewParents)
         {
             // FIXME: Use two List<UUID> to stay consistent
@@ -1240,8 +1241,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Move an inventory item to a new folder
         /// </summary>
-        /// <param name="itemID">The <seealso cref="UUID"/> of the source item to move</param>
-        /// <param name="folderID">The <seealso cref="UUID"/> of the destination folder</param>
+        /// <param name="itemID">The <see cref="UUID"/> of the source item to move</param>
+        /// <param name="folderID">The <see cref="UUID"/> of the destination folder</param>
         public void MoveItem(UUID itemID, UUID folderID)
         {
             MoveItem(itemID, folderID, string.Empty);
@@ -1250,8 +1251,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Move and rename an inventory item
         /// </summary>
-        /// <param name="itemID">The <seealso cref="UUID"/> of the source item to move</param>
-        /// <param name="folderID">The <seealso cref="UUID"/> of the destination folder</param>
+        /// <param name="itemID">The <see cref="UUID"/> of the source item to move</param>
+        /// <param name="folderID">The <see cref="UUID"/> of the destination folder</param>
         /// <param name="newName">The name to change the folder to</param>
         public void MoveItem(UUID itemID, UUID folderID, string newName)
         {
@@ -1293,8 +1294,8 @@ namespace OpenMetaverse
         /// Move multiple inventory items to new locations
         /// </summary>
         /// <param name="itemsNewParents">A Dictionary containing the 
-        /// <seealso cref="UUID"/> of the source item as the key, and the 
-        /// <seealso cref="UUID"/> of the destination folder as the value</param>
+        /// <see cref="UUID"/> of the source item as the key, and the 
+        /// <see cref="UUID"/> of the destination folder as the value</param>
         public void MoveItems(Dictionary<UUID, UUID> itemsNewParents)
         {
             lock (_Store)
@@ -1358,7 +1359,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Remove descendants of a folder
         /// </summary>
-        /// <param name="folder">The <seealso cref="UUID"/> of the folder</param>
+        /// <param name="folder">The <see cref="UUID"/> of the folder</param>
         public void RemoveDescendants(UUID folder)
         {
             if (Client.AisClient.IsAvailable)
@@ -1384,7 +1385,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Remove a single item from inventory
         /// </summary>
-        /// <param name="item">The <seealso cref="UUID"/> of the inventory item to remove</param>
+        /// <param name="item">The <see cref="UUID"/> of the inventory item to remove</param>
         public void RemoveItem(UUID item)
         {
             if (Client.AisClient.IsAvailable)
@@ -1403,7 +1404,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Remove a folder from inventory
         /// </summary>
-        /// <param name="folder">The <seealso cref="UUID"/> of the folder to remove</param>
+        /// <param name="folder">The <see cref="UUID"/> of the folder to remove</param>
         public void RemoveFolder(UUID folder)
         {
             if (Client.AisClient.IsAvailable)
@@ -1423,8 +1424,8 @@ namespace OpenMetaverse
         /// Remove multiple items or folders from inventory. Note that this uses the LLUDP method
         /// which Second Life has deprecated and removed.
         /// </summary>
-        /// <param name="items">A List containing the <seealso cref="UUID"/>s of items to remove</param>
-        /// <param name="folders">A List containing the <seealso cref="UUID"/>s of the folders to remove</param>
+        /// <param name="items">A List containing the <see cref="UUID"/>s of items to remove</param>
+        /// <param name="folders">A List containing the <see cref="UUID"/>s of the folders to remove</param>
         [Obsolete]
         public void Remove(List<UUID> items, List<UUID> folders)
         {
@@ -2421,9 +2422,9 @@ namespace OpenMetaverse
         /// DeRez an object from the simulator and return to inventory
         /// </summary>
         /// <param name="objectLocalID">The simulator Local ID of the object</param>
-        /// <param name="destType">The type of destination from the <seealso cref="DeRezDestination"/> enum</param>
-        /// <param name="destFolder">The destination inventory folders <seealso cref="UUID"/> -or-
-        /// if DeRezzing object to a tasks Inventory, the Tasks <seealso cref="UUID"/></param>
+        /// <param name="destType">The type of destination from the <see cref="DeRezDestination"/> enum</param>
+        /// <param name="destFolder">The destination inventory folders <see cref="UUID"/> -or-
+        /// if DeRezzing object to a tasks Inventory, the Tasks <see cref="UUID"/></param>
         /// <param name="transactionID">The transaction ID for this request which
         /// can be used to correlate this request with other packets</param>
         /// <remarks>If objectLocalID is a child primitive in a linkset, the entire linkset will be derezzed</remarks>
@@ -2505,10 +2506,10 @@ namespace OpenMetaverse
         /// <summary>
         /// Give an inventory item to another avatar
         /// </summary>
-        /// <param name="itemID">The <seealso cref="UUID"/> of the item to give</param>
+        /// <param name="itemID">The <see cref="UUID"/> of the item to give</param>
         /// <param name="itemName">The name of the item</param>
-        /// <param name="assetType">The type of the item from the <seealso cref="AssetType"/> enum</param>
-        /// <param name="recipient">The <seealso cref="UUID"/> of the recipient</param>
+        /// <param name="assetType">The type of the item from the <see cref="AssetType"/> enum</param>
+        /// <param name="recipient">The <see cref="UUID"/> of the recipient</param>
         /// <param name="doEffect">true to generate a beameffect during transfer</param>
         public void GiveItem(UUID itemID, string itemName, AssetType assetType, UUID recipient,
             bool doEffect)
@@ -2579,9 +2580,9 @@ namespace OpenMetaverse
         /// <summary>
         /// Give an inventory Folder with contents to another avatar
         /// </summary>
-        /// <param name="folderID">The <seealso cref="UUID"/> of the Folder to give</param>
+        /// <param name="folderID">The <see cref="UUID"/> of the Folder to give</param>
         /// <param name="folderName">The name of the folder</param>
-        /// <param name="recipient">The <seealso cref="UUID"/> of the recipient</param>
+        /// <param name="recipient">The <see cref="UUID"/> of the recipient</param>
         /// <param name="doEffect">true to generate a beameffect during transfer</param>
         public void GiveFolder(UUID folderID, string folderName, UUID recipient, bool doEffect)
         {
@@ -2717,7 +2718,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Retrieve a listing of the items contained in a task (Primitive)
         /// </summary>
-        /// <param name="objectID">The tasks <seealso cref="UUID"/></param>
+        /// <param name="objectID">The tasks <see cref="UUID"/></param>
         /// <param name="objectLocalID">The tasks simulator local ID</param>
         /// <param name="timeout">time to wait for reply from simulator</param>
         /// <returns>A list containing the inventory items inside the task or null
@@ -2799,7 +2800,7 @@ namespace OpenMetaverse
         /// current simulator
         /// </summary>
         /// <param name="objectLocalID">The LocalID of the object</param>
-        /// <seealso cref="TaskInventoryReply"/>
+        /// <see cref="TaskInventoryReply"/>
         public void RequestTaskInventory(uint objectLocalID)
         {
             RequestTaskInventory(objectLocalID, Client.Network.CurrentSim);
@@ -2810,7 +2811,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="objectLocalID">The simulator Local ID of the object</param>
         /// <param name="simulator">A reference to the simulator object that contains the object</param>
-        /// <seealso cref="TaskInventoryReply"/>
+        /// <see cref="TaskInventoryReply"/>
         public void RequestTaskInventory(uint objectLocalID, Simulator simulator)
         {
             var request = new RequestTaskInventoryPacket
@@ -2862,7 +2863,7 @@ namespace OpenMetaverse
         /// <param name="simulator">Simulator Object</param>
         /// <remarks>You can confirm the removal by comparing the tasks inventory serial before and after the 
         /// request with the <see cref="RequestTaskInventory"/> request combined with
-        /// the <seealso cref="TaskInventoryReply"/> event</remarks>
+        /// the <see cref="TaskInventoryReply"/> event</remarks>
         public void RemoveTaskInventory(uint objectLocalID, UUID taskItemID, Simulator simulator)
         {
             var remove = new RemoveTaskInventoryPacket
@@ -2886,7 +2887,7 @@ namespace OpenMetaverse
         /// Copy an InventoryScript item from the Agents Inventory into a primitives task inventory
         /// </summary>
         /// <param name="objectLocalID">An unsigned integer representing a primitive being simulated</param>
-        /// <param name="item">An <seealso cref="InventoryItem"/> which represents a script object from the agents inventory</param>
+        /// <param name="item">An <see cref="InventoryItem"/> which represents a script object from the agents inventory</param>
         /// <param name="enableScript">true to set the scripts running state to enabled</param>
         /// <returns>A Unique Transaction ID</returns>
         /// <example>
@@ -2958,7 +2959,7 @@ namespace OpenMetaverse
         /// <param name="scriptID">The ID of the script</param>
         /// <remarks>The <see cref="ScriptRunningReply"/> event can be used to obtain the results of the 
         /// request</remarks>
-        /// <seealso cref="ScriptRunningReply"/>
+        /// <see cref="ScriptRunningReply"/>
         public void RequestGetScriptRunning(UUID objectID, UUID scriptID)
         {
             var request = new GetScriptRunningPacket
@@ -3098,11 +3099,11 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Wrapper for creating a new <seealso cref="InventoryItem"/> object
+        /// Wrapper for creating a new <see cref="InventoryItem"/> object
         /// </summary>
-        /// <param name="type">The type of item from the <seealso cref="InventoryType"/> enum</param>
-        /// <param name="id">The <seealso cref="UUID"/> of the newly created object</param>
-        /// <returns>An <seealso cref="InventoryItem"/> object with the type and id passed</returns>
+        /// <param name="type">The type of item from the <see cref="InventoryType"/> enum</param>
+        /// <param name="id">The <see cref="UUID"/> of the newly created object</param>
+        /// <returns>An <see cref="InventoryItem"/> object with the type and id passed</returns>
         public static InventoryItem CreateInventoryItem(InventoryType type, UUID id)
         {
             switch (type)

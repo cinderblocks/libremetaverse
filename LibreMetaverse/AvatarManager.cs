@@ -240,10 +240,7 @@ namespace OpenMetaverse
         {
             lock (m_AvatarAppearanceLock)
             {
-                if (m_AvatarAppearance != null)
-                {
-                    m_AvatarAppearance(this, args);
-                }
+                m_AvatarAppearance?.Invoke(this, args);
             }
         }
 

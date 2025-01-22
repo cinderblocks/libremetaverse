@@ -108,39 +108,33 @@ namespace OpenMetaverse
         {
             get { lock (Dictionary) return Dictionary.Comparer; }
         }
-        
+
         /// <summary>
-        /// Gets the number of Key/Value pairs contained in the <seealso cref="T:InternalDictionary"/>
+        /// Gets the number of Key/Value pairs contained in <see cref="LockingDictionary{TKey,TValue}"/>
         /// </summary>
         public int Count { get { lock (Dictionary) return Dictionary.Count; } }
 
         public bool IsReadOnly { get; private set; }
 
         /// <summary>
-        /// Initializes a new instance of the <seealso cref="T:InternalDictionary"/> Class
+        /// Initializes a new instance of <see cref="LockingDictionary{TKey,TValue}"/> Class
         /// with the specified key/value, has the default initial capacity.
         /// </summary>
-        /// <example>
-        /// <code>
-        /// // initialize a new InternalDictionary named testDict with a string as the key and an int as the value.
-        /// public InternalDictionary&lt;string, int&gt; testDict = new InternalDictionary&lt;string, int&gt;();
-        /// </code>
-        /// </example>
         public LockingDictionary()
         {
             Dictionary = new Dictionary<TKey, TValue>();
         }
 
         /// <summary>
-        /// Initializes a new instance of the <seealso cref="T:InternalDictionary"/> Class
+        /// Initializes a new instance of the <see cref="LockingDictionary{TKey,TValue}"/> Class
         /// with the specified key/value, has its initial values copied from the specified
-        /// <seealso cref="T:System.Collections.Generic.Dictionary"/>
+        /// <see cref="T:System.Collections.Generic.Dictionary"/>
         /// </summary>
-        /// <param name="dictionary"><seealso cref="T:System.Collections.Generic.Dictionary"/>
+        /// <param name="dictionary"><see cref="T:System.Collections.Generic.Dictionary"/>
         /// to copy initial values from</param>
         /// <example>
         /// <code>
-        /// // initialize a new InternalDictionary named testAvName with a UUID as the key and an string as the value.
+        /// // initialize a new LockingDictionary named testAvName with a UUID as the key and an string as the value.
         /// // populates with copied values from example KeyNameCache Dictionary.
         ///
         /// // create source dictionary
@@ -149,7 +143,7 @@ namespace OpenMetaverse
         /// KeyNameCache.Add("27ba1e40-13f7-0708-3e98-5819d780bd62", "Jill Avatar");
         ///
         /// // Initialize new dictionary.
-        /// public InternalDictionary&lt;UUID, string&gt; testAvName = new InternalDictionary&lt;UUID, string&gt;(KeyNameCache);
+        /// public LockingDictionary&lt;UUID, string&gt; testAvName = new LockingDictionary&lt;UUID, string&gt;(KeyNameCache);
         /// </code>
         /// </example>
         public LockingDictionary(IDictionary<TKey, TValue> dictionary)
@@ -158,15 +152,15 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Initializes a new instance of the <seealso cref="T:OpenMetaverse.InternalDictionary"/> Class
+        /// Initializes a new instance of <see cref="LockingDictionary{TKey,TValue}"/>
         /// with the specified key/value, With its initial capacity specified.
         /// </summary>
         /// <param name="capacity">Initial size of dictionary</param>
         /// <example>
         /// <code>
-        /// // initialize a new InternalDictionary named testDict with a string as the key and an int as the value,
+        /// // initialize a new LockingDictionary named testDict with a string as the key and an int as the value,
         /// // initially allocated room for 10 entries.
-        /// public InternalDictionary&lt;string, int&gt; testDict = new InternalDictionary&lt;string, int&gt;(10);
+        /// public LockingDictionary&lt;string, int&gt; testDict = new LockingDictionary&lt;string, int&gt;(10);
         /// </code>
         /// </example>
         public LockingDictionary(int capacity)
@@ -180,19 +174,19 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Try to get entry from <seealso cref="T:OpenMetaverse.InternalDictionary"/> with specified key
+        /// Try to get entry from <see cref="LockingDictionary{TKey,TValue}"/> with specified key
         /// </summary>
         /// <param name="key">Key to use for lookup</param>
         /// <param name="value">Value returned</param>
         /// <returns><see langword="true"/> if specified key exists,  <see langword="false"/> if not found</returns>
         /// <example>
         /// <code>
-        /// // find your avatar using the Simulator.ObjectsAvatars InternalDictionary:
+        /// // find your avatar using the Simulator.ObjectsAvatars LockingDictionary:
         ///    Avatar av;
         ///    if (Client.Network.CurrentSim.ObjectsAvatars.TryGetValue(Client.Self.AgentID, out av))
         ///        Console.WriteLine("Found Avatar {0}", av.Name);
         /// </code>
-        /// <seealso cref="Simulator.ObjectsAvatars"/>
+        /// <see cref="Simulator.ObjectsAvatars"/>
         /// </example>
         public bool TryGetValue(TKey key, out TValue value)
         {
@@ -209,7 +203,7 @@ namespace OpenMetaverse
         /// <returns>Matched value</returns>
         /// <example>
         /// <code>
-        /// // use a delegate to find a prim in the ObjectsPrimitives InternalDictionary
+        /// // use a delegate to find a prim in the ObjectsPrimitives LockingDictionary
         /// // with the ID 95683496
         /// uint findID = 95683496;
         /// Primitive findPrim = sim.ObjectsPrimitives.Find(
@@ -227,10 +221,10 @@ namespace OpenMetaverse
             }
             return default(TValue);
         }
-
-        /// <summary>Find All items in an <seealso cref="T:InternalDictionary"/></summary>
+        
+        /// <summary>Find All items in <see cref="LockingDictionary{TKey,TValue}"/></summary>
         /// <param name="match">return matching items.</param>
-        /// <returns>a <seealso cref="T:System.Collections.Generic.List"/> containing found items.</returns>
+        /// <returns>a <see cref="T:System.Collections.Generic.List"/> containing found items.</returns>
         /// <example>
         /// Find All prims within 20 meters and store them in a List
         /// <code>
@@ -253,9 +247,9 @@ namespace OpenMetaverse
             return found;
         }
 
-        /// <summary>Find All items in an <seealso cref="T:InternalDictionary"/></summary>
+        /// <summary>Find All items in <see cref="LockingDictionary{TKey,TValue}"/></summary>
         /// <param name="match">return matching keys.</param>
-        /// <returns>a <seealso cref="T:System.Collections.Generic.List"/> containing found keys.</returns>
+        /// <returns>a <see cref="T:System.Collections.Generic.List"/> containing found keys.</returns>
         /// <example>
         /// Find All keys which also exist in another dictionary
         /// <code>
@@ -276,11 +270,11 @@ namespace OpenMetaverse
             return found;
         }
 
-        /// <summary>Perform an <seealso cref="T:System.Action"/> on each entry in an <seealso cref="T:OpenMetaverse.InternalDictionary"/></summary>
-        /// <param name="action"><seealso cref="T:System.Action"/> to perform</param>
+        /// <summary>Perform an <see cref="T:System.Action"/> on each entry in <see cref="LockingDictionary{TKey,TValue}"/></summary>
+        /// <param name="action"><see cref="T:System.Action"/> to perform</param>
         /// <example>
         /// <code>
-        /// // Iterates over the ObjectsPrimitives InternalDictionary and prints out some information.
+        /// // Iterates over the ObjectsPrimitives LockingDictionary and prints out some information.
         /// Client.Network.CurrentSim.ObjectsPrimitives.ForEach(
         ///     delegate(Primitive prim)
         ///     {
@@ -303,8 +297,8 @@ namespace OpenMetaverse
             }
         }
 
-        /// <summary>Perform an <seealso cref="T:System.Action"/> on each key of an <seealso cref="T:OpenMetaverse.InternalDictionary"/></summary>
-        /// <param name="action"><seealso cref="T:System.Action"/> to perform</param>
+        /// <summary>Perform an <see cref="T:System.Action"/> on each key of an <see cref="LockingDictionary{TKey,TValue}/></summary>
+        /// <param name="action"><see cref="T:System.Action"/> to perform</param>
         public void ForEach(Action<TKey> action)
         {
             lock (Dictionary)
@@ -317,9 +311,9 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Perform an <seealso cref="T:System.Action"/> on each KeyValuePair of an <seealso cref="T:OpenMetaverse.InternalDictionary"/>
+        /// Perform an <see cref="T:System.Action"/> on each KeyValuePair of <see cref="LockingDictionary{TKey,TValue}"/>
         /// </summary>
-        /// <param name="action"><seealso cref="T:System.Action"/> to perform</param>
+        /// <param name="action"><see cref="T:System.Action"/> to perform</param>
         public void ForEach(Action<KeyValuePair<TKey, TValue>> action)
         {
             lock (Dictionary)

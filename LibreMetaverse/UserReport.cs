@@ -46,13 +46,13 @@ namespace LibreMetaverse
             CsRequestReport = 4
         }
 
-        /// <summary>A reference to the current <seealso cref="GridClient"/> instance</summary>
+        /// <summary>A reference to the current <see cref="GridClient"/> instance</summary>
         private GridClient Client;
 
         /// <summary>
         /// Construct a new instance of the UserReport class
         /// </summary>
-        /// <param name="client">A reference to the current <seealso cref="GridClient"/> instance</param>
+        /// <param name="client">A reference to the current <see cref="GridClient"/> instance</param>
         UserReport(GridClient client)
         {
             Client = client;

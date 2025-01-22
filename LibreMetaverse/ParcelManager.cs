@@ -402,7 +402,7 @@ namespace OpenMetaverse
     {
         /// <summary>Global Key of record</summary>
         public UUID ID;
-        /// <summary>Parcel Owners <seealso cref="UUID"/></summary>
+        /// <summary>Parcel Owners <see cref="UUID"/></summary>
         public UUID OwnerID;
         /// <summary>Name field of parcel, limited to 128 characters</summary>
         public string Name;
@@ -422,7 +422,7 @@ namespace OpenMetaverse
         public float GlobalZ;
         /// <summary>Name of simulator parcel is located in</summary>
         public string SimName;
-        /// <summary>Texture <seealso cref="T:OpenMetaverse.UUID"/> of parcels display picture</summary>
+        /// <summary>Texture <see cref="T:OpenMetaverse.UUID"/> of parcels display picture</summary>
         public UUID SnapshotID;
         /// <summary>Float representing calculated traffic based on time spent on parcel by avatars</summary>
         public float Dwell;
@@ -735,7 +735,7 @@ namespace OpenMetaverse
         /// </summary>
         public struct ParcelAccessEntry
         {
-            /// <summary>Agents <seealso cref="T:OpenMetaverse.UUID"/></summary>
+            /// <summary>Agents <see cref="T:OpenMetaverse.UUID"/></summary>
             public UUID AgentID;
             /// <summary></summary>
             public DateTime Time;
@@ -748,7 +748,7 @@ namespace OpenMetaverse
         /// </summary>
         public struct ParcelPrimOwners
         {
-            /// <summary>Prim Owners <seealso cref="T:OpenMetaverse.UUID"/></summary>
+            /// <summary>Prim Owners <see cref="T:OpenMetaverse.UUID"/></summary>
             public UUID OwnerID;
             /// <summary>True of owner is group</summary>
             public bool IsGroupOwned;
@@ -770,7 +770,7 @@ namespace OpenMetaverse
         /// <param name="info">Parcel resource usage information</param>
         public delegate void LandResourcesCallback(bool success, LandResourcesInfo info);
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ParcelDwellReplyEventArgs> m_DwellReply;
 
         /// <summary>Raises the ParcelDwellReply event</summary>
@@ -792,7 +792,7 @@ namespace OpenMetaverse
             remove { lock (m_DwellReplyLock) { m_DwellReply -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ParcelInfoReplyEventArgs> m_ParcelInfo;
 
         /// <summary>Raises the ParcelInfoReply event</summary>
@@ -814,7 +814,7 @@ namespace OpenMetaverse
             remove { lock (m_ParcelInfoLock) { m_ParcelInfo -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ParcelPropertiesEventArgs> m_ParcelProperties;
 
         /// <summary>Raises the ParcelProperties event</summary>
@@ -836,7 +836,7 @@ namespace OpenMetaverse
             remove { lock (m_ParcelPropertiesLock) { m_ParcelProperties -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ParcelAccessListReplyEventArgs> m_ParcelACL;
 
         /// <summary>Raises the ParcelAccessListReply event</summary>
@@ -858,7 +858,7 @@ namespace OpenMetaverse
             remove { lock (m_ParcelACLLock) { m_ParcelACL -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ParcelObjectOwnersReplyEventArgs> m_ParcelObjectOwnersReply;
 
         /// <summary>Raises the ParcelObjectOwnersReply event</summary>
@@ -880,7 +880,7 @@ namespace OpenMetaverse
             remove { lock (m_ParcelObjectOwnersLock) { m_ParcelObjectOwnersReply -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<SimParcelsDownloadedEventArgs> m_SimParcelsDownloaded;
 
         /// <summary>Raises the SimParcelsDownloaded event</summary>
@@ -902,7 +902,7 @@ namespace OpenMetaverse
             remove { lock (m_SimParcelsDownloadedLock) { m_SimParcelsDownloaded -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ForceSelectObjectsReplyEventArgs> m_ForceSelectObjects;
 
         /// <summary>Raises the ForceSelectObjectsReply event</summary>
@@ -924,7 +924,7 @@ namespace OpenMetaverse
             remove { lock (m_ForceSelectObjectsLock) { m_ForceSelectObjects -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ParcelMediaUpdateReplyEventArgs> m_ParcelMediaUpdateReply;
 
         /// <summary>Raises the ParcelMediaUpdateReply event</summary>
@@ -946,7 +946,7 @@ namespace OpenMetaverse
             remove { lock (m_ParcelMediaUpdateReplyLock) { m_ParcelMediaUpdateReply -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ParcelMediaCommandEventArgs> m_ParcelMediaCommand;
 
         /// <summary>Raises the ParcelMediaCommand event</summary>
@@ -1241,7 +1241,7 @@ namespace OpenMetaverse
         /// <param name="simulator">The Simulator the parcel is located in</param>
         /// <param name="localID">The parcels region specific local ID</param>
         /// <param name="forGroup">true if this parcel is being purchased by a group</param>
-        /// <param name="groupID">The groups <seealso cref="T:OpenMetaverse.UUID"/></param>
+        /// <param name="groupID">The groups <see cref="T:OpenMetaverse.UUID"/></param>
         /// <param name="removeContribution">true to remove tier contribution if purchase is successful</param>
         /// <param name="parcelArea">The parcels size</param>
         /// <param name="parcelPrice">The purchase price of the parcel</param>
@@ -1303,7 +1303,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="simulator">The simulator the parcel is in</param>
         /// <param name="localID">The parcels region specific local ID</param>
-        /// <param name="groupID">The groups <seealso cref="T:OpenMetaverse.UUID"/></param>
+        /// <param name="groupID">The groups <see cref="T:OpenMetaverse.UUID"/></param>
         public void DeedToGroup(Simulator simulator, int localID, UUID groupID)
         {
             ParcelDeedToGroupPacket request = new ParcelDeedToGroupPacket
@@ -1350,8 +1350,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="simulator">Simulator parcel is in</param>
         /// <param name="localID">The parcels region specific local ID</param>
-        /// <param name="type">the type of objects to return, <seealso cref="T:OpenMetaverse.ObjectReturnType"/></param>
-        /// <param name="ownerIDs">A list containing object owners <seealso cref="OpenMetaverse.UUID"/>s to return</param>
+        /// <param name="type">the type of objects to return, <see cref="T:OpenMetaverse.ObjectReturnType"/></param>
+        /// <param name="ownerIDs">A list containing object owners <see cref="OpenMetaverse.UUID"/>s to return</param>
         public void ReturnObjects(Simulator simulator, int localID, ObjectReturnType type, List<UUID> ownerIDs)
         {
             ParcelReturnObjectsPacket request = new ParcelReturnObjectsPacket
@@ -1602,7 +1602,7 @@ namespace OpenMetaverse
         /// <param name="selectType">Owners, Others, Etc</param>
         /// <param name="ownerID">List containing keys of avatars objects to select; 
         /// if List is null will return Objects of type <c>selectType</c></param>
-        /// <remarks>Response data is returned in the event <seealso cref="E:ForceSelectObjectsReply"/></remarks>
+        /// <remarks>Response data is returned in the event <see cref="E:ForceSelectObjectsReply"/></remarks>
         public void RequestSelectObjects(int localID, ObjectReturnType selectType, UUID ownerID)
         {
             ParcelSelectObjectsPacket select = new ParcelSelectObjectsPacket();
@@ -2001,7 +2001,7 @@ namespace OpenMetaverse
                 OnParcelProperties(new ParcelPropertiesEventArgs(simulator, parcel, result, selectedPrims, sequenceID, snapSelection));
             }
             
-            // Check if all of the simulator parcels have been retrieved, if so fire another callback
+            // Check if all simulator parcels have been retrieved, if so fire another callback
             if (simulator.IsParcelMapFull() && m_SimParcelsDownloaded != null)
             {
                 OnSimParcelsDownloaded(new SimParcelsDownloadedEventArgs(simulator, simulator.Parcels, simulator.ParcelMap));

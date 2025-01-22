@@ -45,7 +45,7 @@ namespace OpenMetaverse
         /// the library
         /// </summary>
         /// <param name="message">Data being logged</param>
-        /// <param name="level">The severity of the log entry from <seealso cref="Helpers.LogLevel"/></param>
+        /// <param name="level">The severity of the log entry from <see cref="Helpers.LogLevel"/></param>
         public delegate void LogCallback(object message, Helpers.LogLevel level);
 
         /// <summary>Triggered whenever a message is logged. If this is left

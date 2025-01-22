@@ -151,7 +151,7 @@ namespace LibreMetaverse.Voice.Vivox
             _posRestart = new ManualResetEvent(false);
             _posThread.Start();
 
-            _client.Network.EventQueueRunning += Network_EventQueueRunning;
+            _client.Network.SimChanged += Network_OnSimChanged;
 
             // Connection events
             OnDaemonRunning += connector_OnDaemonRunning;
@@ -182,9 +182,8 @@ namespace LibreMetaverse.Voice.Vivox
             Logger.Log("Voice initialized", Helpers.LogLevel.Info);
 
             // If voice provisioning capability is already available,
-            // proceed with voice startup.   Otherwise the EventQueueRunning
-            // event will do it.
-            var vCap = _client.Network.CurrentSim.Caps.CapabilityURI("ProvisionVoiceAccountRequest");
+            // proceed with voice startup. Otherwise, wait for CAPS to do it.
+            var vCap = _client.Network.CurrentSim.Caps?.CapabilityURI("ProvisionVoiceAccountRequest");
             if (vCap != null)
             {
                 RequestVoiceProvision(vCap);
@@ -205,7 +204,7 @@ namespace LibreMetaverse.Voice.Vivox
 
         public void Stop()
         {
-            _client.Network.EventQueueRunning -= Network_EventQueueRunning;
+            _client.Network.SimChanged -= Network_OnSimChanged;
 
             // Connection events
             OnDaemonRunning -= connector_OnDaemonRunning;
@@ -320,14 +319,54 @@ namespace LibreMetaverse.Voice.Vivox
                 _posTokenSource.Token, cClient_OnComplete);
         }
 
+        private void Network_OnSimChanged(object sender, SimChangedEventArgs e)
+        {
+            _client.Network.CurrentSim.Caps.CapabilitiesReceived += Simulator_OnCapabilitiesReceived;
+        }
+
+        private void Simulator_OnCapabilitiesReceived(object sender, CapabilitiesReceivedEventArgs e)
+        {
+            e.Simulator.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived;
+
+            if (e.Simulator == _client.Network.CurrentSim)
+            {
+                // Did we provision voice login info?
+                if (string.IsNullOrEmpty(_voiceUser))
+                {
+                    // The startup steps are
+                    //  0. Get voice account info
+                    //  1. Start Daemon
+                    //  2. Create TCP connection
+                    //  3. Create Connector
+                    //  4. Account login
+                    //  5. Create session
+
+                    // Get the voice provisioning data
+                    var vCap = _client.Network.CurrentSim.Caps.CapabilityURI("ProvisionVoiceAccountRequest");
+
+                    // Do we have voice capability?
+                    if (vCap == null)
+                    {
+                        Logger.Log("Null voice capability after event queue running", Helpers.LogLevel.Warning);
+                    }
+                    else
+                    {
+                        RequestVoiceProvision(vCap);
+                    }
+                }
+                else
+                {
+                    // Change voice session for this region.
+                    ParcelChanged();
+                }
+            }
+        }
+
         /// <summary>
         /// Request voice cap when changing regions
         /// </summary>
         void Network_EventQueueRunning(object sender, EventQueueRunningEventArgs e)
         {
-            // We only care about the sim we are in.
-            if (e.Simulator != _client.Network.CurrentSim)
-                return;
 
             // Did we provision voice login info?
             if (string.IsNullOrEmpty(_voiceUser))

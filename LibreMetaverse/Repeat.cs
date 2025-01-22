@@ -33,7 +33,7 @@ namespace LibreMetaverse
     internal static class Repeat
     {
         /// <summary>
-        /// Execute a given <seealso cref="Action"/> at a given interval in a loop
+        /// Execute a given <see cref="Action"/> at a given interval in a loop
         /// </summary>
         /// <param name="pollInterval">Interval for executing action</param>
         /// <param name="action">Essentially the action you wish to execute</param>

@@ -310,7 +310,7 @@ namespace OpenMetaverse
         #region Events
 
         #region XferReceived
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<XferReceivedEventArgs> m_XferReceivedEvent;
 
         /// <summary>Raises the XferReceived event</summary>
@@ -334,7 +334,7 @@ namespace OpenMetaverse
         #endregion
 
         #region AssetUploaded
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<AssetUploadEventArgs> m_AssetUploadedEvent;
 
         /// <summary>Raises the AssetUploaded event</summary>
@@ -358,7 +358,7 @@ namespace OpenMetaverse
         #endregion
 
         #region UploadProgress
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<AssetUploadEventArgs> m_UploadProgressEvent;
 
         /// <summary>Raises the UploadProgress event</summary>
@@ -382,7 +382,7 @@ namespace OpenMetaverse
         #endregion UploadProgress
 
         #region InitiateDownload
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<InitiateDownloadEventArgs> m_InitiateDownloadEvent;
 
         /// <summary>Raises the InitiateDownload event</summary>
@@ -406,7 +406,7 @@ namespace OpenMetaverse
         #endregion InitiateDownload
 
         #region ImageReceiveProgress
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ImageReceiveProgressEventArgs> m_ImageReceiveProgressEvent;
 
         /// <summary>Raises the ImageReceiveProgress event</summary>
@@ -746,7 +746,7 @@ namespace OpenMetaverse
         /// <param name="vFileID">UUID of the file to request, if filename is
         /// left empty</param>
         /// <param name="vFileType">Asset type of <paramref name="vFileID"/>, or
-        /// <seealso cref="AssetType.Unknown" /> if filename is not empty</param>
+        /// <see cref="AssetType.Unknown" /> if filename is not empty</param>
         /// <param name="fromCache">Sets the FilePath in the request to Cache
         /// (4) if true, otherwise Unknown (0) is used</param>
         /// <returns></returns>
@@ -946,10 +946,10 @@ namespace OpenMetaverse
         /// <summary>
         /// Request an asset be uploaded to the simulator
         /// </summary>
-        /// <param name="asset">The <seealso cref="Asset"/> Object containing the asset data</param>
+        /// <param name="asset">The <see cref="Asset"/> Object containing the asset data</param>
         /// <param name="storeLocal">If True, the asset once uploaded will be stored on the simulator
         /// in which the client was connected in addition to being stored on the asset server</param>
-        /// <returns>The <seealso cref="UUID"/> of the transfer, can be used to correlate the upload with
+        /// <returns>The <see cref="UUID"/> of the transfer, can be used to correlate the upload with
         /// events being fired</returns>
         public UUID RequestUpload(Asset asset, bool storeLocal)
         {
@@ -965,11 +965,11 @@ namespace OpenMetaverse
         /// <summary>
         /// Request an asset be uploaded to the simulator
         /// </summary>
-        /// <param name="type">The <seealso cref="AssetType"/> of the asset being uploaded</param>
+        /// <param name="type">The <see cref="AssetType"/> of the asset being uploaded</param>
         /// <param name="data">A byte array containing the encoded asset data</param>
         /// <param name="storeLocal">If True, the asset once uploaded will be stored on the simulator
         /// in which the client was connected in addition to being stored on the asset server</param>
-        /// <returns>The <seealso cref="UUID"/> of the transfer, can be used to correlate the upload with
+        /// <returns>The <see cref="UUID"/> of the transfer, can be used to correlate the upload with
         /// events being fired</returns>
         public UUID RequestUpload(AssetType type, byte[] data, bool storeLocal)
         {
@@ -985,7 +985,7 @@ namespace OpenMetaverse
         /// <param name="data">A byte array containing the encoded asset data</param>
         /// <param name="storeLocal">If True, the asset once uploaded will be stored on the simulator
         /// in which the client was connected in addition to being stored on the asset server</param>
-        /// <returns>The <seealso cref="UUID"/> of the transfer, can be used to correlate the upload with
+        /// <returns>The <see cref="UUID"/> of the transfer, can be used to correlate the upload with
         /// events being fired</returns>
         public UUID RequestUpload(out UUID assetID, AssetType type, byte[] data, bool storeLocal)
         {

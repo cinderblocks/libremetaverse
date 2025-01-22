@@ -50,7 +50,7 @@ namespace OpenMetaverse
         Progress,
         /// <summary>A request that has received all packets back from the simulator</summary>
         Finished,
-        /// <summary>A request that has taken longer than <seealso cref="Settings.PIPELINE_REQUEST_TIMEOUT"/>
+        /// <summary>A request that has taken longer than <see cref="Settings.PIPELINE_REQUEST_TIMEOUT"/>
         /// to download OR the initial packet containing the packet information was never received</summary>
         Timeout,
         /// <summary>The texture request was aborted by request of the agent</summary>
@@ -72,9 +72,9 @@ namespace OpenMetaverse
 
     /// <summary>
     /// Texture request download handler, allows a configurable number of download slots which manage multiple
-    /// concurrent texture downloads from the <seealso cref="Simulator"/>
+    /// concurrent texture downloads from the <see cref="Simulator"/>
     /// </summary>
-    /// <remarks>This class makes full use of the internal <seealso cref="TextureCache"/> 
+    /// <remarks>This class makes full use of the internal <see cref="TextureCache"/> 
     /// system for full texture downloads.</remarks>
     public class TexturePipeline
     {
@@ -92,7 +92,7 @@ namespace OpenMetaverse
         /// </summary>
         private class TaskInfo
         {
-            /// <summary>The current <seealso cref="TextureRequestState"/> which identifies the current status of the request</summary>
+            /// <summary>The current <see cref="TextureRequestState"/> which identifies the current status of the request</summary>
             public TextureRequestState State;
             /// <summary>The Unique Request ID, This is also the Asset ID of the texture being requested</summary>
             public UUID RequestID;
@@ -102,7 +102,7 @@ namespace OpenMetaverse
             public ImageType Type;
 
             /// <summary>The callback to fire when the request is complete, will include 
-            /// the <seealso cref="TextureRequestState"/> and the <see cref="AssetTexture"/> 
+            /// the <see cref="TextureRequestState"/> and the <see cref="AssetTexture"/> 
             /// object containing the result data</summary>
             public List<TextureDownloadCallback> Callbacks;
             /// <summary>If true, indicates the callback will be fired whenever new data is returned from the simulator.

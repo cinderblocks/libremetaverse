@@ -492,7 +492,7 @@ namespace OpenMetaverse
     {
         #region Delegates
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<CurrentGroupsEventArgs> m_CurrentGroups;
 
         /// <summary>Raises the CurrentGroups event</summary>
@@ -515,7 +515,7 @@ namespace OpenMetaverse
             remove { lock (m_CurrentGroupsLock) { m_CurrentGroups -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<GroupNamesEventArgs> m_GroupNames;
 
         /// <summary>Raises the GroupNamesReply event</summary>
@@ -538,7 +538,7 @@ namespace OpenMetaverse
             remove { lock (m_GroupNamesLock) { m_GroupNames -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<GroupProfileEventArgs> m_GroupProfile;
 
         /// <summary>Raises the GroupProfile event</summary>
@@ -560,7 +560,7 @@ namespace OpenMetaverse
             remove { lock (m_GroupProfileLock) { m_GroupProfile -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<GroupMembersReplyEventArgs> m_GroupMembers;
 
         /// <summary>Raises the GroupMembers event</summary>
@@ -582,7 +582,7 @@ namespace OpenMetaverse
             remove { lock (m_GroupMembersLock) { m_GroupMembers -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<GroupRolesDataReplyEventArgs> m_GroupRoles;
 
         /// <summary>Raises the GroupRolesDataReply event</summary>
@@ -604,7 +604,7 @@ namespace OpenMetaverse
             remove { lock (m_GroupRolesLock) { m_GroupRoles -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<GroupRolesMembersReplyEventArgs> m_GroupRoleMembers;
 
         /// <summary>Raises the GroupRoleMembersReply event</summary>
@@ -626,7 +626,7 @@ namespace OpenMetaverse
             remove { lock (m_GroupRolesMembersLock) { m_GroupRoleMembers -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<GroupTitlesReplyEventArgs> m_GroupTitles;
 
 
@@ -649,7 +649,7 @@ namespace OpenMetaverse
             remove { lock (m_GroupTitlesLock) { m_GroupTitles -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<GroupAccountSummaryReplyEventArgs> m_GroupAccountSummary;
 
         /// <summary>Raises the GroupAccountSummary event</summary>
@@ -672,7 +672,7 @@ namespace OpenMetaverse
             remove { lock (m_GroupAccountSummaryLock) { m_GroupAccountSummary -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<GroupCreatedReplyEventArgs> m_GroupCreated;
 
         /// <summary>Raises the GroupCreated event</summary>
@@ -693,7 +693,7 @@ namespace OpenMetaverse
             remove { lock (m_GroupCreatedLock) { m_GroupCreated -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<GroupOperationEventArgs> m_GroupJoined;
 
         /// <summary>Raises the GroupJoined event</summary>
@@ -715,7 +715,7 @@ namespace OpenMetaverse
             remove { lock (m_GroupJoinedLock) { m_GroupJoined -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<GroupOperationEventArgs> m_GroupLeft;
 
         /// <summary>Raises the GroupLeft event</summary>
@@ -737,7 +737,7 @@ namespace OpenMetaverse
             remove { lock (m_GroupLeftLock) { m_GroupLeft -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<GroupDroppedEventArgs> m_GroupDropped;
 
         /// <summary>Raises the GroupDropped event</summary>
@@ -758,7 +758,7 @@ namespace OpenMetaverse
             remove { lock (m_GroupDroppedLock) { m_GroupDropped -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<GroupOperationEventArgs> m_GroupMemberEjected;
 
         /// <summary>Raises the GroupMemberEjected event</summary>
@@ -780,7 +780,7 @@ namespace OpenMetaverse
             remove { lock (m_GroupMemberEjectedLock) { m_GroupMemberEjected -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<GroupNoticesListReplyEventArgs> m_GroupNoticesListReply;
 
         /// <summary>Raises the GroupNoticesListReply event</summary>
@@ -796,14 +796,14 @@ namespace OpenMetaverse
         private readonly object m_GroupNoticesListReplyLock = new object();
 
         /// <summary>Raised when the simulator sends us group notices</summary>
-        /// <seealso cref="RequestGroupNoticesList"/>
+        /// <see cref="RequestGroupNoticesList"/>
         public event EventHandler<GroupNoticesListReplyEventArgs> GroupNoticesListReply
         {
             add { lock (m_GroupNoticesListReplyLock) { m_GroupNoticesListReply += value; } }
             remove { lock (m_GroupNoticesListReplyLock) { m_GroupNoticesListReply -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<GroupInvitationEventArgs> m_GroupInvitation;
 
         /// <summary>Raises the GroupInvitation event</summary>
@@ -830,7 +830,7 @@ namespace OpenMetaverse
 
 
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<BannedAgentsEventArgs> m_BannedAgents;
 
         /// <summary>Raises the BannedAgents event</summary>
@@ -855,7 +855,7 @@ namespace OpenMetaverse
         #endregion Delegates
 
 
-        /// <summary>A reference to the current <seealso cref="GridClient"/> instance</summary>
+        /// <summary>A reference to the current <see cref="GridClient"/> instance</summary>
         private GridClient Client;
         /// <summary>Currently-active group members requests</summary>
         private List<UUID> GroupMembersRequests;
@@ -875,7 +875,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct a new instance of the GroupManager class
         /// </summary>
-        /// <param name="client">A reference to the current <seealso cref="GridClient"/> instance</param>
+        /// <param name="client">A reference to the current <see cref="GridClient"/> instance</param>
         public GroupManager(GridClient client)
         {
             Client = client;

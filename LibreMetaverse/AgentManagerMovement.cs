@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -152,7 +153,7 @@ namespace OpenMetaverse
         /// <summary> 
         /// Agent movement and camera control
         /// 
-        /// Agent movement is controlled by setting specific <seealso cref="T:AgentManager.ControlFlags"/>
+        /// Agent movement is controlled by setting specific <see cref="T:AgentManager.ControlFlags"/>
         /// After the control flags are set, An AgentUpdate is required to update the simulator of the specified flags
         /// This is most easily accomplished by setting one or more of the AgentMovement properties
         /// 
@@ -445,7 +446,7 @@ namespace OpenMetaverse
             #endregion Change tracking
 
             private bool alwaysRun;
-            private GridClient Client;
+            private readonly GridClient Client;
             private int duplicateCount;
             private AgentState lastState;
             /// <summary>Timer for sending AgentUpdate packets</summary>
@@ -464,11 +465,8 @@ namespace OpenMetaverse
 
             private void CleanupTimer()
             {
-                if (updateTimer != null)
-                {
-                    updateTimer.Dispose();
-                    updateTimer = null;
-                }
+                updateTimer?.Dispose();
+                updateTimer = null;
             }
 
             private void Network_OnDisconnected(object sender, DisconnectedEventArgs e)
@@ -483,7 +481,7 @@ namespace OpenMetaverse
                     CleanupTimer();
                     if (Client.Settings.SEND_AGENT_UPDATES_REGULARLY)
                     {
-                        updateTimer = new Timer(new TimerCallback(UpdateTimer_Elapsed), null, updateInterval, updateInterval);
+                        updateTimer = new Timer(UpdateTimer_Elapsed, null, updateInterval, updateInterval);
                     }
                 }
             }
@@ -523,48 +521,38 @@ namespace OpenMetaverse
             /// </summary>
             /// <param name="target">Region coordinates to turn toward</param>
             /// <param name="sendUpdate">whether to send update or not</param>
+            /// <returns>Returns if TurnToward operation was successful</returns>
             public bool TurnToward(Vector3 target, bool sendUpdate)
             {
-                if (Client.Settings.SEND_AGENT_UPDATES)
-                {
-                    Quaternion parentRot = Quaternion.Identity;
-
-                    if (Client.Self.SittingOn > 0)
-                    {
-                        if (!Client.Network.CurrentSim.ObjectsPrimitives.TryGetValue(Client.Self.SittingOn, out var parent))
-                        {
-                            Logger.Log("Attempted TurnToward but parent prim is not in dictionary", Helpers.LogLevel.Warning, Client);
-                            return false;
-                        }
-
-                        parentRot = parent.Rotation;
-                    }
-
-                    Quaternion between = Vector3.RotationBetween(Vector3.UnitX, Vector3.Normalize(target - Client.Self.SimPosition));
-                    Quaternion rot = between * (Quaternion.Identity / parentRot);
-
-                    BodyRotation = rot;
-                    HeadRotation = rot;
-                    Camera.LookAt(Client.Self.SimPosition, target);
-
-                    if (sendUpdate) SendUpdate();
-
-                    return true;
-                }
-                else
+                if (!Client.Settings.SEND_AGENT_UPDATES)
                 {
                     Logger.Log("Attempted TurnToward but agent updates are disabled", Helpers.LogLevel.Warning, Client);
                     return false;
                 }
-            }
 
-            /// <summary>
-            /// Send new AgentUpdate packet to update our current camera 
-            /// position and rotation
-            /// </summary>
-            public void SendUpdate()
-            {
-                SendUpdate(false, Client.Network.CurrentSim);
+                Quaternion parentRot = Quaternion.Identity;
+
+                if (Client.Self.SittingOn > 0)
+                {
+                    if (!Client.Network.CurrentSim.ObjectsPrimitives.TryGetValue(Client.Self.SittingOn, out var parent))
+                    {
+                        Logger.Log("Attempted TurnToward but parent prim is not in dictionary", Helpers.LogLevel.Warning, Client);
+                        return false;
+                    }
+
+                    parentRot = parent.Rotation;
+                }
+
+                Quaternion between = Vector3.RotationBetween(Vector3.UnitX, Vector3.Normalize(target - Client.Self.SimPosition));
+                Quaternion rot = between * (Quaternion.Identity / parentRot);
+
+                BodyRotation = rot;
+                HeadRotation = rot;
+                Camera.LookAt(Client.Self.SimPosition, target);
+
+                if (sendUpdate) { SendUpdate(); }
+
+                return true;
             }
 
             /// <summary>
@@ -573,7 +561,7 @@ namespace OpenMetaverse
             /// </summary>
             /// <param name="reliable">Whether to require server acknowledgement
             /// of this packet</param>
-            public void SendUpdate(bool reliable)
+            public void SendUpdate(bool reliable = false)
             {
                 SendUpdate(reliable, Client.Network.CurrentSim);
             }
@@ -589,8 +577,10 @@ namespace OpenMetaverse
             {
                 // Since version 1.40.4 of the Linden simulator, sending this update
                 // causes corruption of the agent position in the simulator
-                if (simulator != null && (!simulator.AgentMovementComplete))
+                if (simulator != null && !simulator.AgentMovementComplete)
+                {
                     return;
+                }
 
                 Vector3 origin = Camera.Position;
                 Vector3 xAxis = Camera.LeftAxis;
@@ -646,7 +636,8 @@ namespace OpenMetaverse
 
                     Client.Network.SendPacket(update, simulator);
 
-                    if (AutoResetControls) {
+                    if (AutoResetControls) 
+                    {
                         ResetControlFlags();
                     }
                 }
@@ -677,20 +668,24 @@ namespace OpenMetaverse
                 if (Client.Network.CurrentSim != null && (!Client.Network.CurrentSim.HandshakeComplete))
                     return;
 
-                AgentUpdatePacket update = new AgentUpdatePacket();
-
-                update.AgentData.AgentID = Client.Self.AgentID;
-                update.AgentData.SessionID = Client.Self.SessionID;
-                update.AgentData.BodyRotation = bodyRotation;
-                update.AgentData.HeadRotation = headRotation;
-                update.AgentData.CameraCenter = position;
-                update.AgentData.CameraAtAxis = forwardAxis;
-                update.AgentData.CameraLeftAxis = leftAxis;
-                update.AgentData.CameraUpAxis = upAxis;
-                update.AgentData.Far = farClip;
-                update.AgentData.ControlFlags = (uint)controlFlags;
-                update.AgentData.Flags = (byte)flags;
-                update.AgentData.State = (byte)state;
+                AgentUpdatePacket update = new AgentUpdatePacket
+                {
+                    AgentData =
+                    {
+                        AgentID = Client.Self.AgentID,
+                        SessionID = Client.Self.SessionID,
+                        BodyRotation = bodyRotation,
+                        HeadRotation = headRotation,
+                        CameraCenter = position,
+                        CameraAtAxis = forwardAxis,
+                        CameraLeftAxis = leftAxis,
+                        CameraUpAxis = upAxis,
+                        Far = farClip,
+                        ControlFlags = (uint)controlFlags,
+                        Flags = (byte)flags,
+                        State = (byte)state
+                    }
+                };
 
                 update.Header.Reliable = reliable;
 
@@ -710,7 +705,7 @@ namespace OpenMetaverse
 
             public void ResetControlFlags()
             {
-                // Reset all of the flags except for persistent settings like
+                // Reset all flags except for persistent settings like
                 // away, fly, mouselook, and crouching
                 AgentControls &=
                     (uint)(ControlFlags.AGENT_CONTROL_AWAY |
@@ -726,12 +721,20 @@ namespace OpenMetaverse
             /// <param name="angle">Angle in radians</param>
             public void SetFOVVerticalAngle(float angle)
             {
-                OpenMetaverse.Packets.AgentFOVPacket msg = new OpenMetaverse.Packets.AgentFOVPacket();
-                msg.AgentData.AgentID = Client.Self.AgentID;
-                msg.AgentData.SessionID = Client.Self.SessionID;
-                msg.AgentData.CircuitCode = Client.Network.CircuitCode;
-                msg.FOVBlock.GenCounter = 0;
-                msg.FOVBlock.VerticalAngle = angle;
+                OpenMetaverse.Packets.AgentFOVPacket msg = new OpenMetaverse.Packets.AgentFOVPacket
+                {
+                    AgentData =
+                    {
+                        AgentID = Client.Self.AgentID,
+                        SessionID = Client.Self.SessionID,
+                        CircuitCode = Client.Network.CircuitCode
+                    },
+                    FOVBlock =
+                    {
+                        GenCounter = 0,
+                        VerticalAngle = angle
+                    }
+                };
                 Client.Network.SendPacket(msg);
             }
 

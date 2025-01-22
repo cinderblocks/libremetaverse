@@ -158,7 +158,7 @@ namespace OpenMetaverse
 
         #region Event delegates, Raise Events
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<TopCollidersReplyEventArgs> m_TopCollidersReply;
 
         /// <summary>Raises the TopCollidersReply event</summary>
@@ -180,7 +180,7 @@ namespace OpenMetaverse
             remove { lock (m_TopCollidersReply_Lock) { m_TopCollidersReply -= value; } }
         }        
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<TopScriptsReplyEventArgs> m_TopScriptsReply;
 
         /// <summary>Raises the TopScriptsReply event</summary>
@@ -203,7 +203,7 @@ namespace OpenMetaverse
         }
 
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EstateUsersReplyEventArgs> m_EstateUsersReply;
 
         /// <summary>Raises the EstateUsersReply event</summary>
@@ -226,7 +226,7 @@ namespace OpenMetaverse
         }
 
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EstateGroupsReplyEventArgs> m_EstateGroupsReply;
 
         /// <summary>Raises the EstateGroupsReply event</summary>
@@ -248,7 +248,7 @@ namespace OpenMetaverse
             remove { lock (m_EstateGroupsReply_Lock) { m_EstateGroupsReply -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EstateManagersReplyEventArgs> m_EstateManagersReply;
 
         /// <summary>Raises the EstateManagersReply event</summary>
@@ -270,7 +270,7 @@ namespace OpenMetaverse
             remove { lock (m_EstateManagersReply_Lock) { m_EstateManagersReply -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EstateBansReplyEventArgs> m_EstateBansReply;
 
         /// <summary>Raises the EstateBansReply event</summary>
@@ -292,7 +292,7 @@ namespace OpenMetaverse
             remove { lock (m_EstateBansReply_Lock) { m_EstateBansReply -= value; } }
         }
                 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EstateCovenantReplyEventArgs> m_EstateCovenantReply;
 
         /// <summary>Raises the EstateCovenantReply event</summary>
@@ -315,7 +315,7 @@ namespace OpenMetaverse
         }
 
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EstateUpdateInfoReplyEventArgs> m_EstateUpdateInfoReply;
 
         /// <summary>Raises the EstateUpdateInfoReply event</summary>

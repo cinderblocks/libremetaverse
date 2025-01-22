@@ -274,7 +274,7 @@ namespace OpenMetaverse
         /// <summary>Human readable name given to the simulator</summary>
         public string Name = string.Empty;
         /// <summary>A 64x64 grid of parcel coloring values. The values stored 
-        /// in this array are of the <seealso cref="ParcelArrayType"/> type</summary>
+        /// in this array are of the <see cref="ParcelArrayType"/> type</summary>
         public byte[] ParcelOverlay = new byte[4096];
         /// <summary></summary>
         public int ParcelOverlaysReceived;
@@ -558,7 +558,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="client">Reference to the <seealso cref="GridClient"/> object</param>
+        /// <param name="client">Reference to the <see cref="GridClient"/> object</param>
         /// <param name="address">IPEndPoint of the simulator</param>
         /// <param name="handle">Region handle for the simulator</param>
         /// <param name="sizeX">Region size X</param>

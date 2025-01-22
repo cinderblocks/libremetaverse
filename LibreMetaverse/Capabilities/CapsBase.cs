@@ -95,7 +95,7 @@ namespace OpenMetaverse.Http
                 request.ContentType = contentType;
             request.Method = POST;
 
-            // Create an object to hold all of the state for this request
+            // Create an object to hold all state for this request
             var state = new RequestState(request, data, millisecondsTimeout, openWriteCallback,
                 downloadProgressCallback, completedCallback);
 
@@ -117,7 +117,7 @@ namespace OpenMetaverse.Http
                 request.ContentType = contentType;
             request.Method = PUT;
 
-            // Create an object to hold all of the state for this request
+            // Create an object to hold all state for this request
             var state = new RequestState(request, data, millisecondsTimeout, openWriteCallback,
                 downloadProgressCallback, completedCallback);
 
@@ -140,7 +140,7 @@ namespace OpenMetaverse.Http
                 request.ContentType = contentType;
             request.Method = DELETE;
 
-            // Create an object to hold all of the state for this request
+            // Create an object to hold all state for this request
             var state = new RequestState(request, data, millisecondsTimeout, openWriteCallback,
                 downloadProgressCallback, completedCallback);
 
@@ -163,7 +163,7 @@ namespace OpenMetaverse.Http
                 request.ContentType = contentType;
             request.Method = PATCH;
 
-            // Create an object to hold all of the state for this request
+            // Create an object to hold all state for this request
             var state = new RequestState(request, data, millisecondsTimeout, openWriteCallback,
                 downloadProgressCallback, completedCallback);
 
@@ -178,7 +178,7 @@ namespace OpenMetaverse.Http
         public static void DownloadDataAsync(HttpWebRequest request, int millisecondsTimeout,
             DownloadProgressEventHandler downloadProgressCallback, RequestCompletedEventHandler completedCallback)
         {
-            // Create an object to hold all of the state for this request
+            // Create an object to hold all state for this request
             RequestState state = new RequestState(request, null, millisecondsTimeout, null, downloadProgressCallback,
                 completedCallback);
 

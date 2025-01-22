@@ -60,19 +60,19 @@ namespace OpenMetaverse
 #endif
     public abstract partial class InventoryBase : ISerializable
     {
-        /// <summary><seealso cref="OpenMetaverse.UUID"/> of item/folder</summary>
+        /// <summary><see cref="OpenMetaverse.UUID"/> of item/folder</summary>
         public UUID UUID;
-        /// <summary><seealso cref="OpenMetaverse.UUID"/> of parent folder</summary>
+        /// <summary><see cref="OpenMetaverse.UUID"/> of parent folder</summary>
         public UUID ParentUUID;
         /// <summary>Name of item/folder</summary>
         public string Name;
-        /// <summary>Item/Folder Owners <seealso cref="OpenMetaverse.UUID"/></summary>
+        /// <summary>Item/Folder Owners <see cref="OpenMetaverse.UUID"/></summary>
         public UUID OwnerID;
 
         /// <summary>
         /// Constructor, takes an itemID as a parameter
         /// </summary>
-        /// <param name="UUID">The <seealso cref="OpenMetaverse.UUID"/> of the item</param>
+        /// <param name="UUID">The <see cref="OpenMetaverse.UUID"/> of the item</param>
 #if NET7_0_OR_GREATER
         [MemoryPackConstructor]
 #endif
@@ -120,7 +120,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Determine whether the specified <seealso cref="InventoryBase"/> object is equal to the current object
+        /// Determine whether the specified <see cref="InventoryBase"/> object is equal to the current object
         /// </summary>
         /// <param name="obj">InventoryBase object to compare against</param>
         /// <returns>true if objects are the same</returns>
@@ -130,7 +130,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Determine whether the specified <seealso cref="InventoryBase"/> object is equal to the current object
+        /// Determine whether the specified <see cref="InventoryBase"/> object is equal to the current object
         /// </summary>
         /// <param name="o">InventoryBase object to compare against</param>
         /// <returns>true if objects are the same</returns>
@@ -162,40 +162,40 @@ namespace OpenMetaverse
         {
             return $"{AssetType} {AssetUUID} ({InventoryType} {UUID}) '{Name}'/'{Description}' {Permissions}";
         }
-        /// <summary>The <seealso cref="UUID"/> of this item</summary>
+        /// <summary>The <see cref="UUID"/> of this item</summary>
         public UUID AssetUUID;
-        /// <summary>The combined <seealso cref="OpenMetaverse.Permissions"/> of this item</summary>
+        /// <summary>The combined <see cref="OpenMetaverse.Permissions"/> of this item</summary>
         public Permissions Permissions;
-        /// <summary>The type of item from <seealso cref="OpenMetaverse.AssetType"/></summary>
+        /// <summary>The type of item from <see cref="OpenMetaverse.AssetType"/></summary>
         public AssetType AssetType;
-        /// <summary>The type of item from the <seealso cref="OpenMetaverse.InventoryType"/> enum</summary>
+        /// <summary>The type of item from the <see cref="OpenMetaverse.InventoryType"/> enum</summary>
         public InventoryType InventoryType;
-        /// <summary>The <seealso cref="UUID"/> of the creator of this item</summary>
+        /// <summary>The <see cref="UUID"/> of the creator of this item</summary>
         public UUID CreatorID;
         /// <summary>A Description of this item</summary>
         public string Description;
-        /// <summary>The <seealso cref="Group"/>s <seealso cref="UUID"/> this item is set to or owned by</summary>
+        /// <summary>The <see cref="Group"/>s <see cref="UUID"/> this item is set to or owned by</summary>
         public UUID GroupID;
         /// <summary>If true, item is owned by a group</summary>
         public bool GroupOwned;
         /// <summary>The price this item can be purchased for</summary>
         public int SalePrice;
-        /// <summary>The type of sale from the <seealso cref="OpenMetaverse.SaleType"/> enum</summary>
+        /// <summary>The type of sale from the <see cref="OpenMetaverse.SaleType"/> enum</summary>
         public SaleType SaleType;
-        /// <summary>Combined flags from <seealso cref="InventoryItemFlags"/></summary>
+        /// <summary>Combined flags from <see cref="InventoryItemFlags"/></summary>
         public uint Flags;
         /// <summary>Time and date this inventory item was created, stored as
         /// UTC (Coordinated Universal Time)</summary>
         public DateTime CreationDate;
         /// <summary>Used to update the AssetID in requests sent to the server</summary>
         public UUID TransactionID;
-        /// <summary>The <seealso cref="UUID"/> of the previous owner of the item</summary>
+        /// <summary>The <see cref="UUID"/> of the previous owner of the item</summary>
         public UUID LastOwnerID;
 
         /// <summary>
         ///  Construct a new InventoryItem object
         /// </summary>
-        /// <param name="UUID">The <seealso cref="UUID"/> of the item</param>
+        /// <param name="UUID">The <see cref="UUID"/> of the item</param>
 #if NET7_0_OR_GREATER
         [MemoryPackConstructor]
 #endif
@@ -205,8 +205,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct a new InventoryItem object of a specific Type
         /// </summary>
-        /// <param name="type">The type of item from <seealso cref="T:OpenMetaverse.InventoryType" /></param>
-        /// <param name="itemID"><seealso cref="T:OpenMetaverse.UUID" /> of the item</param>
+        /// <param name="type">The type of item from <see cref="T:OpenMetaverse.InventoryType" /></param>
+        /// <param name="itemID"><see cref="T:OpenMetaverse.UUID" /> of the item</param>
         public InventoryItem(InventoryType type, UUID itemID) : base(itemID) { InventoryType = type; }
 
         /// <summary>
@@ -291,9 +291,9 @@ namespace OpenMetaverse
 
         /// <inheritdoc />
         /// <summary>
-        /// Determine whether the specified <seealso cref="T:OpenMetaverse.InventoryBase" /> object is equal to the current object
+        /// Determine whether the specified <see cref="T:OpenMetaverse.InventoryBase" /> object is equal to the current object
         /// </summary>
-        /// <param name="o">The <seealso cref="T:OpenMetaverse.InventoryBase" /> object to compare against</param>
+        /// <param name="o">The <see cref="T:OpenMetaverse.InventoryBase" /> object to compare against</param>
         /// <returns>true if objects are the same</returns>
         public override bool Equals(InventoryBase o)
         {
@@ -301,9 +301,9 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Determine whether the specified <seealso cref="InventoryItem"/> object is equal to the current object
+        /// Determine whether the specified <see cref="InventoryItem"/> object is equal to the current object
         /// </summary>
-        /// <param name="o">The <seealso cref="InventoryItem"/> object to compare against</param>
+        /// <param name="o">The <see cref="InventoryItem"/> object to compare against</param>
         /// <returns>true if objects are the same</returns>
         public bool Equals(InventoryItem o)
         {
@@ -413,7 +413,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct an InventoryTexture object
         /// </summary>
-        /// <param name="UUID">A <seealso cref="UUID"/> which becomes the 
+        /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
 #if NET7_0_OR_GREATER
         [MemoryPackConstructor]
@@ -447,7 +447,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct an InventorySound object
         /// </summary>
-        /// <param name="UUID">A <seealso cref="UUID"/> which becomes the 
+        /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
 #if NET7_0_OR_GREATER
         [MemoryPackConstructor]
@@ -481,7 +481,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct an InventoryCallingCard object
         /// </summary>
-        /// <param name="UUID">A <seealso cref="UUID"/> which becomes the 
+        /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
 #if NET7_0_OR_GREATER
         [MemoryPackConstructor]
@@ -515,7 +515,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct an InventoryLandmark object
         /// </summary>
-        /// <param name="UUID">A <seealso cref="UUID"/> which becomes the 
+        /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
 #if NET7_0_OR_GREATER
         [MemoryPackConstructor]
@@ -563,7 +563,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct an InventoryObject object
         /// </summary>
-        /// <param name="UUID">A <seealso cref="UUID"/> which becomes the 
+        /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
 #if NET7_0_OR_GREATER
         [MemoryPackConstructor]
@@ -615,7 +615,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct an InventoryNotecard object
         /// </summary>
-        /// <param name="UUID">A <seealso cref="UUID"/> which becomes the 
+        /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
 #if NET7_0_OR_GREATER
         [MemoryPackConstructor]
@@ -649,7 +649,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct an InventoryCategory object
         /// </summary>
-        /// <param name="UUID">A <seealso cref="UUID"/> which becomes the 
+        /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
 #if NET7_0_OR_GREATER
         [MemoryPackConstructor]
@@ -683,7 +683,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct an InventoryLSL object
         /// </summary>
-        /// <param name="UUID">A <seealso cref="UUID"/> which becomes the 
+        /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
 #if NET7_0_OR_GREATER
         [MemoryPackConstructor]
@@ -718,7 +718,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct an InventorySnapshot object
         /// </summary>
-        /// <param name="UUID">A <seealso cref="T:OpenMetaverse.UUID" /> which becomes the 
+        /// <param name="UUID">A <see cref="T:OpenMetaverse.UUID" /> which becomes the 
         /// <seealso cref="T:OpenMetaverse.InventoryItem" /> objects UUID</param>
 #if NET7_0_OR_GREATER
         [MemoryPackConstructor]
@@ -751,7 +751,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct an InventoryAttachment object
         /// </summary>
-        /// <param name="UUID">A <seealso cref="UUID"/> which becomes the 
+        /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
 #if NET7_0_OR_GREATER
         [MemoryPackConstructor]
@@ -794,7 +794,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct an InventoryWearable object
         /// </summary>
-        /// <param name="UUID">A <seealso cref="UUID"/> which becomes the 
+        /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
 #if NET7_0_OR_GREATER
         [MemoryPackConstructor]
@@ -811,7 +811,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// The <seealso cref="OpenMetaverse.WearableType"/>, Skin, Shape, Skirt, Etc
+        /// The <see cref="OpenMetaverse.WearableType"/>, Skin, Shape, Skirt, Etc
         /// </summary>
         public WearableType WearableType
         {
@@ -833,7 +833,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct an InventoryAnimation object
         /// </summary>
-        /// <param name="UUID">A <seealso cref="UUID"/> which becomes the 
+        /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
 #if NET7_0_OR_GREATER
         [MemoryPackConstructor]
@@ -867,7 +867,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct an InventoryGesture object
         /// </summary>
-        /// <param name="UUID">A <seealso cref="UUID"/> which becomes the 
+        /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
 #if NET7_0_OR_GREATER
         [MemoryPackConstructor]
@@ -901,7 +901,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct an InventorySettings object
         /// </summary>
-        /// <param name="UUID">A <seealso cref="UUID"/> which becomes the 
+        /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
 #if NET7_0_OR_GREATER
         [MemoryPackConstructor]
@@ -930,7 +930,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct an InventorySettings object
         /// </summary>
-        /// <param name="UUID">A <seealso cref="UUID"/> which becomes the 
+        /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
 #if NET7_0_OR_GREATER
         [MemoryPackConstructor]
@@ -948,7 +948,7 @@ namespace OpenMetaverse
     
     /// <inheritdoc />
     /// <summary>
-    /// A folder contains <seealso cref="T:OpenMetaverse.InventoryItem" />s and has certain attributes specific 
+    /// A folder contains <see cref="T:OpenMetaverse.InventoryItem" />s and has certain attributes specific 
     /// to itself
     /// </summary>
     [Serializable]
@@ -957,7 +957,7 @@ namespace OpenMetaverse
 #endif
     public partial class InventoryFolder : InventoryBase
     {
-        /// <summary>The Preferred <seealso cref="T:OpenMetaverse.FolderType"/> for a folder.</summary>
+        /// <summary>The Preferred <see cref="T:OpenMetaverse.FolderType"/> for a folder.</summary>
         public FolderType PreferredType;
         /// <summary>The Version of this folder</summary>
         public int Version;
