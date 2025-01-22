@@ -1778,7 +1778,7 @@ namespace OpenMetaverse
             }
             else if (bse is InventoryItem item)
             {
-                CreateLink(folderID, item.UUID, item.Name, item.Description, AssetType.Link, item.InventoryType, UUID.Random(), callback);
+                CreateLink(folderID, item.UUID, item.Name, item.Description, item.InventoryType, UUID.Random(), callback);
             }
         }
 
@@ -1790,8 +1790,7 @@ namespace OpenMetaverse
         /// <param name="callback">Method to call upon creation of the link</param>
         public void CreateLink(UUID folderID, InventoryItem item, ItemCreatedCallback callback)
         {
-            CreateLink(folderID, item.UUID, item.Name, item.Description, AssetType.Link,
-                item.InventoryType, UUID.Random(), callback);
+            CreateLink(folderID, item.UUID, item.Name, item.Description, item.InventoryType, UUID.Random(), callback);
         }
 
         /// <summary>
@@ -1802,8 +1801,7 @@ namespace OpenMetaverse
         /// <param name="callback">Method to call upon creation of the link</param>
         public void CreateLink(UUID folderID, InventoryFolder folder, ItemCreatedCallback callback)
         {
-            CreateLink(folderID, folder.UUID, folder.Name, "",
-                AssetType.LinkFolder, InventoryType.Folder, UUID.Random(), callback);
+            CreateLink(folderID, folder.UUID, folder.Name, "", InventoryType.Folder, UUID.Random(), callback);
         }
 
         /// <summary>
@@ -1817,17 +1815,18 @@ namespace OpenMetaverse
         /// <param name="invType">Inventory Type</param>
         /// <param name="transactionID">Transaction UUID</param>
         /// <param name="callback">Method to call upon creation of the link</param>
-        public void CreateLink(UUID folderID, UUID itemID, string name, string description,
-            AssetType assetType, InventoryType invType, UUID transactionID, ItemCreatedCallback callback)
+        public void CreateLink(UUID folderID, UUID itemID, string name, string description, 
+            InventoryType invType, UUID transactionID, ItemCreatedCallback callback)
         {
+            AssetType linkType = invType == InventoryType.Folder ? AssetType.LinkFolder : AssetType.Link;
             if (Client.AisClient.IsAvailable)
             {
                 var links = new OSDArray();
                 var link = new OSDMap
                 {
                     ["linked_id"] = OSD.FromUUID(itemID),
-                    ["type"] = OSD.FromInteger((int)assetType),
-                    ["inv_type"] = OSD.FromInteger((int)invType),
+                    ["type"] = OSD.FromInteger((sbyte)linkType),
+                    ["inv_type"] = OSD.FromInteger((sbyte)invType),
                     ["name"] = OSD.FromString(name),
                     ["desc"] = OSD.FromString(description)
                 };
@@ -1856,7 +1855,7 @@ namespace OpenMetaverse
                 create.InventoryBlock.FolderID = folderID;
                 create.InventoryBlock.TransactionID = transactionID;
                 create.InventoryBlock.OldItemID = itemID;
-                create.InventoryBlock.Type = (sbyte)assetType;
+                create.InventoryBlock.Type = (sbyte)linkType;
                 create.InventoryBlock.InvType = (sbyte)invType;
                 create.InventoryBlock.Name = Utils.StringToBytes(name);
                 create.InventoryBlock.Description = Utils.StringToBytes(description);
