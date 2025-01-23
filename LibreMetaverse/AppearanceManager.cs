@@ -1027,7 +1027,7 @@ namespace OpenMetaverse
                         EveryoneMask = (uint)attachment.Permissions.EveryoneMask,
                         GroupMask = (uint)attachment.Permissions.GroupMask,
                         ItemFlags = attachment.Flags,
-                        ItemID = attachment.AssetUUID,
+                        ItemID = attachment.ActualUUID,
                         Name = Utils.StringToBytes(attachment.Name),
                         Description = Utils.StringToBytes(attachment.Description),
                         NextOwnerMask = (uint)attachment.Permissions.NextOwnerMask,
@@ -1047,7 +1047,7 @@ namespace OpenMetaverse
                         EveryoneMask = (uint)attachment.Permissions.EveryoneMask,
                         GroupMask = (uint)attachment.Permissions.GroupMask,
                         ItemFlags = attachment.Flags,
-                        ItemID = attachment.AssetUUID,
+                        ItemID = attachment.ActualUUID,
                         Name = Utils.StringToBytes(attachment.Name),
                         Description = Utils.StringToBytes(attachment.Description),
                         NextOwnerMask = (uint)attachment.Permissions.NextOwnerMask,
@@ -1076,7 +1076,7 @@ namespace OpenMetaverse
         /// to attach the item to</param>
         public void Attach(InventoryItem item, AttachmentPoint attachPoint, bool replace = true)
         {
-            Attach(item.AssetUUID, item.OwnerID, item.Name, item.Description, item.Permissions, item.Flags,
+            Attach(item.ActualUUID, item.OwnerID, item.Name, item.Description, item.Permissions, item.Flags,
                 attachPoint, replace);
         }
 
@@ -2426,7 +2426,7 @@ namespace OpenMetaverse
                         EveryoneMask = (uint)attachment.Permissions.EveryoneMask,
                         GroupMask = (uint)attachment.Permissions.GroupMask,
                         ItemFlags = attachment.Flags,
-                        ItemID = attachment.AssetUUID,
+                        ItemID = attachment.ActualUUID,
                         Name = Utils.StringToBytes(attachment.Name),
                         Description = Utils.StringToBytes(attachment.Description),
                         NextOwnerMask = (uint)attachment.Permissions.NextOwnerMask,
@@ -2445,7 +2445,7 @@ namespace OpenMetaverse
                         EveryoneMask = (uint)attachmentIO.Permissions.EveryoneMask,
                         GroupMask = (uint)attachmentIO.Permissions.GroupMask,
                         ItemFlags = attachmentIO.Flags,
-                        ItemID = attachmentIO.AssetUUID,
+                        ItemID = attachmentIO.ActualUUID,
                         Name = Utils.StringToBytes(attachmentIO.Name),
                         Description = Utils.StringToBytes(attachmentIO.Description),
                         NextOwnerMask = (uint)attachmentIO.Permissions.NextOwnerMask,

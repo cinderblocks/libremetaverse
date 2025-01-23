@@ -192,6 +192,9 @@ namespace OpenMetaverse
         /// <summary><see cref="UUID"/> of the previous owner of the item</summary>
         public UUID LastOwnerID;
 
+        /// <summary>inventoryID that this item points to, else this item's inventoryID</summary>
+        public UUID ActualUUID => IsLink() ? AssetUUID : UUID;
+
         /// <summary>
         ///  Construct a new InventoryItem object
         /// </summary>
