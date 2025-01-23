@@ -1045,7 +1045,7 @@ namespace OpenMetaverse.Assets
                 CreationDate = obj.Properties.CreationDate,
                 CreatorID = obj.Properties.CreatorID,
                 Description = obj.Properties.Description,
-                DieAtEdge = (obj.Flags & PrimFlags.DieAtEdge) == PrimFlags.AllowInventoryDrop
+                DieAtEdge = (obj.Flags & PrimFlags.DieAtEdge) == PrimFlags.DieAtEdge
             };
             if (obj.Flexible != null)
             {
