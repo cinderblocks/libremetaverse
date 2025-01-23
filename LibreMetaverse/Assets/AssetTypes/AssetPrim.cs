@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -178,10 +179,8 @@ namespace OpenMetaverse.Assets
 
             reader.ReadStartElement("SceneObjectPart");
 
-            if (reader.Name == "AllowedDrop")
-                obj.AllowedDrop = reader.ReadElementContentAsBoolean("AllowedDrop", string.Empty);
-            else
-                obj.AllowedDrop = true;
+            obj.AllowedDrop = reader.Name != "AllowedDrop" 
+                              || reader.ReadElementContentAsBoolean("AllowedDrop", string.Empty);
 
             obj.CreatorID = ReadUUID(reader, "CreatorID");
             obj.FolderID = ReadUUID(reader, "FolderID");
@@ -388,27 +387,18 @@ namespace OpenMetaverse.Assets
 
             reader.ReadEndElement();
 
-            if (obj.ParentID == 0)
-                obj.Position = groupPosition;
-            else
-                obj.Position = offsetPosition;
+            obj.Position = obj.ParentID == 0 ? groupPosition : offsetPosition;
 
             return obj;
         }
 
         static UUID ReadUUID(XmlTextReader reader, string name)
         {
-            UUID id;
-            string idStr;
-
             reader.ReadStartElement(name);
 
-            if (reader.Name == "Guid")
-                idStr = reader.ReadElementString("Guid");
-            else // UUID
-                idStr = reader.ReadElementString("UUID");
+            var idStr = reader.ReadElementString(reader.Name == "Guid" ? "Guid" : "UUID");
 
-            UUID.TryParse(idStr, out id);
+            UUID.TryParse(idStr, out var id);
             reader.ReadEndElement();
 
             return id;
@@ -458,13 +448,15 @@ namespace OpenMetaverse.Assets
 
             public OSDMap Serialize()
             {
-                OSDMap map = new OSDMap();
-                map["softness"] = OSD.FromInteger(Softness);
-                map["gravity"] = OSD.FromReal(Gravity);
-                map["drag"] = OSD.FromReal(Drag);
-                map["wind"] = OSD.FromReal(Wind);
-                map["tension"] = OSD.FromReal(Tension);
-                map["force"] = OSD.FromVector3(Force);
+                OSDMap map = new OSDMap
+                {
+                    ["softness"] = OSD.FromInteger(Softness),
+                    ["gravity"] = OSD.FromReal(Gravity),
+                    ["drag"] = OSD.FromReal(Drag),
+                    ["wind"] = OSD.FromReal(Wind),
+                    ["tension"] = OSD.FromReal(Tension),
+                    ["force"] = OSD.FromVector3(Force)
+                };
                 return map;
             }
 
@@ -489,12 +481,14 @@ namespace OpenMetaverse.Assets
 
             public OSDMap Serialize()
             {
-                OSDMap map = new OSDMap();
-                map["color"] = OSD.FromColor4(Color);
-                map["intensity"] = OSD.FromReal(Intensity);
-                map["radius"] = OSD.FromReal(Radius);
-                map["falloff"] = OSD.FromReal(Falloff);
-                map["cutoff"] = OSD.FromReal(Cutoff);
+                OSDMap map = new OSDMap
+                {
+                    ["color"] = OSD.FromColor4(Color),
+                    ["intensity"] = OSD.FromReal(Intensity),
+                    ["radius"] = OSD.FromReal(Radius),
+                    ["falloff"] = OSD.FromReal(Falloff),
+                    ["cutoff"] = OSD.FromReal(Cutoff)
+                };
                 return map;
             }
 
@@ -515,9 +509,11 @@ namespace OpenMetaverse.Assets
 
             public OSDMap Serialize()
             {
-                OSDMap map = new OSDMap();
-                map["texture"] = OSD.FromUUID(Texture);
-                map["type"] = OSD.FromInteger(Type);
+                OSDMap map = new OSDMap
+                {
+                    ["texture"] = OSD.FromUUID(Texture),
+                    ["type"] = OSD.FromInteger(Type)
+                };
                 return map;
             }
 
@@ -554,28 +550,30 @@ namespace OpenMetaverse.Assets
 
             public OSDMap Serialize()
             {
-                OSDMap map = new OSDMap();
-                map["flags"] = OSD.FromInteger(Flags);
-                map["pattern"] = OSD.FromInteger(Pattern);
-                map["max_age"] = OSD.FromReal(MaxAge);
-                map["start_age"] = OSD.FromReal(StartAge);
-                map["inner_angle"] = OSD.FromReal(InnerAngle);
-                map["outer_angle"] = OSD.FromReal(OuterAngle);
-                map["burst_rate"] = OSD.FromReal(BurstRate);
-                map["burst_radius"] = OSD.FromReal(BurstRadius);
-                map["burst_speed_min"] = OSD.FromReal(BurstSpeedMin);
-                map["burst_speed_max"] = OSD.FromReal(BurstSpeedMax);
-                map["burst_particle_count"] = OSD.FromInteger(BurstParticleCount);
-                map["angular_velocity"] = OSD.FromVector3(AngularVelocity);
-                map["acceleration"] = OSD.FromVector3(Acceleration);
-                map["texture_id"] = OSD.FromUUID(TextureID);
-                map["target_id"] = OSD.FromUUID(TargetID);
-                map["data_flags"] = OSD.FromInteger(DataFlags);
-                map["particle_max_age"] = OSD.FromReal(ParticleMaxAge);
-                map["particle_start_color"] = OSD.FromColor4(ParticleStartColor);
-                map["particle_end_color"] = OSD.FromColor4(ParticleEndColor);
-                map["particle_start_scale"] = OSD.FromVector2(ParticleStartScale);
-                map["particle_end_scale"] = OSD.FromVector2(ParticleEndScale);
+                OSDMap map = new OSDMap
+                {
+                    ["flags"] = OSD.FromInteger(Flags),
+                    ["pattern"] = OSD.FromInteger(Pattern),
+                    ["max_age"] = OSD.FromReal(MaxAge),
+                    ["start_age"] = OSD.FromReal(StartAge),
+                    ["inner_angle"] = OSD.FromReal(InnerAngle),
+                    ["outer_angle"] = OSD.FromReal(OuterAngle),
+                    ["burst_rate"] = OSD.FromReal(BurstRate),
+                    ["burst_radius"] = OSD.FromReal(BurstRadius),
+                    ["burst_speed_min"] = OSD.FromReal(BurstSpeedMin),
+                    ["burst_speed_max"] = OSD.FromReal(BurstSpeedMax),
+                    ["burst_particle_count"] = OSD.FromInteger(BurstParticleCount),
+                    ["angular_velocity"] = OSD.FromVector3(AngularVelocity),
+                    ["acceleration"] = OSD.FromVector3(Acceleration),
+                    ["texture_id"] = OSD.FromUUID(TextureID),
+                    ["target_id"] = OSD.FromUUID(TargetID),
+                    ["data_flags"] = OSD.FromInteger(DataFlags),
+                    ["particle_max_age"] = OSD.FromReal(ParticleMaxAge),
+                    ["particle_start_color"] = OSD.FromColor4(ParticleStartColor),
+                    ["particle_end_color"] = OSD.FromColor4(ParticleEndColor),
+                    ["particle_start_scale"] = OSD.FromVector2(ParticleStartScale),
+                    ["particle_end_scale"] = OSD.FromVector2(ParticleEndScale)
+                };
                 return map;
             }
 
@@ -627,25 +625,27 @@ namespace OpenMetaverse.Assets
 
             public OSDMap Serialize()
             {
-                OSDMap map = new OSDMap();
-                map["path_curve"] = OSD.FromInteger(PathCurve);
-                map["path_begin"] = OSD.FromReal(PathBegin);
-                map["path_end"] = OSD.FromReal(PathEnd);
-                map["path_scale_x"] = OSD.FromReal(PathScaleX);
-                map["path_scale_y"] = OSD.FromReal(PathScaleY);
-                map["path_shear_x"] = OSD.FromReal(PathShearX);
-                map["path_shear_y"] = OSD.FromReal(PathShearY);
-                map["path_twist"] = OSD.FromReal(PathTwist);
-                map["path_twist_begin"] = OSD.FromReal(PathTwistBegin);
-                map["path_radius_offset"] = OSD.FromReal(PathRadiusOffset);
-                map["path_taper_x"] = OSD.FromReal(PathTaperX);
-                map["path_taper_y"] = OSD.FromReal(PathTaperY);
-                map["path_revolutions"] = OSD.FromReal(PathRevolutions);
-                map["path_skew"] = OSD.FromReal(PathSkew);
-                map["profile_curve"] = OSD.FromInteger(ProfileCurve);
-                map["profile_begin"] = OSD.FromReal(ProfileBegin);
-                map["profile_end"] = OSD.FromReal(ProfileEnd);
-                map["profile_hollow"] = OSD.FromReal(ProfileHollow);
+                OSDMap map = new OSDMap
+                {
+                    ["path_curve"] = OSD.FromInteger(PathCurve),
+                    ["path_begin"] = OSD.FromReal(PathBegin),
+                    ["path_end"] = OSD.FromReal(PathEnd),
+                    ["path_scale_x"] = OSD.FromReal(PathScaleX),
+                    ["path_scale_y"] = OSD.FromReal(PathScaleY),
+                    ["path_shear_x"] = OSD.FromReal(PathShearX),
+                    ["path_shear_y"] = OSD.FromReal(PathShearY),
+                    ["path_twist"] = OSD.FromReal(PathTwist),
+                    ["path_twist_begin"] = OSD.FromReal(PathTwistBegin),
+                    ["path_radius_offset"] = OSD.FromReal(PathRadiusOffset),
+                    ["path_taper_x"] = OSD.FromReal(PathTaperX),
+                    ["path_taper_y"] = OSD.FromReal(PathTaperY),
+                    ["path_revolutions"] = OSD.FromReal(PathRevolutions),
+                    ["path_skew"] = OSD.FromReal(PathSkew),
+                    ["profile_curve"] = OSD.FromInteger(ProfileCurve),
+                    ["profile_begin"] = OSD.FromReal(ProfileBegin),
+                    ["profile_end"] = OSD.FromReal(ProfileEnd),
+                    ["profile_hollow"] = OSD.FromReal(ProfileHollow)
+                };
                 return map;
             }
 
@@ -754,18 +754,18 @@ namespace OpenMetaverse.Assets
                         Flags = (int)item.Flags,
                         GroupID = item.GroupID,
                         ID = item.UUID,
-                        InvType = item.InventoryType == InventoryType.Unknown && item.AssetType == AssetType.LSLText ? InventoryType.LSL : item.InventoryType
+                        InvType = item.InventoryType == InventoryType.Unknown && item.AssetType == AssetType.LSLText ? InventoryType.LSL : item.InventoryType,
+                        LastOwnerID = item.LastOwnerID,
+                        Name = item.Name,
+                        OwnerID = item.OwnerID,
+                        PermsBase = (uint)item.Permissions.BaseMask,
+                        PermsEveryone = (uint)item.Permissions.EveryoneMask,
+                        PermsGroup = (uint)item.Permissions.GroupMask,
+                        PermsNextOwner = (uint)item.Permissions.NextOwnerMask,
+                        PermsOwner = (uint)item.Permissions.OwnerMask,
+                        PermsGranterID = UUID.Zero,
+                        Type = item.AssetType
                     };
-                    block.LastOwnerID = item.LastOwnerID;
-                    block.Name = item.Name;
-                    block.OwnerID = item.OwnerID;
-                    block.PermsBase = (uint)item.Permissions.BaseMask;
-                    block.PermsEveryone = (uint)item.Permissions.EveryoneMask;
-                    block.PermsGroup = (uint)item.Permissions.GroupMask;
-                    block.PermsNextOwner = (uint)item.Permissions.NextOwnerMask;
-                    block.PermsOwner = (uint)item.Permissions.OwnerMask;
-                    block.PermsGranterID = UUID.Zero;
-                    block.Type = item.AssetType;
                     return block;
                 }
             }
@@ -775,8 +775,10 @@ namespace OpenMetaverse.Assets
 
             public OSDMap Serialize()
             {
-                OSDMap map = new OSDMap();
-                map["serial"] = OSD.FromInteger(Serial);
+                OSDMap map = new OSDMap
+                {
+                    ["serial"] = OSD.FromInteger(Serial)
+                };
 
                 if (Items != null)
                 {
@@ -1049,13 +1051,15 @@ namespace OpenMetaverse.Assets
             };
             if (obj.Flexible != null)
             {
-                prim.Flexible = new FlexibleBlock();
-                prim.Flexible.Drag = obj.Flexible.Drag;
-                prim.Flexible.Force = obj.Flexible.Force;
-                prim.Flexible.Gravity = obj.Flexible.Gravity;
-                prim.Flexible.Softness = obj.Flexible.Softness;
-                prim.Flexible.Tension = obj.Flexible.Tension;
-                prim.Flexible.Wind = obj.Flexible.Wind;
+                prim.Flexible = new FlexibleBlock
+                {
+                    Drag = obj.Flexible.Drag,
+                    Force = obj.Flexible.Force,
+                    Gravity = obj.Flexible.Gravity,
+                    Softness = obj.Flexible.Softness,
+                    Tension = obj.Flexible.Tension,
+                    Wind = obj.Flexible.Wind
+                };
             }
             prim.FolderID = obj.Properties.FolderID;
             prim.GroupID = obj.Properties.GroupID;
@@ -1065,12 +1069,14 @@ namespace OpenMetaverse.Assets
             prim.LastOwnerID = obj.Properties.LastOwnerID;
             if (obj.Light != null)
             {
-                prim.Light = new LightBlock();
-                prim.Light.Color = obj.Light.Color;
-                prim.Light.Cutoff = obj.Light.Cutoff;
-                prim.Light.Falloff = obj.Light.Falloff;
-                prim.Light.Intensity = obj.Light.Intensity;
-                prim.Light.Radius = obj.Light.Radius;
+                prim.Light = new LightBlock
+                {
+                    Color = obj.Light.Color,
+                    Cutoff = obj.Light.Cutoff,
+                    Falloff = obj.Light.Falloff,
+                    Intensity = obj.Light.Intensity,
+                    Radius = obj.Light.Radius
+                };
             }
 
             //prim.LinkNumber;
@@ -1080,11 +1086,13 @@ namespace OpenMetaverse.Assets
             prim.OwnerID = obj.Properties.OwnerID;
             prim.ParentID = obj.ParentID;
             
-            prim.Particles = new ParticlesBlock();
-            prim.Particles.AngularVelocity = obj.ParticleSys.AngularVelocity;
-            prim.Particles.Acceleration = obj.ParticleSys.PartAcceleration;
-            prim.Particles.BurstParticleCount = obj.ParticleSys.BurstPartCount;
-            prim.Particles.BurstRate = obj.ParticleSys.BurstRadius;
+            prim.Particles = new ParticlesBlock
+            {
+                AngularVelocity = obj.ParticleSys.AngularVelocity,
+                Acceleration = obj.ParticleSys.PartAcceleration,
+                BurstParticleCount = obj.ParticleSys.BurstPartCount,
+                BurstRate = obj.ParticleSys.BurstRadius
+            };
             prim.Particles.BurstRate = obj.ParticleSys.BurstRate;
             prim.Particles.BurstSpeedMax = obj.ParticleSys.BurstSpeedMax;
             prim.Particles.BurstSpeedMin = obj.ParticleSys.BurstSpeedMin;
@@ -1124,9 +1132,11 @@ namespace OpenMetaverse.Assets
             //prim.ScriptState;
             if (obj.Sculpt != null)
             {
-                prim.Sculpt = new SculptBlock();
-                prim.Sculpt.Texture = obj.Sculpt.SculptTexture;
-                prim.Sculpt.Type = (int)obj.Sculpt.Type;
+                prim.Sculpt = new SculptBlock
+                {
+                    Texture = obj.Sculpt.SculptTexture,
+                    Type = (int)obj.Sculpt.Type
+                };
             }
             prim.Shape = new ShapeBlock
             {
