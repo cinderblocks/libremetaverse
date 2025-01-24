@@ -491,7 +491,7 @@ namespace OpenMetaverse
                         cancellationToken.ThrowIfCancellationRequested();
 
                         // Retrieve the worn attachments.
-                        if (!GetAgentAttachments())
+                        if (!GatherAgentAttachments())
                         {
                             Logger.Log(
                                 "Failed to retrieve a list of current agent attachments, appearance cannot be set",
@@ -508,7 +508,7 @@ namespace OpenMetaverse
                             if (!GotWearables)
                             {
                                 // Fetch a list of the current agent wearables
-                                GotWearables = GetAgentWearables();
+                                GotWearables = GatherAgentWearables();
                             }
 
                             cancellationToken.ThrowIfCancellationRequested();
@@ -530,7 +530,7 @@ namespace OpenMetaverse
                             if (!GotWearables)
                             {
                                 // Fetch a list of the current agent wearables
-                                if (!GetAgentWearables())
+                                if (!GatherAgentWearables())
                                 {
                                     Logger.Log("Failed to retrieve a list of current agent wearables, appearance cannot be set",
                                         Helpers.LogLevel.Error, Client);
@@ -886,7 +886,7 @@ namespace OpenMetaverse
                     }
                 }
 
-                if (needsCurrentWearables && !GetAgentWearables())
+                if (needsCurrentWearables && !GatherAgentWearables())
                 {
                     Logger.Log("Failed to fetch the current agent wearables, cannot safely replace outfit",
                         Helpers.LogLevel.Error);
@@ -1151,10 +1151,10 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Retrieves the currently worn attachments.
+        /// Populates currently worn attachments.
         /// </summary>
-        /// <returns>True on success receiving attachments</returns>
-        private bool GetAgentAttachments()
+        /// <returns>True on success retrieving attachments</returns>
+        private bool GatherAgentAttachments()
         {
             var objectsPrimitives = Client.Network.CurrentSim.ObjectsPrimitives;
 
@@ -1490,7 +1490,7 @@ namespace OpenMetaverse
         /// Blocking method to populate the Wearables dictionary
         /// </summary>
         /// <returns>True on success, otherwise false</returns>
-        private bool GetAgentWearables()
+        private bool GatherAgentWearables()
         {
             var wearablesEvent = new AutoResetEvent(false);
             EventHandler<AgentWearablesReplyEventArgs> WearablesCallback = ((s, e) => wearablesEvent.Set());
