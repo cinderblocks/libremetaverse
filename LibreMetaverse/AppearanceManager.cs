@@ -115,7 +115,7 @@ namespace OpenMetaverse
     }
 
     /// <summary>
-    /// Appearance Flags, introdued with server side baking, currently unused
+    /// Appearance Flags, introduced with server side baking, currently unused
     /// </summary>
     [Flags]
     public enum AppearanceFlags : uint
@@ -1122,9 +1122,9 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Detach an item from our agent using an <see cref="OpenMetaverse.InventoryItem"/> object
+        /// Detach an item from our agent by <see cref="OpenMetaverse.InventoryItem"/>
         /// </summary>
-        /// <param name="item">An <see cref="OpenMetaverse.InventoryItem"/> object</param>
+        /// <param name="item"><see cref="OpenMetaverse.InventoryItem"/> to detach</param>
         public void Detach(InventoryItem item)
         {
             Detach(item.UUID);
@@ -1152,9 +1152,8 @@ namespace OpenMetaverse
 
         /// <summary>
         /// Retrieves the currently worn attachments.
-        /// removed async and Task due to no await.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>True on success receiving attachments</returns>
         private bool GetAgentAttachments()
         {
             var objectsPrimitives = Client.Network.CurrentSim.ObjectsPrimitives;
