@@ -269,9 +269,11 @@ namespace OpenMetaverse
         /// <summary>Thread sync lock object</summary>
         private readonly object m_AgentWearablesLock = new object();
 
-        /// <summary>Triggered when an AgentWearablesUpdate packet is received,
-        /// telling us what our avatar is currently wearing
-        /// <see cref="RequestAgentWearables"/> request.</summary>
+        /// <summary>Triggered when a legacy AgentWearablesUpdate packet is received
+        /// or a request has been made for COF contents has populated <see cref="Wearables"/>
+        /// telling us what the avatar is currently wearing</summary>
+        /// <seealso cref="RequestAgentWorn" />
+        /// <seealso cref="RequestAgentWearablesLLUDP"/>
         public event EventHandler<AgentWearablesReplyEventArgs> AgentWearablesReply
         {
             add { lock (m_AgentWearablesLock) { m_AgentWearablesReply += value; } }
@@ -375,15 +377,13 @@ namespace OpenMetaverse
         /// <summary>A cache of wearables currently being worn</summary>
         private MultiValueDictionary<WearableType, WearableData> Wearables = new MultiValueDictionary<WearableType, WearableData>();
         /// <summary>A cache of attachments currently being worn</summary>
-        private ConcurrentDictionary<UUID, AttachmentPoint> Attachments = new ConcurrentDictionary<UUID, AttachmentPoint>();
+        private readonly ConcurrentDictionary<UUID, AttachmentPoint> Attachments = new ConcurrentDictionary<UUID, AttachmentPoint>();
         /// <summary>A cache of textures currently being worn</summary>
         private TextureData[] Textures = new TextureData[(int)AvatarTextureIndex.NumberOfEntries];
         /// <summary>Incrementing serial number for AgentCachedTexture packets</summary>
         private int CacheCheckSerialNum = -1;
         /// <summary>Incrementing serial number for AgentSetAppearance packets</summary>
         private int SetAppearanceSerialNum = 0;
-        /// <summary>Indicates if WearablesRequest succeeded</summary>
-        private bool GotWearables = false;
         /// <summary>Indicates whether the appearance thread is currently
         /// running, to prevent multiple appearance threads from running
         /// simultaneously</summary>
@@ -505,10 +505,10 @@ namespace OpenMetaverse
                         // Is this server side baking enabled sim
                         if (ServerBakingRegion())
                         {
-                            if (!GotWearables)
+                            if (!Wearables.Any())
                             {
                                 // Fetch a list of the current agent wearables
-                                GotWearables = GatherAgentWearables();
+                                GatherAgentWearables();
                             }
 
                             cancellationToken.ThrowIfCancellationRequested();
@@ -527,7 +527,7 @@ namespace OpenMetaverse
                         }
                         else // Classic client side baking
                         {
-                            if (!GotWearables)
+                            if (!Wearables.Any())
                             {
                                 // Fetch a list of the current agent wearables
                                 if (!GatherAgentWearables())
@@ -537,7 +537,6 @@ namespace OpenMetaverse
                                     throw new AppearanceManagerException(
                                         "Failed to retrieve a list of current agent wearables, appearance cannot be set");
                                 }
-                                GotWearables = true;
                             }
 
                             cancellationToken.ThrowIfCancellationRequested();
@@ -590,16 +589,11 @@ namespace OpenMetaverse
                     {
                         if (e is OperationCanceledException)
                         {
-                            Logger.Log(
-                                "Setting appearance cancelled.",
-                                Helpers.LogLevel.Debug,
-                                Client);
+                            Logger.Log("Setting appearance cancelled.", Helpers.LogLevel.Debug, Client);
                         }
                         else
                         {
-                            Logger.Log(
-                                $"Failed to set appearance with exception {e}", Helpers.LogLevel.Warning,
-                                Client);
+                            Logger.Log($"Failed to set appearance with exception {e}", Helpers.LogLevel.Warning, Client);
                         }
 
                         success = false;
@@ -630,10 +624,54 @@ namespace OpenMetaverse
                 ((Client.Network.CurrentSim.Protocols & RegionProtocols.AgentAppearanceService) != 0);
         }
 
+        public List<InventoryBase> RequestAgentWorn()
+        {
+            var cof = GetCurrentOutfitFolder();
+            if (cof == null)
+            {
+                Logger.Log("Could not retrieve Current Outfit folder", Helpers.LogLevel.Warning, Client);
+                return null;
+            }
+            // Fetch from cache...
+            List<InventoryBase> contents = Client.Inventory.Store.GetContents(cof.UUID);
+
+            // If that fails, fetch from server...
+            if (contents == null || contents.Count == 0)
+            {
+                contents = Client.Inventory.FolderContents(cof.UUID, cof.OwnerID, true, true,
+                    InventorySortOrder.ByDate, TimeSpan.FromMinutes(1), true);
+            }
+
+            var wearables = new MultiValueDictionary<WearableType, WearableData>();
+            foreach (var item in contents)
+            {
+                if (item is InventoryWearable wearable)
+                {
+                    InventoryWearable w = wearable;
+                    if (wearable.IsLink() && Client.Inventory.Store.Contains(wearable.ActualUUID))
+                    {
+                        w = Client.Inventory.Store[wearable.AssetUUID] as InventoryWearable;
+                    }
+                    wearables.Add(w.WearableType, new WearableData()
+                    {
+                        ItemID = w.UUID,
+                        AssetID = w.AssetUUID,
+                        AssetType = w.AssetType,
+                        WearableType = w.WearableType
+                    });
+                }
+            }
+            lock (Wearables) { Wearables = wearables; }
+
+            OnAgentWearables(new AgentWearablesReplyEventArgs());
+            return contents;
+        }
+
         /// <summary>
         /// Ask the server what textures our agent is currently wearing
         /// </summary>
-        public void RequestAgentWearables()
+        [Obsolete("Second Life sends dummy information back post SSB. Use RequestAgentWorn")]
+        public void RequestAgentWearablesLLUDP()
         {
             var request = new AgentWearablesRequestPacket
             {
@@ -729,7 +767,8 @@ namespace OpenMetaverse
 
         public IEnumerable<UUID> GetWearableAssets(WearableType type)
         {
-            return Wearables.Where(e => e.Key == type).SelectMany(e => e.Value)
+            return Wearables.Where(e => e.Key == type)
+                .SelectMany(e => e.Value)
                 .Select(wearable => wearable.AssetID);
         }
 
@@ -1204,9 +1243,9 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Returns a collection of the agents currently worn wearables
+        /// Returns a collection of the agents currently worn attachments
         /// </summary>
-        /// <returns>A copy of the agents currently worn wearables</returns>
+        /// <returns>A copy of the agents currently worn attachments</returns>
         /// <remarks>Avoid calling this function multiple times as it will make
         /// a copy of all wearable data each time</remarks>
         public IEnumerable<InventoryItem> GetAttachments()
@@ -1497,7 +1536,7 @@ namespace OpenMetaverse
 
             AgentWearablesReply += WearablesCallback;
 
-            RequestAgentWearables();
+            RequestAgentWorn();
 
             var success = wearablesEvent.WaitOne(WEARABLE_TIMEOUT, false);
 
@@ -1672,7 +1711,7 @@ namespace OpenMetaverse
             if (pendingWearables == 0)
                 return true;
 
-            Logger.DebugLog("Downloading " + pendingWearables + " wearable assets");
+            Logger.DebugLog($"Downloading {pendingWearables} wearable assets");
 
             Parallel.ForEach(wearables, _parallelOptions,
                 wearable =>
@@ -2391,69 +2430,56 @@ namespace OpenMetaverse
         {
             var blocks = new List<RezMultipleAttachmentsFromInvPacket.ObjectDataBlock>();
 
-            Logger.Log("Starting fetch of current outfit...", Helpers.LogLevel.Info, Client);
-            var cof = GetCurrentOutfitFolder();
+            var worn = RequestAgentWorn();
 
-            if (cof == null)
-            {
-                Logger.Log("Unable to fetch current outfit", Helpers.LogLevel.Error, Client);
-                return;
-            }
-            Logger.Log($"Outfit folder: {cof.UUID} ({cof.DescendentCount} children)", Helpers.LogLevel.Info, Client);
+            Logger.Log($"{worn.Count} inventory items in 'Current Outfit' folder", Helpers.LogLevel.Info, Client);
 
-            // Fetch from cache...
-            List<InventoryBase> contents = Client.Inventory.Store.GetContents(cof.UUID);
-
-            // If that fails, fetch from server...
-            if (contents == null || contents.Count == 0)
-            {
-                contents = Client.Inventory.FolderContents(cof.UUID, cof.OwnerID, true, true,
-                    InventorySortOrder.ByDate, TimeSpan.FromMinutes(1));
-            }
-
-            Logger.Log($"{contents.Count} inventory items in 'Current Outfit' folder", Helpers.LogLevel.Info, Client);
-
-            foreach (var inventoryBase in contents.Where(inventoryBase => inventoryBase != null))
+            foreach (var inventoryBase in worn.Where(inventoryBase => inventoryBase != null))
             {
                 Logger.Log($"'{inventoryBase.Name}' found in 'Current Outfit' folder ({inventoryBase.GetType().Name})", Helpers.LogLevel.Info, Client);
 
-                if (inventoryBase is InventoryAttachment attachment)
+                switch (inventoryBase)
                 {
-                    var block = new RezMultipleAttachmentsFromInvPacket.ObjectDataBlock
+                    case InventoryAttachment attachment:
                     {
-                        AttachmentPt = (byte)(ATTACHMENT_ADD | (byte)attachment.AttachmentPoint),
-                        EveryoneMask = (uint)attachment.Permissions.EveryoneMask,
-                        GroupMask = (uint)attachment.Permissions.GroupMask,
-                        ItemFlags = attachment.Flags,
-                        ItemID = attachment.ActualUUID,
-                        Name = Utils.StringToBytes(attachment.Name),
-                        Description = Utils.StringToBytes(attachment.Description),
-                        NextOwnerMask = (uint)attachment.Permissions.NextOwnerMask,
-                        OwnerID = attachment.OwnerID
-                    };
+                        var block = new RezMultipleAttachmentsFromInvPacket.ObjectDataBlock
+                        {
+                            AttachmentPt = (byte)(ATTACHMENT_ADD | (byte)attachment.AttachmentPoint),
+                            EveryoneMask = (uint)attachment.Permissions.EveryoneMask,
+                            GroupMask = (uint)attachment.Permissions.GroupMask,
+                            ItemFlags = attachment.Flags,
+                            ItemID = attachment.ActualUUID,
+                            Name = Utils.StringToBytes(attachment.Name),
+                            Description = Utils.StringToBytes(attachment.Description),
+                            NextOwnerMask = (uint)attachment.Permissions.NextOwnerMask,
+                            OwnerID = attachment.OwnerID
+                        };
 
-                    Logger.Log($"Wearing attachment {attachment.UUID} ({attachment.Name})", Helpers.LogLevel.Debug, Client);
+                        Logger.Log($"Wearing attachment {attachment.UUID} ({attachment.Name})", Helpers.LogLevel.Debug, Client);
 
-                    blocks.Add(block);
-                }
-                else if (inventoryBase is InventoryObject attachmentIO)
-                {
-                    var block = new RezMultipleAttachmentsFromInvPacket.ObjectDataBlock
+                        blocks.Add(block);
+                        break;
+                    }
+                    case InventoryObject attachmentIO:
                     {
-                        AttachmentPt = ATTACHMENT_ADD,
-                        EveryoneMask = (uint)attachmentIO.Permissions.EveryoneMask,
-                        GroupMask = (uint)attachmentIO.Permissions.GroupMask,
-                        ItemFlags = attachmentIO.Flags,
-                        ItemID = attachmentIO.ActualUUID,
-                        Name = Utils.StringToBytes(attachmentIO.Name),
-                        Description = Utils.StringToBytes(attachmentIO.Description),
-                        NextOwnerMask = (uint)attachmentIO.Permissions.NextOwnerMask,
-                        OwnerID = attachmentIO.OwnerID
-                    };
+                        var block = new RezMultipleAttachmentsFromInvPacket.ObjectDataBlock
+                        {
+                            AttachmentPt = ATTACHMENT_ADD,
+                            EveryoneMask = (uint)attachmentIO.Permissions.EveryoneMask,
+                            GroupMask = (uint)attachmentIO.Permissions.GroupMask,
+                            ItemFlags = attachmentIO.Flags,
+                            ItemID = attachmentIO.ActualUUID,
+                            Name = Utils.StringToBytes(attachmentIO.Name),
+                            Description = Utils.StringToBytes(attachmentIO.Description),
+                            NextOwnerMask = (uint)attachmentIO.Permissions.NextOwnerMask,
+                            OwnerID = attachmentIO.OwnerID
+                        };
 
-                    Logger.Log($"Wearing object {attachmentIO.UUID} ({attachmentIO.Name})", Helpers.LogLevel.Debug, Client);
+                        Logger.Log($"Wearing object {attachmentIO.UUID} ({attachmentIO.Name})", Helpers.LogLevel.Debug, Client);
 
-                    blocks.Add(block);
+                        blocks.Add(block);
+                        break;
+                    }
                 }
             }
 
@@ -2503,7 +2529,7 @@ namespace OpenMetaverse
             {
                 return GetFolderWearables(folder, out wearables, out attachments);
             }
-            Logger.Log("Failed to resolve outfit folder path " + folderPath, Helpers.LogLevel.Error, Client);
+            Logger.Log($"Failed to resolve outfit folder path {folderPath}", Helpers.LogLevel.Error, Client);
             wearables = null;
             attachments = null;
             return false;
@@ -2520,30 +2546,29 @@ namespace OpenMetaverse
             {
                 foreach (var ib in objects)
                 {
-                    if (ib is InventoryWearable wearable)
+                    switch (ib)
                     {
-                        Logger.DebugLog("Adding wearable " + wearable.Name, Client);
-                        wearables.Add(wearable);
-                    }
-                    else if (ib is InventoryAttachment attachment)
-                    {
-                        Logger.DebugLog("Adding attachment (attachment) " + attachment.Name, Client);
-                        attachments.Add(attachment);
-                    }
-                    else if (ib is InventoryObject inventoryObject)
-                    {
-                        Logger.DebugLog("Adding attachment (object) " + inventoryObject.Name, Client);
-                        attachments.Add(inventoryObject);
-                    }
-                    else
-                    {
-                        Logger.DebugLog("Ignoring inventory item " + ib.Name, Client);
+                        case InventoryWearable wearable:
+                            Logger.DebugLog($"Adding wearable {wearable.Name}", Client);
+                            wearables.Add(wearable);
+                            break;
+                        case InventoryAttachment attachment:
+                            Logger.DebugLog($"Adding attachment (attachment) {attachment.Name}", Client);
+                            attachments.Add(attachment);
+                            break;
+                        case InventoryObject inventoryObject:
+                            Logger.DebugLog($"Adding attachment (object) {inventoryObject.Name}", Client);
+                            attachments.Add(inventoryObject);
+                            break;
+                        default:
+                            Logger.DebugLog($"Ignoring inventory item {ib.Name}", Client);
+                            break;
                     }
                 }
             }
             else
             {
-                Logger.Log("Failed to download folder contents of + " + folder, Helpers.LogLevel.Error, Client);
+                Logger.Log($"Failed to download folder contents of {folder}", Helpers.LogLevel.Error, Client);
                 return false;
             }
 
@@ -2556,74 +2581,13 @@ namespace OpenMetaverse
 
         protected void AgentWearablesUpdateHandler(object sender, PacketReceivedEventArgs e)
         {
-            var changed = false;
             var update = (AgentWearablesUpdatePacket)e.Packet;
 
-            lock (Wearables)
-            {
-                #region Test if anything changed in this update
+            Logger.DebugLog("Received AgentWearablesUpdate");
 
-                foreach (var block in update.WearableData)
-                {
-                    if (block.AssetID != UUID.Zero)
-                    {
-                        var type = (WearableType)block.WearableType;
-                        if (Wearables.ContainsKey(type))
-                        {
-                            // HACK: I'm so tired and this is so bad.
-                            var match = false;
-                            foreach (var wearable in Wearables.Where(w => w.Key == type).SelectMany(w => w.Value))
-                            {
-                                if (wearable.AssetID == block.AssetID || wearable.ItemID == block.ItemID)
-                                {
-                                    match = true;
-                                }
-                            }
-                            changed = !match;
-                            if (changed) break;
-                        }
-                        else
-                        {
-                            // A wearable is now set for this index
-                            changed = true;
-                            break;
-                        }
-                    }
-                    else if (Wearables.ContainsKey((WearableType)block.WearableType))
-                    {
-                        // This index is now empty
-                        changed = true;
-                        break;
-                    }
-                }
+            // At one point this was necessary, but Second Life now sends dummy items back...
+            // So let's just ignore the dumdum, k?
 
-                #endregion Test if anything changed in this update
-
-                if (changed)
-                {
-                    Logger.DebugLog("New wearables received in AgentWearablesUpdate");
-                    Wearables.Clear();
-
-                    foreach (var block in update.WearableData)
-                    {
-                        if (block.AssetID == UUID.Zero) continue;
-
-                        var type = (WearableType)block.WearableType;
-                        var data = new WearableData
-                        {
-                            Asset = null,
-                            AssetID = block.AssetID,
-                            AssetType = WearableTypeToAssetType(type),
-                            ItemID = block.ItemID,
-                            WearableType = type
-                        };
-
-                        // Add this wearable to our collection
-                        Wearables.Add(type, data);
-                    }
-                }
-            }
-            
             // Fire the callback
             OnAgentWearables(new AgentWearablesReplyEventArgs());
         }
