@@ -607,7 +607,7 @@ namespace OpenMetaverse
 
         /// <summary>
         /// Returns a List of worn items in COF. Also populates <see cref="Wearables"/>
-        /// and fires <see cref="OnAgentWearables"/>
+        /// and <see cref="Attachments"/> before firing <see cref="OnAgentWearables"/>
         /// </summary>
         /// <returns><see cref="List{T}"/> of <see cref="InventoryBase"/> in COF</returns>
         public List<InventoryBase> RequestAgentWorn()
@@ -619,7 +619,7 @@ namespace OpenMetaverse
                 return null;
             }
             // Fetch from cache...
-            List<InventoryBase> contents = Client.Inventory.Store.GetContents(cof.UUID);
+            var contents = Client.Inventory.Store.GetContents(cof.UUID);
 
             // If that fails, fetch from server...
             if (contents == null || contents.Count == 0)
@@ -631,20 +631,44 @@ namespace OpenMetaverse
             var wearables = new MultiValueDictionary<WearableType, WearableData>();
             foreach (var item in contents)
             {
-                if (item is InventoryWearable wearable)
+                switch (item)
                 {
-                    InventoryWearable w = wearable;
-                    if (wearable.IsLink() && Client.Inventory.Store.Contains(wearable.ActualUUID))
+                    case InventoryWearable wearable:
                     {
-                        w = Client.Inventory.Store[wearable.AssetUUID] as InventoryWearable;
+                        var w = wearable;
+                        if (wearable.IsLink() && Client.Inventory.Store.Contains(wearable.ActualUUID))
+                        {
+                            w = Client.Inventory.Store[wearable.ActualUUID] as InventoryWearable;
+                        }
+                        wearables.Add(w.WearableType, new WearableData()
+                        {
+                            ItemID = w.UUID,
+                            AssetID = w.ActualUUID,
+                            AssetType = w.AssetType,
+                            WearableType = w.WearableType
+                        });
+                        break;
                     }
-                    wearables.Add(w.WearableType, new WearableData()
+                    case InventoryAttachment attachment:
                     {
-                        ItemID = w.UUID,
-                        AssetID = w.AssetUUID,
-                        AssetType = w.AssetType,
-                        WearableType = w.WearableType
-                    });
+                        var a = attachment;
+                        if (attachment.IsLink() && Client.Inventory.Store.Contains(attachment.ActualUUID))
+                        {
+                            a = Client.Inventory.Store[attachment.ActualUUID] as InventoryAttachment;
+                        }
+                        Attachments.AddOrUpdate(a.ActualUUID, a.AttachmentPoint, (id, point) => a.AttachmentPoint);
+                        break;
+                    }
+                    case InventoryObject attachedObject:
+                    {
+                        var a = attachedObject;
+                        if (attachedObject.IsLink() && Client.Inventory.Store.Contains(attachedObject.ActualUUID))
+                        {
+                            a = Client.Inventory.Store[attachedObject.ActualUUID] as InventoryObject;
+                        }
+                        Attachments.AddOrUpdate(a.ActualUUID, a.AttachPoint, (id, point) => a.AttachPoint);
+                        break;
+                    }
                 }
             }
             lock (Wearables) { Wearables = wearables; }
@@ -1226,6 +1250,16 @@ namespace OpenMetaverse
                 Attachments.AddOrUpdate(itemID, attachmentPoint, (id, point) => attachmentPoint);
             }
             return true;
+        }
+
+        public bool isItemAttached(InventoryItem item)
+        {
+            return isItemAttached(item.ActualUUID);
+        }
+
+        public bool isItemAttached(UUID key)
+        {
+            return Attachments.ContainsKey(key);
         }
 
         /// <summary>
