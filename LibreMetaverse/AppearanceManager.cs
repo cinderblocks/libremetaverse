@@ -433,25 +433,6 @@ namespace OpenMetaverse
 #region Publics Methods
 
         /// <summary>
-        /// Obsolete method for setting appearance. This function no longer does anything.
-        /// Use RequestSetAppearance() to manually start the appearance thread
-        /// </summary>
-        [Obsolete("Appearance is now handled automatically")]
-        public void SetPreviousAppearance()
-        {
-        }
-
-        /// <summary>
-        /// Obsolete method for setting appearance. This function no longer does anything.
-        /// Use RequestSetAppearance() to manually start the appearance thread
-        /// </summary>
-        /// <param name="allowBake">Unused parameter</param>
-        [Obsolete("Appearance is now handled automatically")]
-        public void SetPreviousAppearance(bool allowBake)
-        {
-        }
-
-        /// <summary>
         /// Starts the appearance setting thread
         /// </summary>
         /// <param name="forceRebake">True to force rebaking, otherwise false</param>
