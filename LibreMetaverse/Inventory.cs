@@ -182,7 +182,7 @@ namespace OpenMetaverse
 
         #endregion Properties
 
-        private GridClient Client;
+        private readonly GridClient Client;
         //private InventoryManager Manager;
         private ConcurrentDictionary<UUID, InventoryNode> Items;
 
