@@ -605,6 +605,11 @@ namespace OpenMetaverse
                 ((Client.Network.CurrentSim.Protocols & RegionProtocols.AgentAppearanceService) != 0);
         }
 
+        /// <summary>
+        /// Returns a List of worn items in COF. Also populates <see cref="Wearables"/>
+        /// and fires <see cref="OnAgentWearables"/>
+        /// </summary>
+        /// <returns><see cref="List{T}"/> of <see cref="InventoryBase"/> in COF</returns>
         public List<InventoryBase> RequestAgentWorn()
         {
             var cof = GetCurrentOutfitFolder();
