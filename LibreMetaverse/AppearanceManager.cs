@@ -1317,8 +1317,10 @@ namespace OpenMetaverse
 
                 // Otherwise, retrieve the item off the asset server.
                 var inventoryItem = Client.Inventory.FetchItem(item.Key, Client.Self.AgentID, TimeSpan.FromSeconds(10));
-
-                attachmentsByInventoryItem.Add(inventoryItem, item.Value);
+                if (inventoryItem != null)
+                {
+                    attachmentsByInventoryItem.Add(inventoryItem, item.Value);
+                }
             }
 
             return attachmentsByInventoryItem;
