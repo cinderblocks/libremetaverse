@@ -30,6 +30,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Imaging;
@@ -612,7 +613,7 @@ namespace OpenMetaverse
         /// <returns><see cref="List{T}"/> of <see cref="InventoryBase"/> in COF</returns>
         public List<InventoryBase> RequestAgentWorn()
         {
-            var cof = GetCurrentOutfitFolder();
+            var cof = GetCurrentOutfitFolder(CancellationToken.None).Result;
             if (cof == null)
             {
                 Logger.Log("Could not retrieve Current Outfit folder", Helpers.LogLevel.Warning, Client);
@@ -2071,7 +2072,7 @@ namespace OpenMetaverse
                     return false;
                 }
 
-                var currentOutfitFolder = GetCurrentOutfitFolder();
+                var currentOutfitFolder = await GetCurrentOutfitFolder(cancellationToken);
                 if (currentOutfitFolder == null)
                 {
                     Logger.Log("Could not retrieve Current Outfit folder",
@@ -2113,14 +2114,14 @@ namespace OpenMetaverse
 
                 await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, request, cancellationToken, (response, data, error) =>
                 {
-                    if (error != null)
-                    {
-                        Logger.Log($"UpdateAvatarAppearance failed. Server responded with: {error.Message}", 
-                            Helpers.LogLevel.Warning, Client);
-                    }
-                    else if (data != null)
+                    if (data != null)
                     {
                         res = OSDParser.Deserialize(data);
+                    }
+                    if (error != null)
+                    {
+                        Logger.Log($"UpdateAvatarAppearance failed. Server responded: {error.Message}", 
+                            Helpers.LogLevel.Warning, Client);
                     }
                 });
 
@@ -2198,8 +2199,14 @@ namespace OpenMetaverse
                 }
                 if (result.ContainsKey("expected"))
                 {
-                    Logger.Log($"Server expected {result["expected"].AsInteger()} as COF version. Version {currentOutfitFolder.Version} was sent.", 
+                    Logger.Log($"Server expected {result["expected"].AsInteger()} as COF version. " +
+                               $"Version {currentOutfitFolder.Version} was sent.", 
                         Helpers.LogLevel.Warning, Client);
+
+                    await SyncCofVersion(cancellationToken);
+
+                    --totalRetries;
+                    continue;
                 }
                 if (result.ContainsKey("error"))
                 {
@@ -2214,7 +2221,6 @@ namespace OpenMetaverse
                 Logger.Log($"Avatar appearance update failed on {totalRetries} attempt.", Helpers.LogLevel.Info, Client);
                 await Task.Delay(REBAKE_DELAY, cancellationToken);
                 --totalRetries;
-                continue;
             }
         }
 
@@ -2222,7 +2228,7 @@ namespace OpenMetaverse
         /// Get the latest version of COF
         /// </summary>
         /// <returns>Current Outfit Folder (or null if getting the data failed)</returns>
-        public InventoryFolder GetCurrentOutfitFolder()
+        public async Task<InventoryFolder> GetCurrentOutfitFolder(CancellationToken cancellationToken)
         {
             List<InventoryBase> root = null;
             var folderReceived = new AutoResetEvent(false);
@@ -2238,8 +2244,8 @@ namespace OpenMetaverse
             };
 
             Client.Inventory.FolderUpdated += UpdatedCallback;
-            Task task = Client.Inventory.RequestFolderContents(Client.Inventory.Store.RootFolder.UUID, 
-                Client.Self.AgentID, true, false, InventorySortOrder.ByDate);
+            await Client.Inventory.RequestFolderContents(Client.Inventory.Store.RootFolder.UUID, 
+                Client.Self.AgentID, true, false, InventorySortOrder.ByDate, cancellationToken);
             folderReceived.WaitOne(Client.Settings.CAPS_TIMEOUT);
             Client.Inventory.FolderUpdated -= UpdatedCallback;
 
@@ -2256,17 +2262,6 @@ namespace OpenMetaverse
                 }
             }
             return currentOutfitFolder;
-        }
-
-        /// <summary>
-        /// Create an AgentSetAppearance packet from Wearables data and the 
-        /// Textures array and send it
-        /// </summary>
-        private void RequestAgentSetAppearance()
-        {
-            var set = MakeAppearancePacket();
-            Client.Network.SendPacket(set);
-            Logger.DebugLog("Send AgentSetAppearance packet");
         }
 
         public AgentSetAppearancePacket MakeAppearancePacket()
@@ -2524,6 +2519,17 @@ namespace OpenMetaverse
             Client.Network.SendPacket(attachmentsPacket);
         }
 
+        /// <summary>
+        /// Create an AgentSetAppearance packet from Wearables data and the 
+        /// Textures array and send it
+        /// </summary>
+        private void RequestAgentSetAppearance()
+        {
+            var set = MakeAppearancePacket();
+            Client.Network.SendPacket(set);
+            Logger.DebugLog("Send AgentSetAppearance packet");
+        }
+
         private void DelayedRequestSetAppearance()
         {
             if (RebakeScheduleTimer == null)
@@ -2537,6 +2543,44 @@ namespace OpenMetaverse
         private void RebakeScheduleTimerTick(object state)
         {
             RequestSetAppearance(true);
+        }
+
+        private async Task SyncCofVersion(CancellationToken cancellationToken)
+        {
+            if (cancellationToken.IsCancellationRequested) { return; }
+
+            Uri capability = Client.Network.CurrentSim.Caps.CapabilityURI("IncrementCOFVersion");
+            if (capability == null)
+            {
+                Logger.Log("Region returned no IncrementCOFVersion capability", Helpers.LogLevel.Warning, Client);
+                return;
+            }
+            Logger.Log("Requesting COF version be incremented by the server", Helpers.LogLevel.Debug, Client);
+
+            using (var request = new HttpRequestMessage(HttpMethod.Get, capability))
+            {
+                using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken))
+                {
+                    if (!reply.IsSuccessStatusCode)
+                    {
+                        Logger.Log($"Failed to increment COF version: {reply.ReasonPhrase}",
+                            Helpers.LogLevel.Warning);
+                    }
+                    else
+                    {
+                        var data = await reply.Content.ReadAsStringAsync();
+
+                        if (OSDParser.Deserialize(data) is OSDMap map)
+                        {
+                            var version = map["version"].AsInteger();
+                            Logger.Log($"Slamming {version} version to Current Outfit Folder",
+                                Helpers.LogLevel.Info, Client);
+                            var cof = await GetCurrentOutfitFolder(cancellationToken);
+                            cof.Version = version;
+                        }
+                    }
+                }
+            }
         }
         #endregion Appearance Helpers
 
