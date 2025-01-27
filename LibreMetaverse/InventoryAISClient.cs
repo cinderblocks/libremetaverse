@@ -85,7 +85,7 @@ namespace LibreMetaverse
 
                         if (!success)
                         {
-                            Logger.Log("Could not create inventory: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                            Logger.Log($"Could not create inventory: {reply.ReasonPhrase}", Helpers.LogLevel.Warning);
 
                             return;
                         }
@@ -146,7 +146,7 @@ namespace LibreMetaverse
 
                         if (!success)
                         {
-                            Logger.Log("Could not slam folder: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                            Logger.Log($"Could not slam folder: {folderUuid}: {reply.ReasonPhrase}", Helpers.LogLevel.Warning);
                         }
                     }
                 }
@@ -189,7 +189,7 @@ namespace LibreMetaverse
 
                     if (!success)
                     {
-                        Logger.Log("Could not remove folder: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                        Logger.Log($"Could not remove folder {categoryUuid}: {reply.ReasonPhrase}", Helpers.LogLevel.Warning);
                     }
                 }
             }
@@ -231,7 +231,7 @@ namespace LibreMetaverse
 
                     if (!success)
                     {
-                        Logger.Log("Could not remove item: " + itemUuid + " " + reply.ReasonPhrase,
+                        Logger.Log($"Could not remove item {itemUuid}: {reply.ReasonPhrase}",
                             Helpers.LogLevel.Warning);
                     }
                 }
@@ -273,19 +273,17 @@ namespace LibreMetaverse
                     return;
                 }
 
-                using (var message = new HttpRequestMessage())
+                using (var request = new HttpRequestMessage(new HttpMethod("COPY"), uri))
                 {
-                    message.RequestUri = uri;
-                    message.Method = new HttpMethod("COPY");
-                    message.Headers.Add("Destination", destUuid.ToString());
+                    request.Headers.Add("Destination", destUuid.ToString());
 
-                    using (var reply = await Client.HttpCapsClient.SendAsync(message))
+                    using (var reply = await Client.HttpCapsClient.SendAsync(request))
                     {
                         success = reply.IsSuccessStatusCode;
 
                         if (!success)
                         {
-                            Logger.Log("Could not copy library folder: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                            Logger.Log($"Could not copy library folder {sourceUuid}: {reply.ReasonPhrase}", Helpers.LogLevel.Warning);
                         }
                     }
                 }
@@ -328,7 +326,7 @@ namespace LibreMetaverse
 
                     if (!success)
                     {
-                        Logger.Log("Could not purge descendents: " + reply.ReasonPhrase, Helpers.LogLevel.Warning);
+                        Logger.Log($"Could not purge descendents of {categoryUuid}: {reply.ReasonPhrase}", Helpers.LogLevel.Warning);
                     }
                 }
             }
@@ -363,22 +361,25 @@ namespace LibreMetaverse
 
                     return;
                 }
-                // TODO: 2.1 Standard has built in HttpMethod.Patch. Fix when the time comes we can utilize it.
-                using (var message = new HttpRequestMessage(new HttpMethod("PATCH"), uri))
+#if (NETSTANDARD2_1_OR_GREATER || NET)
+                using (var request = new HttpRequestMessage(HttpMethod.Patch, uri))
+#else
+                using (var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri))
+#endif
                 {
                     var payload = OSDParser.SerializeLLSDXmlString(updates);
 
                     using (var content = new StringContent(payload, Encoding.UTF8, "application/llsd+xml"))
                     {
-                        message.Content = content;
+                        request.Content = content;
 
-                        using (var reply = await Client.HttpCapsClient.SendAsync(message))
+                        using (var reply = await Client.HttpCapsClient.SendAsync(request))
                         {
                             success = reply.IsSuccessStatusCode;
 
                             if (!success)
                             {
-                                Logger.Log("Could not update folder: " + reply.ReasonPhrase,
+                                Logger.Log($"Could not update folder {categoryUuid}: {reply.ReasonPhrase}",
                                     Helpers.LogLevel.Warning);
                             }
                         }
@@ -416,22 +417,25 @@ namespace LibreMetaverse
 
                     return;
                 }
-                // TODO: 2.1 Standard has built in HttpMethod.Patch. Fix when the time comes we can utilize it.
-                using (var message = new HttpRequestMessage(new HttpMethod("PATCH"), uri))
+#if (NETSTANDARD2_1_OR_GREATER || NET)
+                using (var request = new HttpRequestMessage(HttpMethod.Patch, uri))
+#else
+                using (var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri))
+#endif
                 {
                     var payload = OSDParser.SerializeLLSDXmlString(updates);
 
                     using (var content = new StringContent(payload, Encoding.UTF8, "application/llsd+xml"))
                     {
-                        message.Content = content;
+                        request.Content = content;
 
-                        using (var reply = await Client.HttpCapsClient.SendAsync(message))
+                        using (var reply = await Client.HttpCapsClient.SendAsync(request))
                         {
                             success = reply.IsSuccessStatusCode;
 
                             if (!success)
                             {
-                                Logger.Log("Could not update item: " + reply.ReasonPhrase,
+                                Logger.Log($"Could not update item {itemUuid}: {reply.ReasonPhrase}",
                                     Helpers.LogLevel.Warning);
                             }
                         }
