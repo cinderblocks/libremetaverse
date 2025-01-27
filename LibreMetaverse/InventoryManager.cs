@@ -1811,7 +1811,6 @@ namespace OpenMetaverse
         /// <param name="itemID">Original item's UUID</param>
         /// <param name="name">Name</param>
         /// <param name="description">Description</param>
-        /// <param name="assetType">Asset Type</param>
         /// <param name="invType">Inventory Type</param>
         /// <param name="transactionID">Transaction UUID</param>
         /// <param name="callback">Method to call upon creation of the link</param>
