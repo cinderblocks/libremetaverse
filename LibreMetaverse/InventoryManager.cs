@@ -575,7 +575,7 @@ namespace OpenMetaverse
         /// <see cref="OnItemReceived"/>
         private void RequestFetchInventoryHttp(Dictionary<UUID, UUID> items)
         {
-            _ = RequestFetchInventoryHttpAsync(items, CancellationToken.None);
+            RequestFetchInventoryHttpAsync(items, CancellationToken.None).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -1065,7 +1065,7 @@ namespace OpenMetaverse
         /// <param name="item">The <see cref="T:InventoryBase"/> item or folder to move</param>
         /// <param name="newParent">The <see cref="T:InventoryFolder"/> to move item or folder to</param>
         /// <param name="newName">The name to change the item or folder to</param>
-        [Obsolete("Method broken with AIS3. Use Move(item, parent) instead.")]
+        [Obsolete("Method broken with AISv3. Use Move(item, parent) instead.")]
         public void Move(InventoryBase item, InventoryFolder newParent, string newName)
         {
             if (item is InventoryFolder)
@@ -1080,7 +1080,7 @@ namespace OpenMetaverse
         /// <param name="folderID">The source folders <see cref="UUID"/></param>
         /// <param name="newparentID">The destination folders <see cref="UUID"/></param>
         /// <param name="newName">The name to change the folder to</param>
-        [Obsolete("Method broken with AIS3. Use MoveFolder(folder, parent) and UpdateFolderProperties(folder, parent, name, type) instead")]
+        [Obsolete("Method broken with AISv3. Use MoveFolder(folder, parent) and UpdateFolderProperties(folder, parent, name, type) instead")]
         public void MoveFolder(UUID folderID, UUID newparentID, string newName)
         {
             UpdateFolderProperties(folderID, newparentID, newName, FolderType.None);
