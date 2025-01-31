@@ -366,6 +366,98 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Update InventoryItem from new OSD data
+        /// </summary>
+        /// <param name="data">Data to update in <see cref="OSDMap"/> format</param>
+        public void Update(OSDMap data)
+        {
+            if (data.ContainsKey("item_id"))
+            {
+                UUID = data["item_id"].AsUUID();
+            }
+            if (data.ContainsKey("parent_id"))
+            {
+                ParentUUID = data["parent_id"].AsUUID();
+            }
+            if (data.ContainsKey("agent_id"))
+            {
+                OwnerID = data["agent_id"].AsUUID();
+            }
+            if (data.ContainsKey("name"))
+            {
+                Name = data["name"].AsString();
+            }
+            if (data.ContainsKey("desc"))
+            {
+                Description = data["desc"].AsString();
+            }
+            if (data.TryGetValue("permissions", out var permissions))
+            {
+                Permissions = Permissions.FromOSD(permissions);
+            }
+            if (data.ContainsKey("sale_info"))
+            {
+                OSDMap sale = (OSDMap)data["sale_info"];
+                SalePrice = sale["sale_price"].AsInteger(); 
+                SaleType = (SaleType)sale["sale_type"].AsInteger();
+            }
+            if (data.ContainsKey("shadow_id"))
+            {
+                    AssetUUID = InventoryManager.DecryptShadowID(data["shadow_id"].AsUUID());
+            }
+            if (data.ContainsKey("asset_id"))
+            {
+                AssetUUID = data["asset_id"].AsUUID();
+            }
+            if (data.ContainsKey("linked_id"))
+            {
+                AssetUUID = data["linked_id"].AsUUID();
+            }
+            if (data.ContainsKey("type"))
+            {
+                AssetType type = AssetType.Unknown;
+                switch (data["type"].Type)
+                {
+                    case OSDType.String:
+                        type = Utils.StringToAssetType(data["type"].AsString());
+                        break;
+                    case OSDType.Integer:
+                        type = (AssetType)data["type"].AsInteger();
+                        break;
+                }
+                if (type != AssetType.Unknown)
+                {
+                    AssetType = type;
+                }
+            }
+            if (data.ContainsKey("inv_type"))
+            {
+                InventoryType type = InventoryType.Unknown;
+                switch (data["inv_type"].Type)
+                {
+                    case OSDType.String:
+                        type = Utils.StringToInventoryType(data["inv_type"].AsString());
+                        break;
+                    case OSDType.Integer:
+                        type = (InventoryType)data["inv_type"].AsInteger();
+                        break;
+                }
+                if (type != InventoryType.Unknown)
+                {
+                    InventoryType = type;
+                }
+            }
+            if (data.ContainsKey("flags"))
+            {
+                Flags = data["flags"];
+            }
+            if (data.ContainsKey("created_at"))
+            {
+                CreationDate = Utils.UnixTimeToDateTime(data["created_at"]);
+            }
+        }
+
+        /// <summary>
         /// Convert InventoryItem to OSD
         /// </summary>
         /// <returns>OSD representation of InventoryItem</returns>
@@ -992,7 +1084,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Get Serilization data for this InventoryFolder object
+        /// Get Serialization data for this InventoryFolder object
         /// </summary>
         /// <param name="info"></param>
         /// <param name="context"></param>
@@ -1049,15 +1141,50 @@ namespace OpenMetaverse
         /// <returns>Inventory folder created</returns>
         public static InventoryFolder FromOSD(OSD data)
         {
-            OSDMap res = (OSDMap)data;
-            InventoryFolder folder = new InventoryFolder(res["item_id"].AsUUID())
+            var res = (OSDMap)data;
+            UUID folderId = res.ContainsKey("category_id") ? res["category_id"] : res["folder_id"];
+            var folder = new InventoryFolder(folderId)
             {
-                UUID = res["item_id"].AsUUID(),
+                UUID = res["category_id"].AsUUID(),
                 ParentUUID = res["parent_id"].AsUUID(),
-                PreferredType = (FolderType)(sbyte)res["type"].AsUInteger(),
+                DescendentCount = res["descendents"],
+                OwnerID = res.ContainsKey("agent_id") ? res["agent_id"] : res["owner_id"],
+                PreferredType = (FolderType)(sbyte)res["type_default"].AsUInteger(),
                 Name = res["name"]
             };
             return folder;
+        }
+
+        public void Update(OSDMap data)
+        {
+            if (data.ContainsKey("category_id"))
+            {
+                UUID = data["category_id"].AsUUID();
+            }
+            if (data.ContainsKey("parent_id"))
+            {
+                ParentUUID = data["parent_id"].AsUUID();
+            }
+            if (data.ContainsKey("type_default"))
+            {
+                PreferredType = (FolderType)(sbyte)data["type_default"].AsUInteger();
+            }
+            if (data.ContainsKey("descendents"))
+            {
+                DescendentCount = data["descendents"].AsInteger();
+            }
+            if (data.ContainsKey("owner_id"))
+            {
+                OwnerID = data["owner_id"].AsUUID();
+            }
+            if (data.ContainsKey("agent_id"))
+            {
+                OwnerID = data["agent_id"].AsUUID();
+            }
+            if (data.ContainsKey("name"))
+            {
+                Name = data["name"].AsString();
+            }
         }
 
         /// <summary>
