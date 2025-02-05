@@ -16,8 +16,6 @@ namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
         {
             Inventory = Client.Inventory.Store;
 
-            if (args.Length > 1)
-                return "Usage: cd [path-to-folder]";
             string pathStr = "";
             string[] path = null;
             if (args.Length == 0)
@@ -30,6 +28,11 @@ namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
                 pathStr = args[0];
                 path = pathStr.Split(new[] { '/' });
                 // Use '/' as a path seperator.
+            }
+            else
+            {
+                pathStr = System.String.Join(" ", args);
+                path = pathStr.Split(new[] { '/' });
             }
             InventoryFolder currentFolder = Client.CurrentDirectory;
             if (pathStr.StartsWith("/"))
