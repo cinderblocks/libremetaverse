@@ -1052,6 +1052,8 @@ namespace OpenMetaverse
 #endif
     public partial class InventoryFolder : InventoryBase
     {
+        public const int VERSION_UNKNOWN = -1;
+
         /// <summary>The Preferred <see cref="T:OpenMetaverse.FolderType"/> for a folder.</summary>
         public FolderType PreferredType;
         /// <summary>The Version of this folder</summary>
@@ -1146,6 +1148,7 @@ namespace OpenMetaverse
             var folder = new InventoryFolder(folderId)
             {
                 UUID = res["category_id"].AsUUID(),
+                Version = res.ContainsKey("version") ? res["version"].AsInteger() : VERSION_UNKNOWN,
                 ParentUUID = res["parent_id"].AsUUID(),
                 DescendentCount = res["descendents"],
                 OwnerID = res.ContainsKey("agent_id") ? res["agent_id"] : res["owner_id"],
@@ -1160,6 +1163,10 @@ namespace OpenMetaverse
             if (data.ContainsKey("category_id"))
             {
                 UUID = data["category_id"].AsUUID();
+            }
+            if (data.ContainsKey("version"))
+            {
+                Version = data["version"].AsInteger();
             }
             if (data.ContainsKey("parent_id"))
             {
@@ -1196,6 +1203,7 @@ namespace OpenMetaverse
             OSDMap res = new OSDMap(4)
             {
                 ["item_id"] = UUID,
+                ["version"] = Version,
                 ["parent_id"] = ParentUUID,
                 ["type"] = (sbyte)PreferredType,
                 ["name"] = Name
