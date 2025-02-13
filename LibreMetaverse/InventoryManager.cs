@@ -3004,40 +3004,50 @@ namespace OpenMetaverse
 
         #region Helper Functions
 
-        private uint RegisterItemCreatedCallback(ItemCreatedCallback callback)
+        /// <summary>
+        /// Wrapper for creating a new <see cref="InventoryItem"/> object
+        /// </summary>
+        /// <param name="type">The type of item from the <see cref="InventoryType"/> enum</param>
+        /// <param name="id">The <see cref="UUID"/> of the newly created object</param>
+        /// <returns><see cref="InventoryItem"/> with the type and id passed</returns>
+        public static InventoryItem CreateInventoryItem(InventoryType type, UUID id)
         {
-            lock (_CallbacksLock)
+            switch (type)
             {
-                if (_CallbackPos == uint.MaxValue)
-                    _CallbackPos = 0;
-
-                _CallbackPos++;
-
-                if (_ItemCreatedCallbacks.ContainsKey(_CallbackPos))
-                    Logger.Log("Overwriting an existing ItemCreatedCallback", Helpers.LogLevel.Warning, Client);
-
-                _ItemCreatedCallbacks[_CallbackPos] = callback;
-
-                return _CallbackPos;
+                case InventoryType.Texture: return new InventoryTexture(id);
+                case InventoryType.Sound: return new InventorySound(id);
+                case InventoryType.CallingCard: return new InventoryCallingCard(id);
+                case InventoryType.Landmark: return new InventoryLandmark(id);
+                case InventoryType.Object: return new InventoryObject(id);
+                case InventoryType.Notecard: return new InventoryNotecard(id);
+                case InventoryType.Category: return new InventoryCategory(id);
+                case InventoryType.LSL: return new InventoryLSL(id);
+                case InventoryType.Snapshot: return new InventorySnapshot(id);
+                case InventoryType.Attachment: return new InventoryAttachment(id);
+                case InventoryType.Wearable: return new InventoryWearable(id);
+                case InventoryType.Animation: return new InventoryAnimation(id);
+                case InventoryType.Gesture: return new InventoryGesture(id);
+                case InventoryType.Settings: return new InventorySettings(id);
+                case InventoryType.Material: return new InventoryMaterial(id);
+                default: return new InventoryItem(type, id);
             }
         }
 
-        private uint RegisterItemsCopiedCallback(ItemCopiedCallback callback)
+        /// <summary>
+        /// Creates <see cref="InventoryItem"/> if item does not already exist in <see cref="Store"/>
+        /// </summary>
+        /// <param name="InvType">Item's <see cref="InventoryType"/></param>
+        /// <param name="ItemID">Item's <see cref="UUID"/></param>
+        /// <returns><see cref="InventoryItem"/> either prior stored or newly created</returns>
+        /// <seealso cref="CreateInventoryItem"/>
+        public InventoryItem CreateOrRetrieveInventoryItem(InventoryType InvType, UUID ItemID)
         {
-            lock (_CallbacksLock)
-            {
-                if (_CallbackPos == uint.MaxValue)
-                    _CallbackPos = 0;
+            InventoryItem ret = null;
 
-                _CallbackPos++;
+            if (_Store.Contains(ItemID))
+                ret = _Store[ItemID] as InventoryItem;
 
-                if (_ItemCopiedCallbacks.ContainsKey(_CallbackPos))
-                    Logger.Log("Overwriting an existing ItemsCopiedCallback", Helpers.LogLevel.Warning, Client);
-
-                _ItemCopiedCallbacks[_CallbackPos] = callback;
-
-                return _CallbackPos;
-            }
+            return ret ?? (ret = CreateInventoryItem(InvType, ItemID));
         }
 
         /// <summary>
@@ -3094,85 +3104,6 @@ namespace OpenMetaverse
         public static UUID EncryptAssetID(UUID assetID)
         {
             return assetID ^ MAGIC_ID;
-        }
-
-        /// <summary>
-        /// Wrapper for creating a new <see cref="InventoryItem"/> object
-        /// </summary>
-        /// <param name="type">The type of item from the <see cref="InventoryType"/> enum</param>
-        /// <param name="id">The <see cref="UUID"/> of the newly created object</param>
-        /// <returns><see cref="InventoryItem"/> with the type and id passed</returns>
-        public static InventoryItem CreateInventoryItem(InventoryType type, UUID id)
-        {
-            switch (type)
-            {
-                case InventoryType.Texture: return new InventoryTexture(id);
-                case InventoryType.Sound: return new InventorySound(id);
-                case InventoryType.CallingCard: return new InventoryCallingCard(id);
-                case InventoryType.Landmark: return new InventoryLandmark(id);
-                case InventoryType.Object: return new InventoryObject(id);
-                case InventoryType.Notecard: return new InventoryNotecard(id);
-                case InventoryType.Category: return new InventoryCategory(id);
-                case InventoryType.LSL: return new InventoryLSL(id);
-                case InventoryType.Snapshot: return new InventorySnapshot(id);
-                case InventoryType.Attachment: return new InventoryAttachment(id);
-                case InventoryType.Wearable: return new InventoryWearable(id);
-                case InventoryType.Animation: return new InventoryAnimation(id);
-                case InventoryType.Gesture: return new InventoryGesture(id);
-                case InventoryType.Settings: return new InventorySettings(id);
-                case InventoryType.Material: return new InventoryMaterial(id);
-                default: return new InventoryItem(type, id);
-            }
-        }
-
-        /// <summary>
-        /// Creates <see cref="InventoryItem"/> if item does not already exist in <see cref="Store"/>
-        /// </summary>
-        /// <param name="InvType">Item's <see cref="InventoryType"/></param>
-        /// <param name="ItemID">Item's <see cref="UUID"/></param>
-        /// <returns><see cref="InventoryItem"/> either prior stored or newly created</returns>
-        /// <seealso cref="CreateInventoryItem"/>
-        public InventoryItem CreateOrRetrieveInventoryItem(InventoryType InvType, UUID ItemID)
-        {
-            InventoryItem ret = null;
-
-            if (_Store.Contains(ItemID))
-                ret = _Store[ItemID] as InventoryItem;
-
-            return ret ?? (ret = CreateInventoryItem(InvType, ItemID));
-        }
-
-        private static bool ParseLine(string line, out string key, out string value)
-        {
-            // Clean up and convert tabs to spaces
-            line = line.Trim();
-            line = line.Replace('\t', ' ');
-
-            // Shrink all whitespace down to single spaces
-            while (line.IndexOf("  ", StringComparison.Ordinal) > 0)
-                line = line.Replace("  ", " ");
-
-            if (line.Length > 2)
-            {
-                var sep = line.IndexOf(' ');
-                if (sep > 0)
-                {
-                    key = line.Substring(0, sep);
-                    value = line.Substring(sep + 1);
-
-                    return true;
-                }
-            }
-            else if (line.Length == 1)
-            {
-                key = line;
-                value = string.Empty;
-                return true;
-            }
-
-            key = null;
-            value = null;
-            return false;
         }
 
         /// <summary>
@@ -3472,13 +3403,82 @@ namespace OpenMetaverse
                     }
                     else
                     {
-                        Logger.Log("Unrecognized token " + key + " in: " + Environment.NewLine + taskData,
+                        Logger.Log($"Unrecognized token {key} in: " + Environment.NewLine + taskData,
                             Helpers.LogLevel.Error);
                     }
                 }
             }
 
             return items;
+        }
+
+        private uint RegisterItemCreatedCallback(ItemCreatedCallback callback)
+        {
+            lock (_CallbacksLock)
+            {
+                if (_CallbackPos == uint.MaxValue)
+                    _CallbackPos = 0;
+
+                _CallbackPos++;
+
+                if (_ItemCreatedCallbacks.ContainsKey(_CallbackPos))
+                    Logger.Log("Overwriting an existing ItemCreatedCallback", Helpers.LogLevel.Warning, Client);
+
+                _ItemCreatedCallbacks[_CallbackPos] = callback;
+
+                return _CallbackPos;
+            }
+        }
+
+        private uint RegisterItemsCopiedCallback(ItemCopiedCallback callback)
+        {
+            lock (_CallbacksLock)
+            {
+                if (_CallbackPos == uint.MaxValue)
+                    _CallbackPos = 0;
+
+                _CallbackPos++;
+
+                if (_ItemCopiedCallbacks.ContainsKey(_CallbackPos))
+                    Logger.Log("Overwriting an existing ItemsCopiedCallback", Helpers.LogLevel.Warning, Client);
+
+                _ItemCopiedCallbacks[_CallbackPos] = callback;
+
+                return _CallbackPos;
+            }
+        }
+
+        private static bool ParseLine(string line, out string key, out string value)
+        {
+            // Clean up and convert tabs to spaces
+            line = line.Trim();
+            line = line.Replace('\t', ' ');
+
+            // Shrink all whitespace down to single spaces
+            while (line.IndexOf("  ", StringComparison.Ordinal) > 0)
+                line = line.Replace("  ", " ");
+
+            if (line.Length > 2)
+            {
+                var sep = line.IndexOf(' ');
+                if (sep > 0)
+                {
+                    key = line.Substring(0, sep);
+                    value = line.Substring(sep + 1);
+
+                    return true;
+                }
+            }
+            else if (line.Length == 1)
+            {
+                key = line;
+                value = string.Empty;
+                return true;
+            }
+
+            key = null;
+            value = null;
+            return false;
         }
 
         #endregion Helper Functions
