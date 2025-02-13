@@ -3041,10 +3041,10 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Create a CRC from an InventoryItem
+        /// Create a CRC from <see cref="InventoryItem"/>
         /// </summary>
-        /// <param name="iitem">The source InventoryItem</param>
-        /// <returns>A uint representing the source InventoryItem as a CRC</returns>
+        /// <param name="iitem">Source <see cref="InventoryItem"/></param>
+        /// <returns>uint representing the source <see cref="InventoryItem"/> as a CRC</returns>
         public static uint ItemCRC(InventoryItem iitem)
         {
             uint CRC = 0;
@@ -3101,7 +3101,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="type">The type of item from the <see cref="InventoryType"/> enum</param>
         /// <param name="id">The <see cref="UUID"/> of the newly created object</param>
-        /// <returns>An <see cref="InventoryItem"/> object with the type and id passed</returns>
+        /// <returns><see cref="InventoryItem"/> with the type and id passed</returns>
         public static InventoryItem CreateInventoryItem(InventoryType type, UUID id)
         {
             switch (type)
@@ -3125,7 +3125,14 @@ namespace OpenMetaverse
             }
         }
 
-        public InventoryItem SafeCreateInventoryItem(InventoryType InvType, UUID ItemID)
+        /// <summary>
+        /// Creates <see cref="InventoryItem"/> if item does not already exist in <see cref="Store"/>
+        /// </summary>
+        /// <param name="InvType">Item's <see cref="InventoryType"/></param>
+        /// <param name="ItemID">Item's <see cref="UUID"/></param>
+        /// <returns><see cref="InventoryItem"/> either prior stored or newly created</returns>
+        /// <seealso cref="CreateInventoryItem"/>
+        public InventoryItem CreateOrRetrieveInventoryItem(InventoryType InvType, UUID ItemID)
         {
             InventoryItem ret = null;
 
@@ -4192,7 +4199,7 @@ namespace OpenMetaverse
                         invType = storedType;
                     }
                 }
-                var item = SafeCreateInventoryItem(invType, newItem.ItemID);
+                var item = CreateOrRetrieveInventoryItem(invType, newItem.ItemID);
 
                 item.AssetType = newItem.Type;
                 item.AssetUUID = newItem.AssetID;
@@ -4277,7 +4284,7 @@ namespace OpenMetaverse
                 foreach (var dataBlock in update.ItemData)
                 {
                     var item =
-                        SafeCreateInventoryItem((InventoryType)dataBlock.InvType, dataBlock.ItemID);
+                        CreateOrRetrieveInventoryItem((InventoryType)dataBlock.InvType, dataBlock.ItemID);
 
                     item.AssetType = (AssetType)dataBlock.Type;
                     if (dataBlock.AssetID != UUID.Zero) item.AssetUUID = dataBlock.AssetID;
