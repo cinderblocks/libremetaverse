@@ -848,6 +848,14 @@ namespace LibreMetaverse
             foreach (KeyValuePair<string, OSD> o in linksOsd)
             {
                 var link = (OSDMap)o.Value;
+                /*
+                 * Objects that have been attached in-world prior to being stored on the
+                 * asset server are stored with the InventoryType of 0 (Texture)
+                 * instead of 17 (Attachment)
+                 *
+                 * This corrects that behavior by forcing Object Asset types that have an
+                 * invalid InventoryType with the proper InventoryType of Attachment.
+                 */
                 InventoryType type = (InventoryType)link["inv_type"].AsInteger();
                 if (type == InventoryType.Texture && (AssetType)link["type"].AsInteger() == AssetType.Object)
                 {

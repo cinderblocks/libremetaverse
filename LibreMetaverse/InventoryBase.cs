@@ -333,7 +333,14 @@ namespace OpenMetaverse
         public static InventoryItem FromOSD(OSD data)
         {
             OSDMap descItem = (OSDMap)data;
-
+            /*
+             * Objects that have been attached in-world prior to being stored on the
+             * asset server are stored with the InventoryType of 0 (Texture)
+             * instead of 17 (Attachment)
+             *
+             * This corrects that behavior by forcing Object Asset types that have an
+             * invalid InventoryType with the proper InventoryType of Attachment.
+             */
             InventoryType type = (InventoryType)descItem["inv_type"].AsInteger();
             if (type == InventoryType.Texture && (AssetType)descItem["type"].AsInteger() == AssetType.Object)
             {

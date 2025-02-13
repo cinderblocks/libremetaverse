@@ -3437,7 +3437,7 @@ namespace OpenMetaverse
                                     if (uint.TryParse(value, out timestamp))
                                         creationDate = Utils.UnixTimeToDateTime(timestamp);
                                     else
-                                        Logger.Log("Failed to parse creation_date " + value, Helpers.LogLevel.Warning);
+                                        Logger.Log($"Failed to parse creation_date: {value}", Helpers.LogLevel.Warning);
                                 }
                             }
                         }
