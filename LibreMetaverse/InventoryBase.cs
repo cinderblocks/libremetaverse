@@ -342,7 +342,9 @@ namespace OpenMetaverse
              * invalid InventoryType with the proper InventoryType of Attachment.
              */
             InventoryType type = (InventoryType)descItem["inv_type"].AsInteger();
-            if (type == InventoryType.Texture && (AssetType)descItem["type"].AsInteger() == AssetType.Object)
+            if (type == InventoryType.Texture &&
+                ((AssetType)descItem["type"].AsInteger() == AssetType.Object
+                 || (AssetType)descItem["type"].AsInteger() == AssetType.Mesh))
             {
                 type = InventoryType.Attachment;
             }

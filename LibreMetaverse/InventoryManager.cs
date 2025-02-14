@@ -3909,8 +3909,9 @@ namespace OpenMetaverse
                              * This corrects that behavior by forcing Object Asset types that have an 
                              * invalid InventoryType with the proper InventoryType of Attachment.
                              */
-                            if ((AssetType)data.Type == AssetType.Object
-                                && (InventoryType)data.InvType == InventoryType.Texture)
+                            if ((InventoryType)data.InvType == InventoryType.Texture &&
+                                (AssetType)data.Type == AssetType.Object
+                                || (AssetType)data.Type == AssetType.Mesh)
                             {
                                 item = CreateInventoryItem(InventoryType.Attachment, data.ItemID);
                                 item.InventoryType = InventoryType.Attachment;
