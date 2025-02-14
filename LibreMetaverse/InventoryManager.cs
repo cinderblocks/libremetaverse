@@ -575,7 +575,7 @@ namespace OpenMetaverse
         /// <see cref="OnItemReceived"/>
         private void RequestFetchInventoryHttp(Dictionary<UUID, UUID> items)
         {
-            _ = RequestFetchInventoryHttpAsync(items, CancellationToken.None);
+            RequestFetchInventoryHttpAsync(items, CancellationToken.None).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -1065,7 +1065,7 @@ namespace OpenMetaverse
         /// <param name="item">The <see cref="T:InventoryBase"/> item or folder to move</param>
         /// <param name="newParent">The <see cref="T:InventoryFolder"/> to move item or folder to</param>
         /// <param name="newName">The name to change the item or folder to</param>
-        [Obsolete("Method broken with AIS3. Use Move(item, parent) instead.")]
+        [Obsolete("Method broken with AISv3. Use Move(item, parent) instead.")]
         public void Move(InventoryBase item, InventoryFolder newParent, string newName)
         {
             if (item is InventoryFolder)
@@ -1080,7 +1080,7 @@ namespace OpenMetaverse
         /// <param name="folderID">The source folders <see cref="UUID"/></param>
         /// <param name="newparentID">The destination folders <see cref="UUID"/></param>
         /// <param name="newName">The name to change the folder to</param>
-        [Obsolete("Method broken with AIS3. Use MoveFolder(folder, parent) and UpdateFolderProperties(folder, parent, name, type) instead")]
+        [Obsolete("Method broken with AISv3. Use MoveFolder(folder, parent) and UpdateFolderProperties(folder, parent, name, type) instead")]
         public void MoveFolder(UUID folderID, UUID newparentID, string newName)
         {
             UpdateFolderProperties(folderID, newparentID, newName, FolderType.None);
@@ -1778,7 +1778,7 @@ namespace OpenMetaverse
             }
             else if (bse is InventoryItem item)
             {
-                CreateLink(folderID, item.UUID, item.Name, item.Description, AssetType.Link, item.InventoryType, UUID.Random(), callback);
+                CreateLink(folderID, item.UUID, item.Name, item.Description, item.InventoryType, UUID.Random(), callback);
             }
         }
 
@@ -1790,8 +1790,7 @@ namespace OpenMetaverse
         /// <param name="callback">Method to call upon creation of the link</param>
         public void CreateLink(UUID folderID, InventoryItem item, ItemCreatedCallback callback)
         {
-            CreateLink(folderID, item.UUID, item.Name, item.Description, AssetType.Link,
-                item.InventoryType, UUID.Random(), callback);
+            CreateLink(folderID, item.UUID, item.Name, item.Description, item.InventoryType, UUID.Random(), callback);
         }
 
         /// <summary>
@@ -1802,8 +1801,7 @@ namespace OpenMetaverse
         /// <param name="callback">Method to call upon creation of the link</param>
         public void CreateLink(UUID folderID, InventoryFolder folder, ItemCreatedCallback callback)
         {
-            CreateLink(folderID, folder.UUID, folder.Name, "",
-                AssetType.LinkFolder, InventoryType.Folder, UUID.Random(), callback);
+            CreateLink(folderID, folder.UUID, folder.Name, "", InventoryType.Folder, UUID.Random(), callback);
         }
 
         /// <summary>
@@ -1813,21 +1811,21 @@ namespace OpenMetaverse
         /// <param name="itemID">Original item's UUID</param>
         /// <param name="name">Name</param>
         /// <param name="description">Description</param>
-        /// <param name="assetType">Asset Type</param>
         /// <param name="invType">Inventory Type</param>
         /// <param name="transactionID">Transaction UUID</param>
         /// <param name="callback">Method to call upon creation of the link</param>
-        public void CreateLink(UUID folderID, UUID itemID, string name, string description,
-            AssetType assetType, InventoryType invType, UUID transactionID, ItemCreatedCallback callback)
+        public void CreateLink(UUID folderID, UUID itemID, string name, string description, 
+            InventoryType invType, UUID transactionID, ItemCreatedCallback callback)
         {
+            AssetType linkType = invType == InventoryType.Folder ? AssetType.LinkFolder : AssetType.Link;
             if (Client.AisClient.IsAvailable)
             {
                 var links = new OSDArray();
                 var link = new OSDMap
                 {
                     ["linked_id"] = OSD.FromUUID(itemID),
-                    ["type"] = OSD.FromInteger((int)assetType),
-                    ["inv_type"] = OSD.FromInteger((int)invType),
+                    ["type"] = OSD.FromInteger((sbyte)linkType),
+                    ["inv_type"] = OSD.FromInteger((sbyte)invType),
                     ["name"] = OSD.FromString(name),
                     ["desc"] = OSD.FromString(description)
                 };
@@ -1856,7 +1854,7 @@ namespace OpenMetaverse
                 create.InventoryBlock.FolderID = folderID;
                 create.InventoryBlock.TransactionID = transactionID;
                 create.InventoryBlock.OldItemID = itemID;
-                create.InventoryBlock.Type = (sbyte)assetType;
+                create.InventoryBlock.Type = (sbyte)linkType;
                 create.InventoryBlock.InvType = (sbyte)invType;
                 create.InventoryBlock.Name = Utils.StringToBytes(name);
                 create.InventoryBlock.Description = Utils.StringToBytes(description);
@@ -3006,47 +3004,57 @@ namespace OpenMetaverse
 
         #region Helper Functions
 
-        private uint RegisterItemCreatedCallback(ItemCreatedCallback callback)
+        /// <summary>
+        /// Wrapper for creating a new <see cref="InventoryItem"/> object
+        /// </summary>
+        /// <param name="type">The type of item from the <see cref="InventoryType"/> enum</param>
+        /// <param name="id">The <see cref="UUID"/> of the newly created object</param>
+        /// <returns><see cref="InventoryItem"/> with the type and id passed</returns>
+        public static InventoryItem CreateInventoryItem(InventoryType type, UUID id)
         {
-            lock (_CallbacksLock)
+            switch (type)
             {
-                if (_CallbackPos == uint.MaxValue)
-                    _CallbackPos = 0;
-
-                _CallbackPos++;
-
-                if (_ItemCreatedCallbacks.ContainsKey(_CallbackPos))
-                    Logger.Log("Overwriting an existing ItemCreatedCallback", Helpers.LogLevel.Warning, Client);
-
-                _ItemCreatedCallbacks[_CallbackPos] = callback;
-
-                return _CallbackPos;
-            }
-        }
-
-        private uint RegisterItemsCopiedCallback(ItemCopiedCallback callback)
-        {
-            lock (_CallbacksLock)
-            {
-                if (_CallbackPos == uint.MaxValue)
-                    _CallbackPos = 0;
-
-                _CallbackPos++;
-
-                if (_ItemCopiedCallbacks.ContainsKey(_CallbackPos))
-                    Logger.Log("Overwriting an existing ItemsCopiedCallback", Helpers.LogLevel.Warning, Client);
-
-                _ItemCopiedCallbacks[_CallbackPos] = callback;
-
-                return _CallbackPos;
+                case InventoryType.Texture: return new InventoryTexture(id);
+                case InventoryType.Sound: return new InventorySound(id);
+                case InventoryType.CallingCard: return new InventoryCallingCard(id);
+                case InventoryType.Landmark: return new InventoryLandmark(id);
+                case InventoryType.Object: return new InventoryObject(id);
+                case InventoryType.Notecard: return new InventoryNotecard(id);
+                case InventoryType.Category: return new InventoryCategory(id);
+                case InventoryType.LSL: return new InventoryLSL(id);
+                case InventoryType.Snapshot: return new InventorySnapshot(id);
+                case InventoryType.Attachment: return new InventoryAttachment(id);
+                case InventoryType.Wearable: return new InventoryWearable(id);
+                case InventoryType.Animation: return new InventoryAnimation(id);
+                case InventoryType.Gesture: return new InventoryGesture(id);
+                case InventoryType.Settings: return new InventorySettings(id);
+                case InventoryType.Material: return new InventoryMaterial(id);
+                default: return new InventoryItem(type, id);
             }
         }
 
         /// <summary>
-        /// Create a CRC from an InventoryItem
+        /// Creates <see cref="InventoryItem"/> if item does not already exist in <see cref="Store"/>
         /// </summary>
-        /// <param name="iitem">The source InventoryItem</param>
-        /// <returns>A uint representing the source InventoryItem as a CRC</returns>
+        /// <param name="InvType">Item's <see cref="InventoryType"/></param>
+        /// <param name="ItemID">Item's <see cref="UUID"/></param>
+        /// <returns><see cref="InventoryItem"/> either prior stored or newly created</returns>
+        /// <seealso cref="CreateInventoryItem"/>
+        public InventoryItem CreateOrRetrieveInventoryItem(InventoryType InvType, UUID ItemID)
+        {
+            InventoryItem ret = null;
+
+            if (_Store.Contains(ItemID))
+                ret = _Store[ItemID] as InventoryItem;
+
+            return ret ?? (ret = CreateInventoryItem(InvType, ItemID));
+        }
+
+        /// <summary>
+        /// Create a CRC from <see cref="InventoryItem"/>
+        /// </summary>
+        /// <param name="iitem">Source <see cref="InventoryItem"/></param>
+        /// <returns>uint representing the source <see cref="InventoryItem"/> as a CRC</returns>
         public static uint ItemCRC(InventoryItem iitem)
         {
             uint CRC = 0;
@@ -3096,78 +3104,6 @@ namespace OpenMetaverse
         public static UUID EncryptAssetID(UUID assetID)
         {
             return assetID ^ MAGIC_ID;
-        }
-
-        /// <summary>
-        /// Wrapper for creating a new <see cref="InventoryItem"/> object
-        /// </summary>
-        /// <param name="type">The type of item from the <see cref="InventoryType"/> enum</param>
-        /// <param name="id">The <see cref="UUID"/> of the newly created object</param>
-        /// <returns>An <see cref="InventoryItem"/> object with the type and id passed</returns>
-        public static InventoryItem CreateInventoryItem(InventoryType type, UUID id)
-        {
-            switch (type)
-            {
-                case InventoryType.Texture: return new InventoryTexture(id);
-                case InventoryType.Sound: return new InventorySound(id);
-                case InventoryType.CallingCard: return new InventoryCallingCard(id);
-                case InventoryType.Landmark: return new InventoryLandmark(id);
-                case InventoryType.Object: return new InventoryObject(id);
-                case InventoryType.Notecard: return new InventoryNotecard(id);
-                case InventoryType.Category: return new InventoryCategory(id);
-                case InventoryType.LSL: return new InventoryLSL(id);
-                case InventoryType.Snapshot: return new InventorySnapshot(id);
-                case InventoryType.Attachment: return new InventoryAttachment(id);
-                case InventoryType.Wearable: return new InventoryWearable(id);
-                case InventoryType.Animation: return new InventoryAnimation(id);
-                case InventoryType.Gesture: return new InventoryGesture(id);
-                case InventoryType.Settings: return new InventorySettings(id);
-                case InventoryType.Material: return new InventoryMaterial(id);
-                default: return new InventoryItem(type, id);
-            }
-        }
-
-        public InventoryItem SafeCreateInventoryItem(InventoryType InvType, UUID ItemID)
-        {
-            InventoryItem ret = null;
-
-            if (_Store.Contains(ItemID))
-                ret = _Store[ItemID] as InventoryItem;
-
-            return ret ?? (ret = CreateInventoryItem(InvType, ItemID));
-        }
-
-        private static bool ParseLine(string line, out string key, out string value)
-        {
-            // Clean up and convert tabs to spaces
-            line = line.Trim();
-            line = line.Replace('\t', ' ');
-
-            // Shrink all whitespace down to single spaces
-            while (line.IndexOf("  ", StringComparison.Ordinal) > 0)
-                line = line.Replace("  ", " ");
-
-            if (line.Length > 2)
-            {
-                var sep = line.IndexOf(' ');
-                if (sep > 0)
-                {
-                    key = line.Substring(0, sep);
-                    value = line.Substring(sep + 1);
-
-                    return true;
-                }
-            }
-            else if (line.Length == 1)
-            {
-                key = line;
-                value = string.Empty;
-                return true;
-            }
-
-            key = null;
-            value = null;
-            return false;
         }
 
         /// <summary>
@@ -3439,7 +3375,7 @@ namespace OpenMetaverse
                                     if (uint.TryParse(value, out timestamp))
                                         creationDate = Utils.UnixTimeToDateTime(timestamp);
                                     else
-                                        Logger.Log("Failed to parse creation_date " + value, Helpers.LogLevel.Warning);
+                                        Logger.Log($"Failed to parse creation_date: {value}", Helpers.LogLevel.Warning);
                                 }
                             }
                         }
@@ -3467,13 +3403,82 @@ namespace OpenMetaverse
                     }
                     else
                     {
-                        Logger.Log("Unrecognized token " + key + " in: " + Environment.NewLine + taskData,
+                        Logger.Log($"Unrecognized token {key} in: " + Environment.NewLine + taskData,
                             Helpers.LogLevel.Error);
                     }
                 }
             }
 
             return items;
+        }
+
+        private uint RegisterItemCreatedCallback(ItemCreatedCallback callback)
+        {
+            lock (_CallbacksLock)
+            {
+                if (_CallbackPos == uint.MaxValue)
+                    _CallbackPos = 0;
+
+                _CallbackPos++;
+
+                if (_ItemCreatedCallbacks.ContainsKey(_CallbackPos))
+                    Logger.Log("Overwriting an existing ItemCreatedCallback", Helpers.LogLevel.Warning, Client);
+
+                _ItemCreatedCallbacks[_CallbackPos] = callback;
+
+                return _CallbackPos;
+            }
+        }
+
+        private uint RegisterItemsCopiedCallback(ItemCopiedCallback callback)
+        {
+            lock (_CallbacksLock)
+            {
+                if (_CallbackPos == uint.MaxValue)
+                    _CallbackPos = 0;
+
+                _CallbackPos++;
+
+                if (_ItemCopiedCallbacks.ContainsKey(_CallbackPos))
+                    Logger.Log("Overwriting an existing ItemsCopiedCallback", Helpers.LogLevel.Warning, Client);
+
+                _ItemCopiedCallbacks[_CallbackPos] = callback;
+
+                return _CallbackPos;
+            }
+        }
+
+        private static bool ParseLine(string line, out string key, out string value)
+        {
+            // Clean up and convert tabs to spaces
+            line = line.Trim();
+            line = line.Replace('\t', ' ');
+
+            // Shrink all whitespace down to single spaces
+            while (line.IndexOf("  ", StringComparison.Ordinal) > 0)
+                line = line.Replace("  ", " ");
+
+            if (line.Length > 2)
+            {
+                var sep = line.IndexOf(' ');
+                if (sep > 0)
+                {
+                    key = line.Substring(0, sep);
+                    value = line.Substring(sep + 1);
+
+                    return true;
+                }
+            }
+            else if (line.Length == 1)
+            {
+                key = line;
+                value = string.Empty;
+                return true;
+            }
+
+            key = null;
+            value = null;
+            return false;
         }
 
         #endregion Helper Functions
@@ -3904,8 +3909,9 @@ namespace OpenMetaverse
                              * This corrects that behavior by forcing Object Asset types that have an 
                              * invalid InventoryType with the proper InventoryType of Attachment.
                              */
-                            if ((AssetType)data.Type == AssetType.Object
-                                && (InventoryType)data.InvType == InventoryType.Texture)
+                            if ((InventoryType)data.InvType == InventoryType.Texture &&
+                                (AssetType)data.Type == AssetType.Object
+                                || (AssetType)data.Type == AssetType.Mesh)
                             {
                                 item = CreateInventoryItem(InventoryType.Attachment, data.ItemID);
                                 item.InventoryType = InventoryType.Attachment;
@@ -4194,7 +4200,7 @@ namespace OpenMetaverse
                         invType = storedType;
                     }
                 }
-                var item = SafeCreateInventoryItem(invType, newItem.ItemID);
+                var item = CreateOrRetrieveInventoryItem(invType, newItem.ItemID);
 
                 item.AssetType = newItem.Type;
                 item.AssetUUID = newItem.AssetID;
@@ -4279,7 +4285,7 @@ namespace OpenMetaverse
                 foreach (var dataBlock in update.ItemData)
                 {
                     var item =
-                        SafeCreateInventoryItem((InventoryType)dataBlock.InvType, dataBlock.ItemID);
+                        CreateOrRetrieveInventoryItem((InventoryType)dataBlock.InvType, dataBlock.ItemID);
 
                     item.AssetType = (AssetType)dataBlock.Type;
                     if (dataBlock.AssetID != UUID.Zero) item.AssetUUID = dataBlock.AssetID;

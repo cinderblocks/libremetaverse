@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2024, Sjofn LLC
+ * Copyright (c) 2024-2025, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -297,8 +297,8 @@ namespace OpenMetaverse
             }
         }
 
-        /// <summary>Perform an <see cref="T:System.Action"/> on each key of an <see cref="LockingDictionary{TKey,TValue}/></summary>
-        /// <param name="action"><see cref="T:System.Action"/> to perform</param>
+        /// <summary>Perform <see cref="System.Action"/> on each key of <see cref="LockingDictionary{TKey,TValue}"/></summary>
+        /// <param name="action"><see cref="System.Action"/> to perform</param>
         public void ForEach(Action<TKey> action)
         {
             lock (Dictionary)

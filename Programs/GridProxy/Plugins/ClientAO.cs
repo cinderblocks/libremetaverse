@@ -356,7 +356,7 @@ public class ClientAO : ProxyPlugin
                 foreach (var d in reply.ItemData)
                 {
                     //we are going to store info on all items. we'll need
-                    //it to get the asset ID of animations refered to by the
+                    //it to get the asset ID of animations referred to by the
                     //configuration notecard
                     if (d.ItemID != UUID.Zero)
                     {

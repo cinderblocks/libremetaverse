@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2024, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -162,35 +162,38 @@ namespace OpenMetaverse
         {
             return $"{AssetType} {AssetUUID} ({InventoryType} {UUID}) '{Name}'/'{Description}' {Permissions}";
         }
-        /// <summary>The <see cref="UUID"/> of this item</summary>
+        /// <summary><see cref="UUID"/> of the underlying asset</summary>
         public UUID AssetUUID;
-        /// <summary>The combined <see cref="OpenMetaverse.Permissions"/> of this item</summary>
+        /// <summary>Combined <see cref="OpenMetaverse.Permissions"/> of the item</summary>
         public Permissions Permissions;
-        /// <summary>The type of item from <see cref="OpenMetaverse.AssetType"/></summary>
+        /// <summary><see cref="OpenMetaverse.AssetType"/> of the underlying asset</summary>
         public AssetType AssetType;
-        /// <summary>The type of item from the <see cref="OpenMetaverse.InventoryType"/> enum</summary>
+        /// <summary><see cref="OpenMetaverse.InventoryType"/> of the item</summary>
         public InventoryType InventoryType;
-        /// <summary>The <see cref="UUID"/> of the creator of this item</summary>
+        /// <summary><see cref="UUID"/> of the creator of the item</summary>
         public UUID CreatorID;
-        /// <summary>A Description of this item</summary>
+        /// <summary>Description of the item</summary>
         public string Description;
-        /// <summary>The <see cref="Group"/>s <see cref="UUID"/> this item is set to or owned by</summary>
+        /// <summary><see cref="Group"/>s <see cref="UUID"/> the item is owned by</summary>
         public UUID GroupID;
         /// <summary>If true, item is owned by a group</summary>
         public bool GroupOwned;
-        /// <summary>The price this item can be purchased for</summary>
+        /// <summary>Price the item can be purchased for</summary>
         public int SalePrice;
-        /// <summary>The type of sale from the <see cref="OpenMetaverse.SaleType"/> enum</summary>
+        /// <summary><see cref="OpenMetaverse.SaleType"/> of the item</summary>
         public SaleType SaleType;
         /// <summary>Combined flags from <see cref="InventoryItemFlags"/></summary>
         public uint Flags;
-        /// <summary>Time and date this inventory item was created, stored as
+        /// <summary>Time and date the inventory item was created, stored as
         /// UTC (Coordinated Universal Time)</summary>
         public DateTime CreationDate;
         /// <summary>Used to update the AssetID in requests sent to the server</summary>
         public UUID TransactionID;
-        /// <summary>The <see cref="UUID"/> of the previous owner of the item</summary>
+        /// <summary><see cref="UUID"/> of the previous owner of the item</summary>
         public UUID LastOwnerID;
+
+        /// <summary>inventoryID that this item points to, else this item's inventoryID</summary>
+        public UUID ActualUUID => IsLink() ? AssetUUID : UUID;
 
         /// <summary>
         ///  Construct a new InventoryItem object
@@ -330,9 +333,18 @@ namespace OpenMetaverse
         public static InventoryItem FromOSD(OSD data)
         {
             OSDMap descItem = (OSDMap)data;
-
+            /*
+             * Objects that have been attached in-world prior to being stored on the
+             * asset server are stored with the InventoryType of 0 (Texture)
+             * instead of 17 (Attachment)
+             *
+             * This corrects that behavior by forcing Object Asset types that have an
+             * invalid InventoryType with the proper InventoryType of Attachment.
+             */
             InventoryType type = (InventoryType)descItem["inv_type"].AsInteger();
-            if (type == InventoryType.Texture && (AssetType)descItem["type"].AsInteger() == AssetType.Object)
+            if (type == InventoryType.Texture &&
+                ((AssetType)descItem["type"].AsInteger() == AssetType.Object
+                 || (AssetType)descItem["type"].AsInteger() == AssetType.Mesh))
             {
                 type = InventoryType.Attachment;
             }
@@ -360,6 +372,98 @@ namespace OpenMetaverse
             item.SaleType = (SaleType)sale["sale_type"].AsInteger();
 
             return item;
+        }
+
+        /// <summary>
+        /// Update InventoryItem from new OSD data
+        /// </summary>
+        /// <param name="data">Data to update in <see cref="OSDMap"/> format</param>
+        public void Update(OSDMap data)
+        {
+            if (data.ContainsKey("item_id"))
+            {
+                UUID = data["item_id"].AsUUID();
+            }
+            if (data.ContainsKey("parent_id"))
+            {
+                ParentUUID = data["parent_id"].AsUUID();
+            }
+            if (data.ContainsKey("agent_id"))
+            {
+                OwnerID = data["agent_id"].AsUUID();
+            }
+            if (data.ContainsKey("name"))
+            {
+                Name = data["name"].AsString();
+            }
+            if (data.ContainsKey("desc"))
+            {
+                Description = data["desc"].AsString();
+            }
+            if (data.TryGetValue("permissions", out var permissions))
+            {
+                Permissions = Permissions.FromOSD(permissions);
+            }
+            if (data.ContainsKey("sale_info"))
+            {
+                OSDMap sale = (OSDMap)data["sale_info"];
+                SalePrice = sale["sale_price"].AsInteger(); 
+                SaleType = (SaleType)sale["sale_type"].AsInteger();
+            }
+            if (data.ContainsKey("shadow_id"))
+            {
+                    AssetUUID = InventoryManager.DecryptShadowID(data["shadow_id"].AsUUID());
+            }
+            if (data.ContainsKey("asset_id"))
+            {
+                AssetUUID = data["asset_id"].AsUUID();
+            }
+            if (data.ContainsKey("linked_id"))
+            {
+                AssetUUID = data["linked_id"].AsUUID();
+            }
+            if (data.ContainsKey("type"))
+            {
+                AssetType type = AssetType.Unknown;
+                switch (data["type"].Type)
+                {
+                    case OSDType.String:
+                        type = Utils.StringToAssetType(data["type"].AsString());
+                        break;
+                    case OSDType.Integer:
+                        type = (AssetType)data["type"].AsInteger();
+                        break;
+                }
+                if (type != AssetType.Unknown)
+                {
+                    AssetType = type;
+                }
+            }
+            if (data.ContainsKey("inv_type"))
+            {
+                InventoryType type = InventoryType.Unknown;
+                switch (data["inv_type"].Type)
+                {
+                    case OSDType.String:
+                        type = Utils.StringToInventoryType(data["inv_type"].AsString());
+                        break;
+                    case OSDType.Integer:
+                        type = (InventoryType)data["inv_type"].AsInteger();
+                        break;
+                }
+                if (type != InventoryType.Unknown)
+                {
+                    InventoryType = type;
+                }
+            }
+            if (data.ContainsKey("flags"))
+            {
+                Flags = data["flags"];
+            }
+            if (data.ContainsKey("created_at"))
+            {
+                CreationDate = Utils.UnixTimeToDateTime(data["created_at"]);
+            }
         }
 
         /// <summary>
@@ -957,6 +1061,8 @@ namespace OpenMetaverse
 #endif
     public partial class InventoryFolder : InventoryBase
     {
+        public const int VERSION_UNKNOWN = -1;
+
         /// <summary>The Preferred <see cref="T:OpenMetaverse.FolderType"/> for a folder.</summary>
         public FolderType PreferredType;
         /// <summary>The Version of this folder</summary>
@@ -989,7 +1095,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Get Serilization data for this InventoryFolder object
+        /// Get Serialization data for this InventoryFolder object
         /// </summary>
         /// <param name="info"></param>
         /// <param name="context"></param>
@@ -1046,15 +1152,55 @@ namespace OpenMetaverse
         /// <returns>Inventory folder created</returns>
         public static InventoryFolder FromOSD(OSD data)
         {
-            OSDMap res = (OSDMap)data;
-            InventoryFolder folder = new InventoryFolder(res["item_id"].AsUUID())
+            var res = (OSDMap)data;
+            UUID folderId = res.ContainsKey("category_id") ? res["category_id"] : res["folder_id"];
+            var folder = new InventoryFolder(folderId)
             {
-                UUID = res["item_id"].AsUUID(),
+                UUID = res["category_id"].AsUUID(),
+                Version = res.ContainsKey("version") ? res["version"].AsInteger() : VERSION_UNKNOWN,
                 ParentUUID = res["parent_id"].AsUUID(),
-                PreferredType = (FolderType)(sbyte)res["type"].AsUInteger(),
+                DescendentCount = res["descendents"],
+                OwnerID = res.ContainsKey("agent_id") ? res["agent_id"] : res["owner_id"],
+                PreferredType = (FolderType)(sbyte)res["type_default"].AsUInteger(),
                 Name = res["name"]
             };
             return folder;
+        }
+
+        public void Update(OSDMap data)
+        {
+            if (data.ContainsKey("category_id"))
+            {
+                UUID = data["category_id"].AsUUID();
+            }
+            if (data.ContainsKey("version"))
+            {
+                Version = data["version"].AsInteger();
+            }
+            if (data.ContainsKey("parent_id"))
+            {
+                ParentUUID = data["parent_id"].AsUUID();
+            }
+            if (data.ContainsKey("type_default"))
+            {
+                PreferredType = (FolderType)(sbyte)data["type_default"].AsUInteger();
+            }
+            if (data.ContainsKey("descendents"))
+            {
+                DescendentCount = data["descendents"].AsInteger();
+            }
+            if (data.ContainsKey("owner_id"))
+            {
+                OwnerID = data["owner_id"].AsUUID();
+            }
+            if (data.ContainsKey("agent_id"))
+            {
+                OwnerID = data["agent_id"].AsUUID();
+            }
+            if (data.ContainsKey("name"))
+            {
+                Name = data["name"].AsString();
+            }
         }
 
         /// <summary>
@@ -1066,6 +1212,7 @@ namespace OpenMetaverse
             OSDMap res = new OSDMap(4)
             {
                 ["item_id"] = UUID,
+                ["version"] = Version,
                 ["parent_id"] = ParentUUID,
                 ["type"] = (sbyte)PreferredType,
                 ["name"] = Name
