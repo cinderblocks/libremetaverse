@@ -181,7 +181,7 @@ namespace OpenMetaverse
             for (var j = i; j < data.Length; j++)
             {
                 char spot = Convert.ToChar(data[j]);
-                if (spot == '\n')
+                if (spot == '\0')
                 {
                     endpos = j;
                     break;
