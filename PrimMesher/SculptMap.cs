@@ -121,6 +121,10 @@ namespace LibreMetaverse.PrimMesher
             }
             catch (Exception e)
             {
+                if (needsScaling)
+                {
+                    bm.Dispose();
+                }
                 throw new Exception("Caught exception processing byte arrays in SculptMap(): e: " + e);
             }
 
@@ -128,6 +132,11 @@ namespace LibreMetaverse.PrimMesher
             {
                 width++;
                 height++;
+            }
+
+            if (needsScaling)
+            {
+                bm.Dispose();
             }
         }
 
@@ -167,7 +176,6 @@ namespace LibreMetaverse.PrimMesher
             var info = new SKImageInfo(destWidth, destHeight);
             var scaledImage = new SKBitmap(info);
             srcImage.ScalePixels(scaledImage.PeekPixels(), new SKSamplingOptions(SKFilterMode.Linear));
-            srcImage.Dispose();
             return scaledImage;
         }
     }
