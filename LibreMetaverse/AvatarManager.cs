@@ -576,6 +576,13 @@ namespace OpenMetaverse
         /// <param name="names">Array of display names</param>
         /// <param name="badIDs">Array of UUIDs that could not be fetched</param>
         public delegate void DisplayNamesCallback(bool success, AgentDisplayName[] names, UUID[] badIDs);
+
+        /// <summary>
+        /// Callback giving results when fetching AgentProfile
+        /// </summary>
+        /// <param name="success">If the request was successful</param>
+        /// <param name="AgentProfileMessage">AgentProfile result</param>
+        public delegate void AgentProfileCallback(bool success, AgentProfileMessage profile);
         #endregion Delegates
 
         private GridClient Client;
@@ -763,6 +770,55 @@ namespace OpenMetaverse
                     }
                 };
             Client.Network.SendPacket(aprp);
+        }
+
+        /// <summary>
+        /// Check if AgentProfile functionality is available
+        /// </summary>
+        /// <returns>True if AgentProfile functionality is available</returns>
+        public bool AgentProfileAvailable()
+        {
+            return Client.Network.CurrentSim?.Caps?.CapabilityURI("AgentProfile") != null;
+        }
+
+        /// <summary>
+        /// Requests the AgentProfile for the specified avatar
+        /// </summary>
+        /// <param name="avatarid">Avatar to request the AgentProfile of</param>
+        /// <param name="callback">Callback to handle the AgentProfile response</param>
+        public async Task RequestAgentProfile(UUID avatarid, AgentProfileCallback callback)
+        {
+            if (!AgentProfileAvailable())
+            {
+                callback(false, null);
+                return;
+            }
+
+            var uri = new Uri(Client.Network.CurrentSim.Caps.CapabilityURI("AgentProfile").AbsoluteUri + "/" + avatarid);
+
+            await Client.HttpCapsClient.GetRequestAsync(uri, CancellationToken.None, (response, data, error) =>
+            {
+                try
+                {
+                    if (error != null)
+                    {
+                        throw error;
+                    }
+
+                    var msg = new AgentProfileMessage();
+                    var result = OSDParser.Deserialize(data);
+                    if (result is OSDMap respMap)
+                    {
+                        msg.Deserialize(respMap);
+                        callback(true, msg);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Failed to call AgentProfile capability: ", Helpers.LogLevel.Warning, Client, ex);
+                    callback(false, null);
+                }
+            });
         }
 
         /// <summary>

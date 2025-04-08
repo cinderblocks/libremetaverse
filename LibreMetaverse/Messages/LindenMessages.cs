@@ -5484,4 +5484,313 @@ namespace OpenMetaverse.Messages.Linden
         }
     }
     #endregion Display names
+
+    #region Agent Messages
+    /// <summary>
+    /// Message received when requesting AgentProfile for an avatar
+    /// </summary>
+    [Serializable]
+    public class AgentProfileMessage : IMessage
+    {
+        public class GroupData
+        {
+            public string Description;
+            public bool Enabled;
+            public UUID FounderID;
+            public UUID ID;
+            public UUID ImageID;
+            public bool IsMaturePublish;
+            public string Name;
+            public bool IsOpenEnrollment;
+            public bool IsShownInSearch;
+        }
+
+        public class PickData
+        {
+            public UUID ID;
+            public string Description;
+            public bool Enabled;
+            public double GridX;
+            public double GridY;
+            public string Name;
+            public UUID ParcelID;
+            public string ParcelName;
+            public string RegionName;
+            public double RegionX;
+            public double RegionY;
+            public double RegionZ;
+            public Uri Slurl;
+            public UUID SnapshotID;
+        }
+
+        public UUID AvatarID;
+        public UUID SecondLifeImageID;
+        public UUID FirstLifeImageID;
+        public UUID PartnerID;
+        public string SecondLifeAboutText;
+        public string FirstLifeAboutText;
+        public DateTime MemberSince;
+        public bool? HideAge;
+        public string CustomerType;
+        public string Notes;
+        public SimAccess AllowedMaturity;
+        public SimAccess PreferredMaturity;
+        public string DisplayName;
+        public DateTime DisplayNameNextUpdate;
+        public bool IsDisplayNameDefault;
+        public string Username;
+        public string LegacyFirstName;
+        public string LegacyLastName;
+        public bool IsMatureProfile;
+        public string Title;
+        public string HomePage;
+        public int? CaptionIndex;
+        /// <summary>May be null</summary>
+        public string CaptionText;
+        public List<GroupData> Groups;
+        public List<PickData> Picks;
+        public ProfileFlags Flags;
+
+        /// <summary>
+        /// Serialize the message
+        /// </summary>
+        /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
+        public OSDMap Serialize()
+        {
+            var map = new OSDMap(28)
+            {
+                ["id"] = OSD.FromUUID(AvatarID),
+                ["sl_image_id"] = OSD.FromUUID(SecondLifeImageID),
+                ["fl_image_id"] = OSD.FromUUID(FirstLifeImageID),
+                ["partner_id"] = OSD.FromUUID(PartnerID),
+                ["sl_about_text"] = OSD.FromString(SecondLifeAboutText),
+                ["fl_about_text"] = OSD.FromString(FirstLifeAboutText),
+                ["member_since"] = OSD.FromDate(MemberSince),
+                ["customer_type"] = OSD.FromString(CustomerType),
+                ["notes"] = OSD.FromString(Notes),
+                ["allowed_maturity"] = OSD.FromInteger((int)AllowedMaturity),
+                ["preferred_maturity"] = OSD.FromInteger((int)PreferredMaturity),
+                ["display_name"] = OSD.FromString(DisplayName),
+                ["display_name_next_update"] = OSD.FromDate(DisplayNameNextUpdate),
+                ["is_display_name_default"] = OSD.FromBoolean(IsDisplayNameDefault),
+                ["username"] = OSD.FromString(Username),
+                ["legacy_first_name"] = OSD.FromString(LegacyFirstName),
+                ["legacy_last_name"] = OSD.FromString(LegacyLastName),
+                ["mature_profile"] = OSD.FromBoolean(IsMatureProfile),
+                ["title"] = OSD.FromString(Title),
+                ["home_page"] = OSD.FromString(HomePage),
+            };
+
+            if ((Flags & ProfileFlags.Online) != 0)
+            {
+                map["online"] = OSD.FromBoolean(true);
+            }
+            if ((Flags & ProfileFlags.AllowPublish) != 0)
+            {
+                map["allow_publish"] = OSD.FromBoolean(true);
+            }
+            if ((Flags & ProfileFlags.Identified) != 0)
+            {
+                map["identified"] = OSD.FromBoolean(true);
+            }
+            if ((Flags & ProfileFlags.Transacted) != 0)
+            {
+                map["transacted"] = OSD.FromBoolean(true);
+            }
+
+            if (HideAge.HasValue)
+            {
+                map["hide_age"] = OSD.FromBoolean(HideAge.Value);
+            }
+
+            if (CaptionIndex.HasValue)
+            {
+                map["charter_member"] = OSD.FromInteger(CaptionIndex.Value);
+            }
+            else if (CaptionText != null)
+            {
+                map["caption"] = OSD.FromString(CaptionText);
+            }
+
+            var groupsArray = new OSDArray(Groups.Count);
+            foreach (var group in Groups)
+            {
+                var groupMap = new OSDMap(9)
+                {
+                    ["description"] = OSD.FromString(group.Description),
+                    ["enabled"] = OSD.FromBoolean(group.Enabled),
+                    ["founder_id"] = OSD.FromUUID(group.FounderID),
+                    ["id"] = OSD.FromUUID(group.ID),
+                    ["image_id"] = OSD.FromUUID(group.ImageID),
+                    ["mature_publish"] = OSD.FromBoolean(group.IsMaturePublish),
+                    ["name"] = OSD.FromString(group.Name),
+                    ["open_enrollment"] = OSD.FromBoolean(group.IsOpenEnrollment),
+                    ["show_in_search"] = OSD.FromBoolean(group.IsShownInSearch)
+                };
+                groupsArray.Add(groupMap);
+            }
+
+            var picksArray = new OSDArray(Picks.Count);
+            foreach (var pick in Picks)
+            {
+                var pickMap = new OSDMap(14)
+                {
+                    ["description"] = OSD.FromString(pick.Description),
+                    ["enabled"] = OSD.FromBoolean(pick.Enabled),
+                    ["grid_x"] = OSD.FromReal(pick.GridX),
+                    ["grid_y"] = OSD.FromReal(pick.GridY),
+                    ["id"] = OSD.FromUUID(pick.ID),
+                    ["name"] = OSD.FromString(pick.Name),
+                    ["parcel_id"] = OSD.FromUUID(pick.ParcelID),
+                    ["parcel_name"] = OSD.FromString(pick.ParcelName),
+                    ["region_name"] = OSD.FromString(pick.RegionName),
+                    ["region_x"] = OSD.FromReal(pick.RegionX),
+                    ["region_y"] = OSD.FromReal(pick.RegionY),
+                    ["region_z"] = OSD.FromReal(pick.RegionZ),
+                    ["slurl"] = OSD.FromUri(pick.Slurl),
+                    ["snapshot_id"] = OSD.FromUUID(pick.SnapshotID)
+                };
+                picksArray.Add(pickMap);
+            }
+
+            map["groups"] = groupsArray;
+            map["picks"] = picksArray;
+
+            return map;
+        }
+
+        /// <summary>
+        /// Deserialize the message
+        /// </summary>
+        /// <param name="map">An <see cref="OSDMap"/> containing the data</param>
+        public void Deserialize(OSDMap map)
+        {
+            AvatarID = map["id"].AsUUID();
+            SecondLifeImageID = map["sl_image_id"].AsUUID();
+            FirstLifeImageID = map["fl_image_id"].AsUUID();
+            PartnerID = map["partner_id"].AsUUID();
+            SecondLifeAboutText = map["sl_about_text"].AsString();
+            FirstLifeAboutText = map["fl_about_text"].AsString();
+            MemberSince = map["member_since"].AsDate();
+            CustomerType = map["customer_type"].AsString();
+            Notes = map["notes"].AsString();
+            AllowedMaturity = (SimAccess)map["allowed_maturity"].AsInteger();
+            PreferredMaturity = (SimAccess)map["preferred_maturity"].AsInteger();
+            DisplayName = map["display_name"].AsString();
+            DisplayNameNextUpdate = map["display_name_next_update"].AsDate();
+            IsDisplayNameDefault = map["is_display_name_default"].AsBoolean();
+            Username = map["username"].AsString();
+            LegacyFirstName = map["legacy_first_name"].AsString();
+            LegacyLastName = map["legacy_last_name"].AsString();
+            IsMatureProfile = map["mature_profile"].AsBoolean();
+            Title = map["title"].AsString();
+            HomePage = map["home_page"].AsString();
+
+            HideAge = null;
+            if (map.ContainsKey("hide_age"))
+            {
+                HideAge = map["hide_age"].AsBoolean();
+            }
+
+            Flags = new ProfileFlags();
+            if (map["online"])
+            {
+                Flags |= ProfileFlags.Online;
+            }
+            if (map["allow_publish"])
+            {
+                Flags |= ProfileFlags.AllowPublish;
+            }
+            if (map["identified"])
+            {
+                Flags |= ProfileFlags.Identified;
+            }
+            if (map["transacted"])
+            {
+                Flags |= ProfileFlags.Transacted;
+            }
+
+            CaptionIndex = null;
+            CaptionText = null;
+            if (map.ContainsKey("charter_member"))
+            {
+                CaptionIndex = map["charter_member"].AsInteger();
+            }
+            else if (map.ContainsKey("caption"))
+            {
+                CaptionText = map["caption"].AsString();
+            }
+
+            Groups = new List<GroupData>();
+            var groupsMap = map["groups"] as OSDArray;
+            foreach (var group in groupsMap)
+            {
+                var groupData = group as OSDMap;
+
+                var groupDescription = groupData["description"].AsString();
+                var groupEnabled = groupData["enabled"].AsBoolean();
+                var groupFounderId = groupData["founder_id"].AsUUID();
+                var groupId = groupData["id"].AsUUID();
+                var groupImageId = groupData["image_id"].AsUUID();
+                var groupIsMaturePublish = groupData["mature_publish"].AsBoolean();
+                var groupName = groupData["name"].AsString();
+                var groupIsOpenEnrollment = groupData["open_enrollment"].AsBoolean();
+                var groupIsShownInSearch = groupData["show_in_search"].AsBoolean();
+
+                Groups.Add(new GroupData()
+                {
+                    Description = groupDescription,
+                    Enabled = groupEnabled,
+                    FounderID = groupFounderId,
+                    ID = groupId,
+                    ImageID = groupImageId,
+                    IsMaturePublish = groupIsMaturePublish,
+                    Name = groupName,
+                    IsOpenEnrollment = groupIsOpenEnrollment,
+                    IsShownInSearch = groupIsShownInSearch,
+                });
+            }
+
+            Picks = new List<PickData>();
+            var picksMap = map["picks"] as OSDArray;
+            foreach (var pick in picksMap)
+            {
+                var pickData = pick as OSDMap;
+
+                var pickDescription = pickData["description"].AsString();
+                var pickEnabled = pickData["enabled"].AsBoolean();
+                var pickGridX = pickData["grid_x"].AsReal();
+                var pickGridY = pickData["grid_y"].AsReal();
+                var pickId = pickData["id"].AsUUID();
+                var pickName = pickData["name"].AsString();
+                var pickParcelId = pickData["parcel_id"].AsUUID();
+                var pickParcelName = pickData["parcel_name"].AsString();
+                var pickRegionName = pickData["region_name"].AsString();
+                var pickRegionX = pickData["region_x"].AsReal();
+                var pickRegionY = pickData["region_y"].AsReal();
+                var pickRegionZ = pickData["region_z"].AsReal();
+                var pickSlurl = pickData["slurl"].AsUri();
+                var pickSnapshotId = pickData["snapshot_id"].AsUUID();
+
+                Picks.Add(new PickData()
+                {
+                    ID = pickId,
+                    Description = pickDescription,
+                    Enabled = pickEnabled,
+                    GridX = pickGridX,
+                    GridY = pickGridY,
+                    Name = pickName,
+                    ParcelID = pickParcelId,
+                    ParcelName = pickParcelName,
+                    RegionName = pickRegionName,
+                    RegionX = pickRegionX,
+                    RegionY = pickRegionY,
+                    RegionZ = pickRegionZ,
+                    Slurl = pickSlurl,
+                    SnapshotID = pickSnapshotId,
+                });
+            }
+        }
+    }
+    #endregion
 }
