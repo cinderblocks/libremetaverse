@@ -26,7 +26,7 @@
     <Optimize>True</Optimize>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CoreJ2K.Skia" Version="1.0.6.37" />
+    <PackageReference Include="CoreJ2K.Skia" Version="1.0.7.39" />
     <PackageReference Include="log4net" Version="3.0.4" />
     <PackageReference Include="MemoryPack" Version="1.21.4" />
     <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.4" />
