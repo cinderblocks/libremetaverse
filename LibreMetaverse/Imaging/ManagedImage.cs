@@ -115,6 +115,20 @@ namespace OpenMetaverse.Imaging
         }
 
         /// <summary>
+        /// Converts an array of 32-bit color values to an array of 8-bit color values
+        /// </summary>
+        /// <param name="sourceData">The input array of 32-bit color values</param>
+        /// <param name="destinationData">The output array of 8-bit color values</param>
+        private static void ConvertTo8BitChannel(int[] sourceData, out byte[] destinationData)
+        {
+            destinationData = new byte[sourceData.Length];
+            for (var i = 0; i < sourceData.Length; i++)
+            {
+                destinationData[i] = (byte)sourceData[i];
+            }
+        }
+
+        /// <summary>
         /// Constructs ManagedImage class from <see cref="PortableImage"/>
         /// Currently only supporting 8-bit channels;
         /// </summary>
@@ -123,46 +137,35 @@ namespace OpenMetaverse.Imaging
         {
             Width = image.Width;
             Height = image.Height;
-            
-            var pixelCount = Width * Height;
+
             var numComp = image.NumberOfComponents;
             switch (numComp)
             {
                 case 1:
                     Channels = ImageChannels.Gray;
-                    Red = new byte[pixelCount * sizeof(int)];
-                    Buffer.BlockCopy(image.GetComponent(0), 0, Red, 0, Red.Length);
+                    ConvertTo8BitChannel(image.GetComponent(0), out Red);
                     break;
                 case 2:
                     Channels = ImageChannels.Color;
-                    Red = new byte[pixelCount * sizeof(int)];
-                    Green = new byte[pixelCount * sizeof(int)];
-                    Buffer.BlockCopy(image.GetComponent(0), 0, Red, 0, Red.Length);
-                    Buffer.BlockCopy(image.GetComponent(1), 0, Green, 0, Green.Length);
+                    ConvertTo8BitChannel(image.GetComponent(0), out Red);
+                    ConvertTo8BitChannel(image.GetComponent(1), out Green);
                     break;
                 case 3:
                     Channels = ImageChannels.Color;
-                    Red = new byte[pixelCount * sizeof(int)];
-                    Green = new byte[pixelCount * sizeof(int)];
-                    Blue = new byte[pixelCount * sizeof(int)];
-                    Buffer.BlockCopy(image.GetComponent(0), 0, Red, 0, Red.Length);
-                    Buffer.BlockCopy(image.GetComponent(1), 0, Green, 0, Green.Length);
-                    Buffer.BlockCopy(image.GetComponent(2), 0, Blue, 0, Blue.Length);
+                    ConvertTo8BitChannel(image.GetComponent(0), out Red);
+                    ConvertTo8BitChannel(image.GetComponent(1), out Green);
+                    ConvertTo8BitChannel(image.GetComponent(2), out Blue);
                     break;
                 case 4:
                     Channels = ImageChannels.Alpha | ImageChannels.Color;
-                    Red = new byte[pixelCount * sizeof(int)];
-                    Green = new byte[pixelCount * sizeof(int)];
-                    Blue = new byte[pixelCount * sizeof(int)];
-                    Alpha = new byte[pixelCount * sizeof(int)];
-                    Buffer.BlockCopy(image.GetComponent(0), 0, Red, 0, Red.Length);
-                    Buffer.BlockCopy(image.GetComponent(1), 0, Green, 0, Green.Length);
-                    Buffer.BlockCopy(image.GetComponent(2), 0, Blue, 0, Blue.Length);
-                    Buffer.BlockCopy(image.GetComponent(3), 0, Alpha, 0, Alpha.Length);
+                    ConvertTo8BitChannel(image.GetComponent(0), out Red);
+                    ConvertTo8BitChannel(image.GetComponent(1), out Green);
+                    ConvertTo8BitChannel(image.GetComponent(2), out Blue);
+                    ConvertTo8BitChannel(image.GetComponent(3), out Alpha);
                     break;
             }
         }
-        
+
         /// <summary>
         /// Constructs ManagedImage class from <see cref="SKBitmap"/>
         /// </summary>
