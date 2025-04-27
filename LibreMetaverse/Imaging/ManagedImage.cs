@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2024, Sjofn LLC.
+ * Copyright (c) 2024-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -162,6 +162,14 @@ namespace OpenMetaverse.Imaging
                     ConvertTo8BitChannel(image.GetComponent(1), out Green);
                     ConvertTo8BitChannel(image.GetComponent(2), out Blue);
                     ConvertTo8BitChannel(image.GetComponent(3), out Alpha);
+                    break;
+                case 5:
+                    Channels = ImageChannels.Alpha | ImageChannels.Color | ImageChannels.Bump;
+                    ConvertTo8BitChannel(image.GetComponent(0), out Red);
+                    ConvertTo8BitChannel(image.GetComponent(1), out Green);
+                    ConvertTo8BitChannel(image.GetComponent(2), out Blue);
+                    ConvertTo8BitChannel(image.GetComponent(3), out Bump);
+                    ConvertTo8BitChannel(image.GetComponent(4), out Alpha);
                     break;
             }
         }
