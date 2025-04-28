@@ -160,7 +160,22 @@ namespace OpenMetaverse.Imaging
         /// <summary>Encode <see cref="ManagedImage"/> to Truevision TGA byte array</summary>
         public static byte[] Encode(ManagedImage image)
         {
-            var tga = new byte[image.Width * image.Height * ((image.Channels & ManagedImage.ImageChannels.Alpha) == 0 ? 3 : 4) + 32];
+            byte channels = 0;
+            if ((image.Channels & ManagedImage.ImageChannels.Color) != 0)
+            {
+                channels += 3;
+            }
+            else if ((image.Channels & ManagedImage.ImageChannels.Gray) != 0)
+            {
+                ++channels;
+            }
+
+            if ((image.Channels & ManagedImage.ImageChannels.Alpha) != 0)
+            {
+                ++channels;
+            }
+
+            var tga = new byte[image.Width * image.Height * channels + 32];
             var di = 0;
             tga[di++] = 0; // idlength
             tga[di++] = 0; // colormaptype = 0: no colormap
@@ -178,8 +193,8 @@ namespace OpenMetaverse.Imaging
             tga[di++] = (byte)(image.Width >> 8); // width - hi byte
             tga[di++] = (byte)(image.Height & 0xFF); // height - low byte
             tga[di++] = (byte)(image.Height >> 8); // height - hi byte
-            tga[di++] = (byte)((image.Channels & ManagedImage.ImageChannels.Alpha) == 0 ? 24 : 32); // 24/32 bits per pixel
-            tga[di++] = (byte)((image.Channels & ManagedImage.ImageChannels.Alpha) == 0 ? 32 : 40); // image descriptor byte
+            tga[di++] = (byte)(channels * 8); // bits per pixel
+            tga[di++] = (byte)((image.Channels & ManagedImage.ImageChannels.Alpha) == 0 ? 0x0 : 0x20); // image descriptor byte
 
             int n = image.Width * image.Height;
 
@@ -206,6 +221,13 @@ namespace OpenMetaverse.Imaging
                         tga[di++] = image.Alpha[i];
                         tga[di++] = byte.MaxValue;
                     }
+                }
+            }
+            else if ((image.Channels & ManagedImage.ImageChannels.Gray) != 0)
+            {
+                for (var i = 0; i < n; i++)
+                {
+                    tga[di++] = image.Red[i];
                 }
             }
             else
