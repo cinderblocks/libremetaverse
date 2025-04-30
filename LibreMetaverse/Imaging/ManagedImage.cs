@@ -276,12 +276,18 @@ namespace OpenMetaverse.Imaging
                 FillArray(Alpha, 255);
             }
             else if ((del & ImageChannels.Alpha) != 0)
+            {
                 Alpha = null;
+            }
 
             if ((add & ImageChannels.Bump) != 0)
+            {
                 Bump = new byte[n];
+            }
             else if ((del & ImageChannels.Bump) != 0)
+            {
                 Bump = null;
+            }
 
             Channels = channels;
         }
