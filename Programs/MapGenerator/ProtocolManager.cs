@@ -29,7 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace Mapgenerator
+namespace MapGenerator
 {
     /// <summary>
     /// 

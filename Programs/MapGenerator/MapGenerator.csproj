@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <OutputPath>..\..\bin\</OutputPath>
-    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>net8.0</TargetFrameworks>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
