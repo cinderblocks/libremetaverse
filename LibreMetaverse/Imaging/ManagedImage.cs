@@ -408,10 +408,9 @@ namespace OpenMetaverse.Imaging
         }
 
         /// <summary>
-        /// Create a byte array containing 32-bit RGBA data with a bottom-left
-        /// origin, suitable for feeding directly into OpenGL
+        /// Create <see cref="SKBitmap"/> from ManagedImage
         /// </summary>
-        /// <returns>A byte array containing raw texture data</returns>
+        /// <returns><see cref="SKBitmap"/></returns>
         public SKBitmap ExportBitmap()
         {
             var raw = new byte[Width * Height * 4];
