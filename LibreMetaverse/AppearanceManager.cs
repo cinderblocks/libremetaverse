@@ -967,9 +967,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Checks if an inventory item is currently being worn
         /// </summary>
-        /// <param name="item">The inventory item to check against the agent
-        /// wearables</param>
-        /// <returns>The WearableType slot that the item is being worn in,
+        /// <param name="item">The <see cref="InventoryItem"/> to check against the agent wearables</param>
+        /// <returns>The <see cref="WearableType"/> slot that the item is being worn in,
         /// or <see cref="WearableType.Invalid"/> if it is not currently being worn</returns>
         public WearableType IsItemWorn(InventoryItem item)
         {
@@ -984,6 +983,25 @@ namespace OpenMetaverse
                 }
             }
             return WearableType.Invalid;
+        }
+
+        /// <summary>
+        /// Checks if an inventory item is currently being worn
+        /// </summary>
+        /// <param name="itemId"><see cref="UUID"/> if <see cref="InventoryItem"/> to check</param>
+        /// <returns>True if worn</returns>
+        public bool IsItemWorn(UUID itemId)
+        {
+            lock (Wearables)
+            {
+                if (Wearables.Any(wearableType => wearableType.Value
+                        .Any(wearable => wearable.ItemID == itemId)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
