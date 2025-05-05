@@ -522,10 +522,20 @@ namespace OpenMetaverse
             return fetchedItem;
         }
 
+        public async Task<InventoryItem> FetchItemHttpAsync(UUID itemId, UUID ownerId, CancellationToken token = default)
+        {
+            InventoryItem item = null;
+            await RequestFetchInventoryHttpAsync(itemId, ownerId, token, list =>
+            {
+                item = list.First();
+            });
+            return item;
+        }
+
         /// <summary>
         /// Request A single inventory item
         /// </summary>
-        /// <param name="itemID">The items <see cref="OpenMetaverse.UUID"/></param>
+        /// <param name="itemID">The items <see cref="OpenMetaverse.UUID"/></param>f
         /// <param name="ownerID">The item Owners <see cref="OpenMetaverse.UUID"/></param>
         /// <see cref="InventoryManager.OnItemReceived"/>
         public void RequestFetchInventory(UUID itemID, UUID ownerID)

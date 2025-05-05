@@ -1264,7 +1264,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Returns a collection of the agents currently worn attachments
+        /// Returns a collection of the agents currently worn attachments from the cached inventory
         /// </summary>
         /// <returns>A copy of the agents currently worn attachments</returns>
         /// <remarks>Avoid calling this function multiple times as it will make
@@ -1294,7 +1294,7 @@ namespace OpenMetaverse
                 }
 
                 // Otherwise, retrieve the item off the asset server.
-                var inventoryItem = Client.Inventory.FetchItem(item.Key, Client.Self.AgentID, TimeSpan.FromSeconds(10));
+                var inventoryItem = Client.Inventory.FetchItemHttpAsync(item.Key, Client.Self.AgentID).Result;
 
                 attachmentsByPoint.Add(item.Value, inventoryItem);
             }
@@ -1317,7 +1317,7 @@ namespace OpenMetaverse
                 }
 
                 // Otherwise, retrieve the item off the asset server.
-                var inventoryItem = Client.Inventory.FetchItem(item.Key, Client.Self.AgentID, TimeSpan.FromSeconds(10));
+                var inventoryItem = Client.Inventory.FetchItemHttpAsync(item.Key, Client.Self.AgentID).Result;
                 if (inventoryItem != null)
                 {
                     attachmentsByInventoryItem.Add(inventoryItem, item.Value);
