@@ -803,7 +803,6 @@ namespace OpenMetaverse
                                 fetchedFolder.Version = res["version"];
                                 fetchedFolder.OwnerID = res["owner_id"];
                                 _Store.GetNodeFor(fetchedFolder.UUID).NeedsUpdate = false;
-                                ret.Add(fetchedFolder);
 
                                 // Do we have any descendants
                                 if (fetchedFolder.DescendentCount > 0)
