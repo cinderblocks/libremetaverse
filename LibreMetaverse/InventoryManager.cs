@@ -681,40 +681,20 @@ namespace OpenMetaverse
         public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool fetchFolders, bool fetchItems,
             InventorySortOrder order, TimeSpan timeout, bool followLinks = false)
         {
-            List<InventoryBase> inventory = null;
-            var fetchEvent = new AutoResetEvent(false);
-
-            void FolderUpdatedCallback(object sender, FolderUpdatedEventArgs e)
-            {
-                if (e.FolderID == folder && _Store[folder] is InventoryFolder invFolder)
-                {
-                    // InventoryDescendentsHandler only stores DescendentCount if both folders and items are fetched.
-                    if (_Store.GetContents(folder).Count >= invFolder.DescendentCount)
-                    {
-                        fetchEvent.Set();
-                    }
-                }
-                else
-                {
-                    fetchEvent.Set();
-                }
-            }
-
-            FolderUpdated += FolderUpdatedCallback;
-
-            Task task = RequestFolderContents(folder, owner, fetchFolders, fetchItems, order);
-            if (fetchEvent.WaitOne(timeout, false))
+            CancellationTokenSource cts = new CancellationTokenSource();
+            cts.CancelAfter(timeout);
+            var inventory = RequestFolderContents(folder, owner, fetchFolders, fetchItems, order, cts.Token).Result;
+            if (inventory == null)
             {
                 inventory = _Store.GetContents(folder);
             }
-
-            FolderUpdated -= FolderUpdatedCallback;
 
             if (inventory != null && followLinks)
             {
                 for (var i = 0; i < inventory.Count; ++i)
                 {
                     if (!(inventory[i] is InventoryItem item)) { continue; }
+
                     if (item.IsLink())
                     {
                         if (!Store.Contains(item.AssetUUID))
@@ -737,8 +717,8 @@ namespace OpenMetaverse
         /// <param name="order">the sort order to return items in</param>
         /// <param name="cancellationToken">CancellationToken for operation</param>
         /// <see cref="InventoryManager.FolderContents"/>
-        public async Task RequestFolderContents(UUID folderID, UUID ownerID, 
-            bool fetchFolders, bool fetchItems, InventorySortOrder order, CancellationToken cancellationToken)
+        public async Task<List<InventoryBase>> RequestFolderContents(UUID folderID, UUID ownerID, 
+            bool fetchFolders, bool fetchItems, InventorySortOrder order, CancellationToken cancellationToken = default)
         {
             var cap = (ownerID == Client.Self.AgentID) ? "FetchInventoryDescendents2" : "FetchLibDescendents2";
             Uri url = Client.Network.CurrentSim.Caps.CapabilityURI(cap);
@@ -747,20 +727,15 @@ namespace OpenMetaverse
                 Logger.Log($"Failed to obtain {cap} capability on {Client.Network.CurrentSim.Name}",
                     Helpers.LogLevel.Warning, Client);
                 OnFolderUpdated(new FolderUpdatedEventArgs(folderID, false));
-                return;
+                return await Task.FromResult<List<InventoryBase>>(null);
             }
             var folder = new InventoryFolder(folderID)
             {
                 OwnerID = ownerID,
                 UUID = folderID
             };
-            await RequestFolderContents(new List<InventoryFolder>(1) { folder }, url, fetchFolders, fetchItems, order, cancellationToken);
-        }
-
-        public async Task RequestFolderContents(UUID folderID, UUID ownerID,
-            bool fetchFolders, bool fetchItems, InventorySortOrder order)
-        {
-            await RequestFolderContents(folderID, ownerID, fetchFolders, fetchItems, order, CancellationToken.None);
+            return await RequestFolderContents(new List<InventoryFolder>(1) { folder }, 
+                url, fetchFolders, fetchItems, order, cancellationToken);
         }
 
         /// <summary>
@@ -773,9 +748,10 @@ namespace OpenMetaverse
         /// <param name="order">the sort order to return items in</param>
         /// <param name="cancellationToken">CancellationToken for operation</param>
         /// <see cref="InventoryManager.FolderContents"/>
-        public async Task RequestFolderContents(List<InventoryFolder> batch, Uri capabilityUri, 
-            bool fetchFolders, bool fetchItems, InventorySortOrder order, CancellationToken cancellationToken)
+        public async Task<List<InventoryBase>> RequestFolderContents(List<InventoryFolder> batch, Uri capabilityUri, 
+            bool fetchFolders, bool fetchItems, InventorySortOrder order, CancellationToken cancellationToken = default)
         {
+            List <InventoryBase> ret = null;
             try
             {
                 var requestedFolders = new OSDArray(1);
@@ -807,6 +783,7 @@ namespace OpenMetaverse
                         if (resultMap.TryGetValue("folders", out var foldersSd))
                         {
                             var fetchedFolders = (OSDArray)foldersSd;
+                            ret = new List<InventoryBase>(fetchedFolders.Count);
                             foreach (var fetchedFolderNr in fetchedFolders)
                             {
                                 var res = (OSDMap)fetchedFolderNr;
@@ -826,6 +803,7 @@ namespace OpenMetaverse
                                 fetchedFolder.Version = res["version"];
                                 fetchedFolder.OwnerID = res["owner_id"];
                                 _Store.GetNodeFor(fetchedFolder.UUID).NeedsUpdate = false;
+                                ret.Add(fetchedFolder);
 
                                 // Do we have any descendants
                                 if (fetchedFolder.DescendentCount > 0)
@@ -855,6 +833,7 @@ namespace OpenMetaverse
                                             folder.Name = descFolder["name"];
                                             folder.Version = descFolder["version"];
                                             folder.PreferredType = (FolderType)descFolder["type_default"].AsInteger();
+                                            ret.Add(folder);
                                         }
 
                                         // Fetch descendent items
@@ -865,11 +844,11 @@ namespace OpenMetaverse
                                             {
                                                 var item = InventoryItem.FromOSD(it);
                                                 _Store[item.UUID] = item;
+                                                ret.Add(item);
                                             }
                                         }
                                     }
                                 }
-
                                 OnFolderUpdated(new FolderUpdatedEventArgs(res["folder_id"], true));
                             }
                         }
@@ -896,12 +875,7 @@ namespace OpenMetaverse
                     OnFolderUpdated(new FolderUpdatedEventArgs(f.UUID, false));
                 }
             }
-        }
-
-        public async Task RequestFolderContents(List<InventoryFolder> batch, Uri capabilityUri,
-            bool fetchFolders, bool fetchItems, InventorySortOrder order)
-        {
-            await RequestFolderContents(batch, capabilityUri, fetchFolders, fetchItems, order, CancellationToken.None);
+            return ret;
         }
 
         #endregion Fetch
@@ -4046,7 +4020,7 @@ namespace OpenMetaverse
         /// <summary>
         /// UpdateCreateInventoryItem packets are received when a new inventory item 
         /// is created. This may occur when an object that's rezzed in world is
-        /// taken into inventory, when an item is created using the CreateInventoryItem
+        /// taken into inventory, when an item is created using the <see cref="CreateInventoryItem"/>
         /// packet, or when an object has been purchased
         /// </summary>
         /// <param name="sender">The sender</param>

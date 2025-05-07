@@ -2246,40 +2246,23 @@ namespace OpenMetaverse
         /// Get the latest version of COF
         /// </summary>
         /// <returns>Current Outfit Folder (or null if getting the data failed)</returns>
-        public async Task<InventoryFolder> GetCurrentOutfitFolder(CancellationToken cancellationToken)
+        public async Task<InventoryFolder> GetCurrentOutfitFolder(CancellationToken cancellationToken = default)
         {
-            List<InventoryBase> root = null;
-            var folderReceived = new AutoResetEvent(false);
-
-            EventHandler<FolderUpdatedEventArgs> UpdatedCallback = (sender, e) =>
-            {
-                if (e.FolderID != Client.Inventory.Store.RootFolder.UUID) return;
-                if (e.Success)
-                {
-                    root = Client.Inventory.Store.GetContents(Client.Inventory.Store.RootFolder.UUID);
-                }
-                folderReceived.Set();
-            };
-
-            Client.Inventory.FolderUpdated += UpdatedCallback;
-            await Client.Inventory.RequestFolderContents(Client.Inventory.Store.RootFolder.UUID, 
-                Client.Self.AgentID, true, false, InventorySortOrder.ByDate, cancellationToken);
-            folderReceived.WaitOne(Client.Settings.CAPS_TIMEOUT);
-            Client.Inventory.FolderUpdated -= UpdatedCallback;
-
-            InventoryFolder currentOutfitFolder = null;
-
             // COF should be in the root folder. Request update to get the latest version number
+            List<InventoryBase> root = await Client.Inventory.RequestFolderContents(Client.Inventory.Store.RootFolder.UUID, 
+                Client.Self.AgentID, true, false, InventorySortOrder.ByDate, 
+                cancellationToken);
+
             if (root == null) { return null; }
+
             foreach (var baseItem in root)
             {
                 if (baseItem is InventoryFolder folder && folder.PreferredType == FolderType.CurrentOutfit)
                 {
-                    currentOutfitFolder = folder;
-                    break;
+                    return folder;
                 }
             }
-            return currentOutfitFolder;
+            return null;
         }
 
         public AgentSetAppearancePacket MakeAppearancePacket()
