@@ -126,6 +126,8 @@ namespace OpenMetaverse
         /// <summary>Used for converting shadow_id to asset_id</summary>
         public static readonly UUID MAGIC_ID = new UUID("3c115e51-04f4-523c-9fa6-98aff1034730");
 
+        public static Task<List<InventoryBase>> NoResults = Task.FromResult<List<InventoryBase>>(null);
+
         /// <summary>Maximum items allowed to give</summary>
         public const int MAX_GIVE_ITEMS = 66; // viewer code says 66, but 42 in the notification
 
@@ -727,7 +729,7 @@ namespace OpenMetaverse
                 Logger.Log($"Failed to obtain {cap} capability on {Client.Network.CurrentSim.Name}",
                     Helpers.LogLevel.Warning, Client);
                 OnFolderUpdated(new FolderUpdatedEventArgs(folderID, false));
-                return await Task.FromResult<List<InventoryBase>>(null);
+                return await NoResults;
             }
             var folder = new InventoryFolder(folderID)
             {
