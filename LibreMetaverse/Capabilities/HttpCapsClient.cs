@@ -49,6 +49,10 @@ namespace LibreMetaverse
 
     public class HttpCapsClient : HttpClient
     {
+        public static readonly MediaTypeHeaderValue LLSD_XML = new MediaTypeHeaderValue("application/llsd+xml");
+        public static readonly MediaTypeHeaderValue LLSD_BINARY = new MediaTypeHeaderValue("application/llsd+binary");
+        public static readonly MediaTypeHeaderValue LLSD_JSON = new MediaTypeHeaderValue("application/llsd+json");
+
         public HttpCapsClient(HttpMessageHandler handler) : base(handler)
         {
         }
@@ -351,16 +355,16 @@ namespace LibreMetaverse
             {
                 case OSDFormat.Xml:
                     serializedData = OSDParser.SerializeLLSDXmlBytes(data);
-                    contentType = new MediaTypeHeaderValue("application/llsd+xml");
+                    contentType = LLSD_XML;
                     break;
                 case OSDFormat.Binary:
                     serializedData = OSDParser.SerializeLLSDBinary(data);
-                    contentType = new MediaTypeHeaderValue("application/llsd+binary");
+                    contentType = LLSD_BINARY;
                     break;
                 case OSDFormat.Json:
                 default:
                     serializedData = System.Text.Encoding.UTF8.GetBytes(OSDParser.SerializeJsonString(data));
-                    contentType = new MediaTypeHeaderValue("application/llsd+json");
+                    contentType = LLSD_JSON;
                     break;
             }
         }
