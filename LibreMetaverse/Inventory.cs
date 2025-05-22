@@ -397,15 +397,16 @@ namespace OpenMetaverse
         /// <returns>The number of inventory items successfully reconstructed into the inventory node tree</returns>
         public int RestoreFromDisk(string filename)
         {
-            var nodes = new List<InventoryNode>();
-            var itemCount = 0;
+            var cacheNodes = new List<InventoryNode>();
 
             try
             {
                 if (!File.Exists(filename))
+                {
                     return -1;
+                }
 
-                using (Stream stream = File.Open(filename, FileMode.Open))
+                using (var stream = File.Open(filename, FileMode.Open))
                 {
 #if !NET7_0_OR_GREATER
                     var bformatter = new BinaryFormatter();
@@ -414,12 +415,11 @@ namespace OpenMetaverse
                     {
 #if NET7_0_OR_GREATER                  
                         var node = MemoryPackSerializer.DeserializeAsync<InventoryNode>(stream);
-                        nodes.Add(node.Result);
+                        cacheNodes.Add(node.Result);
 #else
                         var node = (InventoryNode)bformatter.Deserialize(stream);
-                        nodes.Add(node);
+                        cacheNodes.Add(node);
 #endif
-                        itemCount++;
                     }
                 }
             }
@@ -429,90 +429,80 @@ namespace OpenMetaverse
                 return -1;
             }
 
-            Logger.Log($"Read {itemCount} items from inventory cache file", Helpers.LogLevel.Info);
+            Logger.Log($"Read {cacheNodes.Count} items from inventory cache file", Helpers.LogLevel.Info);
 
-            itemCount = 0;
-            var delNodes = new List<InventoryNode>(); //nodes that we have processed and will delete
-            var dirtyFolders = new List<UUID>(); // Tainted folders that we will not restore items into
+            var dirtyFolders = new HashSet<UUID>();
 
-            // Because we could get child nodes before parents we must iterate around and only add nodes who have
-            // a parent already in the list because we must update both child and parent to link together
-            // But sometimes we have seen orphin nodes due to bad/incomplete data when caching so we have an emergency abort route
-            var stuck = 0;
-            
-            while (nodes.Count != 0 && stuck<5)
+            // First pass: process InventoryFolders
+            foreach (var cacheNode in cacheNodes)
             {
-                foreach (var node in nodes)
+                if(!(cacheNode.Data is InventoryFolder cacheFolder))
                 {
-                    if (node.ParentID == UUID.Zero)
-                    {
-                        //We don't need the root nodes "My Inventory" etc as they will already exist for the correct
-                        // user of this cache.
-                        delNodes.Add(node);
-                        itemCount--;
-                    }
-                    else if(Items.TryGetValue(node.Data.UUID,out var pnode))
-                    {
-                        //We already have this it must be a folder
-                        if (node.Data is InventoryFolder cacheFolder)
-                        {
-                            var serverFolder = (InventoryFolder)pnode.Data;
-
-                            if (cacheFolder.Version != serverFolder.Version)
-                            {
-                                Logger.DebugLog("Inventory Cache/Server version mismatch on " + node.Data.Name + " " + cacheFolder.Version + " vs " + serverFolder.Version);
-                                pnode.NeedsUpdate = true;
-                                dirtyFolders.Add(node.Data.UUID);
-                            }
-                            else
-                            {
-                                pnode.NeedsUpdate = false;
-                            }
-
-                            delNodes.Add(node);
-                        }
-                    }
-                    else if (Items.TryGetValue(node.ParentID, out pnode))
-                    {
-                        if (node.Data != null)
-                        {
-                            // If node is folder, and it does not exist in skeleton, mark it as 
-                            // dirty and don't process nodes that belong to it
-                            if (node.Data is InventoryFolder && !(Items.ContainsKey(node.Data.UUID)))
-                            {
-                                dirtyFolders.Add(node.Data.UUID);
-                            }
-
-                            //Only add new items, this is most likely to be run at login time before any inventory
-                            //nodes other than the root are populated. Don't add non-existing folders.
-                            if (!Items.ContainsKey(node.Data.UUID) 
-                                && !dirtyFolders.Contains(pnode.Data.UUID) 
-                                && !(node.Data is InventoryFolder))
-                            {
-                                if (Items.TryAdd(node.Data.UUID, node))
-                                {
-                                    node.Parent = pnode; //Update this node with its parent
-                                    pnode.Nodes.Add(node.Data.UUID, node); // Add to the parents child list
-                                    itemCount++;
-                                }
-                            }
-                        }
-
-                        delNodes.Add(node);
-                    }
+                    continue;
                 }
 
-                if (delNodes.Count == 0)
-                    ++stuck;
-                else
-                    stuck = 0;
-
-                //Clean up processed nodes this loop around.
-                foreach (var node in delNodes)
+                if (cacheNode.ParentID == UUID.Zero)
                 {
-                    nodes.Remove(node);
+                    //We don't need the root nodes "My Inventory" etc as they will already exist for the correct
+                    // user of this cache.
+                    continue;
                 }
-                delNodes.Clear();
+
+                if (!Items.TryGetValue(cacheNode.Data.UUID, out var serverNode))
+                {
+                    // This is an orphaned folder that no longer exists on the server.
+                    continue;
+                }
+
+                var serverFolder = (InventoryFolder)serverNode.Data;
+                serverNode.NeedsUpdate = cacheFolder.Version != serverFolder.Version;
+
+                if (serverNode.NeedsUpdate)
+                {
+                    Logger.DebugLog($"Inventory Cache/Server version mismatch on {cacheNode.Data.Name} {cacheFolder.Version} vs {serverFolder.Version}");
+                    dirtyFolders.Add(cacheNode.Data.UUID);
+                }
+            }
+
+            // Second pass: process InventoryItems
+            var itemCount = 0;
+            foreach (var cacheNode in cacheNodes)
+            {
+                if (!(cacheNode.Data is InventoryItem cacheItem))
+                {
+                    // Only process InventoryItems
+                    continue;
+                }
+
+                if (!Items.TryGetValue(cacheNode.ParentID, out var serverParentNode))
+                {
+                    // This item does not have a parent in our known inventory. The folder was probably deleted on the server
+                    // and our cache is old
+                    continue;
+                }
+
+                if(dirtyFolders.Contains(serverParentNode.Data.UUID))
+                {
+                    // This item belongs to a folder that has been marked as dirty, so it too is dirty and must be skipped
+                    continue;
+                }
+
+                if(Items.ContainsKey(cacheItem.UUID))
+                {
+                    // This item was already added to our Items store, likely added from previous server requests during this session
+                    continue;
+                }
+
+                if (!Items.TryAdd(cacheItem.UUID, cacheNode))
+                {
+                    Logger.Log($"Failed to add cache item node {cacheItem.Name} with parent {serverParentNode.Data.Name}", Helpers.LogLevel.Info);
+                    continue;
+                }
+
+                // Add this cached InventoryItem node to the parent
+                cacheNode.Parent = serverParentNode;
+                serverParentNode.Nodes.Add(cacheItem.UUID, cacheNode);
+                itemCount++;
             }
 
             Logger.Log($"Reassembled {itemCount} items from inventory cache file", Helpers.LogLevel.Info);
