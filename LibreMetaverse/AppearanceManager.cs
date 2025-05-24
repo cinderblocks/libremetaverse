@@ -127,7 +127,6 @@ namespace OpenMetaverse
 
     #endregion Enums
 
-    [Serializable]
     public class AppearanceManagerException : Exception
     {
         public AppearanceManagerException(string message)
