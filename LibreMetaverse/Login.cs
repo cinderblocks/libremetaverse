@@ -1061,7 +1061,6 @@ namespace OpenMetaverse
 
     #endregion Structs
 
-    [Serializable]
     public class LoginException : Exception
     {
         public LoginException(string message) 

@@ -25,17 +25,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using MessagePack;
+using MessagePack.Formatters;
+using MessagePack.Resolvers;
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-#if NET7_0_OR_GREATER
-using MemoryPack;
-#else
-using System.Runtime.Serialization.Formatters.Binary;
-#endif
-
 
 namespace OpenMetaverse
 {
@@ -43,7 +41,6 @@ namespace OpenMetaverse
     /// <summary>
     /// Exception class to identify inventory exceptions
     /// </summary>
-    [Serializable]
     public class InventoryException : Exception
     {
         public InventoryException() { }
@@ -357,30 +354,42 @@ namespace OpenMetaverse
             Items.Clear();
         }
 
+        private MessagePackSerializerOptions GetSerializerOptions()
+        {
+            var resolver = MessagePack.Resolvers.CompositeResolver.Create(
+                new List<IMessagePackFormatter>()
+                {
+                    Formatters.UUIDFormatter.Instance,
+                },
+                new List<IFormatterResolver>
+                {
+                    StandardResolver.Instance,
+                }
+            );
+
+            return MessagePackSerializerOptions
+                .Standard
+                .WithResolver(resolver);
+        }
+
         /// <summary>
         /// Saves the current inventory structure to a cache file
         /// </summary>
         /// <param name="filename">Name of the cache file to save to</param>
         public void SaveToDisk(string filename)
         {
-	        try
-	        {
+            try
+            {
                 using (Stream stream = File.Open(filename, FileMode.Create))
                 {
-#if !NET7_0_OR_GREATER
-                    var bformatter = new BinaryFormatter();
-#endif
                     lock (Items)
                     {
                         Logger.Log($"Caching {Items.Count} inventory items to {filename}", Helpers.LogLevel.Info);
-                        foreach (var kvp in Items)
-                        {
-#if NET7_0_OR_GREATER
-                            MemoryPackSerializer.SerializeAsync(stream, kvp.Value);
-#else
-                            bformatter.Serialize(stream, kvp.Value);
-#endif
-                        }
+
+                        var options = GetSerializerOptions();
+                        var items = Items.Values.ToList();
+
+                        MessagePackSerializer.Serialize(stream, items, options);
                     }
                 }
 	        }
@@ -408,19 +417,9 @@ namespace OpenMetaverse
 
                 using (var stream = File.Open(filename, FileMode.Open))
                 {
-#if !NET7_0_OR_GREATER
-                    var bformatter = new BinaryFormatter();
-#endif
-                    while (stream.Position < stream.Length)
-                    {
-#if NET7_0_OR_GREATER                  
-                        var node = MemoryPackSerializer.DeserializeAsync<InventoryNode>(stream);
-                        cacheNodes.Add(node.Result);
-#else
-                        var node = (InventoryNode)bformatter.Deserialize(stream);
-                        cacheNodes.Add(node);
-#endif
-                    }
+                    var options = GetSerializerOptions();
+
+                    cacheNodes = MessagePackSerializer.Deserialize<List<InventoryNode>>(stream, options);
                 }
             }
             catch (Exception e)
@@ -441,7 +440,7 @@ namespace OpenMetaverse
                     continue;
                 }
 
-                if (cacheNode.ParentID == UUID.Zero)
+                if (cacheNode.Data.ParentUUID == UUID.Zero)
                 {
                     //We don't need the root nodes "My Inventory" etc as they will already exist for the correct
                     // user of this cache.
@@ -474,7 +473,7 @@ namespace OpenMetaverse
                     continue;
                 }
 
-                if (!Items.TryGetValue(cacheNode.ParentID, out var serverParentNode))
+                if (!Items.TryGetValue(cacheNode.Data.ParentUUID, out var serverParentNode))
                 {
                     // This item does not have a parent in our known inventory. The folder was probably deleted on the server
                     // and our cache is old

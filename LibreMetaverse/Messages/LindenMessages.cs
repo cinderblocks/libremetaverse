@@ -603,7 +603,6 @@ namespace OpenMetaverse.Messages.Linden
     /// <summary>
     /// The details of a single parcel in a region, also contains some regionwide globals
     /// </summary>
-    [Serializable]
     public class ParcelPropertiesMessage : IMessage
     {
         /// <summary>Simulator-local ID of this parcel</summary>
@@ -1086,7 +1085,6 @@ namespace OpenMetaverse.Messages.Linden
     }
 
     /// <summary>Base class used for the RemoteParcelRequest message</summary>
-    [Serializable]
     public abstract class RemoteParcelRequestBlock
     {
         public abstract OSDMap Serialize();
@@ -1137,7 +1135,6 @@ namespace OpenMetaverse.Messages.Linden
     /// A message sent from the simulator to the viewer in response to a <see cref="RemoteParcelRequestRequest"/> 
     /// which will contain parcel information
     /// </summary>
-    [Serializable]
     public class RemoteParcelRequestReply : RemoteParcelRequestBlock
     {
         /// <summary>The grid-wide unique parcel ID</summary>
@@ -1170,7 +1167,6 @@ namespace OpenMetaverse.Messages.Linden
     /// A message containing a request for a remote parcel from a viewer, or a response
     /// from the simulator to that request
     /// </summary>
-    [Serializable]
     public class RemoteParcelRequestMessage : IMessage
     {
         /// <summary>The request or response details block</summary>
@@ -4102,13 +4098,11 @@ namespace OpenMetaverse.Messages.Linden
         }
     }
 
-    [Serializable]
     public class DirLandReplyMessage : IMessage
     {
         public UUID AgentID;
         public UUID QueryID;
 
-        [Serializable]
         public class QueryReply
         {
             public int ActualArea;
@@ -4739,7 +4733,6 @@ namespace OpenMetaverse.Messages.Linden
 
 
     /// <summary>Base class used for the ObjectMedia message</summary>
-    [Serializable]
     public abstract class ObjectMediaBlock
     {
         public abstract OSDMap Serialize();
@@ -4941,7 +4934,6 @@ namespace OpenMetaverse.Messages.Linden
     /// <summary>
     /// Message for setting or getting per face MediaEntry
     /// </summary>
-    [Serializable]
     public class ObjectMediaMessage : IMessage
     {
         /// <summary>The request or response details block</summary>
@@ -5489,7 +5481,6 @@ namespace OpenMetaverse.Messages.Linden
     /// <summary>
     /// Message received when requesting AgentProfile for an avatar
     /// </summary>
-    [Serializable]
     public class AgentProfileMessage : IMessage
     {
         public class GroupData

@@ -29,7 +29,6 @@ using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
 {
-    [Serializable]
     public class TerrainPatch
     {
         #region Enums and Structs
