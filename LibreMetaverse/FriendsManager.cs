@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2022, Sjofn LLC.
+ * Copyright (c) 2022-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -27,7 +27,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
 
@@ -42,7 +41,7 @@ namespace OpenMetaverse
         CanSeeOnline = 1,
         /// <summary>The avatar can see the location of the target avatar on the map</summary>
         CanSeeOnMap = 2,
-        /// <summary>The avatar can modify the ojects of the target avatar </summary>
+        /// <summary>The avatar can modify the objects of the target avatar </summary>
         CanModifyObjects = 4
     }
 
@@ -179,7 +178,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Used internally when building the initial list of friends at login time
         /// </summary>
-        /// <param name="id">System ID of the avatar being prepesented</param>
+        /// <param name="id">System ID of the avatar being represented</param>
         /// <param name="theirRights">Rights the friend has to see you online and to modify your objects</param>
         /// <param name="myRights">Rights you have to see your friend online and to modify their objects</param>
         internal FriendInfo(UUID id, FriendRights theirRights, FriendRights myRights)
@@ -197,7 +196,7 @@ namespace OpenMetaverse
         /// <summary>
         /// FriendInfo represented as a string
         /// </summary>
-        /// <returns>A string reprentation of both my rights and my friends rights</returns>
+        /// <returns><see cref="string"/> representation of both my rights and my friends rights</returns>
         public override string ToString()
         {
             return !string.IsNullOrEmpty(Name) 
@@ -410,10 +409,6 @@ namespace OpenMetaverse
 
         #endregion Delegates
 
-        #region Events
-
-        #endregion Events
-
         private readonly GridClient Client;
         /// <summary>
         /// A dictionary of key/value pairs containing known friends of this avatar. 
@@ -424,7 +419,7 @@ namespace OpenMetaverse
         public LockingDictionary<UUID, FriendInfo> FriendList = new LockingDictionary<UUID, FriendInfo>();
 
         /// <summary>
-        /// A Dictionary of key/value pairs containing current pending frienship offers.
+        /// A Dictionary of key/value pairs containing current pending friendship offers.
         /// 
         /// The key is the <see cref="UUID"/> of the avatar making the request, 
         /// the value is the <see cref="UUID"/> of the request which is used to accept
@@ -450,8 +445,7 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.TerminateFriendship, TerminateFriendshipHandler);
             Client.Network.RegisterCallback(PacketType.FindAgent, OnFindAgentReplyHandler);
 
-            Client.Network.RegisterLoginResponseCallback(new NetworkManager.LoginResponseCallback(Network_OnLoginResponse),
-                new string[] { "buddy-list" });
+            Client.Network.RegisterLoginResponseCallback(Network_OnLoginResponse, new[] { "buddy-list" });
         }
 
         #region Public Methods
@@ -681,9 +675,9 @@ namespace OpenMetaverse
             TerminateFriendshipPacket itsOver = (TerminateFriendshipPacket)packet;
             string name = string.Empty;
 
-            if (FriendList.ContainsKey(itsOver.ExBlock.OtherID))
+            if (FriendList.TryGetValue(itsOver.ExBlock.OtherID, out var friend))
             {
-                name = FriendList[itsOver.ExBlock.OtherID].Name;
+                name = friend.Name;
                 FriendList.Remove(itsOver.ExBlock.OtherID);
             }
 
@@ -836,10 +830,9 @@ namespace OpenMetaverse
 
             foreach (KeyValuePair<UUID, string> kvp in e.Names)
             {
-                FriendInfo friend;
                 lock (FriendList.Dictionary)
                 {
-                    if (FriendList.TryGetValue(kvp.Key, out friend))
+                    if (FriendList.TryGetValue(kvp.Key, out var friend))
                     {
                         if (friend.Name == null)
                             newNames.Add(kvp.Key, e.Names[kvp.Key]);
@@ -938,13 +931,12 @@ namespace OpenMetaverse
             Packet packet = e.Packet;
             if (packet.Type == PacketType.ChangeUserRights)
             {
-                FriendInfo friend;
                 ChangeUserRightsPacket rights = (ChangeUserRightsPacket)packet;
 
                 foreach (ChangeUserRightsPacket.RightsBlock block in rights.Rights)
                 {
                     FriendRights newRights = (FriendRights)block.RelatedRights;
-                    if (FriendList.TryGetValue(block.AgentRelated, out friend))
+                    if (FriendList.TryGetValue(block.AgentRelated, out var friend))
                     {
                         friend.TheirFriendRights = newRights;
                         if (m_FriendRights != null)
@@ -977,10 +969,9 @@ namespace OpenMetaverse
                 Packet packet = e.Packet;
                 FindAgentPacket reply = (FindAgentPacket)packet;
 
-                float x, y;
                 UUID prey = reply.AgentBlock.Prey;
                 ulong regionHandle = Helpers.GlobalPosToRegionHandle((float)reply.LocationBlock[0].GlobalX,
-                    (float)reply.LocationBlock[0].GlobalY, out x, out y);
+                    (float)reply.LocationBlock[0].GlobalY, out var x, out var y);
                 Vector3 xyz = new Vector3(x, y, 0f);
 
                 OnFriendFoundReply(new FriendFoundReplyEventArgs(prey, regionHandle, xyz));
@@ -1045,9 +1036,8 @@ namespace OpenMetaverse
             {
                 foreach (BuddyListEntry buddy in replyData.BuddyList)
                 {
-                    UUID bubid;
                     string id = buddy.BuddyId.Length > uuidLength ? buddy.BuddyId.Substring(0, uuidLength) : buddy.BuddyId;
-                    if (UUID.TryParse(id, out bubid))
+                    if (UUID.TryParse(id, out var bubid))
                     {
                         lock (FriendList.Dictionary)
                         {
