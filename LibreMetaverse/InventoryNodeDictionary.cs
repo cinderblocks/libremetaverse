@@ -27,23 +27,15 @@
 
 using System;
 using System.Collections.Generic;
-#if NET7_0_OR_GREATER
-using MemoryPack;
-#endif
 
 namespace OpenMetaverse
 {
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
     public partial class InventoryNodeDictionary: IComparer<UUID>
     {
         protected readonly SortedDictionary<UUID, InventoryNode> SDictionary;
         protected readonly Dictionary<UUID, InventoryNode> Dictionary = new Dictionary<UUID, InventoryNode>();
         protected InventoryNode parent;
-#if NET7_0_OR_GREATER
-        [MemoryPackIgnore]
-#endif
+
         protected readonly object syncRoot = new object();
         public int Compare(UUID x, UUID y)
         {
@@ -91,9 +83,6 @@ namespace OpenMetaverse
             set => parent = value;
         }
 
-#if NET7_0_OR_GREATER
-        [MemoryPackIgnore]
-#endif
         public object SyncRoot => syncRoot;
 
         public int Count => Dictionary.Count;

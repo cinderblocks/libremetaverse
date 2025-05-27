@@ -28,14 +28,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-#if NET7_0_OR_GREATER
-using MemoryPack;
-#else
-using System.Runtime.Serialization.Formatters.Binary;
-#endif
-
 
 namespace OpenMetaverse
 {
@@ -43,7 +36,6 @@ namespace OpenMetaverse
     /// <summary>
     /// Exception class to identify inventory exceptions
     /// </summary>
-    [Serializable]
     public class InventoryException : Exception
     {
         public InventoryException() { }
@@ -357,156 +349,24 @@ namespace OpenMetaverse
             Items.Clear();
         }
 
+
         /// <summary>
         /// Saves the current inventory structure to a cache file
         /// </summary>
         /// <param name="filename">Name of the cache file to save to</param>
         public void SaveToDisk(string filename)
         {
-	        try
-	        {
-                using (Stream stream = File.Open(filename, FileMode.Create))
-                {
-#if !NET7_0_OR_GREATER
-                    var bformatter = new BinaryFormatter();
-#endif
-                    lock (Items)
-                    {
-                        Logger.Log($"Caching {Items.Count} inventory items to {filename}", Helpers.LogLevel.Info);
-                        foreach (var kvp in Items)
-                        {
-#if NET7_0_OR_GREATER
-                            MemoryPackSerializer.SerializeAsync(stream, kvp.Value);
-#else
-                            bformatter.Serialize(stream, kvp.Value);
-#endif
-                        }
-                    }
-                }
-	        }
-            catch (Exception e)
-            {
-                Logger.Log("Error saving inventory cache to disk", Helpers.LogLevel.Error, e);
-            }
+            InventoryCache.SaveToDisk(filename, Items);
         }
 
         /// <summary>
         /// Loads in inventory cache file into the inventory structure. Note only valid to call after login has been successful.
         /// </summary>
         /// <param name="filename">Name of the cache file to load</param>
-        /// <returns>The number of inventory items successfully reconstructed into the inventory node tree</returns>
+        /// <returns>The number of inventory items successfully reconstructed into the inventory node tree, or -1 on error</returns>
         public int RestoreFromDisk(string filename)
         {
-            var cacheNodes = new List<InventoryNode>();
-
-            try
-            {
-                if (!File.Exists(filename))
-                {
-                    return -1;
-                }
-
-                using (var stream = File.Open(filename, FileMode.Open))
-                {
-#if !NET7_0_OR_GREATER
-                    var bformatter = new BinaryFormatter();
-#endif
-                    while (stream.Position < stream.Length)
-                    {
-#if NET7_0_OR_GREATER                  
-                        var node = MemoryPackSerializer.DeserializeAsync<InventoryNode>(stream);
-                        cacheNodes.Add(node.Result);
-#else
-                        var node = (InventoryNode)bformatter.Deserialize(stream);
-                        cacheNodes.Add(node);
-#endif
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Logger.Log("Error accessing inventory cache file", Helpers.LogLevel.Error, e);
-                return -1;
-            }
-
-            Logger.Log($"Read {cacheNodes.Count} items from inventory cache file", Helpers.LogLevel.Info);
-
-            var dirtyFolders = new HashSet<UUID>();
-
-            // First pass: process InventoryFolders
-            foreach (var cacheNode in cacheNodes)
-            {
-                if(!(cacheNode.Data is InventoryFolder cacheFolder))
-                {
-                    continue;
-                }
-
-                if (cacheNode.ParentID == UUID.Zero)
-                {
-                    //We don't need the root nodes "My Inventory" etc as they will already exist for the correct
-                    // user of this cache.
-                    continue;
-                }
-
-                if (!Items.TryGetValue(cacheNode.Data.UUID, out var serverNode))
-                {
-                    // This is an orphaned folder that no longer exists on the server.
-                    continue;
-                }
-
-                var serverFolder = (InventoryFolder)serverNode.Data;
-                serverNode.NeedsUpdate = cacheFolder.Version != serverFolder.Version;
-
-                if (serverNode.NeedsUpdate)
-                {
-                    Logger.DebugLog($"Inventory Cache/Server version mismatch on {cacheNode.Data.Name} {cacheFolder.Version} vs {serverFolder.Version}");
-                    dirtyFolders.Add(cacheNode.Data.UUID);
-                }
-            }
-
-            // Second pass: process InventoryItems
-            var itemCount = 0;
-            foreach (var cacheNode in cacheNodes)
-            {
-                if (!(cacheNode.Data is InventoryItem cacheItem))
-                {
-                    // Only process InventoryItems
-                    continue;
-                }
-
-                if (!Items.TryGetValue(cacheNode.ParentID, out var serverParentNode))
-                {
-                    // This item does not have a parent in our known inventory. The folder was probably deleted on the server
-                    // and our cache is old
-                    continue;
-                }
-
-                if(dirtyFolders.Contains(serverParentNode.Data.UUID))
-                {
-                    // This item belongs to a folder that has been marked as dirty, so it too is dirty and must be skipped
-                    continue;
-                }
-
-                if(Items.ContainsKey(cacheItem.UUID))
-                {
-                    // This item was already added to our Items store, likely added from previous server requests during this session
-                    continue;
-                }
-
-                if (!Items.TryAdd(cacheItem.UUID, cacheNode))
-                {
-                    Logger.Log($"Failed to add cache item node {cacheItem.Name} with parent {serverParentNode.Data.Name}", Helpers.LogLevel.Info);
-                    continue;
-                }
-
-                // Add this cached InventoryItem node to the parent
-                cacheNode.Parent = serverParentNode;
-                serverParentNode.Nodes.Add(cacheItem.UUID, cacheNode);
-                itemCount++;
-            }
-
-            Logger.Log($"Reassembled {itemCount} items from inventory cache file", Helpers.LogLevel.Info);
-            return itemCount;
+            return InventoryCache.RestoreFromDisk(filename, Items);
         }
 
         #region Operators
