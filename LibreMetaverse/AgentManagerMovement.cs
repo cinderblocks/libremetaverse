@@ -532,7 +532,7 @@ namespace OpenMetaverse
                 {
                     if (!Client.Network.CurrentSim.ObjectsPrimitives.TryGetValue(Client.Self.SittingOn, out var parent))
                     {
-                        Logger.Log("Attempted TurnToward but parent prim is not in dictionary", Helpers.LogLevel.Warning, Client);
+                        Logger.Log("Attempted TurnToward but parent prim is not found", Helpers.LogLevel.Warning, Client);
                         return false;
                     }
 

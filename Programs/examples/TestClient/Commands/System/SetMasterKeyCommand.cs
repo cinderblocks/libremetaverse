@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 namespace OpenMetaverse.TestClient
 {
@@ -19,18 +20,14 @@ namespace OpenMetaverse.TestClient
 
             lock (Client.Network.Simulators)
             {
-                foreach (var sim in Client.Network.Simulators)
+                foreach (var master in Client.Network.Simulators
+                             .Select(sim => sim.ObjectsAvatars.FirstOrDefault(
+                                kvp => kvp.Value.ID == Client.MasterKey))
+                             .Where(master => master.Value != null))
                 {
-                    Avatar master = sim.ObjectsAvatars.Find(
-                        avatar => avatar.ID == Client.MasterKey
-                    );
-
-                    if (master != null)
-                    {
-                        Client.Self.InstantMessage(master.ID,
-                            "You are now my master. IM me with \"help\" for a command list.");
-                        break;
-                    }
+                    Client.Self.InstantMessage(master.Value.ID,
+                        "You are now my master. IM me with \"help\" for a command list.");
+                    break;
                 }
             }
 

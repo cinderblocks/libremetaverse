@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2019-2024, Sjofn LLC
+ * Copyright (c) 2019-2025, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -1398,8 +1398,7 @@ namespace OpenMetaverse
                 // go up the hierarchy trying to find the root prim
                 while (p != null && p.ParentID != 0)
                 {
-                    Avatar av;
-                    if (Client.Network.CurrentSim.ObjectsAvatars.TryGetValue(p.ParentID, out av))
+                    if (Client.Network.CurrentSim.ObjectsAvatars.TryGetValue(p.ParentID, out var av))
                     {
                         p = av;
                         fullPosition += p.Position;
@@ -1437,8 +1436,8 @@ namespace OpenMetaverse
             {
                 if (sittingOn != 0)
                 {
-                    Primitive parent;
-                    if (Client.Network.CurrentSim != null && Client.Network.CurrentSim.ObjectsPrimitives.TryGetValue(sittingOn, out parent))
+                    if (Client.Network.CurrentSim != null 
+                        && Client.Network.CurrentSim.ObjectsPrimitives.TryGetValue(sittingOn, out var parent))
                     {
                         return relativeRotation * parent.Rotation;
                     }

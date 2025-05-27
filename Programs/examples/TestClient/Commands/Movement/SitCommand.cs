@@ -16,30 +16,28 @@ namespace OpenMetaverse.TestClient
             Primitive closest = null;
 		    double closestDistance = double.MaxValue;
 
-            Client.Network.CurrentSim.ObjectsPrimitives.ForEach(
-                delegate(Primitive prim)
-                {
-                    float distance = Vector3.Distance(Client.Self.SimPosition, prim.Position);
-
-                    if (closest == null || distance < closestDistance)
-                    {
-                        closest = prim;
-                        closestDistance = distance;
-                    }
-                }
-            );
-
-            if (closest != null)
+            foreach (var kvp in Client.Network.CurrentSim.ObjectsPrimitives)
             {
-                Client.Self.RequestSit(closest.ID, Vector3.Zero);
-                Client.Self.Sit();
+                if (kvp.Value == null) { continue; }
 
-                return "Sat on " + closest.ID + " (" + closest.LocalID + "). Distance: " + closestDistance;
+                var prim = kvp.Value;
+                var distance = Vector3.Distance(Client.Self.SimPosition, prim.Position);
+                if (closest == null || distance < closestDistance)
+                {
+                    closest = prim;
+                    closestDistance = distance;
+                }
             }
-            else
+
+            if (closest == null)
             {
                 return "Couldn't find a nearby prim to sit on";
             }
-		}
+            Client.Self.RequestSit(closest.ID, Vector3.Zero);
+            Client.Self.Sit();
+
+            return $"Sat on {closest.ID} ({closest.LocalID}). Distance: {closestDistance}";
+
+        }
     }
 }

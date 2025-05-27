@@ -2015,11 +2015,18 @@ namespace OpenMetaverse
                     {
                         if (Client.Settings.OBJECT_TRACKING)
                         {
-                            Primitive prim = sim.ObjectsPrimitives.Find(p => p.ID == primID);
-                            if (prim != null)
+                            var kvp = sim.ObjectsPrimitives.SingleOrDefault(
+                                p => p.Value.ID == primID);
+                            if (kvp.Value != null)
                             {
-                                prim.MediaVersion = response.Version;
-                                prim.FaceMedia = response.FaceMedia;
+                                Primitive prim = kvp.Value;
+                                if (prim != null)
+                                {
+                                    prim.MediaVersion = response.Version;
+                                    prim.FaceMedia = response.FaceMedia;
+                                }
+
+                                sim.ObjectsPrimitives.TryUpdate(kvp.Key, prim, kvp.Value);
                             }
                         }
 
@@ -2481,9 +2488,7 @@ namespace OpenMetaverse
                     case PCode.NewTree:
                     case PCode.Prim:
 
-                        bool isNewObject;
-                        lock (simulator.ObjectsPrimitives.Dictionary)
-                            isNewObject = !simulator.ObjectsPrimitives.ContainsKey(block.ID);
+                        bool isNewObject = !simulator.ObjectsPrimitives.ContainsKey(block.ID);
 
                         Primitive prim = GetPrimitive(simulator, block.ID, block.FullID);
 
@@ -2587,9 +2592,7 @@ namespace OpenMetaverse
                     #region Avatar
                     case PCode.Avatar:
 
-                        bool isNewAvatar;
-                        lock (simulator.ObjectsAvatars.Dictionary)
-                            isNewAvatar = !simulator.ObjectsAvatars.ContainsKey(block.ID);
+                        bool isNewAvatar = !simulator.ObjectsAvatars.ContainsKey(block.ID);
 
                         // Update some internals if this is our avatar
                         if (block.FullID == Client.Self.AgentID && simulator == Client.Network.CurrentSim)
@@ -2878,9 +2881,7 @@ namespace OpenMetaverse
 
                     #endregion Relevance check
 
-                    bool isNew;
-                    lock (simulator.ObjectsPrimitives.Dictionary)
-                        isNew = !simulator.ObjectsPrimitives.ContainsKey(LocalID);
+                    bool isNew = !simulator.ObjectsPrimitives.ContainsKey(LocalID);
 
                     Primitive prim = GetPrimitive(simulator, LocalID, FullID);
 
@@ -3113,10 +3114,11 @@ namespace OpenMetaverse
                 foreach (var odb in update.ObjectData)
                 {
                     uint localID = odb.ID;
+                    uint crc = odb.CRC;
 
                     if (cachedPrimitives)
                     {
-                        if (!simulator.DataPool.NeedsRequest(localID, odb.CRC))
+                        if (!simulator.DataPool.NeedsRequest(localID, crc))
                         {
                             continue;
                         }
@@ -3147,71 +3149,75 @@ namespace OpenMetaverse
             }
             OnKillObjects(new KillObjectsEventArgs(e.Simulator, killed));
 
+            List<uint> removeAvatars = new List<uint>();
+            List<uint> removePrims = new List<uint>();
 
-            lock (simulator.ObjectsPrimitives.Dictionary)
+            if (Client.Settings.OBJECT_TRACKING)
             {
-                List<uint> removeAvatars = new List<uint>();
-                List<uint> removePrims = new List<uint>();
-
-                if (Client.Settings.OBJECT_TRACKING)
+                foreach (var odb in kill.ObjectData)
                 {
-                    uint localID;
-                    foreach (var odb in kill.ObjectData)
+                    var localID = odb.ID;
+
+                    if (simulator.ObjectsPrimitives.ContainsKey(localID))
                     {
-                        localID = odb.ID;
+                        removePrims.Add(localID);
+                    }
 
-                        if (simulator.ObjectsPrimitives.Dictionary.ContainsKey(localID))
-                            removePrims.Add(localID);
-
-                        foreach (var prim in simulator.ObjectsPrimitives.Dictionary.Where(prim => prim.Value.ParentID == localID))
+                    foreach (var prim in simulator.ObjectsPrimitives)
+                    {
+                        if (prim.Value.ParentID == localID)
                         {
                             OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
                             removePrims.Add(prim.Key);
                         }
                     }
                 }
+            }
 
-                if (Client.Settings.AVATAR_TRACKING)
+            if (Client.Settings.AVATAR_TRACKING)
+            {
+                uint localID;
+                foreach (var odb in kill.ObjectData)
                 {
-                    lock (simulator.ObjectsAvatars.Dictionary)
+                    localID = odb.ID;
+
+                    if (simulator.ObjectsAvatars.ContainsKey(localID))
                     {
-                        uint localID;
-                        foreach (var odb in kill.ObjectData)
-                        {
-                            localID = odb.ID;
+                        removeAvatars.Add(localID);
+                    }
 
-                            if (simulator.ObjectsAvatars.Dictionary.ContainsKey(localID))
-                                removeAvatars.Add(localID);
+                    List<uint> rootPrims = new List<uint>();
 
-                            List<uint> rootPrims = new List<uint>();
+                    foreach (var prim in simulator.ObjectsPrimitives
+                                 .Where(prim => prim.Value.ParentID == localID))
+                    {
+                        OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
+                        removePrims.Add(prim.Key);
+                        rootPrims.Add(prim.Key);
+                    }
 
-                            foreach (var prim in simulator.ObjectsPrimitives.Dictionary.Where(prim => prim.Value.ParentID == localID))
-                            {
-                                OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
-                                removePrims.Add(prim.Key);
-                                rootPrims.Add(prim.Key);
-                            }
-
-                            foreach (var prim in simulator.ObjectsPrimitives.Dictionary.Where(prim => rootPrims.Contains(prim.Value.ParentID)))
-                            {
-                                OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
-                                removePrims.Add(prim.Key);
-                            }
-                        }
-
-                        //Do the actual removing outside the loops but still inside the lock.
-                        //This safely prevents the collection from being modified during a loop.
-                        foreach (uint removeID in removeAvatars)
-                            simulator.ObjectsAvatars.Dictionary.Remove(removeID);
+                    foreach (var prim in simulator.ObjectsPrimitives
+                                 .Where(prim => rootPrims.Contains(prim.Value.ParentID)))
+                    {
+                        OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
+                        removePrims.Add(prim.Key);
                     }
                 }
 
-                if (Client.Settings.CACHE_PRIMITIVES)
+                foreach (uint removeID in removeAvatars)
                 {
-                    simulator.DataPool.ReleasePrims(removePrims);
+                    simulator.ObjectsAvatars.TryRemove(removeID, out _);
                 }
-                foreach (uint removeID in removePrims)
-                    simulator.ObjectsPrimitives.Dictionary.Remove(removeID);
+            }
+
+            if (Client.Settings.CACHE_PRIMITIVES)
+            {
+                simulator.DataPool.ReleasePrims(removePrims);
+            }
+
+            foreach (uint removeID in removePrims)
+            {
+                simulator.ObjectsPrimitives.TryRemove(removeID, out _);
             }
         }
 
@@ -3262,17 +3268,19 @@ namespace OpenMetaverse
 
                 if (Client.Settings.OBJECT_TRACKING)
                 {
-                    Primitive findPrim = simulator.ObjectsPrimitives.Find(
-                        prim => prim.ID == props.ObjectID);
-
-                    if (findPrim != null)
+                    if (simulator.UUIDToLocalID.TryGetValue(props.ObjectID, out var localID))
                     {
-                        OnObjectPropertiesUpdated(new ObjectPropertiesUpdatedEventArgs(simulator, findPrim, props));
-
-                        lock (simulator.ObjectsPrimitives.Dictionary)
+                        if (simulator.ObjectsPrimitives.TryGetValue(localID, out var findPrim))
                         {
-                            if (simulator.ObjectsPrimitives.Dictionary.ContainsKey(findPrim.LocalID))
-                                simulator.ObjectsPrimitives.Dictionary[findPrim.LocalID].Properties = props;
+                            if (findPrim != null)
+                            {
+                                OnObjectPropertiesUpdated(new ObjectPropertiesUpdatedEventArgs(simulator, findPrim, props));
+
+                                if (simulator.ObjectsPrimitives.TryGetValue(findPrim.LocalID, out var primitive))
+                                {
+                                    primitive.Properties = props;
+                                }
+                            }
                         }
                     }
                 }
@@ -3312,18 +3320,21 @@ namespace OpenMetaverse
 
             if (Client.Settings.OBJECT_TRACKING)
             {
-                Primitive findPrim = simulator.ObjectsPrimitives.Find(
-                    prim => prim.ID == op.ObjectData.ObjectID);
-
-                if (findPrim != null)
+                if (simulator.UUIDToLocalID.TryGetValue(props.ObjectID, out var localID))
                 {
-                    lock (simulator.ObjectsPrimitives.Dictionary)
+                    if (simulator.ObjectsPrimitives.TryGetValue(localID, out var findPrim))
                     {
-                        if (simulator.ObjectsPrimitives.Dictionary.ContainsKey(findPrim.LocalID))
+                        if (findPrim != null)
                         {
-                            if (simulator.ObjectsPrimitives.Dictionary[findPrim.LocalID].Properties == null)
-                                simulator.ObjectsPrimitives.Dictionary[findPrim.LocalID].Properties = new Primitive.ObjectProperties();
-                            simulator.ObjectsPrimitives.Dictionary[findPrim.LocalID].Properties.SetFamilyProperties(props);
+                            if (simulator.ObjectsPrimitives.TryGetValue(findPrim.LocalID, out var prim))
+                            {
+                                if (prim.Properties == null)
+                                {
+                                    prim.Properties = new Primitive.ObjectProperties();
+                                }
+
+                                prim.Properties.SetFamilyProperties(props);
+                            }
                         }
                     }
                 }
@@ -3370,12 +3381,9 @@ namespace OpenMetaverse
             {
                 foreach (var prop in msg.ObjectPhysicsProperties)
                 {
-                    lock (simulator.ObjectsPrimitives.Dictionary)
+                    if (simulator.ObjectsPrimitives.TryGetValue(prop.LocalID, out var primitive))
                     {
-                        if (simulator.ObjectsPrimitives.Dictionary.TryGetValue(prop.LocalID, out var primitive))
-                        {
-                            primitive.PhysicsProps = prop;
-                        }
+                        primitive.PhysicsProps = prop;
                     }
                 }
             }
@@ -3620,40 +3628,37 @@ namespace OpenMetaverse
         {
             if (Client.Settings.OBJECT_TRACKING)
             {
-                lock (simulator.ObjectsPrimitives.Dictionary)
+                if (simulator.ObjectsPrimitives.TryGetValue(localID, out var prim))
                 {
-                    if (simulator.ObjectsPrimitives.Dictionary.TryGetValue(localID, out var prim))
-                    {
-                        return prim;
-                    }
-                    else
-                    {
-                        if (!createIfMissing) { return null; }
-                        if (Client.Settings.CACHE_PRIMITIVES)
-                        {
-                            prim = simulator.DataPool.MakePrimitive(localID);
-                        }
-                        else
-                        {
-                            prim = new Primitive
-                            {
-                                LocalID = localID,
-                                RegionHandle = simulator.Handle
-                            };
-                        }
-                        prim.ActiveClients++;
-                        prim.ID = fullID;
-
-                        simulator.ObjectsPrimitives.Dictionary[localID] = prim;
-
-                        return prim;
-                    }
+                    return prim;
                 }
+
+                if (!createIfMissing) {return null;}
+                
+                if (Client.Settings.CACHE_PRIMITIVES)
+                {
+                    prim = simulator.DataPool.MakePrimitive(localID);
+                }
+                else
+                {
+                    prim = new Primitive
+                    {
+                        LocalID = localID,
+                        RegionHandle = simulator.Handle
+                    };
+                }
+
+                prim.ActiveClients++;
+                prim.ID = fullID;
+
+                prim = simulator.ObjectsPrimitives.GetOrAdd(localID, prim);
+
+                simulator.UUIDToLocalID.AddOrUpdate(prim.ID, prim.LocalID, (uuid, u) => prim.LocalID);
+
+                return prim;
             }
-            else
-            {
-                return new Primitive();
-            }
+
+            return new Primitive();
         }
 
         /// <summary>
@@ -3665,31 +3670,27 @@ namespace OpenMetaverse
         /// <returns></returns>
         protected Avatar GetAvatar(Simulator simulator, uint localID, UUID fullID)
         {
-            if (Client.Settings.AVATAR_TRACKING)
-            {
-                lock (simulator.ObjectsAvatars.Dictionary)
-                {
-                    if (simulator.ObjectsAvatars.Dictionary.TryGetValue(localID, out var avatar))
-                    {
-                        return avatar;
-                    }
-
-                    avatar = new Avatar
-                    {
-                        LocalID = localID,
-                        ID = fullID,
-                        RegionHandle = simulator.Handle
-                    };
-
-                    simulator.ObjectsAvatars.Dictionary[localID] = avatar;
-
-                    return avatar;
-                }
-            }
-            else
+            if (!Client.Settings.AVATAR_TRACKING)
             {
                 return new Avatar();
             }
+
+            if (simulator.ObjectsAvatars.TryGetValue(localID, out var avatar))
+            {
+                return avatar;
+            }
+
+            avatar = new Avatar
+            {
+                LocalID = localID,
+                ID = fullID,
+                RegionHandle = simulator.Handle
+            };
+
+            simulator.ObjectsAvatars[localID] = avatar;
+
+            return avatar;
+
         }
 
         #endregion Object Tracking Link
@@ -3712,68 +3713,62 @@ namespace OpenMetaverse
                     float adjSeconds = seconds * sim.Stats.Dilation;
 
                     // Iterate through all of this region's avatars
-                    sim.ObjectsAvatars.ForEach(
-                        delegate(Avatar avatar)
+                    foreach (var avatar in sim.ObjectsAvatars)
+                    {
+                        #region Linear Motion
+                        if (avatar.Value.Acceleration != Vector3.Zero)
                         {
-                            #region Linear Motion
+                            avatar.Value.Velocity += avatar.Value.Acceleration * adjSeconds;
+                        }
+
+                        if (avatar.Value.Velocity != Vector3.Zero)
+                        {
+                            avatar.Value.Position += (avatar.Value.Velocity) * adjSeconds;
+                        }
+                        #endregion Linear Motion
+                    }
+
+                    // Iterate through all the simulator's primitives
+
+                    foreach (var prim in sim.ObjectsPrimitives)
+                    {
+                        if (prim.Value.Joint == JointType.Invalid)
+                        {
+                            Vector3 angVel = prim.Value.AngularVelocity;
+                            float omega = angVel.LengthSquared();
+
+                            if (omega > 0.00001f)
+                            {
+                                omega = (float)Math.Sqrt(omega);
+                                float angle = omega * adjSeconds;
+                                angVel *= 1.0f / omega;
+                                Quaternion dQ = Quaternion.CreateFromAxisAngle(angVel, angle);
+
+                                prim.Value.Rotation *= dQ;
+                            }
+
                             // Only do movement interpolation (extrapolation) when there is a non-zero velocity but 
                             // no acceleration
-                            if (avatar.Acceleration != Vector3.Zero && avatar.Velocity == Vector3.Zero)
+                            if (prim.Value.Acceleration != Vector3.Zero && prim.Value.Velocity == Vector3.Zero)
                             {
-                                avatar.Position += (avatar.Velocity + avatar.Acceleration *
-                                    (0.5f * (adjSeconds - HAVOK_TIMESTEP))) * adjSeconds;
-                                avatar.Velocity += avatar.Acceleration * adjSeconds;
+                                prim.Value.Position += (prim.Value.Velocity + prim.Value.Acceleration *
+                                                  (0.5f * (adjSeconds - HAVOK_TIMESTEP))) * adjSeconds;
+                                prim.Value.Velocity += prim.Value.Acceleration * adjSeconds;
                             }
-                            #endregion Linear Motion
                         }
-                    );
-
-                    // Iterate through all of this region's primitives
-                    sim.ObjectsPrimitives.ForEach(
-                        delegate(Primitive prim)
+                        else if (prim.Value.Joint == JointType.Hinge)
                         {
-                            if (prim.Joint == JointType.Invalid)
-                            {
-                                #region Angular Velocity
-                                Vector3 angVel = prim.AngularVelocity;
-                                float omega = angVel.LengthSquared();
-
-                                if (omega > 0.00001f)
-                                {
-                                    omega = (float)Math.Sqrt(omega);
-                                    float angle = omega * adjSeconds;
-                                    angVel *= 1.0f / omega;
-                                    Quaternion dQ = Quaternion.CreateFromAxisAngle(angVel, angle);
-
-                                    prim.Rotation *= dQ;
-                                }
-                                #endregion Angular Velocity
-
-                                #region Linear Motion
-                                // Only do movement interpolation (extrapolation) when there is a non-zero velocity but 
-                                // no acceleration
-                                if (prim.Acceleration != Vector3.Zero && prim.Velocity == Vector3.Zero)
-                                {
-                                    prim.Position += (prim.Velocity + prim.Acceleration *
-                                        (0.5f * (adjSeconds - HAVOK_TIMESTEP))) * adjSeconds;
-                                    prim.Velocity += prim.Acceleration * adjSeconds;
-                                }
-                                #endregion Linear Motion
-                            }
-                            else if (prim.Joint == JointType.Hinge)
-                            {
-                                //FIXME: Hinge movement extrapolation
-                            }
-                            else if (prim.Joint == JointType.Point)
-                            {
-                                //FIXME: Point movement extrapolation
-                            }
-                            else
-                            {
-                                Logger.Log("Unhandled joint type " + prim.Joint, Helpers.LogLevel.Warning, Client);
-                            }
+                            //FIXME: Hinge movement extrapolation
                         }
-                    );
+                        else if (prim.Value.Joint == JointType.Point)
+                        {
+                            //FIXME: Point movement extrapolation
+                        }
+                        else
+                        {
+                            Logger.Log($"Unhandled joint type {prim.Value.Joint}", Helpers.LogLevel.Warning, Client);
+                        }
+                    }
                 }
 
                 // Make sure the last interpolated time is always updated
@@ -4026,7 +4021,7 @@ namespace OpenMetaverse
         public Primitive Prim { get; }
 
         /// <summary>
-        /// Construct a new instance of the ObjectPropertiesUpdatedEvenrArgs class
+        /// Construct a new instance of the ObjectPropertiesUpdatedEventArgs class
         /// </summary>                
         /// <param name="simulator">The simulator the object is located</param>
         /// <param name="prim">The Primitive</param>
@@ -4063,7 +4058,8 @@ namespace OpenMetaverse
         }
     }
 
-    /// <summary>Provides primitive data containing updated location, velocity, rotation, textures for the <see cref="ObjectManager.TerseObjectUpdate"/> event</summary>
+    /// <summary>Provides primitive data containing updated location, velocity, rotation, textures for the
+    /// <see cref="ObjectManager.TerseObjectUpdate"/> event</summary>
     /// <remarks><para>The <see cref="ObjectManager.TerseObjectUpdate"/> event occurs when the simulator sends updated location, velocity, rotation, etc</para>        
     /// </remarks>
     public class TerseObjectUpdateEventArgs : EventArgs
