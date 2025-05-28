@@ -1226,7 +1226,7 @@ namespace OpenMetaverse
             var objectsPrimitives = Client.Network.CurrentSim.ObjectsPrimitives;
 
             // No primitives found.
-            if (objectsPrimitives.Count == 0)
+            if (objectsPrimitives.IsEmpty)
             {
                 return true;
             }
@@ -1237,16 +1237,10 @@ namespace OpenMetaverse
 
             var enumerable = primitives as Primitive[] ?? primitives.ToArray();
 
-            if (enumerable.Length == 0)
-            {
-                return true;
-            }
-
             foreach (var primitive in enumerable)
             {
                 // Find the inventory UUID from the primitive name-value collection.
-                if (primitive == null) { continue; }
-                if (primitive.NameValues == null || primitive.NameValues.Length == 0) { continue; }
+                if (primitive == null || primitive.NameValues == null || !primitive.NameValues.Any()) { continue; }
 
                 var nameValue = primitive.NameValues.SingleOrDefault(item => item.Name.Equals("AttachItemID"));
 

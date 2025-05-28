@@ -393,7 +393,7 @@ namespace OpenMetaverse
         /// <summary>
         /// A thread-safe dictionary which can be used to find the local ID of a specified UUID.
         /// </summary>
-        public ConcurrentDictionary<UUID, uint> UUIDToLocalID = new ConcurrentDictionary<UUID, uint>();
+        public ConcurrentDictionary<UUID, uint> GlobalToLocalID = new ConcurrentDictionary<UUID, uint>();
 
 
         public readonly TerrainPatch[] Terrain;

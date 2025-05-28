@@ -3268,7 +3268,7 @@ namespace OpenMetaverse
 
                 if (Client.Settings.OBJECT_TRACKING)
                 {
-                    if (simulator.UUIDToLocalID.TryGetValue(props.ObjectID, out var localID))
+                    if (simulator.GlobalToLocalID.TryGetValue(props.ObjectID, out var localID))
                     {
                         if (simulator.ObjectsPrimitives.TryGetValue(localID, out var findPrim))
                         {
@@ -3320,7 +3320,7 @@ namespace OpenMetaverse
 
             if (Client.Settings.OBJECT_TRACKING)
             {
-                if (simulator.UUIDToLocalID.TryGetValue(props.ObjectID, out var localID))
+                if (simulator.GlobalToLocalID.TryGetValue(props.ObjectID, out var localID))
                 {
                     if (simulator.ObjectsPrimitives.TryGetValue(localID, out var findPrim))
                     {
@@ -3653,7 +3653,7 @@ namespace OpenMetaverse
 
                 prim = simulator.ObjectsPrimitives.GetOrAdd(localID, prim);
 
-                simulator.UUIDToLocalID.AddOrUpdate(prim.ID, prim.LocalID, (uuid, u) => prim.LocalID);
+                simulator.GlobalToLocalID.AddOrUpdate(prim.ID, prim.LocalID, (uuid, u) => prim.LocalID);
 
                 return prim;
             }
