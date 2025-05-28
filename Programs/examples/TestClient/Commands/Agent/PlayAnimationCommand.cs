@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Text;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace OpenMetaverse.TestClient
 {
     public class PlayAnimationCommand : Command
     {        
-        private Dictionary<UUID, string> m_BuiltInAnimations = new Dictionary<UUID, string>(Animations.ToDictionary());
+        private readonly ImmutableDictionary<UUID, string> m_BuiltInAnimations = Animations.ToDictionary();
         public PlayAnimationCommand(TestClient testClient)
         {
             Name = "play";
