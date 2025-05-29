@@ -1023,7 +1023,7 @@ namespace OpenMetaverse
                         if (packet == null) continue;
 
                         // Skip blacklisted packets
-                        if (UDPBlacklist.Contains(packet.Type.ToString()))
+                        if (UDPBlacklist.Contains(packet.Type))
                         {
                             Logger.Log($"Discarding Blacklisted packet {packet.Type} from {simulator.IPEndPoint}",
                                 Helpers.LogLevel.Warning);

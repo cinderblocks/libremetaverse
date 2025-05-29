@@ -1190,8 +1190,8 @@ namespace OpenMetaverse
         private readonly Dictionary<LoginResponseCallback, string[]> CallbackOptions = new Dictionary<LoginResponseCallback, string[]>();
 
         /// <summary>A list of packets obtained during the login process which 
-        /// networkmanager will log but not process</summary>
-        private readonly List<string> UDPBlacklist = new List<string>();
+        /// NetworkManager will log but not process</summary>
+        private readonly List<PacketType> UDPBlacklist = new List<PacketType>();
         #endregion
 
         #region Public Methods
@@ -1764,7 +1764,17 @@ namespace OpenMetaverse
                  * for exclusion from packet processing */
                 if (reply.UDPBlacklist != null)
                 {
-                    UDPBlacklist.AddRange(reply.UDPBlacklist.Split(','));
+                    foreach (var entry in reply.UDPBlacklist.Split(','))
+                    {
+                        if (Enum.TryParse<PacketType>(entry, true, out var result))
+                        {
+                            UDPBlacklist.Add(result);
+                        }
+                        else
+                        {
+                            Logger.Log($"Could not parse {entry} from UDP Blacklist", Helpers.LogLevel.Warning);
+                        }
+                    }
                 }
 
                 // Misc:
