@@ -635,7 +635,7 @@ namespace OpenMetaverse
             {
                 if (reply.ContainsKey("home_info"))
                 {
-                    if (reply?["home_info"] is Hashtable map)
+                    if (reply["home_info"] is Hashtable map)
                     {
                         Home.Position = ParseVector3("position", map);
                         Home.LookAt = ParseVector3("look_at", map);
@@ -652,7 +652,7 @@ namespace OpenMetaverse
                 // Home
                 if (Home.RegionHandle == 0 && reply.ContainsKey("home"))
                 {
-                    if (reply?["home"] is Hashtable map)
+                    if (reply["home"] is Hashtable map)
                     {
                         Home.Position = ParseVector3("position", map);
                         Home.LookAt = ParseVector3("look_at", map);
@@ -664,7 +664,7 @@ namespace OpenMetaverse
                                 ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
                         }
                     }
-                    else if (reply?["home"] is string osdString)
+                    else if (reply["home"] is string osdString)
                     {
                         var osdHome = OSDParser.DeserializeLLSDNotation(reply["home"].ToString());
 
