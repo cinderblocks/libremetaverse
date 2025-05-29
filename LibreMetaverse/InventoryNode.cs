@@ -33,34 +33,17 @@ namespace OpenMetaverse
     [MessagePackObject]
     public partial class InventoryNode
     {
-        private InventoryBase data;
-        private InventoryNode parent;
         private InventoryNodeDictionary nodes;
-        private bool needsUpdate = true;
-
-        private object tag;
 
         [Key("Data")]
-        public InventoryBase Data
-        {
-            get => data;
-            set => data = value;
-        }
+        public InventoryBase Data { get; set; }
 
         /// <summary>User data</summary>
         [IgnoreMember]
-        public object Tag
-        {
-            get => tag;
-            set => tag = value;
-        }
+        public object Tag { get; set; }
 
         [IgnoreMember]
-        public InventoryNode Parent
-        {
-            get => parent;
-            set => parent = value;
-        }
+        public InventoryNode Parent { get; set; }
 
         [IgnoreMember]
         public InventoryNodeDictionary Nodes
@@ -74,11 +57,7 @@ namespace OpenMetaverse
         /// refreshed from the server
         /// </summary>
         [IgnoreMember]
-        public bool NeedsUpdate
-        {
-            get => needsUpdate;
-            set => needsUpdate = value;
-        }
+        public bool NeedsUpdate { get; set; } = true;
 
         [IgnoreMember]
         public DateTime ModifyTime
@@ -114,7 +93,7 @@ namespace OpenMetaverse
         /// <param name="data"></param>
         public InventoryNode(InventoryBase data)
         {
-            this.data = data;
+            this.Data = data;
         }
 
         /// <summary>
@@ -122,8 +101,8 @@ namespace OpenMetaverse
         /// </summary>
         public InventoryNode(InventoryBase data, InventoryNode parent)
         {
-            this.data = data;
-            this.parent = parent;
+            this.Data = data;
+            this.Parent = parent;
 
             if (parent != null)
             {
