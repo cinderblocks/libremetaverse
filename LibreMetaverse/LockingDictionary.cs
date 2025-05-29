@@ -95,7 +95,6 @@ namespace OpenMetaverse
                 Dictionary.OnDeserialization(sender);
         }
 
-        /// <inheritdoc/>
         public IEqualityComparer<TKey> Comparer
         {
             get { lock (Dictionary) return Dictionary.Comparer; }
