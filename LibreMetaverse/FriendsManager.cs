@@ -986,10 +986,7 @@ namespace OpenMetaverse
             {
                 if (m_FriendshipOffered != null)
                 {
-                    if (FriendRequests.ContainsKey(e.IM.FromAgentID))
-                        FriendRequests[e.IM.FromAgentID] = e.IM.IMSessionID;
-                    else
-                        FriendRequests.Add(e.IM.FromAgentID, e.IM.IMSessionID);
+                    FriendRequests[e.IM.FromAgentID] = e.IM.IMSessionID;
 
                     OnFriendshipOffered(new FriendshipOfferedEventArgs(e.IM.FromAgentID, e.IM.FromAgentName, e.IM.IMSessionID));
                 }
