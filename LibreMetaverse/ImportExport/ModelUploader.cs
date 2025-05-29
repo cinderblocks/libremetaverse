@@ -103,9 +103,9 @@ namespace OpenMetaverse.ImportExport
                     if (face.Material.TextureData != null)
                     {
                         int index;
-                        if (ImgIndex.ContainsKey(face.Material.Texture))
+                        if (ImgIndex.TryGetValue(face.Material.Texture, out var value))
                         {
-                            index = ImgIndex[face.Material.Texture];
+                            index = value;
                         }
                         else
                         {

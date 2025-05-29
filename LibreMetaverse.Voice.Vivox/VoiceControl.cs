@@ -570,8 +570,8 @@ namespace LibreMetaverse.Voice.Vivox
         /// <remarks>Creates the session context if it does not exist.</remarks>
         VoiceSession FindSession(string sessionHandle, bool make)
         {
-            if (_sessions.ContainsKey(sessionHandle))
-                return _sessions[sessionHandle];
+            if (_sessions.TryGetValue(sessionHandle, out var session))
+                return session;
 
             if (!make) return null;
 
@@ -895,10 +895,9 @@ namespace LibreMetaverse.Voice.Vivox
                 _regionName = pMap["region_name"].AsString();
                 ReportConnectionState(ConnectionState.RegionCapAvailable);
 
-                if (pMap.ContainsKey("voice_credentials"))
+                if (pMap.TryGetValue("voice_credentials", out var credential))
                 {
-                    var cred =
-                        pMap["voice_credentials"] as OSDMap;
+                    var cred = credential as OSDMap;
 
                     if (cred.ContainsKey("channel_uri"))
                         _spatialUri = cred["channel_uri"].AsString();

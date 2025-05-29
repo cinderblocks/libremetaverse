@@ -214,9 +214,8 @@ namespace OpenMetaverse
                     throw new ApplicationException("Lock could not be acquired after " + MAX_LOCK_WAIT + "ms");
                 try
                 {
-                    if (timedStorageIndex.ContainsKey(key))
+                    if (timedStorageIndex.TryGetValue(key, out var tkey))
                     {
-                        var tkey = timedStorageIndex[key];
                         var o = timedStorage[tkey];
                         timedStorage.Remove(tkey);
                         tkey.Accessed();
@@ -260,9 +259,8 @@ namespace OpenMetaverse
                 throw new ApplicationException("Lock could not be acquired after " + MAX_LOCK_WAIT + "ms");
             try
             {
-                if (timedStorageIndex.ContainsKey(key))
+                if (timedStorageIndex.TryGetValue(key, out var tkey))
                 {
-                    var tkey = timedStorageIndex[key];
                     o = timedStorage[tkey];
                     timedStorage.Remove(tkey);
                     tkey.Accessed();

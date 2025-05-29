@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -3707,7 +3708,7 @@ namespace OpenMetaverse
                 float seconds = interval / 1000f;
 
                 // Iterate through all simulators
-                Simulator[] sims = Client.Network.Simulators.ToArray();
+                var sims = Client.Network.Simulators.ToImmutableArray();
                 foreach (var sim in sims)
                 {
                     float adjSeconds = seconds * sim.Stats.Dilation;

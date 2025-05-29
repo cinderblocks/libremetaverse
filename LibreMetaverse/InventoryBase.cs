@@ -336,9 +336,9 @@ namespace OpenMetaverse
             {
                 Permissions = Permissions.FromOSD(permissions);
             }
-            if (data.ContainsKey("sale_info"))
+            if (data.TryGetValue("sale_info", out var saleInfo))
             {
-                OSDMap sale = (OSDMap)data["sale_info"];
+                OSDMap sale = (OSDMap)saleInfo;
                 SalePrice = sale["sale_price"].AsInteger(); 
                 SaleType = (SaleType)sale["sale_type"].AsInteger();
             }
@@ -388,13 +388,13 @@ namespace OpenMetaverse
                     InventoryType = type;
                 }
             }
-            if (data.ContainsKey("flags"))
+            if (data.TryGetValue("flags", out var flags))
             {
-                Flags = data["flags"];
+                Flags = flags;
             }
-            if (data.ContainsKey("created_at"))
+            if (data.TryGetValue("created_at", out var createdAt))
             {
-                CreationDate = Utils.UnixTimeToDateTime(data["created_at"]);
+                CreationDate = Utils.UnixTimeToDateTime(createdAt);
             }
         }
 
@@ -847,14 +847,14 @@ namespace OpenMetaverse
         public static InventoryFolder FromOSD(OSD data)
         {
             var res = (OSDMap)data;
-            UUID folderId = res.ContainsKey("category_id") ? res["category_id"] : res["folder_id"];
+            UUID folderId = res.TryGetValue("category_id", out var catId) ? catId : res["folder_id"];
             var folder = new InventoryFolder(folderId)
             {
                 UUID = res["category_id"].AsUUID(),
                 Version = res.ContainsKey("version") ? res["version"].AsInteger() : VERSION_UNKNOWN,
                 ParentUUID = res["parent_id"].AsUUID(),
                 DescendentCount = res["descendents"],
-                OwnerID = res.ContainsKey("agent_id") ? res["agent_id"] : res["owner_id"],
+                OwnerID = res.TryGetValue("agent_id", out var agentId) ? agentId : res["owner_id"],
                 PreferredType = (FolderType)(sbyte)res["type_default"].AsUInteger(),
                 Name = res["name"]
             };

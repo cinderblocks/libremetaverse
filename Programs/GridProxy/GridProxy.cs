@@ -552,14 +552,14 @@ namespace GridProxy
                 headers[key.ToLower()] = val;
             } while (line != "");
 
-            if (headers.ContainsKey("content-length"))
+            if (headers.TryGetValue("content-length", out var length))
             {
-                contentLength = Convert.ToInt32(headers["content-length"]);
+                contentLength = Convert.ToInt32(length);
             }
 
-            if (headers.ContainsKey("content-type"))
+            if (headers.TryGetValue("content-type", out var type))
             {
-                contentType = headers["content-type"];
+                contentType = type;
             }
 
             // read the HTTP body into a buffer
@@ -1322,10 +1322,10 @@ namespace GridProxy
                     bool needsCopy = true;
                     var length = simFacingSocket.EndReceiveFrom(ar, ref remoteEndPoint);
 
-                    if (proxyHandlers.ContainsKey(remoteEndPoint))
+                    if (proxyHandlers.TryGetValue(remoteEndPoint, out var handler))
                     {
                         // find the proxy responsible for forwarding this packet
-                        SimProxy simProxy = (SimProxy)proxyHandlers[remoteEndPoint];
+                        SimProxy simProxy = handler;
 
                         // interpret the packet according to the SL protocol
                         int end = length - 1;
@@ -1344,7 +1344,7 @@ namespace GridProxy
                             simProxy.incomingSequence = packet.Header.Sequence;
 
                         // check the packet for addresses that need proxying
-                        if (incomingCheckers.ContainsKey(packet.Type))
+                        if (incomingCheckers.TryGetValue(packet.Type, out var checker))
                         {
                             /* if (needsZero) {
                                 length = Helpers.ZeroDecode(packet.Header.Data, length, zeroBuffer);
@@ -1352,7 +1352,7 @@ namespace GridProxy
                                 needsZero = false;
                             } */
 
-                            Packet newPacket = ((AddressChecker)incomingCheckers[packet.Type])(packet);
+                            Packet newPacket = ((AddressChecker)checker)(packet);
                             SwapPacket(packet, newPacket);
                             packet = newPacket;
                             needsCopy = false;
@@ -1496,9 +1496,9 @@ namespace GridProxy
         // ProxySim: return the proxy for the specified sim, creating it if it doesn't exist
         private IPEndPoint ProxySim(IPEndPoint simEndPoint)
         {
-            if (proxyEndPoints.ContainsKey(simEndPoint))
+            if (proxyEndPoints.TryGetValue(simEndPoint, out var point))
                 // return the existing proxy
-                return (IPEndPoint)proxyEndPoints[simEndPoint];
+                return point;
             else
             {
                 // return a new proxy
@@ -1683,7 +1683,7 @@ namespace GridProxy
                                 outgoingSequence = packet.Header.Sequence;
 
                             // check the packet for addresses that need proxying
-                            if (proxy.outgoingCheckers.ContainsKey(packet.Type))
+                            if (proxy.outgoingCheckers.TryGetValue(packet.Type, out var checker))
                             {
                                 /* if (packet.Header.Zerocoded) {
                                     length = Helpers.ZeroDecode(packet.Header.Data, length, zeroBuffer);
@@ -1691,7 +1691,7 @@ namespace GridProxy
                                     needsZero = false;
                                 } */
 
-                                Packet newPacket = ((AddressChecker)proxy.outgoingCheckers[packet.Type])(packet);
+                                Packet newPacket = ((AddressChecker)checker)(packet);
                                 SwapPacket(packet, newPacket);
                                 packet = newPacket;
                                 needsCopy = false;

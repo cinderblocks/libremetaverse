@@ -564,9 +564,9 @@ namespace OpenMetaverse.Messages.Linden
 
             // DataExtended is optional, will not exist of parcel contains zero prims
             OSDArray dataExtendedArray;
-            if (map.ContainsKey("DataExtended"))
+            if (map.TryGetValue("DataExtended", out var value))
             {
-                dataExtendedArray = (OSDArray)map["DataExtended"];
+                dataExtendedArray = (OSDArray)value;
             }
             else
             {
@@ -910,9 +910,9 @@ namespace OpenMetaverse.Messages.Linden
             AnyAVSounds = parcelDataMap["AnyAVSounds"].AsBoolean();
             GroupAVSounds = parcelDataMap["GroupAVSounds"].AsBoolean();
 
-            if (map.ContainsKey("MediaData")) // temporary, OpenSim doesn't send this block
+            if (map.TryGetValue("MediaData", out var value)) // temporary, OpenSim doesn't send this block
             {
-                OSDMap mediaDataMap = (OSDMap)((OSDArray)map["MediaData"])[0];
+                OSDMap mediaDataMap = (OSDMap)((OSDArray)value)[0];
                 MediaDesc = mediaDataMap["MediaDesc"].AsString();
                 MediaHeight = mediaDataMap["MediaHeight"].AsInteger();
                 MediaWidth = mediaDataMap["MediaWidth"].AsInteger();
@@ -1680,9 +1680,9 @@ namespace OpenMetaverse.Messages.Linden
             // If request for current groups came very close to login
             // the Linden sim will not include the NewGroupData block, but
             // it will instead set all ListInProfile fields to false
-            if (map.ContainsKey("NewGroupData"))
+            if (map.TryGetValue("NewGroupData", out var value))
             {
-                OSDArray newGroupArray = (OSDArray)map["NewGroupData"];
+                OSDArray newGroupArray = (OSDArray)value;
 
                 NewGroupDataBlock = new NewGroupData[newGroupArray.Count];
 
@@ -3521,9 +3521,9 @@ namespace OpenMetaverse.Messages.Linden
 
                         block.Transition = infoMap["transition"].AsString();
 
-                        if (agentPermsMap.ContainsKey("mutes"))
+                        if (agentPermsMap.TryGetValue("mutes", out var mutes))
                         {
-                            OSDMap mutesMap = (OSDMap)agentPermsMap["mutes"];
+                            OSDMap mutesMap = (OSDMap)mutes;
                             block.MuteText = mutesMap["text"].AsBoolean();
                             block.MuteVoice = mutesMap["voice"].AsBoolean();
                         }
@@ -5282,9 +5282,9 @@ namespace OpenMetaverse.Messages.Linden
             {
                 base.Deserialize(map);
             }
-            else if (map.ContainsKey("parcels"))
+            else if (map.TryGetValue("parcels", out var parcels))
             {
-                OSDArray parcelsOSD = (OSDArray)map["parcels"];
+                OSDArray parcelsOSD = (OSDArray)parcels;
                 Parcels = new ParcelResourcesDetail[parcelsOSD.Count];
 
                 for (int i = 0; i < parcelsOSD.Count; i++)

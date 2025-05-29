@@ -491,9 +491,9 @@ namespace OpenMetaverse
                     partSys.PartEndScaleX = es.X;
                     partSys.PartEndScaleY = es.Y;
 
-                    if (map.ContainsKey("part_start_glow"))
+                    if (map.TryGetValue("part_start_glow", out var startGlow))
                     {
-                        partSys.PartStartGlow = map["part_start_glow"];
+                        partSys.PartStartGlow = startGlow;
                         partSys.PartEndGlow = map["part_end_glow"];
                     }
 

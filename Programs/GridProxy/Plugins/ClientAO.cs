@@ -652,9 +652,9 @@ public class ClientAO : ProxyPlugin
             //SayToUser("anim: " + animname);
             if (animname != "")
             {
-                if (currentFolderItems.ContainsKey(animname))
+                if (currentFolderItems.TryGetValue(animname, out var item))
                 {
-                    UUID over = currentFolderItems[animname].AssetUUID;
+                    UUID over = item.AssetUUID;
                     UUID orig = wetikonanims[((i + 1) / 2) - 1];
                     //put it in overrides
                     animuid2name[over] = animname;                    

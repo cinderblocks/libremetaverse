@@ -3795,9 +3795,9 @@ namespace OpenMetaverse
                     {
                         List<string> compileErrors = null;
 
-                        if (contents.ContainsKey("errors"))
+                        if (contents.TryGetValue("errors", out var content))
                         {
-                            var errors = (OSDArray)contents["errors"];
+                            var errors = (OSDArray)content;
                             compileErrors = new List<string>(errors.Count);
                             compileErrors.AddRange(errors.Select(t => t.AsString()));
                         }

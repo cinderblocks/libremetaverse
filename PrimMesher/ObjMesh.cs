@@ -146,7 +146,7 @@ namespace LibreMetaverse.PrimMesher
 
                         var hash = hashInts(positionIndex, texCoordIndex, normalIndex);
 
-                        if (viewerVertexLookup.ContainsKey(hash))
+                        if (viewerVertexLookup.TryGetValue(hash, out var value))
                         {
                             vertIndices[vertexIndex - 1] = viewerVertexLookup[hash];
                         }

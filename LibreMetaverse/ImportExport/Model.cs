@@ -47,15 +47,15 @@ namespace OpenMetaverse.ImportExport
         public string MaterialID = string.Empty;
         public ModelMaterial Material = new ModelMaterial();
 
-        Dictionary<Vertex, int> LookUp = new Dictionary<Vertex, int>();
+        private readonly Dictionary<Vertex, int> LookUp = new Dictionary<Vertex, int>();
 
         public void AddVertex(Vertex v)
         {
             int index;
 
-            if (LookUp.ContainsKey(v))
+            if (LookUp.TryGetValue(v, out var value))
             {
-                index = LookUp[v];
+                index = value;
             }
             else
             {

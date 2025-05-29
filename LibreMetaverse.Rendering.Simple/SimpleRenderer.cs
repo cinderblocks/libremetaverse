@@ -38,12 +38,14 @@ namespace OpenMetaverse.Rendering
             Path path = GeneratePath();
             Profile profile = GenerateProfile();
 
-            SimpleMesh mesh = new SimpleMesh();
-            mesh.Prim = prim;
-            mesh.Path = path;
-            mesh.Profile = profile;
-            mesh.Vertices = GenerateVertices();
-            mesh.Indices = GenerateIndices();
+            SimpleMesh mesh = new SimpleMesh
+            {
+                Prim = prim,
+                Path = path,
+                Profile = profile,
+                Vertices = GenerateVertices(),
+                Indices = GenerateIndices()
+            };
 
             return mesh;
         }

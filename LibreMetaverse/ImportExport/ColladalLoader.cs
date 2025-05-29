@@ -300,14 +300,14 @@ namespace OpenMetaverse.ImportExport
 
             foreach (var effect in tmpEffects)
             {
-                if (matEffect.ContainsKey(effect.ID))
+                if (matEffect.TryGetValue(effect.ID, out var effectId))
                 {
-                    effect.ID = matEffect[effect.ID];
+                    effect.ID = effectId;
                     if (!string.IsNullOrEmpty(effect.Texture))
                     {
-                        if (imgMap.ContainsKey(effect.Texture))
+                        if (imgMap.TryGetValue(effect.Texture, out var effectTexture))
                         {
-                            effect.Texture = imgMap[effect.Texture];
+                            effect.Texture = effectTexture;
                         }
                     }
                     Materials.Add(effect);
@@ -630,9 +630,9 @@ namespace OpenMetaverse.ImportExport
             ModelFace face = new ModelFace {MaterialID = list.material};
             if (face.MaterialID != null)
             {
-                if (MatSymTarget.ContainsKey(list.material))
+                if (MatSymTarget.TryGetValue(list.material, out var value))
                 {
-                    ModelMaterial mat = Materials.Find(m => m.ID == MatSymTarget[list.material]);
+                    ModelMaterial mat = Materials.Find(m => m.ID == value);
                     if (mat != null)
                     {
                         face.Material = mat;

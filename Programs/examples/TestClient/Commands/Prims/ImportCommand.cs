@@ -72,8 +72,8 @@ namespace OpenMetaverse.TestClient
             {
                 if (prim.ParentID == 0)
                 {
-                    if (linksets.ContainsKey(prim.LocalID))
-                        linksets[prim.LocalID].RootPrim = prim;
+                    if (linksets.TryGetValue(prim.LocalID, out var linkset))
+                        linkset.RootPrim = prim;
                     else
                         linksets[prim.LocalID] = new Linkset(prim);
                 }

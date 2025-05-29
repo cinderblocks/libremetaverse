@@ -48,9 +48,9 @@ namespace OpenMetaverse.TestClient
             else if (arg.ToLower().Equals("show"))
             {
                 Client.Self.SignaledAnimations.ForEach(delegate(KeyValuePair<UUID, int> kvp) {
-                    if (m_BuiltInAnimations.ContainsKey(kvp.Key))
+                    if (m_BuiltInAnimations.TryGetValue(kvp.Key, out var animation))
                     {
-                        result.AppendFormat("The {0} System Animation is being played, sequence is {1}", m_BuiltInAnimations[kvp.Key], kvp.Value);
+                        result.AppendFormat("The {0} System Animation is being played, sequence is {1}", animation, kvp.Value);
                     }
                     else
                     {
