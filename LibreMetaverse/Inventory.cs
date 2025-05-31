@@ -238,8 +238,15 @@ namespace OpenMetaverse
                     {
                         DescendentCount = 1 // Dear god, please forgive me.
                     };
-                    itemParent = new InventoryNode(fakeParent);
-                    Items[item.ParentUUID] = itemParent;
+                    var fakeItemParent = new InventoryNode(fakeParent);
+                    if (Items.TryAdd(item.ParentUUID, fakeItemParent))
+                    {
+                        itemParent = fakeItemParent;
+                    }
+                    else
+                    {
+                        Items.TryGetValue(item.ParentUUID, out itemParent);
+                    }
                     // Unfortunately, this breaks the nice unified tree
                     // while we're waiting for the parent's data to come in.
                     // As soon as we get the parent, the tree repairs itself.
@@ -310,6 +317,8 @@ namespace OpenMetaverse
         /// <param name="item">The InventoryObject to remove.</param>
         public void RemoveNodeFor(InventoryBase item)
         {
+            InventoryObjectRemovedEventArgs itemRemovedEventArgs = null;
+
             lock (Items)
             {
                 if (Items.TryGetValue(item.UUID, out var node))
@@ -323,8 +332,8 @@ namespace OpenMetaverse
                     bool removed = Items.TryRemove(item.UUID, out node);
                     if (removed && m_InventoryObjectRemoved != null)
                     {
-                        OnInventoryObjectRemoved(new InventoryObjectRemovedEventArgs(item));
-                    }                    
+                        itemRemovedEventArgs = new InventoryObjectRemovedEventArgs(item);
+                    }
                 }
 
                 // In case there's a new parent:
@@ -333,6 +342,11 @@ namespace OpenMetaverse
                     lock (newParent.Nodes.SyncRoot)
                         newParent.Nodes.Remove(item.UUID);
                 }
+            }
+
+            if(itemRemovedEventArgs != null)
+            {
+                OnInventoryObjectRemoved(itemRemovedEventArgs);
             }
         }
 
