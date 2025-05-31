@@ -618,15 +618,9 @@ namespace OpenMetaverse
                 Logger.Log("Could not retrieve Current Outfit folder", Helpers.LogLevel.Warning, Client);
                 return null;
             }
-            // Fetch from cache...
-            var contents = Client.Inventory.Store.GetContents(cof.UUID);
 
-            // If that fails, fetch from server...
-            if (contents == null || contents.Count == 0)
-            {
-                contents = Client.Inventory.FolderContents(cof.UUID, cof.OwnerID, true, true,
-                    InventorySortOrder.ByDate, TimeSpan.FromMinutes(1), true);
-            }
+            var contents = Client.Inventory.FolderContents(cof.UUID, cof.OwnerID, true, true,
+                InventorySortOrder.ByDate, TimeSpan.FromMinutes(1), true);
 
             var wearables = new MultiValueDictionary<WearableType, WearableData>();
             foreach (var item in contents)

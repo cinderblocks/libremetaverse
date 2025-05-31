@@ -225,6 +225,9 @@ namespace OpenMetaverse
         /// <param name="item">The InventoryObject to store</param>
         public void UpdateNodeFor(InventoryBase item)
         {
+            InventoryObjectUpdatedEventArgs itemUpdatedEventArgs = null;
+            InventoryObjectAddedEventArgs itemAddedEventArgs = null;
+
             lock (Items)
             {
                 InventoryNode itemParent = null;
@@ -263,10 +266,9 @@ namespace OpenMetaverse
                     }
 
                     itemNode.Parent = itemParent;
-
                     if (m_InventoryObjectUpdated != null)
                     {
-                        OnInventoryObjectUpdated(new InventoryObjectUpdatedEventArgs(itemNode.Data, item));
+                        itemUpdatedEventArgs = new InventoryObjectUpdatedEventArgs(itemNode.Data, item);
                     }
 
                     itemNode.Data = item;
@@ -277,15 +279,29 @@ namespace OpenMetaverse
                     bool added = Items.TryAdd(item.UUID, itemNode);
                     if (added && m_InventoryObjectAdded != null)
                     {
-                        OnInventoryObjectAdded(new InventoryObjectAddedEventArgs(item));
+                        itemAddedEventArgs = new InventoryObjectAddedEventArgs(item);
                     }
                 }
+            }
+
+            if(itemUpdatedEventArgs != null)
+            {
+                OnInventoryObjectUpdated(itemUpdatedEventArgs);
+            }
+            if(itemAddedEventArgs != null)
+            {
+                OnInventoryObjectAdded(itemAddedEventArgs);
             }
         }
 
         public InventoryNode GetNodeFor(UUID uuid)
         {
             return Items[uuid];
+        }
+
+        public bool TryGetNodeFor(UUID uuid, out InventoryNode value)
+        {
+            return Items.TryGetValue(uuid, out value);
         }
 
         /// <summary>
