@@ -299,9 +299,9 @@ namespace OpenMetaverse
             return Items[uuid];
         }
 
-        public bool TryGetNodeFor(UUID uuid, out InventoryNode value)
+        public bool TryGetNodeFor(UUID uuid, out InventoryNode node)
         {
-            return Items.TryGetValue(uuid, out value);
+            return Items.TryGetValue(uuid, out node);
         }
 
         /// <summary>
