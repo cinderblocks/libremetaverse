@@ -1326,19 +1326,24 @@ namespace OpenMetaverse
 
         #region Remove
 
-        private void RemoveLocalUi(bool success, UUID folder)
+        private void RemoveLocalUi(bool success, UUID itemId)
         {
-            if (success)
+            if(!success)
             {
-                lock (_Store)
-                {
-                    if (!_Store.Contains(folder)) return;
-                    foreach (var obj in _Store.GetContents(folder))
-                    {
-                        _Store.RemoveNodeFor(obj);
-                    }
-                }
+                return;
             }
+
+            if (!_Store.TryGetNodeFor(itemId, out var item))
+            {
+                return;
+            }
+
+            foreach (var obj in _Store.GetContents(itemId))
+            {
+                RemoveLocalUi(true, obj.UUID);
+            }
+
+            _Store.RemoveNodeFor(item.Data);
         }
 
         /// <summary>

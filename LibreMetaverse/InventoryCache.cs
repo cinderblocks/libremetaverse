@@ -47,17 +47,14 @@ namespace OpenMetaverse
             {
                 using (var bw = new BinaryWriter(File.Open(filename, FileMode.Create)))
                 {
-                    lock (Items)
-                    {
-                        Logger.Log($"Caching {Items.Count} inventory items to {filename}", Helpers.LogLevel.Info);
+                    var options = GetSerializerOptions();
+                    var items = Items.Values.ToList();
 
-                        var options = GetSerializerOptions();
-                        var items = Items.Values.ToList();
+                    Logger.Log($"Caching {items.Count} inventory items to {filename}", Helpers.LogLevel.Info);
 
-                        bw.Write(Encoding.ASCII.GetBytes(InventoryCacheMagic));
-                        bw.Write(InventoryCacheVersion);
-                        MessagePackSerializer.Serialize(bw.BaseStream, items, options);
-                    }
+                    bw.Write(Encoding.ASCII.GetBytes(InventoryCacheMagic));
+                    bw.Write(InventoryCacheVersion);
+                    MessagePackSerializer.Serialize(bw.BaseStream, items, options);
                 }
             }
             catch (Exception e)

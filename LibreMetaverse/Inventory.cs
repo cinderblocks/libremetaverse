@@ -225,6 +225,9 @@ namespace OpenMetaverse
         /// <param name="item">The InventoryObject to store</param>
         public void UpdateNodeFor(InventoryBase item)
         {
+            InventoryObjectUpdatedEventArgs itemUpdatedEventArgs = null;
+            InventoryObjectAddedEventArgs itemAddedEventArgs = null;
+
             lock (Items)
             {
                 InventoryNode itemParent = null;
@@ -235,8 +238,15 @@ namespace OpenMetaverse
                     {
                         DescendentCount = 1 // Dear god, please forgive me.
                     };
-                    itemParent = new InventoryNode(fakeParent);
-                    Items[item.ParentUUID] = itemParent;
+                    var fakeItemParent = new InventoryNode(fakeParent);
+                    if (Items.TryAdd(item.ParentUUID, fakeItemParent))
+                    {
+                        itemParent = fakeItemParent;
+                    }
+                    else
+                    {
+                        Items.TryGetValue(item.ParentUUID, out itemParent);
+                    }
                     // Unfortunately, this breaks the nice unified tree
                     // while we're waiting for the parent's data to come in.
                     // As soon as we get the parent, the tree repairs itself.
@@ -263,10 +273,9 @@ namespace OpenMetaverse
                     }
 
                     itemNode.Parent = itemParent;
-
                     if (m_InventoryObjectUpdated != null)
                     {
-                        OnInventoryObjectUpdated(new InventoryObjectUpdatedEventArgs(itemNode.Data, item));
+                        itemUpdatedEventArgs = new InventoryObjectUpdatedEventArgs(itemNode.Data, item);
                     }
 
                     itemNode.Data = item;
@@ -277,9 +286,18 @@ namespace OpenMetaverse
                     bool added = Items.TryAdd(item.UUID, itemNode);
                     if (added && m_InventoryObjectAdded != null)
                     {
-                        OnInventoryObjectAdded(new InventoryObjectAddedEventArgs(item));
+                        itemAddedEventArgs = new InventoryObjectAddedEventArgs(item);
                     }
                 }
+            }
+
+            if(itemUpdatedEventArgs != null)
+            {
+                OnInventoryObjectUpdated(itemUpdatedEventArgs);
+            }
+            if(itemAddedEventArgs != null)
+            {
+                OnInventoryObjectAdded(itemAddedEventArgs);
             }
         }
 
@@ -288,12 +306,19 @@ namespace OpenMetaverse
             return Items[uuid];
         }
 
+        public bool TryGetNodeFor(UUID uuid, out InventoryNode node)
+        {
+            return Items.TryGetValue(uuid, out node);
+        }
+
         /// <summary>
         /// Removes the InventoryObject and all related node data from Inventory.
         /// </summary>
         /// <param name="item">The InventoryObject to remove.</param>
         public void RemoveNodeFor(InventoryBase item)
         {
+            InventoryObjectRemovedEventArgs itemRemovedEventArgs = null;
+
             lock (Items)
             {
                 if (Items.TryGetValue(item.UUID, out var node))
@@ -307,8 +332,8 @@ namespace OpenMetaverse
                     bool removed = Items.TryRemove(item.UUID, out node);
                     if (removed && m_InventoryObjectRemoved != null)
                     {
-                        OnInventoryObjectRemoved(new InventoryObjectRemovedEventArgs(item));
-                    }                    
+                        itemRemovedEventArgs = new InventoryObjectRemovedEventArgs(item);
+                    }
                 }
 
                 // In case there's a new parent:
@@ -317,6 +342,11 @@ namespace OpenMetaverse
                     lock (newParent.Nodes.SyncRoot)
                         newParent.Nodes.Remove(item.UUID);
                 }
+            }
+
+            if(itemRemovedEventArgs != null)
+            {
+                OnInventoryObjectRemoved(itemRemovedEventArgs);
             }
         }
 
