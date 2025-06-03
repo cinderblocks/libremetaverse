@@ -4,6 +4,7 @@ using MessagePack.Resolvers;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -41,6 +42,7 @@ namespace OpenMetaverse
         /// Saves the current inventory structure to a cache file
         /// </summary>
         /// <param name="filename">Name of the cache file to save to</param>
+        /// <param name="Items">Inventory store to write to disk</param>
         public static void SaveToDisk(string filename, ConcurrentDictionary<UUID, InventoryNode> Items)
         {
             try
@@ -67,6 +69,7 @@ namespace OpenMetaverse
         /// Loads in inventory cache file into the inventory structure. Note only valid to call after login has been successful.
         /// </summary>
         /// <param name="filename">Name of the cache file to load</param>
+        /// <param name="Items">Inventory store being populated from restore</param>
         /// <returns>The number of inventory items successfully reconstructed into the inventory node tree, or -1 on error</returns>
         public static int RestoreFromDisk(string filename, ConcurrentDictionary<UUID, InventoryNode> Items)
         {
