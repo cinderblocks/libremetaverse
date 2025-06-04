@@ -1391,6 +1391,26 @@ namespace OpenMetaverse
             }
         }
 
+        public async Task RemoveItemsAsync(IEnumerable<UUID> items, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (Client.AisClient.IsAvailable)
+            {
+                var tasks = items
+                    .Select(n => Client.AisClient.RemoveItem(n, RemoveLocalUi, cancellationToken))
+                    .ToList();
+
+                await Task.WhenAll(tasks);
+            }
+            else
+            {
+#pragma warning disable CS0612 // Type or member is obsolete
+                Remove(items.ToList(), new List<UUID>());
+#pragma warning restore CS0612 // Type or member is obsolete
+            }
+        }
+
         /// <summary>
         /// Remove a folder from inventory
         /// </summary>
@@ -1760,15 +1780,15 @@ namespace OpenMetaverse
         /// <param name="folderID">Put newly created link in folder with this UUID</param>
         /// <param name="bse">Inventory item or folder</param>
         /// <param name="callback">Method to call upon creation of the link</param>
-        public void CreateLink(UUID folderID, InventoryBase bse, ItemCreatedCallback callback)
+        public void CreateLink(UUID folderID, InventoryBase bse, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
         {
             if (bse is InventoryFolder folder)
             {
-                CreateLink(folderID, folder, callback);
+                CreateLink(folderID, folder, callback, cancellationToken);
             }
             else if (bse is InventoryItem item)
             {
-                CreateLink(folderID, item.UUID, item.Name, item.Description, item.InventoryType, UUID.Random(), callback);
+                CreateLink(folderID, item.UUID, item.Name, item.Description, item.InventoryType, UUID.Random(), callback, cancellationToken);
             }
         }
 
@@ -1778,9 +1798,9 @@ namespace OpenMetaverse
         /// <param name="folderID">Put newly created link in folder with this UUID</param>
         /// <param name="item">Original inventory item</param>
         /// <param name="callback">Method to call upon creation of the link</param>
-        public void CreateLink(UUID folderID, InventoryItem item, ItemCreatedCallback callback)
+        public void CreateLink(UUID folderID, InventoryItem item, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
         {
-            CreateLink(folderID, item.UUID, item.Name, item.Description, item.InventoryType, UUID.Random(), callback);
+            CreateLink(folderID, item.UUID, item.Name, item.Description, item.InventoryType, UUID.Random(), callback, cancellationToken);
         }
 
         /// <summary>
@@ -1789,9 +1809,9 @@ namespace OpenMetaverse
         /// <param name="folderID">Put newly created link in folder with this UUID</param>
         /// <param name="folder">Original inventory folder</param>
         /// <param name="callback">Method to call upon creation of the link</param>
-        public void CreateLink(UUID folderID, InventoryFolder folder, ItemCreatedCallback callback)
+        public void CreateLink(UUID folderID, InventoryFolder folder, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
         {
-            CreateLink(folderID, folder.UUID, folder.Name, "", InventoryType.Folder, UUID.Random(), callback);
+            CreateLink(folderID, folder.UUID, folder.Name, "", InventoryType.Folder, UUID.Random(), callback, cancellationToken);
         }
 
         /// <summary>
@@ -1805,8 +1825,10 @@ namespace OpenMetaverse
         /// <param name="transactionID">Transaction UUID</param>
         /// <param name="callback">Method to call upon creation of the link</param>
         public void CreateLink(UUID folderID, UUID itemID, string name, string description, 
-            InventoryType invType, UUID transactionID, ItemCreatedCallback callback)
+            InventoryType invType, UUID transactionID, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             AssetType linkType = invType == InventoryType.Folder ? AssetType.LinkFolder : AssetType.Link;
             if (Client.AisClient.IsAvailable)
             {
@@ -1822,7 +1844,7 @@ namespace OpenMetaverse
                 links.Add(link);
 
                 var newInventory = new OSDMap { { "links", links } };
-                Client.AisClient.CreateInventory(folderID, newInventory, true, callback)
+                Client.AisClient.CreateInventory(folderID, newInventory, true, callback, cancellationToken)
                     .ConfigureAwait(false);
             }
             else
