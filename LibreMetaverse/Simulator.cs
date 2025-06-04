@@ -471,7 +471,7 @@ namespace OpenMetaverse
         public bool Connected => connected;
 
         /// <summary>Coarse locations of avatars in this simulator</summary>
-        public LockingDictionary<UUID, Vector3> AvatarPositions => avatarPositions;
+        public ConcurrentDictionary<UUID, Vector3> AvatarPositions => avatarPositions;
 
         /// <summary>AvatarPositions key representing TrackAgent target</summary>
         public UUID PreyID => preyID;
@@ -491,7 +491,7 @@ namespace OpenMetaverse
         /// to the property Connected</summary>
         internal bool connected;
         /// <summary>Coarse locations of avatars in this simulator</summary>
-        internal LockingDictionary<UUID, Vector3> avatarPositions = new LockingDictionary<UUID, Vector3>();
+        internal ConcurrentDictionary<UUID, Vector3> avatarPositions = new ConcurrentDictionary<UUID, Vector3>();
         /// <summary>AvatarPositions key representing TrackAgent target</summary>
         internal UUID preyID = UUID.Zero;
         /// <summary>Sequence numbers of packets we've received
