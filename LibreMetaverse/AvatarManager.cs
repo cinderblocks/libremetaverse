@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -576,9 +576,16 @@ namespace OpenMetaverse
         /// <param name="names">Array of display names</param>
         /// <param name="badIDs">Array of UUIDs that could not be fetched</param>
         public delegate void DisplayNamesCallback(bool success, AgentDisplayName[] names, UUID[] badIDs);
+
+        /// <summary>
+        /// Callback giving results when fetching AgentProfile
+        /// </summary>
+        /// <param name="success">If the request was successful</param>
+        /// <param name="profile">AgentProfile result</param>
+        public delegate void AgentProfileCallback(bool success, AgentProfileMessage profile);
         #endregion Delegates
 
-        private GridClient Client;
+        private readonly GridClient Client;
 
         /// <summary>
         /// Represents other avatars
@@ -763,6 +770,55 @@ namespace OpenMetaverse
                     }
                 };
             Client.Network.SendPacket(aprp);
+        }
+
+        /// <summary>
+        /// Check if AgentProfile functionality is available
+        /// </summary>
+        /// <returns>True if AgentProfile functionality is available</returns>
+        public bool AgentProfileAvailable()
+        {
+            return Client.Network.CurrentSim?.Caps?.CapabilityURI("AgentProfile") != null;
+        }
+
+        /// <summary>
+        /// Requests the AgentProfile for the specified avatar
+        /// </summary>
+        /// <param name="avatarid">Avatar to request the AgentProfile of</param>
+        /// <param name="callback">Callback to handle the AgentProfile response</param>
+        public async Task RequestAgentProfile(UUID avatarid, AgentProfileCallback callback)
+        {
+            if (!AgentProfileAvailable())
+            {
+                callback(false, null);
+                return;
+            }
+
+            var uri = new Uri(Client.Network.CurrentSim.Caps.CapabilityURI("AgentProfile").AbsoluteUri + "/" + avatarid);
+
+            await Client.HttpCapsClient.GetRequestAsync(uri, CancellationToken.None, (response, data, error) =>
+            {
+                try
+                {
+                    if (error != null)
+                    {
+                        throw error;
+                    }
+
+                    var msg = new AgentProfileMessage();
+                    var result = OSDParser.Deserialize(data);
+                    if (result is OSDMap respMap)
+                    {
+                        msg.Deserialize(respMap);
+                        callback(true, msg);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Failed to call AgentProfile capability: ", Helpers.LogLevel.Warning, Client, ex);
+                    callback(false, null);
+                }
+            });
         }
 
         /// <summary>
@@ -980,10 +1036,13 @@ namespace OpenMetaverse
                 signaledAnimations.Add(animation);
             }
 
-            Avatar avatar = e.Simulator.ObjectsAvatars.Find(avi => avi.ID == data.Sender.ID);
-            if (avatar != null)
+            var kvp = e.Simulator.ObjectsAvatars.SingleOrDefault(
+                avi => avi.Value.ID == data.Sender.ID);
+            if (kvp.Value != null)
             {
-                avatar.Animations = signaledAnimations;
+                var av = kvp.Value;
+                av.Animations = signaledAnimations;
+                e.Simulator.ObjectsAvatars.TryUpdate(kvp.Key, av, kvp.Value);
             }
             else
             {
@@ -1036,9 +1095,11 @@ namespace OpenMetaverse
                 {
                     if (appearance.AttachmentBlock != null && appearance.AttachmentBlock.Length > 0)
                     {
-                        Avatar av = simulator.ObjectsAvatars.Find((Avatar a) => a.ID == appearance.Sender.ID);
-                        if (av != null)
+                        var kv = simulator.ObjectsAvatars.SingleOrDefault(
+                            a => a.Value.ID == appearance.Sender.ID);
+                        if (kv.Value != null)
                         {
+                            var av = kv.Value;
                             av.Attachments = new List<Avatar.Attachment>();
                             foreach (var block in appearance.AttachmentBlock)
                             {
@@ -1050,37 +1111,42 @@ namespace OpenMetaverse
                             }
 
                             childCount = av.ChildCount = av.Attachments.Count;
+
+                            simulator.ObjectsAvatars.TryUpdate(kv.Key, av, kv.Value);
                         }
                     }
                 }
 
-                if (appearance.Sender.ID != Client.Self.AgentID) // We need to ignore this for avatar self-appearance.
-                                                                 // The data in this packet is incorrect, and only the 
-                                                                 // mesh bake CAP response can be treated as fully reliable.
+                // We need to ignore this for avatar self-appearance.
+                // The data in this packet is incorrect, and only the 
+                // mesh bake CAP response can be treated as fully reliable.
+                if (appearance.Sender.ID == Client.Self.AgentID) { return; }
+
+                var kvp = simulator.ObjectsAvatars.SingleOrDefault(
+                    a => a.Value.ID == appearance.Sender.ID);
+                if (kvp.Value != null)
                 {
-                    Avatar av = simulator.ObjectsAvatars.Find((Avatar a) => a.ID == appearance.Sender.ID);
-                    if (av != null)
-                    {
-                        av.Textures = textureEntry;
-                        av.VisualParameters = visualParams.ToArray();
-                        av.AppearanceVersion = appearanceVersion;
-                        av.COFVersion = COFVersion;
-                        av.AppearanceFlags = appearanceFlags;
-                        av.HoverHeight = hoverHeight;
+                    var av = kvp.Value;
+                    av.Textures = textureEntry;
+                    av.VisualParameters = visualParams.ToArray();
+                    av.AppearanceVersion = appearanceVersion;
+                    av.COFVersion = COFVersion;
+                    av.AppearanceFlags = appearanceFlags;
+                    av.HoverHeight = hoverHeight;
 
-                    }
-
-                    OnAvatarAppearance(new AvatarAppearanceEventArgs(simulator,
-                                                                     appearance.Sender.ID,
-                                                                     appearance.Sender.IsTrial,
-                                                                     defaultTexture,
-                                                                     faceTextures,
-                                                                     visualParams,
-                                                                     appearanceVersion,
-                                                                     COFVersion,
-                                                                     appearanceFlags,
-                                                                     childCount));
+                    simulator.ObjectsAvatars.TryUpdate(kvp.Key, av, kvp.Value);
                 }
+
+                OnAvatarAppearance(new AvatarAppearanceEventArgs(simulator,
+                    appearance.Sender.ID,
+                    appearance.Sender.IsTrial,
+                    defaultTexture,
+                    faceTextures,
+                    visualParams,
+                    appearanceVersion,
+                    COFVersion,
+                    appearanceFlags,
+                    childCount));
             }
         }
 

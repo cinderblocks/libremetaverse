@@ -796,9 +796,9 @@ namespace OpenMetaverse.Assets
             {
                 Serial = map["serial"].AsInteger();
 
-                if (map.ContainsKey("items"))
+                if (map.TryGetValue("items", out var value))
                 {
-                    OSDArray array = (OSDArray)map["items"];
+                    OSDArray array = (OSDArray)value;
                     Items = new ItemBlock[array.Count];
 
                     for (int i = 0; i < array.Count; i++)

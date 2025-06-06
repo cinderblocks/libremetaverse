@@ -648,9 +648,9 @@ namespace OpenMetaverse
 
 		private int KeywordPosition(string keyword)
 		{
-            if (KeywordPositions.ContainsKey(keyword))
+            if (KeywordPositions.TryGetValue(keyword, out var position))
             {
-                return KeywordPositions[keyword];
+                return position;
             }
 
             int hash = 0;

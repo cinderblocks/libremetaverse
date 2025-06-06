@@ -24,8 +24,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
+using MessagePack;
 using OpenMetaverse.StructuredData;
+using System;
 
 namespace OpenMetaverse
 {
@@ -61,13 +62,18 @@ namespace OpenMetaverse
         All = 0x1F
     }
 
-    [Serializable]
+    [MessagePackObject]
     public struct Permissions
     {
+        [Key("BaseMask")]
         public PermissionMask BaseMask;
+        [Key("EveryoneMask")]
         public PermissionMask EveryoneMask;
+        [Key("GroupMask")]
         public PermissionMask GroupMask;
+        [Key("NextOwnerMask")]
         public PermissionMask NextOwnerMask;
+        [Key("OwnerMask")]
         public PermissionMask OwnerMask;
 
         public Permissions(uint baseMask, uint everyoneMask, uint groupMask, uint nextOwnerMask, uint ownerMask)

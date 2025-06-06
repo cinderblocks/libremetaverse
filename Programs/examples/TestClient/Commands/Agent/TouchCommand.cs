@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace OpenMetaverse.TestClient
 {
     public class TouchCommand: Command
@@ -11,25 +13,25 @@ namespace OpenMetaverse.TestClient
 		
         public override string Execute(string[] args, UUID fromAgentID)
 		{
-            UUID target;
-
             if (args.Length != 1)
-                return "Usage: touch UUID";
-            
-            if (UUID.TryParse(args[0], out target))
             {
-                Primitive targetPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(
-                    prim => prim.ID == target
-                );
-
-                if (targetPrim != null)
-                {
-                    Client.Self.Touch(targetPrim.LocalID);
-                    return "Touched prim " + targetPrim.LocalID;
-                }
+                return "Usage: touch UUID";
             }
 
-            return "Couldn't find a prim to touch with UUID " + args[0];
-		}
+            if (!UUID.TryParse(args[0], out var target))
+            {
+                return $"{args[0]} is not a valid UUID";
+            }
+            var targetPrim = Client.Network.CurrentSim.ObjectsPrimitives.FirstOrDefault(prim => prim.Value.ID == target);
+
+            if (targetPrim.Value == null)
+            {
+                return $"Couldn't find an object to touch with UUID {args[0]}";
+            }
+
+            Client.Self.Touch(targetPrim.Value.LocalID);
+            return $"Touched object {targetPrim.Value.LocalID}";
+
+        }
     }
 }

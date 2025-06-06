@@ -1,5 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -25,7 +26,7 @@
  */
 
 using System.Reflection;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace OpenMetaverse
 {
@@ -150,15 +151,15 @@ namespace OpenMetaverse
         /// <returns>A dictionary containing the pre-defined sounds, 
         /// where the key is the sounds ID, and the value is a string
         /// containing a name to identify the purpose of the sound</returns>
-        public static Dictionary<UUID, string> ToDictionary()
+        public static ImmutableDictionary<UUID, string> ToDictionary()
         {
-            var dict = new Dictionary<UUID, string>();
+            var dict = ImmutableDictionary.CreateBuilder<UUID, string>();
             var type = typeof(Sounds);
             foreach (FieldInfo field in type.GetFields(BindingFlags.Public | BindingFlags.Static))
             {
                 dict.Add((UUID)field.GetValue(type), field.Name);
             }
-            return dict;
+            return dict.ToImmutable();
         }
     }
 }

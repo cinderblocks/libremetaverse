@@ -1,5 +1,5 @@
 Copyright (c) 2006-2016, openmetaverse.co
-Copyright (c) 2017-2024, Sjofn LLC
+Copyright (c) 2017-2025, Sjofn LLC
 
 All rights reserved.
 

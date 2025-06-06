@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Sjofn LLC.
+ * Copyright (c) 2024-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@ namespace OpenMetaverse.Imaging
 {
     public static class Targa
     {
-        /// <summary>Decode Truvision TGA file to <see cref="SKBitmap" /></summary>
+        /// <summary>Decode Truevision TGA file to <see cref="SKBitmap" /></summary>
         public static SKBitmap Decode(string fileName)
         {
             using (var image = Pfimage.FromFile(fileName))
@@ -43,7 +43,7 @@ namespace OpenMetaverse.Imaging
             }
         }
 
-        /// <summary>Decode Truvision TGA stream to <see cref="SKBitmap" /></summary>
+        /// <summary>Decode Truevision TGA stream to <see cref="SKBitmap" /></summary>
         public static SKBitmap Decode(Stream stream)
         {
             using (var image = Pfimage.FromStream(stream))
@@ -100,11 +100,82 @@ namespace OpenMetaverse.Imaging
                 }
             }
         }
-        
-        /// <summary>Encode <see cref="ManagedImage"/> to Truvision TGA byte array</summary>
+
+        public static byte[] Encode(SKBitmap image)
+        {
+            if (image == null) { return null; }
+
+            var imageType = (byte)(image.ColorType == SKColorType.Gray8 || image.ColorType == SKColorType.Alpha8
+                ? 0x03 : 0x02);
+            var imageDescriptor = (byte)(image.AlphaType <= SKAlphaType.Opaque ? 0 : 0x8); 
+
+            var tga = new byte[image.Width * image.Height * image.BytesPerPixel + 18];
+            var di = 0;
+            tga[di++] = 0x00; // id length
+            tga[di++] = 0x00; // colormap type = 0: no colormap
+            tga[di++] = imageType; // image type
+            tga[di++] = 0x00; // color map spec is five zeroes for no color map
+            tga[di++] = 0x00; // color map spec is five zeroes for no color map
+            tga[di++] = 0x00; // color map spec is five zeroes for no color map
+            tga[di++] = 0x00; // color map spec is five zeroes for no color map
+            tga[di++] = 0x00; // color map spec is five zeroes for no color map
+            tga[di++] = 0; // x origin = two bytes
+            tga[di++] = 0; // x origin = two bytes
+            tga[di++] = 0; // y origin = two bytes
+            tga[di++] = 0; // y origin = two bytes
+            tga[di++] = (byte)(image.Width & 0xFF); // width - low byte
+            tga[di++] = (byte)(image.Width >> 8); // width - hi byte
+            tga[di++] = (byte)(image.Height & 0xFF); // height - low byte
+            tga[di++] = (byte)(image.Height >> 8); // height - hi byte
+            tga[di++] = (byte)(image.BytesPerPixel*8); // pixel depth, includes attribute bits
+            tga[di++] = imageDescriptor; // image descriptor byte
+
+            for (var y = image.Height - 1; y >= 0; --y) // takes lines from bottom lines to top (mirrored horizontally)
+            {
+                for (var x = 0; x < image.Width; ++x)
+                {
+                    var c = image.GetPixel(x, y);
+                    if (image.ColorType == SKColorType.Gray8)
+                    {
+                        tga[di++] = c.Red;
+                    } else if (image.ColorType == SKColorType.Alpha8)
+                    {
+                        tga[di++] = c.Alpha;
+                    }
+                    else
+                    {
+                        tga[di++] = c.Blue;
+                        tga[di++] = c.Green;
+                        tga[di++] = c.Red;
+                        
+                        tga[di++] = (byte)(image.AlphaType > SKAlphaType.Opaque ? 0x0 : c.Alpha);
+                    }
+                        
+                }
+            }
+
+            return tga;
+        }
+
+        /// <summary>Encode <see cref="ManagedImage"/> to Truevision TGA byte array</summary>
         public static byte[] Encode(ManagedImage image)
         {
-            var tga = new byte[image.Width * image.Height * ((image.Channels & ManagedImage.ImageChannels.Alpha) == 0 ? 3 : 4) + 32];
+            byte channels = 0;
+            if ((image.Channels & ManagedImage.ImageChannels.Color) != 0)
+            {
+                channels += 3;
+            }
+            else if ((image.Channels & ManagedImage.ImageChannels.Gray) != 0)
+            {
+                ++channels;
+            }
+
+            if ((image.Channels & ManagedImage.ImageChannels.Alpha) != 0)
+            {
+                ++channels;
+            }
+
+            var tga = new byte[image.Width * image.Height * channels + 32];
             var di = 0;
             tga[di++] = 0; // idlength
             tga[di++] = 0; // colormaptype = 0: no colormap
@@ -122,8 +193,8 @@ namespace OpenMetaverse.Imaging
             tga[di++] = (byte)(image.Width >> 8); // width - hi byte
             tga[di++] = (byte)(image.Height & 0xFF); // height - low byte
             tga[di++] = (byte)(image.Height >> 8); // height - hi byte
-            tga[di++] = (byte)((image.Channels & ManagedImage.ImageChannels.Alpha) == 0 ? 24 : 32); // 24/32 bits per pixel
-            tga[di++] = (byte)((image.Channels & ManagedImage.ImageChannels.Alpha) == 0 ? 32 : 40); // image descriptor byte
+            tga[di++] = (byte)(channels * 8); // bits per pixel
+            tga[di++] = (byte)((image.Channels & ManagedImage.ImageChannels.Alpha) == 0 ? 0x0 : 0x20); // image descriptor byte
 
             int n = image.Width * image.Height;
 
@@ -150,6 +221,13 @@ namespace OpenMetaverse.Imaging
                         tga[di++] = image.Alpha[i];
                         tga[di++] = byte.MaxValue;
                     }
+                }
+            }
+            else if ((image.Channels & ManagedImage.ImageChannels.Gray) != 0)
+            {
+                for (var i = 0; i < n; i++)
+                {
+                    tga[di++] = image.Red[i];
                 }
             }
             else

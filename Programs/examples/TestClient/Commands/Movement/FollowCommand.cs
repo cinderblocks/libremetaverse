@@ -43,18 +43,14 @@ namespace OpenMetaverse.TestClient
         {
             lock (Client.Network.Simulators)
             {
-                foreach (var sim in Client.Network.Simulators)
+                foreach (var target in Client.Network.Simulators
+                             .Select(sim => sim.ObjectsAvatars
+                                 .FirstOrDefault(avatar => avatar.Value.Name == name))
+                             .Where(target => target.Value != null))
                 {
-                    Avatar target = sim.ObjectsAvatars.Find(
-                        avatar => avatar.Name == name
-                    );
-
-                    if (target != null)
-                    {
-                        targetLocalID = target.LocalID;
-                        Active = true;
-                        return true;
-                    }
+                    targetLocalID = target.Value.LocalID;
+                    Active = true;
+                    return true;
                 }
             }
 

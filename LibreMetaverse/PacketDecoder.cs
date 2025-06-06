@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Reflection;
 using System.Text;
 
@@ -1424,7 +1425,7 @@ namespace OpenMetaverse.Packets
         private static string DecodeAnimToConst(string fieldName, object fieldData)
         {
             string animConst = "UUID";
-            Dictionary<UUID, string> animsDict = Animations.ToDictionary();
+            ImmutableDictionary<UUID, string> animsDict = Animations.ToDictionary();
             if (animsDict.ContainsKey((UUID) fieldData))
                 animConst = animsDict[(UUID) fieldData];
             return $"{fieldName,30}: {fieldData,-40} [{animConst}]";

@@ -26,87 +26,56 @@
  */
 
 using System;
-using System.Runtime.Serialization;
 using OpenMetaverse.StructuredData;
-#if NET7_0_OR_GREATER
-using MemoryPack;
-#endif
+using MessagePack;
 
 namespace OpenMetaverse
 {
     /// <summary>
     /// Base Class for Inventory Items
     /// </summary>
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-    [MemoryPackUnion(0, typeof(InventoryFolder))]
-    [MemoryPackUnion(1, typeof(InventoryItem))]
-    [MemoryPackUnion(2, typeof(InventoryAnimation))]
-    [MemoryPackUnion(3, typeof(InventoryAttachment))]
-    [MemoryPackUnion(4, typeof(InventoryCallingCard))]
-    [MemoryPackUnion(5, typeof(InventoryCategory))]
-    [MemoryPackUnion(6, typeof(InventoryGesture))]
-    [MemoryPackUnion(7, typeof(InventoryLSL))]
-    [MemoryPackUnion(8, typeof(InventoryLandmark))]
-    [MemoryPackUnion(9, typeof(InventoryMaterial))]
-    [MemoryPackUnion(10, typeof(InventoryNotecard))]
-    [MemoryPackUnion(11, typeof(InventoryObject))]
-    [MemoryPackUnion(12, typeof(InventorySettings))]
-    [MemoryPackUnion(13, typeof(InventorySnapshot))]
-    [MemoryPackUnion(14, typeof(InventorySound))]
-    [MemoryPackUnion(15, typeof(InventoryTexture))]
-    [MemoryPackUnion(16, typeof(InventoryWearable))]
-#endif
-    public abstract partial class InventoryBase : ISerializable
+    [MessagePackObject]
+    [Union(0, typeof(InventoryFolder))]
+    [Union(1, typeof(InventoryItem))]
+    [Union(2, typeof(InventoryAnimation))]
+    [Union(3, typeof(InventoryAttachment))]
+    [Union(4, typeof(InventoryCallingCard))]
+    [Union(5, typeof(InventoryCategory))]
+    [Union(6, typeof(InventoryGesture))]
+    [Union(7, typeof(InventoryLSL))]
+    [Union(8, typeof(InventoryLandmark))]
+    [Union(9, typeof(InventoryMaterial))]
+    [Union(10, typeof(InventoryNotecard))]
+    [Union(11, typeof(InventoryObject))]
+    [Union(12, typeof(InventorySettings))]
+    [Union(13, typeof(InventorySnapshot))]
+    [Union(14, typeof(InventorySound))]
+    [Union(15, typeof(InventoryTexture))]
+    [Union(16, typeof(InventoryWearable))]
+    public abstract partial class InventoryBase
     {
         /// <summary><see cref="OpenMetaverse.UUID"/> of item/folder</summary>
+        [Key("UUID")]
         public UUID UUID;
         /// <summary><see cref="OpenMetaverse.UUID"/> of parent folder</summary>
+        [Key("ParentUUID")]
         public UUID ParentUUID;
         /// <summary>Name of item/folder</summary>
+        [Key("Name")]
         public string Name;
         /// <summary>Item/Folder Owners <see cref="OpenMetaverse.UUID"/></summary>
+        [Key("OwnerID")]
         public UUID OwnerID;
 
         /// <summary>
         /// Constructor, takes an itemID as a parameter
         /// </summary>
         /// <param name="UUID">The <see cref="OpenMetaverse.UUID"/> of the item</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         protected InventoryBase(UUID UUID)
         {
             if (UUID == UUID.Zero)
                 Logger.Log("Initializing an InventoryBase with UUID.Zero", Helpers.LogLevel.Warning);
             this.UUID = UUID;
-        }
-
-        /// <summary>
-        /// Get object data
-        /// </summary>
-        /// <param name="info"></param>
-        /// <param name="context"></param>
-        public virtual void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            info.AddValue("UUID", UUID);
-            info.AddValue("ParentUUID", ParentUUID);
-            info.AddValue("Name", Name);
-            info.AddValue("OwnerID", OwnerID);
-        }
-
-        /// <summary>
-        /// Inventory base ctor
-        /// </summary>
-        /// <param name="info"></param>
-        /// <param name="ctxt"></param>
-        protected InventoryBase(SerializationInfo info, StreamingContext ctxt)
-        {
-            UUID = (UUID)info.GetValue("UUID", typeof(UUID));
-            ParentUUID = (UUID)info.GetValue("ParentUUID", typeof(UUID));
-            Name = (string)info.GetValue("Name", typeof(string));
-            OwnerID = (UUID)info.GetValue("OwnerID", typeof(UUID));
         }
 
         /// <summary>
@@ -152,10 +121,7 @@ namespace OpenMetaverse
     /// <summary>
     /// An Item in Inventory
     /// </summary>
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
+    [MessagePackObject]
     public partial class InventoryItem : InventoryBase
     {
         public override string ToString()
@@ -163,45 +129,58 @@ namespace OpenMetaverse
             return $"{AssetType} {AssetUUID} ({InventoryType} {UUID}) '{Name}'/'{Description}' {Permissions}";
         }
         /// <summary><see cref="UUID"/> of the underlying asset</summary>
+        [Key("AssetUUID")]
         public UUID AssetUUID;
         /// <summary>Combined <see cref="OpenMetaverse.Permissions"/> of the item</summary>
+        [Key("Permissions")]
         public Permissions Permissions;
         /// <summary><see cref="OpenMetaverse.AssetType"/> of the underlying asset</summary>
+        [Key("AssetType")]
         public AssetType AssetType;
         /// <summary><see cref="OpenMetaverse.InventoryType"/> of the item</summary>
+        [Key("InventoryType")]
         public InventoryType InventoryType;
         /// <summary><see cref="UUID"/> of the creator of the item</summary>
+        [Key("CreatorID")]
         public UUID CreatorID;
         /// <summary>Description of the item</summary>
+        [Key("Description")]
         public string Description;
         /// <summary><see cref="Group"/>s <see cref="UUID"/> the item is owned by</summary>
+        [Key("GroupID")]
         public UUID GroupID;
         /// <summary>If true, item is owned by a group</summary>
+        [Key("GroupOwned")]
         public bool GroupOwned;
         /// <summary>Price the item can be purchased for</summary>
+        [Key("SalePrice")]
         public int SalePrice;
         /// <summary><see cref="OpenMetaverse.SaleType"/> of the item</summary>
+        [Key("SaleType")]
         public SaleType SaleType;
         /// <summary>Combined flags from <see cref="InventoryItemFlags"/></summary>
+        [Key("Flags")]
         public uint Flags;
+
         /// <summary>Time and date the inventory item was created, stored as
         /// UTC (Coordinated Universal Time)</summary>
+        [Key("CreationDate")]
         public DateTime CreationDate;
         /// <summary>Used to update the AssetID in requests sent to the server</summary>
+        [Key("TransactionID")]
         public UUID TransactionID;
         /// <summary><see cref="UUID"/> of the previous owner of the item</summary>
+        [Key("LastOwnerID")]
         public UUID LastOwnerID;
 
         /// <summary>inventoryID that this item points to, else this item's inventoryID</summary>
+        [IgnoreMember]
         public UUID ActualUUID => IsLink() ? AssetUUID : UUID;
 
         /// <summary>
         ///  Construct a new InventoryItem object
         /// </summary>
         /// <param name="UUID">The <see cref="UUID"/> of the item</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventoryItem(UUID UUID)
             : base(UUID) { }
 
@@ -219,53 +198,6 @@ namespace OpenMetaverse
         public bool IsLink()
         {
             return AssetType == AssetType.Link || AssetType == AssetType.LinkFolder;
-        }
-
-        /// <inheritdoc />
-        /// <summary>
-        /// Get object data
-        /// </summary>
-        /// <param name="info"></param>
-        /// <param name="context"></param>
-        public override void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            base.GetObjectData(info, context);
-            info.AddValue("AssetUUID", AssetUUID, typeof(UUID));
-            info.AddValue("Permissions", Permissions, typeof(Permissions));
-            info.AddValue("AssetType", AssetType);
-            info.AddValue("InventoryType", InventoryType);
-            info.AddValue("CreatorID", CreatorID);
-            info.AddValue("Description", Description);
-            info.AddValue("GroupID", GroupID);
-            info.AddValue("GroupOwned", GroupOwned);
-            info.AddValue("SalePrice", SalePrice);
-            info.AddValue("SaleType", SaleType);
-            info.AddValue("Flags", Flags);
-            info.AddValue("CreationDate", CreationDate);
-            info.AddValue("LastOwnerID", LastOwnerID);
-        }
-
-        /// <summary>
-        /// Inventory item ctor
-        /// </summary>
-        /// <param name="info"></param>
-        /// <param name="ctxt"></param>
-        public InventoryItem(SerializationInfo info, StreamingContext ctxt)
-            : base(info, ctxt)
-        {
-            AssetUUID = (UUID)info.GetValue("AssetUUID", typeof(UUID));
-            Permissions = (Permissions)info.GetValue("Permissions", typeof(Permissions));
-            AssetType = (AssetType)info.GetValue("AssetType", typeof(AssetType));
-            InventoryType = (InventoryType)info.GetValue("InventoryType", typeof(InventoryType));
-            CreatorID = (UUID)info.GetValue("CreatorID", typeof(UUID));
-            Description = (string)info.GetValue("Description", typeof(string));
-            GroupID = (UUID)info.GetValue("GroupID", typeof(UUID));
-            GroupOwned = (bool)info.GetValue("GroupOwned", typeof(bool));
-            SalePrice = (int)info.GetValue("SalePrice", typeof(int));
-            SaleType = (SaleType)info.GetValue("SaleType", typeof(SaleType));
-            Flags = (uint)info.GetValue("Flags", typeof(uint));
-            CreationDate = (DateTime)info.GetValue("CreationDate", typeof(DateTime));
-            LastOwnerID = (UUID)info.GetValue("LastOwnerID", typeof(UUID));
         }
 
         /// <summary>
@@ -404,9 +336,9 @@ namespace OpenMetaverse
             {
                 Permissions = Permissions.FromOSD(permissions);
             }
-            if (data.ContainsKey("sale_info"))
+            if (data.TryGetValue("sale_info", out var saleInfo))
             {
-                OSDMap sale = (OSDMap)data["sale_info"];
+                OSDMap sale = (OSDMap)saleInfo;
                 SalePrice = sale["sale_price"].AsInteger(); 
                 SaleType = (SaleType)sale["sale_type"].AsInteger();
             }
@@ -456,13 +388,13 @@ namespace OpenMetaverse
                     InventoryType = type;
                 }
             }
-            if (data.ContainsKey("flags"))
+            if (data.TryGetValue("flags", out var flags))
             {
-                Flags = data["flags"];
+                Flags = flags;
             }
-            if (data.ContainsKey("created_at"))
+            if (data.TryGetValue("created_at", out var createdAt))
             {
-                CreationDate = Utils.UnixTimeToDateTime(data["created_at"]);
+                CreationDate = Utils.UnixTimeToDateTime(createdAt);
             }
         }
 
@@ -508,10 +440,7 @@ namespace OpenMetaverse
     /// InventoryTexture Class representing a graphical image
     /// </summary>
     /// <seealso cref="T:OpenMetaverse.Imaging.ManagedImage" />
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
+    [MessagePackObject]
     public partial class InventoryTexture : InventoryItem
     {
         /// <summary>
@@ -519,20 +448,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventoryTexture(UUID UUID)
             : base(UUID)
-        {
-            InventoryType = InventoryType.Texture;
-        }
-
-        /// <summary>
-        /// Construct an InventoryTexture object from a serialization stream
-        /// </summary>
-        public InventoryTexture(SerializationInfo info, StreamingContext ctxt)
-            : base(info, ctxt)
         {
             InventoryType = InventoryType.Texture;
         }
@@ -542,10 +459,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventorySound Class representing a playable sound
     /// </summary>
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
+    [MessagePackObject]
     public partial class InventorySound : InventoryItem
     {
         /// <summary>
@@ -553,20 +467,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventorySound(UUID UUID)
             : base(UUID)
-        {
-            InventoryType = InventoryType.Sound;
-        }
-
-        /// <summary>
-        /// Construct an InventorySound object from a serialization stream
-        /// </summary>
-        public InventorySound(SerializationInfo info, StreamingContext ctxt)
-            : base(info, ctxt)
         {
             InventoryType = InventoryType.Sound;
         }
@@ -576,10 +478,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryCallingCard Class, contains information on another avatar
     /// </summary>
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
+    [MessagePackObject]
     public partial class InventoryCallingCard : InventoryItem
     {
         /// <summary>
@@ -587,20 +486,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventoryCallingCard(UUID UUID)
             : base(UUID)
-        {
-            InventoryType = InventoryType.CallingCard;
-        }
-
-        /// <summary>
-        /// Construct an InventoryCallingCard object from a serialization stream
-        /// </summary>
-        public InventoryCallingCard(SerializationInfo info, StreamingContext ctxt)
-            : base(info, ctxt)
         {
             InventoryType = InventoryType.CallingCard;
         }
@@ -610,10 +497,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryLandmark Class, contains details on a specific location
     /// </summary>
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
+    [MessagePackObject]
     public partial class InventoryLandmark : InventoryItem
     {
         /// <summary>
@@ -621,9 +505,6 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventoryLandmark(UUID UUID)
             : base(UUID)
         {
@@ -631,18 +512,9 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Construct an InventoryLandmark object from a serialization stream
-        /// </summary>
-        public InventoryLandmark(SerializationInfo info, StreamingContext ctxt)
-            : base(info, ctxt)
-        {
-            InventoryType = InventoryType.Landmark;
-
-        }
-
-        /// <summary>
         /// Landmarks use the InventoryItemFlags struct and will have a flag of 1 set if they have been visited
         /// </summary>
+        [IgnoreMember]
         public bool LandmarkVisited
         {
             get => (Flags & 1) != 0;
@@ -658,10 +530,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryObject Class contains details on a primitive or coalesced set of primitives
     /// </summary>
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
+    [MessagePackObject]
     public partial class InventoryObject : InventoryItem
     {
         /// <summary>
@@ -669,9 +538,6 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventoryObject(UUID UUID)
             : base(UUID)
         {
@@ -679,17 +545,9 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Construct an InventoryObject object from a serialization stream
-        /// </summary>
-        public InventoryObject(SerializationInfo info, StreamingContext ctxt)
-            : base(info, ctxt)
-        {
-            InventoryType = InventoryType.Object;
-        }
-
-        /// <summary>
         /// Gets or sets the upper byte of the Flags value
         /// </summary>
+        [IgnoreMember]
         public InventoryItemFlags ItemFlags
         {
             get => (InventoryItemFlags)(Flags & ~0xFF);
@@ -699,6 +557,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Gets or sets the object attachment point, the lower byte of the Flags value
         /// </summary>
+        [IgnoreMember]
         public AttachmentPoint AttachPoint
         {
             get => (AttachmentPoint)(Flags & 0xFF);
@@ -710,10 +569,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryNotecard Class, contains details on an encoded text document
     /// </summary>
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
+    [MessagePackObject]
     public partial  class InventoryNotecard : InventoryItem
     {
         /// <summary>
@@ -721,20 +577,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventoryNotecard(UUID UUID)
             : base(UUID)
-        {
-            InventoryType = InventoryType.Notecard;
-        }
-
-        /// <summary>
-        /// Construct an InventoryNotecard object from a serialization stream
-        /// </summary>
-        public InventoryNotecard(SerializationInfo info, StreamingContext ctxt)
-            : base(info, ctxt)
         {
             InventoryType = InventoryType.Notecard;
         }
@@ -744,10 +588,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryCategory Class
     /// </summary>
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
+    [MessagePackObject]
     public partial class InventoryCategory : InventoryItem
     {
         /// <summary>
@@ -755,20 +596,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventoryCategory(UUID UUID)
             : base(UUID)
-        {
-            InventoryType = InventoryType.Category;
-        }
-
-        /// <summary>
-        /// Construct an InventoryCategory object from a serialization stream
-        /// </summary>
-        public InventoryCategory(SerializationInfo info, StreamingContext ctxt)
-            : base(info, ctxt)
         {
             InventoryType = InventoryType.Category;
         }
@@ -778,10 +607,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryLSL Class, represents a Linden Scripting Language object
     /// </summary>
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
+    [MessagePackObject]
     public partial class InventoryLSL : InventoryItem
     {
         /// <summary>
@@ -789,20 +615,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventoryLSL(UUID UUID)
             : base(UUID)
-        {
-            InventoryType = InventoryType.LSL;
-        }
-
-        /// <summary>
-        /// Construct an InventoryLSL object from a serialization stream
-        /// </summary>
-        public InventoryLSL(SerializationInfo info, StreamingContext ctxt)
-            : base(info, ctxt)
         {
             InventoryType = InventoryType.LSL;
         }
@@ -812,10 +626,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventorySnapshot Class, an image taken with the viewer
     /// </summary>
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
+    [MessagePackObject]
     public partial class InventorySnapshot : InventoryItem
     {
         /// <inheritdoc />
@@ -824,20 +635,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="UUID">A <see cref="T:OpenMetaverse.UUID" /> which becomes the 
         /// <seealso cref="T:OpenMetaverse.InventoryItem" /> objects UUID</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventorySnapshot(UUID UUID)
             : base(UUID)
-        {
-            InventoryType = InventoryType.Snapshot;
-        }
-
-        /// <summary>
-        /// Construct an InventorySnapshot object from a serialization stream
-        /// </summary>
-        public InventorySnapshot(SerializationInfo info, StreamingContext ctxt)
-            : base(info, ctxt)
         {
             InventoryType = InventoryType.Snapshot;
         }
@@ -846,10 +645,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryAttachment Class, contains details on an attachable object
     /// </summary>
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
+    [MessagePackObject]
     public partial class InventoryAttachment : InventoryItem
     {
         /// <summary>
@@ -857,9 +653,6 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventoryAttachment(UUID UUID)
             : base(UUID)
         {
@@ -867,17 +660,9 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Construct an InventoryAttachment object from a serialization stream
-        /// </summary>
-        public InventoryAttachment(SerializationInfo info, StreamingContext ctxt)
-            : base(info, ctxt)
-        {
-            InventoryType = InventoryType.Attachment;
-        }
-
-        /// <summary>
         /// Get the last AttachmentPoint this object was attached to
         /// </summary>
+        [IgnoreMember]
         public AttachmentPoint AttachmentPoint
         {
             get => (AttachmentPoint)Flags;
@@ -889,10 +674,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryWearable Class, details on a clothing item or body part
     /// </summary>
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
+    [MessagePackObject]
     public partial class InventoryWearable : InventoryItem
     {
         /// <summary>
@@ -900,23 +682,12 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventoryWearable(UUID UUID) : base(UUID) { InventoryType = InventoryType.Wearable; }
-
-        /// <summary>
-        /// Construct an InventoryWearable object from a serialization stream
-        /// </summary>
-        public InventoryWearable(SerializationInfo info, StreamingContext ctxt)
-            : base(info, ctxt)
-        {
-            InventoryType = InventoryType.Wearable;
-        }
 
         /// <summary>
         /// The <see cref="OpenMetaverse.WearableType"/>, Skin, Shape, Skirt, Etc
         /// </summary>
+        [IgnoreMember]
         public WearableType WearableType
         {
             get => (WearableType)Flags;
@@ -928,10 +699,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryAnimation Class, A bvh encoded object which animates an avatar
     /// </summary>
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
+    [MessagePackObject]
     public partial class InventoryAnimation : InventoryItem
     {
         /// <summary>
@@ -939,20 +707,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventoryAnimation(UUID UUID)
             : base(UUID)
-        {
-            InventoryType = InventoryType.Animation;
-        }
-
-        /// <summary>
-        /// Construct an InventoryAnimation object from a serialization stream
-        /// </summary>
-        public InventoryAnimation(SerializationInfo info, StreamingContext ctxt)
-            : base(info, ctxt)
         {
             InventoryType = InventoryType.Animation;
         }
@@ -962,10 +718,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryGesture Class, details on a series of animations, sounds, and actions
     /// </summary>
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
+    [MessagePackObject]
     public partial class InventoryGesture : InventoryItem
     {
         /// <summary>
@@ -973,20 +726,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventoryGesture(UUID UUID)
             : base(UUID)
-        {
-            InventoryType = InventoryType.Gesture;
-        }
-
-        /// <summary>
-        /// Construct an InventoryGesture object from a serialization stream
-        /// </summary>
-        public InventoryGesture(SerializationInfo info, StreamingContext ctxt)
-            : base(info, ctxt)
         {
             InventoryType = InventoryType.Gesture;
         }
@@ -996,10 +737,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventorySettings, LLSD settings blob as an asset
     /// </summary>
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
+    [MessagePackObject]
     public partial class InventorySettings : InventoryItem
     {
         /// <summary>
@@ -1007,28 +745,17 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventorySettings(UUID UUID) : base(UUID)
         {
             InventoryType = InventoryType.Settings;
         }
-
-        public InventorySettings(SerializationInfo info, StreamingContext ctxt) : base(info, ctxt)
-        {
-            InventoryType = InventoryType.Settings;
-        }
     }
-    
+
     /// <inheritdoc />
     /// <summary>
     /// InventoryMaterial, material as an asset
     /// </summary>
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
+    [MessagePackObject]
     public partial class InventoryMaterial : InventoryItem
     {
         /// <summary>
@@ -1036,47 +763,38 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="UUID">A <see cref="UUID"/> which becomes the 
         /// <seealso cref="InventoryItem"/> objects UUID</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventoryMaterial(UUID UUID) : base(UUID)
         {
             InventoryType = InventoryType.Settings;
         }
-
-        public InventoryMaterial(SerializationInfo info, StreamingContext ctxt) : base(info, ctxt)
-        {
-            InventoryType = InventoryType.Settings;
-        }
     }
-    
+
     /// <inheritdoc />
     /// <summary>
     /// A folder contains <see cref="T:OpenMetaverse.InventoryItem" />s and has certain attributes specific 
     /// to itself
     /// </summary>
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
+    [MessagePackObject]
     public partial class InventoryFolder : InventoryBase
     {
         public const int VERSION_UNKNOWN = -1;
 
         /// <summary>The Preferred <see cref="T:OpenMetaverse.FolderType"/> for a folder.</summary>
+        [Key("PreferredType")]
         public FolderType PreferredType;
+
         /// <summary>The Version of this folder</summary>
+        [Key("Version")]
         public int Version;
+
         /// <summary>Number of child items this folder contains.</summary>
+        [Key("DescendentCount")]
         public int DescendentCount;
 
         /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="UUID">UUID of the folder</param>
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventoryFolder(UUID UUID)
             : base(UUID)
         {
@@ -1092,30 +810,6 @@ namespace OpenMetaverse
         public override string ToString()
         {
             return Name;
-        }
-
-        /// <summary>
-        /// Get Serialization data for this InventoryFolder object
-        /// </summary>
-        /// <param name="info"></param>
-        /// <param name="context"></param>
-        public override void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            base.GetObjectData(info, context);
-            info.AddValue("PreferredType", PreferredType, typeof(FolderType));
-            info.AddValue("Version", Version);
-            info.AddValue("DescendentCount", DescendentCount);
-        }
-
-        /// <summary>
-        /// Construct an InventoryFolder object from a serialization stream
-        /// </summary>
-        public InventoryFolder(SerializationInfo info, StreamingContext ctxt)
-            : base(info, ctxt)
-        {
-            PreferredType = (FolderType)info.GetValue("PreferredType", typeof(FolderType));
-            Version = (int)info.GetValue("Version", typeof(int));
-            DescendentCount = (int)info.GetValue("DescendentCount", typeof(int));
         }
 
         /// <summary>
@@ -1153,14 +847,14 @@ namespace OpenMetaverse
         public static InventoryFolder FromOSD(OSD data)
         {
             var res = (OSDMap)data;
-            UUID folderId = res.ContainsKey("category_id") ? res["category_id"] : res["folder_id"];
+            UUID folderId = res.TryGetValue("category_id", out var catId) ? catId : res["folder_id"];
             var folder = new InventoryFolder(folderId)
             {
                 UUID = res["category_id"].AsUUID(),
                 Version = res.ContainsKey("version") ? res["version"].AsInteger() : VERSION_UNKNOWN,
                 ParentUUID = res["parent_id"].AsUUID(),
                 DescendentCount = res["descendents"],
-                OwnerID = res.ContainsKey("agent_id") ? res["agent_id"] : res["owner_id"],
+                OwnerID = res.TryGetValue("agent_id", out var agentId) ? agentId : res["owner_id"],
                 PreferredType = (FolderType)(sbyte)res["type_default"].AsUInteger(),
                 Name = res["name"]
             };

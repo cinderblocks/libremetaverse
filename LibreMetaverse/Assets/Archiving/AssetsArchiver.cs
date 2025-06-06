@@ -85,9 +85,9 @@ namespace OpenMetaverse.Assets
 
                         string extension = string.Empty;
 
-                        if (ArchiveConstants.ASSET_TYPE_TO_EXTENSION.ContainsKey(asset.AssetType))
+                        if (ArchiveConstants.ASSET_TYPE_TO_EXTENSION.TryGetValue(asset.AssetType, out var value))
                         {
-                            extension = ArchiveConstants.ASSET_TYPE_TO_EXTENSION[asset.AssetType];
+                            extension = value;
                         }
 
                         xtw.WriteElementString("filename", uuid + extension);
@@ -123,7 +123,7 @@ namespace OpenMetaverse.Assets
 
                 string extension = string.Empty;
 
-                if (ArchiveConstants.ASSET_TYPE_TO_EXTENSION.ContainsKey(asset.AssetType))
+                if (ArchiveConstants.ASSET_TYPE_TO_EXTENSION.TryGetValue(asset.AssetType, out var value))
                 {
                     extension = ArchiveConstants.ASSET_TYPE_TO_EXTENSION[asset.AssetType];
                 }

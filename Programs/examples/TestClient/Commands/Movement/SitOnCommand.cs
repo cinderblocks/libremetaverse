@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace OpenMetaverse.TestClient
 {
     public class SitOnCommand : Command
@@ -14,16 +16,13 @@ namespace OpenMetaverse.TestClient
             if (args.Length != 1)
                 return "Usage: siton UUID";
 
-            UUID target;
-
-            if (UUID.TryParse(args[0], out target))
+            if (UUID.TryParse(args[0], out var target))
             {
-                Primitive targetPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(
-                    prim => prim.ID == target
-                );
+                var kvp = Client.Network.CurrentSim.ObjectsPrimitives.FirstOrDefault(prim => prim.Value.ID == target);
 
-                if (targetPrim != null)
+                if (kvp.Value != null)
                 {
+                    var targetPrim = kvp.Value;
                     Client.Self.RequestSit(targetPrim.ID, Vector3.Zero);
                     Client.Self.Sit();
                     return "Requested to sit on prim " + targetPrim.ID +

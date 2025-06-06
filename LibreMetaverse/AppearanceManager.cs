@@ -127,7 +127,6 @@ namespace OpenMetaverse
 
     #endregion Enums
 
-    [Serializable]
     public class AppearanceManagerException : Exception
     {
         public AppearanceManagerException(string message)
@@ -619,15 +618,9 @@ namespace OpenMetaverse
                 Logger.Log("Could not retrieve Current Outfit folder", Helpers.LogLevel.Warning, Client);
                 return null;
             }
-            // Fetch from cache...
-            var contents = Client.Inventory.Store.GetContents(cof.UUID);
 
-            // If that fails, fetch from server...
-            if (contents == null || contents.Count == 0)
-            {
-                contents = Client.Inventory.FolderContents(cof.UUID, cof.OwnerID, true, true,
-                    InventorySortOrder.ByDate, TimeSpan.FromMinutes(1), true);
-            }
+            var contents = Client.Inventory.FolderContents(cof.UUID, cof.OwnerID, true, true,
+                InventorySortOrder.ByDate, TimeSpan.FromMinutes(1), true);
 
             var wearables = new MultiValueDictionary<WearableType, WearableData>();
             foreach (var item in contents)
@@ -967,9 +960,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Checks if an inventory item is currently being worn
         /// </summary>
-        /// <param name="item">The inventory item to check against the agent
-        /// wearables</param>
-        /// <returns>The WearableType slot that the item is being worn in,
+        /// <param name="item">The <see cref="InventoryItem"/> to check against the agent wearables</param>
+        /// <returns>The <see cref="WearableType"/> slot that the item is being worn in,
         /// or <see cref="WearableType.Invalid"/> if it is not currently being worn</returns>
         public WearableType IsItemWorn(InventoryItem item)
         {
@@ -984,6 +976,25 @@ namespace OpenMetaverse
                 }
             }
             return WearableType.Invalid;
+        }
+
+        /// <summary>
+        /// Checks if an inventory item is currently being worn
+        /// </summary>
+        /// <param name="itemId"><see cref="UUID"/> if <see cref="InventoryItem"/> to check</param>
+        /// <returns>True if worn</returns>
+        public bool IsItemWorn(UUID itemId)
+        {
+            lock (Wearables)
+            {
+                if (Wearables.Any(wearableType => wearableType.Value
+                        .Any(wearable => wearable.ItemID == itemId)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -1209,7 +1220,7 @@ namespace OpenMetaverse
             var objectsPrimitives = Client.Network.CurrentSim.ObjectsPrimitives;
 
             // No primitives found.
-            if (objectsPrimitives.Count == 0)
+            if (objectsPrimitives.IsEmpty)
             {
                 return true;
             }
@@ -1220,16 +1231,10 @@ namespace OpenMetaverse
 
             var enumerable = primitives as Primitive[] ?? primitives.ToArray();
 
-            if (enumerable.Length == 0)
-            {
-                return true;
-            }
-
             foreach (var primitive in enumerable)
             {
                 // Find the inventory UUID from the primitive name-value collection.
-                if (primitive == null) { continue; }
-                if (primitive.NameValues == null || primitive.NameValues.Length == 0) { continue; }
+                if (primitive == null || primitive.NameValues == null || !primitive.NameValues.Any()) { continue; }
 
                 var nameValue = primitive.NameValues.SingleOrDefault(item => item.Name.Equals("AttachItemID"));
 
@@ -1264,7 +1269,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Returns a collection of the agents currently worn attachments
+        /// Returns a collection of the agents currently worn attachments from the cached inventory
         /// </summary>
         /// <returns>A copy of the agents currently worn attachments</returns>
         /// <remarks>Avoid calling this function multiple times as it will make
@@ -1294,7 +1299,7 @@ namespace OpenMetaverse
                 }
 
                 // Otherwise, retrieve the item off the asset server.
-                var inventoryItem = Client.Inventory.FetchItem(item.Key, Client.Self.AgentID, TimeSpan.FromSeconds(10));
+                var inventoryItem = Client.Inventory.FetchItemHttpAsync(item.Key, Client.Self.AgentID).Result;
 
                 attachmentsByPoint.Add(item.Value, inventoryItem);
             }
@@ -1317,7 +1322,7 @@ namespace OpenMetaverse
                 }
 
                 // Otherwise, retrieve the item off the asset server.
-                var inventoryItem = Client.Inventory.FetchItem(item.Key, Client.Self.AgentID, TimeSpan.FromSeconds(10));
+                var inventoryItem = Client.Inventory.FetchItemHttpAsync(item.Key, Client.Self.AgentID).Result;
                 if (inventoryItem != null)
                 {
                     attachmentsByInventoryItem.Add(inventoryItem, item.Value);
@@ -2228,40 +2233,23 @@ namespace OpenMetaverse
         /// Get the latest version of COF
         /// </summary>
         /// <returns>Current Outfit Folder (or null if getting the data failed)</returns>
-        public async Task<InventoryFolder> GetCurrentOutfitFolder(CancellationToken cancellationToken)
+        public async Task<InventoryFolder> GetCurrentOutfitFolder(CancellationToken cancellationToken = default)
         {
-            List<InventoryBase> root = null;
-            var folderReceived = new AutoResetEvent(false);
-
-            EventHandler<FolderUpdatedEventArgs> UpdatedCallback = (sender, e) =>
-            {
-                if (e.FolderID != Client.Inventory.Store.RootFolder.UUID) return;
-                if (e.Success)
-                {
-                    root = Client.Inventory.Store.GetContents(Client.Inventory.Store.RootFolder.UUID);
-                }
-                folderReceived.Set();
-            };
-
-            Client.Inventory.FolderUpdated += UpdatedCallback;
-            await Client.Inventory.RequestFolderContents(Client.Inventory.Store.RootFolder.UUID, 
-                Client.Self.AgentID, true, false, InventorySortOrder.ByDate, cancellationToken);
-            folderReceived.WaitOne(Client.Settings.CAPS_TIMEOUT);
-            Client.Inventory.FolderUpdated -= UpdatedCallback;
-
-            InventoryFolder currentOutfitFolder = null;
-
             // COF should be in the root folder. Request update to get the latest version number
+            List<InventoryBase> root = await Client.Inventory.RequestFolderContents(Client.Inventory.Store.RootFolder.UUID, 
+                Client.Self.AgentID, true, false, InventorySortOrder.ByDate, 
+                cancellationToken);
+
             if (root == null) { return null; }
+
             foreach (var baseItem in root)
             {
                 if (baseItem is InventoryFolder folder && folder.PreferredType == FolderType.CurrentOutfit)
                 {
-                    currentOutfitFolder = folder;
-                    break;
+                    return folder;
                 }
             }
-            return currentOutfitFolder;
+            return null;
         }
 
         public AgentSetAppearancePacket MakeAppearancePacket()

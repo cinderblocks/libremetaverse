@@ -138,7 +138,7 @@ namespace LibreMetaverse.Voice.Vivox
         /// <returns></returns>
         private VoiceParticipant FindParticipant(string puri)
         {
-            return _knownParticipants.ContainsKey(puri) ? _knownParticipants[puri] : null;
+            return _knownParticipants.TryGetValue(puri, out var participant) ? participant : null;
         }
 
         public void Set3DPosition(VoicePosition speakerPosition, VoicePosition listenerPosition)

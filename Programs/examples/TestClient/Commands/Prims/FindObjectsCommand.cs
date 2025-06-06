@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
 using System.Threading;
 
 
@@ -23,36 +25,36 @@ namespace OpenMetaverse.TestClient
         public override string Execute(string[] args, UUID fromAgentID)
         {
             // *** parse arguments ***
-            if ((args.Length < 1) || (args.Length > 2))
+            if (args.Length < 1 || args.Length > 2)
+            {
                 return "Usage: findobjects [radius] <search-string>";
-            float radius = float.Parse(args[0]);
-            string searchString = (args.Length > 1) ? args[1] : string.Empty;
+            }
+
+            var radius = float.Parse(args[0]);
+            var searchString = (args.Length > 1) ? args[1] : string.Empty;
 
             // *** get current location ***
-            Vector3 location = Client.Self.SimPosition;
+            var location = Client.Self.SimPosition;
 
             // *** find all objects in radius ***
-            List<Primitive> prims = Client.Network.CurrentSim.ObjectsPrimitives.FindAll(
-                delegate(Primitive prim)
-                {
-                    Vector3 pos = prim.Position;
-                    return ((prim.ParentID == 0) && (pos != Vector3.Zero) && (Vector3.Distance(pos, location) < radius));
-                }
-            );
+            var prims = (from kvp 
+                in Client.Network.CurrentSim.ObjectsPrimitives 
+                where kvp.Value != null select kvp.Value into prim let pos = prim.Position 
+                where prim.ParentID == 0 && pos != Vector3.Zero && Vector3.Distance(pos, location) < radius select prim).ToList();
 
             // *** request properties of these objects ***
-            bool complete = RequestObjectProperties(prims, 250);
+            var complete = RequestObjectProperties(prims, 250);
 
-            foreach (Primitive p in prims)
+            foreach (var p in prims)
             {
-                string name = p.Properties?.Name;
+                var name = p.Properties?.Name;
                 if (string.IsNullOrEmpty(searchString) || ((name != null) && (name.Contains(searchString))))
                     Console.WriteLine("Object '{0}': {1}", name, p.ID.ToString());
             }
 
             if (complete) return "Done searching";
             Console.WriteLine("Warning: Unable to retrieve full properties for:");
-            foreach (UUID uuid in PrimsWaiting.Keys)
+            foreach (var uuid in PrimsWaiting.Keys)
                 Console.WriteLine(uuid);
 
             return "Done searching";
@@ -83,8 +85,7 @@ namespace OpenMetaverse.TestClient
         {
             lock (PrimsWaiting)
             {
-                Primitive prim;
-                if (PrimsWaiting.TryGetValue(e.Properties.ObjectID, out prim))
+                if (PrimsWaiting.TryGetValue(e.Properties.ObjectID, out var prim))
                 {
                     prim.Properties = e.Properties;
                 }

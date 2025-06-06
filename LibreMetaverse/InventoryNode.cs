@@ -26,58 +26,26 @@
  */
 
 using System;
-using System.Runtime.Serialization;
-#if NET7_0_OR_GREATER
-using MemoryPack;
-#endif
+using MessagePack;
 
 namespace OpenMetaverse
 {
-    [Serializable]
-#if NET7_0_OR_GREATER
-    [MemoryPackable]
-#endif
-    public partial class InventoryNode : ISerializable
+    [MessagePackObject]
+    public partial class InventoryNode
     {
-        private InventoryBase data;
-        private InventoryNode parent;
-        private UUID parentID; //used for deseralization
         private InventoryNodeDictionary nodes;
-        private bool needsUpdate = true;
-        [NonSerialized]
-#if NET7_0_OR_GREATER
-        [MemoryPackIgnore]
-#endif
-        private object tag;
 
-        public InventoryBase Data
-        {
-            get => data;
-            set => data = value;
-        }
+        [Key("Data")]
+        public InventoryBase Data { get; set; }
 
         /// <summary>User data</summary>
-#if NET7_0_OR_GREATER
-        [MemoryPackIgnore]
-#endif
-        public object Tag
-        {
-            get => tag;
-            set => tag = value;
-        }
+        [IgnoreMember]
+        public object Tag { get; set; }
 
-        public InventoryNode Parent
-        {
-            get => parent;
-            set => parent = value;
-        }
+        [IgnoreMember]
+        public InventoryNode Parent { get; set; }
 
-        public UUID ParentID
-        {
-            get => parentID;
-            private set => parentID = value;
-        }
-
+        [IgnoreMember]
         public InventoryNodeDictionary Nodes
         {
             get => nodes ?? (nodes = new InventoryNodeDictionary(this));
@@ -88,12 +56,10 @@ namespace OpenMetaverse
         /// For inventory folder nodes specifies weather the folder needs to be
         /// refreshed from the server
         /// </summary>
-        public bool NeedsUpdate
-        {
-            get => needsUpdate;
-            set => needsUpdate = value;
-        }
+        [IgnoreMember]
+        public bool NeedsUpdate { get; set; } = true;
 
+        [IgnoreMember]
         public DateTime ModifyTime
         {
             get
@@ -120,9 +86,6 @@ namespace OpenMetaverse
             Nodes.Sort();
         }
 
-#if NET7_0_OR_GREATER
-        [MemoryPackConstructor]
-#endif
         public InventoryNode()
         {
         }
@@ -130,7 +93,7 @@ namespace OpenMetaverse
         /// <param name="data"></param>
         public InventoryNode(InventoryBase data)
         {
-            this.data = data;
+            this.Data = data;
         }
 
         /// <summary>
@@ -138,37 +101,14 @@ namespace OpenMetaverse
         /// </summary>
         public InventoryNode(InventoryBase data, InventoryNode parent)
         {
-            this.data = data;
-            this.parent = parent;
+            this.Data = data;
+            this.Parent = parent;
 
             if (parent != null)
             {
                 // Add this node to the collection of parent nodes
                 lock (parent.Nodes.SyncRoot) parent.Nodes.Add(data.UUID, this);
             }
-        }
-
-        /// <summary>
-        /// Serialization handler for the InventoryNode Class
-        /// </summary>
-        public void GetObjectData(SerializationInfo info, StreamingContext ctxt)
-        {
-            info.AddValue("Parent", parent?.Data.UUID ?? UUID.Zero, typeof(UUID));
-            info.AddValue("Type", data.GetType(), typeof(Type));
-            data.GetObjectData(info, ctxt);
-        }
-
-        /// <summary>
-        /// De-serialization handler for the InventoryNode Class
-        /// </summary>
-        public InventoryNode(SerializationInfo info, StreamingContext ctxt)
-        {
-            parentID = (UUID)info.GetValue("Parent", typeof(UUID));
-            Type type = (Type)info.GetValue("Type", typeof(Type));
-         
-	    // Construct a new inventory object based on the Type stored in Type
-            System.Reflection.ConstructorInfo ctr = type.GetConstructor(new[] {typeof(SerializationInfo),typeof(StreamingContext)});
-            if (ctr != null) data = (InventoryBase)ctr.Invoke(new object[] { info, ctxt });
         }
 
         public override string ToString()

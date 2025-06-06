@@ -635,7 +635,7 @@ namespace OpenMetaverse
             {
                 if (reply.ContainsKey("home_info"))
                 {
-                    if (reply?["home_info"] is Hashtable map)
+                    if (reply["home_info"] is Hashtable map)
                     {
                         Home.Position = ParseVector3("position", map);
                         Home.LookAt = ParseVector3("look_at", map);
@@ -652,7 +652,7 @@ namespace OpenMetaverse
                 // Home
                 if (Home.RegionHandle == 0 && reply.ContainsKey("home"))
                 {
-                    if (reply?["home"] is Hashtable map)
+                    if (reply["home"] is Hashtable map)
                     {
                         Home.Position = ParseVector3("position", map);
                         Home.LookAt = ParseVector3("look_at", map);
@@ -664,7 +664,7 @@ namespace OpenMetaverse
                                 ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
                         }
                     }
-                    else if (reply?["home"] is string osdString)
+                    else if (reply["home"] is string osdString)
                     {
                         var osdHome = OSDParser.DeserializeLLSDNotation(reply["home"].ToString());
 
@@ -1061,7 +1061,6 @@ namespace OpenMetaverse
 
     #endregion Structs
 
-    [Serializable]
     public class LoginException : Exception
     {
         public LoginException(string message) 
@@ -1191,8 +1190,8 @@ namespace OpenMetaverse
         private readonly Dictionary<LoginResponseCallback, string[]> CallbackOptions = new Dictionary<LoginResponseCallback, string[]>();
 
         /// <summary>A list of packets obtained during the login process which 
-        /// networkmanager will log but not process</summary>
-        private readonly List<string> UDPBlacklist = new List<string>();
+        /// NetworkManager will log but not process</summary>
+        private readonly List<PacketType> UDPBlacklist = new List<PacketType>();
         #endregion
 
         #region Public Methods
@@ -1765,7 +1764,17 @@ namespace OpenMetaverse
                  * for exclusion from packet processing */
                 if (reply.UDPBlacklist != null)
                 {
-                    UDPBlacklist.AddRange(reply.UDPBlacklist.Split(','));
+                    foreach (var entry in reply.UDPBlacklist.Split(','))
+                    {
+                        if (Enum.TryParse<PacketType>(entry, true, out var result))
+                        {
+                            UDPBlacklist.Add(result);
+                        }
+                        else
+                        {
+                            Logger.Log($"Could not parse {entry} from UDP Blacklist", Helpers.LogLevel.Warning);
+                        }
+                    }
                 }
 
                 // Misc:

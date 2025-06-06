@@ -1974,9 +1974,9 @@ namespace OpenMetaverse
                         OnlineStatus = member["last_login"],
                         Powers = defaultPowers
                     };
-                    if (member.ContainsKey("powers"))
+                    if (member.TryGetValue("powers", out var power))
                     {
-                        groupMember.Powers = (GroupPowers)(ulong)member["powers"];
+                        groupMember.Powers = (GroupPowers)(ulong)power;
                     }
                     groupMember.Title = titles[(int)member["title"]];
 

@@ -28,14 +28,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-#if NET7_0_OR_GREATER
-using MemoryPack;
-#else
-using System.Runtime.Serialization.Formatters.Binary;
-#endif
-
 
 namespace OpenMetaverse
 {
@@ -43,7 +36,6 @@ namespace OpenMetaverse
     /// <summary>
     /// Exception class to identify inventory exceptions
     /// </summary>
-    [Serializable]
     public class InventoryException : Exception
     {
         public InventoryException() { }
@@ -233,6 +225,9 @@ namespace OpenMetaverse
         /// <param name="item">The InventoryObject to store</param>
         public void UpdateNodeFor(InventoryBase item)
         {
+            InventoryObjectUpdatedEventArgs itemUpdatedEventArgs = null;
+            InventoryObjectAddedEventArgs itemAddedEventArgs = null;
+
             lock (Items)
             {
                 InventoryNode itemParent = null;
@@ -243,8 +238,15 @@ namespace OpenMetaverse
                     {
                         DescendentCount = 1 // Dear god, please forgive me.
                     };
-                    itemParent = new InventoryNode(fakeParent);
-                    Items[item.ParentUUID] = itemParent;
+                    var fakeItemParent = new InventoryNode(fakeParent);
+                    if (Items.TryAdd(item.ParentUUID, fakeItemParent))
+                    {
+                        itemParent = fakeItemParent;
+                    }
+                    else
+                    {
+                        Items.TryGetValue(item.ParentUUID, out itemParent);
+                    }
                     // Unfortunately, this breaks the nice unified tree
                     // while we're waiting for the parent's data to come in.
                     // As soon as we get the parent, the tree repairs itself.
@@ -271,10 +273,9 @@ namespace OpenMetaverse
                     }
 
                     itemNode.Parent = itemParent;
-
                     if (m_InventoryObjectUpdated != null)
                     {
-                        OnInventoryObjectUpdated(new InventoryObjectUpdatedEventArgs(itemNode.Data, item));
+                        itemUpdatedEventArgs = new InventoryObjectUpdatedEventArgs(itemNode.Data, item);
                     }
 
                     itemNode.Data = item;
@@ -285,9 +286,18 @@ namespace OpenMetaverse
                     bool added = Items.TryAdd(item.UUID, itemNode);
                     if (added && m_InventoryObjectAdded != null)
                     {
-                        OnInventoryObjectAdded(new InventoryObjectAddedEventArgs(item));
+                        itemAddedEventArgs = new InventoryObjectAddedEventArgs(item);
                     }
                 }
+            }
+
+            if(itemUpdatedEventArgs != null)
+            {
+                OnInventoryObjectUpdated(itemUpdatedEventArgs);
+            }
+            if(itemAddedEventArgs != null)
+            {
+                OnInventoryObjectAdded(itemAddedEventArgs);
             }
         }
 
@@ -296,12 +306,19 @@ namespace OpenMetaverse
             return Items[uuid];
         }
 
+        public bool TryGetNodeFor(UUID uuid, out InventoryNode node)
+        {
+            return Items.TryGetValue(uuid, out node);
+        }
+
         /// <summary>
         /// Removes the InventoryObject and all related node data from Inventory.
         /// </summary>
         /// <param name="item">The InventoryObject to remove.</param>
         public void RemoveNodeFor(InventoryBase item)
         {
+            InventoryObjectRemovedEventArgs itemRemovedEventArgs = null;
+
             lock (Items)
             {
                 if (Items.TryGetValue(item.UUID, out var node))
@@ -315,8 +332,8 @@ namespace OpenMetaverse
                     bool removed = Items.TryRemove(item.UUID, out node);
                     if (removed && m_InventoryObjectRemoved != null)
                     {
-                        OnInventoryObjectRemoved(new InventoryObjectRemovedEventArgs(item));
-                    }                    
+                        itemRemovedEventArgs = new InventoryObjectRemovedEventArgs(item);
+                    }
                 }
 
                 // In case there's a new parent:
@@ -325,6 +342,11 @@ namespace OpenMetaverse
                     lock (newParent.Nodes.SyncRoot)
                         newParent.Nodes.Remove(item.UUID);
                 }
+            }
+
+            if(itemRemovedEventArgs != null)
+            {
+                OnInventoryObjectRemoved(itemRemovedEventArgs);
             }
         }
 
@@ -357,166 +379,24 @@ namespace OpenMetaverse
             Items.Clear();
         }
 
+
         /// <summary>
         /// Saves the current inventory structure to a cache file
         /// </summary>
         /// <param name="filename">Name of the cache file to save to</param>
         public void SaveToDisk(string filename)
         {
-	        try
-	        {
-                using (Stream stream = File.Open(filename, FileMode.Create))
-                {
-#if !NET7_0_OR_GREATER
-                    var bformatter = new BinaryFormatter();
-#endif
-                    lock (Items)
-                    {
-                        Logger.Log($"Caching {Items.Count} inventory items to {filename}", Helpers.LogLevel.Info);
-                        foreach (var kvp in Items)
-                        {
-#if NET7_0_OR_GREATER
-                            MemoryPackSerializer.SerializeAsync(stream, kvp.Value);
-#else
-                            bformatter.Serialize(stream, kvp.Value);
-#endif
-                        }
-                    }
-                }
-	        }
-            catch (Exception e)
-            {
-                Logger.Log("Error saving inventory cache to disk", Helpers.LogLevel.Error, e);
-            }
+            InventoryCache.SaveToDisk(filename, Items);
         }
 
         /// <summary>
         /// Loads in inventory cache file into the inventory structure. Note only valid to call after login has been successful.
         /// </summary>
         /// <param name="filename">Name of the cache file to load</param>
-        /// <returns>The number of inventory items successfully reconstructed into the inventory node tree</returns>
+        /// <returns>The number of inventory items successfully reconstructed into the inventory node tree, or -1 on error</returns>
         public int RestoreFromDisk(string filename)
         {
-            var nodes = new List<InventoryNode>();
-            var itemCount = 0;
-
-            try
-            {
-                if (!File.Exists(filename))
-                    return -1;
-
-                using (Stream stream = File.Open(filename, FileMode.Open))
-                {
-#if !NET7_0_OR_GREATER
-                    var bformatter = new BinaryFormatter();
-#endif
-                    while (stream.Position < stream.Length)
-                    {
-#if NET7_0_OR_GREATER                  
-                        var node = MemoryPackSerializer.DeserializeAsync<InventoryNode>(stream);
-                        nodes.Add(node.Result);
-#else
-                        var node = (InventoryNode)bformatter.Deserialize(stream);
-                        nodes.Add(node);
-#endif
-                        itemCount++;
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Logger.Log("Error accessing inventory cache file", Helpers.LogLevel.Error, e);
-                return -1;
-            }
-
-            Logger.Log($"Read {itemCount} items from inventory cache file", Helpers.LogLevel.Info);
-
-            itemCount = 0;
-            var delNodes = new List<InventoryNode>(); //nodes that we have processed and will delete
-            var dirtyFolders = new List<UUID>(); // Tainted folders that we will not restore items into
-
-            // Because we could get child nodes before parents we must iterate around and only add nodes who have
-            // a parent already in the list because we must update both child and parent to link together
-            // But sometimes we have seen orphin nodes due to bad/incomplete data when caching so we have an emergency abort route
-            var stuck = 0;
-            
-            while (nodes.Count != 0 && stuck<5)
-            {
-                foreach (var node in nodes)
-                {
-                    if (node.ParentID == UUID.Zero)
-                    {
-                        //We don't need the root nodes "My Inventory" etc as they will already exist for the correct
-                        // user of this cache.
-                        delNodes.Add(node);
-                        itemCount--;
-                    }
-                    else if(Items.TryGetValue(node.Data.UUID,out var pnode))
-                    {
-                        //We already have this it must be a folder
-                        if (node.Data is InventoryFolder cacheFolder)
-                        {
-                            var serverFolder = (InventoryFolder)pnode.Data;
-
-                            if (cacheFolder.Version != serverFolder.Version)
-                            {
-                                Logger.DebugLog("Inventory Cache/Server version mismatch on " + node.Data.Name + " " + cacheFolder.Version + " vs " + serverFolder.Version);
-                                pnode.NeedsUpdate = true;
-                                dirtyFolders.Add(node.Data.UUID);
-                            }
-                            else
-                            {
-                                pnode.NeedsUpdate = false;
-                            }
-
-                            delNodes.Add(node);
-                        }
-                    }
-                    else if (Items.TryGetValue(node.ParentID, out pnode))
-                    {
-                        if (node.Data != null)
-                        {
-                            // If node is folder, and it does not exist in skeleton, mark it as 
-                            // dirty and don't process nodes that belong to it
-                            if (node.Data is InventoryFolder && !(Items.ContainsKey(node.Data.UUID)))
-                            {
-                                dirtyFolders.Add(node.Data.UUID);
-                            }
-
-                            //Only add new items, this is most likely to be run at login time before any inventory
-                            //nodes other than the root are populated. Don't add non-existing folders.
-                            if (!Items.ContainsKey(node.Data.UUID) 
-                                && !dirtyFolders.Contains(pnode.Data.UUID) 
-                                && !(node.Data is InventoryFolder))
-                            {
-                                if (Items.TryAdd(node.Data.UUID, node))
-                                {
-                                    node.Parent = pnode; //Update this node with its parent
-                                    pnode.Nodes.Add(node.Data.UUID, node); // Add to the parents child list
-                                    itemCount++;
-                                }
-                            }
-                        }
-
-                        delNodes.Add(node);
-                    }
-                }
-
-                if (delNodes.Count == 0)
-                    ++stuck;
-                else
-                    stuck = 0;
-
-                //Clean up processed nodes this loop around.
-                foreach (var node in delNodes)
-                {
-                    nodes.Remove(node);
-                }
-                delNodes.Clear();
-            }
-
-            Logger.Log($"Reassembled {itemCount} items from inventory cache file", Helpers.LogLevel.Info);
-            return itemCount;
+            return InventoryCache.RestoreFromDisk(filename, Items);
         }
 
         #region Operators

@@ -27,6 +27,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
 using System.Threading;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Packets;
@@ -891,11 +893,11 @@ namespace OpenMetaverse
             CoarseLocationUpdatePacket coarse = (CoarseLocationUpdatePacket)e.Packet;
 
             // populate a dictionary from the packet, for local use
-            Dictionary<UUID, Vector3> coarseEntries = new Dictionary<UUID, Vector3>();
+            var coarseEntries = new Dictionary<UUID, Vector3>();
             for (int i = 0; i < coarse.AgentData.Length; i++)
             {
                 if(coarse.Location.Length > 0)
-                    coarseEntries[coarse.AgentData[i].AgentID] = new Vector3((int)coarse.Location[i].X, (int)coarse.Location[i].Y, (int)coarse.Location[i].Z * 4);
+                    coarseEntries[coarse.AgentData[i].AgentID] = new Vector3(coarse.Location[i].X, coarse.Location[i].Y, coarse.Location[i].Z * 4);
 
                 // the friend we are tracking on radar
                 if (i == coarse.Index.Prey)
@@ -903,25 +905,29 @@ namespace OpenMetaverse
             }
 
             // find stale entries (people who left the sim)
-            List<UUID> removedEntries = e.Simulator.avatarPositions.FindAll(
-                findID => !coarseEntries.ContainsKey(findID));
+            var removedEntries = coarseEntries.Keys.Where(
+                entry => !e.Simulator.avatarPositions.ContainsKey(entry)).ToList();
 
-            // anyone who was not listed in the previous update
-            List<UUID> newEntries = new List<UUID>();
+            // entry not listed in the previous update
+            var newEntries = new List<UUID>();
 
-            lock (e.Simulator.avatarPositions.Dictionary)
+            lock (e.Simulator.avatarPositions)
             {
                 // remove stale entries
-                foreach(UUID trackedID in removedEntries)
-                    e.Simulator.avatarPositions.Dictionary.Remove(trackedID);
+                foreach (var trackedID in removedEntries)
+                {
+                    e.Simulator.avatarPositions.TryRemove(trackedID, out var removed);
+                }
 
                 // add or update tracked info, and record who is new
-                foreach (KeyValuePair<UUID, Vector3> entry in coarseEntries)
+                foreach (var entry in coarseEntries)
                 {
-                    if (!e.Simulator.avatarPositions.Dictionary.ContainsKey(entry.Key))
+                    if (!e.Simulator.avatarPositions.ContainsKey(entry.Key))
+                    {
                         newEntries.Add(entry.Key);
-
-                    e.Simulator.avatarPositions.Dictionary[entry.Key] = entry.Value;
+                    }
+                    e.Simulator.avatarPositions.AddOrUpdate(entry.Key, entry.Value, 
+                        (uuid, vector3) => entry.Value);
                 }
             }
 
@@ -956,10 +962,10 @@ namespace OpenMetaverse
     public class CoarseLocationUpdateEventArgs : EventArgs
     {
         public Simulator Simulator { get; }
-        public List<UUID> NewEntries { get; }
-        public List<UUID> RemovedEntries { get; }
+        public ICollection<UUID> NewEntries { get; }
+        public ICollection<UUID> RemovedEntries { get; }
 
-        public CoarseLocationUpdateEventArgs(Simulator simulator, List<UUID> newEntries, List<UUID> removedEntries)
+        public CoarseLocationUpdateEventArgs(Simulator simulator, ICollection<UUID> newEntries, ICollection<UUID> removedEntries)
         {
             this.Simulator = simulator;
             this.NewEntries = newEntries;

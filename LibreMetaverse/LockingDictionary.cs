@@ -29,7 +29,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
 
 namespace OpenMetaverse
 {
@@ -90,20 +89,12 @@ namespace OpenMetaverse
 
         }
 
-        [Obsolete("This API supports obsolete formatter-based serialization. It should not be called or extended by application code.")]
-        public void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            lock (Dictionary)
-                Dictionary.GetObjectData(info, context);
-        }
-
         public void OnDeserialization(object sender)
         {
             lock( Dictionary)
                 Dictionary.OnDeserialization(sender);
         }
 
-        /// <inheritdoc/>
         public IEqualityComparer<TKey> Comparer
         {
             get { lock (Dictionary) return Dictionary.Comparer; }

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2022, Sjofn LLC
+ * Copyright (c) 2022-2025, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -247,8 +247,7 @@ namespace LibreMetaverse
 
         public void KeyAdded(TKey key)
         {
-            if (!_currentKeys.Contains(key))
-                _currentKeys.Add(key);
+            _currentKeys.Add(key);
         }
 
         public void KeyRemoved(TKey key)

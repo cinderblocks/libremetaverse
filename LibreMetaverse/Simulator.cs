@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2022, Sjofn LLC.
+ * Copyright (c) 2022-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -186,7 +186,7 @@ namespace OpenMetaverse
             /// <summary>
             /// Outgoing bytes per second
             /// </summary>
-            /// <remarks>It would be nice to have this claculated on the fly, but
+            /// <remarks>It would be nice to have this calculated on the fly, but
             /// this is far, far easier</remarks>
             public int OutgoingBPS;
             /// <summary>Time last ping was sent</summary>
@@ -271,7 +271,7 @@ namespace OpenMetaverse
         public uint SizeY;
         /// <summary>The current version of software this simulator is running</summary>
         public string SimVersion = string.Empty;
-        /// <summary>Human readable name given to the simulator</summary>
+        /// <summary>Human-readable name given to the simulator</summary>
         public string Name = string.Empty;
         /// <summary>A 64x64 grid of parcel coloring values. The values stored 
         /// in this array are of the <see cref="ParcelArrayType"/> type</summary>
@@ -383,17 +383,18 @@ namespace OpenMetaverse
         /// <summary>
         /// A thread-safe dictionary containing avatars in a simulator        
         /// </summary>
-        public LockingDictionary<uint, Avatar> ObjectsAvatars = new LockingDictionary<uint, Avatar>();
+        public ConcurrentDictionary<uint, Avatar> ObjectsAvatars = new ConcurrentDictionary<uint, Avatar>();
 
         /// <summary>
         /// A thread-safe dictionary containing primitives in a simulator
         /// </summary>
-        public LockingDictionary<uint, Primitive> ObjectsPrimitives = new LockingDictionary<uint, Primitive>();
+        public ConcurrentDictionary<uint, Primitive> ObjectsPrimitives = new ConcurrentDictionary<uint, Primitive>();
 
         /// <summary>
         /// A thread-safe dictionary which can be used to find the local ID of a specified UUID.
         /// </summary>
-        public ConcurrentDictionary<UUID, uint> UUIDToLocalID = new ConcurrentDictionary<UUID, uint>();
+        public ConcurrentDictionary<UUID, uint> GlobalToLocalID = new ConcurrentDictionary<UUID, uint>();
+
 
         public readonly TerrainPatch[] Terrain;
 
@@ -463,16 +464,20 @@ namespace OpenMetaverse
         #region Properties
 
         /// <summary>The IP address and port of the server</summary>
-        public IPEndPoint IPEndPoint { get { return remoteEndPoint; } }
+        public IPEndPoint IPEndPoint => remoteEndPoint;
+
         /// <summary>Whether there is a working connection to the simulator or 
         /// not</summary>
-        public bool Connected { get { return connected; } }
+        public bool Connected => connected;
+
         /// <summary>Coarse locations of avatars in this simulator</summary>
-        public LockingDictionary<UUID, Vector3> AvatarPositions { get { return avatarPositions; } }
+        public ConcurrentDictionary<UUID, Vector3> AvatarPositions => avatarPositions;
+
         /// <summary>AvatarPositions key representing TrackAgent target</summary>
-        public UUID PreyID { get { return preyID; } }
+        public UUID PreyID => preyID;
+
         /// <summary>Indicates if UDP connection to the sim is fully established</summary>
-        public bool HandshakeComplete { get { return handshakeComplete; } }
+        public bool HandshakeComplete => handshakeComplete;
 
         #endregion Properties
 
@@ -486,7 +491,7 @@ namespace OpenMetaverse
         /// to the property Connected</summary>
         internal bool connected;
         /// <summary>Coarse locations of avatars in this simulator</summary>
-        internal LockingDictionary<UUID, Vector3> avatarPositions = new LockingDictionary<UUID, Vector3>();
+        internal ConcurrentDictionary<UUID, Vector3> avatarPositions = new ConcurrentDictionary<UUID, Vector3>();
         /// <summary>AvatarPositions key representing TrackAgent target</summary>
         internal UUID preyID = UUID.Zero;
         /// <summary>Sequence numbers of packets we've received
@@ -499,10 +504,12 @@ namespace OpenMetaverse
         /// <summary>Indicates if UDP connection to the sim is fully established</summary>
         internal bool handshakeComplete;
 
-        private NetworkManager Network;
-        private Queue<long> InBytes, OutBytes;
+        private readonly NetworkManager Network;
+        private readonly Queue<long> InBytes;
+        private readonly Queue<long> OutBytes;
+
         // ACKs that are queued up to be sent to the simulator
-        private ConcurrentQueue<uint> PendingAcks = new ConcurrentQueue<uint>();
+        private readonly ConcurrentQueue<uint> PendingAcks = new ConcurrentQueue<uint>();
         private Timer AckTimer;
         private Timer PingTimer;
         private Timer StatsTimer;
@@ -552,7 +559,7 @@ namespace OpenMetaverse
         internal bool _DownloadingParcelMap = false;
 
 
-        private ManualResetEvent GotUseCircuitCodeAck = new ManualResetEvent(false);
+        private readonly ManualResetEvent GotUseCircuitCodeAck = new ManualResetEvent(false);
         #endregion Internal/Private Members
 
         /// <summary>
@@ -1384,11 +1391,11 @@ namespace OpenMetaverse
 
     public sealed class IncomingPacketIDCollection
     {
-        readonly uint[] _items;
-        HashSet<uint> hashSet;
-        int first;
-        int next;
-        int capacity;
+        private readonly uint[] _items;
+        private readonly HashSet<uint> hashSet;
+        private int first;
+        private int next;
+        private readonly int capacity;
 
         public IncomingPacketIDCollection(int capacity)
         {
@@ -1519,8 +1526,7 @@ namespace OpenMetaverse
             var dict = PrimCache;
             lock (dict)
             {
-                Primitive prim;
-                if (!dict.TryGetValue(localID, out prim) || prim.IsAttachment)
+                if (!dict.TryGetValue(localID, out var prim) || prim.IsAttachment)
                 {
                     dict[localID] = prim = new Primitive { RegionHandle = Handle, LocalID = localID };
                 }
@@ -1544,8 +1550,7 @@ namespace OpenMetaverse
             {
                 foreach (var u in removePrims)
                 {
-                    Primitive prim;
-                    if (PrimCache.TryGetValue(u, out prim)) prim.ActiveClients--;
+                    if (PrimCache.TryGetValue(u, out var prim)) prim.ActiveClients--;
                 }
             }
         }

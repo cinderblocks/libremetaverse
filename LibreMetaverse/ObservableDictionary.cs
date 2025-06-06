@@ -112,7 +112,7 @@ namespace OpenMetaverse
         private void FireChangeEvent(DictionaryEventAction action, DictionaryEntry entry)
         {
 
-            if(Delegates.ContainsKey(action))
+            if(Delegates.TryGetValue(action, out var value))
             {
                 foreach(DictionaryChangeCallback handler in Delegates[action])
                 {

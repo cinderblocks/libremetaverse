@@ -1058,7 +1058,9 @@ namespace LibreMetaverse.PrimMesher
 
             if (needFaces)
                 copy.faces.AddRange(faces);
-            if (copy.calcVertexNormals == calcVertexNormals)
+
+            copy.calcVertexNormals = calcVertexNormals;
+            if (calcVertexNormals)
             {
                 copy.vertexNormals.AddRange(vertexNormals);
                 copy.faceNormal = faceNormal;

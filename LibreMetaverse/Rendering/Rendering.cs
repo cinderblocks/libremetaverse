@@ -194,7 +194,6 @@ namespace OpenMetaverse.Rendering
 
     #region Exceptions
 
-    [Serializable]
     public class RenderingException : Exception
     {
         public RenderingException(string message)
@@ -335,18 +334,18 @@ namespace OpenMetaverse.Rendering
 
                         // Normals
                         byte[] norBytes = null;
-                        if (subMeshMap.ContainsKey("Normal"))
+                        if (subMeshMap.TryGetValue("Normal", out var normal))
                         {
-                            norBytes = subMeshMap["Normal"];
+                            norBytes = normal;
                         }
 
                         // UV texture map
                         Vector2 texPosMax = Vector2.Zero;
                         Vector2 texPosMin = Vector2.Zero;
                         byte[] texBytes = null;
-                        if (subMeshMap.ContainsKey("TexCoord0"))
+                        if (subMeshMap.TryGetValue("TexCoord0", out var texCoord0))
                         {
-                            texBytes = subMeshMap["TexCoord0"];
+                            texBytes = texCoord0;
                             texPosMax = ((OSDMap)subMeshMap["TexCoord0Domain"])["Max"];
                             texPosMin = ((OSDMap)subMeshMap["TexCoord0Domain"])["Min"];
                         }

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text;
 
 namespace OpenMetaverse.TestClient.Commands.Appearance
@@ -19,12 +20,12 @@ namespace OpenMetaverse.TestClient.Commands.Appearance
 
             string targetName = $"{args[0]} {args[1]}";
 
-            Avatar foundAv = Client.Network.CurrentSim.ObjectsAvatars.Find(
-                avatar => (avatar.Name == targetName)
-            );
+            var kvp = Client.Network.CurrentSim.ObjectsAvatars.SingleOrDefault(
+                avatar => (avatar.Value.Name == targetName));
 
-            if (foundAv != null)
+            if (kvp.Value != null)
             {
+                var foundAv = kvp.Value;
                 StringBuilder output = new StringBuilder();
 
                 output.AppendFormat("{0} ({1})", targetName, foundAv.ID);
@@ -46,7 +47,7 @@ namespace OpenMetaverse.TestClient.Commands.Appearance
             }
             else
             {
-                return "No nearby avatar with the name " + targetName;
+                return $"No nearby avatar named {targetName}";
             }
         }
     }

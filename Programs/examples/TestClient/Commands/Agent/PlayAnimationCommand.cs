@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Text;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace OpenMetaverse.TestClient
 {
     public class PlayAnimationCommand : Command
     {        
-        private Dictionary<UUID, string> m_BuiltInAnimations = new Dictionary<UUID, string>(Animations.ToDictionary());
+        private readonly ImmutableDictionary<UUID, string> m_BuiltInAnimations = Animations.ToDictionary();
         public PlayAnimationCommand(TestClient testClient)
         {
             Name = "play";
@@ -47,9 +48,9 @@ namespace OpenMetaverse.TestClient
             else if (arg.ToLower().Equals("show"))
             {
                 Client.Self.SignaledAnimations.ForEach(delegate(KeyValuePair<UUID, int> kvp) {
-                    if (m_BuiltInAnimations.ContainsKey(kvp.Key))
+                    if (m_BuiltInAnimations.TryGetValue(kvp.Key, out var animation))
                     {
-                        result.AppendFormat("The {0} System Animation is being played, sequence is {1}", m_BuiltInAnimations[kvp.Key], kvp.Value);
+                        result.AppendFormat("The {0} System Animation is being played, sequence is {1}", animation, kvp.Value);
                     }
                     else
                     {

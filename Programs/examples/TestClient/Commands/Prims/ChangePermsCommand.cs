@@ -7,9 +7,9 @@ namespace OpenMetaverse.TestClient
 {
     public class ChangePermsCommand : Command
     {
-        AutoResetEvent GotPermissionsEvent = new AutoResetEvent(false);
-        Dictionary<UUID, Primitive> Objects = new Dictionary<UUID, Primitive>();
-        PermissionMask Perms = PermissionMask.None;
+        private readonly AutoResetEvent GotPermissionsEvent = new AutoResetEvent(false);
+        private readonly Dictionary<UUID, Primitive> Objects = new Dictionary<UUID, Primitive>();
+        private PermissionMask Perms = PermissionMask.None;
         private bool PermsSent;
         private int PermCount;
 
@@ -24,7 +24,6 @@ namespace OpenMetaverse.TestClient
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            UUID rootID;
             var localIDs = new List<uint>();
 
             // Reset class-wide variables
@@ -36,7 +35,7 @@ namespace OpenMetaverse.TestClient
             if (args.Length < 1 || args.Length > 4)
                 return "Usage prim-uuid [copy] [mod] [xfer]";
 
-            if (!UUID.TryParse(args[0], out rootID))
+            if (!UUID.TryParse(args[0], out var rootID))
                 return "Usage prim-uuid [copy] [mod] [xfer]";
 
             for (int i = 1; i < args.Length; i++)
@@ -60,13 +59,15 @@ namespace OpenMetaverse.TestClient
             Logger.DebugLog($"Using PermissionMask: {Perms}", Client);
 
             // Find the requested prim
-            var rootPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(prim => prim.ID == rootID);
-            if (rootPrim == null)
+            var reqkvp = Client.Network.CurrentSim.ObjectsPrimitives
+                .FirstOrDefault(prim => prim.Value.ID == rootID);
+            if (reqkvp.Value == null)
             {
-                return $"Cannot find requested prim {rootID}"; 
+                return $"Cannot find requested object {rootID}"; 
 
             }
-            Logger.DebugLog($"Found requested prim {rootPrim.ID}", Client);
+            var rootPrim = reqkvp.Value;
+            Logger.DebugLog($"Found requested object {rootPrim.ID}", Client);
 
             if (rootPrim.ParentID != 0)
             {
@@ -79,8 +80,10 @@ namespace OpenMetaverse.TestClient
                 Logger.DebugLog($"Set root prim to {rootPrim.ID}", Client);
             }
 
-            // Find, find all the child objects linked to this root
-            var childPrims = Client.Network.CurrentSim.ObjectsPrimitives.FindAll(prim => prim.ParentID == rootPrim.LocalID);
+            // Find all the child primitives linked to the root
+            var childPrims = (from kvp 
+                in Client.Network.CurrentSim.ObjectsPrimitives  where kvp.Value != null 
+                select kvp.Value into child where child.ParentID == rootPrim.LocalID select child).ToList();
 
             // Build a dictionary of primitives for referencing later
             Objects[rootPrim.ID] = rootPrim;
@@ -140,7 +143,7 @@ namespace OpenMetaverse.TestClient
             return $"Set permissions to {Perms} on {localIDs.Count} objects and {taskItems} inventory items";
         }
 
-        void Objects_OnObjectProperties(object sender, ObjectPropertiesEventArgs e)
+        private void Objects_OnObjectProperties(object sender, ObjectPropertiesEventArgs e)
         {
             if (!PermsSent) { return; }
 

@@ -29,6 +29,7 @@ using System;
 using System.Text;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 using CoreJ2K;
 using OpenMetaverse.Assets;
 using OpenMetaverse.Imaging;
@@ -64,12 +65,12 @@ namespace OpenMetaverse.TestClient
             {
                 foreach (var sim in Client.Network.Simulators)
                 {
-                    Avatar targetAv = sim.ObjectsAvatars.Find(
-                        avatar => avatar.ID == target
-                    );
+                   var kvp = sim.ObjectsAvatars.FirstOrDefault(
+                       avatar => avatar.Value.ID == target);
 
-                    if (targetAv != null)
+                    if (kvp.Value != null)
                     {
+                        var targetAv = kvp.Value;
                         StringBuilder output = new StringBuilder("Downloading ");
 
                         lock (OutfitAssets) OutfitAssets.Clear();

@@ -103,9 +103,9 @@ namespace LibreMetaverse
                     }
 
                     OSD result = OSDParser.Deserialize(data);
-                    if (result is OSDMap respMap && respMap.ContainsKey("categories"))
+                    if (result is OSDMap respMap && respMap.TryGetValue("categories", out var value))
                     {
-                        if (respMap["categories"] is OSDArray categories)
+                        if (value is OSDArray categories)
                         {
                             reportCategories = categories.Cast<OSDMap>().ToDictionary(
                                 row => row["description_localized"].AsString(),
