@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright(c) 2025, Sjofn, LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -37,7 +38,7 @@ namespace OpenMetaverse
         /// <summary>Origin position of this coordinate frame</summary>
         public Vector3 Origin
         {
-            get { return origin; }
+            get => origin;
             set
             {
                 if (!value.IsFinite())
@@ -45,10 +46,10 @@ namespace OpenMetaverse
                 origin = value;
             }
         }
-        /// <summary>X axis of this coordinate frame, or Forward/At in grid terms</summary>
+        /// <summary>X-axis of this coordinate frame, or Forward/At in grid terms</summary>
         public Vector3 XAxis
         {
-            get { return xAxis; }
+            get => xAxis;
             set
             {
                 if (!value.IsFinite())
@@ -56,10 +57,10 @@ namespace OpenMetaverse
                 xAxis = value;
             }
         }
-        /// <summary>Y axis of this coordinate frame, or Left in grid terms</summary>
+        /// <summary>Y-axis of this coordinate frame, or Left in grid terms</summary>
         public Vector3 YAxis
         {
-            get { return yAxis; }
+            get => yAxis;
             set
             {
                 if (!value.IsFinite())
@@ -67,10 +68,10 @@ namespace OpenMetaverse
                 yAxis = value;
             }
         }
-        /// <summary>Z axis of this coordinate frame, or Up in grid terms</summary>
+        /// <summary>Z-axis of this coordinate frame, or Up in grid terms</summary>
         public Vector3 ZAxis
         {
-            get { return zAxis; }
+            get => zAxis;
             set
             {
                 if (!value.IsFinite())
@@ -270,7 +271,7 @@ namespace OpenMetaverse
 
         protected void Orthonormalize()
         {
-            // Make sure the axis are orthagonal and normalized
+            // Make sure the axis are orthogonal and normalized
             xAxis.Normalize();
             yAxis -= xAxis * (xAxis * yAxis);
             yAxis.Normalize();

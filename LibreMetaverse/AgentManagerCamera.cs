@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright(c) 2025, Sjofn, LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -40,33 +41,33 @@ namespace OpenMetaverse
                 /// <summary></summary>
                 public float Far;
 
-                /// <summary>The camera is a local frame of reference inside of
+                /// <summary>The camera is a local frame of reference inside
                 /// the larger grid space. This is where the math happens</summary>
-                private CoordinateFrame Frame;
+                private readonly CoordinateFrame Frame;
 
                 /// <summary></summary>
                 public Vector3 Position
                 {
-                    get { return Frame.Origin; }
-                    set { Frame.Origin = value; }
+                    get => Frame.Origin;
+                    set => Frame.Origin = value;
                 }
                 /// <summary></summary>
                 public Vector3 AtAxis
                 {
-                    get { return Frame.YAxis; }
-                    set { Frame.YAxis = value; }
+                    get => Frame.YAxis;
+                    set => Frame.YAxis = value;
                 }
                 /// <summary></summary>
                 public Vector3 LeftAxis
                 {
-                    get { return Frame.XAxis; }
-                    set { Frame.XAxis = value; }
+                    get => Frame.XAxis;
+                    set => Frame.XAxis = value;
                 }
                 /// <summary></summary>
                 public Vector3 UpAxis
                 {
-                    get { return Frame.ZAxis; }
-                    set { Frame.ZAxis = value; }
+                    get => Frame.ZAxis;
+                    set => Frame.ZAxis = value;
                 }
 
                 /// <summary>
