@@ -389,7 +389,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <typeparam name="T">The type of the item to retrieve.</typeparam>
         /// <param name="uuid">The unique identifier of the item to retrieve.</param>
-        /// <param name="item">When this method returns, contains the item of type <typeparamref name="T"/> if found and compatible with the requested type; otherwise, the default value of <typeparamref name="T"/>.</param>
+        /// <param name="item">When this method returns true, contains the item of type <typeparamref name="T"/> if found and compatible with the requested type; otherwise, the default value of <typeparamref name="T"/>.</param>
         /// <returns><c>true</c> if an item with the specified UUID was found and is of type <typeparamref name="T"/>; otherwise, <c>false</c>.</returns>
         /// <remarks>
         /// Use this method when you need to retrieve an item of a specific type other than <see cref="InventoryBase"/>.
