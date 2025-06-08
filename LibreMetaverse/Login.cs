@@ -537,7 +537,6 @@ namespace OpenMetaverse
 
             return valArray
                 .OfType<T>()
-                .OrderBy(n => n)
                 .ToList();
         }
 
