@@ -339,6 +339,251 @@ namespace OpenMetaverse
         public Vector3 LookAt;
     }
 
+    public class AccountLevelBenefits
+    {
+        public int MeshUploadCost { get; }
+        public int OneTimeEventAllowed { get; }
+        public int RepeatingEventsCost { get; }
+        public string EstateAccessToken { get; }
+        public int LastnameChangeRate { get; }
+        public int MarketplaceConciergeSupport { get; }
+        public int PhoneSupport { get; }
+        public double LindenBuyFee { get; }
+        public int PartnerFee { get; }
+        public int CreateRepeatingEvents { get; }
+        public int TextureUploadCost { get; }
+        public int PriorityEntry { get; }
+        public int ObjectAccountLevel { get; }
+        public int UseAnimesh { get; }
+        public double LastnameChangeCost { get; }
+        public int BetaGridLand { get; }
+        public int CreateGroupCost { get; }
+        public int LiveChat { get; }
+        public int LandAuctionsAllowed { get; }
+        public int MainlandTier { get; }
+        public int LocalExperiences { get; }
+        public int OneTimeEventCost { get; }
+        public int MarketplacePleLimit { get; }
+        public int UnpartnerFee { get; }
+        public int GroupMembershipLimit { get; }
+        public int AnimationUploadCost { get; }
+        public int ScriptLimit { get; }
+        public int TransactionHistoryLimit { get; }
+        public List<int> LargeTextureUploadCost { get; }
+        public int AnimatedObjectLimit { get; }
+        public int GridwideExperienceLimit { get; }
+        public int LastnameChangeAllowed { get; }
+        public int SoundUploadCost { get; }
+        public int PremiumAlts { get; }
+        public int PicksLimit { get; }
+        public int PlacePages { get; }
+        public int PremiumAccess { get; }
+        public int MarketplaceListingLimit { get; }
+        public int PremiumGifts { get; }
+        public int VoiceMorphing { get; }
+        public int StoredImLimit { get; }
+        public int Stipend { get; }
+        public int SignupBonus { get; }
+        public int AttachmentLimit { get; }
+
+        public AccountLevelBenefits(OSDMap reply)
+        {
+            MeshUploadCost = GetIntFromMap(reply, "mesh_upload_cost", -1);
+            OneTimeEventAllowed = GetIntFromMap(reply, "one_time_event_allowed", -1);
+            RepeatingEventsCost = GetIntFromMap(reply, "repeating_events_cost", -1);
+            EstateAccessToken = GetStringFromMap(reply, "estate_access_token", string.Empty);
+            LastnameChangeRate = GetIntFromMap(reply, "lastname_change_rate", -1);
+            MarketplaceConciergeSupport = GetIntFromMap(reply, "marketplace_concierge_support", -1);
+            PhoneSupport = GetIntFromMap(reply, "phone_support", -1);
+            LindenBuyFee = GetRealFromMap(reply, "linden_buy_fee", -1.0);
+            PartnerFee = GetIntFromMap(reply, "partner_fee", -1);
+            CreateRepeatingEvents = GetIntFromMap(reply, "create_repeating_events", -1);
+            TextureUploadCost = GetIntFromMap(reply, "texture_upload_cost", -1);
+            PriorityEntry = GetIntFromMap(reply, "priority_entry", -1);
+            ObjectAccountLevel = GetIntFromMap(reply, "object_account_level", -1);
+            UseAnimesh = GetIntFromMap(reply, "use_animesh", -1);
+            LastnameChangeCost = GetRealFromMap(reply, "lastname_change_cost", -1.0);
+            BetaGridLand = GetIntFromMap(reply, "beta_grid_land", -1);
+            CreateGroupCost = GetIntFromMap(reply, "create_group_cost", -1);
+            LiveChat = GetIntFromMap(reply, "live_chat", -1);
+            LandAuctionsAllowed = GetIntFromMap(reply, "land_auctions_allowed", -1);
+            MainlandTier = GetIntFromMap(reply, "mainland_tier", -1);
+            LocalExperiences = GetIntFromMap(reply, "local_experiences", -1);
+            OneTimeEventCost = GetIntFromMap(reply, "one_time_event_cost", -1);
+            MarketplacePleLimit = GetIntFromMap(reply, "marketplace_ple_limit", -1);
+            UnpartnerFee = GetIntFromMap(reply, "unpartner_fee", -1);
+            GroupMembershipLimit = GetIntFromMap(reply, "group_membership_limit", -1);
+            AnimationUploadCost = GetIntFromMap(reply, "animation_upload_cost", -1);
+            ScriptLimit = GetIntFromMap(reply, "script_limit", -1);
+            TransactionHistoryLimit = GetIntFromMap(reply, "transaction_history_limit", -1);
+            LargeTextureUploadCost = GetListFromMap<int>(reply, "large_texture_upload_cost");
+            AnimatedObjectLimit = GetIntFromMap(reply, "animated_object_limit", -1);
+            GridwideExperienceLimit = GetIntFromMap(reply, "gridwide_experience_limit", -1);
+            LastnameChangeAllowed = GetIntFromMap(reply, "lastname_change_allowed", -1);
+            SoundUploadCost = GetIntFromMap(reply, "sound_upload_cost", -1);
+            PremiumAlts = GetIntFromMap(reply, "premium_alts", -1);
+            PicksLimit = GetIntFromMap(reply, "picks_limit", -1);
+            PlacePages = GetIntFromMap(reply, "place_pages", -1);
+            PremiumAccess = GetIntFromMap(reply, "premium_access", -1);
+            MarketplaceListingLimit = GetIntFromMap(reply, "marketplace_listing_limit", -1);
+            PremiumGifts = GetIntFromMap(reply, "premium_gifts", -1);
+            VoiceMorphing = GetIntFromMap(reply, "voice_morphing", -1);
+            StoredImLimit = GetIntFromMap(reply, "stored_im_limit", -1);
+            Stipend = GetIntFromMap(reply, "stipend", -1);
+            SignupBonus = GetIntFromMap(reply, "signup_bonus", -1);
+            AttachmentLimit = GetIntFromMap(reply, "attachment_limit", 38);
+
+            if (LargeTextureUploadCost.Count == 0)
+            {
+                LargeTextureUploadCost = new List<int>()
+                {
+                    TextureUploadCost
+                };
+            }
+            else
+            {
+                LargeTextureUploadCost = LargeTextureUploadCost
+                    .OrderBy(n => n)
+                    .ToList();
+            }
+        }
+
+        public AccountLevelBenefits(Hashtable reply)
+        {
+            MeshUploadCost = GetValueFromMap(reply, "mesh_upload_cost", -1);
+            OneTimeEventAllowed = GetValueFromMap(reply, "one_time_event_allowed", -1);
+            RepeatingEventsCost = GetValueFromMap(reply, "repeating_events_cost", -1);
+            EstateAccessToken = GetValueFromMap(reply, "estate_access_token", string.Empty);
+            LastnameChangeRate = GetValueFromMap(reply, "lastname_change_rate", -1);
+            MarketplaceConciergeSupport = GetValueFromMap(reply, "marketplace_concierge_support", -1);
+            PhoneSupport = GetValueFromMap(reply, "phone_support", -1);
+            LindenBuyFee = GetValueFromMap(reply, "linden_buy_fee", -1.0);
+            PartnerFee = GetValueFromMap(reply, "partner_fee", -1);
+            CreateRepeatingEvents = GetValueFromMap(reply, "create_repeating_events", -1);
+            TextureUploadCost = GetValueFromMap(reply, "texture_upload_cost", -1);
+            PriorityEntry = GetValueFromMap(reply, "priority_entry", -1);
+            ObjectAccountLevel = GetValueFromMap(reply, "object_account_level", -1);
+            UseAnimesh = GetValueFromMap(reply, "use_animesh", -1);
+            LastnameChangeCost = GetValueFromMap(reply, "lastname_change_cost", -1.0);
+            BetaGridLand = GetValueFromMap(reply, "beta_grid_land", -1);
+            CreateGroupCost = GetValueFromMap(reply, "create_group_cost", -1);
+            LiveChat = GetValueFromMap(reply, "live_chat", -1);
+            LandAuctionsAllowed = GetValueFromMap(reply, "land_auctions_allowed", -1);
+            MainlandTier = GetValueFromMap(reply, "mainland_tier", -1);
+            LocalExperiences = GetValueFromMap(reply, "local_experiences", -1);
+            OneTimeEventCost = GetValueFromMap(reply, "one_time_event_cost", -1);
+            MarketplacePleLimit = GetValueFromMap(reply, "marketplace_ple_limit", -1);
+            UnpartnerFee = GetValueFromMap(reply, "unpartner_fee", -1);
+            GroupMembershipLimit = GetValueFromMap(reply, "group_membership_limit", -1);
+            AnimationUploadCost = GetValueFromMap(reply, "animation_upload_cost", -1);
+            ScriptLimit = GetValueFromMap(reply, "script_limit", -1);
+            TransactionHistoryLimit = GetValueFromMap(reply, "transaction_history_limit", -1);
+            LargeTextureUploadCost = GetListFromMap<int>(reply, "large_texture_upload_cost");
+            AnimatedObjectLimit = GetValueFromMap(reply, "animated_object_limit", -1);
+            GridwideExperienceLimit = GetValueFromMap(reply, "gridwide_experience_limit", -1);
+            LastnameChangeAllowed = GetValueFromMap(reply, "lastname_change_allowed", -1);
+            SoundUploadCost = GetValueFromMap(reply, "sound_upload_cost", -1);
+            PremiumAlts = GetValueFromMap(reply, "premium_alts", -1);
+            PicksLimit = GetValueFromMap(reply, "picks_limit", -1);
+            PlacePages = GetValueFromMap(reply, "place_pages", -1);
+            PremiumAccess = GetValueFromMap(reply, "premium_access", -1);
+            MarketplaceListingLimit = GetValueFromMap(reply, "marketplace_listing_limit", -1);
+            PremiumGifts = GetValueFromMap(reply, "premium_gifts", -1);
+            VoiceMorphing = GetValueFromMap(reply, "voice_morphing", -1);
+            StoredImLimit = GetValueFromMap(reply, "stored_im_limit", -1);
+            Stipend = GetValueFromMap(reply, "stipend", -1);
+            SignupBonus = GetValueFromMap(reply, "signup_bonus", -1);
+            AttachmentLimit = GetValueFromMap(reply, "attachment_limit", 38);
+
+            if (LargeTextureUploadCost.Count == 0)
+            {
+                LargeTextureUploadCost = new List<int>()
+                {
+                    TextureUploadCost
+                };
+            }
+            else
+            {
+                LargeTextureUploadCost = LargeTextureUploadCost
+                    .OrderBy(n => n)
+                    .ToList();
+            }
+        }
+
+        private static T GetValueFromMap<T>(Hashtable reply, string key, T defaultValue)
+        {
+            if (reply.ContainsKey(key))
+            {
+                if (reply[key] is T result)
+                {
+                    return result;
+                }
+            }
+
+            return defaultValue;
+        }
+
+        private static List<T> GetListFromMap<T>(Hashtable reply, string key)
+        {
+            if (!reply.ContainsKey(key))
+            {
+                return new List<T>();
+            }
+
+            if (!(reply[key] is ArrayList valArray))
+            {
+                return new List<T>();
+            }
+
+            return valArray
+                .OfType<T>()
+                .OrderBy(n => n)
+                .ToList();
+        }
+
+        private static int GetIntFromMap(OSDMap reply, string key, int defaultValue)
+        {
+            if (reply.TryGetValue(key, out var osd))
+            {
+                return osd.AsInteger();
+            }
+            return defaultValue;
+        }
+
+        private static double GetRealFromMap(OSDMap reply, string key, double defaultValue)
+        {
+            if (reply.TryGetValue(key, out var osd))
+            {
+                return osd.AsReal();
+            }
+            return defaultValue;
+        }
+
+        private static string GetStringFromMap(OSDMap reply, string key, string defaultValue)
+        {
+            if (reply.TryGetValue(key, out var osd))
+            {
+                return osd.AsString();
+            }
+            return defaultValue;
+        }
+
+        private static List<T> GetListFromMap<T>(OSDMap reply, string key)
+        {
+            if(!reply.TryGetValue(key, out var osd))
+            {
+                return new List<T>();
+            }
+
+            if(!(osd is OSDArray osdArray))
+            {
+                return new List<T>();
+            }
+
+            return new List<T>(osdArray);
+        }
+    }
+
     /// <summary>
     /// The decoded data returned from the login server after a successful login
     /// </summary>
@@ -383,7 +628,7 @@ namespace OpenMetaverse
         public string MapServerUrl;
         public string SnapshotConfigUrl;
         public uint COFVersion;
-        public Hashtable AccountLevelBenefits;
+        public AccountLevelBenefits AccountLevelBenefits;
         public Hashtable PremiumPackages;
         public ArrayList ClassifiedCategories;
         public ArrayList EventCategories;
@@ -539,7 +784,7 @@ namespace OpenMetaverse
             {
                 if (reply["account_level_benefits"].Type == OSDType.Map)
                 {
-                    AccountLevelBenefits = ((OSDMap)reply["account_level_benefits"]).ToHashtable();
+                    AccountLevelBenefits = new AccountLevelBenefits((OSDMap)reply["account_level_benefits"]);
                 }
             }
 
@@ -753,9 +998,9 @@ namespace OpenMetaverse
 
             if (reply.ContainsKey("account_level_benefits"))
             {
-                if (reply?["account_level_benefits"] is Hashtable)
+                if (reply?["account_level_benefits"] is Hashtable accountLevelBenefitsTable)
                 {
-                    AccountLevelBenefits = (Hashtable)reply["account_level_benefits"];
+                    AccountLevelBenefits = new AccountLevelBenefits(accountLevelBenefitsTable);
                 }
             }
 

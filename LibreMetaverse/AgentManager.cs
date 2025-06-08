@@ -1470,6 +1470,7 @@ namespace OpenMetaverse
         /// <summary>Various abilities and preferences sent by the grid</summary>
         public AgentStateUpdateMessage AgentStateStatus;
 
+        public AccountLevelBenefits Benefits { get; protected set; }
         #endregion Properties
 
         internal uint localID;
@@ -4642,6 +4643,7 @@ namespace OpenMetaverse
             Movement.Camera.LookDirection(reply.LookAt);
             home = reply.Home;
             LookAt = reply.LookAt;
+            Benefits = reply.AccountLevelBenefits;
 
             if (reply.Gestures != null)
             {
