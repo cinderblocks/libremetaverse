@@ -361,6 +361,53 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Attempts to retrieve an <see cref="InventoryBase"/> item associated with the specified UUID.
+        /// This method is a specialized overload for retrieving items of type <see cref="InventoryBase"/> or its derived types.
+        /// </summary>
+        /// <param name="uuid">The unique identifier of the item to retrieve.</param>
+        /// <param name="item">When this method returns <c>true</c>, contains the <see cref="InventoryBase"/> item if found; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if an item with the specified UUID was found; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// Use this method when you specifically need an <see cref="InventoryBase"/> item without casting from a generic type.
+        /// For retrieving items of other types, use the generic <see cref="TryGetValue{T}(UUID, out T)"/> method.
+        /// </remarks>
+        public bool TryGetValue(UUID uuid, out InventoryBase item)
+        {
+            item = null;
+
+            if(TryGetNodeFor(uuid, out var node))
+            {
+                item = node.Data;
+            }
+
+            return item != null;
+        }
+
+        /// <summary>
+        /// Attempts to retrieve an item of type <typeparamref name="T"/> associated with the specified UUID.
+        /// This method is generic and can be used for any type stored in the inventory.
+        /// </summary>
+        /// <typeparam name="T">The type of the item to retrieve.</typeparam>
+        /// <param name="uuid">The unique identifier of the item to retrieve.</param>
+        /// <param name="item">When this method returns true, contains the item of type <typeparamref name="T"/> if found and compatible with the requested type; otherwise, the default value of <typeparamref name="T"/>.</param>
+        /// <returns><c>true</c> if an item with the specified UUID was found and is of type <typeparamref name="T"/>; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// Use this method when you need to retrieve an item of a specific type other than <see cref="InventoryBase"/>.
+        /// If you are retrieving an <see cref="InventoryBase"/> item or its derived types, consider using the specialized <see cref="TryGetValue(UUID, out InventoryBase)"/> overload for convenience.
+        /// </remarks>
+        public bool TryGetValue<T>(UUID uuid, out T item)
+        {
+            if (TryGetNodeFor(uuid, out var node) && node.Data is T requestedItem)
+            {
+                item = requestedItem;
+                return true;
+            }
+
+            item = default;
+            return false;
+        }
+
+        /// <summary>
         /// Check that Inventory contains the InventoryObject specified by <paramref name="obj"/>.
         /// </summary>
         /// <param name="obj">Object to check for</param>
