@@ -905,8 +905,9 @@ namespace OpenMetaverse
             }
 
             // find stale entries (people who left the sim)
-            var removedEntries = coarseEntries.Keys.Where(
-                entry => !e.Simulator.avatarPositions.ContainsKey(entry)).ToList();
+            var removedEntries = e.Simulator.avatarPositions.Keys.Where(
+                avatarId => !coarseEntries.ContainsKey(avatarId))
+                .ToList();
 
             // entry not listed in the previous update
             var newEntries = new List<UUID>();
