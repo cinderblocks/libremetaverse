@@ -3142,23 +3142,28 @@ namespace OpenMetaverse
 
             // Notify first, so that handler has a chance to get a
             // reference from the ObjectTracker to the object being killed
-            uint[] killed = new uint[kill.ObjectData.Length];
-            for (int i = 0; i < kill.ObjectData.Length; i++)
+
+            var localIdsToKill = new List<uint>(kill.ObjectData.Length);
+            foreach (var objectToKill in kill.ObjectData)
             {
-                OnKillObject(new KillObjectEventArgs(simulator, kill.ObjectData[i].ID));
-                killed[i] = kill.ObjectData[i].ID;
+                if(objectToKill.ID == Client.Self.localID)
+                {
+                    continue;
+                }
+
+                localIdsToKill.Add(objectToKill.ID);
+                OnKillObject(new KillObjectEventArgs(simulator, objectToKill.ID));
             }
-            OnKillObjects(new KillObjectsEventArgs(e.Simulator, killed));
+
+            OnKillObjects(new KillObjectsEventArgs(e.Simulator, localIdsToKill.ToArray()));
 
             List<uint> removeAvatars = new List<uint>();
             List<uint> removePrims = new List<uint>();
 
             if (Client.Settings.OBJECT_TRACKING)
             {
-                foreach (var odb in kill.ObjectData)
+                foreach (var localID in localIdsToKill)
                 {
-                    var localID = odb.ID;
-
                     if (simulator.ObjectsPrimitives.ContainsKey(localID))
                     {
                         removePrims.Add(localID);
@@ -3177,11 +3182,8 @@ namespace OpenMetaverse
 
             if (Client.Settings.AVATAR_TRACKING)
             {
-                uint localID;
-                foreach (var odb in kill.ObjectData)
+                foreach (var localID in localIdsToKill)
                 {
-                    localID = odb.ID;
-
                     if (simulator.ObjectsAvatars.ContainsKey(localID))
                     {
                         removeAvatars.Add(localID);
