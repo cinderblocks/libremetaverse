@@ -1621,7 +1621,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Request any instant messages sent while the client was offline to be resent.
         /// </summary>
-        public async Task RetrieveInstantMessages()
+        public async Task RetrieveInstantMessages(CancellationToken cancellationToken = default)
         {
             Uri offlineMsgsCap = Client.Network.CurrentSim.Caps?.CapabilityURI("ReadOfflineMsgs");
             if (offlineMsgsCap == null 
@@ -1633,7 +1633,7 @@ namespace OpenMetaverse
                 return;
             }
 
-            await Client.HttpCapsClient.GetRequestAsync(offlineMsgsCap, CancellationToken.None, OfflineMessageHandlerCallback);
+            await Client.HttpCapsClient.GetRequestAsync(offlineMsgsCap, cancellationToken, OfflineMessageHandlerCallback);
         }
 
         /// <summary>
@@ -1919,7 +1919,8 @@ namespace OpenMetaverse
         /// Accept invite for to a chatterbox session
         /// </summary>
         /// <param name="session_id"><see cref="UUID"/> of session to accept invite to</param>
-        public async Task ChatterBoxAcceptInvite(UUID session_id)
+        /// <param name="cancellationToken"></param>
+        public async Task ChatterBoxAcceptInvite(UUID session_id, CancellationToken cancellationToken = default)
         {
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
             {
@@ -1936,7 +1937,7 @@ namespace OpenMetaverse
                 // 2) session_id is included in GroupChatSessions when OnInstantMessage runs.
                 // (Since msg.GroupIM isn't used anymore, the handler can tell if it has a group message by testing whether Self.GroupChatSessions.ContainsKey(e.IM.IMSessionID).)
                 await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, acceptInvite.Serialize(), 
-                    CancellationToken.None, null);
+                    cancellationToken, null);
             }
             else
             {
@@ -1950,7 +1951,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="participants"><see cref="UUID"/> List of UUIDs to start a conference with</param>
         /// <param name="tmp_session_id">the temporary session ID returned in the <see cref="OnJoinedGroupChat"/> callback></param>
-        public void StartIMConference(List<UUID> participants, UUID tmp_session_id)
+        /// <param name="cancellationToken"></param>
+        public void StartIMConference(List<UUID> participants, UUID tmp_session_id, CancellationToken cancellationToken = default)
         {
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
             {
@@ -1973,7 +1975,7 @@ namespace OpenMetaverse
                 startConference.SessionID = tmp_session_id;
 
                 Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, startConference.Serialize(), 
-                    CancellationToken.None, null);
+                    cancellationToken, null);
             }
             else
             {
@@ -3787,12 +3789,13 @@ namespace OpenMetaverse
         /// Fetches resource usage by agents attachments
         /// </summary>
         /// <param name="callback">Called when the requested information is collected</param>
-        public async Task GetAttachmentResources(AttachmentResourcesCallback callback)
+        /// <param name="cancellationToken">Cancellation token for capability requests</param>
+        public async Task GetAttachmentResources(AttachmentResourcesCallback callback, CancellationToken cancellationToken = default)
         {
             try
             {
                 Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("AttachmentResources");
-                await Client.HttpCapsClient.GetRequestAsync(cap, CancellationToken.None, 
+                await Client.HttpCapsClient.GetRequestAsync(cap, cancellationToken, 
                     (response, data, error) =>
                 {
                     if (error != null)
@@ -3825,7 +3828,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="oldName">Previous display name</param>
         /// <param name="newName">Desired new display name</param>
-        public void SetDisplayName(string oldName, string newName)
+        /// <param name="cancellationToken"></param>
+        public void SetDisplayName(string oldName, string newName, CancellationToken cancellationToken = default)
         {
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
             {
@@ -3849,7 +3853,7 @@ namespace OpenMetaverse
             };
 
             Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), 
-                CancellationToken.None, null);
+                cancellationToken, null);
         }
 
         /// <summary>
@@ -3857,7 +3861,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="language">Two letter language code</param>
         /// <param name="isPublic">Share language info with scripts</param>
-        public void UpdateAgentLanguage(string language, bool isPublic)
+        /// <param name="cancellationToken"></param>
+        public void UpdateAgentLanguage(string language, bool isPublic, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -3874,7 +3879,7 @@ namespace OpenMetaverse
                     return;
                 }
                 Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), 
-                    CancellationToken.None, null);
+                    cancellationToken, null);
             }
             catch (Exception ex)
             {
@@ -3898,7 +3903,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="access">PG, M or A</param>
         /// <param name="callback">Callback function</param>
-        public void SetAgentAccess(string access, AgentAccessCallback callback)
+        /// <param name="cancellationToken"></param>
+        public void SetAgentAccess(string access, AgentAccessCallback callback, CancellationToken cancellationToken = default)
         {
             if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim.Caps == null) { return; }
 
@@ -3909,7 +3915,7 @@ namespace OpenMetaverse
             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentInformation");
             if (cap == null) { return; }
 
-            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None,
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, cancellationToken,
                 (response, data, error) =>
                 {
                     bool success = true;
@@ -3942,7 +3948,8 @@ namespace OpenMetaverse
         /// Sets agents hover height.
         /// </summary>
         /// <param name="hoverHeight">Hover height [-2.0, 2.0]</param>
-        public void SetHoverHeight(double hoverHeight)
+        /// <param name="cancellationToken"></param>
+        public void SetHoverHeight(double hoverHeight, CancellationToken cancellationToken = default)
         {
             if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim.Caps == null) { return; }
 
@@ -3951,7 +3958,7 @@ namespace OpenMetaverse
             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("AgentPreferences");
             if (cap == null) { return; }
 
-            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, postData, CancellationToken.None,
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, postData, cancellationToken,
                 (response, data, error) =>
             {
                 OSD result = OSDParser.Deserialize(data);
@@ -4906,7 +4913,9 @@ namespace OpenMetaverse
         /// <param name="memberID">the <see cref="UUID"/> of the avatar to moderate</param>
         /// <param name="key">Either "voice" to moderate users voice, or "text" to moderate users text session</param>
         /// <param name="moderate">true to moderate (silence user), false to allow avatar to speak</param>
-        public void ModerateChatSessions(UUID sessionID, UUID memberID, string key, bool moderate)
+        /// <param name="cancellationToken"></param>
+        public void ModerateChatSessions(UUID sessionID, UUID memberID, string key, bool moderate, 
+            CancellationToken cancellationToken = default)
         {
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
                 throw new Exception("ChatSessionRequest capability is not currently available");
@@ -4925,7 +4934,7 @@ namespace OpenMetaverse
                 SessionID = sessionID,
                 AgentID = memberID
             };
-            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(), CancellationToken.None, null);
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(), cancellationToken, null);
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
