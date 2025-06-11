@@ -497,7 +497,8 @@ namespace OpenMetaverse
         /// value in <see cref="InstantMessageEventArgs" />
         /// </summary>
         /// <param name="fromAgentID">agentID of avatar to form friendship with</param>
-        public void AcceptFriendshipCapability(UUID fromAgentID)
+        /// <param name="cancellationToken"></param>
+        public void AcceptFriendshipCapability(UUID fromAgentID, CancellationToken cancellationToken = default)
         {
             Uri acceptFriendshipCap = Client.Network.CurrentSim.Caps.CapabilityURI("AcceptFriendship");
             if (acceptFriendshipCap == null)
@@ -514,7 +515,7 @@ namespace OpenMetaverse
             };
             acceptFriendshipCap = builder.Uri;
 
-            _ = Client.HttpCapsClient.PostRequestAsync(acceptFriendshipCap, OSDFormat.Xml, new OSD(), CancellationToken.None,
+            _ = Client.HttpCapsClient.PostRequestAsync(acceptFriendshipCap, OSDFormat.Xml, new OSD(), cancellationToken,
                 (response, data, error) =>
                 {
                     if (error != null)
@@ -574,7 +575,8 @@ namespace OpenMetaverse
         /// value in <see cref="InstantMessageEventArgs" />
         /// </summary>
         /// <param name="fromAgentID"><see cref="UUID"/> of friend</param>
-        public void DeclineFriendshipCap(UUID fromAgentID)
+        /// <param name="cancellationToken"></param>
+        public void DeclineFriendshipCap(UUID fromAgentID, CancellationToken cancellationToken = default)
         {
             Uri declineFriendshipCap = Client.Network.CurrentSim.Caps.CapabilityURI("DeclineFriendship");
             if (declineFriendshipCap == null)
@@ -588,7 +590,7 @@ namespace OpenMetaverse
             };
             declineFriendshipCap = builder.Uri;
 
-            _ = Client.HttpCapsClient.DeleteRequestAsync(declineFriendshipCap, OSDFormat.Xml, new OSD(), CancellationToken.None,
+            _ = Client.HttpCapsClient.DeleteRequestAsync(declineFriendshipCap, OSDFormat.Xml, new OSD(), cancellationToken,
                 (response, data, error) =>
                 {
                     if (error != null)
