@@ -712,7 +712,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="ids">List of UUIDs to lookup</param>
         /// <param name="callback">Callback to report result of the operation</param>
-        public async Task GetDisplayNames(List<UUID> ids, DisplayNamesCallback callback)
+        /// <param name="cancellationToken"></param>
+        public async Task GetDisplayNames(List<UUID> ids, DisplayNamesCallback callback, CancellationToken cancellationToken = default)
         {
             if (!DisplayNamesAvailable() || ids.Count == 0)
             {
@@ -731,7 +732,7 @@ namespace OpenMetaverse
 
             Uri uri = new Uri(Client.Network.CurrentSim.Caps.CapabilityURI("GetDisplayNames").AbsoluteUri + "/?" + query);
 
-            await Client.HttpCapsClient.GetRequestAsync(uri, CancellationToken.None, (response, data, error) =>
+            await Client.HttpCapsClient.GetRequestAsync(uri, cancellationToken, (response, data, error) =>
             {
                 try
                 {
@@ -786,7 +787,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="avatarid">Avatar to request the AgentProfile of</param>
         /// <param name="callback">Callback to handle the AgentProfile response</param>
-        public async Task RequestAgentProfile(UUID avatarid, AgentProfileCallback callback)
+        /// <param name="cancellationToken"></param>
+        public async Task RequestAgentProfile(UUID avatarid, AgentProfileCallback callback, CancellationToken cancellationToken = default)
         {
             if (!AgentProfileAvailable())
             {
@@ -796,7 +798,7 @@ namespace OpenMetaverse
 
             var uri = new Uri(Client.Network.CurrentSim.Caps.CapabilityURI("AgentProfile").AbsoluteUri + "/" + avatarid);
 
-            await Client.HttpCapsClient.GetRequestAsync(uri, CancellationToken.None, (response, data, error) =>
+            await Client.HttpCapsClient.GetRequestAsync(uri, cancellationToken, (response, data, error) =>
             {
                 try
                 {
