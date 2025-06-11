@@ -720,19 +720,12 @@ namespace OpenMetaverse
                 callback(false, null, null);
             }
 
-            StringBuilder query = new StringBuilder();
-            for (int i = 0; i < ids.Count && i < 90; i++)
+            var uri = new UriBuilder(Client.Network.CurrentSim.Caps.CapabilityURI("GetDisplayNames"))
             {
-                query.AppendFormat("ids={0}", ids[i]);
-                if (i < ids.Count - 1)
-                {
-                    query.Append("&");
-                }
-            }
+                Query = "ids=" + string.Join("&", ids)
+            };
 
-            Uri uri = new Uri(Client.Network.CurrentSim.Caps.CapabilityURI("GetDisplayNames").AbsoluteUri + "/?" + query);
-
-            await Client.HttpCapsClient.GetRequestAsync(uri, cancellationToken, (response, data, error) =>
+            await Client.HttpCapsClient.GetRequestAsync(uri.Uri, cancellationToken, (response, data, error) =>
             {
                 try
                 {
@@ -796,7 +789,7 @@ namespace OpenMetaverse
                 return;
             }
 
-            var uri = new Uri(Client.Network.CurrentSim.Caps.CapabilityURI("AgentProfile").AbsoluteUri + "/" + avatarid);
+            var uri = new Uri(Client.Network.CurrentSim.Caps.CapabilityURI("AgentProfile"), avatarid.ToString());
 
             await Client.HttpCapsClient.GetRequestAsync(uri, cancellationToken, (response, data, error) =>
             {
