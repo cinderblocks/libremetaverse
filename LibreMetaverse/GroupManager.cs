@@ -1643,17 +1643,8 @@ namespace OpenMetaverse
         /// Request a list of residents banned from joining a group
         /// </summary>
         /// <param name="groupID">UUID of the group</param>
-        public async Task RequestBannedAgents(UUID groupID)
-        {
-            await RequestBannedAgents(groupID, null);
-        }
-
-        /// <summary>
-        /// Request a list of residents banned from joining a group
-        /// </summary>
-        /// <param name="groupID">UUID of the group</param>
         /// <param name="callback">Callback on request completion</param>
-        public async Task RequestBannedAgents(UUID groupID, EventHandler<BannedAgentsEventArgs> callback)
+        public async Task RequestBannedAgents(UUID groupID, EventHandler<BannedAgentsEventArgs> callback = null)
         {
             Uri uri = GetGroupAPIUri(groupID);
             if (uri == null) { return; }
