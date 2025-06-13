@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2021-2022, Sjofn LLC
+ * Copyright (c) 2021-2025, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenMetaverse;
-using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
 
@@ -47,7 +46,7 @@ namespace LibreMetaverse
         }
 
         /// <summary>A reference to the current <see cref="GridClient"/> instance</summary>
-        private GridClient Client;
+        private readonly GridClient Client;
 
         /// <summary>
         /// Construct a new instance of the UserReport class
@@ -80,6 +79,7 @@ namespace LibreMetaverse
             {
                 Logger.Log("AbuseCategories capability does not exist. Could not fetch categories list.",
                     Helpers.LogLevel.Info);
+                return null;
             }
 
             if (lang != null)
