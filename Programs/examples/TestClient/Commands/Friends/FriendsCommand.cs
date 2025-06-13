@@ -39,11 +39,11 @@ namespace OpenMetaverse.TestClient
                 // iterate over the InternalDictionary using a delegate to populate
                 // our StringBuilder output string
                 sb.AppendFormat("has {0} friends:", Client.Friends.FriendList.Count).AppendLine();
-                Client.Friends.FriendList.ForEach(delegate(FriendInfo friend)
+                foreach (var friend in Client.Friends.FriendList)
                 {
                     // append the name of the friend to our output
-                    sb.AppendFormat("{0}, {1}", friend.UUID, friend.Name).AppendLine();
-                });
+                    sb.AppendFormat("{0}, {1}", friend.Value.UUID, friend.Value.Name).AppendLine();
+                };
             }
             else
             {
