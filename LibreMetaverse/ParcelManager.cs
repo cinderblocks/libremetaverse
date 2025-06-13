@@ -1756,14 +1756,16 @@ namespace OpenMetaverse
         /// <param name="parcelID">UUID of the parcel</param>
         /// <param name="getDetails">Should per object resource usage be requested</param>
         /// <param name="callback">Callback invoked when the request is complete</param>
-        public async Task GetParcelResources(UUID parcelID, bool getDetails, LandResourcesCallback callback)
+        /// <param name="cancellationToken"></param>
+        public async Task GetParcelResources(UUID parcelID, bool getDetails, LandResourcesCallback callback, 
+            CancellationToken cancellationToken = default)
         {
             try
             {
                 LandResourcesRequest req = new LandResourcesRequest { ParcelID = parcelID };
                 Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("LandResources");
                 await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(),
-                    CancellationToken.None, (httpResponse, data, error) =>
+                    cancellationToken, (httpResponse, data, error) =>
                     {
                         try
                         {
@@ -1779,7 +1781,7 @@ namespace OpenMetaverse
                             OSD summaryResponse = null;
                             AsyncHelper.Sync(() => Client.HttpCapsClient.GetRequestAsync(
                                 Client.Network.CurrentSim.Caps.CapabilityURI("ScriptResourceSummary"),
-                                CancellationToken.None,
+                                cancellationToken,
                                 (response, respData, err) => summaryResponse = OSDParser.Deserialize(respData)));
 
                             LandResourcesInfo resInfo = new LandResourcesInfo();
@@ -1790,7 +1792,7 @@ namespace OpenMetaverse
                                 OSD detailResponse = null;
                                 AsyncHelper.Sync(() => Client.HttpCapsClient.GetRequestAsync(
                                     Client.Network.CurrentSim.Caps.CapabilityURI("ScriptResourceDetails"),
-                                    CancellationToken.None,
+                                    cancellationToken,
                                     (response, respData, err) => detailResponse = OSDParser.Deserialize(respData)));
 
                                 resInfo.Deserialize((OSDMap)detailResponse);
