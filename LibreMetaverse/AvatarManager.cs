@@ -1037,10 +1037,10 @@ namespace OpenMetaverse
                 if (a.Value == null || a.Value.ID != data.Sender.ID) { continue; }
 
                 found = true;
-                var value = a.Value;
-                lock (value)
+                var av = a.Value;
+                lock (av)
                 {
-                    value.Animations = signaledAnimations;
+                    av.Animations = signaledAnimations;
                 }
 
             }
