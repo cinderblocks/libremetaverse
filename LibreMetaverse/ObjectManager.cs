@@ -2016,7 +2016,7 @@ namespace OpenMetaverse
                     {
                         if (Client.Settings.OBJECT_TRACKING)
                         {
-                            var kvp = sim.ObjectsPrimitives.SingleOrDefault(
+                            var kvp = sim.ObjectsPrimitives.FirstOrDefault(
                                 p => p.Value.ID == primID);
                             if (kvp.Value != null)
                             {
@@ -3184,12 +3184,7 @@ namespace OpenMetaverse
             {
                 foreach (var localID in localIdsToKill)
                 {
-                    if (simulator.ObjectsAvatars.ContainsKey(localID))
-                    {
-                        removeAvatars.Add(localID);
-                    }
-
-                    List<uint> rootPrims = new List<uint>();
+                    var rootPrims = new List<uint>();
 
                     foreach (var prim in simulator.ObjectsPrimitives
                                  .Where(prim => prim.Value.ParentID == localID))
@@ -3205,11 +3200,7 @@ namespace OpenMetaverse
                         OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
                         removePrims.Add(prim.Key);
                     }
-                }
-
-                foreach (uint removeID in removeAvatars)
-                {
-                    simulator.ObjectsAvatars.TryRemove(removeID, out _);
+                    _ = simulator.ObjectsAvatars.TryRemove(localID, out _);
                 }
             }
 
@@ -3678,22 +3669,8 @@ namespace OpenMetaverse
                 return new Avatar();
             }
 
-            if (simulator.ObjectsAvatars.TryGetValue(localID, out var avatar))
-            {
-                return avatar;
-            }
-
-            avatar = new Avatar
-            {
-                LocalID = localID,
-                ID = fullID,
-                RegionHandle = simulator.Handle
-            };
-
-            simulator.ObjectsAvatars[localID] = avatar;
-
-            return avatar;
-
+            return simulator.ObjectsAvatars.GetOrAdd(localID,
+                new Avatar { LocalID = localID, ID = fullID, RegionHandle = simulator.Handle });
         }
 
         #endregion Object Tracking Link

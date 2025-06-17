@@ -1014,7 +1014,7 @@ namespace OpenMetaverse
 
             AvatarAnimationPacket data = (AvatarAnimationPacket)packet;
 
-            List<Animation> signaledAnimations = new List<Animation>(data.AnimationList.Length);
+            var signaledAnimations = new List<Animation>(data.AnimationList.Length);
 
             for (int i = 0; i < data.AnimationList.Length; i++)
             {
@@ -1031,15 +1031,21 @@ namespace OpenMetaverse
                 signaledAnimations.Add(animation);
             }
 
-            var kvp = e.Simulator.ObjectsAvatars.SingleOrDefault(
-                avi => avi.Value.ID == data.Sender.ID);
-            if (kvp.Value != null)
+            bool found = false;
+            foreach (var a in e.Simulator.ObjectsAvatars)
             {
-                var av = kvp.Value;
-                av.Animations = signaledAnimations;
-                e.Simulator.ObjectsAvatars.TryUpdate(kvp.Key, av, kvp.Value);
+                if (a.Value == null || a.Value.ID != data.Sender.ID) { continue; }
+
+                found = true;
+                var value = a.Value;
+                lock (value)
+                {
+                    value.Animations = signaledAnimations;
+                }
+
             }
-            else
+
+            if (!found)
             {
                 e.Simulator.Client.Objects.RequestObjectPropertiesFamily(e.Simulator, data.Sender.ID);
             }
@@ -1090,24 +1096,25 @@ namespace OpenMetaverse
                 {
                     if (appearance.AttachmentBlock != null && appearance.AttachmentBlock.Length > 0)
                     {
-                        var kv = simulator.ObjectsAvatars.SingleOrDefault(
-                            a => a.Value.ID == appearance.Sender.ID);
-                        if (kv.Value != null)
+                        foreach (var a in e.Simulator.ObjectsAvatars)
                         {
-                            var av = kv.Value;
-                            av.Attachments = new List<Avatar.Attachment>();
-                            foreach (var block in appearance.AttachmentBlock)
+                            if (a.Value == null || a.Value.ID != appearance.Sender.ID) { continue; }
+
+                            var av = a.Value;
+                            lock (av)
                             {
-                                av.Attachments.Add(new Avatar.Attachment
+                                av.Attachments = new List<Avatar.Attachment>();
+                                foreach (var block in appearance.AttachmentBlock)
                                 {
-                                    AttachmentID = block.ID,
-                                    AttachmentPoint = block.AttachmentPoint
-                                });
+                                    av.Attachments.Add(new Avatar.Attachment
+                                    {
+                                        AttachmentID = block.ID,
+                                        AttachmentPoint = block.AttachmentPoint
+                                    });
+                                }
+
+                                childCount = av.ChildCount = av.Attachments.Count;
                             }
-
-                            childCount = av.ChildCount = av.Attachments.Count;
-
-                            simulator.ObjectsAvatars.TryUpdate(kv.Key, av, kv.Value);
                         }
                     }
                 }
@@ -1117,19 +1124,20 @@ namespace OpenMetaverse
                 // mesh bake CAP response can be treated as fully reliable.
                 if (appearance.Sender.ID == Client.Self.AgentID) { return; }
 
-                var kvp = simulator.ObjectsAvatars.SingleOrDefault(
-                    a => a.Value.ID == appearance.Sender.ID);
-                if (kvp.Value != null)
+                foreach (var a in e.Simulator.ObjectsAvatars)
                 {
-                    var av = kvp.Value;
-                    av.Textures = textureEntry;
-                    av.VisualParameters = visualParams.ToArray();
-                    av.AppearanceVersion = appearanceVersion;
-                    av.COFVersion = COFVersion;
-                    av.AppearanceFlags = appearanceFlags;
-                    av.HoverHeight = hoverHeight;
+                    if (a.Value == null || a.Value.ID != appearance.Sender.ID) { continue; }
 
-                    simulator.ObjectsAvatars.TryUpdate(kvp.Key, av, kvp.Value);
+                    var av = a.Value;
+                    lock (av)
+                    {
+                        av.Textures = textureEntry;
+                        av.VisualParameters = visualParams.ToArray();
+                        av.AppearanceVersion = appearanceVersion;
+                        av.COFVersion = COFVersion;
+                        av.AppearanceFlags = appearanceFlags;
+                        av.HoverHeight = hoverHeight;
+                    }
                 }
 
                 OnAvatarAppearance(new AvatarAppearanceEventArgs(simulator,
