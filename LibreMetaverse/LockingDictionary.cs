@@ -170,15 +170,6 @@ namespace OpenMetaverse
         /// <param name="key">Key to use for lookup</param>
         /// <param name="value">Value returned</param>
         /// <returns><see langword="true"/> if specified key exists,  <see langword="false"/> if not found</returns>
-        /// <example>
-        /// <code>
-        /// // find your avatar using the Simulator.ObjectsAvatars LockingDictionary:
-        ///    Avatar av;
-        ///    if (Client.Network.CurrentSim.ObjectsAvatars.TryGetValue(Client.Self.AgentID, out av))
-        ///        Console.WriteLine("Found Avatar {0}", av.Name);
-        /// </code>
-        /// <see cref="Simulator.ObjectsAvatars"/>
-        /// </example>
         public bool TryGetValue(TKey key, out TValue value)
         {
             lock (Dictionary)
