@@ -3696,15 +3696,21 @@ namespace OpenMetaverse
                     foreach (var avatar in sim.ObjectsAvatars)
                     {
                         #region Linear Motion
-                        if (avatar.Value.Acceleration != Vector3.Zero)
+
+                        var av = avatar.Value;
+                        lock (av)
                         {
-                            avatar.Value.Velocity += avatar.Value.Acceleration * adjSeconds;
+                            if (av.Acceleration != Vector3.Zero)
+                            {
+                                av.Velocity += av.Acceleration * adjSeconds;
+                            }
+
+                            if (av.Velocity != Vector3.Zero)
+                            {
+                                av.Position += (av.Velocity) * adjSeconds;
+                            }
                         }
 
-                        if (avatar.Value.Velocity != Vector3.Zero)
-                        {
-                            avatar.Value.Position += (avatar.Value.Velocity) * adjSeconds;
-                        }
                         #endregion Linear Motion
                     }
 
@@ -3712,41 +3718,46 @@ namespace OpenMetaverse
 
                     foreach (var prim in sim.ObjectsPrimitives)
                     {
-                        if (prim.Value.Joint == JointType.Invalid)
+                        var pv = prim.Value;
+                        lock (pv)
                         {
-                            Vector3 angVel = prim.Value.AngularVelocity;
-                            float omega = angVel.LengthSquared();
-
-                            if (omega > 0.00001f)
+                            if (pv.Joint == JointType.Invalid)
                             {
-                                omega = (float)Math.Sqrt(omega);
-                                float angle = omega * adjSeconds;
-                                angVel *= 1.0f / omega;
-                                Quaternion dQ = Quaternion.CreateFromAxisAngle(angVel, angle);
+                                Vector3 angVel = pv.AngularVelocity;
+                                float omega = angVel.LengthSquared();
 
-                                prim.Value.Rotation *= dQ;
+                                if (omega > 0.00001f)
+                                {
+                                    omega = (float)Math.Sqrt(omega);
+                                    float angle = omega * adjSeconds;
+                                    angVel *= 1.0f / omega;
+                                    Quaternion dQ = Quaternion.CreateFromAxisAngle(angVel, angle);
+
+                                    pv.Rotation *= dQ;
+                                }
+
+                                // Only do movement interpolation (extrapolation) when there is a non-zero velocity but 
+                                // no acceleration
+                                if (pv.Acceleration != Vector3.Zero && pv.Velocity == Vector3.Zero)
+                                {
+                                    pv.Position += (pv.Velocity + pv.Acceleration *
+                                        (0.5f * (adjSeconds - HAVOK_TIMESTEP))) * adjSeconds;
+                                    pv.Velocity += pv.Acceleration * adjSeconds;
+                                }
                             }
-
-                            // Only do movement interpolation (extrapolation) when there is a non-zero velocity but 
-                            // no acceleration
-                            if (prim.Value.Acceleration != Vector3.Zero && prim.Value.Velocity == Vector3.Zero)
+                            else if (pv.Joint == JointType.Hinge)
                             {
-                                prim.Value.Position += (prim.Value.Velocity + prim.Value.Acceleration *
-                                                  (0.5f * (adjSeconds - HAVOK_TIMESTEP))) * adjSeconds;
-                                prim.Value.Velocity += prim.Value.Acceleration * adjSeconds;
+                                //FIXME: Hinge movement extrapolation
                             }
-                        }
-                        else if (prim.Value.Joint == JointType.Hinge)
-                        {
-                            //FIXME: Hinge movement extrapolation
-                        }
-                        else if (prim.Value.Joint == JointType.Point)
-                        {
-                            //FIXME: Point movement extrapolation
-                        }
-                        else
-                        {
-                            Logger.Log($"Unhandled joint type {prim.Value.Joint}", Helpers.LogLevel.Warning, Client);
+                            else if (pv.Joint == JointType.Point)
+                            {
+                                //FIXME: Point movement extrapolation
+                            }
+                            else
+                            {
+                                Logger.Log($"Unhandled joint type {pv.Joint}", Helpers.LogLevel.Warning,
+                                    Client);
+                            }
                         }
                     }
                 }
