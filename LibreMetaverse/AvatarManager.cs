@@ -789,7 +789,8 @@ namespace OpenMetaverse
                 return;
             }
 
-            var uri = new Uri(Client.Network.CurrentSim.Caps.CapabilityURI("AgentProfile"), avatarid.ToString());
+            var baseUri = Client.Network.CurrentSim.Caps.CapabilityURI("AgentProfile");
+            var uri = new Uri($"{baseUri}/{avatarid}");
 
             await Client.HttpCapsClient.GetRequestAsync(uri, cancellationToken, (response, data, error) =>
             {
