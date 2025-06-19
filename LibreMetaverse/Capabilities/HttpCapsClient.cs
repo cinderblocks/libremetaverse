@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2022-2024, Sjofn, LLC.
+ * Copyright (c) 2022-2025, Sjofn, LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -59,8 +59,8 @@ namespace LibreMetaverse
 
         #region GET requests
 
-        public async Task GetRequestAsync(Uri uri, CancellationToken cancellationToken, 
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
+        public async Task GetRequestAsync(Uri uri, CancellationToken cancellationToken,
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
             {
@@ -68,17 +68,12 @@ namespace LibreMetaverse
             }
         }
 
-        public async Task GetRequestAsync(Uri uri, CancellationToken cancellationToken, DownloadCompleteHandler completeHandler)
-        {
-            await GetRequestAsync(uri, cancellationToken, completeHandler, null, null);
-        }
-
         #endregion GET requests
 
         #region POST requests
 
         public async Task PostRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Post, uri))
             {
@@ -88,14 +83,8 @@ namespace LibreMetaverse
             }
         }
 
-        public async Task PostRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler)
-        {
-            await PostRequestAsync(uri, contentType, payload, cancellationToken, completeHandler, null, null);
-        }
-
         public async Task PostRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
             using (var request = new HttpRequestMessage(HttpMethod.Post, uri))
@@ -113,18 +102,12 @@ namespace LibreMetaverse
             }
         }
 
-        public async Task PostRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler)
-        {
-            await PostRequestAsync(uri, format, payload, cancellationToken, completeHandler, null, null);
-        }
-
         #endregion POST requests
 
         #region PUT requests
 
         public async Task PutRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Put, uri))
             {
@@ -134,14 +117,8 @@ namespace LibreMetaverse
             }
         }
 
-        public async Task PutRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler)
-        {
-            await PutRequestAsync(uri, contentType, payload, cancellationToken, completeHandler, null, null);
-        }
-
         public async Task PutRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
             using (var request = new HttpRequestMessage(HttpMethod.Put, uri))
@@ -150,12 +127,6 @@ namespace LibreMetaverse
                 request.Content.Headers.ContentType = contentType;
                 await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
             }
-        }
-
-        public async Task PutRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler)
-        {
-            await PutRequestAsync(uri, format, payload, cancellationToken, completeHandler, null, null);
         }
 
         #endregion PUT requests
@@ -163,7 +134,7 @@ namespace LibreMetaverse
         #region PATCH requests
 
         public async Task PatchRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
         {
 #if (NETSTANDARD2_1_OR_GREATER || NET)
             using (var request = new HttpRequestMessage(HttpMethod.Patch, uri))
@@ -177,14 +148,8 @@ namespace LibreMetaverse
             }
         }
 
-        public async Task PatchRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler)
-        {
-            await PatchRequestAsync(uri, contentType, payload, cancellationToken, completeHandler, null, null);
-        }
-
         public async Task PatchRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
 #if (NETSTANDARD2_1_OR_GREATER || NET)
@@ -197,12 +162,6 @@ namespace LibreMetaverse
                 request.Content.Headers.ContentType = contentType;
                 await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
             }
-        }
-
-        public async Task PatchRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler)
-        {
-            await PatchRequestAsync(uri, format, payload, cancellationToken, completeHandler, null, null);
         }
 
 #endregion PATCH requests
@@ -210,7 +169,7 @@ namespace LibreMetaverse
         #region DELETE requests
 
         public async Task DeleteRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Delete, uri))
             {
@@ -220,14 +179,8 @@ namespace LibreMetaverse
             }
         }
 
-        public async Task DeleteRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler)
-        {
-            await DeleteRequestAsync(uri, contentType, payload, cancellationToken, completeHandler, null, null);
-        }
-
         public async Task DeleteRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
+            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
             using (var request = new HttpRequestMessage(HttpMethod.Delete, uri))
@@ -236,12 +189,6 @@ namespace LibreMetaverse
                 request.Content.Headers.ContentType = contentType;
                 await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
             }
-        }
-
-        public async Task DeleteRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler)
-        {
-            await DeleteRequestAsync(uri, format, payload, cancellationToken, completeHandler, null, null);
         }
 
         #endregion DELETE requests
