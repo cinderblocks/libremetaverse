@@ -1680,7 +1680,7 @@ namespace OpenMetaverse
         /// <param name="action">Ban/Unban action</param>
         /// <param name="agents">Array of agents UUIDs to ban</param>
         /// <param name="callback">Callback</param>
-        /// <param name="cancellationToken></param>
+        /// <param name="cancellationToken"></param>
         public async Task RequestBanAction(UUID groupID, GroupBanAction action, UUID[] agents, EventHandler<EventArgs> callback = null, 
             CancellationToken cancellationToken = default)
         {
