@@ -14,10 +14,6 @@ environment:
     platform: Any CPU
     appveyor_build_worker_image: Ubuntu2204
     configuration: Release
-  - job_name: Mac Build
-    platform: Any CPU
-    appveyor_build_worker_image: macos-sonoma
-    configuration: Release
 
   LMVTestAgentUsername: SecretAgentTest Resident
   LMVTestAgentPassword:
@@ -34,7 +30,6 @@ environment:
 matrix:
   allow_failures:
   - image: Ubuntu2204
-  - image: macos-sonoma
 
 pull_requests:
   do_not_increment_build_number: false
@@ -102,7 +97,6 @@ for:
   matrix:
     only: 
       - job_name: Linux Build
-      - job_name: Mac Build
   
   test: off # remove either when mono stops crashing or we stop supporting net481
 

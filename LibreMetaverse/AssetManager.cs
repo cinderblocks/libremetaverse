@@ -431,17 +431,13 @@ namespace OpenMetaverse
 
         #endregion Events
 
-        /// <summary>Texture download cache</summary>
-        public AssetCache Cache;
-
-        private readonly TexturePipeline Texture;
-
-        private readonly DownloadManager HttpDownloads;
-
         private readonly GridClient Client;
 
+        public AssetCache Cache;
+        private readonly TexturePipeline Texture;
+        private readonly DownloadManager HttpDownloads;
+        private readonly Task HttpDownloadsTask;
         private readonly Dictionary<UUID, Transfer> Transfers = new Dictionary<UUID, Transfer>();
-
         private AssetUpload PendingUpload;
         private readonly object PendingUploadLock = new object();
         private volatile bool WaitingForUploadConfirm = false;
@@ -472,6 +468,8 @@ namespace OpenMetaverse
 
             // Simulator is responding to a request to download a file
             Client.Network.RegisterCallback(PacketType.InitiateDownload, InitiateDownloadPacketHandler);
+
+            HttpDownloadsTask = HttpDownloads.StartConsumer();
 
         }
 
@@ -1419,15 +1417,11 @@ namespace OpenMetaverse
                 return;
             }
 
-            DownloadProgressHandler progressHandler = null;
-
             Uri url = new Uri($"{Client.Network.AgentAppearanceServiceURL}texture/{avatarID}/{bakeName}/{textureID}");
 
             DownloadRequest req = new DownloadRequest(
                 url,
-                "image/x-j2c",
-                progressHandler,
-                (response, responseData, error) =>
+                "image/x-j2c", null, (response, responseData, error) =>
                 {
                     if (error == null && responseData != null && response.IsSuccessStatusCode) // success
                     {
@@ -1500,7 +1494,7 @@ namespace OpenMetaverse
 
             if (progress)
             {
-                progressHandler = (totalBytesToReceive, bytesReceived, progresPercent) =>
+                progressHandler = (totalBytesToReceive, bytesReceived, progressPercent) =>
                     {
                         FireImageProgressEvent(textureID, (int)bytesReceived, (int)totalBytesToReceive);
                     };

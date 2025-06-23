@@ -58,9 +58,38 @@ namespace LibreMetaverse
                     }
                 }, token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
+
+        /// <summary>
+        /// Execute a given <see cref="Action"/> at a given interval in a loop
+        /// </summary>
+        /// <param name="pollInterval">Interval for executing action</param>
+        /// <param name="asyncAction">Essentially the action you wish to execute</param>
+        /// <param name="token">Cancellation token</param>
+        /// <param name="immediately">When set, executes the action immediately instead of waiting for the interval</param>
+        /// <returns></returns>
+        public static Task IntervalAsync(
+            TimeSpan pollInterval,
+            Func<Task> asyncAction,
+            CancellationToken token,
+            bool immediately = false)
+        {
+            return Task.Factory.StartNew(
+                async () =>
+                {
+                    if (immediately)
+                    {
+                        await asyncAction(); }
+
+                    for (; ; )
+                    {
+                        if (token.WaitCancellationRequested(pollInterval)) { break; }
+                        await asyncAction();
+                    }
+                }, token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+        }
     }
 
-    static class CancellationTokenExtensions
+    internal static class CancellationTokenExtensions
     {
         public static bool WaitCancellationRequested(
             this CancellationToken token,

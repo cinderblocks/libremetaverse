@@ -2016,7 +2016,7 @@ namespace OpenMetaverse
                     {
                         if (Client.Settings.OBJECT_TRACKING)
                         {
-                            var kvp = sim.ObjectsPrimitives.SingleOrDefault(
+                            var kvp = sim.ObjectsPrimitives.FirstOrDefault(
                                 p => p.Value.ID == primID);
                             if (kvp.Value != null)
                             {
@@ -3142,23 +3142,28 @@ namespace OpenMetaverse
 
             // Notify first, so that handler has a chance to get a
             // reference from the ObjectTracker to the object being killed
-            uint[] killed = new uint[kill.ObjectData.Length];
-            for (int i = 0; i < kill.ObjectData.Length; i++)
+
+            var localIdsToKill = new List<uint>(kill.ObjectData.Length);
+            foreach (var objectToKill in kill.ObjectData)
             {
-                OnKillObject(new KillObjectEventArgs(simulator, kill.ObjectData[i].ID));
-                killed[i] = kill.ObjectData[i].ID;
+                if(objectToKill.ID == Client.Self.localID)
+                {
+                    continue;
+                }
+
+                localIdsToKill.Add(objectToKill.ID);
+                OnKillObject(new KillObjectEventArgs(simulator, objectToKill.ID));
             }
-            OnKillObjects(new KillObjectsEventArgs(e.Simulator, killed));
+
+            OnKillObjects(new KillObjectsEventArgs(e.Simulator, localIdsToKill.ToArray()));
 
             List<uint> removeAvatars = new List<uint>();
             List<uint> removePrims = new List<uint>();
 
             if (Client.Settings.OBJECT_TRACKING)
             {
-                foreach (var odb in kill.ObjectData)
+                foreach (var localID in localIdsToKill)
                 {
-                    var localID = odb.ID;
-
                     if (simulator.ObjectsPrimitives.ContainsKey(localID))
                     {
                         removePrims.Add(localID);
@@ -3177,17 +3182,9 @@ namespace OpenMetaverse
 
             if (Client.Settings.AVATAR_TRACKING)
             {
-                uint localID;
-                foreach (var odb in kill.ObjectData)
+                foreach (var localID in localIdsToKill)
                 {
-                    localID = odb.ID;
-
-                    if (simulator.ObjectsAvatars.ContainsKey(localID))
-                    {
-                        removeAvatars.Add(localID);
-                    }
-
-                    List<uint> rootPrims = new List<uint>();
+                    var rootPrims = new List<uint>();
 
                     foreach (var prim in simulator.ObjectsPrimitives
                                  .Where(prim => prim.Value.ParentID == localID))
@@ -3203,11 +3200,7 @@ namespace OpenMetaverse
                         OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
                         removePrims.Add(prim.Key);
                     }
-                }
-
-                foreach (uint removeID in removeAvatars)
-                {
-                    simulator.ObjectsAvatars.TryRemove(removeID, out _);
+                    _ = simulator.ObjectsAvatars.TryRemove(localID, out _);
                 }
             }
 
@@ -3676,22 +3669,8 @@ namespace OpenMetaverse
                 return new Avatar();
             }
 
-            if (simulator.ObjectsAvatars.TryGetValue(localID, out var avatar))
-            {
-                return avatar;
-            }
-
-            avatar = new Avatar
-            {
-                LocalID = localID,
-                ID = fullID,
-                RegionHandle = simulator.Handle
-            };
-
-            simulator.ObjectsAvatars[localID] = avatar;
-
-            return avatar;
-
+            return simulator.ObjectsAvatars.GetOrAdd(localID,
+                new Avatar { LocalID = localID, ID = fullID, RegionHandle = simulator.Handle });
         }
 
         #endregion Object Tracking Link
@@ -3717,15 +3696,21 @@ namespace OpenMetaverse
                     foreach (var avatar in sim.ObjectsAvatars)
                     {
                         #region Linear Motion
-                        if (avatar.Value.Acceleration != Vector3.Zero)
+
+                        var av = avatar.Value;
+                        lock (av)
                         {
-                            avatar.Value.Velocity += avatar.Value.Acceleration * adjSeconds;
+                            if (av.Acceleration != Vector3.Zero)
+                            {
+                                av.Velocity += av.Acceleration * adjSeconds;
+                            }
+
+                            if (av.Velocity != Vector3.Zero)
+                            {
+                                av.Position += (av.Velocity) * adjSeconds;
+                            }
                         }
 
-                        if (avatar.Value.Velocity != Vector3.Zero)
-                        {
-                            avatar.Value.Position += (avatar.Value.Velocity) * adjSeconds;
-                        }
                         #endregion Linear Motion
                     }
 
@@ -3733,41 +3718,46 @@ namespace OpenMetaverse
 
                     foreach (var prim in sim.ObjectsPrimitives)
                     {
-                        if (prim.Value.Joint == JointType.Invalid)
+                        var pv = prim.Value;
+                        lock (pv)
                         {
-                            Vector3 angVel = prim.Value.AngularVelocity;
-                            float omega = angVel.LengthSquared();
-
-                            if (omega > 0.00001f)
+                            if (pv.Joint == JointType.Invalid)
                             {
-                                omega = (float)Math.Sqrt(omega);
-                                float angle = omega * adjSeconds;
-                                angVel *= 1.0f / omega;
-                                Quaternion dQ = Quaternion.CreateFromAxisAngle(angVel, angle);
+                                Vector3 angVel = pv.AngularVelocity;
+                                float omega = angVel.LengthSquared();
 
-                                prim.Value.Rotation *= dQ;
+                                if (omega > 0.00001f)
+                                {
+                                    omega = (float)Math.Sqrt(omega);
+                                    float angle = omega * adjSeconds;
+                                    angVel *= 1.0f / omega;
+                                    Quaternion dQ = Quaternion.CreateFromAxisAngle(angVel, angle);
+
+                                    pv.Rotation *= dQ;
+                                }
+
+                                // Only do movement interpolation (extrapolation) when there is a non-zero velocity but 
+                                // no acceleration
+                                if (pv.Acceleration != Vector3.Zero && pv.Velocity == Vector3.Zero)
+                                {
+                                    pv.Position += (pv.Velocity + pv.Acceleration *
+                                        (0.5f * (adjSeconds - HAVOK_TIMESTEP))) * adjSeconds;
+                                    pv.Velocity += pv.Acceleration * adjSeconds;
+                                }
                             }
-
-                            // Only do movement interpolation (extrapolation) when there is a non-zero velocity but 
-                            // no acceleration
-                            if (prim.Value.Acceleration != Vector3.Zero && prim.Value.Velocity == Vector3.Zero)
+                            else if (pv.Joint == JointType.Hinge)
                             {
-                                prim.Value.Position += (prim.Value.Velocity + prim.Value.Acceleration *
-                                                  (0.5f * (adjSeconds - HAVOK_TIMESTEP))) * adjSeconds;
-                                prim.Value.Velocity += prim.Value.Acceleration * adjSeconds;
+                                //FIXME: Hinge movement extrapolation
                             }
-                        }
-                        else if (prim.Value.Joint == JointType.Hinge)
-                        {
-                            //FIXME: Hinge movement extrapolation
-                        }
-                        else if (prim.Value.Joint == JointType.Point)
-                        {
-                            //FIXME: Point movement extrapolation
-                        }
-                        else
-                        {
-                            Logger.Log($"Unhandled joint type {prim.Value.Joint}", Helpers.LogLevel.Warning, Client);
+                            else if (pv.Joint == JointType.Point)
+                            {
+                                //FIXME: Point movement extrapolation
+                            }
+                            else
+                            {
+                                Logger.Log($"Unhandled joint type {pv.Joint}", Helpers.LogLevel.Warning,
+                                    Client);
+                            }
                         }
                     }
                 }

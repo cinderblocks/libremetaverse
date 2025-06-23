@@ -506,19 +506,9 @@ namespace OpenMetaverse
             /// This will also anchor the camera position on the avatar
             /// </summary>
             /// <param name="target">Region coordinates to turn toward</param>
-            public bool TurnToward(Vector3 target)
-            {
-                return TurnToward(target, true);
-            }
-
-            /// <summary>
-            /// Rotates the avatar body and camera toward a target position.
-            /// This will also anchor the camera position on the avatar
-            /// </summary>
-            /// <param name="target">Region coordinates to turn toward</param>
             /// <param name="sendUpdate">whether to send update or not</param>
             /// <returns>Returns if TurnToward operation was successful</returns>
-            public bool TurnToward(Vector3 target, bool sendUpdate)
+            public bool TurnToward(Vector3 target, bool sendUpdate = true)
             {
                 if (!Client.Settings.SEND_AGENT_UPDATES)
                 {

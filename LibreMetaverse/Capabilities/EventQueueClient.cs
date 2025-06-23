@@ -27,7 +27,6 @@
 
 using System;
 using System.Collections;
-using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
@@ -90,11 +89,12 @@ namespace OpenMetaverse.Http
             _reqPayload = new OSDMap { ["ack"] = new OSD(), ["done"] = OSD.FromBoolean(false) };
 
             _queueCts = new CancellationTokenSource();
-            _eqTask = Repeat.Interval(TimeSpan.FromSeconds(30), async () =>
-            {
-                await Simulator.Client.HttpCapsClient.PostRequestAsync(Address, OSDFormat.Xml, _reqPayload, _queueCts.Token,
-                    RequestCompletedHandler, null, ConnectedResponseHandler);
-            }, _queueCts.Token, true);
+
+            _eqTask = Repeat.Interval(TimeSpan.FromSeconds(1), ack, _queueCts.Token, true);
+            return;
+
+            async void ack() => await Simulator.Client.HttpCapsClient.PostRequestAsync(
+                Address, OSDFormat.Xml, _reqPayload, _queueCts.Token, RequestCompletedHandler, null, ConnectedResponseHandler);
         }
 
         /// <summary>
