@@ -1676,7 +1676,9 @@ namespace OpenMetaverse
         /// channels will be truncated to at most <see cref="MaxScriptDialogLabelSize"/> bytes and chat
         /// type will be ignored.</param>
         /// <param name="type">Denotes the type of message being sent, shout, whisper, etc.</param>
-        public void Chat(string message, int channel, ChatType type)
+        /// <param name="splitLargeMessages">Allows splitting of long messages into multiple chat messages if true,
+        /// otherwise long messages will be truncated to their maximum size.</param>
+        public void Chat(string message, int channel, ChatType type, bool splitLargeMessages = true)
         {
             if (channel < 0)
             {
@@ -1684,7 +1686,7 @@ namespace OpenMetaverse
                 return;
             }
 
-            var messageChunks = SplitMultibyteString(message, MaxChatMessageSize);
+            var messageChunks = SplitMultibyteString(message, MaxChatMessageSize, splitLargeMessages ? int.MaxValue : 1);
             foreach (var messageChunk in messageChunks)
             {
                 var chatPacket = new ChatFromViewerPacket
