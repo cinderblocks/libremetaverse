@@ -1566,55 +1566,151 @@ namespace OpenMetaverse
         }
 
         #region Chat and instant messages
+        /// <summary>
+        /// Maximum size in bytes of chat messages
+        /// </summary>
+        public const int MaxChatMessageSize = 1023;
 
-        protected int message_chunk_group_id = 0; // a int that starts at 1 goes upto 500 (then back to 1)
+        /// <summary>
+        /// Maximum size in bytes of script dialog labels
+        /// </summary>
+        public const int MaxScriptDialogLabelSize = 254;
+
+        /// <summary>
+        /// Splits a multi-byte string into parts of at most <paramref name="splitSizeInBytes"/> bytes. Attempts to avoid
+        /// splitting multi-byte characters (like UTF-8) to preserve integrity. Useful for chunked string processing.
+        /// </summary>
+        /// <param name="message">The input string to split. May contain multi-byte characters (e.g., UTF-8 text).</param>
+        /// <param name="splitSizeInBytes">Maximum byte size per part of the split string. Must be greater than 0.</param>
+        /// <param name="maxParts">Maximum number of parts to create. Defaults to <see cref="int.MaxValue"/> if unspecified.</param>
+        /// <returns>
+        /// A <see cref="List{T}"/> of strings, each part limited to <paramref name="splitSizeInBytes"/> bytes or less.
+        /// Total parts do not exceed <paramref name="maxParts"/>. Excessive parts over <paramref name="maxParts"/> are discarded.
+        /// </returns>
+        /// <exception cref="Exception">
+        /// Thrown if <paramref name="splitSizeInBytes"/> is less than 1, as splitting below 1 byte is not possible.
+        /// </exception>
+        private static List<string> SplitMultibyteString(string message, int splitSizeInBytes, int maxParts = int.MaxValue)
+        {
+            if (splitSizeInBytes < 1)
+            {
+                throw new Exception("Split size must be at least 1 byte");
+            }
+
+            var messageParts = new List<string>();
+            var messageBytes = System.Text.Encoding.UTF8.GetBytes(message);
+            var messageBytesOffset = 0;
+
+            while (messageParts.Count < maxParts && messageBytesOffset < messageBytes.Length)
+            {
+                var partEndOffset = Math.Min(messageBytesOffset + splitSizeInBytes, messageBytes.Length);
+                if (partEndOffset < messageBytes.Length)
+                {
+                    // Starting at the desired split point (previous split point offset + splitSizeInBytes),
+                    //  iterate backwards, checking each byte until we find a byte that is not a continuation
+                    //  byte (0x80-0xBF).
+                    // See: https://en.wikipedia.org/wiki/UTF-8#Byte_map
+                    while (partEndOffset > messageBytesOffset)
+                    {
+                        var currentByte = messageBytes[partEndOffset];
+                        if(currentByte < 0x80 || currentByte > 0xBF)
+                        {
+                            // The current byte of the message is not a continuation byte and we can split the message here.
+                            break;
+                        }
+
+                        partEndOffset--;
+                    }
+                }
+
+                if (partEndOffset == messageBytesOffset)
+                {
+                    // Edge case where we're forced to split the multi-byte character, such as when splitSizeInBytes is 1
+                    partEndOffset++;
+                }
+
+                var newMessagePart = System.Text.Encoding.UTF8.GetString(
+                    messageBytes,
+                    messageBytesOffset, partEndOffset - messageBytesOffset
+                );
+                messageParts.Add(newMessagePart);
+
+                messageBytesOffset = partEndOffset;
+            }
+
+            return messageParts;
+        }
+
+        /// <summary>
+        /// Send a text message from the Agent to the Simulator on a negative channel via ScriptDialogReplyPacket
+        /// </summary>
+        /// <param name="message">A <see cref="string"/> containing the message. Messages longer
+        /// than <see cref="MaxScriptDialogLabelSize"/> bytes will be truncated to <see cref="MaxScriptDialogLabelSize"/>
+        /// bytes.</param>
+        /// <param name="channel">The channel to send the message on</param>
+        private void ChatOnNegativeChannel(string message, int channel)
+        {
+            var messageChunks = SplitMultibyteString(message, MaxScriptDialogLabelSize, 1);
+
+            foreach (var messageChunk in messageChunks)
+            {
+                var chatPacket = new ScriptDialogReplyPacket
+                {
+                    AgentData =
+                    {
+                        AgentID = AgentID,
+                        SessionID = Client.Self.SessionID
+                    },
+                    Data =
+                    {
+                        ObjectID = AgentID,
+                        ChatChannel = channel,
+                        ButtonIndex = 0,
+                        ButtonLabel = Utils.StringToBytes(messageChunk)
+                    }
+                };
+                Client.Network.SendPacket(chatPacket);
+            }
+        }
 
         /// <summary>
         /// Send a text message from the Agent to the Simulator
         /// </summary>
         /// <param name="message">A <see cref="string"/> containing the message</param>
-        /// <param name="channel">The channel to send the message on, 0 is the public channel. Channels above 0
-        /// can be used however only scripts listening on the specified channel will see the message</param>
+        /// <param name="channel">The channel to send the message on, 0 is the public channel. Messages
+        /// sent on non-negative channels longer than <see cref="MaxChatMessageSize"/> bytes will be split
+        /// and sent in chunks of at most <see cref="MaxChatMessageSize"/> bytes. Messages on negative
+        /// channels will be truncated to at most <see cref="MaxScriptDialogLabelSize"/> bytes and chat
+        /// type will be ignored.</param>
         /// <param name="type">Denotes the type of message being sent, shout, whisper, etc.</param>
-        /// <param name="allow_split_message">Enables large messages to be split into chunks of 900 with [CHUNKGROUPID|CHUNKID|TOTALCHUNKS] at the start</param>
-        /// <param name="hide_chunk_grouping">Hides [CHUNKGROUPID|CHUNKID|TOTALCHUNKS] at the start of chunked messages</param>
-        public void Chat(string message, int channel, ChatType type,bool allow_split_message=true,bool hide_chunk_grouping=true)
+        /// <param name="splitLargeMessages">Allows splitting of long messages into multiple chat messages if true,
+        /// otherwise long messages will be truncated to their maximum size.</param>
+        public void Chat(string message, int channel, ChatType type, bool splitLargeMessages = true)
         {
-            if ((message.Length > 900) && (allow_split_message == true))
+            if (channel < 0)
             {
-                int group_id = message_chunk_group_id;
-                message_chunk_group_id++;
-                if (message_chunk_group_id > 500) { message_chunk_group_id = 1; }
-                string[] chunks = message.SplitBy(900).ToArray();
-                int chunkid = 1;
-                foreach(string chunk in chunks)
-                {
-                    string chunk_grouping = "";
-                    if(hide_chunk_grouping == false)
-                    {
-                        chunk_grouping = $"[{group_id}|{chunkid}|{chunks.Length}]";
-                    }
-                    Chat($"{chunk_grouping}{chunk}", channel, type, false);
-                    chunkid++;
-                }
+                ChatOnNegativeChannel(message, channel);
+                return;
             }
-            else
+
+            var messageChunks = SplitMultibyteString(message, MaxChatMessageSize, splitLargeMessages ? int.MaxValue : 1);
+            foreach (var messageChunk in messageChunks)
             {
-                ChatFromViewerPacket chat = new ChatFromViewerPacket
+                var chatPacket = new ChatFromViewerPacket
                 {
                     AgentData =
-                        {
-                            AgentID = AgentID,
-                            SessionID = Client.Self.SessionID
-                        },
+                    {
+                        AgentID = AgentID,
+                        SessionID = Client.Self.SessionID
+                    },
                     ChatData =
-                        {
-                            Channel = channel,
-                            Message = Utils.StringToBytes(message),
-                            Type = (byte) type
-                        }
+                    {
+                        Channel = channel,
+                        Message = Utils.StringToBytes(messageChunk),
+                        Type = (byte) type
+                    }
                 };
-                Client.Network.SendPacket(chat);
+                Client.Network.SendPacket(chatPacket);
             }
         }
 
@@ -1722,12 +1818,21 @@ namespace OpenMetaverse
             InstantMessageDialog dialog, InstantMessageOnline offline, Vector3 position, UUID regionID,
             byte[] binaryBucket)
         {
-            if (target != UUID.Zero)
+            if (target == UUID.Zero)
+            {
+                Logger.Log($"Suppressing instant message \"{message}\" to UUID.Zero", Helpers.LogLevel.Error, Client);
+                return;
+            }
+
+            var messageParts = SplitMultibyteString(message, MaxChatMessageSize);
+            foreach (var messagePart in messageParts)
             {
                 ImprovedInstantMessagePacket im = new ImprovedInstantMessagePacket();
 
                 if (imSessionID.Equals(UUID.Zero) || imSessionID.Equals(AgentID))
+                {
                     imSessionID = AgentID.Equals(target) ? AgentID : target ^ AgentID;
+                }
 
                 im.AgentData.AgentID = Client.Self.AgentID;
                 im.AgentData.SessionID = Client.Self.SessionID;
@@ -1736,7 +1841,7 @@ namespace OpenMetaverse
                 im.MessageBlock.FromAgentName = Utils.StringToBytes(fromName);
                 im.MessageBlock.FromGroup = false;
                 im.MessageBlock.ID = imSessionID;
-                im.MessageBlock.Message = Utils.StringToBytes(message);
+                im.MessageBlock.Message = Utils.StringToBytes(messagePart);
                 im.MessageBlock.Offline = (byte)offline;
                 im.MessageBlock.ToAgentID = target;
 
@@ -1749,11 +1854,6 @@ namespace OpenMetaverse
 
                 // Send the message
                 Client.Network.SendPacket(im);
-            }
-            else
-            {
-                Logger.Log($"Suppressing instant message \"{message}\" to UUID.Zero",
-                    Helpers.LogLevel.Error, Client);
             }
         }
 
@@ -1777,7 +1877,15 @@ namespace OpenMetaverse
         {
             lock (GroupChatSessions.Dictionary)
             {
-                if (GroupChatSessions.ContainsKey(groupID))
+                if (!GroupChatSessions.ContainsKey(groupID))
+                {
+                    Logger.Log("No Active group chat session appears to exist, use RequestJoinGroupChat() to join one",
+                        Helpers.LogLevel.Error, Client);
+                    return;
+                }
+
+                var messageChunks = SplitMultibyteString(message, MaxChatMessageSize);
+                foreach (var messageChunk in messageChunks)
                 {
                     ImprovedInstantMessagePacket im = new ImprovedInstantMessagePacket
                     {
@@ -1791,7 +1899,7 @@ namespace OpenMetaverse
                             Dialog = (byte) InstantMessageDialog.SessionSend,
                             FromAgentName = Utils.StringToBytes(fromName),
                             FromGroup = false,
-                            Message = Utils.StringToBytes(message),
+                            Message = Utils.StringToBytes(messageChunk),
                             Offline = 0,
                             ID = groupID,
                             ToAgentID = groupID,
@@ -1801,13 +1909,7 @@ namespace OpenMetaverse
                         }
                     };
 
-
                     Client.Network.SendPacket(im);
-                }
-                else
-                {
-                    Logger.Log("No Active group chat session appears to exist, use RequestJoinGroupChat() to join one",
-                        Helpers.LogLevel.Error, Client);
                 }
             }
         }
