@@ -1594,7 +1594,7 @@ namespace OpenMetaverse
         {
             if (splitSizeInBytes < 1)
             {
-                throw new Exception("Cannot split string less than 1 byte in length");
+                throw new Exception("Split size must be at least 1 byte");
             }
 
             var messageParts = new List<string>();
@@ -1606,10 +1606,16 @@ namespace OpenMetaverse
                 var partEndOffset = Math.Min(messageBytesOffset + splitSizeInBytes, messageBytes.Length);
                 if (partEndOffset < messageBytes.Length)
                 {
+                    // Starting at the desired split point (previous split point offset + splitSizeInBytes),
+                    //  iterate backwards, checking each byte until we find a byte that is not a continuation
+                    //  byte (0x80-0xBF).
+                    // See: https://en.wikipedia.org/wiki/UTF-8#Byte_map
                     while (partEndOffset > messageBytesOffset)
                     {
-                        if ((messageBytes[partEndOffset] & 0b1100_0000) != 0b1000_0000)
+                        var currentByte = messageBytes[partEndOffset];
+                        if(currentByte < 0x80 || currentByte > 0xBF)
                         {
+                            // The current byte of the message is not a continuation byte and we can split the message here.
                             break;
                         }
 
@@ -1619,6 +1625,7 @@ namespace OpenMetaverse
 
                 if (partEndOffset == messageBytesOffset)
                 {
+                    // Edge case where we're forced to split the multi-byte character, such as when splitSizeInBytes is 1
                     partEndOffset++;
                 }
 
