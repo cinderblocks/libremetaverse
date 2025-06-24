@@ -1809,12 +1809,21 @@ namespace OpenMetaverse
             InstantMessageDialog dialog, InstantMessageOnline offline, Vector3 position, UUID regionID,
             byte[] binaryBucket)
         {
-            if (target != UUID.Zero)
+            if (target == UUID.Zero)
+            {
+                Logger.Log($"Suppressing instant message \"{message}\" to UUID.Zero", Helpers.LogLevel.Error, Client);
+                return;
+            }
+
+            var messageParts = SplitMultibyteString(message, MaxChatMessageSize);
+            foreach (var messagePart in messageParts)
             {
                 ImprovedInstantMessagePacket im = new ImprovedInstantMessagePacket();
 
                 if (imSessionID.Equals(UUID.Zero) || imSessionID.Equals(AgentID))
+                {
                     imSessionID = AgentID.Equals(target) ? AgentID : target ^ AgentID;
+                }
 
                 im.AgentData.AgentID = Client.Self.AgentID;
                 im.AgentData.SessionID = Client.Self.SessionID;
@@ -1823,7 +1832,7 @@ namespace OpenMetaverse
                 im.MessageBlock.FromAgentName = Utils.StringToBytes(fromName);
                 im.MessageBlock.FromGroup = false;
                 im.MessageBlock.ID = imSessionID;
-                im.MessageBlock.Message = Utils.StringToBytes(message);
+                im.MessageBlock.Message = Utils.StringToBytes(messagePart);
                 im.MessageBlock.Offline = (byte)offline;
                 im.MessageBlock.ToAgentID = target;
 
@@ -1836,11 +1845,6 @@ namespace OpenMetaverse
 
                 // Send the message
                 Client.Network.SendPacket(im);
-            }
-            else
-            {
-                Logger.Log($"Suppressing instant message \"{message}\" to UUID.Zero",
-                    Helpers.LogLevel.Error, Client);
             }
         }
 
@@ -1864,7 +1868,15 @@ namespace OpenMetaverse
         {
             lock (GroupChatSessions.Dictionary)
             {
-                if (GroupChatSessions.ContainsKey(groupID))
+                if (!GroupChatSessions.ContainsKey(groupID))
+                {
+                    Logger.Log("No Active group chat session appears to exist, use RequestJoinGroupChat() to join one",
+                        Helpers.LogLevel.Error, Client);
+                    return;
+                }
+
+                var messageChunks = SplitMultibyteString(message, MaxChatMessageSize);
+                foreach (var messageChunk in messageChunks)
                 {
                     ImprovedInstantMessagePacket im = new ImprovedInstantMessagePacket
                     {
@@ -1878,7 +1890,7 @@ namespace OpenMetaverse
                             Dialog = (byte) InstantMessageDialog.SessionSend,
                             FromAgentName = Utils.StringToBytes(fromName),
                             FromGroup = false,
-                            Message = Utils.StringToBytes(message),
+                            Message = Utils.StringToBytes(messageChunk),
                             Offline = 0,
                             ID = groupID,
                             ToAgentID = groupID,
@@ -1888,13 +1900,7 @@ namespace OpenMetaverse
                         }
                     };
 
-
                     Client.Network.SendPacket(im);
-                }
-                else
-                {
-                    Logger.Log("No Active group chat session appears to exist, use RequestJoinGroupChat() to join one",
-                        Helpers.LogLevel.Error, Client);
                 }
             }
         }
