@@ -40,8 +40,7 @@ namespace LibreMetaverse.Voice.WebRTC
         // so we must pass it as 2 channels in SDP but create a decoder/encoder with only one channel
         public static readonly AudioFormat MEDIA_FORMAT_OPUS = new AudioFormat(111,
             "opus", SAMPLE_RATE, SAMPLE_RATE, 2,
-            "a=fmtp:111 minptime=10;useinbandfec=1;stereo=1;sprop-stereo=1");
-            //"a=fmtp:111 minptime=10;useinbandfec=1;");
+            "a=fmtp:111 minptime=10;useinbandfec=1;stereo=1;sprop-stereo=1;maxplaybackrate=48000;sprop-maxplaybackrate=48000;sprop-maxcapturerate=48000");
 
         private static readonly ILogger log = SIPSorcery.LogFactory.CreateLogger<OpusAudioEncoder>();
 
