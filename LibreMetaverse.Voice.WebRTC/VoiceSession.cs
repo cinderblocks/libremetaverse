@@ -26,7 +26,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenMetaverse;
@@ -54,15 +53,11 @@ namespace LibreMetaverse.Voice.WebRTC
         private readonly Sdl2Audio AudioDevice = new Sdl2Audio();
 
         public bool Connected => PeerConnection?.connectionState == RTCPeerConnectionState.connected;
-
         private ESessionType SessionType { get; }
         public UUID SessionId { get; private set; }
         public string SdpLocal => PeerConnection?.localDescription.sdp.ToString();
         public string SdpRemote => PeerConnection?.remoteDescription.sdp.ToString();
-
-        private readonly object _candidateLock = new object();
-        private readonly List<RTCIceCandidate> PendingCandidates = new List<RTCIceCandidate>();
-
+        private readonly Queue<RTCIceCandidate> PendingCandidates = new Queue<RTCIceCandidate>();
         readonly CancellationTokenSource Cts = new CancellationTokenSource();
 
         public event Action OnPeerConnectionClosed;
@@ -97,17 +92,17 @@ namespace LibreMetaverse.Voice.WebRTC
                     Logger.Log($"ICE gathering state change to {state}.", Helpers.LogLevel.Debug, Client);
                 }
             };
-            pc.onicecandidate += (candidate) =>
+            pc.onicecandidate += async (candidate) =>
             {
                 Logger.Log($"ICE candidate received: {candidate.candidate}", Helpers.LogLevel.Debug, Client);
-                lock (_candidateLock)
+                lock (PendingCandidates)
                 {
-                    PendingCandidates.Add(candidate);
+                    PendingCandidates.Enqueue(candidate);
                 }
 
                 if (pc.canTrickleIceCandidates)
                 {
-                    TrickleCandidates();
+                    await TrickleCandidates();
                 }
             };
             pc.onicecandidateerror += (candidate, error) =>
@@ -151,11 +146,10 @@ namespace LibreMetaverse.Voice.WebRTC
                                     rtpPkt.Header.PayloadType, rtpPkt.Header.MarkerBit == 1, rtpPkt.Payload);
                             }
                         };
-                        pc.OnRtpClosed += (reason) =>
+                        pc.OnRtpClosed += async (reason) =>
                         {
                             pc.Close(reason);
-                            Task task = SendCloseSessionRequest();
-                            task.Wait();
+                            await SendCloseSessionRequest();
                         };
                         break;
                     case RTCPeerConnectionState.closed:
@@ -167,10 +161,12 @@ namespace LibreMetaverse.Voice.WebRTC
                         break;
                 }
             };
-            pc.OnStarted += () =>
+            pc.OnStarted += async () =>
             {
-                Logger.Log($"========== Voice session started! ============", Helpers.LogLevel.Debug, Client);
-                TrickleCandidates();
+                if (pc.canTrickleIceCandidates)
+                {
+                    await TrickleCandidates();
+                }
             };
 
             return pc;
@@ -300,19 +296,20 @@ namespace LibreMetaverse.Voice.WebRTC
             var canArray = new OSDArray();
             payload["candidates"] = canArray;
 
-            lock (_candidateLock)
+            lock (PendingCandidates)
             {
                 Logger.Log($"Sending {PendingCandidates.Count} ICE candidates for {SessionId}", Helpers.LogLevel.Debug, Client);
-                foreach (var map in PendingCandidates.Select(candidate => new OSDMap
-                         {
-                             { "sdpMid", candidate.sdpMid },
-                             { "sdpMLineIndex", candidate.sdpMLineIndex },
-                             { "candidate", candidate.candidate }
-                         }))
+                while (PendingCandidates.Count > 0)
                 {
+                    var candidate = PendingCandidates.Dequeue();
+                    var map = new OSDMap
+                    {
+                        { "sdpMid", candidate.sdpMid },
+                        { "sdpMLineIndex", candidate.sdpMLineIndex },
+                        { "candidate", candidate.candidate }
+                    };
                     canArray.Add(map);
                 }
-                PendingCandidates.Clear();
             }
 
             await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload,
@@ -340,11 +337,11 @@ namespace LibreMetaverse.Voice.WebRTC
                 Cts.Token, null);
         }
 
-        private void TrickleCandidates()
+        private async Task TrickleCandidates()
         {
-            if ((PendingCandidates == null || PendingCandidates.Count > 0) && Connected)
+            if (Connected)
             {
-                SendVoiceSignalingRequest().Wait();
+                await SendVoiceSignalingRequest();
             }
         }
     }
