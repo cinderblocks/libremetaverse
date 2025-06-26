@@ -48,7 +48,6 @@ namespace LibreMetaverse
             {
                 Logger.Log($"SDL Audio sink error: {err}", Helpers.LogLevel.Warning);
             };
-            EndPoint.StartAudioSink();
         }
 
         public void Dispose()
