@@ -42,8 +42,6 @@ namespace LibreMetaverse.Voice.WebRTC
             "opus", SAMPLE_RATE, SAMPLE_RATE, 2,
             "a=fmtp:111 minptime=10;useinbandfec=1;stereo=1;sprop-stereo=1;maxplaybackrate=48000;sprop-maxplaybackrate=48000;sprop-maxcapturerate=48000");
 
-        private static readonly ILogger log = SIPSorcery.LogFactory.CreateLogger<OpusAudioEncoder>();
-
         private readonly AudioEncoder _audioEncoder;
 
         private const int FRAME_SIZE_MILLISECONDS = 20;
