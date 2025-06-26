@@ -24,14 +24,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using System.Threading;
 using System.Threading.Tasks;
 using OpenMetaverse;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.StructuredData;
-using SIPSorcery.Net;
 
 namespace LibreMetaverse.Voice.WebRTC
 {
@@ -43,8 +39,6 @@ namespace LibreMetaverse.Voice.WebRTC
         public string sdpLocal => CurrentSession.SdpLocal;
         public string sdpRemote => CurrentSession.SdpRemote;
         public bool connected { get; private set; }
-
-        private CancellationTokenSource Cts = new CancellationTokenSource();
 
         public VoiceManager(GridClient client)
         {

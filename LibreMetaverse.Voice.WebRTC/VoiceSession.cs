@@ -89,17 +89,17 @@ namespace LibreMetaverse.Voice.WebRTC
             {
                 if (state == RTCIceGatheringState.complete)
                 {
-                    Logger.Log("ICE gathering state completed", Helpers.LogLevel.Debug);
+                    Logger.Log("ICE gathering state completed", Helpers.LogLevel.Debug, Client);
                     SendVoiceSignalingCompleteRequest().Wait();
                 }
                 else
                 {
-                    Logger.Log($"ICE gathering state change to {state}.", Helpers.LogLevel.Debug);
+                    Logger.Log($"ICE gathering state change to {state}.", Helpers.LogLevel.Debug, Client);
                 }
             };
             pc.onicecandidate += (candidate) =>
             {
-                Logger.Log($"ICE candidate received: {candidate.candidate}", Helpers.LogLevel.Debug);
+                Logger.Log($"ICE candidate received: {candidate.candidate}", Helpers.LogLevel.Debug, Client);
                 lock (_candidateLock)
                 {
                     PendingCandidates.Add(candidate);
@@ -112,32 +112,32 @@ namespace LibreMetaverse.Voice.WebRTC
             };
             pc.onicecandidateerror += (candidate, error) =>
             {
-                Logger.Log($"Error adding ICE candidate. {error} {candidate}", Helpers.LogLevel.Warning);
+                Logger.Log($"Error adding ICE candidate. {error} {candidate}", Helpers.LogLevel.Warning, Client);
             };
             #endregion ICE_ACTIONS
             #region DEBUGS
-            //pc.OnReceiveReport += (re, media, rr) => Logger.Log($"RTCP Receive for {media} from {re}\n{rr.GetDebugSummary()}", Helpers.LogLevel.Debug);
-            //pc.OnSendReport += (media, sr) => Logger.Log($"RTCP Send for {media}\n{sr.GetDebugSummary()}", Helpers.LogLevel.Debug);
-            //pc.GetRtpChannel().OnStunMessageSent += (msg, ep, isRelay) => Logger.Log($"STUN {msg.Header.MessageType} sent to {ep}.", Helpers.LogLevel.Debug);
-            //pc.GetRtpChannel().OnStunMessageReceived += (msg, ep, isRelay) => Logger.Log($"STUN {msg.Header.MessageType} received from {ep}.", Helpers.LogLevel.Debug);
-            pc.OnRtcpBye += (reason) => Logger.Log($"RTCP BYE receive, reason: {(string.IsNullOrWhiteSpace(reason) ? "<none>" : reason)}.", Helpers.LogLevel.Debug);
-            pc.ondatachannel += (channel) => Logger.Log($"ondatachannel {channel.label}", Helpers.LogLevel.Debug);
-            pc.onsignalingstatechange += () => Logger.Log("Signaling state changed", Helpers.LogLevel.Debug);
-            pc.oniceconnectionstatechange += (state) => Logger.Log($"ICE connection state changed to {state}.", Helpers.LogLevel.Debug);
-            pc.OnTimeout += (mediaType) => Logger.Log($"Timeout on {mediaType} media.", Helpers.LogLevel.Debug);
-            pc.onnegotiationneeded += () => Logger.Log("Negotiation needed", Helpers.LogLevel.Debug);
+            //pc.OnReceiveReport += (re, media, rr) => Logger.Log($"RTCP Receive for {media} from {re}\n{rr.GetDebugSummary()}", Helpers.LogLevel.Debug, Client);
+            //pc.OnSendReport += (media, sr) => Logger.Log($"RTCP Send for {media}\n{sr.GetDebugSummary()}", Helpers.LogLevel.Debug, Client);
+            //pc.GetRtpChannel().OnStunMessageSent += (msg, ep, isRelay) => Logger.Log($"STUN {msg.Header.MessageType} sent to {ep}.", Helpers.LogLevel.Debug, Client);
+            //pc.GetRtpChannel().OnStunMessageReceived += (msg, ep, isRelay) => Logger.Log($"STUN {msg.Header.MessageType} received from {ep}.", Helpers.LogLevel.Debug, Client);
+            pc.OnRtcpBye += (reason) => Logger.Log($"RTCP BYE receive, reason: {(string.IsNullOrWhiteSpace(reason) ? "<none>" : reason)}.", Helpers.LogLevel.Debug, Client);
+            pc.ondatachannel += (channel) => Logger.Log($"ondatachannel {channel.label}", Helpers.LogLevel.Debug, Client);
+            pc.onsignalingstatechange += () => Logger.Log("Signaling state changed", Helpers.LogLevel.Debug, Client);
+            pc.oniceconnectionstatechange += (state) => Logger.Log($"ICE connection state changed to {state}.", Helpers.LogLevel.Debug, Client);
+            pc.OnTimeout += (mediaType) => Logger.Log($"Timeout on {mediaType} media.", Helpers.LogLevel.Debug, Client);
+            pc.onnegotiationneeded += () => Logger.Log("Negotiation needed", Helpers.LogLevel.Debug, Client);
             #endregion DEBUGS
             pc.OnAudioFormatsNegotiated += (formats) =>
             {
-                Logger.Log($"Received list of {formats.Count} formats", Helpers.LogLevel.Debug);
+                Logger.Log($"Received list of {formats.Count} formats", Helpers.LogLevel.Debug, Client);
             };
             pc.onconnectionstatechange += (state) =>
             {
-                Logger.Log($"Peer connection state changed to {state}.", Helpers.LogLevel.Debug);
+                Logger.Log($"Peer connection state changed to {state}.", Helpers.LogLevel.Debug, Client);
                 switch (state)
                 {
                     case RTCPeerConnectionState.connecting:
-                        Logger.Log("RTC peer connecting", Helpers.LogLevel.Debug);
+                        Logger.Log("RTC peer connecting", Helpers.LogLevel.Debug, Client);
                         break;
                     case RTCPeerConnectionState.connected:
                         AudioDevice.EndPoint.StartAudioSink();
@@ -145,7 +145,7 @@ namespace LibreMetaverse.Voice.WebRTC
                         {
                             if (media == SDPMediaTypesEnum.audio && pc.AudioDestinationEndPoint != null)
                             {
-                                Logger.Log($"Forwarding {media} RTP packet. Timestamp: {rtpPkt.Header.Timestamp}.", Helpers.LogLevel.Debug);
+                                Logger.Log($"Forwarding {media} RTP packet. Timestamp: {rtpPkt.Header.Timestamp}.", Helpers.LogLevel.Debug, Client);
                                 AudioDevice.EndPoint.GotAudioRtp(rep, rtpPkt.Header.SyncSource, 
                                     rtpPkt.Header.SequenceNumber, rtpPkt.Header.Timestamp, 
                                     rtpPkt.Header.PayloadType, rtpPkt.Header.MarkerBit == 1, rtpPkt.Payload);
@@ -169,7 +169,7 @@ namespace LibreMetaverse.Voice.WebRTC
             };
             pc.OnStarted += () =>
             {
-                Logger.Log($"========== Voice session started! ============", Helpers.LogLevel.Debug);
+                Logger.Log($"========== Voice session started! ============", Helpers.LogLevel.Debug, Client);
                 TrickleCandidates();
             };
 
@@ -302,7 +302,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
             lock (_candidateLock)
             {
-                Logger.Log($"Sending {PendingCandidates.Count} ICE candidates for {SessionId}", Helpers.LogLevel.Debug);
+                Logger.Log($"Sending {PendingCandidates.Count} ICE candidates for {SessionId}", Helpers.LogLevel.Debug, Client);
                 foreach (var map in PendingCandidates.Select(candidate => new OSDMap
                          {
                              { "sdpMid", candidate.sdpMid },
@@ -335,7 +335,7 @@ namespace LibreMetaverse.Voice.WebRTC
             };
             payload["candidate"] = candidates;
 
-            Logger.Log($"Sending ICE Signaling Complete for {SessionId}", Helpers.LogLevel.Debug);
+            Logger.Log($"Sending ICE Signaling Complete for {SessionId}", Helpers.LogLevel.Debug, Client);
             await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload,
                 Cts.Token, null);
         }

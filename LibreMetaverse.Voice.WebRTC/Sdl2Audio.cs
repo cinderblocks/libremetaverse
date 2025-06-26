@@ -46,7 +46,7 @@ namespace LibreMetaverse
             EndPoint.SetAudioSinkFormat(OpusAudioEncoder.MEDIA_FORMAT_OPUS);
             EndPoint.OnAudioSinkError += (err) =>
             {
-                Logger.Log($"Audio sink error: {err}", Helpers.LogLevel.Warning);
+                Logger.Log($"SDL Audio sink error: {err}", Helpers.LogLevel.Warning);
             };
             EndPoint.StartAudioSink();
         }
@@ -65,11 +65,11 @@ namespace LibreMetaverse
             // Quit if no Audio devices found
             if (sdlDevices.Count < 1)
             {
-                Logger.Log("Could not find an audio device.", Helpers.LogLevel.Warning);
+                Logger.Log("SDL Audio - Could not find an audio device.", Helpers.LogLevel.Warning);
                 return -1;
             }
 
-            Logger.Log($"Found {sdlDevices.Count}, but using {sdlDevices[0]}", Helpers.LogLevel.Info);
+            Logger.Log($"SDL Audio - Found {sdlDevices.Count}, but using {sdlDevices[0]}", Helpers.LogLevel.Info);
             
             return 0;
         }
