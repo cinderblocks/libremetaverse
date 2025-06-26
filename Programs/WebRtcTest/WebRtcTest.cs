@@ -137,7 +137,7 @@ namespace WebRtcTest
 
 
                 Console.WriteLine($"Requesting a provisional account from {client.Network.CurrentSim.Name}...");
-                bool success = voice.ConnectPrimaryRegion();
+                bool success = voice.ConnectPrimaryRegion().Result;
                 if (!success)
                 {
                     Console.WriteLine($"Failed to connect voice to '{client.Network.CurrentSim.Name}'.");

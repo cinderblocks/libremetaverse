@@ -46,15 +46,12 @@ namespace LibreMetaverse.Voice.WebRTC
             Client.Network.RegisterEventCallback("RequiredVoiceVersion", RequiredVoiceVersionEventHandler);
         }
 
-        public bool ConnectPrimaryRegion()
+        public async Task<bool> ConnectPrimaryRegion()
         {
             if (!Client.Network.Connected) { return false; }
 
             CurrentSession = new VoiceSession(VoiceSession.ESessionType.LOCAL, Client);
-            Task task = CurrentSession.RequestProvision();
-            task.Wait();
-
-            return true;
+            return await CurrentSession.RequestProvision();
         }
 
         public void Disconnect()
