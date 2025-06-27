@@ -529,7 +529,7 @@ namespace OpenMetaverse
             InventoryItem item = null;
             await RequestFetchInventoryHttpAsync(itemId, ownerId, token, list =>
             {
-                item = list.First();
+                item = list.FirstOrDefault();
             });
             return item;
         }
