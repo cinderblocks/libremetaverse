@@ -115,7 +115,7 @@ namespace WebRtcTest
 
 
                 // Login
-                Console.WriteLine("Logging into the grid as " + firstName + " " + lastName + "...");
+                Console.WriteLine($"Logging into the grid as {firstName} {lastName}...");
                 LoginParams loginParams =
                     client.Network.DefaultLoginParams(firstName, lastName, password, "WebRtc Test", "1.0.0");
                 loginParams.URI = loginURI;
@@ -145,7 +145,7 @@ namespace WebRtcTest
                 else
                 {
                     Console.WriteLine($"Connected to voice in '{client.Network.CurrentSim.Name}'");
-                    //Console.WriteLine($"==== LOCAL ====\n{voice.sdpLocal}\n ==== REMOTE ====\n{voice.sdpRemote}");
+                    Console.WriteLine($"==== LOCAL ====\n{voice.sdpLocal}\n ==== REMOTE ====\n{voice.sdpRemote}");
                 }
                 
 
