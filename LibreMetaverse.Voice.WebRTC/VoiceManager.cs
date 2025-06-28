@@ -34,15 +34,17 @@ namespace LibreMetaverse.Voice.WebRTC
     public class VoiceManager
     {
         private readonly GridClient Client;
+        private Sdl2Audio AudioDevice;
         private VoiceSession CurrentSession;
 
         public string sdpLocal => CurrentSession.SdpLocal;
         public string sdpRemote => CurrentSession.SdpRemote;
-        public bool connected { get; private set; }
+        public bool connected => CurrentSession.Connected;
 
         public VoiceManager(GridClient client)
         {
             Client = client;
+            AudioDevice = new Sdl2Audio();
             Client.Network.RegisterEventCallback("RequiredVoiceVersion", RequiredVoiceVersionEventHandler);
         }
 
@@ -50,7 +52,7 @@ namespace LibreMetaverse.Voice.WebRTC
         {
             if (!Client.Network.Connected) { return false; }
 
-            CurrentSession = new VoiceSession(VoiceSession.ESessionType.LOCAL, Client);
+            CurrentSession = new VoiceSession(AudioDevice, VoiceSession.ESessionType.LOCAL, Client);
             return await CurrentSession.RequestProvision();
         }
 

@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenMetaverse;
@@ -50,7 +51,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
         private readonly GridClient Client;
         private readonly RTCPeerConnection PeerConnection;
-        private readonly Sdl2Audio AudioDevice = new Sdl2Audio();
+        private readonly Sdl2Audio AudioDevice;
         private RTCDataChannel RemoteDataChannel;
 
         public bool Connected => PeerConnection?.connectionState == RTCPeerConnectionState.connected;
@@ -59,16 +60,20 @@ namespace LibreMetaverse.Voice.WebRTC
         public string SdpLocal => PeerConnection?.localDescription.sdp.ToString();
         public string SdpRemote => PeerConnection?.remoteDescription.sdp.ToString();
         private readonly Queue<RTCIceCandidate> PendingCandidates = new Queue<RTCIceCandidate>();
-        readonly CancellationTokenSource Cts = new CancellationTokenSource();
+        private readonly CancellationTokenSource Cts = new CancellationTokenSource();
+        private CancellationTokenSource iceTrickleCts;
+        private readonly Task iceTrickleTask;
 
         public event Action OnPeerConnectionClosed;
 
-        public VoiceSession(ESessionType type, GridClient client)
+        public VoiceSession(Sdl2Audio audioDevice, ESessionType type, GridClient client)
         {
             Client = client;
+            AudioDevice = audioDevice;
             SessionType = type;
             SessionId = UUID.Zero;
             CreatePeerConnection(out PeerConnection, out RemoteDataChannel);
+            iceTrickleTask = IceTrickleStart();
         }
 
         public void CreatePeerConnection(out RTCPeerConnection pc, out RTCDataChannel dc)
@@ -76,31 +81,32 @@ namespace LibreMetaverse.Voice.WebRTC
             pc = new RTCPeerConnection(null, 0, new PortRange(60000, 60100));
             var audioTrack = new MediaStreamTrack(OpusAudioEncoder.MEDIA_FORMAT_OPUS, MediaStreamStatusEnum.SendRecv);
             pc.addTrack(audioTrack);
-            pc.setLocalDescription(pc.createOffer());
-            pc.localDescription.sdp.SessionName = "LibreMetaVoice";
 
             #region ICE_ACTIONS
+            pc.oniceconnectionstatechange += (state) =>
+            {
+                Logger.Log($"ICE connection state changed to {state}.", Helpers.LogLevel.Debug, Client);
+            };
             pc.onicegatheringstatechange += async (state) =>
             {
                 if (state == RTCIceGatheringState.complete)
                 {
                     Logger.Log("ICE gathering state completed", Helpers.LogLevel.Debug, Client);
-                    await SendVoiceSignalingCompleteRequest();
+                    await IceTrickleStop();
                 }
-                else
+                else if (state == RTCIceGatheringState.gathering)
                 {
-                    Logger.Log($"ICE gathering state change to {state}.", Helpers.LogLevel.Debug, Client);
+                    Logger.Log($"ICE gathering state has commenced.", Helpers.LogLevel.Debug, Client);
+                    await IceTrickleStart();
                 }
             };
-            pc.onicecandidate += async (candidate) =>
+            pc.onicecandidate += (candidate) =>
             {
                 Logger.Log($"ICE candidate received: {candidate.candidate}", Helpers.LogLevel.Debug, Client);
                 lock (PendingCandidates)
                 {
                     PendingCandidates.Enqueue(candidate);
                 }
-
-                await TrickleCandidates();
             };
             pc.onicecandidateerror += (candidate, error) =>
             {
@@ -113,16 +119,40 @@ namespace LibreMetaverse.Voice.WebRTC
             //pc.GetRtpChannel().OnStunMessageSent += (msg, ep, isRelay) => Logger.Log($"STUN {msg.Header.MessageType} sent to {ep}.", Helpers.LogLevel.Debug, Client);
             //pc.GetRtpChannel().OnStunMessageReceived += (msg, ep, isRelay) => Logger.Log($"STUN {msg.Header.MessageType} received from {ep}.", Helpers.LogLevel.Debug, Client);
             pc.OnRtcpBye += (reason) => Logger.Log($"RTCP BYE receive, reason: {(string.IsNullOrWhiteSpace(reason) ? "<none>" : reason)}.", Helpers.LogLevel.Debug, Client);
-            pc.onsignalingstatechange += () => Logger.Log("Signaling state changed", Helpers.LogLevel.Debug, Client);
-            pc.oniceconnectionstatechange += (state) => Logger.Log($"ICE connection state changed to {state}.", Helpers.LogLevel.Debug, Client);
             pc.OnTimeout += (mediaType) => Logger.Log($"Timeout on {mediaType} media.", Helpers.LogLevel.Debug, Client);
             pc.onnegotiationneeded += () => Logger.Log("Negotiation needed", Helpers.LogLevel.Debug, Client);
             #endregion DEBUGS
             pc.OnAudioFormatsNegotiated += (formats) =>
             {
-                Logger.Log($"Received list of {formats.Count} formats", Helpers.LogLevel.Debug, Client);
+                Logger.Log($"Negotiated {formats.Count} formats, selecting '{formats.First().FormatName}/{formats.First().ClockRate}/{formats.First().ChannelCount}'",
+                    Helpers.LogLevel.Debug, Client);
             };
-            pc.onconnectionstatechange += (state) =>
+            pc.onsignalingstatechange += () =>
+            {
+                Logger.Log($"Signaling state changed to {PeerConnection.signalingState}", Helpers.LogLevel.Debug, Client);
+                if (PeerConnection.signalingState == RTCSignalingState.have_local_offer)
+                {
+                    //Logger.Log("Offer SDP:", Helpers.LogLevel.Debug);
+                    //Logger.Log(PeerConnection.localDescription.sdp, Helpers.LogLevel.Debug);
+                } else if (PeerConnection.signalingState == RTCSignalingState.have_remote_offer ||
+                           PeerConnection.signalingState == RTCSignalingState.stable)
+                {
+                    //Logger.Log("Answer SDP:", Helpers.LogLevel.Debug);
+                    //Logger.Log(PeerConnection.remoteDescription.sdp, Helpers.LogLevel.Debug);
+                }
+            };
+            pc.OnRtpPacketReceived += (rep, media, rtpPkt) =>
+            {
+                Logger.Log($"RTP {media} Packet {rtpPkt.Header}", Helpers.LogLevel.Debug, Client);
+                if (media == SDPMediaTypesEnum.audio && PeerConnection.AudioDestinationEndPoint != null)
+                {
+                    Logger.Log($"Forwarding {media} RTP packet. Timestamp: {rtpPkt.Header.Timestamp}.", Helpers.LogLevel.Debug, Client);
+                    AudioDevice.EndPoint.GotAudioRtp(rep, rtpPkt.Header.SyncSource,
+                        rtpPkt.Header.SequenceNumber, rtpPkt.Header.Timestamp,
+                        rtpPkt.Header.PayloadType, rtpPkt.Header.MarkerBit == 1, rtpPkt.Payload);
+                }
+            };
+            pc.onconnectionstatechange += async (state) =>
             {
                 Logger.Log($"Peer connection state changed to {state}.", Helpers.LogLevel.Debug, Client);
                 switch (state)
@@ -130,7 +160,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     case RTCPeerConnectionState.connecting:
                         break;
                     case RTCPeerConnectionState.connected:
-                        AudioDevice.EndPoint.StartAudioSink();
+                        await AudioDevice.EndPoint.StartAudioSink();
                         PeerConnection.OnRtpPacketReceived += (rep, media, rtpPkt) =>
                         {
                             Logger.Log($"RTP {media} Packet {rtpPkt.Header}", Helpers.LogLevel.Debug, Client);
@@ -149,8 +179,9 @@ namespace LibreMetaverse.Voice.WebRTC
                         };
                         break;
                     case RTCPeerConnectionState.closed:
+                        goto case RTCPeerConnectionState.disconnected;
                     case RTCPeerConnectionState.disconnected:
-                        AudioDevice.EndPoint.CloseAudioSink();
+                        await AudioDevice.EndPoint.CloseAudioSink();
                         goto case RTCPeerConnectionState.failed;
                     case RTCPeerConnectionState.failed:
                         OnPeerConnectionClosed?.Invoke();
@@ -159,14 +190,13 @@ namespace LibreMetaverse.Voice.WebRTC
             };
             pc.OnStarted += async () =>
             {
-                await SendVoiceSignalingRequest();
-                await SendVoiceSignalingCompleteRequest();
+                Logger.Log("Session Started", Helpers.LogLevel.Debug, Client);
             };
 
             #region DATA_CHANNEL
             pc.ondatachannel += (rdc) =>
             {
-                Logger.Log($"ondatachannel {rdc.label}", Helpers.LogLevel.Debug, Client);
+                Logger.Log($"Remote data channel created: {rdc.label}", Helpers.LogLevel.Debug, Client);
             };
             dc = pc.createDataChannel("SLData").Result;
             dc.onopen += () => { Logger.Log("SLData opened", Helpers.LogLevel.Debug, Client); };
@@ -179,6 +209,10 @@ namespace LibreMetaverse.Voice.WebRTC
                     Helpers.LogLevel.Debug, Client);
             };
             #endregion DATA_CHANNEL
+
+            var offer = pc.createOffer();
+            pc.setLocalDescription(offer);
+            pc.localDescription.sdp.SessionName = "LibreMetaVoice";
         }
 
         public async Task<bool> RequestProvision()
@@ -363,11 +397,48 @@ namespace LibreMetaverse.Voice.WebRTC
                 });
         }
 
-        private async Task TrickleCandidates()
+        private async Task IceTrickleStart()
         {
-            if (Connected)
+            if (iceTrickleTask != null
+                && (iceTrickleTask.Status == TaskStatus.Running
+                || iceTrickleTask.Status == TaskStatus.WaitingToRun
+                || iceTrickleTask.Status == TaskStatus.WaitingForActivation))
             {
-                await SendVoiceSignalingRequest();
+                return;
+
+            }
+
+            iceTrickleCts = CancellationTokenSource.CreateLinkedTokenSource(Cts.Token);
+            await Repeat.Interval(TimeSpan.FromMilliseconds(25), poll, iceTrickleCts.Token);
+
+            return;
+            async void poll()
+            {
+                if (Client.Network.Connected && !SessionId.Equals(UUID.Zero) && PendingCandidates.Count > 0)
+                {
+                    await SendVoiceSignalingRequest();
+                }
+            }
+        }
+
+        private async Task IceTrickleStop()
+        {
+            while (true)
+            {
+                if (PendingCandidates.Count > 0)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1));
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if (PeerConnection.iceGatheringState == RTCIceGatheringState.complete)
+            {
+                iceTrickleCts?.Cancel();
+                await SendVoiceSignalingCompleteRequest();
             }
         }
     }
