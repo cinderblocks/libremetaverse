@@ -114,8 +114,48 @@ namespace LibreMetaverse.Voice.WebRTC
             };
             #endregion ICE_ACTIONS
             #region DEBUGS
-            //pc.OnReceiveReport += (re, media, rr) => Logger.Log($"RTCP Receive for {media} from {re}\n{rr.GetDebugSummary()}", Helpers.LogLevel.Debug, Client);
-            //pc.OnSendReport += (media, sr) => Logger.Log($"RTCP Send for {media}\n{sr.GetDebugSummary()}", Helpers.LogLevel.Debug, Client);
+            pc.OnReceiveReport += (re, media, rr) =>
+            {
+                if (rr.Bye != null)
+                {
+                    Logger.Log($"RTCP recv BYE {media}", Helpers.LogLevel.Debug, Client);
+                } else if (rr.ReceiverReport != null)
+                {
+                    var report = rr.ReceiverReport.ReceptionReports?.FirstOrDefault();
+                    if (report != null)
+                    {
+                        Logger.Log($"RTCP {media} Receiver Report SSRC {report.SSRC}: pkts lost {report.PacketsLost}, delay since SR {report.DelaySinceLastSenderReport}.", 
+                            Helpers.LogLevel.Debug, Client);
+                    }
+                    else
+                    {
+                        Logger.Log($"RTCP {media} Receiver Report SSRC {rr.ReceiverReport.SSRC} empty.",
+                            Helpers.LogLevel.Debug, Client);
+                    }
+                }
+            };
+            pc.OnSendReport += (media, sr) =>
+            {
+                if (sr.Bye != null)
+                {
+                    Logger.Log($"RTCP sent BYE {media}", Helpers.LogLevel.Debug, Client);
+                }
+                else if (sr.SenderReport != null)
+                {
+                    var report = sr.SenderReport;
+                    Logger.Log($"RTCP sent SR {media}, SSRC {report.SSRC} pkts {report.PacketCount}, bytes {report.OctetCount}", 
+                        Helpers.LogLevel.Debug, Client);
+                }
+                else
+                {
+                    var rr = sr.ReceiverReport.ReceptionReports?.FirstOrDefault();
+                    if (rr != null)
+                    {
+                        Logger.Log($"RTCP sent RR {media}, SSRC {rr.SSRC}, seqnum {rr.ExtendedHighestSequenceNumber}, pkts lost {rr.PacketsLost}", 
+                            Helpers.LogLevel.Debug, Client);
+                    }
+                }
+            };
             //pc.GetRtpChannel().OnStunMessageSent += (msg, ep, isRelay) => Logger.Log($"STUN {msg.Header.MessageType} sent to {ep}.", Helpers.LogLevel.Debug, Client);
             //pc.GetRtpChannel().OnStunMessageReceived += (msg, ep, isRelay) => Logger.Log($"STUN {msg.Header.MessageType} received from {ep}.", Helpers.LogLevel.Debug, Client);
             pc.OnRtcpBye += (reason) => Logger.Log($"RTCP BYE receive, reason: {(string.IsNullOrWhiteSpace(reason) ? "<none>" : reason)}.", Helpers.LogLevel.Debug, Client);
@@ -132,13 +172,11 @@ namespace LibreMetaverse.Voice.WebRTC
                 Logger.Log($"Signaling state changed to {PeerConnection.signalingState}", Helpers.LogLevel.Debug, Client);
                 if (PeerConnection.signalingState == RTCSignalingState.have_local_offer)
                 {
-                    //Logger.Log("Offer SDP:", Helpers.LogLevel.Debug);
-                    //Logger.Log(PeerConnection.localDescription.sdp, Helpers.LogLevel.Debug);
+                    //Logger.Log($"Offer SDP:\n{PeerConnection.localDescription.sdp}:", Helpers.LogLevel.Debug);
                 } else if (PeerConnection.signalingState == RTCSignalingState.have_remote_offer ||
                            PeerConnection.signalingState == RTCSignalingState.stable)
                 {
-                    //Logger.Log("Answer SDP:", Helpers.LogLevel.Debug);
-                    //Logger.Log(PeerConnection.remoteDescription.sdp, Helpers.LogLevel.Debug);
+                    //Logger.Log($"Answer SDP:\n{PeerConnection.remoteDescription.sdp}", Helpers.LogLevel.Debug);
                 }
             };
             pc.OnRtpPacketReceived += (rep, media, rtpPkt) =>
@@ -190,7 +228,7 @@ namespace LibreMetaverse.Voice.WebRTC
             };
             pc.OnStarted += async () =>
             {
-                Logger.Log("Session Started", Helpers.LogLevel.Debug, Client);
+                Logger.Log("WebRTC session started.", Helpers.LogLevel.Debug, Client);
             };
 
             #region DATA_CHANNEL
