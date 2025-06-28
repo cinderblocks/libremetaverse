@@ -34,7 +34,7 @@ namespace LibreMetaverse.Voice.WebRTC
     public class VoiceManager
     {
         private readonly GridClient Client;
-        private Sdl2Audio AudioDevice;
+        private readonly Sdl2Audio AudioDevice;
         private VoiceSession CurrentSession;
 
         public string sdpLocal => CurrentSession.SdpLocal;
