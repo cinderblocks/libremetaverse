@@ -78,7 +78,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
         public void CreatePeerConnection(out RTCPeerConnection pc, out RTCDataChannel dc)
         {
-            pc = new RTCPeerConnection(null, 0, new PortRange(60000, 60100));
+            pc = new RTCPeerConnection(new RTCConfiguration {X_ICEIncludeAllInterfaceAddresses = true }, 0, new PortRange(60000, 60100));
             var audioTrack = new MediaStreamTrack(OpusAudioEncoder.MEDIA_FORMAT_OPUS, MediaStreamStatusEnum.SendRecv);
             pc.addTrack(audioTrack);
 
