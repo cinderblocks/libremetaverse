@@ -30,7 +30,7 @@ using System.Threading;
 
 namespace LibreMetaverse
 {
-    internal static class Repeat
+    public static class Repeat
     {
         /// <summary>
         /// Execute a given <see cref="Action"/> at a given interval in a loop
