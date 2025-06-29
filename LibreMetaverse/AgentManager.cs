@@ -1596,6 +1596,13 @@ namespace OpenMetaverse
             {
                 throw new Exception("Split size must be at least 1 byte");
             }
+            if (message.Length == 0)
+            {
+                return new List<string>()
+                {
+                    string.Empty
+                };
+            }
 
             var messageParts = new List<string>();
             var messageBytes = System.Text.Encoding.UTF8.GetBytes(message);
