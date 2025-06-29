@@ -50,21 +50,25 @@ namespace LibreMetaverse.Voice.WebRTC
         }
 
         private readonly GridClient Client;
-        private readonly RTCPeerConnection PeerConnection;
         private readonly Sdl2Audio AudioDevice;
-        private RTCDataChannel RemoteDataChannel;
+        private RTCPeerConnection PeerConnection;
 
-        public bool Connected => PeerConnection?.connectionState == RTCPeerConnectionState.connected;
-        private ESessionType SessionType { get; }
+        public event Action OnPeerConnectionClosed;
+        public event Action OnPeerConnectionReady;
+        public event Action OnDataChannelReady;
+
         public UUID SessionId { get; private set; }
         public string SdpLocal => PeerConnection?.localDescription.sdp.ToString();
         public string SdpRemote => PeerConnection?.remoteDescription.sdp.ToString();
+
+        public bool Connected => PeerConnection?.connectionState == RTCPeerConnectionState.connected;
+        public RTCDataChannel DataChannel => PeerConnection.DataChannels.FirstOrDefault();
+        private ESessionType SessionType { get; }
         private readonly Queue<RTCIceCandidate> PendingCandidates = new Queue<RTCIceCandidate>();
         private readonly CancellationTokenSource Cts = new CancellationTokenSource();
-        private CancellationTokenSource iceTrickleCts;
-        private readonly Task iceTrickleTask;
 
-        public event Action OnPeerConnectionClosed;
+        private CancellationTokenSource iceTrickleCts;
+        private Task iceTrickleTask;
 
         public VoiceSession(Sdl2Audio audioDevice, ESessionType type, GridClient client)
         {
@@ -72,15 +76,16 @@ namespace LibreMetaverse.Voice.WebRTC
             AudioDevice = audioDevice;
             SessionType = type;
             SessionId = UUID.Zero;
-            CreatePeerConnection(out PeerConnection, out RemoteDataChannel);
+        }
+        public void Start()
+        {
+            PeerConnection = CreatePeerConnection().Result;
             iceTrickleTask = IceTrickleStart();
         }
 
-        public void CreatePeerConnection(out RTCPeerConnection pc, out RTCDataChannel dc)
+        public async Task<RTCPeerConnection> CreatePeerConnection()
         {
-            pc = new RTCPeerConnection(new RTCConfiguration {X_ICEIncludeAllInterfaceAddresses = true }, 0, new PortRange(60000, 60100));
-            var audioTrack = new MediaStreamTrack(OpusAudioEncoder.MEDIA_FORMAT_OPUS, MediaStreamStatusEnum.SendRecv);
-            pc.addTrack(audioTrack);
+            var pc = new RTCPeerConnection(new RTCConfiguration {X_ICEIncludeAllInterfaceAddresses = true }, 0, new PortRange(60000, 60100));
 
             #region ICE_ACTIONS
             pc.oniceconnectionstatechange += (state) =>
@@ -162,6 +167,7 @@ namespace LibreMetaverse.Voice.WebRTC
             pc.OnTimeout += (mediaType) => Logger.Log($"Timeout on {mediaType} media.", Helpers.LogLevel.Debug, Client);
             pc.onnegotiationneeded += () => Logger.Log("Negotiation needed", Helpers.LogLevel.Debug, Client);
             #endregion DEBUGS
+
             pc.OnAudioFormatsNegotiated += (formats) =>
             {
                 Logger.Log($"Negotiated {formats.Count} formats, selecting '{formats.First().FormatName}/{formats.First().ClockRate}/{formats.First().ChannelCount}'",
@@ -169,25 +175,14 @@ namespace LibreMetaverse.Voice.WebRTC
             };
             pc.onsignalingstatechange += () =>
             {
-                Logger.Log($"Signaling state changed to {PeerConnection.signalingState}", Helpers.LogLevel.Debug, Client);
-                if (PeerConnection.signalingState == RTCSignalingState.have_local_offer)
+                Logger.Log($"Signaling state changed to {pc.signalingState}", Helpers.LogLevel.Debug, Client);
+                if (pc.signalingState == RTCSignalingState.have_local_offer)
                 {
                     //Logger.Log($"Offer SDP:\n{PeerConnection.localDescription.sdp}:", Helpers.LogLevel.Debug);
-                } else if (PeerConnection.signalingState == RTCSignalingState.have_remote_offer ||
-                           PeerConnection.signalingState == RTCSignalingState.stable)
+                } else if (pc.signalingState == RTCSignalingState.have_remote_offer ||
+                           pc.signalingState == RTCSignalingState.stable)
                 {
                     //Logger.Log($"Answer SDP:\n{PeerConnection.remoteDescription.sdp}", Helpers.LogLevel.Debug);
-                }
-            };
-            pc.OnRtpPacketReceived += (rep, media, rtpPkt) =>
-            {
-                Logger.Log($"RTP {media} Packet {rtpPkt.Header}", Helpers.LogLevel.Debug, Client);
-                if (media == SDPMediaTypesEnum.audio && PeerConnection.AudioDestinationEndPoint != null)
-                {
-                    Logger.Log($"Forwarding {media} RTP packet. Timestamp: {rtpPkt.Header.Timestamp}.", Helpers.LogLevel.Debug, Client);
-                    AudioDevice.EndPoint.GotAudioRtp(rep, rtpPkt.Header.SyncSource,
-                        rtpPkt.Header.SequenceNumber, rtpPkt.Header.Timestamp,
-                        rtpPkt.Header.PayloadType, rtpPkt.Header.MarkerBit == 1, rtpPkt.Payload);
                 }
             };
             pc.onconnectionstatechange += async (state) =>
@@ -199,10 +194,10 @@ namespace LibreMetaverse.Voice.WebRTC
                         break;
                     case RTCPeerConnectionState.connected:
                         await AudioDevice.EndPoint.StartAudioSink();
-                        PeerConnection.OnRtpPacketReceived += (rep, media, rtpPkt) =>
+                        pc.OnRtpPacketReceived += (rep, media, rtpPkt) =>
                         {
                             Logger.Log($"RTP {media} Packet {rtpPkt.Header}", Helpers.LogLevel.Debug, Client);
-                            if (media == SDPMediaTypesEnum.audio && PeerConnection.AudioDestinationEndPoint != null)
+                            if (media == SDPMediaTypesEnum.audio && pc.AudioDestinationEndPoint != null)
                             {
                                 Logger.Log($"Forwarding {media} RTP packet. Timestamp: {rtpPkt.Header.Timestamp}.", Helpers.LogLevel.Debug, Client);
                                 AudioDevice.EndPoint.GotAudioRtp(rep, rtpPkt.Header.SyncSource, 
@@ -210,11 +205,13 @@ namespace LibreMetaverse.Voice.WebRTC
                                     rtpPkt.Header.PayloadType, rtpPkt.Header.MarkerBit == 1, rtpPkt.Payload);
                             }
                         };
-                        PeerConnection.OnRtpClosed += async (reason) =>
+                        pc.OnRtpClosed += async (reason) =>
                         {
-                            PeerConnection.Close(reason);
+                            Logger.Log($"RTP is closed.", Helpers.LogLevel.Debug, Client);
+                            pc.Close(reason);
                             await SendCloseSessionRequest();
                         };
+                        OnPeerConnectionReady?.Invoke();
                         break;
                     case RTCPeerConnectionState.closed:
                         goto case RTCPeerConnectionState.disconnected;
@@ -231,26 +228,80 @@ namespace LibreMetaverse.Voice.WebRTC
                 Logger.Log("WebRTC session started.", Helpers.LogLevel.Debug, Client);
             };
 
-            #region DATA_CHANNEL
+            #region DATA CHANNEL
             pc.ondatachannel += (rdc) =>
             {
-                Logger.Log($"Remote data channel created: {rdc.label}", Helpers.LogLevel.Debug, Client);
+                Logger.Log($"Remote data channel created: '{rdc.label}'", Helpers.LogLevel.Debug, Client);
+                rdc.onerror += (error) => Logger.Log($"Data channel {rdc.label} encountered error: {error}", Helpers.LogLevel.Debug, Client);
+                rdc.onopen += () =>
+                {
+                    Logger.Log($"Data channel {rdc.label} opened.", Helpers.LogLevel.Debug, Client);
+                    OnDataChannelReady?.Invoke();
+                };
+                rdc.onclose += () =>
+                {
+                    Logger.Log($"Data channel {rdc.label} closed.", Helpers.LogLevel.Debug, Client);
+                };
+                rdc.onmessage += (channel, type, data) =>
+                {
+                    switch (type)
+                    {
+                        case DataChannelPayloadProtocols.WebRTC_Binary_Empty:
+                        case DataChannelPayloadProtocols.WebRTC_String_Empty:
+                            Logger.Log($"Data channel '{channel.label}' empty message type {type}.",
+                                Helpers.LogLevel.Debug, Client);
+                            break;
+                        case DataChannelPayloadProtocols.WebRTC_Binary:
+                            Logger.Log($"Data channel '{channel.label}' received {data.Length} bytes.", Helpers.LogLevel.Debug, Client);
+                            break;
+                        case DataChannelPayloadProtocols.WebRTC_String:
+                            var msg = System.Text.Encoding.UTF8.GetString(data);
+                            Logger.Log($"Data channel '{channel.label}' message {type} received: {msg}.", Helpers.LogLevel.Debug, Client);
+                            break;
+                    }
+                };
             };
-            dc = pc.createDataChannel("SLData").Result;
-            dc.onopen += () => { Logger.Log("SLData opened", Helpers.LogLevel.Debug, Client); };
-            dc.onclose += () => { Logger.Log("SLData closed", Helpers.LogLevel.Debug, Client); };
-            dc.onerror += (error) => { Logger.Log($"SLData error: {error}", Helpers.LogLevel.Debug, Client); }; 
-            dc.onmessage += (channel, protocol, data) =>
+            var dc = await pc.createDataChannel("SLData", new RTCDataChannelInit{ordered = true, negotiated = true});
+            dc.onerror += (error) => Logger.Log($"Data channel {dc.label} encountered error: {error}", Helpers.LogLevel.Debug, Client);
+            dc.onopen += () =>
             {
-
-                Logger.Log($"{channel.label} proto {protocol} - {System.Text.Encoding.UTF8.GetString(data)}",
-                    Helpers.LogLevel.Debug, Client);
+                Logger.Log($" Data channel {dc.label} opened.", Helpers.LogLevel.Debug, Client);
+                OnDataChannelReady?.Invoke();
             };
-            #endregion DATA_CHANNEL
+            dc.onclose += () =>
+            {
+                Logger.Log($"Data channel {dc.label} closed.", Helpers.LogLevel.Debug, Client);
+            };
+            dc.onmessage += (channel, type, data) =>
+            {
+                Logger.Log($"Data channel {dc.label} message;", Helpers.LogLevel.Debug, Client);
+                switch (type)
+                {
+                    case DataChannelPayloadProtocols.WebRTC_Binary_Empty:
+                    case DataChannelPayloadProtocols.WebRTC_String_Empty:
+                        Logger.Log($"Data channel '{channel.label}' empty message type {type}.",
+                            Helpers.LogLevel.Debug, Client);
+                        break;
+                    case DataChannelPayloadProtocols.WebRTC_Binary:
+                        Logger.Log($"Data channel '{channel.label}' received {data.Length} bytes.", Helpers.LogLevel.Debug, Client);
+                        break;
+                    case DataChannelPayloadProtocols.WebRTC_String:
+                        var msg = System.Text.Encoding.UTF8.GetString(data);
+                        Logger.Log($"Data channel '{channel.label}' message {type} received: {msg}.", Helpers.LogLevel.Debug, Client);
+                        break;
+                }
+            };
+
+
+            #endregion DATA CHANNEL
+
+            var audioTrack = new MediaStreamTrack(OpusAudioEncoder.MEDIA_FORMAT_OPUS);
+            pc.addTrack(audioTrack);
 
             var offer = pc.createOffer();
-            pc.setLocalDescription(offer);
+            await pc.setLocalDescription(offer);
             pc.localDescription.sdp.SessionName = "LibreMetaVoice";
+            return pc;
         }
 
         public async Task<bool> RequestProvision()
@@ -283,6 +334,8 @@ namespace LibreMetaverse.Voice.WebRTC
             PeerConnection.close();
         }
 
+        #region Private Capability Requests
+
         private async Task RequestLocalVoiceProvision(Uri cap)
         {
             var payload = new LocalVoiceProvisionRequest(SdpLocal);
@@ -310,11 +363,15 @@ namespace LibreMetaverse.Voice.WebRTC
                         var sdpString = jsep["sdp"].AsString();
                         var sessionId = osdMap["viewer_session"].AsUUID();
 
-                        var desc = SDP.ParseSDPDescription(sdpString);
-                        PeerConnection.SetRemoteDescription(SdpType.answer, desc);
                         SessionId = sessionId;
+                        var set = PeerConnection.SetRemoteDescription(SdpType.answer, SDP.ParseSDPDescription(sdpString));
+                        if (set != SetDescriptionResultEnum.OK)
+                        {
+                            PeerConnection.Close("Failed to set remote description.");
+                            throw new VoiceException($"Failed to set remote description: {result}");
+                        } 
                         Logger.Log($"Local voice provisioned under session {sessionId}", Helpers.LogLevel.Debug,
-                            Client);
+                                Client);
                     }
                 });
         }
@@ -479,5 +536,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 await SendVoiceSignalingCompleteRequest();
             }
         }
+
+        #endregion Private Capability Requests
     }
 }

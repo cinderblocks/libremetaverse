@@ -27,7 +27,6 @@
 using OpenMetaverse;
 using System;
 using LibreMetaverse.Voice.WebRTC;
-using System.Collections.Generic;
 using System.Threading;
 
 namespace WebRtcTest
@@ -145,7 +144,7 @@ namespace WebRtcTest
                 else
                 {
                     Console.WriteLine($"Connected to voice in '{client.Network.CurrentSim.Name}'");
-                    Console.WriteLine($"==== LOCAL ====\n{voice.sdpLocal}\n ==== REMOTE ====\n{voice.sdpRemote}");
+                    //Console.WriteLine($"==== OFFER ====\n{voice.sdpLocal}\n ==== ANSWER ====\n{voice.sdpRemote}");
                 }
                 
 

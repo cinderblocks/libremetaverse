@@ -25,6 +25,7 @@
  */
 
 using System.Threading.Tasks;
+using LitJson;
 using OpenMetaverse;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
@@ -53,13 +54,82 @@ namespace LibreMetaverse.Voice.WebRTC
             if (!Client.Network.Connected) { return false; }
 
             CurrentSession = new VoiceSession(AudioDevice, VoiceSession.ESessionType.LOCAL, Client);
-            return await CurrentSession.RequestProvision();
+            CurrentSession.OnDataChannelReady += CurrentSessionOnOnDataChannelReady;
+
+            CurrentSession.Start();
+            var provisioned = await CurrentSession.RequestProvision();
+            return provisioned;
         }
 
         public void Disconnect()
         {
             CurrentSession.CloseSession();
         }
+
+        public void SendGlobalPosition()
+        {
+            var pos = Client.Self.GlobalPosition;
+            var h = Client.Self.RelativeRotation * 100;
+            JsonWriter jw = new JsonWriter();
+            jw.WriteObjectStart();
+            jw.WritePropertyName("sp");
+            jw.WriteObjectStart();
+            jw.WritePropertyName("x");
+            jw.Write(pos.X);
+            jw.WritePropertyName("y");
+            jw.Write(pos.Y);
+            jw.WritePropertyName("z");
+            jw.Write(pos.Z);
+            jw.WriteObjectEnd();
+            jw.WritePropertyName("sh");
+            jw.WriteObjectStart();
+            jw.WritePropertyName("x");
+            jw.Write(h.X);
+            jw.WritePropertyName("y");
+            jw.Write(h.Y);
+            jw.WritePropertyName("z");
+            jw.Write(h.Z);
+            jw.WriteObjectEnd();
+            jw.WritePropertyName("lp");
+            jw.WriteObjectStart();
+            jw.WritePropertyName("x");
+            jw.Write(pos.X);
+            jw.WritePropertyName("y");
+            jw.Write(pos.Y);
+            jw.WritePropertyName("z");
+            jw.Write(pos.Z);
+            jw.WriteObjectEnd();
+            jw.WritePropertyName("lh");
+            jw.WriteObjectStart();
+            jw.WritePropertyName("x");
+            jw.Write(h.X);
+            jw.WritePropertyName("y");
+            jw.Write(h.Y);
+            jw.WritePropertyName("z");
+            jw.Write(h.Z);
+            jw.WriteObjectEnd();
+            jw.WriteObjectEnd();
+            Logger.DebugLog($"Sending position with {jw}");
+            CurrentSession.DataChannel.send(jw.ToString());
+            
+        }
+
+        private void CurrentSessionOnOnDataChannelReady()
+        {
+            CurrentSession.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady;
+            JsonWriter jw = new JsonWriter();
+            jw.WriteObjectStart();
+            jw.WritePropertyName("j");
+            jw.WriteObjectStart();
+            jw.WritePropertyName("p");
+            jw.Write(true);
+            jw.WriteObjectEnd();
+            jw.WriteObjectEnd();
+            Logger.Log($"Joining voice on {CurrentSession.SessionId} with {jw}", Helpers.LogLevel.Debug, Client);
+            CurrentSession.DataChannel.send(jw.ToString());
+            SendGlobalPosition();
+        }
+
         private void RequiredVoiceVersionEventHandler(string capsKey, IMessage message, Simulator simulator)
         {
             var msg = (RequiredVoiceVersionMessage)message;
