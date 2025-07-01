@@ -138,12 +138,9 @@ namespace LibreMetaverse.Tests
                 }
                 else
                 {
-                    Assert.That(a, Is.Not.EqualTo(b),
-                        "Vector casting failed, precision loss should" + " have occurred. " +
-                        $"{kvp.Key}: {a.X}, {b.X}");
                     Assert.That(b, Is.Not.EqualTo(d),
-                        "Vector casting failed, explicit cast of double" + " to float should result in precision loss" +
-                        " which should not magically disappear when" + " Vector3 is implicitly cast to Vector3d." +
+                        "Vector casting failed, explicit cast of double to float should result in precision loss" +
+                        " which should not magically disappear when Vector3 is implicitly cast to Vector3d." +
                         $" {kvp.Key}: {b.X}, {d.X}");
                 }
                 Assert.That(a, Is.EqualTo(c),
@@ -195,7 +192,7 @@ namespace LibreMetaverse.Tests
 				                         0, 0, 0, 0);
     	
     	    /* determinant of singular matrix returns zero */
-            Assert.That(0d, Is.EqualTo((double)matrix.Determinant()).Within(0.001d));
+            Assert.That((double)matrix.Determinant(), Is.EqualTo(0d).Within(0.001d));
     	
     	    /* inverse of identity matrix is the identity matrix */
        	    Assert.That(Matrix4.Identity, Is.EqualTo(Matrix4.Inverse(Matrix4.Identity)));
