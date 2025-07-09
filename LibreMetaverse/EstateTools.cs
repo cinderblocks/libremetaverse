@@ -75,6 +75,13 @@ namespace OpenMetaverse
         }
 
         #region Enums
+        public enum RegionMaturity
+        {
+            PG = 13,
+            Mature = 21,
+            Adult = 42
+        }
+
         /// <summary>Used in the ReportType field of a LandStatRequest</summary>
         public enum LandStatReportType
         {
@@ -83,7 +90,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>Used by EstateOwnerMessage packets</summary>
-        public enum EstateAccessDelta : uint 
+        public enum EstateAccessDelta : uint
         {
             BanUser = 64,
             BanUserAllEstates = 66,
@@ -178,7 +185,7 @@ namespace OpenMetaverse
         {
             add { lock (m_TopCollidersReply_Lock) { m_TopCollidersReply += value; } }
             remove { lock (m_TopCollidersReply_Lock) { m_TopCollidersReply -= value; } }
-        }        
+        }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<TopScriptsReplyEventArgs> m_TopScriptsReply;
@@ -291,7 +298,7 @@ namespace OpenMetaverse
             add { lock (m_EstateBansReply_Lock) { m_EstateBansReply += value; } }
             remove { lock (m_EstateBansReply_Lock) { m_EstateBansReply -= value; } }
         }
-                
+
         /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EstateCovenantReplyEventArgs> m_EstateCovenantReply;
 
@@ -560,8 +567,17 @@ namespace OpenMetaverse
         }
 
         /// <summary>Estate panel "Region" tab settings</summary>
+        /// @deprecated Use the version with RegionMaturity support
         public void SetRegionInfo(bool blockTerraform, bool blockFly, bool allowDamage, bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, bool mature)
         {
+            RegionMaturity rating = mature ? RegionMaturity.Mature : RegionMaturity.PG;
+            SetRegionInfo(blockTerraform, blockFly, allowDamage, allowLandResell, restrictPushing, allowParcelJoinDivide, agentLimit, objectBonus, rating);
+        }
+
+        /// <summary>Estate panel "Region" tab settings</summary>
+        public void SetRegionInfo(bool blockTerraform, bool blockFly, bool allowDamage, bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, RegionMaturity maturity)
+        {
+
             List<string> listParams = new List<string>();
             listParams.Add(blockTerraform ? "Y" : "N");
             listParams.Add(blockFly ? "Y" : "N");
@@ -569,7 +585,7 @@ namespace OpenMetaverse
             listParams.Add(allowLandResell ? "Y" : "N");
             listParams.Add(agentLimit.ToString(CultureInfo.InvariantCulture));
             listParams.Add(objectBonus.ToString(CultureInfo.InvariantCulture));
-            listParams.Add(mature ? "21" : "13"); //FIXME - enumerate these settings
+            listParams.Add(maturity.ToString());
             listParams.Add(restrictPushing ? "Y" : "N");
             listParams.Add(allowParcelJoinDivide ? "Y" : "N");
             EstateOwnerMessage("setregioninfo", listParams);
@@ -918,11 +934,11 @@ namespace OpenMetaverse
 
                 if (type == LandStatReportType.TopScripts)
                 {
-                    OnTopScriptsReply(new TopScriptsReplyEventArgs((int)p.RequestData.TotalObjectCount, Tasks)); 
+                    OnTopScriptsReply(new TopScriptsReplyEventArgs((int)p.RequestData.TotalObjectCount, Tasks));
                 }
                 else if (type == LandStatReportType.TopColliders)
                 {
-                    OnTopCollidersReply(new TopCollidersReplyEventArgs((int) p.RequestData.TotalObjectCount, Tasks)); 
+                    OnTopCollidersReply(new TopCollidersReplyEventArgs((int)p.RequestData.TotalObjectCount, Tasks));
                 }
 
                 /*
@@ -940,7 +956,6 @@ namespace OpenMetaverse
 
             }
         }
-
         private void LandStatCapsReplyHandler(string capsKey, IMessage message, Simulator simulator)
         {
             LandStatReplyMessage m = (LandStatReplyMessage)message;
@@ -963,11 +978,11 @@ namespace OpenMetaverse
 
             if (type == LandStatReportType.TopScripts)
             {
-                OnTopScriptsReply(new TopScriptsReplyEventArgs((int)m.TotalObjectCount, Tasks)); 
+                OnTopScriptsReply(new TopScriptsReplyEventArgs((int)m.TotalObjectCount, Tasks));
             }
             else if (type == LandStatReportType.TopColliders)
             {
-                OnTopCollidersReply(new TopCollidersReplyEventArgs((int)m.TotalObjectCount, Tasks)); 
+                OnTopCollidersReply(new TopCollidersReplyEventArgs((int)m.TotalObjectCount, Tasks));
             }
         }
         #endregion
