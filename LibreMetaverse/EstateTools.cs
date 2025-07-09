@@ -29,6 +29,7 @@ using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace OpenMetaverse
 {
@@ -75,6 +76,13 @@ namespace OpenMetaverse
         }
 
         #region Enums
+        public enum RegionMaturity
+        {
+            PG = 13,
+            Mature = 21,
+            Adult = 42
+        }
+
         /// <summary>Used in the ReportType field of a LandStatRequest</summary>
         public enum LandStatReportType
         {
@@ -560,14 +568,15 @@ namespace OpenMetaverse
         }
 
         /// <summary>Estate panel "Region" tab settings</summary>
-        /// @deprecated Use the version with the adult flag instead
+        /// @deprecated Use the version with RegionMaturity support
         public void SetRegionInfo(bool blockTerraform, bool blockFly, bool allowDamage, bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, bool mature)
         {
-            SetRegionInfo(blockTerraform, blockFly, allowDamage, allowLandResell, restrictPushing, allowParcelJoinDivide, agentLimit, objectBonus, mature, false);
+            RegionMaturity rating = mature ? RegionMaturity.Mature : RegionMaturity.PG;
+            SetRegionInfo(blockTerraform, blockFly, allowDamage, allowLandResell, restrictPushing, allowParcelJoinDivide, agentLimit, objectBonus, rating);
         }
 
         /// <summary>Estate panel "Region" tab settings</summary>
-        public void SetRegionInfo(bool blockTerraform, bool blockFly, bool allowDamage, bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, bool mature, bool adult)
+        public void SetRegionInfo(bool blockTerraform, bool blockFly, bool allowDamage, bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, RegionMaturity maturity)
         {
 
             List<string> listParams = new List<string>();
@@ -577,14 +586,7 @@ namespace OpenMetaverse
             listParams.Add(allowLandResell ? "Y" : "N");
             listParams.Add(agentLimit.ToString(CultureInfo.InvariantCulture));
             listParams.Add(objectBonus.ToString(CultureInfo.InvariantCulture));
-            if (adult)
-            {
-                listParams.Add(((int)RegionMaturity.Adult).ToString());
-            }
-            else
-            {
-                listParams.Add(((int)(mature ? RegionMaturity.Mature : RegionMaturity.PG)).ToString());
-            }
+            listParams.Add(maturity.ToString());
             listParams.Add(restrictPushing ? "Y" : "N");
             listParams.Add(allowParcelJoinDivide ? "Y" : "N");
             EstateOwnerMessage("setregioninfo", listParams);
@@ -954,12 +956,6 @@ namespace OpenMetaverse
                 */
 
             }
-        }
-        public enum RegionMaturity
-        {
-            PG = 13,
-            Mature = 21,
-            Adult = 42
         }
         private void LandStatCapsReplyHandler(string capsKey, IMessage message, Simulator simulator)
         {
