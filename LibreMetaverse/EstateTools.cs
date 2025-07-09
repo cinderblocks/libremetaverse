@@ -29,6 +29,10 @@ using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Net.Http;
+using System.Threading.Tasks;
+using OpenMetaverse.StructuredData;
+using System.Text;
 
 namespace OpenMetaverse
 {
@@ -564,6 +568,74 @@ namespace OpenMetaverse
         public void CancelRestart()
         {
             EstateOwnerMessage("restart", "-1");
+        }
+
+        /// <summary>
+        /// an extended version of SetRegionInfo that allows for more options
+        /// like blockFlyover and blockParcelSearch
+        /// that are not supported in the original SetRegionInfo
+        /// - note: This method requires support for cap DispatchRegionInfo
+        /// </summary>
+        public async Task<KeyValuePair<bool, string>> extendedSetRegionInfo(
+    bool blockTerraform, bool blockFly, bool blockFlyover, bool allowDamage, bool allowLandResell,
+    int agentLimit, float primBonus, RegionMaturity maturityLevel, bool blockObjectPush,
+    bool allowParcelChanges, bool blockParcelSearch)
+        {
+            if (Client == null)
+            {
+                return new KeyValuePair<bool, string>(false, "No client object");
+            }
+            else if (Client.Network == null)
+            {
+                return new KeyValuePair<bool, string>(false, "Not connected to a network");
+            }
+            else if (Client.Network.CurrentSim == null)
+            {
+                return new KeyValuePair<bool, string>(false, "Not connected to a sim");
+            }
+            else if (Client.Network.CurrentSim.Caps == null)
+            {
+                return new KeyValuePair<bool, string>(false, "No caps endpoint for current sim");
+            }
+            else if (Client.HttpCapsClient == null)
+            {
+                return new KeyValuePair<bool, string>(false, "No HttpCapsClient available");
+            }
+            Uri uri = Client.Network.CurrentSim.Caps.CapabilityURI("DispatchRegionInfo");
+            if (uri == null)
+            {
+                return new KeyValuePair<bool, string>(false, "Unable to get URI for DispatchRegionInfo");
+            }
+            OSDMap request = new OSDMap();
+            request["block_terraform"] = blockTerraform;
+            request["block_fly"] = blockFly;
+            request["block_fly_over"] = blockFlyover;
+            request["allow_damage"] = allowDamage;
+            request["allow_land_resell"] = allowLandResell;
+            request["agent_limit"] = agentLimit;
+            request["prim_bonus"] = primBonus;
+            request["sim_access"] = (int)maturityLevel;
+            request["restrict_pushobject"] = blockObjectPush;
+            request["allow_parcel_changes"] = allowParcelChanges;
+            request["block_parcel_search"] = blockParcelSearch;
+
+            string requestBody = OSDParser.SerializeLLSDXmlString(request);
+            try
+            {
+                var content = new StringContent(requestBody, Encoding.UTF8, "application/llsd+xml");
+                var reply = await Client.HttpCapsClient.PostAsync(uri.ToString(), content);
+                string responseContent = await reply.Content.ReadAsStringAsync();
+
+                if (reply.IsSuccessStatusCode)
+                {
+                    return new KeyValuePair<bool, string>(true, "ok");
+                }
+                return new KeyValuePair<bool, string>(false, $"HTTP {reply.StatusCode}: {responseContent}");
+            }
+            catch (Exception e)
+            {
+                return new KeyValuePair<bool, string>(false, e.Message);
+            }
         }
 
         /// <summary>Estate panel "Region" tab settings</summary>
