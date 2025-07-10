@@ -925,9 +925,30 @@ namespace OpenMetaverse
             RequestInventoryAsset(item.AssetUUID, item.UUID, UUID.Zero, item.OwnerID, item.AssetType, priority, transferID, callback);
         }
 
-        public void RequestEstateAsset()
+        public void RequestEstateAsset(AssetDownload transfer, EstateAssetType eat)
         {
-            throw new Exception("This function is not implemented yet!");
+            // Add this transfer to the dictionary
+            lock (Transfers) Transfers[transfer.ID] = transfer;
+            
+            // Build the request packet and send it
+            var request = new TransferRequestPacket
+            {
+                TransferInfo =
+                {
+                    ChannelType = (int) transfer.Channel,
+                    Priority = transfer.Priority,
+                    SourceType = (int) transfer.Source,
+                    TransferID = transfer.ID
+                }
+            };
+            
+            var paramField = new byte[36];
+            Buffer.BlockCopy(Client.Self.AgentID.GetBytes(), 0, paramField, 0, 16);
+            Buffer.BlockCopy(Client.Self.SessionID.GetBytes(), 0, paramField, 16, 16);
+            Buffer.BlockCopy(Utils.IntToBytes((int)eat), 0, paramField, 32, 4);
+            request.TransferInfo.Params = paramField;
+
+            Client.Network.SendPacket(request, transfer.Simulator);
         }
 
 #region Uploads
