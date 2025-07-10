@@ -30,6 +30,11 @@ using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+using LibreMetaverse;
+using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse
 {
@@ -593,8 +598,70 @@ namespace OpenMetaverse
             EstateOwnerMessage("restart", "-1");
         }
 
+        [Obsolete("Use SetRegionInfo with new arguments or SetRegionInfoUdp")]
+        public void SetRegionInfo(bool blockTerraform, bool blockFly, bool allowDamage, bool allowLandResell,
+            bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus,
+            RegionMaturity maturity)
+        {
+            SetRegionInfo(blockTerraform, blockFly, false, allowDamage, allowLandResell, restrictPushing,
+                allowParcelJoinDivide, agentLimit, objectBonus, false, maturity);
+        }
+        
+        public void SetRegionInfo(bool blockTerraform, bool blockFly, bool blockFlyOver, bool allowDamage, 
+            bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, 
+            bool blockParcelSearch, RegionMaturity maturity)
+        {
+            if (Client.Network.CurrentSim?.Caps?.CapabilityURI("DispatchRegionInfo") == null 
+                || !SetRegionInfoHttp(blockTerraform, blockFly, blockFlyOver, allowDamage, allowLandResell, restrictPushing, 
+                    allowParcelJoinDivide, agentLimit, objectBonus, blockParcelSearch, maturity).Result)
+            {
+                Logger.Log("Falling back to LLUDP SetRegionInfo", Helpers.LogLevel.Info);
+                SetRegionInfoUdp(blockTerraform, blockFly, allowDamage, allowLandResell, restrictPushing,
+                    allowParcelJoinDivide, agentLimit, objectBonus, maturity);
+            }
+        }
+        
+        public async Task<bool> SetRegionInfoHttp(bool blockTerraform, bool blockFly, bool blockFlyOver, bool allowDamage, 
+            bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, 
+            bool blockParcelSearch, RegionMaturity maturity)
+        {
+            var uri = Client.Network.CurrentSim?.Caps?.CapabilityURI("DispatchRegionInfo");
+            if (uri != null)
+            {
+                var req = new OSDMap
+                {
+                    ["block_terraform"] = blockTerraform,
+                    ["block_fly"] = blockFly,
+                    ["block_fly_over"] = blockFlyOver,
+                    ["allow_damage"] = allowDamage,
+                    ["allow_land_resell"] = allowLandResell,
+                    ["agent_limit"] = agentLimit,
+                    ["prim_bonus"] = objectBonus,
+                    ["sim_access"] = maturity.ToString("D"),
+                    ["restrict_pushobject"] = restrictPushing,
+                    ["allow_parcel_changes"] = allowParcelJoinDivide,
+                    ["block_parcel_search"] = blockParcelSearch
+                };
+                using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(req), Encoding.UTF8,
+                           "application/llsd+xml"))
+                {
+                    using (var reply = await Client.HttpCapsClient.PostAsync(uri, content))
+                    {
+                        if (reply.IsSuccessStatusCode)
+                        {
+                            return true;
+                        }
+
+                        Logger.Log($"Failed to set region info via capability: {reply.ReasonPhrase}", Helpers.LogLevel.Warning);
+                    }
+                }
+            }
+            return false;
+        }
+        
         /// <summary>Estate panel "Region" tab settings</summary>
-        public void SetRegionInfo(bool blockTerraform, bool blockFly, bool allowDamage, bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, RegionMaturity maturity)
+        public void SetRegionInfoUdp(bool blockTerraform, bool blockFly, bool allowDamage, bool allowLandResell, 
+            bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, RegionMaturity maturity)
         {
 
             List<string> listParams = new List<string>();
