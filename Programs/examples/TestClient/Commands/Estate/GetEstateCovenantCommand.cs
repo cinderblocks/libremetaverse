@@ -7,7 +7,7 @@ namespace OpenMetaverse.TestClient
 {
     public class GetEstateCovenantCommand : Command
     {
-        AutoResetEvent waitEvent = new AutoResetEvent(false);
+        private readonly AutoResetEvent waitEvent = new AutoResetEvent(false);
         private static StringBuilder result = new StringBuilder();
         
         public GetEstateCovenantCommand(TestClient client)
