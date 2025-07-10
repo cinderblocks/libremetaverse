@@ -663,6 +663,28 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Requests Estate Covenant notecard from <see cref="Client.Network.CurrentSim" /> asset service
+        /// </summary>
+        /// <param name="covenantId">Asset UUID for estate covenant notecard</param>
+        /// <param name="callback">Asset Received callback</param>
+        /// <seealso cref="AssetManager.RequestAssetUDP"/>
+        public void RequestCovenantNotecard(UUID covenantId, AssetManager.AssetReceivedCallback callback)
+        {
+            var transfer = new AssetDownload
+            {
+                ID = UUID.Random(),
+                AssetID = covenantId,
+                AssetType = AssetType.Notecard,
+                Priority = 101.0f,
+                Channel = ChannelType.Asset,
+                Source = SourceType.SimEstate,
+                Simulator = Client.Network.CurrentSim,
+                Callback = callback
+            };
+            Client.Assets.RequestEstateAsset(transfer, EstateAssetType.Covenant);
+        }
+
+        /// <summary>
         /// Upload a terrain RAW file
         /// </summary>
         /// <param name="fileData">A byte array containing the encoded terrain data</param>
