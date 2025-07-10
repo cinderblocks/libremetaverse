@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -355,13 +356,21 @@ namespace OpenMetaverse
         /// <param name="filter"></param>
         public void LandStatRequest(int parcelLocalID, LandStatReportType reportType, uint requestFlags, string filter)
         {
-            LandStatRequestPacket p = new LandStatRequestPacket();
-            p.AgentData.AgentID = Client.Self.AgentID;
-            p.AgentData.SessionID = Client.Self.SessionID;
-            p.RequestData.Filter = Utils.StringToBytes(filter);
-            p.RequestData.ParcelLocalID = parcelLocalID;
-            p.RequestData.ReportType = (uint)reportType;
-            p.RequestData.RequestFlags = requestFlags;
+            LandStatRequestPacket p = new LandStatRequestPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                RequestData =
+                {
+                    Filter = Utils.StringToBytes(filter),
+                    ParcelLocalID = parcelLocalID,
+                    ReportType = (uint)reportType,
+                    RequestFlags = requestFlags
+                }
+            };
             Client.Network.SendPacket(p);
         }
 
@@ -428,11 +437,19 @@ namespace OpenMetaverse
             }
             else
             {
-                SimWideDeletesPacket simDelete = new SimWideDeletesPacket();
-                simDelete.AgentData.AgentID = Client.Self.AgentID;
-                simDelete.AgentData.SessionID = Client.Self.SessionID;
-                simDelete.DataBlock.TargetID = Target;
-                simDelete.DataBlock.Flags = (uint)flag;
+                SimWideDeletesPacket simDelete = new SimWideDeletesPacket
+                {
+                    AgentData =
+                    {
+                        AgentID = Client.Self.AgentID,
+                        SessionID = Client.Self.SessionID
+                    },
+                    DataBlock =
+                    {
+                        TargetID = Target,
+                        Flags = (uint)flag
+                    }
+                };
                 Client.Network.SendPacket(simDelete);
             }
         }
@@ -454,17 +471,27 @@ namespace OpenMetaverse
         /// <param name="listParams">List of parameters to include</param>
         public void EstateOwnerMessage(string method, List<string> listParams)
         {
-            EstateOwnerMessagePacket estate = new EstateOwnerMessagePacket();
-            estate.AgentData.AgentID = Client.Self.AgentID;
-            estate.AgentData.SessionID = Client.Self.SessionID;
-            estate.AgentData.TransactionID = UUID.Zero;
-            estate.MethodData.Invoice = UUID.Random();
-            estate.MethodData.Method = Utils.StringToBytes(method);
-            estate.ParamList = new EstateOwnerMessagePacket.ParamListBlock[listParams.Count];
+            EstateOwnerMessagePacket estate = new EstateOwnerMessagePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    TransactionID = UUID.Zero
+                },
+                MethodData =
+                {
+                    Invoice = UUID.Random(),
+                    Method = Utils.StringToBytes(method)
+                },
+                ParamList = new EstateOwnerMessagePacket.ParamListBlock[listParams.Count]
+            };
             for (int i = 0; i < listParams.Count; i++)
             {
-                estate.ParamList[i] = new EstateOwnerMessagePacket.ParamListBlock();
-                estate.ParamList[i].Parameter = Utils.StringToBytes(listParams[i]);
+                estate.ParamList[i] = new EstateOwnerMessagePacket.ParamListBlock
+                {
+                    Parameter = Utils.StringToBytes(listParams[i])
+                };
             }
             Client.Network.SendPacket((Packet)estate);
         }
@@ -567,14 +594,6 @@ namespace OpenMetaverse
         }
 
         /// <summary>Estate panel "Region" tab settings</summary>
-        /// @deprecated Use the version with RegionMaturity support
-        public void SetRegionInfo(bool blockTerraform, bool blockFly, bool allowDamage, bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, bool mature)
-        {
-            RegionMaturity rating = mature ? RegionMaturity.Mature : RegionMaturity.PG;
-            SetRegionInfo(blockTerraform, blockFly, allowDamage, allowLandResell, restrictPushing, allowParcelJoinDivide, agentLimit, objectBonus, rating);
-        }
-
-        /// <summary>Estate panel "Region" tab settings</summary>
         public void SetRegionInfo(bool blockTerraform, bool blockFly, bool allowDamage, bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, RegionMaturity maturity)
         {
 
@@ -632,9 +651,14 @@ namespace OpenMetaverse
         /// <summary>Requests the estate covenant</summary>
         public void RequestCovenant()
         {
-            EstateCovenantRequestPacket req = new EstateCovenantRequestPacket();
-            req.AgentData.AgentID = Client.Self.AgentID;
-            req.AgentData.SessionID = Client.Self.SessionID;
+            EstateCovenantRequestPacket req = new EstateCovenantRequestPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                }
+            };
             Client.Network.SendPacket(req);
         }
 
@@ -646,11 +670,13 @@ namespace OpenMetaverse
         /// <returns>The Id of the transfer request</returns>
         public UUID UploadTerrain(byte[] fileData, string fileName)
         {
-            AssetUpload upload = new AssetUpload();
-            upload.AssetData = fileData;
-            upload.AssetType = AssetType.Unknown;
-            upload.Size = fileData.Length;
-            upload.ID = UUID.Random();
+            AssetUpload upload = new AssetUpload
+            {
+                AssetData = fileData,
+                AssetType = AssetType.Unknown,
+                Size = fileData.Length,
+                ID = UUID.Random()
+            };
 
             // Tell the library we have a pending file to upload
             Client.Assets.SetPendingAssetUploadData(upload);
@@ -920,13 +946,15 @@ namespace OpenMetaverse
 
                 foreach (LandStatReplyPacket.ReportDataBlock rep in p.ReportData)
                 {
-                    EstateTask task = new EstateTask();
-                    task.Position = new Vector3(rep.LocationX, rep.LocationY, rep.LocationZ);
-                    task.Score = rep.Score;
-                    task.TaskID = rep.TaskID;
-                    task.TaskLocalID = rep.TaskLocalID;
-                    task.TaskName = Utils.BytesToString(rep.TaskName);
-                    task.OwnerName = Utils.BytesToString(rep.OwnerName);
+                    EstateTask task = new EstateTask
+                    {
+                        Position = new Vector3(rep.LocationX, rep.LocationY, rep.LocationZ),
+                        Score = rep.Score,
+                        TaskID = rep.TaskID,
+                        TaskLocalID = rep.TaskLocalID,
+                        TaskName = Utils.BytesToString(rep.TaskName),
+                        OwnerName = Utils.BytesToString(rep.OwnerName)
+                    };
                     Tasks.Add(task.TaskID, task);
                 }
 
@@ -963,14 +991,16 @@ namespace OpenMetaverse
 
             foreach (LandStatReplyMessage.ReportDataBlock rep in m.ReportDataBlocks)
             {
-                EstateTask task = new EstateTask();
-                task.Position = rep.Location;
-                task.Score = rep.Score;
-                task.MonoScore = rep.MonoScore;
-                task.TaskID = rep.TaskID;
-                task.TaskLocalID = rep.TaskLocalID;
-                task.TaskName = rep.TaskName;
-                task.OwnerName = rep.OwnerName;
+                EstateTask task = new EstateTask
+                {
+                    Position = rep.Location,
+                    Score = rep.Score,
+                    MonoScore = rep.MonoScore,
+                    TaskID = rep.TaskID,
+                    TaskLocalID = rep.TaskLocalID,
+                    TaskName = rep.TaskName,
+                    OwnerName = rep.OwnerName
+                };
                 Tasks.Add(task.TaskID, task);
             }
 
