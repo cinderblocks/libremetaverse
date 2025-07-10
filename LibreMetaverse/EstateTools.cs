@@ -585,7 +585,7 @@ namespace OpenMetaverse
             listParams.Add(allowLandResell ? "Y" : "N");
             listParams.Add(agentLimit.ToString(CultureInfo.InvariantCulture));
             listParams.Add(objectBonus.ToString(CultureInfo.InvariantCulture));
-            listParams.Add(maturity.ToString());
+            listParams.Add(maturity.ToString("D"));
             listParams.Add(restrictPushing ? "Y" : "N");
             listParams.Add(allowParcelJoinDivide ? "Y" : "N");
             EstateOwnerMessage("setregioninfo", listParams);
