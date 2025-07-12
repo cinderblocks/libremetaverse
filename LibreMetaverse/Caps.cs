@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2019-2024, Sjofn LLC.
+ * Copyright (c) 2019-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -36,6 +36,7 @@ using OpenMetaverse.StructuredData;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Http;
 using System.Net.Http;
+using LibreMetaverse;
 
 namespace OpenMetaverse
 {
@@ -319,12 +320,21 @@ namespace OpenMetaverse
                         _EventQueueClient.Start();
                     }
 
+                    if (_Caps.TryGetValue("SimulatorFeatures", out var simFeaturesCap))
+                    {
+                        Logger.DebugLog($"Retrieving Simulator Features");
+                        Simulator.Features = new SimulatorFeatures(Simulator);
+                        _ = Simulator.Client.HttpCapsClient.GetRequestAsync(
+                            simFeaturesCap, _HttpCts.Token, Simulator.Features.SetFeatures);
+                    }
+
                     OnCapabilitiesReceived(Simulator);
                 }
             }
             catch (LitJson.JsonException)
             {
-                Logger.Log("Invalid caps response; '" + System.Text.Encoding.UTF8.GetString(responseData) + "' for seed request.", Helpers.LogLevel.Warning, Simulator.Client);
+                Logger.Log($"Invalid caps response; '{System.Text.Encoding.UTF8.GetString(responseData)}' for seed request.", 
+                    Helpers.LogLevel.Warning, Simulator.Client);
             }
         }
 

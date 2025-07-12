@@ -31,6 +31,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Net;
+using LibreMetaverse;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
@@ -263,6 +264,8 @@ namespace OpenMetaverse
         public UUID ID = UUID.Zero;
         /// <summary>The capabilities for this simulator</summary>
         public Caps Caps;
+        /// <summary>Simulator Features available for this simulator</summary>
+        public SimulatorFeatures Features;
         /// <summary>Unique identified for this region generated via it's coordinates on the world map</summary>
         public ulong Handle;
         /// <summary>Simulator land size in X direction in meters</summary>
