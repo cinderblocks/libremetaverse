@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -418,8 +418,7 @@ namespace OpenMetaverse.StructuredData
             {
                 if (!Attribute.IsDefined(field, typeof(NonSerializedAttribute)))
                 {
-                    OSD serializedField;
-                    if (serialized.TryGetValue(field.Name, out serializedField))
+                    if (serialized.TryGetValue(field.Name, out var serializedField))
                         field.SetValue(obj, ToObject(field.FieldType, serializedField));
                 }
             }
@@ -433,8 +432,8 @@ namespace OpenMetaverse.StructuredData
     {
         private readonly bool _mBool;
 
-        private static readonly byte[] trueBinary = { 0x31 };
-        private static readonly byte[] falseBinary = { 0x30 };
+        private static readonly byte[] TrueBinary = { 0x31 };
+        private static readonly byte[] FalseBinary = { 0x30 };
 
         public override OSDType Type => OSDType.Boolean;
 
@@ -447,7 +446,7 @@ namespace OpenMetaverse.StructuredData
         public override int AsInteger() { return _mBool ? 1 : 0; }
         public override double AsReal() { return _mBool ? 1d : 0d; }
         public override string AsString() { return _mBool ? "1" : "0"; }
-        public override byte[] AsBinary() { return _mBool ? trueBinary : falseBinary; }
+        public override byte[] AsBinary() { return _mBool ? TrueBinary : FalseBinary; }
         public override OSD Copy() { return new OSDBoolean(_mBool); }
 
         public override string ToString() { return AsString(); }
@@ -596,58 +595,50 @@ namespace OpenMetaverse.StructuredData
 
         public override int AsInteger()
         {
-            double dbl;
-            if (double.TryParse(_mString, out dbl))
+            if (double.TryParse(_mString, out var dbl))
                 return (int)Math.Floor(dbl);
             return 0;
         }
 
         public override uint AsUInteger()
         {
-            double dbl;
-            if (double.TryParse(_mString, out dbl))
+            if (double.TryParse(_mString, out var dbl))
                 return (uint)Math.Floor(dbl);
             return 0;
         }
 
         public override long AsLong()
         {
-            double dbl;
-            if (double.TryParse(_mString, out dbl))
+            if (double.TryParse(_mString, out var dbl))
                 return (long)Math.Floor(dbl);
             return 0;
         }
 
         public override ulong AsULong()
         {
-            double dbl;
-            if (double.TryParse(_mString, out dbl))
+            if (double.TryParse(_mString, out var dbl))
                 return (ulong)Math.Floor(dbl);
             return 0;
         }
 
         public override double AsReal()
         {
-            double dbl;
-            return double.TryParse(_mString, out dbl) ? dbl : 0d;
+            return double.TryParse(_mString, out var dbl) ? dbl : 0d;
         }
 
         public override string AsString() { return _mString; }
         public override byte[] AsBinary() { return Encoding.UTF8.GetBytes(_mString); }
         public override UUID AsUUID()
         {
-            UUID uuid;
-            return UUID.TryParse(_mString, out uuid) ? uuid : UUID.Zero;
+            return UUID.TryParse(_mString, out var uuid) ? uuid : UUID.Zero;
         }
         public override DateTime AsDate()
         {
-            DateTime dt;
-            return DateTime.TryParse(_mString, out dt) ? dt : Utils.Epoch;
+            return DateTime.TryParse(_mString, out var dt) ? dt : Utils.Epoch;
         }
         public override Uri AsUri()
         {
-            Uri uri;
-            return Uri.TryCreate(_mString, UriKind.RelativeOrAbsolute, out uri) ? uri : null;
+            return Uri.TryCreate(_mString, UriKind.RelativeOrAbsolute, out var uri) ? uri : null;
         }
 
         public override string ToString() { return AsString(); }
@@ -900,12 +891,8 @@ namespace OpenMetaverse.StructuredData
 
         public OSD this[string key]
         {
-            get
-            {
-                OSD llsd;
-                return _mMap.TryGetValue(key, out llsd) ? llsd : new OSD();
-            }
-            set { _mMap[key] = value; }
+            get => _mMap.TryGetValue(key, out var llsd) ? llsd : new OSD();
+            set => _mMap[key] = value;
         }
 
         public bool ContainsKey(string key)
@@ -940,9 +927,7 @@ namespace OpenMetaverse.StructuredData
 
         public bool Contains(KeyValuePair<string, OSD> kvp)
         {
-            // This is a bizarre function... we don't really implement it
-            // properly, hopefully no one wants to use it
-            return _mMap.ContainsKey(kvp.Key);
+            return _mMap.Contains(kvp);
         }
 
         public void CopyTo(KeyValuePair<string, OSD>[] array, int index)
