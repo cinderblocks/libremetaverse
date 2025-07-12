@@ -322,7 +322,7 @@ namespace OpenMetaverse
 
                     if (_Caps.TryGetValue("SimulatorFeatures", out var simFeaturesCap))
                     {
-                        Logger.DebugLog($"Retrieving Simulator Features");
+                        Logger.DebugLog($"Retrieving Simulator Features", Simulator.Client);
                         Simulator.Features = new SimulatorFeatures(Simulator);
                         _ = Simulator.Client.HttpCapsClient.GetRequestAsync(
                             simFeaturesCap, _HttpCts.Token, Simulator.Features.SetFeatures);
