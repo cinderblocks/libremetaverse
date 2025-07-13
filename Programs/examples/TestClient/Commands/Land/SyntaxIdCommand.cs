@@ -1,4 +1,5 @@
 using System.Text;
+using LibreMetaverse;
 
 namespace OpenMetaverse.TestClient
 {
@@ -13,11 +14,11 @@ namespace OpenMetaverse.TestClient
         
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            var syntax = new LibreMetaverse.LslSyntaxId(Client);
+            var syntax = new LibreMetaverse.LslSyntax(Client);
             
             var output = new StringBuilder("LSL Tokens:");
             output.AppendLine();
-            foreach (var token in syntax.Keywords.Keys)
+            foreach (var token in LslSyntax.Keywords.Keys)
             {
                 output.AppendLine(token);
             }

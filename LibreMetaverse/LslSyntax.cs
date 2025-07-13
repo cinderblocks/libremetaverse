@@ -38,7 +38,7 @@ using Logger = OpenMetaverse.Logger;
 
 namespace LibreMetaverse
 {
-    public class LslSyntaxId
+    public class LslSyntax
     {
         public enum LslCategory
         {
@@ -65,10 +65,10 @@ namespace LibreMetaverse
         private const string SYNTAX_FEATURE_IDENTIFIER = "LSLSyntaxId";
         private const string SYNTAX_CAPABILITY_IDENTIFIER = "LSLSyntax";
         
-        private Dictionary<string, LslKeyword> _keywords = new Dictionary<string, LslKeyword>();
-        public FrozenDictionary<string, LslKeyword> Keywords => _keywords.ToFrozenDictionary();
+        private static Dictionary<string, LslKeyword> _keywords = new Dictionary<string, LslKeyword>();
+        public static FrozenDictionary<string, LslKeyword> Keywords => _keywords.ToFrozenDictionary();
 
-        private readonly GridClient _client;
+        private GridClient _client;
         private UUID _syntaxId;
 
         #region EVENTS
@@ -94,8 +94,22 @@ namespace LibreMetaverse
         }
         
         #endregion EVENTS
-        
-        public LslSyntaxId(GridClient client)
+
+        public LslSyntax()
+        {
+            var keywordFile = Path.Combine(Settings.RESOURCE_DIR, KEYWORDS_DEFAULT);
+            using (FileStream fs = new FileStream(keywordFile, FileMode.Open, FileAccess.Read))
+            {
+                ParseFile(fs);
+            }
+        }
+
+        public LslSyntax(GridClient client)
+        {
+            Register(client);
+        }
+
+        public void Register(GridClient client)
         {
             _client = client;
 
@@ -309,7 +323,7 @@ namespace LibreMetaverse
                 Logger.Log($"Syntax parser exception: {e.Message}", Helpers.LogLevel.Warning);
             }
             Logger.Log($"Parsed Syntax file, added {added}/{tokens} tokens.", Helpers.LogLevel.Debug);
-            _keywords = keywords;
+            lock(_keywords) { _keywords = keywords; }
             OnSyntaxChanged();
         }
         
