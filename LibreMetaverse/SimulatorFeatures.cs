@@ -37,7 +37,7 @@ namespace LibreMetaverse
     public class SimulatorFeatures
     {
         private OSDMap _featureMap = new OSDMap();
-        private Simulator _simulator;
+        private readonly Simulator _simulator;
         
         internal SimulatorFeatures(Simulator simulator)
         {
@@ -51,11 +51,7 @@ namespace LibreMetaverse
         /// <returns>true if feature exists and is true</returns>
         public bool Has(string feature)
         {
-            if (_featureMap.TryGetValue(feature, out var value))
-            {
-                return value.AsBoolean();
-            }
-            return false;
+            return _featureMap.TryGetValue(feature, out var value) && value.AsBoolean();
         }
 
         /// <summary>
