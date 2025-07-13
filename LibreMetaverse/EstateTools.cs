@@ -737,6 +737,18 @@ namespace OpenMetaverse
         /// <seealso cref="AssetManager.RequestAssetUDP"/>
         public void RequestCovenantNotecard(UUID covenantId, AssetManager.AssetReceivedCallback callback)
         {
+            RequestCovenantNotecard(covenantId, Client.Network.CurrentSim, callback);
+        }
+
+        /// <summary>
+        /// Requests Estate Covenant notecard from asset service
+        /// </summary>
+        /// <param name="covenantId">Asset UUID for estate covenant notecard</param>
+        /// <param name="simulator">Requested simulator</param>
+        /// <param name="callback">Asset Received callback</param>
+        /// <seealso cref="AssetManager.RequestAssetUDP"/>
+        public void RequestCovenantNotecard(UUID covenantId, Simulator simulator, AssetManager.AssetReceivedCallback callback)
+        {
             var transfer = new AssetDownload
             {
                 ID = UUID.Random(),
@@ -745,7 +757,7 @@ namespace OpenMetaverse
                 Priority = 101.0f,
                 Channel = ChannelType.Asset,
                 Source = SourceType.SimEstate,
-                Simulator = Client.Network.CurrentSim,
+                Simulator = simulator,
                 Callback = callback
             };
             Client.Assets.RequestEstateAsset(transfer, EstateAssetType.Covenant);
