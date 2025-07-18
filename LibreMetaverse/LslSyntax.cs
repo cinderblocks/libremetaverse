@@ -98,9 +98,20 @@ namespace LibreMetaverse
         public LslSyntax()
         {
             var keywordFile = Path.Combine(Settings.RESOURCE_DIR, KEYWORDS_DEFAULT);
-            using (FileStream fs = new FileStream(keywordFile, FileMode.Open, FileAccess.Read))
+            try
             {
-                ParseFile(fs);
+                using (FileStream fs = new FileStream(keywordFile, FileMode.Open, FileAccess.Read))
+                {
+                    ParseFile(fs);
+                }
+            }
+            catch (FileNotFoundException e)
+            {
+                Logger.Log($"Failed to find {keywordFile}.", Helpers.LogLevel.Warning);
+            }
+            catch (IOException e)
+            {
+                Logger.Log($"Failed to read {keywordFile}: {e.Message}", Helpers.LogLevel.Warning);
             }
         }
 
@@ -174,10 +185,22 @@ namespace LibreMetaverse
                 }
             }
 
-            using (FileStream fs = new FileStream(keywordFile, FileMode.Open, FileAccess.Read))
+            try
             {
-                ParseFile(fs);
+                using (FileStream fs = new FileStream(keywordFile, FileMode.Open, FileAccess.Read))
+                {
+                    ParseFile(fs);
+                }
             }
+            catch (FileNotFoundException e)
+            {
+                Logger.Log($"Failed to find {keywordFile}.", Helpers.LogLevel.Warning);
+            }
+            catch (IOException e)
+            {
+                Logger.Log($"Failed to read {keywordFile}: {e.Message}", Helpers.LogLevel.Warning);
+            }
+
             _client.Network.SimChanged += Network_OnSimChanged;
         }
 
