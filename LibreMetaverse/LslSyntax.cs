@@ -105,7 +105,7 @@ namespace LibreMetaverse
                     ParseFile(fs);
                 }
             }
-            catch (FileNotFoundException e)
+            catch (FileNotFoundException)
             {
                 Logger.Log($"Failed to find {keywordFile}.", Helpers.LogLevel.Warning);
             }
@@ -192,7 +192,7 @@ namespace LibreMetaverse
                     ParseFile(fs);
                 }
             }
-            catch (FileNotFoundException e)
+            catch (FileNotFoundException)
             {
                 Logger.Log($"Failed to find {keywordFile}.", Helpers.LogLevel.Warning);
             }
