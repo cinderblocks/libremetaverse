@@ -360,7 +360,7 @@ namespace OpenMetaverse.Imaging
                 SKBitmap bitmap = null;
                 lock (ResourceSync)
                 {
-                    using (Stream stream = Helpers.GetResourceStream(fileName, Settings.RESOURCE_DIR))
+                    using (Stream stream = Helpers.GetResourceStream(fileName, Path.Combine(Settings.RESOURCE_DIR, "static_assets")))
                     {
                         if (stream != null)
                         {

@@ -25,6 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using System.IO;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
@@ -286,7 +287,7 @@ namespace OpenMetaverse
         public bool USE_ASSET_CACHE = true;
 
         /// <summary>Path to store cached texture data</summary>
-        public string ASSET_CACHE_DIR = RESOURCE_DIR + "/cache";
+        public string ASSET_CACHE_DIR = Path.Combine(RESOURCE_DIR, "cache");
 
         /// <summary>Maximum size cached files are allowed to take on disk (bytes)</summary>
         public long ASSET_CACHE_MAX_SIZE = 1024 * 1024 * 1024; // 1GB

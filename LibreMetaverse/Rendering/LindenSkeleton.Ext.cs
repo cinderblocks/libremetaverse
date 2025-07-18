@@ -68,7 +68,7 @@ namespace OpenMetaverse.Rendering
         public static LindenSkeleton Load(string fileName)
         {
             if (fileName == null)
-                fileName = System.IO.Path.Combine(Settings.RESOURCE_DIR, "avatar_skeleton.xml");
+                fileName = System.IO.Path.Combine(Settings.RESOURCE_DIR, "character", "avatar_skeleton.xml");
 
             LindenSkeleton result;
 

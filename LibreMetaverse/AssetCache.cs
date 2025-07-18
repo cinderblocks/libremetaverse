@@ -214,7 +214,7 @@ namespace OpenMetaverse
         /// <returns>String with the file name of the static cached asset</returns>
         private string StaticFileName(UUID assetID)
         {
-            return Settings.RESOURCE_DIR + Path.DirectorySeparatorChar + "static_assets" + Path.DirectorySeparatorChar + assetID;
+            return Path.Combine(Settings.RESOURCE_DIR, "static_assets", assetID.ToString());
         }
 
         /// <summary>
