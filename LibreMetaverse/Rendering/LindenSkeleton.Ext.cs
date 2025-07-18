@@ -1,5 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -58,7 +59,7 @@ namespace OpenMetaverse.Rendering
         /// Load a skeleton from a given file.
         /// </summary>
         /// <remarks>
-        /// We use xml scema validation on top of the xml de-serializer, since the schema has
+        /// We use xml schema validation on top of the xml de-serializer, since the schema has
         /// some stricter checks than the de-serializer provides. E.g. the vector attributes
         /// are guaranteed to hold only 3 float values. This reduces the need for error checking
         /// while working with the loaded skeleton.
