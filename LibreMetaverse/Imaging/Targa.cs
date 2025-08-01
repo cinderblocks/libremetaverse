@@ -107,7 +107,7 @@ namespace OpenMetaverse.Imaging
 
             var imageType = (byte)(image.ColorType == SKColorType.Gray8 || image.ColorType == SKColorType.Alpha8
                 ? 0x03 : 0x02);
-            var imageDescriptor = (byte)(image.AlphaType <= SKAlphaType.Opaque ? 0 : 0x8); 
+            var imageDescriptor = (byte)(image.AlphaType <= SKAlphaType.Opaque ? 0 : 0x8);
 
             var tga = new byte[image.Width * image.Height * image.BytesPerPixel + 18];
             var di = 0;
@@ -147,10 +147,10 @@ namespace OpenMetaverse.Imaging
                         tga[di++] = c.Blue;
                         tga[di++] = c.Green;
                         tga[di++] = c.Red;
-                        
-                        tga[di++] = (byte)(image.AlphaType > SKAlphaType.Opaque ? 0x0 : c.Alpha);
+
+                        tga[di++] = (byte)(image.AlphaType > SKAlphaType.Opaque ? c.Alpha : 0x0);
                     }
-                        
+
                 }
             }
 
