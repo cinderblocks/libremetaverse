@@ -1780,7 +1780,6 @@ namespace OpenMetaverse
         /// <param name="folderID">Put newly created link in folder with this UUID</param>
         /// <param name="bse">Inventory item or folder</param>
         /// <param name="callback">Method to call upon creation of the link</param>
-        /// <param name="cancellationToken"></param>
         public void CreateLink(UUID folderID, InventoryBase bse, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
         {
             if (bse is InventoryFolder folder)
@@ -1799,7 +1798,6 @@ namespace OpenMetaverse
         /// <param name="folderID">Put newly created link in folder with this UUID</param>
         /// <param name="item">Original inventory item</param>
         /// <param name="callback">Method to call upon creation of the link</param>
-        /// <param name="cancellationToken"></param>
         public void CreateLink(UUID folderID, InventoryItem item, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
         {
             CreateLink(folderID, item.UUID, item.Name, item.Description, item.InventoryType, UUID.Random(), callback, cancellationToken);
@@ -1811,7 +1809,6 @@ namespace OpenMetaverse
         /// <param name="folderID">Put newly created link in folder with this UUID</param>
         /// <param name="folder">Original inventory folder</param>
         /// <param name="callback">Method to call upon creation of the link</param>
-        /// <param name="cancellationToken"></param>
         public void CreateLink(UUID folderID, InventoryFolder folder, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
         {
             CreateLink(folderID, folder.UUID, folder.Name, "", InventoryType.Folder, UUID.Random(), callback, cancellationToken);
@@ -1827,7 +1824,6 @@ namespace OpenMetaverse
         /// <param name="invType">Inventory Type</param>
         /// <param name="transactionID">Transaction UUID</param>
         /// <param name="callback">Method to call upon creation of the link</param>
-        /// <param name="cancellationToken"></param>
         public void CreateLink(UUID folderID, UUID itemID, string name, string description, 
             InventoryType invType, UUID transactionID, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
         {
