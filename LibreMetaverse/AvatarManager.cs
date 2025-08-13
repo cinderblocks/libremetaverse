@@ -28,10 +28,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
@@ -169,7 +167,7 @@ namespace OpenMetaverse
     public struct ClassifiedAd
     {
         public UUID ClassifiedID;
-        public uint Catagory;
+        public uint Category;
         public UUID ParcelID;
         public uint ParentEstate;
         public UUID SnapShotID;
@@ -681,7 +679,7 @@ namespace OpenMetaverse
                 Client.Network.SendPacket(request);
             }
 
-            // Get any remaining names after left after the full requests
+            // Get any remaining names left after the full requests
             if (ids.Count > n * m)
             {
                 request = new UUIDNameRequestPacket
@@ -1533,7 +1531,7 @@ namespace OpenMetaverse
                     Price = p.Data.PriceForListing,
                     ParentEstate = p.Data.ParentEstate,
                     ClassifiedFlags = p.Data.ClassifiedFlags,
-                    Catagory = p.Data.Category
+                    Category = p.Data.Category
                 };
 
                 OnClassifiedInfoReply(new ClassifiedInfoReplyEventArgs(ret.ClassifiedID, ret));
