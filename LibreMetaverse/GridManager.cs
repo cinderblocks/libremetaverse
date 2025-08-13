@@ -576,7 +576,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Retrieves <see cref="GridRegion"/> information using the region name
+        /// Retrieves <see cref="GridRegion"/> information using the region handle
         /// </summary>
         /// <remarks>This function will block until it can find the region or gives up</remarks>
         /// <param name="handle">Region Handle of requested <see cref="GridRegion"/></param>
@@ -593,10 +593,7 @@ namespace OpenMetaverse
                 return true;
             }
 
-            uint globalX,
-                 globalY;
-
-            Utils.LongToUInts(handle, out globalX, out globalY);
+            Utils.LongToUInts(handle, out var globalX, out var globalY);
             const uint regionWidthUnits = 256;
             ushort gridX = (ushort)(globalX / regionWidthUnits);
             ushort gridY = (ushort)(globalY / regionWidthUnits);
