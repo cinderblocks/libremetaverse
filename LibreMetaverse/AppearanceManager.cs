@@ -426,6 +426,7 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.AgentCachedTextureResponse, AgentCachedTextureResponseHandler);
             Client.Network.RegisterCallback(PacketType.RebakeAvatarTextures, RebakeAvatarTexturesHandler);
 
+            Client.Objects.ObjectUpdate += Objects_AttachmentUpdate;
             Client.Network.Disconnected += Network_OnDisconnected;
             Client.Network.SimChanged += Network_OnSimChanged;
         }
@@ -2714,6 +2715,37 @@ namespace OpenMetaverse
         private void Network_OnSimChanged(object sender, SimChangedEventArgs e)
         {
             Client.Network.CurrentSim.Caps.CapabilitiesReceived += Simulator_OnCapabilitiesReceived;
+        }
+
+        private void Objects_AttachmentUpdate(object sender, PrimEventArgs e)
+        {
+            Primitive prim = e.Prim;
+
+            if (Client.Self.LocalID == 0
+                || prim.ParentID != Client.Self.LocalID
+                || prim.NameValues == null
+                || !prim.IsAttachment
+                || !e.IsNew)
+            {
+                return;
+            }
+
+            // Updates Attachment points as soon as the data arrives
+            for (int i = 0; i < prim.NameValues.Length; ++i)
+            {
+                if (prim.NameValues[i].Name != "AttachItemID")
+                {
+                    continue;
+                }
+
+                UUID inventoryID = new UUID(prim.NameValues[i].Value.ToString());
+
+                if (Attachments.TryGetValue(inventoryID, out AttachmentPoint attachmentPoint))
+                {
+                    Attachments.AddOrUpdate(inventoryID, attachmentPoint, (id, value) => prim.PrimData.AttachmentPoint);
+                }
+                break;
+            }
         }
 
         private void Simulator_OnCapabilitiesReceived(object sender, CapabilitiesReceivedEventArgs e)
