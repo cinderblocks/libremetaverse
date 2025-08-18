@@ -1,11 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <PackageId>LibreMetaverse.RLV</PackageId>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <EnableNETAnalyzers>True</EnableNETAnalyzers>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <OutputPath>..\bin\</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
