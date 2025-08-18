@@ -1780,6 +1780,7 @@ namespace OpenMetaverse
         /// <param name="folderID">Put newly created link in folder with this UUID</param>
         /// <param name="bse">Inventory item or folder</param>
         /// <param name="callback">Method to call upon creation of the link</param>
+        /// <param name="cancellationToken"></param>
         public void CreateLink(UUID folderID, InventoryBase bse, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
         {
             if (bse is InventoryFolder folder)

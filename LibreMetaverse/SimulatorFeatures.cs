@@ -63,11 +63,13 @@ namespace LibreMetaverse
         {
             return _featureMap.TryGetValue(feature, out var value) ? value : null;
         }
-        
+
         /// <summary>
-        /// Set SimulatorFeatures from <see cref="OSDMap"/> 
+        /// Set SimulatorFeatures from <see cref="OSDMap"/>
         /// </summary>
-        /// <param name="features"><see cref="OSDMap"/> of simulator features</param>
+        /// <param name="response"></param>
+        /// <param name="responseData"></param>
+        /// <param name="error"></param>
         /// <exception cref="ArgumentException">OSD type is not a map</exception>
         public void SetFeatures(HttpResponseMessage response, byte[] responseData, Exception error)
         {
