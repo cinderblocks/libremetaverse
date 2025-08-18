@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <PackageId>LibreMetaverse.RLV</PackageId>
+    <Description>RestrainedLove Viewer (RLV) protocol library</Description>
+  </PropertyGroup>
+  <PropertyGroup>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <EnableNETAnalyzers>True</EnableNETAnalyzers>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
