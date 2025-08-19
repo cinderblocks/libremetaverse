@@ -214,7 +214,7 @@ public class ClientAO : ProxyPlugin
             }            
             // add a delegate to monitor inventory infos
             proxy.AddDelegate(PacketType.InventoryDescendents, Direction.Incoming, this.inventoryPacketDelegate);            
-            RequestFindObjectByPath(frame.InventoryRoot, String.Join(" ", tmp));
+            RequestFindObjectByPath(frame.InventoryRoot, string.Join(" ", tmp));
         }
     }
 
@@ -356,11 +356,11 @@ public class ClientAO : ProxyPlugin
                 foreach (var d in reply.ItemData)
                 {
                     //we are going to store info on all items. we'll need
-                    //it to get the asset ID of animations refered to by the
+                    //it to get the asset ID of animations referred to by the
                     //configuration notecard
                     if (d.ItemID != UUID.Zero)
                     {
-                        InventoryItem item = CreateInventoryItem((InventoryType)d.InvType, d.ItemID);
+                        InventoryItem item = InventoryManager.CreateInventoryItem((InventoryType)d.InvType, d.ItemID);
                         item.ParentUUID = d.FolderID;
                         item.CreatorID = d.CreatorID;
                         item.AssetType = (AssetType)d.Type;
@@ -434,27 +434,6 @@ public class ClientAO : ProxyPlugin
         {
             //let packet go to client
             return packet;
-        }
-    }
-
-    public static InventoryItem CreateInventoryItem(InventoryType type, UUID id)
-    {
-        switch (type)
-        {
-            case InventoryType.Texture: return new InventoryTexture(id);
-            case InventoryType.Sound: return new InventorySound(id);
-            case InventoryType.CallingCard: return new InventoryCallingCard(id);
-            case InventoryType.Landmark: return new InventoryLandmark(id);
-            case InventoryType.Object: return new InventoryObject(id);
-            case InventoryType.Notecard: return new InventoryNotecard(id);
-            case InventoryType.Category: return new InventoryCategory(id);
-            case InventoryType.LSL: return new InventoryLSL(id);
-            case InventoryType.Snapshot: return new InventorySnapshot(id);
-            case InventoryType.Attachment: return new InventoryAttachment(id);
-            case InventoryType.Wearable: return new InventoryWearable(id);
-            case InventoryType.Animation: return new InventoryAnimation(id);
-            case InventoryType.Gesture: return new InventoryGesture(id);
-            default: return new InventoryItem(type, id);
         }
     }
 
@@ -642,7 +621,7 @@ public class ClientAO : ProxyPlugin
         byte[] tmp = new byte[downloadedbytes];
         Buffer.BlockCopy(buffer, 0, tmp, 0, downloadedbytes);
         buffer = tmp;       
-        String notecardtext = getNotecardText(Utils.BytesToString(buffer));        
+        string notecardtext = getNotecardText(Utils.BytesToString(buffer));        
 
         //Load config, wetikon format
         loadWetIkon(notecardtext);
@@ -673,9 +652,9 @@ public class ClientAO : ProxyPlugin
             //SayToUser("anim: " + animname);
             if (animname != "")
             {
-                if (currentFolderItems.ContainsKey(animname))
+                if (currentFolderItems.TryGetValue(animname, out var item))
                 {
-                    UUID over = currentFolderItems[animname].AssetUUID;
+                    UUID over = item.AssetUUID;
                     UUID orig = wetikonanims[((i + 1) / 2) - 1];
                     //put it in overrides
                     animuid2name[over] = animname;                    

@@ -1058,7 +1058,9 @@ namespace LibreMetaverse.PrimMesher
 
             if (needFaces)
                 copy.faces.AddRange(faces);
-            if (copy.calcVertexNormals = calcVertexNormals)
+
+            copy.calcVertexNormals = calcVertexNormals;
+            if (calcVertexNormals)
             {
                 copy.vertexNormals.AddRange(vertexNormals);
                 copy.faceNormal = faceNormal;
@@ -2158,7 +2160,7 @@ namespace LibreMetaverse.PrimMesher
         }
 
         /// <summary>
-        ///     Calculate surface normals for all of the faces in the list of faces in this mesh
+        ///     Calculate surface normals for all faces in the list of faces in this mesh
         /// </summary>
         public void CalcNormals()
         {

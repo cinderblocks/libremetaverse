@@ -82,7 +82,7 @@ namespace OpenMetaverse.Assets
         /// <returns>the data for the entry.  Returns null if there are no more entries</returns>
         public byte[] ReadEntry(out string filePath, out TarEntryType entryType)
         {
-            filePath = String.Empty;
+            filePath = string.Empty;
             entryType = TarEntryType.TYPE_UNKNOWN;
             TarHeader header = ReadHeader();
 

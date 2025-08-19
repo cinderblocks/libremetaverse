@@ -763,7 +763,7 @@ namespace OpenMetaverse
         {
             if (handleDirty)
             {
-                if (String.IsNullOrEmpty(hexString))
+                if (string.IsNullOrEmpty(hexString))
                     return EmptyBytes;
 
                 StringBuilder stripped = new StringBuilder(hexString.Length);
@@ -809,10 +809,8 @@ namespace OpenMetaverse
             const int numA = 65;
             const int num0 = 48;
 
-            int numChar;
-
             c = char.ToUpper(c);
-            numChar = Convert.ToInt32(c);
+            var numChar = Convert.ToInt32(c);
 
             if (numChar >= numA && numChar < (numA + 6))
                 return true;
@@ -1129,7 +1127,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Packs to 32-bit unsigned integers in to a 64-bit unsigned integer
+        /// Packs two 32-bit unsigned integers in to a 64-bit unsigned integer
         /// </summary>
         /// <param name="a">The left-hand (or X) value</param>
         /// <param name="b">The right-hand (or Y) value</param>

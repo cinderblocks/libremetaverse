@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2022, Sjofn LLC.
+ * Copyright (c) 2022-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Net;
+using LibreMetaverse;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
@@ -186,7 +187,7 @@ namespace OpenMetaverse
             /// <summary>
             /// Outgoing bytes per second
             /// </summary>
-            /// <remarks>It would be nice to have this claculated on the fly, but
+            /// <remarks>It would be nice to have this calculated on the fly, but
             /// this is far, far easier</remarks>
             public int OutgoingBPS;
             /// <summary>Time last ping was sent</summary>
@@ -263,6 +264,8 @@ namespace OpenMetaverse
         public UUID ID = UUID.Zero;
         /// <summary>The capabilities for this simulator</summary>
         public Caps Caps;
+        /// <summary>Simulator Features available for this simulator</summary>
+        public SimulatorFeatures Features;
         /// <summary>Unique identified for this region generated via it's coordinates on the world map</summary>
         public ulong Handle;
         /// <summary>Simulator land size in X direction in meters</summary>
@@ -270,11 +273,11 @@ namespace OpenMetaverse
         /// <summary>Simulator land size in Y direction in meters</summary>
         public uint SizeY;
         /// <summary>The current version of software this simulator is running</summary>
-        public string SimVersion = String.Empty;
-        /// <summary>Human readable name given to the simulator</summary>
-        public string Name = String.Empty;
+        public string SimVersion = string.Empty;
+        /// <summary>Human-readable name given to the simulator</summary>
+        public string Name = string.Empty;
         /// <summary>A 64x64 grid of parcel coloring values. The values stored 
-        /// in this array are of the <seealso cref="ParcelArrayType"/> type</summary>
+        /// in this array are of the <see cref="ParcelArrayType"/> type</summary>
         public byte[] ParcelOverlay = new byte[4096];
         /// <summary></summary>
         public int ParcelOverlaysReceived;
@@ -383,12 +386,18 @@ namespace OpenMetaverse
         /// <summary>
         /// A thread-safe dictionary containing avatars in a simulator        
         /// </summary>
-        public InternalDictionary<uint, Avatar> ObjectsAvatars = new InternalDictionary<uint, Avatar>();
+        public ConcurrentDictionary<uint, Avatar> ObjectsAvatars = new ConcurrentDictionary<uint, Avatar>();
 
         /// <summary>
         /// A thread-safe dictionary containing primitives in a simulator
         /// </summary>
-        public InternalDictionary<uint, Primitive> ObjectsPrimitives = new InternalDictionary<uint, Primitive>();
+        public ConcurrentDictionary<uint, Primitive> ObjectsPrimitives = new ConcurrentDictionary<uint, Primitive>();
+
+        /// <summary>
+        /// A thread-safe dictionary which can be used to find the local ID of a specified UUID.
+        /// </summary>
+        public ConcurrentDictionary<UUID, uint> GlobalToLocalID = new ConcurrentDictionary<UUID, uint>();
+
 
         public readonly TerrainPatch[] Terrain;
 
@@ -398,7 +407,7 @@ namespace OpenMetaverse
         /// Provides access to an internal thread-safe dictionary containing parcel
         /// information found in this simulator
         /// </summary>
-        public InternalDictionary<int, Parcel> Parcels
+        public LockingDictionary<int, Parcel> Parcels
         {
             get
             {
@@ -406,10 +415,10 @@ namespace OpenMetaverse
                 {
                     return DataPool.Parcels;
                 }
-                return _Parcels ?? (_Parcels = new InternalDictionary<int, Parcel>());
+                return _Parcels ?? (_Parcels = new LockingDictionary<int, Parcel>());
             }
         }
-        private InternalDictionary<int, Parcel> _Parcels;
+        private LockingDictionary<int, Parcel> _Parcels;
 
         /// <summary>
         /// Provides access to an internal thread-safe multidimensional array containing a x,y grid mapped
@@ -458,16 +467,20 @@ namespace OpenMetaverse
         #region Properties
 
         /// <summary>The IP address and port of the server</summary>
-        public IPEndPoint IPEndPoint { get { return remoteEndPoint; } }
+        public IPEndPoint IPEndPoint => remoteEndPoint;
+
         /// <summary>Whether there is a working connection to the simulator or 
         /// not</summary>
-        public bool Connected { get { return connected; } }
+        public bool Connected => connected;
+
         /// <summary>Coarse locations of avatars in this simulator</summary>
-        public InternalDictionary<UUID, Vector3> AvatarPositions { get { return avatarPositions; } }
+        public ConcurrentDictionary<UUID, Vector3> AvatarPositions => avatarPositions;
+
         /// <summary>AvatarPositions key representing TrackAgent target</summary>
-        public UUID PreyID { get { return preyID; } }
+        public UUID PreyID => preyID;
+
         /// <summary>Indicates if UDP connection to the sim is fully established</summary>
-        public bool HandshakeComplete { get { return handshakeComplete; } }
+        public bool HandshakeComplete => handshakeComplete;
 
         #endregion Properties
 
@@ -481,7 +494,7 @@ namespace OpenMetaverse
         /// to the property Connected</summary>
         internal bool connected;
         /// <summary>Coarse locations of avatars in this simulator</summary>
-        internal InternalDictionary<UUID, Vector3> avatarPositions = new InternalDictionary<UUID, Vector3>();
+        internal ConcurrentDictionary<UUID, Vector3> avatarPositions = new ConcurrentDictionary<UUID, Vector3>();
         /// <summary>AvatarPositions key representing TrackAgent target</summary>
         internal UUID preyID = UUID.Zero;
         /// <summary>Sequence numbers of packets we've received
@@ -494,10 +507,12 @@ namespace OpenMetaverse
         /// <summary>Indicates if UDP connection to the sim is fully established</summary>
         internal bool handshakeComplete;
 
-        private NetworkManager Network;
-        private Queue<long> InBytes, OutBytes;
+        private readonly NetworkManager Network;
+        private readonly Queue<long> InBytes;
+        private readonly Queue<long> OutBytes;
+
         // ACKs that are queued up to be sent to the simulator
-        private ConcurrentQueue<uint> PendingAcks = new ConcurrentQueue<uint>();
+        private readonly ConcurrentQueue<uint> PendingAcks = new ConcurrentQueue<uint>();
         private Timer AckTimer;
         private Timer PingTimer;
         private Timer StatsTimer;
@@ -514,18 +529,50 @@ namespace OpenMetaverse
             }
         }
 
+        public bool IsEventQueueRunning(bool blockUntilRunning = false)
+        {
+            if (Caps != null && Caps.IsEventQueueRunning)
+                return true;
+
+            if (blockUntilRunning)
+            {
+                // Wait a bit to see if the event queue comes online
+                AutoResetEvent queueEvent = new AutoResetEvent(false);
+                EventHandler<EventQueueRunningEventArgs> queueCallback =
+                    delegate(object sender, EventQueueRunningEventArgs e)
+                    {
+                        if (e.Simulator == this)
+                            queueEvent.Set();
+                    };
+
+                if (Caps != null)
+                {
+                    Logger.Log("Event queue restart requested.", Helpers.LogLevel.Info, Client);
+                    Client.Network.CurrentSim.Caps.EventQueue.Start();
+                }
+
+                Client.Network.EventQueueRunning += queueCallback;
+                queueEvent.WaitOne(TimeSpan.FromSeconds(10), false);
+                Client.Network.EventQueueRunning -= queueCallback;
+            }
+
+            return Caps != null && Caps.IsEventQueueRunning;
+        }
+
         internal bool _DownloadingParcelMap = false;
 
 
-        private ManualResetEvent GotUseCircuitCodeAck = new ManualResetEvent(false);
+        private readonly ManualResetEvent GotUseCircuitCodeAck = new ManualResetEvent(false);
         #endregion Internal/Private Members
 
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="client">Reference to the <seealso cref="GridClient"/> object</param>
+        /// <param name="client">Reference to the <see cref="GridClient"/> object</param>
         /// <param name="address">IPEndPoint of the simulator</param>
         /// <param name="handle">Region handle for the simulator</param>
+        /// <param name="sizeX">Region size X</param>
+        /// <param name="sizeY">Region size Y</param>
         public Simulator(GridClient client, IPEndPoint address, ulong handle, uint sizeX = DefaultRegionSizeX, uint sizeY = DefaultRegionSizeY)
             : base(address)
         {
@@ -588,6 +635,7 @@ namespace OpenMetaverse
                 UseCircuitCode(true);
                 if (moveToSim)
                 {
+                    Thread.Sleep(500);
                     Client.Self.CompleteAgentMovement(this);
                 }
                 return true;
@@ -625,7 +673,11 @@ namespace OpenMetaverse
                 Stats.ConnectTime = Environment.TickCount;
 
                 // Move our agent in to the sim to complete the connection
-                if (moveToSim) Client.Self.CompleteAgentMovement(this);
+                if (moveToSim)
+                {
+                    Thread.Sleep(500);
+                    Client.Self.CompleteAgentMovement(this);
+                }
 
                 if (!ConnectedEvent.WaitOne(Client.Settings.LOGIN_TIMEOUT, false))
                 {
@@ -687,11 +739,11 @@ namespace OpenMetaverse
             }
         }
 
-        public void SetSeedCaps(Uri seedcaps)
+        public void SetSeedCaps(Uri seedcaps, bool changedSim = false)
         {
             if (Caps != null)
             {
-                if (Caps._SeedCapsURI == seedcaps) return;
+                if (Caps._SeedCapsURI == seedcaps && !changedSim) return;
 
                 Logger.Log("Unexpected change of seed capability", Helpers.LogLevel.Warning, Client);
                 Caps.Disconnect(true);
@@ -1012,7 +1064,7 @@ namespace OpenMetaverse
         /// <returns>Simulator name as String</returns>
         public override string ToString()
         {
-            return !String.IsNullOrEmpty(Name)
+            return !string.IsNullOrEmpty(Name)
                 ? $"{Name} ({remoteEndPoint})"
                 : $"({remoteEndPoint})";
         }
@@ -1086,8 +1138,8 @@ namespace OpenMetaverse
             }
             catch (MalformedDataException)
             {
-                Logger.Log(String.Format("Malformed data, cannot parse packet:\n{0}",
-                    Utils.BytesToHexString(buffer.Data, buffer.DataLength, null)), Helpers.LogLevel.Error);
+                Logger.Log(
+                    $"Malformed data, cannot parse packet:\n{Utils.BytesToHexString(buffer.Data, buffer.DataLength, null)}", Helpers.LogLevel.Error);
             }
 
             // Fail-safe check
@@ -1267,7 +1319,7 @@ namespace OpenMetaverse
                 {
                     if (Client.Settings.LOG_RESENDS)
                     {
-                        Logger.DebugLog(String.Format("Resending {2} packet #{0}, {1}ms have passed",
+                        Logger.DebugLog(string.Format("Resending {2} packet #{0}, {1}ms have passed",
                             outgoing.SequenceNumber, now - outgoing.TickCount, outgoing.Type), Client);
                     }
 
@@ -1286,7 +1338,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    Logger.DebugLog(String.Format("Dropping packet #{0} after {1} failed attempts",
+                    Logger.DebugLog(string.Format("Dropping packet #{0} after {1} failed attempts",
                         outgoing.SequenceNumber, outgoing.ResendCount));
 
                     lock (NeedAck) NeedAck.Remove(outgoing.SequenceNumber);
@@ -1342,11 +1394,11 @@ namespace OpenMetaverse
 
     public sealed class IncomingPacketIDCollection
     {
-        readonly uint[] _items;
-        HashSet<uint> hashSet;
-        int first;
-        int next;
-        int capacity;
+        private readonly uint[] _items;
+        private readonly HashSet<uint> hashSet;
+        private int first;
+        private int next;
+        private readonly int capacity;
 
         public IncomingPacketIDCollection(int capacity)
         {
@@ -1448,7 +1500,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Shared parcel info only when POOL_PARCEL_DATA == true
         /// </summary>
-        public InternalDictionary<int, Parcel> Parcels = new InternalDictionary<int, Parcel>();
+        public LockingDictionary<int, Parcel> Parcels = new LockingDictionary<int, Parcel>();
         public int[,] ParcelMap = new int[64, 64];
         public bool DownloadingParcelMap = false;
 
@@ -1477,8 +1529,7 @@ namespace OpenMetaverse
             var dict = PrimCache;
             lock (dict)
             {
-                Primitive prim;
-                if (!dict.TryGetValue(localID, out prim))
+                if (!dict.TryGetValue(localID, out var prim) || prim.IsAttachment)
                 {
                     dict[localID] = prim = new Primitive { RegionHandle = Handle, LocalID = localID };
                 }
@@ -1486,10 +1537,13 @@ namespace OpenMetaverse
             }
         }
 
-        internal bool NeedsRequest(uint localID)
+        internal bool NeedsRequest(uint localID, uint crc32)
         {
             var dict = PrimCache;
-            lock (dict) return !dict.ContainsKey(localID);
+            lock (dict)
+            {
+                return !dict.TryGetValue(localID, out var prim) || prim.CRC != crc32;
+            }
         }
         #endregion Factories
 
@@ -1499,8 +1553,7 @@ namespace OpenMetaverse
             {
                 foreach (var u in removePrims)
                 {
-                    Primitive prim;
-                    if (PrimCache.TryGetValue(u, out prim)) prim.ActiveClients--;
+                    if (PrimCache.TryGetValue(u, out var prim)) prim.ActiveClients--;
                 }
             }
         }

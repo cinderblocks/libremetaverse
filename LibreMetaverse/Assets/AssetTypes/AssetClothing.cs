@@ -27,13 +27,13 @@
 namespace OpenMetaverse.Assets
 {
     /// <summary>
-    /// Represents an <seealso cref="AssetWearable"/> that can be worn on an avatar
+    /// Represents an <see cref="AssetWearable"/> that can be worn on an avatar
     /// such as a Shirt, Pants, etc.
     /// </summary>
     public class AssetClothing : AssetWearable
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.Clothing; } }
+        public override AssetType AssetType => AssetType.Clothing;
 
         /// <summary>Initializes a new instance of an AssetScriptBinary object</summary>
         public AssetClothing() { }

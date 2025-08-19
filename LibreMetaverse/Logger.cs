@@ -29,6 +29,7 @@ using System.Reflection;
 using log4net;
 using log4net.Appender;
 using log4net.Config;
+using log4net.Layout;
 
 [assembly: XmlConfigurator(Watch = true)]
 
@@ -44,7 +45,7 @@ namespace OpenMetaverse
         /// the library
         /// </summary>
         /// <param name="message">Data being logged</param>
-        /// <param name="level">The severity of the log entry from <seealso cref="Helpers.LogLevel"/></param>
+        /// <param name="level">The severity of the log entry from <see cref="Helpers.LogLevel"/></param>
         public delegate void LogCallback(object message, Helpers.LogLevel level);
 
         /// <summary>Triggered whenever a message is logged. If this is left
@@ -65,10 +66,11 @@ namespace OpenMetaverse
             // ConsoleAppender
             if (!LogInstance.Logger.IsEnabledFor(log4net.Core.Level.Error))
             {
-                IAppender appender = new ConsoleAppender
+                IAppender appender = new ConsoleAppender()
                 {
-                    Layout = new log4net.Layout.PatternLayout("%timestamp [%thread] %-5level - %message%newline")
+                    Layout = new log4net.Layout.PatternLayout("%date{HH:mm:ss,fff} [%thread] %-5level - %message%newline")
                 };
+
                 BasicConfigurator.Configure(LogManager.GetRepository(Assembly.GetCallingAssembly()), appender);
 
                 if(Settings.LOG_LEVEL != Helpers.LogLevel.None)
@@ -162,7 +164,7 @@ namespace OpenMetaverse
 
         /// <summary>
         /// If the library is compiled with DEBUG defined, an event will be
-        /// fired if an <code>OnLogMessage</code> handler is registered and the
+        /// fired if a <see cref="OnLogMessage" /> handler is registered and the
         /// message will be sent to the logging engine
         /// </summary>
         /// <param name="message">The message to log at the DEBUG level to the
@@ -174,8 +176,8 @@ namespace OpenMetaverse
 
         /// <summary>
         /// If the library is compiled with DEBUG defined and
-        /// <code>GridClient.Settings.DEBUG</code> is true, an event will be
-        /// fired if an <code>OnLogMessage</code> handler is registered and the
+        /// <see cref="GridClient.Settings.DEBUG" /> is true, an event will be
+        /// fired if a <see cref="OnLogMessage" /> handler is registered and the
         /// message will be sent to the logging engine
         /// </summary>
         /// <param name="message">The message to log at the DEBUG level to the

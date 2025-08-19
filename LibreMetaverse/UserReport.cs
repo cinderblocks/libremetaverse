@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2021-2022, Sjofn LLC
+ * Copyright (c) 2021-2025, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenMetaverse;
-using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
 
@@ -46,13 +45,13 @@ namespace LibreMetaverse
             CsRequestReport = 4
         }
 
-        /// <summary>A reference to the current <seealso cref="GridClient"/> instance</summary>
-        private GridClient Client;
+        /// <summary>A reference to the current <see cref="GridClient"/> instance</summary>
+        private readonly GridClient Client;
 
         /// <summary>
         /// Construct a new instance of the UserReport class
         /// </summary>
-        /// <param name="client">A reference to the current <seealso cref="GridClient"/> instance</param>
+        /// <param name="client">A reference to the current <see cref="GridClient"/> instance</param>
         UserReport(GridClient client)
         {
             Client = client;
@@ -80,6 +79,7 @@ namespace LibreMetaverse
             {
                 Logger.Log("AbuseCategories capability does not exist. Could not fetch categories list.",
                     Helpers.LogLevel.Info);
+                return null;
             }
 
             if (lang != null)
@@ -103,9 +103,9 @@ namespace LibreMetaverse
                     }
 
                     OSD result = OSDParser.Deserialize(data);
-                    if (result is OSDMap respMap && respMap.ContainsKey("categories"))
+                    if (result is OSDMap respMap && respMap.TryGetValue("categories", out var value))
                     {
-                        if (respMap["categories"] is OSDArray categories)
+                        if (value is OSDArray categories)
                         {
                             reportCategories = categories.Cast<OSDMap>().ToDictionary(
                                 row => row["description_localized"].AsString(),

@@ -102,7 +102,7 @@ namespace OpenMetaverse.TestClient
                 {
                     if (args[3].IndexOf('/') >= 0)
                     {
-                        char sep = '/';
+                        const char sep = '/';
                         string[] startbits = args[3].Split(sep);
                         try
                         {
@@ -264,7 +264,6 @@ namespace OpenMetaverse.TestClient
         /// </summary>
         /// <param name="cmd"></param>
         /// <param name="fromAgentID"></param>
-        /// <param name="imSessionID"></param>
         public void DoCommandAll(string cmd, UUID fromAgentID)
         {
             if (cmd == null)

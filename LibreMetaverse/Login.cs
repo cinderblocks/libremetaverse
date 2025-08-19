@@ -251,8 +251,8 @@ namespace OpenMetaverse
         /// Instantiate LoginParams
         /// </summary>
         /// <remarks>Use this constructor if Application supports multi-factor authentication</remarks>
-        /// <param name="client">Instance of <seealso cref="GridClient"/></param>
-        /// <param name="credential">Instance of <seealso cref="LoginCredential"/></param>
+        /// <param name="client">Instance of <see cref="GridClient"/></param>
+        /// <param name="credential">Instance of <see cref="LoginCredential"/></param>
         /// <param name="channel">Login channel (application name)</param>
         /// <param name="version">Client version, as application name + version number</param>
         public LoginParams(GridClient client, LoginCredential credential, string channel, string version)
@@ -274,8 +274,8 @@ namespace OpenMetaverse
         /// Instantiate LoginParams
         /// </summary>
         /// <remarks>Use this constructor if Application supports multi-factor authentication</remarks>
-        /// <param name="client">Instance of <seealso cref="GridClient"/></param>
-        /// <param name="credential">Instance of <seealso cref="LoginCredential"/></param>
+        /// <param name="client">Instance of <see cref="GridClient"/></param>
+        /// <param name="credential">Instance of <see cref="LoginCredential"/></param>
         /// <param name="channel">Login channel (application name)</param>
         /// <param name="version">Client version, as application name + version number</param>
         /// <param name="loginUri">Address of login service</param>
@@ -339,6 +339,250 @@ namespace OpenMetaverse
         public Vector3 LookAt;
     }
 
+    public class AccountLevelBenefits
+    {
+        public int MeshUploadCost { get; }
+        public int OneTimeEventAllowed { get; }
+        public int RepeatingEventsCost { get; }
+        public string EstateAccessToken { get; }
+        public int LastnameChangeRate { get; }
+        public int MarketplaceConciergeSupport { get; }
+        public int PhoneSupport { get; }
+        public double LindenBuyFee { get; }
+        public int PartnerFee { get; }
+        public int CreateRepeatingEvents { get; }
+        public int TextureUploadCost { get; }
+        public int PriorityEntry { get; }
+        public int ObjectAccountLevel { get; }
+        public int UseAnimesh { get; }
+        public double LastnameChangeCost { get; }
+        public int BetaGridLand { get; }
+        public int CreateGroupCost { get; }
+        public int LiveChat { get; }
+        public int LandAuctionsAllowed { get; }
+        public int MainlandTier { get; }
+        public int LocalExperiences { get; }
+        public int OneTimeEventCost { get; }
+        public int MarketplacePleLimit { get; }
+        public int UnpartnerFee { get; }
+        public int GroupMembershipLimit { get; }
+        public int AnimationUploadCost { get; }
+        public int ScriptLimit { get; }
+        public int TransactionHistoryLimit { get; }
+        public List<int> LargeTextureUploadCost { get; }
+        public int AnimatedObjectLimit { get; }
+        public int GridwideExperienceLimit { get; }
+        public int LastnameChangeAllowed { get; }
+        public int SoundUploadCost { get; }
+        public int PremiumAlts { get; }
+        public int PicksLimit { get; }
+        public int PlacePages { get; }
+        public int PremiumAccess { get; }
+        public int MarketplaceListingLimit { get; }
+        public int PremiumGifts { get; }
+        public int VoiceMorphing { get; }
+        public int StoredImLimit { get; }
+        public int Stipend { get; }
+        public int SignupBonus { get; }
+        public int AttachmentLimit { get; }
+
+        public AccountLevelBenefits(OSDMap reply)
+        {
+            MeshUploadCost = GetIntFromMap(reply, "mesh_upload_cost", -1);
+            OneTimeEventAllowed = GetIntFromMap(reply, "one_time_event_allowed", -1);
+            RepeatingEventsCost = GetIntFromMap(reply, "repeating_events_cost", -1);
+            EstateAccessToken = GetStringFromMap(reply, "estate_access_token", string.Empty);
+            LastnameChangeRate = GetIntFromMap(reply, "lastname_change_rate", -1);
+            MarketplaceConciergeSupport = GetIntFromMap(reply, "marketplace_concierge_support", -1);
+            PhoneSupport = GetIntFromMap(reply, "phone_support", -1);
+            LindenBuyFee = GetRealFromMap(reply, "linden_buy_fee", -1.0);
+            PartnerFee = GetIntFromMap(reply, "partner_fee", -1);
+            CreateRepeatingEvents = GetIntFromMap(reply, "create_repeating_events", -1);
+            TextureUploadCost = GetIntFromMap(reply, "texture_upload_cost", -1);
+            PriorityEntry = GetIntFromMap(reply, "priority_entry", -1);
+            ObjectAccountLevel = GetIntFromMap(reply, "object_account_level", -1);
+            UseAnimesh = GetIntFromMap(reply, "use_animesh", -1);
+            LastnameChangeCost = GetRealFromMap(reply, "lastname_change_cost", -1.0);
+            BetaGridLand = GetIntFromMap(reply, "beta_grid_land", -1);
+            CreateGroupCost = GetIntFromMap(reply, "create_group_cost", -1);
+            LiveChat = GetIntFromMap(reply, "live_chat", -1);
+            LandAuctionsAllowed = GetIntFromMap(reply, "land_auctions_allowed", -1);
+            MainlandTier = GetIntFromMap(reply, "mainland_tier", -1);
+            LocalExperiences = GetIntFromMap(reply, "local_experiences", -1);
+            OneTimeEventCost = GetIntFromMap(reply, "one_time_event_cost", -1);
+            MarketplacePleLimit = GetIntFromMap(reply, "marketplace_ple_limit", -1);
+            UnpartnerFee = GetIntFromMap(reply, "unpartner_fee", -1);
+            GroupMembershipLimit = GetIntFromMap(reply, "group_membership_limit", -1);
+            AnimationUploadCost = GetIntFromMap(reply, "animation_upload_cost", -1);
+            ScriptLimit = GetIntFromMap(reply, "script_limit", -1);
+            TransactionHistoryLimit = GetIntFromMap(reply, "transaction_history_limit", -1);
+            LargeTextureUploadCost = GetListFromMap<int>(reply, "large_texture_upload_cost");
+            AnimatedObjectLimit = GetIntFromMap(reply, "animated_object_limit", -1);
+            GridwideExperienceLimit = GetIntFromMap(reply, "gridwide_experience_limit", -1);
+            LastnameChangeAllowed = GetIntFromMap(reply, "lastname_change_allowed", -1);
+            SoundUploadCost = GetIntFromMap(reply, "sound_upload_cost", -1);
+            PremiumAlts = GetIntFromMap(reply, "premium_alts", -1);
+            PicksLimit = GetIntFromMap(reply, "picks_limit", -1);
+            PlacePages = GetIntFromMap(reply, "place_pages", -1);
+            PremiumAccess = GetIntFromMap(reply, "premium_access", -1);
+            MarketplaceListingLimit = GetIntFromMap(reply, "marketplace_listing_limit", -1);
+            PremiumGifts = GetIntFromMap(reply, "premium_gifts", -1);
+            VoiceMorphing = GetIntFromMap(reply, "voice_morphing", -1);
+            StoredImLimit = GetIntFromMap(reply, "stored_im_limit", -1);
+            Stipend = GetIntFromMap(reply, "stipend", -1);
+            SignupBonus = GetIntFromMap(reply, "signup_bonus", -1);
+            AttachmentLimit = GetIntFromMap(reply, "attachment_limit", 38);
+
+            if (LargeTextureUploadCost.Count == 0)
+            {
+                LargeTextureUploadCost = new List<int>()
+                {
+                    TextureUploadCost
+                };
+            }
+            else
+            {
+                LargeTextureUploadCost = LargeTextureUploadCost
+                    .OrderBy(n => n)
+                    .ToList();
+            }
+        }
+
+        public AccountLevelBenefits(Hashtable reply)
+        {
+            MeshUploadCost = GetValueFromMap(reply, "mesh_upload_cost", -1);
+            OneTimeEventAllowed = GetValueFromMap(reply, "one_time_event_allowed", -1);
+            RepeatingEventsCost = GetValueFromMap(reply, "repeating_events_cost", -1);
+            EstateAccessToken = GetValueFromMap(reply, "estate_access_token", string.Empty);
+            LastnameChangeRate = GetValueFromMap(reply, "lastname_change_rate", -1);
+            MarketplaceConciergeSupport = GetValueFromMap(reply, "marketplace_concierge_support", -1);
+            PhoneSupport = GetValueFromMap(reply, "phone_support", -1);
+            LindenBuyFee = GetValueFromMap(reply, "linden_buy_fee", -1.0);
+            PartnerFee = GetValueFromMap(reply, "partner_fee", -1);
+            CreateRepeatingEvents = GetValueFromMap(reply, "create_repeating_events", -1);
+            TextureUploadCost = GetValueFromMap(reply, "texture_upload_cost", -1);
+            PriorityEntry = GetValueFromMap(reply, "priority_entry", -1);
+            ObjectAccountLevel = GetValueFromMap(reply, "object_account_level", -1);
+            UseAnimesh = GetValueFromMap(reply, "use_animesh", -1);
+            LastnameChangeCost = GetValueFromMap(reply, "lastname_change_cost", -1.0);
+            BetaGridLand = GetValueFromMap(reply, "beta_grid_land", -1);
+            CreateGroupCost = GetValueFromMap(reply, "create_group_cost", -1);
+            LiveChat = GetValueFromMap(reply, "live_chat", -1);
+            LandAuctionsAllowed = GetValueFromMap(reply, "land_auctions_allowed", -1);
+            MainlandTier = GetValueFromMap(reply, "mainland_tier", -1);
+            LocalExperiences = GetValueFromMap(reply, "local_experiences", -1);
+            OneTimeEventCost = GetValueFromMap(reply, "one_time_event_cost", -1);
+            MarketplacePleLimit = GetValueFromMap(reply, "marketplace_ple_limit", -1);
+            UnpartnerFee = GetValueFromMap(reply, "unpartner_fee", -1);
+            GroupMembershipLimit = GetValueFromMap(reply, "group_membership_limit", -1);
+            AnimationUploadCost = GetValueFromMap(reply, "animation_upload_cost", -1);
+            ScriptLimit = GetValueFromMap(reply, "script_limit", -1);
+            TransactionHistoryLimit = GetValueFromMap(reply, "transaction_history_limit", -1);
+            LargeTextureUploadCost = GetListFromMap<int>(reply, "large_texture_upload_cost");
+            AnimatedObjectLimit = GetValueFromMap(reply, "animated_object_limit", -1);
+            GridwideExperienceLimit = GetValueFromMap(reply, "gridwide_experience_limit", -1);
+            LastnameChangeAllowed = GetValueFromMap(reply, "lastname_change_allowed", -1);
+            SoundUploadCost = GetValueFromMap(reply, "sound_upload_cost", -1);
+            PremiumAlts = GetValueFromMap(reply, "premium_alts", -1);
+            PicksLimit = GetValueFromMap(reply, "picks_limit", -1);
+            PlacePages = GetValueFromMap(reply, "place_pages", -1);
+            PremiumAccess = GetValueFromMap(reply, "premium_access", -1);
+            MarketplaceListingLimit = GetValueFromMap(reply, "marketplace_listing_limit", -1);
+            PremiumGifts = GetValueFromMap(reply, "premium_gifts", -1);
+            VoiceMorphing = GetValueFromMap(reply, "voice_morphing", -1);
+            StoredImLimit = GetValueFromMap(reply, "stored_im_limit", -1);
+            Stipend = GetValueFromMap(reply, "stipend", -1);
+            SignupBonus = GetValueFromMap(reply, "signup_bonus", -1);
+            AttachmentLimit = GetValueFromMap(reply, "attachment_limit", 38);
+
+            if (LargeTextureUploadCost.Count == 0)
+            {
+                LargeTextureUploadCost = new List<int>()
+                {
+                    TextureUploadCost
+                };
+            }
+            else
+            {
+                LargeTextureUploadCost = LargeTextureUploadCost
+                    .OrderBy(n => n)
+                    .ToList();
+            }
+        }
+
+        private static T GetValueFromMap<T>(Hashtable reply, string key, T defaultValue)
+        {
+            if (reply.ContainsKey(key))
+            {
+                if (reply[key] is T result)
+                {
+                    return result;
+                }
+            }
+
+            return defaultValue;
+        }
+
+        private static List<T> GetListFromMap<T>(Hashtable reply, string key)
+        {
+            if (!reply.ContainsKey(key))
+            {
+                return new List<T>();
+            }
+
+            if (!(reply[key] is ArrayList valArray))
+            {
+                return new List<T>();
+            }
+
+            return valArray
+                .OfType<T>()
+                .ToList();
+        }
+
+        private static int GetIntFromMap(OSDMap reply, string key, int defaultValue)
+        {
+            if (reply.TryGetValue(key, out var osd))
+            {
+                return osd.AsInteger();
+            }
+            return defaultValue;
+        }
+
+        private static double GetRealFromMap(OSDMap reply, string key, double defaultValue)
+        {
+            if (reply.TryGetValue(key, out var osd))
+            {
+                return osd.AsReal();
+            }
+            return defaultValue;
+        }
+
+        private static string GetStringFromMap(OSDMap reply, string key, string defaultValue)
+        {
+            if (reply.TryGetValue(key, out var osd))
+            {
+                return osd.AsString();
+            }
+            return defaultValue;
+        }
+
+        private static List<T> GetListFromMap<T>(OSDMap reply, string key)
+        {
+            if(!reply.TryGetValue(key, out var osd))
+            {
+                return new List<T>();
+            }
+
+            if(!(osd is OSDArray osdArray))
+            {
+                return new List<T>();
+            }
+
+            return new List<T>(osdArray);
+        }
+    }
+
     /// <summary>
     /// The decoded data returned from the login server after a successful login
     /// </summary>
@@ -383,7 +627,7 @@ namespace OpenMetaverse
         public string MapServerUrl;
         public string SnapshotConfigUrl;
         public uint COFVersion;
-        public Hashtable AccountLevelBenefits;
+        public AccountLevelBenefits AccountLevelBenefits;
         public Hashtable PremiumPackages;
         public ArrayList ClassifiedCategories;
         public ArrayList EventCategories;
@@ -413,7 +657,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Parse LLSD Login Reply Data
         /// </summary>
-        /// <param name="reply">An <seealso cref="OSDMap"/> 
+        /// <param name="reply">An <see cref="OSDMap"/> 
         /// containing the login response data</param>
         /// <remarks>XML-RPC logins do not require this as XML-RPC.NET 
         /// automatically populates the struct properly using attributes</remarks>
@@ -539,7 +783,7 @@ namespace OpenMetaverse
             {
                 if (reply["account_level_benefits"].Type == OSDType.Map)
                 {
-                    AccountLevelBenefits = ((OSDMap)reply["account_level_benefits"]).ToHashtable();
+                    AccountLevelBenefits = new AccountLevelBenefits((OSDMap)reply["account_level_benefits"]);
                 }
             }
 
@@ -635,7 +879,7 @@ namespace OpenMetaverse
             {
                 if (reply.ContainsKey("home_info"))
                 {
-                    if (reply?["home_info"] is Hashtable map)
+                    if (reply["home_info"] is Hashtable map)
                     {
                         Home.Position = ParseVector3("position", map);
                         Home.LookAt = ParseVector3("look_at", map);
@@ -652,7 +896,7 @@ namespace OpenMetaverse
                 // Home
                 if (Home.RegionHandle == 0 && reply.ContainsKey("home"))
                 {
-                    if (reply?["home"] is Hashtable map)
+                    if (reply["home"] is Hashtable map)
                     {
                         Home.Position = ParseVector3("position", map);
                         Home.LookAt = ParseVector3("look_at", map);
@@ -664,7 +908,7 @@ namespace OpenMetaverse
                                 ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
                         }
                     }
-                    else if (reply?["home"] is string osdString)
+                    else if (reply["home"] is string osdString)
                     {
                         var osdHome = OSDParser.DeserializeLLSDNotation(reply["home"].ToString());
 
@@ -686,7 +930,7 @@ namespace OpenMetaverse
                     }
                     else
                     {
-                        throw new Exception("Could not parse 'home' in Login Response");
+                        throw new LoginException("Could not parse 'home' in Login Response");
                     }
                 }
             } catch (Exception ex)
@@ -753,9 +997,9 @@ namespace OpenMetaverse
 
             if (reply.ContainsKey("account_level_benefits"))
             {
-                if (reply?["account_level_benefits"] is Hashtable)
+                if (reply?["account_level_benefits"] is Hashtable accountLevelBenefitsTable)
                 {
-                    AccountLevelBenefits = (Hashtable)reply["account_level_benefits"];
+                    AccountLevelBenefits = new AccountLevelBenefits(accountLevelBenefitsTable);
                 }
             }
 
@@ -1061,6 +1305,17 @@ namespace OpenMetaverse
 
     #endregion Structs
 
+    public class LoginException : Exception
+    {
+        public LoginException(string message) 
+            : base(message)
+        {}
+
+        public LoginException(string message, Exception innerException)
+            : base (message, innerException)
+        {}
+    }
+    
     /// <summary>
     /// Login Routines
     /// </summary>
@@ -1179,8 +1434,8 @@ namespace OpenMetaverse
         private readonly Dictionary<LoginResponseCallback, string[]> CallbackOptions = new Dictionary<LoginResponseCallback, string[]>();
 
         /// <summary>A list of packets obtained during the login process which 
-        /// networkmanager will log but not process</summary>
-        private readonly List<string> UDPBlacklist = new List<string>();
+        /// NetworkManager will log but not process</summary>
+        private readonly List<PacketType> UDPBlacklist = new List<PacketType>();
         #endregion
 
         #region Public Methods
@@ -1192,8 +1447,8 @@ namespace OpenMetaverse
         /// <param name="lastName">Account last name</param>
         /// <param name="password">Account password</param>
         /// <param name="channel">Client application name (channel)</param>
-        /// <param name="version">Client application name + version</param>
-        /// <returns>A populated <seealso cref="LoginParams"/> object containing sane defaults</returns>
+        /// <param name="version">Version string (typically x.x.x)</param>
+        /// <returns>A populated <see cref="LoginParams"/> object containing sane defaults</returns>
         public LoginParams DefaultLoginParams(string firstName, string lastName, string password,
             string channel, string version)
         {
@@ -1207,13 +1462,109 @@ namespace OpenMetaverse
         /// <param name="lastName">Account last name</param>
         /// <param name="password">Account password</param>
         /// <param name="channel">Client application name (channel)</param>
-        /// <param name="version">Client application name + version</param>
+        /// <param name="version">Version string (typically x.x.x)</param>
         /// <returns>Whether the login was successful or not. On failure the
         /// LoginErrorKey string will contain the error code and LoginMessage
         /// will contain a description of the error</returns>
         public bool Login(string firstName, string lastName, string password, string channel, string version)
         {
             return Login(firstName, lastName, password, channel, "last", version);
+        }
+
+        /// <summary>
+        /// Login that works via a existing login response
+        /// </summary>
+        /// <returns>Whether we are able to connect to a simulator using this data</returns>
+        public bool Login(LoginResponseData response)
+        {
+            LoginResponseData = response;
+
+            Client.Network.CircuitCode = (uint)response.CircuitCode;
+
+            LoginSeedCapability = new Uri(response.SeedCapability);
+
+            var handle = Utils.UIntsToLong(response.RegionX, response.RegionY);
+
+            if (Connect(response.SimIP, response.SimPort, handle, true, LoginSeedCapability) != null)
+            {
+                SendPacket(new EconomyDataRequestPacket());
+
+                UpdateLoginStatus(LoginStatus.Success, "Login success");
+                return true;
+            }
+            else
+            {
+                UpdateLoginStatus(LoginStatus.Failed, "Unable to connect to simulator");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Login that works via a SeedCap to allow logins to occur on another host with the details passed in here.
+        /// </summary>
+        /// <returns>Whether we are able to connect to a simulator using this data</returns>
+        public bool Login(string fullLLSD, string seedcap, string username, UUID agentID, UUID sessionID,
+                          UUID secureSessionID, string host, uint port, int circuitCode, uint regionX, uint regionY)
+        {
+            if (string.IsNullOrEmpty(fullLLSD))
+            {
+                LoginResponseData = new LoginResponseData
+                {
+                    AgentID = agentID, SessionID = sessionID, SecureSessionID = secureSessionID,
+                    CircuitCode = circuitCode,
+                    RegionX = regionX, RegionY = regionY, SeedCapability = seedcap, SimIP = IPAddress.Parse(host),
+                    SimPort = (ushort)port, Success = true
+                };
+            }
+            else
+            {
+                LoginResponseData = new LoginResponseData();
+                LoginResponseData.Parse(OSDParser.DeserializeLLSDXml(fullLLSD) as OSDMap);
+            }
+
+            // Login succeeded
+
+            // Fire the login callback
+            if (OnLoginResponse != null)
+            {
+                try { OnLoginResponse(LoginResponseData.Success, false, "Login Message", LoginResponseData.Reason, LoginResponseData); }
+                catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+            }
+
+            // These parameters are stored in NetworkManager, so instead of registering
+            // another callback for them we just set the values here
+            Client.Network.CircuitCode = (uint)circuitCode;
+            LoginSeedCapability = new Uri(seedcap);
+            
+            UpdateLoginStatus(LoginStatus.ConnectingToSim, "Connecting to simulator...");
+
+            var handle = Utils.UIntsToLong(regionX, regionY);
+
+            if (LoginResponseData.SimIP != null && LoginResponseData.SimPort != 0)
+            {
+                // Connect to the sim given in the login reply
+                if (Connect(LoginResponseData.SimIP, LoginResponseData.SimPort, handle, true, LoginSeedCapability) != null)
+                {
+                    // Request the economy data right after login
+                    SendPacket(new EconomyDataRequestPacket());
+
+                    // Update the login message with the MOTD returned from the server
+                    UpdateLoginStatus(LoginStatus.Success, "Login Success");
+                    return true;
+                }
+                else
+                {
+                    UpdateLoginStatus(LoginStatus.Failed,
+                                      "Unable to establish a UDP connection to the simulator");
+                    return false;
+                }
+            }
+            else
+            {
+                UpdateLoginStatus(LoginStatus.Failed,
+                                  "Login server did not return a simulator address");
+                return false;
+            }
         }
 
         /// <summary>
@@ -1228,7 +1579,7 @@ namespace OpenMetaverse
         /// <param name="channel">Client application name (channel)</param>
         /// <param name="start">Starting location URI that can be built with
         /// StartLocation()</param>
-        /// <param name="version">Client application name + version</param>
+        /// <param name="version">Version string (typically x.x.x)</param>
         /// <returns>Whether the login was successful or not. On failure the
         /// LoginErrorKey string will contain the error code and LoginMessage
         /// will contain a description of the error</returns>
@@ -1270,7 +1621,7 @@ namespace OpenMetaverse
         public void BeginLogin(LoginParams loginParams)
         {
             // FIXME: Now that we're using CAPS we could cancel the current login and start a new one
-            if (CurrentContext != null) {throw new Exception("Login already in progress");}
+            if (CurrentContext != null) {throw new LoginException("Login already in progress");}
 
             LoginEvent.Reset();
             CurrentContext = loginParams;
@@ -1339,38 +1690,52 @@ namespace OpenMetaverse
             #region Sanity Check loginParams
 
             if (loginParams.Options == null)
+            {
                 loginParams.Options = new List<string>();
-
+            }
             if (loginParams.Password == null)
+            {
                 loginParams.Password = string.Empty;
+            }
+            if (loginParams.ViewerDigest == null)
+            {
+                loginParams.ViewerDigest = string.Empty;
+            }
+            if (loginParams.UserAgent == null)
+            {
+                loginParams.UserAgent = Settings.USER_AGENT;
+            }
+            if (loginParams.Platform == null)
+            {
+                loginParams.Platform = string.Empty;
+            }
+            if (loginParams.PlatformVersion == null)
+            {
+                loginParams.PlatformVersion = string.Empty;
+            }
+            if (loginParams.MAC == null)
+            {
+                loginParams.MAC = string.Empty;
+            }
+            if (loginParams.Author == null)
+            {
+                loginParams.Author = string.Empty;
+            }
 
             // *HACK: Convert the password to MD5 if it isn't already
             if (loginParams.Password.Length != 35 && !loginParams.Password.StartsWith("$1$"))
                 loginParams.Password = Utils.MD5(loginParams.Password);
-
-            if (loginParams.ViewerDigest == null)
-                loginParams.ViewerDigest = string.Empty;
-
-            if (loginParams.Version == null)
-                loginParams.Version = string.Empty;
-
-            if (loginParams.UserAgent == null)
-                loginParams.UserAgent = Settings.USER_AGENT;
-
-            if (loginParams.Platform == null)
-                loginParams.Platform = string.Empty;
-
-            if (loginParams.PlatformVersion == null)
-                loginParams.PlatformVersion = string.Empty;
-
-            if (loginParams.MAC == null)
-                loginParams.MAC = string.Empty;
-
+            
             if (string.IsNullOrEmpty(loginParams.Channel))
             {
-                Logger.Log("Viewer channel not set.", 
-                    Helpers.LogLevel.Warning);
+                Logger.Log("Viewer channel not set.", Helpers.LogLevel.Warning);
                 loginParams.Channel = $"{Settings.USER_AGENT}";
+            }
+
+            if (string.IsNullOrEmpty((loginParams.Version)))
+            {
+                Logger.Log("Viewer version not set.", Helpers.LogLevel.Warning);
+                loginParams.Version = "?.?.?";
             }
 
             if (!string.IsNullOrEmpty(loginParams.LoginLocation))
@@ -1391,16 +1756,8 @@ namespace OpenMetaverse
                         break;
                 }
             }
-
-            if (loginParams.Author == null)
-            {
-                loginParams.Author = string.Empty;
-            }
+            
             #endregion
-
-            // TODO: Allow a user callback to be defined for handling the cert
-            ServicePointManager.ServerCertificateValidationCallback = 
-                (sender, certificate, chain, sslPolicyErrors) => true;
 
             if (Client.Settings.USE_LLSD_LOGIN)
             {
@@ -1651,7 +2008,17 @@ namespace OpenMetaverse
                  * for exclusion from packet processing */
                 if (reply.UDPBlacklist != null)
                 {
-                    UDPBlacklist.AddRange(reply.UDPBlacklist.Split(','));
+                    foreach (var entry in reply.UDPBlacklist.Split(','))
+                    {
+                        if (Enum.TryParse<PacketType>(entry, true, out var result))
+                        {
+                            UDPBlacklist.Add(result);
+                        }
+                        else
+                        {
+                            Logger.Log($"Could not parse {entry} from UDP Blacklist", Helpers.LogLevel.Warning);
+                        }
+                    }
                 }
 
                 // Misc:
@@ -1725,9 +2092,9 @@ namespace OpenMetaverse
         /// <summary>
         /// Handle response from LLSD login replies
         /// </summary>
-        /// <param name="response">Server response as <seealso cref="HttpResponseMessage"/></param>
+        /// <param name="response">Server response as <see cref="HttpResponseMessage"/></param>
         /// <param name="responseData">Payload response data</param>
-        /// <param name="error">Any <seealso cref="Exception"/> returned from the request</param>
+        /// <param name="error">Any <see cref="Exception"/> returned from the request</param>
         private void LoginReplyLLSDHandler(HttpResponseMessage response, byte[] responseData, Exception error)
         {
             if (error != null)

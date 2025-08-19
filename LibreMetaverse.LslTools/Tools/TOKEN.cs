@@ -78,7 +78,7 @@ namespace LibreMetaverse.LslTools
       ParsingInfo parsingInfo = (ParsingInfo) syms.symbolInfo[(object) this.yynum];
       if (parsingInfo == null)
       {
-        string s = string.Format("Parser does not recognise literal {0}", (object) this.yytext);
+        string s = $"Parser does not recognise literal {(object)this.yytext}";
         syms.erh.Error((CSToolsException) new CSToolsFatalException(9, this.yylx, this.yyname, s));
       }
       bool flag = parsingInfo.m_parsetable.Contains((object) snum);

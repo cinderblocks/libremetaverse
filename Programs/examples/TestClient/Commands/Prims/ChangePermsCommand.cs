@@ -7,9 +7,9 @@ namespace OpenMetaverse.TestClient
 {
     public class ChangePermsCommand : Command
     {
-        AutoResetEvent GotPermissionsEvent = new AutoResetEvent(false);
-        Dictionary<UUID, Primitive> Objects = new Dictionary<UUID, Primitive>();
-        PermissionMask Perms = PermissionMask.None;
+        private readonly AutoResetEvent GotPermissionsEvent = new AutoResetEvent(false);
+        private readonly Dictionary<UUID, Primitive> Objects = new Dictionary<UUID, Primitive>();
+        private PermissionMask Perms = PermissionMask.None;
         private bool PermsSent;
         private int PermCount;
 
@@ -24,10 +24,7 @@ namespace OpenMetaverse.TestClient
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            UUID rootID;
-            Primitive rootPrim;
-            List<Primitive> childPrims;
-            List<uint> localIDs = new List<uint>();
+            var localIDs = new List<uint>();
 
             // Reset class-wide variables
             PermsSent = false;
@@ -38,7 +35,7 @@ namespace OpenMetaverse.TestClient
             if (args.Length < 1 || args.Length > 4)
                 return "Usage prim-uuid [copy] [mod] [xfer]";
 
-            if (!UUID.TryParse(args[0], out rootID))
+            if (!UUID.TryParse(args[0], out var rootID))
                 return "Usage prim-uuid [copy] [mod] [xfer]";
 
             for (int i = 1; i < args.Length; i++)
@@ -62,23 +59,31 @@ namespace OpenMetaverse.TestClient
             Logger.DebugLog($"Using PermissionMask: {Perms}", Client);
 
             // Find the requested prim
-            rootPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(prim => prim.ID == rootID);
-            if (rootPrim == null)
-                return $"Cannot find requested prim {rootID}";
-            else
-                Logger.DebugLog($"Found requested prim {rootPrim.ID}", Client);
+            var reqkvp = Client.Network.CurrentSim.ObjectsPrimitives
+                .FirstOrDefault(prim => prim.Value.ID == rootID);
+            if (reqkvp.Value == null)
+            {
+                return $"Cannot find requested object {rootID}"; 
+
+            }
+            var rootPrim = reqkvp.Value;
+            Logger.DebugLog($"Found requested object {rootPrim.ID}", Client);
 
             if (rootPrim.ParentID != 0)
             {
                 // This is not actually a root prim, find the root
                 if (!Client.Network.CurrentSim.ObjectsPrimitives.TryGetValue(rootPrim.ParentID, out rootPrim))
+                {
                     return "Cannot find root prim for requested object";
-                else
-                    Logger.DebugLog($"Set root prim to {rootPrim.ID}", Client);
+                }
+
+                Logger.DebugLog($"Set root prim to {rootPrim.ID}", Client);
             }
 
-            // Find all of the child objects linked to this root
-            childPrims = Client.Network.CurrentSim.ObjectsPrimitives.FindAll(prim => prim.ParentID == rootPrim.LocalID);
+            // Find all the child primitives linked to the root
+            var childPrims = (from kvp 
+                in Client.Network.CurrentSim.ObjectsPrimitives  where kvp.Value != null 
+                select kvp.Value into child where child.ParentID == rootPrim.LocalID select child).ToList();
 
             // Build a dictionary of primitives for referencing later
             Objects[rootPrim.ID] = rootPrim;
@@ -97,7 +102,7 @@ namespace OpenMetaverse.TestClient
                 PermissionMask.Modify, (Perms & PermissionMask.Modify) == PermissionMask.Modify);
             PermsSent = true;
 
-            if (!GotPermissionsEvent.WaitOne(1000 * 30, false))
+            if (!GotPermissionsEvent.WaitOne(TimeSpan.FromSeconds(30), false))
                 return "Failed to set the modify bit, permissions in an unknown state";
 
             PermCount = 0;
@@ -105,7 +110,7 @@ namespace OpenMetaverse.TestClient
                 PermissionMask.Copy, (Perms & PermissionMask.Copy) == PermissionMask.Copy);
             PermsSent = true;
 
-            if (!GotPermissionsEvent.WaitOne(1000 * 30, false))
+            if (!GotPermissionsEvent.WaitOne(TimeSpan.FromSeconds(30), false))
                 return "Failed to set the copy bit, permissions in an unknown state";
 
             PermCount = 0;
@@ -113,7 +118,7 @@ namespace OpenMetaverse.TestClient
                 PermissionMask.Transfer, (Perms & PermissionMask.Transfer) == PermissionMask.Transfer);
             PermsSent = true;
 
-            if (!GotPermissionsEvent.WaitOne(1000 * 30, false))
+            if (!GotPermissionsEvent.WaitOne(TimeSpan.FromSeconds(30), false))
                 return "Failed to set the transfer bit, permissions in an unknown state";
 
             #endregion Set Linkset Permissions
@@ -123,7 +128,7 @@ namespace OpenMetaverse.TestClient
             foreach (Primitive prim in Objects.Values)
             {
                 if ((prim.Flags & PrimFlags.InventoryEmpty) != 0) continue;
-                List<InventoryBase> items = Client.Inventory.GetTaskInventory(prim.ID, prim.LocalID, 1000 * 30);
+                List<InventoryBase> items = Client.Inventory.GetTaskInventory(prim.ID, prim.LocalID, TimeSpan.FromSeconds(30));
 
                 if (items == null) continue;
                 foreach (var item in items.Where(i => !(i is InventoryFolder)).Cast<InventoryItem>())
@@ -138,7 +143,7 @@ namespace OpenMetaverse.TestClient
             return $"Set permissions to {Perms} on {localIDs.Count} objects and {taskItems} inventory items";
         }
 
-        void Objects_OnObjectProperties(object sender, ObjectPropertiesEventArgs e)
+        private void Objects_OnObjectProperties(object sender, ObjectPropertiesEventArgs e)
         {
             if (!PermsSent) { return; }
 

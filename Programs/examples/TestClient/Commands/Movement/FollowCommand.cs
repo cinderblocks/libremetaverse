@@ -33,11 +33,9 @@ namespace OpenMetaverse.TestClient
             }
             else
             {
-                if (Follow(target)) {
-                    return $"Following {target}.";
-                } else {
-                    return $"Unable to follow {target}. Client may not be able to see the target avatar.";
-                }
+                return Follow(target) 
+                    ? $"Following {target}." 
+                    : $"Unable to follow {target}. Client may not be able to see the target avatar.";
             }
 		}
 
@@ -45,18 +43,14 @@ namespace OpenMetaverse.TestClient
         {
             lock (Client.Network.Simulators)
             {
-                foreach (var sim in Client.Network.Simulators)
+                foreach (var target in Client.Network.Simulators
+                             .Select(sim => sim.ObjectsAvatars
+                                 .FirstOrDefault(avatar => avatar.Value.Name == name))
+                             .Where(target => target.Value != null))
                 {
-                    Avatar target = sim.ObjectsAvatars.Find(
-                        avatar => avatar.Name == name
-                    );
-
-                    if (target != null)
-                    {
-                        targetLocalID = target.LocalID;
-                        Active = true;
-                        return true;
-                    }
+                    targetLocalID = target.Value.LocalID;
+                    Active = true;
+                    return true;
                 }
             }
 

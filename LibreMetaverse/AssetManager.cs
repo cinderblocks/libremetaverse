@@ -201,13 +201,13 @@ namespace OpenMetaverse
         public AssetManager.AssetReceivedCallback Callback;
 
         public int nextPacket;
-        public InternalDictionary<int, byte[]> outOfOrderPackets;
+        public LockingDictionary<int, byte[]> outOfOrderPackets;
         internal ManualResetEvent HeaderReceivedEvent = new ManualResetEvent(false);
 
         public AssetDownload()
         {
             nextPacket = 0;
-            outOfOrderPackets = new InternalDictionary<int, byte[]>();
+            outOfOrderPackets = new LockingDictionary<int, byte[]>();
         }
     }
 
@@ -310,7 +310,7 @@ namespace OpenMetaverse
         #region Events
 
         #region XferReceived
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<XferReceivedEventArgs> m_XferReceivedEvent;
 
         /// <summary>Raises the XferReceived event</summary>
@@ -334,7 +334,7 @@ namespace OpenMetaverse
         #endregion
 
         #region AssetUploaded
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<AssetUploadEventArgs> m_AssetUploadedEvent;
 
         /// <summary>Raises the AssetUploaded event</summary>
@@ -358,7 +358,7 @@ namespace OpenMetaverse
         #endregion
 
         #region UploadProgress
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<AssetUploadEventArgs> m_UploadProgressEvent;
 
         /// <summary>Raises the UploadProgress event</summary>
@@ -382,7 +382,7 @@ namespace OpenMetaverse
         #endregion UploadProgress
 
         #region InitiateDownload
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<InitiateDownloadEventArgs> m_InitiateDownloadEvent;
 
         /// <summary>Raises the InitiateDownload event</summary>
@@ -406,7 +406,7 @@ namespace OpenMetaverse
         #endregion InitiateDownload
 
         #region ImageReceiveProgress
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ImageReceiveProgressEventArgs> m_ImageReceiveProgressEvent;
 
         /// <summary>Raises the ImageReceiveProgress event</summary>
@@ -591,7 +591,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Request an asset download
         /// </summary>
         /// <param name="assetID"></param>
         /// <param name="itemID"></param>
@@ -634,8 +634,9 @@ namespace OpenMetaverse
                 return;
             }
 
-            // If ViewerAsset capability exists, use that, if not, fallback to UDP (which is obsoleted on Second Life.)
-            if (Client.Network.CurrentSim?.Caps?.CapabilityURI("ViewerAsset") != null)
+            // If ViewerAsset capability exists and asset is directly fetchable, use that,
+            // if not, fallback to UDP (which is obsoleted on Second Life.)
+            if (CanFetchAsset(assetType) && Client.Network.CurrentSim?.Caps?.CapabilityURI("ViewerAsset") != null)
             {
                 RequestAssetHTTP(assetID, transfer, callback);
             }
@@ -647,7 +648,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Request an asset download via HTTP
         /// </summary>
         /// <param name="assetID"></param>
         /// <param name="transfer"></param>
@@ -739,13 +740,13 @@ namespace OpenMetaverse
         /// Request an asset download through the almost deprecated Xfer system
         /// </summary>
         /// <param name="filename">Filename of the asset to request</param>
-        /// <param name="deleteOnCompletion">Whether or not to delete the asset
+        /// <param name="deleteOnCompletion">Delete the asset
         /// off the server after it is retrieved</param>
         /// <param name="useBigPackets">Use large transfer packets or not</param>
         /// <param name="vFileID">UUID of the file to request, if filename is
         /// left empty</param>
-        /// <param name="vFileType">Asset type of <code>vFileID</code>, or
-        /// <code>AssetType.Unknown</code> if filename is not empty</param>
+        /// <param name="vFileType">Asset type of <paramref name="vFileID"/>, or
+        /// <see cref="AssetType.Unknown" /> if filename is not empty</param>
         /// <param name="fromCache">Sets the FilePath in the request to Cache
         /// (4) if true, otherwise Unknown (0) is used</param>
         /// <returns></returns>
@@ -821,7 +822,7 @@ namespace OpenMetaverse
             }
             
             // If ViewerAsset capability exists, use that, if not, fallback to UDP
-            if (Client.Network.CurrentSim?.Caps?.CapabilityURI("ViewerAsset") != null)
+            if (CanFetchAsset(assetType) && Client.Network.CurrentSim?.Caps?.CapabilityURI("ViewerAsset") != null)
             {
                 RequestInventoryAssetHTTP(assetID, transfer, callback);
             }
@@ -834,7 +835,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Request Inventory Asset from UDP
+        /// Request Inventory Asset via HTTP
         /// </summary>
         /// <param name="assetID">Use UUID.Zero if you do not have the 
         /// asset ID but have all the necessary permissions</param>
@@ -926,9 +927,30 @@ namespace OpenMetaverse
             RequestInventoryAsset(item.AssetUUID, item.UUID, UUID.Zero, item.OwnerID, item.AssetType, priority, transferID, callback);
         }
 
-        public void RequestEstateAsset()
+        public void RequestEstateAsset(AssetDownload transfer, EstateAssetType eat)
         {
-            throw new Exception("This function is not implemented yet!");
+            // Add this transfer to the dictionary
+            lock (Transfers) Transfers[transfer.ID] = transfer;
+            
+            // Build the request packet and send it
+            var request = new TransferRequestPacket
+            {
+                TransferInfo =
+                {
+                    ChannelType = (int) transfer.Channel,
+                    Priority = transfer.Priority,
+                    SourceType = (int) transfer.Source,
+                    TransferID = transfer.ID
+                }
+            };
+            
+            var paramField = new byte[36];
+            Buffer.BlockCopy(Client.Self.AgentID.GetBytes(), 0, paramField, 0, 16);
+            Buffer.BlockCopy(Client.Self.SessionID.GetBytes(), 0, paramField, 16, 16);
+            Buffer.BlockCopy(Utils.IntToBytes((int)eat), 0, paramField, 32, 4);
+            request.TransferInfo.Params = paramField;
+
+            Client.Network.SendPacket(request, transfer.Simulator);
         }
 
 #region Uploads
@@ -945,10 +967,10 @@ namespace OpenMetaverse
         /// <summary>
         /// Request an asset be uploaded to the simulator
         /// </summary>
-        /// <param name="asset">The <seealso cref="Asset"/> Object containing the asset data</param>
+        /// <param name="asset">The <see cref="Asset"/> Object containing the asset data</param>
         /// <param name="storeLocal">If True, the asset once uploaded will be stored on the simulator
         /// in which the client was connected in addition to being stored on the asset server</param>
-        /// <returns>The <seealso cref="UUID"/> of the transfer, can be used to correlate the upload with
+        /// <returns>The <see cref="UUID"/> of the transfer, can be used to correlate the upload with
         /// events being fired</returns>
         public UUID RequestUpload(Asset asset, bool storeLocal)
         {
@@ -964,11 +986,11 @@ namespace OpenMetaverse
         /// <summary>
         /// Request an asset be uploaded to the simulator
         /// </summary>
-        /// <param name="type">The <seealso cref="AssetType"/> of the asset being uploaded</param>
+        /// <param name="type">The <see cref="AssetType"/> of the asset being uploaded</param>
         /// <param name="data">A byte array containing the encoded asset data</param>
         /// <param name="storeLocal">If True, the asset once uploaded will be stored on the simulator
         /// in which the client was connected in addition to being stored on the asset server</param>
-        /// <returns>The <seealso cref="UUID"/> of the transfer, can be used to correlate the upload with
+        /// <returns>The <see cref="UUID"/> of the transfer, can be used to correlate the upload with
         /// events being fired</returns>
         public UUID RequestUpload(AssetType type, byte[] data, bool storeLocal)
         {
@@ -984,7 +1006,7 @@ namespace OpenMetaverse
         /// <param name="data">A byte array containing the encoded asset data</param>
         /// <param name="storeLocal">If True, the asset once uploaded will be stored on the simulator
         /// in which the client was connected in addition to being stored on the asset server</param>
-        /// <returns>The <seealso cref="UUID"/> of the transfer, can be used to correlate the upload with
+        /// <returns>The <see cref="UUID"/> of the transfer, can be used to correlate the upload with
         /// events being fired</returns>
         public UUID RequestUpload(out UUID assetID, AssetType type, byte[] data, bool storeLocal)
         {
@@ -1586,6 +1608,9 @@ namespace OpenMetaverse
                 case AssetType.CallingCard:
                     asset = new AssetCallingCard();
                     break;
+                case AssetType.Settings:
+                    asset = new AssetSettings();
+                    break;
                 default:
                     asset = new AssetMutable(type);
                     Logger.Log("Unimplemented asset type: " + type, Helpers.LogLevel.Error);
@@ -1671,6 +1696,53 @@ namespace OpenMetaverse
             Client.Network.SendPacket(confirm);
         }
 
+        /// <summary>
+        /// Returns whether asset type can be fetched directly from the asset server endpoint
+        /// </summary>
+        /// <param name="assetType">The asset's type</param>
+        /// <returns>Whether this type can be fetched directly</returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        private static bool CanFetchAsset(AssetType assetType)
+        {
+            switch (assetType)
+            {
+                case AssetType.Texture:
+                case AssetType.Sound:
+                case AssetType.Landmark:
+                case AssetType.Clothing:
+                case AssetType.Bodypart:
+                case AssetType.Animation:
+                case AssetType.Gesture:
+                case AssetType.Settings: 
+                case AssetType.Material:
+                    return true;
+                
+                case AssetType.Unknown:
+                case AssetType.CallingCard:
+#pragma warning disable CS0618 // Type or member is obsolete
+                case AssetType.Script:
+#pragma warning restore CS0618 // Type or member is obsolete
+                case AssetType.Object:
+                case AssetType.Notecard:
+                case AssetType.Folder:
+                case AssetType.LSLText:
+                case AssetType.LSLBytecode:
+                case AssetType.TextureTGA:
+                case AssetType.SoundWAV:
+                case AssetType.ImageTGA:
+                case AssetType.ImageJPEG:
+                case AssetType.Simstate:
+                case AssetType.Link:
+                case AssetType.LinkFolder:
+                case AssetType.Mesh:
+                case AssetType.Widget:
+                case AssetType.Person:
+                    return false;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(assetType), assetType, null);
+            }
+        }
+        
 #endregion Helpers
 
 #region Transfer Callbacks

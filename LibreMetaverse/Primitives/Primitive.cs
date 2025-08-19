@@ -25,6 +25,9 @@
  */
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse
@@ -427,7 +430,7 @@ namespace OpenMetaverse
             /// <returns></returns>
             public override string ToString()
             {
-                return String.Format("Color: {0} Intensity: {1} Radius: {2} Cutoff: {3} Falloff: {4}",
+                return string.Format("Color: {0} Intensity: {1} Radius: {2} Cutoff: {3} Falloff: {4}",
                     Color, Intensity, Radius, Cutoff, Falloff);
             }
         }
@@ -519,7 +522,7 @@ namespace OpenMetaverse
             /// <returns></returns>
             public override string ToString()
             {
-                return String.Format("LightTexture: {0} Params; {1}", LightTexture, Params);
+                return $"LightTexture: {LightTexture} Params; {Params}";
             }
         }
 
@@ -677,16 +680,16 @@ namespace OpenMetaverse
             /// </summary>
             public ObjectProperties()
             {
-                Name = String.Empty;
-                Description = String.Empty;
-                TouchName = String.Empty;
-                SitName = String.Empty;
+                Name = string.Empty;
+                Description = string.Empty;
+                TouchName = string.Empty;
+                SitName = string.Empty;
             }
 
             /// <summary>
             /// Set the properties that are set in an ObjectPropertiesFamily packet
             /// </summary>
-            /// <param name="props"><seealso cref="ObjectProperties"/> that has
+            /// <param name="props"><see cref="ObjectProperties"/> that has
             /// been partially filled by an ObjectPropertiesFamily packet</param>
             public void SetFamilyProperties(ObjectProperties props)
             {
@@ -816,6 +819,7 @@ namespace OpenMetaverse
         public LightImage LightMap;
         /// <summary></summary>
         public SculptData Sculpt;
+        public UInt32 ExtendedMeshFlags;
         /// <summary></summary>
         public ClickAction ClickAction;
         /// <summary></summary>
@@ -855,8 +859,25 @@ namespace OpenMetaverse
         public bool IsAttachment;
         /// <summary>Number of clients referencing this prim</summary>
         public int ActiveClients = 0;
+        /// <summary>
+        /// CRC32 of the primitive data structure, as delivered over the network.
+        /// </summary>
+        public uint CRC;
+        /// <summary>
+        /// Number of children, indicated via the network.
+        /// </summary>
+        public int ChildCount;
 
-        #endregion Public Members
+        public virtual IEnumerable<Primitive> GetChildren(GridClient client)
+        {
+            var sim = client.Network.FindSimulator(RegionHandle);
+            return sim != null 
+                ? sim.ObjectsPrimitives.Where(p => p.Value.ParentID == LocalID)
+                    .Select(p => p.Value) 
+                : Array.Empty<Primitive>();
+        }
+
+#endregion Public Members
 
         #region Properties
 
@@ -941,8 +962,8 @@ namespace OpenMetaverse
         public Primitive()
         {
             // Default a few null property values to String.Empty
-            Text = String.Empty;
-            MediaURL = String.Empty;
+            Text = string.Empty;
+            MediaURL = string.Empty;
         }
 
         public Primitive(Primitive prim)
@@ -1050,7 +1071,7 @@ namespace OpenMetaverse
             else
             {
                 prim["name"] = OSD.FromString("Object");
-                prim["description"] = OSD.FromString(String.Empty);
+                prim["description"] = OSD.FromString(string.Empty);
             }
 
             prim["phantom"] = OSD.FromBoolean(((Flags & PrimFlags.Phantom) != 0));
@@ -1206,6 +1227,10 @@ namespace OpenMetaverse
                     LightMap = new LightImage(data, i);
                 else if (type == ExtraParamType.Sculpt || type == ExtraParamType.Mesh)
                     Sculpt = new SculptData(data, i);
+                else if (type == ExtraParamType.ExtendedMesh)
+                {
+                    ExtendedMeshFlags = Utils.BytesToUInt(data, i);
+                }
 
                 i += (int)paramLength;
                 totalLength += (int)paramLength + 6;
@@ -1328,9 +1353,9 @@ namespace OpenMetaverse
             switch (PrimData.PCode)
             {
                 case PCode.Prim:
-                    return String.Format("{0} ({1})", Type, ID);
+                    return $"{Type} ({ID})";
                 default:
-                    return String.Format("{0} ({1})", PrimData.PCode, ID);
+                    return $"{PrimData.PCode} ({ID})";
             }
         }
 
@@ -1389,18 +1414,18 @@ namespace OpenMetaverse
 
         public static bool operator ==(Primitive lhs, Primitive rhs)
         {
-            if ((Object)lhs == null || (Object)rhs == null)
+            if ((object)lhs == null || (object)rhs == null)
             {
-                return (Object)rhs == (Object)lhs;
+                return (object)rhs == (object)lhs;
             }
             return (lhs.ID == rhs.ID);
         }
 
         public static bool operator !=(Primitive lhs, Primitive rhs)
         {
-            if ((Object)lhs == null || (Object)rhs == null)
+            if ((object)lhs == null || (object)rhs == null)
             {
-                return (Object)rhs != (Object)lhs;
+                return (object)rhs != (object)lhs;
             }
             return !(lhs.ID == rhs.ID);
         }

@@ -23,7 +23,6 @@ namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
             // WARNING: Uses local copy of inventory contents, need to download them first.
             List<InventoryBase> contents = Inventory.GetContents(Client.CurrentDirectory);
             string displayString = "";
-            string nl = "\n"; // New line character
             // Pretty simple, just print out the contents.
             foreach (InventoryBase b in contents)
             {
@@ -49,7 +48,7 @@ namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
                         displayString += PermMaskString(item.Permissions.EveryoneMask);
                         displayString += " " + item.UUID;
                         displayString += " " + item.Name;
-                        displayString += nl;
+                        displayString += '\n';
                         displayString += "  AssetID: " + item.AssetUUID;
                     }
                 }
@@ -57,7 +56,7 @@ namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
                 {
                     displayString += b.Name;
                 }
-                displayString += nl;
+                displayString += '\n';
             }
             return displayString;
         }

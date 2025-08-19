@@ -41,7 +41,7 @@ namespace OpenMetaverse.TestClient
             Client.Friends.FriendFoundReply += del;
             WaitforFriend.Reset();
             Client.Friends.MapFriend(targetID);
-            if (!WaitforFriend.WaitOne(10000, false))
+            if (!WaitforFriend.WaitOne(TimeSpan.FromSeconds(10), false))
             {
                 sb.AppendFormat("Timeout waiting for reply, Do you have mapping rights on {0}?", targetID);
             }

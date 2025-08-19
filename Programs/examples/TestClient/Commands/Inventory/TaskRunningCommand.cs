@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace OpenMetaverse.TestClient
@@ -16,21 +17,24 @@ namespace OpenMetaverse.TestClient
         public override string Execute(string[] args, UUID fromAgentID)
         {
             if (args.Length != 1)
+            {
                 return "Usage: taskrunning objectID [[scriptName] true|false]";
+            }
 
-            uint objectLocalID;
-            UUID objectID;
-
-            if (!UUID.TryParse(args[0], out objectID))
+            if (!UUID.TryParse(args[0], out var objectID))
+            {
                 return "Usage: taskrunning objectID [[scriptName] true|false]";
+            }
 
-            Primitive found = Client.Network.CurrentSim.ObjectsPrimitives.Find(prim => prim.ID == objectID);
-            if (found != null)
-                objectLocalID = found.LocalID;
-            else
-                return $"Couldn't find prim {objectID}";
+            var found = Client.Network.CurrentSim.ObjectsPrimitives.FirstOrDefault(prim => prim.Value.ID == objectID);
+            if (found.Value == null)
+            {
+                return $"Couldn't find object {objectID}";
+            }
+            
+            var objectLocalID = found.Value.LocalID;
 
-            List<InventoryBase> items = Client.Inventory.GetTaskInventory(objectID, objectLocalID, 1000 * 30);
+            List<InventoryBase> items = Client.Inventory.GetTaskInventory(objectID, objectLocalID, TimeSpan.FromSeconds(30));
 
             //bool wantSet = false;
             bool setTaskTo = false;

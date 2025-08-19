@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2022, Sjofn, LLC.
+ * Copyright (c) 2022-2025, Sjofn, LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Packets;
@@ -158,16 +159,15 @@ namespace OpenMetaverse
         public uint GlobalY;
 
         /// <summary>Get the Local X position of the item</summary>
-        public uint LocalX { get { return GlobalX % Simulator.DefaultRegionSizeX; } }
+        public uint LocalX => GlobalX % Simulator.DefaultRegionSizeX;
+
         /// <summary>Get the Local Y position of the item</summary>
-        public uint LocalY { get { return GlobalY % Simulator.DefaultRegionSizeY; } }
+        public uint LocalY => GlobalY % Simulator.DefaultRegionSizeY;
 
         /// <summary>Get the Handle of the region</summary>
-        public ulong RegionHandle
-        {
-            get { return Utils.UIntsToLong((uint)(GlobalX - (GlobalX % Simulator.DefaultRegionSizeX)),
-                                    (uint)(GlobalY - (GlobalY % Simulator.DefaultRegionSizeY))); }
-        }
+        public ulong RegionHandle =>
+            Utils.UIntsToLong((uint)(GlobalX - (GlobalX % Simulator.DefaultRegionSizeX)),
+                (uint)(GlobalY - (GlobalY % Simulator.DefaultRegionSizeY)));
     }
 
     /// <summary>
@@ -378,8 +378,10 @@ namespace OpenMetaverse
         internal Dictionary<string, GridRegion> Regions = new Dictionary<string, GridRegion>();
         /// <summary>A dictionary of all the regions, indexed by region handle</summary>
         internal Dictionary<ulong, GridRegion> RegionsByHandle = new Dictionary<ulong, GridRegion>();
+        /// <summary>A dictionary of regions by region handle</summary>
+        internal Dictionary<UUID, ulong> RegionsByUUID = new Dictionary<UUID, ulong>();
 
-		private readonly GridClient Client;
+        private readonly GridClient Client;
 
         /// <summary>
         /// Constructor
@@ -400,7 +402,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Request a map layer from simulator capability
         /// </summary>
-        /// <param name="layer">Requested <seealso cref="GridLayerType"/></param>
+        /// <param name="layer">Requested <see cref="GridLayerType"/></param>
         public void RequestMapLayer(GridLayerType layer)
         {
             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("MapLayer");
@@ -416,7 +418,7 @@ namespace OpenMetaverse
         /// Request a map layer through the simulator
         /// </summary>
         /// <param name="regionName">The name of the region</param>
-        /// <param name="layer">Requested <seealso cref="GridLayerType"/></param>
+        /// <param name="layer">Requested <see cref="GridLayerType"/></param>
         public void RequestMapRegion(string regionName, GridLayerType layer)
         {
             MapNameRequestPacket request = new MapNameRequestPacket
@@ -431,7 +433,7 @@ namespace OpenMetaverse
                 },
                 NameData =
                 {
-                    Name = Utils.StringToBytes(regionName)
+                    Name = Utils.StringToBytes(regionName.ToLowerInvariant())
                 }
             };
 
@@ -473,14 +475,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Returns a list of map items
         /// </summary>
         /// <param name="regionHandle"></param>
         /// <param name="item"></param>
         /// <param name="layer"></param>
-        /// <param name="timeoutMS"></param>
-        /// <returns></returns>
-        public List<MapItem> MapItems(ulong regionHandle, GridItemType item, GridLayerType layer, int timeoutMS)
+        /// <param name="timeout"></param>
+        /// <returns>List of Map items</returns>
+        public List<MapItem> MapItems(ulong regionHandle, GridItemType item, GridLayerType layer, TimeSpan timeout)
         {
             List<MapItem> itemList = null;
             AutoResetEvent itemsEvent = new AutoResetEvent(false);
@@ -497,7 +499,7 @@ namespace OpenMetaverse
             GridItems += Callback;
 
             RequestMapItems(regionHandle, item, layer);
-            itemsEvent.WaitOne(timeoutMS, false);
+            itemsEvent.WaitOne(timeout, false);
 
             GridItems -= Callback;
 
@@ -505,11 +507,11 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Request <seealso cref="GridItemType"/> for a given region
+        /// Request <see cref="GridItemType"/> for a given region
         /// </summary>
         /// <param name="regionHandle">Requested region handle</param>
-        /// <param name="item"><seealso cref="GridItemType"/> being requested</param>
-        /// <param name="layer"><seealso cref="GridLayerType"/> being requested</param>
+        /// <param name="item"><see cref="GridItemType"/> being requested</param>
+        /// <param name="layer"><see cref="GridLayerType"/> being requested</param>
         public void RequestMapItems(ulong regionHandle, GridItemType item, GridLayerType layer)
         {
             MapItemRequestPacket request = new MapItemRequestPacket
@@ -546,6 +548,23 @@ namespace OpenMetaverse
         /// <param name="regionID">UUID of the region to look up</param>
         public void RequestRegionHandle(UUID regionID)
         {
+            ulong handle = 0;
+            bool found = false;
+            lock (RegionsByUUID)
+            {
+                found = RegionsByUUID.TryGetValue(regionID, out handle);
+            }
+
+            if (found)
+            {
+                if (m_RegionHandleReply != null)
+                {
+                    OnRegionHandleReply(new RegionHandleReplyEventArgs(regionID, handle));
+                }
+
+                return;
+            }
+
             RegionHandleRequestPacket request = new RegionHandleRequestPacket
             {
                 RequestBlock = new RegionHandleRequestPacket.RequestBlockBlock
@@ -557,15 +576,68 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Retrieves <seealso cref="GridRegion"/> information using the region name
+        /// Retrieves <see cref="GridRegion"/> information using the region handle
         /// </summary>
         /// <remarks>This function will block until it can find the region or gives up</remarks>
-        /// <param name="name">Name of requested <seealso cref="GridRegion"/></param>
-        /// <param name="layer"><seealso cref="GridLayerType"/> for the
-        /// <seealso cref="GridRegion"/> being requested</param>
-        /// <param name="region">Output for the fetched <seealso cref="GridRegion"/>,
+        /// <param name="handle">Region Handle of requested <see cref="GridRegion"/></param>
+        /// <param name="layer"><see cref="GridLayerType"/> for the
+        /// <see cref="GridRegion"/> being requested</param>
+        /// <param name="region">Output for the fetched <see cref="GridRegion"/>,
         /// or empty struct if failure</param>
-        /// <returns>True if the <seealso cref="GridRegion"/> was fetched, otherwise false</returns>
+        /// <returns>True if the <see cref="GridRegion"/> was fetched, otherwise false</returns>
+        public bool GetGridRegion(ulong handle, GridLayerType layer, out GridRegion region)
+        {
+            // Check if cached
+            if (RegionsByHandle.TryGetValue(handle, out region))
+            {
+                return true;
+            }
+
+            Utils.LongToUInts(handle, out var globalX, out var globalY);
+            const uint regionWidthUnits = 256;
+            ushort gridX = (ushort)(globalX / regionWidthUnits);
+            ushort gridY = (ushort)(globalY / regionWidthUnits);
+
+            // Ask the server for the name of the region anchored at the specified grid position.
+            AutoResetEvent regionEvent = new AutoResetEvent(false);
+
+            GridRegion foundRegion = default(GridRegion);
+            bool found = false;
+
+            void RegionCallback(object sender, GridRegionEventArgs e)
+            {   // See note in HandleCallback, above.
+                if (e.Region.RegionHandle == handle)
+                {
+                    found = true;
+                    foundRegion = e.Region;
+                    regionEvent.Set();
+                }
+            }
+
+            GridRegion += RegionCallback;
+            RequestMapBlocks(layer, gridX, gridY, gridX, gridY, true);
+            regionEvent.WaitOne(Client.Settings.MAP_REQUEST_TIMEOUT, false);
+            GridRegion -= RegionCallback;
+            region = foundRegion;
+
+            if (!found)
+            {
+                Logger.Log($"Could not find region at region handle {handle}", Helpers.LogLevel.Warning, Client);
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// Retrieves <see cref="GridRegion"/> information using the region name
+        /// </summary>
+        /// <remarks>This function will block until it can find the region or gives up</remarks>
+        /// <param name="name">Name of requested <see cref="GridRegion"/></param>
+        /// <param name="layer"><see cref="GridLayerType"/> for the
+        /// <see cref="GridRegion"/> being requested</param>
+        /// <param name="region">Output for the fetched <see cref="GridRegion"/>,
+        /// or empty struct if failure</param>
+        /// <returns>True if the <see cref="GridRegion"/> was fetched, otherwise false</returns>
         public bool GetGridRegion(string name, GridLayerType layer, out GridRegion region)
         {
             if (string.IsNullOrEmpty(name))
@@ -575,10 +647,10 @@ namespace OpenMetaverse
                 return false;
             }
 
-            if (Regions.ContainsKey(name))
+            if (Regions.ContainsKey(name.ToLowerInvariant()))
             {
                 // We already have this GridRegion structure
-                region = Regions[name];
+                region = Regions[name.ToLowerInvariant()];
                 return true;
             }
 
@@ -586,7 +658,7 @@ namespace OpenMetaverse
 
             void Callback(object sender, GridRegionEventArgs e)
             {
-                if (e.Region.Name == name)
+                if (string.Equals(e.Region.Name, name, StringComparison.InvariantCultureIgnoreCase))
                 {
                     regionEvent.Set();
                 }
@@ -599,10 +671,10 @@ namespace OpenMetaverse
 
             GridRegion -= Callback;
 
-            if (Regions.ContainsKey(name))
+            if (Regions.ContainsKey(name.ToLowerInvariant()))
             {
                 // The region was found after our request
-                region = Regions[name];
+                region = Regions[name.ToLowerInvariant()];
                 return true;
             }
             else
@@ -675,7 +747,7 @@ namespace OpenMetaverse
 
                     lock (Regions)
                     {
-                        Regions[region.Name] = region;
+                        Regions[region.Name.ToLowerInvariant()] = region;
                         RegionsByHandle[region.RegionHandle] = region;
                     }
 
@@ -816,11 +888,11 @@ namespace OpenMetaverse
             CoarseLocationUpdatePacket coarse = (CoarseLocationUpdatePacket)e.Packet;
 
             // populate a dictionary from the packet, for local use
-            Dictionary<UUID, Vector3> coarseEntries = new Dictionary<UUID, Vector3>();
+            var coarseEntries = new Dictionary<UUID, Vector3>();
             for (int i = 0; i < coarse.AgentData.Length; i++)
             {
                 if(coarse.Location.Length > 0)
-                    coarseEntries[coarse.AgentData[i].AgentID] = new Vector3((int)coarse.Location[i].X, (int)coarse.Location[i].Y, (int)coarse.Location[i].Z * 4);
+                    coarseEntries[coarse.AgentData[i].AgentID] = new Vector3(coarse.Location[i].X, coarse.Location[i].Y, coarse.Location[i].Z * 4);
 
                 // the friend we are tracking on radar
                 if (i == coarse.Index.Prey)
@@ -828,31 +900,36 @@ namespace OpenMetaverse
             }
 
             // find stale entries (people who left the sim)
-            List<UUID> removedEntries = e.Simulator.avatarPositions.FindAll(
-                findID => !coarseEntries.ContainsKey(findID));
+            var removedEntries = e.Simulator.avatarPositions.Keys.Where(
+                avatarId => !coarseEntries.ContainsKey(avatarId))
+                .ToList();
 
-            // anyone who was not listed in the previous update
-            List<UUID> newEntries = new List<UUID>();
+            // entry not listed in the previous update
+            var newEntries = new List<UUID>();
 
-            lock (e.Simulator.avatarPositions.Dictionary)
+            lock (e.Simulator.avatarPositions)
             {
                 // remove stale entries
-                foreach(UUID trackedID in removedEntries)
-                    e.Simulator.avatarPositions.Dictionary.Remove(trackedID);
+                foreach (var trackedID in removedEntries)
+                {
+                    e.Simulator.avatarPositions.TryRemove(trackedID, out var removed);
+                }
 
                 // add or update tracked info, and record who is new
-                foreach (KeyValuePair<UUID, Vector3> entry in coarseEntries)
+                foreach (var entry in coarseEntries)
                 {
-                    if (!e.Simulator.avatarPositions.Dictionary.ContainsKey(entry.Key))
+                    if (!e.Simulator.avatarPositions.ContainsKey(entry.Key))
+                    {
                         newEntries.Add(entry.Key);
-
-                    e.Simulator.avatarPositions.Dictionary[entry.Key] = entry.Value;
+                    }
+                    e.Simulator.avatarPositions.AddOrUpdate(entry.Key, entry.Value, 
+                        (uuid, vector3) => entry.Value);
                 }
             }
 
             if (m_CoarseLocationUpdate != null)
             {
-                ThreadPool.QueueUserWorkItem((object o) =>
+                ThreadPool.QueueUserWorkItem(o =>
                 { OnCoarseLocationUpdate(new CoarseLocationUpdateEventArgs(e.Simulator, newEntries, removedEntries)); });
             }
         }
@@ -861,10 +938,16 @@ namespace OpenMetaverse
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void RegionHandleReplyHandler(object sender, PacketReceivedEventArgs e)
-        {            
+        {
+            RegionIDAndHandleReplyPacket reply = (RegionIDAndHandleReplyPacket)e.Packet;
+
+            lock (RegionsByUUID)
+            {
+                RegionsByUUID[reply.ReplyBlock.RegionID] = reply.ReplyBlock.RegionHandle;
+            }
+
             if (m_RegionHandleReply != null)
             {
-                RegionIDAndHandleReplyPacket reply = (RegionIDAndHandleReplyPacket)e.Packet;
                 OnRegionHandleReply(new RegionHandleReplyEventArgs(reply.ReplyBlock.RegionID, reply.ReplyBlock.RegionHandle));
             }
         }
@@ -875,10 +958,10 @@ namespace OpenMetaverse
     public class CoarseLocationUpdateEventArgs : EventArgs
     {
         public Simulator Simulator { get; }
-        public List<UUID> NewEntries { get; }
-        public List<UUID> RemovedEntries { get; }
+        public ICollection<UUID> NewEntries { get; }
+        public ICollection<UUID> RemovedEntries { get; }
 
-        public CoarseLocationUpdateEventArgs(Simulator simulator, List<UUID> newEntries, List<UUID> removedEntries)
+        public CoarseLocationUpdateEventArgs(Simulator simulator, ICollection<UUID> newEntries, ICollection<UUID> removedEntries)
         {
             this.Simulator = simulator;
             this.NewEntries = newEntries;

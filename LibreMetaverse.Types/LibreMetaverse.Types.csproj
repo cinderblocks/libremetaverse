@@ -1,41 +1,21 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>LibreMetaverse.Types</AssemblyName>
-	<PackageId>LibreMetaverse.Types</PackageId>
-	<Description>LibreMetaverse type library</Description>
-    <TargetFrameworks>net48;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
+    <PackageId>LibreMetaverse.Types</PackageId>
+    <Description>LibreMetaverse type library</Description>
+    <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-	<IncludeSymbols>true</IncludeSymbols>
-	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-	<NoWarn>0419,1574,1591</NoWarn>
-    <Platforms>x64;x86;AnyCPU</Platforms>
-	<OutputPath>..\bin\</OutputPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
-    <DefineConstants>TRACE;DEBUG</DefineConstants>
-    <Optimize>False</Optimize>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <DefineConstants>TRACE;DEBUG</DefineConstants>
-    <Optimize>False</Optimize>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <NoWarn>$(NoWarn);CS0419;CS1591;CS1574</NoWarn>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <OutputPath>..\bin\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>TRACE;DEBUG</DefineConstants>
     <Optimize>False</Optimize>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-	<GenerateDocumentationFile>true</GenerateDocumentationFile>
-	<DebugType>pdbonly</DebugType>
-	<DefineConstants>TRACE</DefineConstants>
-    <Optimize>True</Optimize>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-	<GenerateDocumentationFile>true</GenerateDocumentationFile>
-	<DebugType>pdbonly</DebugType>
-	<DefineConstants>TRACE</DefineConstants>
-    <Optimize>True</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -44,8 +24,8 @@
     <Optimize>True</Optimize>
   </PropertyGroup>
   <ItemGroup>
-	<None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
-	<None Include="..\README.md" Pack="true" PackagePath="\" />
-	<None Include="..\data\logo.png" Pack="true" PackagePath="\" />
+    <None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\data\logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>

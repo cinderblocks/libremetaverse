@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -25,6 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using System.IO;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
@@ -49,7 +50,7 @@ namespace OpenMetaverse
         public const string ADITI_LOGIN_SERVER = "https://login.aditi.lindenlab.com/cgi-bin/login.cgi";
 
         /// <summary>The relative directory where external resources are kept</summary>
-        public static string RESOURCE_DIR = "openmetaverse_data";
+        public static string RESOURCE_DIR = "linden";
 
         /// <summary>Login server to connect to</summary>
         public string LOGIN_SERVER = AGNI_LOGIN_SERVER;
@@ -126,11 +127,11 @@ namespace OpenMetaverse
         public const int PING_INTERVAL = 2200;
 
         /// <summary>Number of milliseconds between sending camera updates</summary>
-        public const int DEFAULT_AGENT_UPDATE_INTERVAL = 500;
+        public int DEFAULT_AGENT_UPDATE_INTERVAL = 500;
 
         /// <summary>Number of milliseconds between updating the current
         /// positions of moving, non-accelerating and non-colliding objects</summary>
-        public const int INTERPOLATION_INTERVAL = 250;
+        public int INTERPOLATION_INTERVAL = 250;
 
         /// <summary>Millisecond interval between ticks, where all ACKs are 
         /// sent out and the age of unACKed packets is checked</summary>
@@ -182,8 +183,11 @@ namespace OpenMetaverse
         /// TerrainManager</summary>
         public bool STORE_LAND_PATCHES = false;
 
-        /// <summary>Enable/disable sending periodic camera updates</summary>
+        /// <summary>Enable/disable sending agent updates</summary>
         public bool SEND_AGENT_UPDATES = true;
+
+        /// <summary>Enable/disable sending periodic agent updates</summary>
+        public bool SEND_AGENT_UPDATES_REGULARLY = true;
 
         /// <summary>Enable/disable automatically setting agent appearance at
         /// login and after sim crossing</summary>
@@ -225,19 +229,19 @@ namespace OpenMetaverse
         /// re-establish a connection. Set this to true to log those 502 errors</summary>
         public bool LOG_ALL_CAPS_ERRORS = false;
 
-        /// <summary>If true, and <code>SEND_AGENT_UPDATES</code> is true,
+        /// <summary>If true, and <see cref="SEND_AGENT_UPDATES"/> is true,
         /// AgentUpdate packets will continuously be sent out to give the bot
         /// smoother movement and autopiloting</summary>
         public bool DISABLE_AGENT_UPDATE_DUPLICATE_CHECK = true;
 
         /// <summary>If true, currently visible avatars will be stored
-        /// in dictionaries inside <code>Simulator.ObjectAvatars</code>.
+        /// in dictionaries inside <see cref="Simulator.ObjectAvatars"/>.
         /// If false, a new Avatar or Primitive object will be created
         /// each time an object update packet is received</summary>
         public bool AVATAR_TRACKING = true;
 
         /// <summary>If true, currently visible avatars will be stored
-        /// in dictionaries inside <code>Simulator.ObjectPrimitives</code>.
+        /// in dictionaries inside <see cref="Simulator.ObjectPrimitives"/>.
         /// If false, a new Avatar or Primitive object will be created
         /// each time an object update packet is received</summary>
         public bool OBJECT_TRACKING = true;
@@ -258,7 +262,7 @@ namespace OpenMetaverse
         #region Parcel Tracking
 
         /// <summary>If true, parcel details will be stored in the 
-        /// <code>Simulator.Parcels</code> dictionary as they are received</summary>
+        /// <see cref="Simulator.Parcels" /> dictionary as they are received</summary>
         public bool PARCEL_TRACKING = true;
 
         /// <summary>
@@ -283,7 +287,7 @@ namespace OpenMetaverse
         public bool USE_ASSET_CACHE = true;
 
         /// <summary>Path to store cached texture data</summary>
-        public string ASSET_CACHE_DIR = RESOURCE_DIR + "/cache";
+        public string ASSET_CACHE_DIR = Path.Combine(RESOURCE_DIR, "cache");
 
         /// <summary>Maximum size cached files are allowed to take on disk (bytes)</summary>
         public long ASSET_CACHE_MAX_SIZE = 1024 * 1024 * 1024; // 1GB
@@ -306,6 +310,11 @@ namespace OpenMetaverse
 
         #endregion
         #region Texture Pipeline
+
+        /// <summary>
+        /// Enable texture pipeline, will use a thread.
+        /// </summary>
+        public bool USE_TEXTURE_PIPELINE = true;
 
         /// <summary>
         /// Download textures using GetTexture capability when available

@@ -99,7 +99,7 @@ namespace LibreMetaverse.LslTools
     {
       int num = this.m_rhs.Count + 1;
       CSymbol rh = (CSymbol) this.m_rhs[ix - 1];
-      str += string.Format("\n\t(({0})(yyq.StackAt({1}).m_value))\n\t", (object) rh.TypeStr(), (object) (num - ix - 1));
+      str += $"\n\t(({(object)rh.TypeStr()})(yyq.StackAt({(object)(num - ix - 1)}).m_value))\n\t";
     }
 
     public static object Serialise(object o, Serialiser s)

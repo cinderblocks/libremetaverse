@@ -1,5 +1,4 @@
-using System;
-using System.Collections.Generic;
+using System.Linq;
 
 namespace OpenMetaverse.TestClient
 {
@@ -15,20 +14,19 @@ namespace OpenMetaverse.TestClient
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            List<Primitive> attachments = Client.Network.CurrentSim.ObjectsPrimitives.FindAll(
-                prim => prim.ParentID == Client.Self.LocalID
-            );
+            var attachments = (from kvp in Client.Network.CurrentSim.ObjectsPrimitives 
+                where kvp.Value != null where kvp.Value.ParentID == Client.Self.LocalID select kvp.Value).ToList();
 
             foreach (var prim in attachments)
             {
-                AttachmentPoint point = StateToAttachmentPoint(prim.PrimData.State);
+                var point = StateToAttachmentPoint(prim.PrimData.State);
 
-                // TODO: Fetch properties for the objects with missing property sets so we can show names
+                // TODO: Fetch properties for the objects with missing property sets, so we can show names
                 Logger.Log($"[Attachment @ {point}] LocalID: {prim.LocalID} UUID: {prim.ID} Offset: {prim.Position}", 
                     Helpers.LogLevel.Info, Client);
             }
 
-            return "Found " + attachments.Count + " attachments";
+            return $"Found {attachments.Count} attachments";
         }
 
         public static AttachmentPoint StateToAttachmentPoint(uint state)

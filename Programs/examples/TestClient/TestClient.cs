@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Reflection;
 using OpenMetaverse.Packets;
-using LibreMetaverse.Voice;
+using LibreMetaverse.Voice.Vivox;
 
 namespace OpenMetaverse.TestClient
 {
@@ -130,8 +130,8 @@ namespace OpenMetaverse.TestClient
         /// <summary>
         /// Initialize everything that needs to be initialized once we're logged in.
         /// </summary>
-        /// <param name="login">The status of the login</param>
-        /// <param name="message">Error message on failure, MOTD on success.</param>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         public void LoginHandler(object sender, LoginProgressEventArgs e)
         {
             if (e.Status == LoginStatus.Success)
@@ -174,7 +174,7 @@ namespace OpenMetaverse.TestClient
         {
             Groups.CurrentGroups += Groups_CurrentGroups;            
             Groups.RequestCurrentGroups();
-            GroupsEvent.WaitOne(10000, false);
+            GroupsEvent.WaitOne(TimeSpan.FromSeconds(10), false);
             Groups.CurrentGroups -= Groups_CurrentGroups;
             GroupsEvent.Reset();
         }

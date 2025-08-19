@@ -1,44 +1,22 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-	<RootNamespace>LibreMetaverse.PrimMesher</RootNamespace>
+    <RootNamespace>LibreMetaverse.PrimMesher</RootNamespace>
     <AssemblyName>LibreMetaverse.PrimMesher</AssemblyName>
-	<PackageId>LibreMetaverse.PrimMesher</PackageId>
-	<OutputType>Library</OutputType>
-    <TargetFrameworks>net48;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
+    <PackageId>LibreMetaverse.PrimMesher</PackageId>
+    <OutputType>Library</OutputType>
+    <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
     <Authors>Dhalia Trimble, Sjofn LLC, OpenMetaverse Developers</Authors>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-	<IncludeSymbols>true</IncludeSymbols>
-	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-	<NoWarn>0419,1574,1591</NoWarn>
-	<Platforms>x64;x86;AnyCPU</Platforms>
-	<OutputPath>..\bin\</OutputPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <DefineConstants>TRACE;DEBUG;VERTEX_INDEXER</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <DefineConstants>TRACE;DEBUG;VERTEX_INDEXER</DefineConstants>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <NoWarn>$(NoWarn);CS0419;CS1591;CS1574</NoWarn>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <OutputPath>..\bin\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <DefineConstants>TRACE;DEBUG;VERTEX_INDEXER</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-	<GenerateDocumentationFile>true</GenerateDocumentationFile>
-	<DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <DefineConstants>TRACE;VERTEX_INDEXER</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-	<GenerateDocumentationFile>true</GenerateDocumentationFile>
-	<DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <DefineConstants>TRACE;VERTEX_INDEXER</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -47,11 +25,11 @@
     <DefineConstants>TRACE;VERTEX_INDEXER</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="7.0.0" />
+    <None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\data\logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
-	<None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
-	<None Include="..\README.md" Pack="true" PackagePath="\" />
-	<None Include="..\data\logo.png" Pack="true" PackagePath="\" />
+    <PackageReference Include="SkiaSharp" Version="3.119.0" />
   </ItemGroup>
 </Project>

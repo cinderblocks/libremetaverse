@@ -35,14 +35,9 @@ namespace OpenMetaverse.Assets
         public byte[] AssetData;
         /// <summary>True if the asset it only stored on the server temporarily</summary>
         public bool Temporary;
-        /// <summary>A unique ID</summary>
-        private UUID _AssetID;
+
         /// <summary>The assets unique ID</summary>
-        public UUID AssetID
-        {
-            get { return _AssetID; }
-            internal set { _AssetID = value; }
-        }
+        public UUID AssetID { get; internal set; }
 
         /// <summary>
         /// The "type" of asset, Notecard, Animation, etc
@@ -64,12 +59,12 @@ namespace OpenMetaverse.Assets
         /// <param name="assetData">A byte array containing the raw asset data</param>
         protected Asset(UUID assetID, byte[] assetData)
         {
-            _AssetID = assetID;
+            AssetID = assetID;
             AssetData = assetData;
         }
 
         /// <summary>
-        /// Regenerates the <code>AssetData</code> byte array from the properties 
+        /// Regenerates the <see cref="AssetData"/>> byte array from the properties 
         /// of the derived class.
         /// </summary>
         public abstract void Encode();

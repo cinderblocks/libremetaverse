@@ -46,7 +46,7 @@ namespace OpenMetaverse.TestClient.Commands
 
             UUID searchID = Client.Directory.StartClassifiedSearch(searchText, DirectoryManager.ClassifiedCategories.Any,  DirectoryManager.ClassifiedQueryFlags.Mature | DirectoryManager.ClassifiedQueryFlags.PG);
 
-            if (!waitQuery.WaitOne(20000, false) && Client.Network.Connected)
+            if (!waitQuery.WaitOne(TimeSpan.FromSeconds(20), false) && Client.Network.Connected)
             {
                 result.AppendLine("Timeout waiting for simulator to respond to query.");
             }

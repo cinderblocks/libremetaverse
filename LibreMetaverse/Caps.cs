@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2019-2024, Sjofn LLC.
+ * Copyright (c) 2019-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -36,6 +36,7 @@ using OpenMetaverse.StructuredData;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Http;
 using System.Net.Http;
+using LibreMetaverse;
 
 namespace OpenMetaverse
 {
@@ -64,14 +65,16 @@ namespace OpenMetaverse
         internal Dictionary<string, Uri> _Caps = new Dictionary<string, Uri>();
 
         private CancellationTokenSource _HttpCts = new CancellationTokenSource();
-        private EventQueueClient _EventQueueCap = null;
+        private EventQueueClient _EventQueueClient = null;
 
         /// <summary>Capabilities URI this system was initialized with</summary>
         public Uri SeedCapsURI => _SeedCapsURI;
 
         /// <summary>Whether the capabilities event queue is connected and
         /// listening for incoming events</summary>
-        public bool IsEventQueueRunning => _EventQueueCap != null && _EventQueueCap.Running;
+        public bool IsEventQueueRunning => _EventQueueClient != null && _EventQueueClient.Running;
+
+        public EventQueueClient EventQueue => _EventQueueClient;
 
         /// <summary>
         /// Default constructor
@@ -93,7 +96,7 @@ namespace OpenMetaverse
 
             _HttpCts.Cancel();
 
-            _EventQueueCap?.Stop(immediate);
+            _EventQueueClient?.Stop(immediate);
         }
 
         /// <summary>
@@ -104,6 +107,14 @@ namespace OpenMetaverse
         public Uri CapabilityURI(string capability)
         {
             return _Caps.TryGetValue(capability, out var cap) ? cap : null;
+        }
+
+        /// <summary>
+        /// Return the cap names.
+        /// </summary>
+        public Dictionary<string, Uri>.KeyCollection Capabilities()
+        {
+            return _Caps.Keys;
         }
 
         /// <summary>
@@ -149,118 +160,125 @@ namespace OpenMetaverse
             if (_Caps.TryGetValue("GetMesh2", out cap)) { return cap; }
             return _Caps.TryGetValue("GetMesh", out cap) ? cap : null;
         }
-
+        public static OSDArray AllCapabilities = new OSDArray
+        {
+            "AbuseCategories",
+            "AcceptFriendship",
+            "AcceptGroupInvite",
+            "AgentPreferences",
+            "AgentProfile",
+            "AgentState",
+            "AttachmentResources",
+            "AvatarPickerSearch",
+            "AvatarRenderInfo",
+            "CharacterProperties",
+            "ChatSessionRequest",
+            "CopyInventoryFromNotecard",
+            "CreateInventoryCategory",
+            "DeclineFriendship",
+            "DeclineGroupInvite",
+            "DispatchRegionInfo",
+            "DirectDelivery",
+            "EnvironmentSettings",
+            "EstateAccess",
+            "EstateChangeInfo",
+            "EventQueueGet",
+            "ExtEnvironment",
+            "FetchLib2",
+            "FetchLibDescendents2",
+            "FetchInventory2",
+            "FetchInventoryDescendents2",
+            "IncrementCOFVersion",
+            "InterestList",
+            "GetDisplayNames",
+            "GetExperiences",
+            "AgentExperiences",
+            "FindExperienceByName",
+            "GetExperienceInfo",
+            "GetAdminExperiences",
+            "GetCreatorExperiences",
+            "ExperiencePreferences",
+            "GroupExperiences",
+            "UpdateExperience",
+            "IsExperienceAdmin",
+            "IsExperienceContributor",
+            "RegionExperiences",
+            "ExperienceQuery",
+            "GetMesh",
+            "GetMesh2",
+            "GetMetadata",
+            "GetObjectCost",
+            "GetObjectPhysicsData",
+            "GetTexture",
+            "GroupAPIv1",
+            "GroupMemberData",
+            "GroupProposalBallot",
+            "HomeLocation",
+            "LandResources",
+            "LSLSyntax",
+            "MapLayer",
+            "MapLayerGod",
+            "MeshUploadFlag",
+            "NavMeshGenerationStatus",
+            "NewFileAgentInventory",
+            "ObjectAnimation",
+            "ObjectMedia",
+            "ObjectMediaNavigate",
+            "ObjectNavMeshProperties",
+            "ParcelPropertiesUpdate",
+            "ParcelVoiceInfoRequest",
+            "ProductInfoRequest",
+            "ProvisionVoiceAccountRequest",
+            "ReadOfflineMsgs",
+            "RegionObjects",
+            "RemoteParcelRequest",
+            "RenderMaterials",
+            "RequestTextureDownload",
+            "ResourceCostSelected",
+            "RetrieveNavMeshSrc",
+            "SearchStatRequest",
+            "SearchStatTracking",
+            "SendPostcard",
+            "SendUserReport",
+            "SendUserReportWithScreenshot",
+            "ServerReleaseNotes",
+            "SetDisplayName",
+            "SimConsoleAsync",
+            "SimulatorFeatures",
+            "StartGroupProposal",
+            "TerrainNavMeshProperties",
+            "TextureStats",
+            "UntrustedSimulatorMessage",
+            "UpdateAgentInformation",
+            "UpdateAgentLanguage",
+            "UpdateAvatarAppearance",
+            "UpdateGestureAgentInventory",
+            "UpdateGestureTaskInventory",
+            "UpdateNotecardAgentInventory",
+            "UpdateNotecardTaskInventory",
+            "UpdateNotificationPreferences",
+            "UpdateScriptAgent",
+            "UpdateScriptTask",
+            "UpdateSettingsAgentInventory",
+            "UpdateSettingsTaskInventory",
+            "UploadAgentProfileImage",
+            "UploadBakedTexture",
+            "UserInfo",
+            "ViewerAsset",
+            "ViewerBenefits",
+            "ViewerMetrics",
+            "ViewerStartAuction",
+            "ViewerStats",
+            "VoiceSignalingRequest",
+            // AIS3
+            "InventoryAPIv3",
+            "LibraryAPIv3"
+        };
         private void MakeSeedRequest()
         {
             if (Simulator == null || !Simulator.Client.Network.Connected) { return; }
 
-            // Create a request list
-            OSDArray payload = new OSDArray
-            {
-                "AbuseCategories",
-                "AcceptFriendship",
-                "AcceptGroupInvite",
-                "AgentPreferences",
-                "AgentState",
-                "AttachmentResources",
-                "AvatarPickerSearch",
-                "AvatarRenderInfo",
-                "CharacterProperties",
-                "ChatSessionRequest",
-                "CopyInventoryFromNotecard",
-                "CreateInventoryCategory",
-                "DeclineFriendship",
-                "DeclineGroupInvite",
-                "DispatchRegionInfo",
-                "DirectDelivery",
-                "EnvironmentSettings",
-                "EstateChangeInfo",
-                "EventQueueGet",
-                "ExtEnvironment",
-                "FetchLib2",
-                "FetchLibDescendents2",
-                "FetchInventory2",
-                "FetchInventoryDescendents2",
-                "IncrementCOFVersion",
-                "GetDisplayNames",
-                "GetExperiences",
-                "AgentExperiences",
-                "FindExperienceByName",
-                "GetExperienceInfo",
-                "GetAdminExperiences",
-                "GetCreatorExperiences",
-                "ExperiencePreferences",
-                "GroupExperiences",
-                "UpdateExperience",
-                "IsExperienceAdmin",
-                "IsExperienceContributor",
-                "RegionExperiences",
-                "ExperienceQuery",
-                "GetMesh",
-                "GetMesh2",
-                "GetMetadata",
-                "GetObjectCost",
-                "GetObjectPhysicsData",
-                "GetTexture",
-                "GroupAPIv1",
-                "GroupMemberData",
-                "GroupProposalBallot",
-                "HomeLocation",
-                "LandResources",
-                "LSLSyntax",
-                "MapLayer",
-                "MapLayerGod",
-                "MeshUploadFlag",
-                "NavMeshGenerationStatus",
-                "NewFileAgentInventory",
-                "ObjectMedia",
-                "ObjectMediaNavigate",
-                "ObjectNavMeshProperties",
-                "ParcelPropertiesUpdate",
-                "ParcelVoiceInfoRequest",
-                "ProductInfoRequest",
-                "ProvisionVoiceAccountRequest",
-                "ReadOfflineMsgs",
-                "RemoteParcelRequest",
-                "RenderMaterials",
-                "RequestTextureDownload",
-                "ResourceCostSelected",
-                "RetrieveNavMeshSrc",
-                "SearchStatRequest",
-                "SearchStatTracking",
-                "SendPostcard",
-                "SendUserReport",
-                "SendUserReportWithScreenshot",
-                "ServerReleaseNotes",
-                "SetDisplayName",
-                "SimConsoleAsync",
-                "SimulatorFeatures",
-                "StartGroupProposal",
-                "TerrainNavMeshProperties",
-                "TextureStats",
-                "UntrustedSimulatorMessage",
-                "UpdateAgentInformation",
-                "UpdateAgentLanguage",
-                "UpdateAvatarAppearance",
-                "UpdateGestureAgentInventory",
-                "UpdateGestureTaskInventory",
-                "UpdateNotecardAgentInventory",
-                "UpdateNotecardTaskInventory",
-                "UpdateScriptAgent",
-                "UpdateScriptTask",
-                "UploadBakedTexture",
-                "UserInfo",
-                "ViewerAsset",
-                "ViewerBenefits",
-                "ViewerMetrics",
-                "ViewerStartAuction",
-                "ViewerStats",
-                // AIS3
-                "InventoryAPIv3",
-                "LibraryAPIv3"
-            };
-
-            Task loginReq = Simulator.Client.HttpCapsClient.PostRequestAsync(_SeedCapsURI, OSDFormat.Xml, payload, 
+            Task loginReq = Simulator.Client.HttpCapsClient.PostRequestAsync(_SeedCapsURI, OSDFormat.Xml, Caps.AllCapabilities, 
                 _HttpCts.Token, SeedRequestCompleteHandler);
         }
 
@@ -282,32 +300,46 @@ namespace OpenMetaverse
                 return;
             }
 
-            OSD result = OSDParser.Deserialize(responseData);
-            if (result is OSDMap respMap)
+            try
             {
-                foreach (var cap in respMap.Keys)
+                OSD result = OSDParser.Deserialize(responseData);
+                if (result is OSDMap respMap)
                 {
-                    _Caps[cap] = respMap[cap].AsUri();
+                    foreach (var cap in respMap.Keys)
+                    {
+                        _Caps[cap] = respMap[cap].AsUri();
+                    }
+
+                    if (_Caps.TryGetValue("EventQueueGet", out var eventQueueGetCap))
+                    {
+                        Logger.DebugLog($"Starting event queue for {Simulator}", Simulator.Client);
+
+                        _EventQueueClient = new EventQueueClient(eventQueueGetCap, Simulator);
+                        _EventQueueClient.OnConnected += EventQueueConnectedHandler;
+                        _EventQueueClient.OnEvent += EventQueueEventHandler;
+                        _EventQueueClient.Start();
+                    }
+
+                    if (_Caps.TryGetValue("SimulatorFeatures", out var simFeaturesCap))
+                    {
+                        Logger.DebugLog($"Retrieving Simulator Features", Simulator.Client);
+                        Simulator.Features = new SimulatorFeatures(Simulator);
+                        _ = Simulator.Client.HttpCapsClient.GetRequestAsync(
+                            simFeaturesCap, _HttpCts.Token, Simulator.Features.SetFeatures);
+                    }
+
+                    OnCapabilitiesReceived(Simulator);
                 }
-
-                if (_Caps.ContainsKey("EventQueueGet"))
-                {
-                    Logger.DebugLog($"Starting event queue for {Simulator}", Simulator.Client);
-
-                    _EventQueueCap = new EventQueueClient(_Caps["EventQueueGet"], Simulator);
-                    _EventQueueCap.OnConnected += EventQueueConnectedHandler;
-                    _EventQueueCap.OnEvent += EventQueueEventHandler;
-                    _EventQueueCap.Start();
-                }
-
-                OnCapabilitiesReceived(Simulator);
+            }
+            catch (LitJson.JsonException)
+            {
+                Logger.Log($"Invalid caps response; '{System.Text.Encoding.UTF8.GetString(responseData)}' for seed request.", 
+                    Helpers.LogLevel.Warning, Simulator.Client);
             }
         }
 
         private void EventQueueConnectedHandler()
         {
-            Logger.DebugLog($"Event queue for {Simulator} is connected", Simulator.Client);
-            Simulator.DisconnectCandidate = false;
             Simulator.Client.Network.RaiseConnectedEvent(Simulator);
         }
 

@@ -50,7 +50,7 @@ namespace LitJson
         void SetBoolean  (bool val);
         void SetDouble   (double val);
         void SetInt      (int val);
-        void SetJsonType (JsonType type);
+        void SetJsonType (JsonType jtype);
         void SetLong     (long val);
         void SetString   (string val);
 

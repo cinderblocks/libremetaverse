@@ -181,7 +181,7 @@ namespace OpenMetaverse
         /// </summary>
         public static bool IsFinite(float value)
         {
-            return !(Single.IsNaN(value) || Single.IsInfinity(value));
+            return !(float.IsNaN(value) || float.IsInfinity(value));
         }
 
         /// <summary>
@@ -189,7 +189,7 @@ namespace OpenMetaverse
         /// </summary>
         public static bool IsFinite(double value)
         {
-            return !(Double.IsNaN(value) || Double.IsInfinity(value));
+            return !(double.IsNaN(value) || double.IsInfinity(value));
         }
 
         /// <summary>
@@ -399,9 +399,12 @@ namespace OpenMetaverse
         /// <returns>The PBKDF2 hash of the supplied string</returns>
         public static string PBKDF2(string str)
         {
-            var derivebytes = new Rfc2898DeriveBytes(str, 32, 10000, HashAlgorithmName.SHA1);
+            var salt = new byte[32];
+            using (var generator = RandomNumberGenerator.Create()) { generator.GetBytes(salt); }
+#pragma warning disable SYSLIB0041
+            var derivebytes = new Rfc2898DeriveBytes(str, salt, 10000);
+#pragma warning restore SYSLIB0041
             byte[] hash = derivebytes.GetBytes(20);
-            byte[] salt = derivebytes.Salt;
             return Convert.ToBase64String(salt) + "|" + Convert.ToBase64String(hash);
         }
 

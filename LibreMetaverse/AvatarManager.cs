@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -28,10 +28,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
@@ -169,7 +167,7 @@ namespace OpenMetaverse
     public struct ClassifiedAd
     {
         public UUID ClassifiedID;
-        public uint Catagory;
+        public uint Category;
         public UUID ParcelID;
         public uint ParentEstate;
         public UUID SnapShotID;
@@ -234,6 +232,14 @@ namespace OpenMetaverse
         {
             add { lock (m_AvatarAppearanceLock) { m_AvatarAppearance += value; } }
             remove { lock (m_AvatarAppearanceLock) { m_AvatarAppearance -= value; } }
+        }
+
+        internal void TriggerAvatarAppearanceMessage(AvatarAppearanceEventArgs args)
+        {
+            lock (m_AvatarAppearanceLock)
+            {
+                m_AvatarAppearance?.Invoke(this, args);
+            }
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
@@ -568,9 +574,16 @@ namespace OpenMetaverse
         /// <param name="names">Array of display names</param>
         /// <param name="badIDs">Array of UUIDs that could not be fetched</param>
         public delegate void DisplayNamesCallback(bool success, AgentDisplayName[] names, UUID[] badIDs);
+
+        /// <summary>
+        /// Callback giving results when fetching AgentProfile
+        /// </summary>
+        /// <param name="success">If the request was successful</param>
+        /// <param name="profile">AgentProfile result</param>
+        public delegate void AgentProfileCallback(bool success, AgentProfileMessage profile);
         #endregion Delegates
 
-        private GridClient Client;
+        private readonly GridClient Client;
 
         /// <summary>
         /// Represents other avatars
@@ -666,7 +679,7 @@ namespace OpenMetaverse
                 Client.Network.SendPacket(request);
             }
 
-            // Get any remaining names after left after the full requests
+            // Get any remaining names left after the full requests
             if (ids.Count > n * m)
             {
                 request = new UUIDNameRequestPacket
@@ -697,26 +710,20 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="ids">List of UUIDs to lookup</param>
         /// <param name="callback">Callback to report result of the operation</param>
-        public void GetDisplayNames(List<UUID> ids, DisplayNamesCallback callback)
+        /// <param name="cancellationToken"></param>
+        public async Task GetDisplayNames(List<UUID> ids, DisplayNamesCallback callback, CancellationToken cancellationToken = default)
         {
             if (!DisplayNamesAvailable() || ids.Count == 0)
             {
                 callback(false, null, null);
             }
 
-            StringBuilder query = new StringBuilder();
-            for (int i = 0; i < ids.Count && i < 90; i++)
+            var uri = new UriBuilder(Client.Network.CurrentSim.Caps.CapabilityURI("GetDisplayNames"))
             {
-                query.AppendFormat("ids={0}", ids[i]);
-                if (i < ids.Count - 1)
-                {
-                    query.Append("&");
-                }
-            }
+                Query = "ids=" + string.Join("&", ids)
+            };
 
-            Uri uri = new Uri(Client.Network.CurrentSim.Caps.CapabilityURI("GetDisplayNames").AbsoluteUri + "/?" + query);
-
-            Task req = Client.HttpCapsClient.GetRequestAsync(uri, CancellationToken.None, (response, data, error) =>
+            await Client.HttpCapsClient.GetRequestAsync(uri.Uri, cancellationToken, (response, data, error) =>
             {
                 try
                 {
@@ -755,6 +762,57 @@ namespace OpenMetaverse
                     }
                 };
             Client.Network.SendPacket(aprp);
+        }
+
+        /// <summary>
+        /// Check if AgentProfile functionality is available
+        /// </summary>
+        /// <returns>True if AgentProfile functionality is available</returns>
+        public bool AgentProfileAvailable()
+        {
+            return Client.Network.CurrentSim?.Caps?.CapabilityURI("AgentProfile") != null;
+        }
+
+        /// <summary>
+        /// Requests the AgentProfile for the specified avatar
+        /// </summary>
+        /// <param name="avatarid">Avatar to request the AgentProfile of</param>
+        /// <param name="callback">Callback to handle the AgentProfile response</param>
+        /// <param name="cancellationToken"></param>
+        public async Task RequestAgentProfile(UUID avatarid, AgentProfileCallback callback, CancellationToken cancellationToken = default)
+        {
+            if (!AgentProfileAvailable())
+            {
+                callback(false, null);
+                return;
+            }
+
+            var baseUri = Client.Network.CurrentSim.Caps.CapabilityURI("AgentProfile");
+            var uri = new Uri($"{baseUri}/{avatarid}");
+
+            await Client.HttpCapsClient.GetRequestAsync(uri, cancellationToken, (response, data, error) =>
+            {
+                try
+                {
+                    if (error != null)
+                    {
+                        throw error;
+                    }
+
+                    var msg = new AgentProfileMessage();
+                    var result = OSDParser.Deserialize(data);
+                    if (result is OSDMap respMap)
+                    {
+                        msg.Deserialize(respMap);
+                        callback(true, msg);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Failed to call AgentProfile capability: ", Helpers.LogLevel.Warning, Client, ex);
+                    callback(false, null);
+                }
+            });
         }
 
         /// <summary>
@@ -955,7 +1013,7 @@ namespace OpenMetaverse
 
             AvatarAnimationPacket data = (AvatarAnimationPacket)packet;
 
-            List<Animation> signaledAnimations = new List<Animation>(data.AnimationList.Length);
+            var signaledAnimations = new List<Animation>(data.AnimationList.Length);
 
             for (int i = 0; i < data.AnimationList.Length; i++)
             {
@@ -972,10 +1030,23 @@ namespace OpenMetaverse
                 signaledAnimations.Add(animation);
             }
 
-            Avatar avatar = e.Simulator.ObjectsAvatars.Find(avi => avi.ID == data.Sender.ID);
-            if (avatar != null)
+            bool found = false;
+            foreach (var a in e.Simulator.ObjectsAvatars)
             {
-                avatar.Animations = signaledAnimations;
+                if (a.Value == null || a.Value.ID != data.Sender.ID) { continue; }
+
+                found = true;
+                var av = a.Value;
+                lock (av)
+                {
+                    av.Animations = signaledAnimations;
+                }
+
+            }
+
+            if (!found)
+            {
+                e.Simulator.Client.Objects.RequestObjectPropertiesFamily(e.Simulator, data.Sender.ID);
             }
 
             OnAvatarAnimation(new AvatarAnimationEventArgs(data.Sender.ID, signaledAnimations));
@@ -993,8 +1064,15 @@ namespace OpenMetaverse
 
                 AvatarAppearancePacket appearance = (AvatarAppearancePacket)packet;
 
-                var visualParams = appearance.VisualParam.Select(block => block.ParamValue).ToList();
+                var hoverHeight = Vector3.Zero;
 
+                if (appearance.AppearanceHover != null && appearance.AppearanceHover.Length > 0)
+                {
+                    hoverHeight = appearance.AppearanceHover[0].HoverHeight;
+                }
+
+                var visualParams = appearance.VisualParam.Select(block => block.ParamValue).ToList();
+                
                 var textureEntry = new Primitive.TextureEntry(appearance.ObjectData.TextureEntry, 0,
                         appearance.ObjectData.TextureEntry.Length);
 
@@ -1003,6 +1081,7 @@ namespace OpenMetaverse
 
                 byte appearanceVersion = 0;
                 int COFVersion = 0;
+                int childCount = -1;
                 AppearanceFlags appearanceFlags = 0;
 
                 if (appearance.AppearanceData != null && appearance.AppearanceData.Length > 0)
@@ -1012,18 +1091,64 @@ namespace OpenMetaverse
                     appearanceFlags = (AppearanceFlags)appearance.AppearanceData[0].Flags;
                 }
 
-                Avatar av = simulator.ObjectsAvatars.Find((Avatar a) => a.ID == appearance.Sender.ID);
-                if (av != null)
+                if (appearance.AttachmentBlock != null && appearance.AttachmentBlock.Length > 0)
                 {
-                    av.Textures = textureEntry;
-                    av.VisualParameters = visualParams.ToArray();
-                    av.AppearanceVersion = appearanceVersion;
-                    av.COFVersion = COFVersion;
-                    av.AppearanceFlags = appearanceFlags;
+                    if (appearance.AttachmentBlock != null && appearance.AttachmentBlock.Length > 0)
+                    {
+                        foreach (var a in e.Simulator.ObjectsAvatars)
+                        {
+                            if (a.Value == null || a.Value.ID != appearance.Sender.ID) { continue; }
+
+                            var av = a.Value;
+                            lock (av)
+                            {
+                                av.Attachments = new List<Avatar.Attachment>();
+                                foreach (var block in appearance.AttachmentBlock)
+                                {
+                                    av.Attachments.Add(new Avatar.Attachment
+                                    {
+                                        AttachmentID = block.ID,
+                                        AttachmentPoint = block.AttachmentPoint
+                                    });
+                                }
+
+                                childCount = av.ChildCount = av.Attachments.Count;
+                            }
+                        }
+                    }
                 }
 
-                OnAvatarAppearance(new AvatarAppearanceEventArgs(simulator, appearance.Sender.ID, appearance.Sender.IsTrial,
-                    defaultTexture, faceTextures, visualParams, appearanceVersion, COFVersion, appearanceFlags));
+                // We need to ignore this for avatar self-appearance.
+                // The data in this packet is incorrect, and only the 
+                // mesh bake CAP response can be treated as fully reliable.
+                if (appearance.Sender.ID == Client.Self.AgentID) { return; }
+
+                foreach (var a in e.Simulator.ObjectsAvatars)
+                {
+                    if (a.Value == null || a.Value.ID != appearance.Sender.ID) { continue; }
+
+                    var av = a.Value;
+                    lock (av)
+                    {
+                        av.Textures = textureEntry;
+                        av.VisualParameters = visualParams.ToArray();
+                        av.AppearanceVersion = appearanceVersion;
+                        av.COFVersion = COFVersion;
+                        av.AppearanceFlags = appearanceFlags;
+                        av.HoverHeight = hoverHeight;
+                    }
+                }
+
+                OnAvatarAppearance(new AvatarAppearanceEventArgs(simulator,
+                    appearance.Sender.ID,
+                    appearance.Sender.IsTrial,
+                    defaultTexture,
+                    faceTextures,
+                    visualParams,
+                    appearanceVersion,
+                    COFVersion,
+                    appearanceFlags,
+                    childCount));
             }
         }
 
@@ -1147,13 +1272,14 @@ namespace OpenMetaverse
                     GroupInsigniaID = msg.GroupDataBlock[i].GroupInsigniaID,
                     GroupName = msg.GroupDataBlock[i].GroupName,
                     GroupPowers = msg.GroupDataBlock[i].GroupPowers,
+                    GroupTitle = msg.GroupDataBlock[i].GroupTitle,
                     ListInProfile = msg.NewGroupDataBlock[i].ListInProfile
                 };
 
                 avatarGroups.Add(avatarGroup);
             }
 
-            OnAvatarGroupsReply(new AvatarGroupsReplyEventArgs(msg.AgentID, avatarGroups));
+            OnAvatarGroupsReply(new AvatarGroupsReplyEventArgs(msg.AvatarID, avatarGroups));
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
@@ -1405,7 +1531,7 @@ namespace OpenMetaverse
                     Price = p.Data.PriceForListing,
                     ParentEstate = p.Data.ParentEstate,
                     ClassifiedFlags = p.Data.ClassifiedFlags,
-                    Catagory = p.Data.Category
+                    Category = p.Data.Category
                 };
 
                 OnClassifiedInfoReply(new ClassifiedInfoReplyEventArgs(ret.ClassifiedID, ret));
@@ -1523,6 +1649,11 @@ namespace OpenMetaverse
         public AppearanceFlags AppearanceFlags { get; }
 
         /// <summary>
+        /// Number of attachments
+        /// </summary>
+        public int ChildCount { get; }
+
+        /// <summary>
         /// Construct a new instance of the AvatarAppearanceEventArgs class
         /// </summary>
         /// <param name="sim">The simulator request was from</param>
@@ -1534,9 +1665,10 @@ namespace OpenMetaverse
         /// <param name="appearanceVersion">Appearance Version</param>
         /// <param name="COFVersion">Current outfit folder version</param>
         /// <param name="appearanceFlags">Appearance Flags</param>
+        /// <param name="childCount">Child count</param>
         public AvatarAppearanceEventArgs(Simulator sim, UUID avatarID, bool isTrial, Primitive.TextureEntryFace defaultTexture,
             Primitive.TextureEntryFace[] faceTextures, List<byte> visualParams,
-            byte appearanceVersion, int COFVersion, AppearanceFlags appearanceFlags)
+            byte appearanceVersion, int COFVersion, AppearanceFlags appearanceFlags, int childCount)
         {
             this.Simulator = sim;
             this.AvatarID = avatarID;
@@ -1547,6 +1679,7 @@ namespace OpenMetaverse
             this.AppearanceVersion = appearanceVersion;
             this.COFVersion = COFVersion;
             this.AppearanceFlags = appearanceFlags;
+            this.ChildCount = childCount;
         }
     }
 

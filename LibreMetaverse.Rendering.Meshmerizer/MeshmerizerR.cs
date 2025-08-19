@@ -1,5 +1,5 @@
 /* Copyright (c) 2008 Robert Adams
- * Copyright (c) 2021-2022, Sjofn LLC. All rights reserved.
+ * Copyright (c) 2021-2024, Sjofn LLC. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -35,8 +35,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
+using SkiaSharp;
 using OpenMetaverse.StructuredData;
 using LibreMetaverse.PrimMesher;
 
@@ -130,7 +130,7 @@ namespace OpenMetaverse.Rendering
         /// <param name="sculptTexture">Sculpt texture</param>
         /// <param name="lod">Level of detail to generate the mesh at</param>
         /// <returns>The generated mesh or null on failure</returns>
-        public SimpleMesh GenerateSimpleSculptMesh(Primitive prim, Bitmap sculptTexture, DetailLevel lod)
+        public SimpleMesh GenerateSimpleSculptMesh(Primitive prim, SKBitmap sculptTexture, DetailLevel lod)
         {
             var faceted = GenerateFacetedSculptMesh(prim, sculptTexture, lod);
 
@@ -225,7 +225,7 @@ namespace OpenMetaverse.Rendering
         /// routine since all the context for finding teh texture is elsewhere.
         /// </summary>
         /// <returns>The faceted mesh or null if can't do it</returns>
-        public FacetedMesh GenerateFacetedSculptMesh(Primitive prim, Bitmap scupltTexture, DetailLevel lod)
+        public FacetedMesh GenerateFacetedSculptMesh(Primitive prim, SKBitmap scupltTexture, DetailLevel lod)
         {
             LibreMetaverse.PrimMesher.SculptMesh.SculptType smSculptType;
             switch (prim.Sculpt.Type)
@@ -266,7 +266,7 @@ namespace OpenMetaverse.Rendering
             SculptMesh newMesh =
                 new SculptMesh(scupltTexture, smSculptType, mesherLod, true, prim.Sculpt.Mirror, prim.Sculpt.Invert);
 
-            int numPrimFaces = 1;       // a scuplty has only one face
+            const int numPrimFaces = 1; // a scuplty has only one face
 
             // copy the vertex information into IRendering structures
             FacetedMesh omvrmesh = new FacetedMesh
@@ -322,7 +322,7 @@ namespace OpenMetaverse.Rendering
 
         /// <summary>
         /// Apply texture coordinate modifications from a
-        /// <seealso cref="OpenMetaverse.Primative.TextureEntryFace"/> to a list of vertices
+        /// <see cref="OpenMetaverse.Primative.TextureEntryFace"/> to a list of vertices
         /// </summary>
         /// <param name="vertices">Vertex list to modify texture coordinates for</param>
         /// <param name="center">Center-point of the face</param>
@@ -411,9 +411,9 @@ namespace OpenMetaverse.Rendering
                 string[] decreasingLOD = { "high_lod", "medium_lod", "low_lod", "lowest_lod" };
                 foreach (string partName in decreasingLOD)
                 {
-                    if (meshParts.ContainsKey(partName))
+                    if (meshParts.TryGetValue(partName, out var part))
                     {
-                        meshBytes = meshParts[partName];
+                        meshBytes = part;
                         break;
                     }
                 }
@@ -447,9 +447,8 @@ namespace OpenMetaverse.Rendering
                 OSDMap meshParts = UnpackMesh(meshData);
                 if (meshParts != null)
                 {
-                    if (meshParts.ContainsKey(partName))
+                    if (meshParts.TryGetValue(partName, out var meshBytes))
                     {
-                        byte[] meshBytes = meshParts[partName];
                         if (meshBytes != null)
                         {
                             ret = MeshSubMeshAsFacetedMesh(prim, meshBytes);
@@ -633,18 +632,18 @@ namespace OpenMetaverse.Rendering
 
             // Normals
             byte[] norBytes = null;
-            if (subMeshMap.ContainsKey("Normal"))
+            if (subMeshMap.TryGetValue("Normal", out var normal))
             {
-                norBytes = subMeshMap["Normal"];
+                norBytes = normal;
             }
 
             // UV texture map
             Vector2 texPosMax = Vector2.Zero;
             Vector2 texPosMin = Vector2.Zero;
             byte[] texBytes = null;
-            if (subMeshMap.ContainsKey("TexCoord0"))
+            if (subMeshMap.TryGetValue("TexCoord0", out var texCoord0))
             {
-                texBytes = subMeshMap["TexCoord0"];
+                texBytes = texCoord0;
                 texPosMax = ((OSDMap)subMeshMap["TexCoord0Domain"])["Max"];
                 texPosMin = ((OSDMap)subMeshMap["TexCoord0Domain"])["Min"];
             }
@@ -713,7 +712,7 @@ namespace OpenMetaverse.Rendering
         }
 
         /// <summary>Decodes mesh asset.</summary>
-        /// <returns>OSDMap of all of the submeshes in the mesh. The value of the submesh name
+        /// <returns>OSDMap of all submeshes in the mesh. The value of the submesh name
         /// is the uncompressed data for that mesh.
         /// The OSDMap is made up of the asset_header section (which includes a lot of stuff)
         /// plus each of the submeshes unpacked into compressed byte arrays.</returns>

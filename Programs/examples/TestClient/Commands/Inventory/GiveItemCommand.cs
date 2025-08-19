@@ -28,7 +28,6 @@ namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
             Manager = Client.Inventory;
             Inventory = Manager.Store;
             string ret = "";
-            string nl = "\n";
 
             string target = args.Aggregate(string.Empty, (current, t) => current + t + " ");
             target = target.TrimEnd();
@@ -37,24 +36,21 @@ namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
             // WARNING: Uses local copy of inventory contents, need to download them first.
             List<InventoryBase> contents = Inventory.GetContents(Client.CurrentDirectory);
             bool found = false;
-            foreach (InventoryBase b in contents)
+            foreach (var b in contents.Where(b => inventoryName == b.Name || inventoryName == b.UUID.ToString()))
             {
-                if (inventoryName == b.Name || inventoryName == b.UUID.ToString())
+                found = true;
+                if (b is InventoryItem item)
                 {
-                    found = true;
-                    if (b is InventoryItem item)
-                    {
-                        Manager.GiveItem(item.UUID, item.Name, item.AssetType, dest, true);
-                        ret += "Gave " + item.Name + " (" + item.AssetType + ")" + nl;
-                    }
-                    else
-                    {
-                        ret += "Unable to give folder " + b.Name + nl;
-                    }
+                    Manager.GiveItem(item.UUID, item.Name, item.AssetType, dest, true);
+                    ret += "Gave " + item.Name + " (" + item.AssetType + ")" + '\n';
+                }
+                else
+                {
+                    ret += "Unable to give folder " + b.Name + '\n';
                 }
             }
             if (!found)
-                ret += "No inventory item named " + inventoryName + " found." + nl;
+                ret += "No inventory item named " + inventoryName + " found." + '\n';
 
             return ret;
         }

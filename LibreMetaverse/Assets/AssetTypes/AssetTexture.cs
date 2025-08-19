@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -25,6 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using CoreJ2K;
 using OpenMetaverse.Imaging;
 
 namespace OpenMetaverse.Assets
@@ -35,9 +36,9 @@ namespace OpenMetaverse.Assets
     public class AssetTexture : Asset
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.Texture; } }
+        public override AssetType AssetType => AssetType.Texture;
 
-        /// <summary>A <seealso cref="ManagedImage"/> object containing image data</summary>
+        /// <summary>A <see cref="ManagedImage"/> object containing image data</summary>
         public ManagedImage Image;
 
         /// <summary></summary>
@@ -56,7 +57,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Initializes a new instance of an AssetTexture object
         /// </summary>
-        /// <param name="image">A <seealso cref="ManagedImage"/> object containing texture data</param>
+        /// <param name="image">A <see cref="ManagedImage"/> object containing texture data</param>
         public AssetTexture(ManagedImage image)
         {
             Image = image;
@@ -72,34 +73,27 @@ namespace OpenMetaverse.Assets
         }
 
         /// <summary>
-        /// Populates the <seealso cref="AssetData"/> byte array with a JPEG2000
-        /// encoded image created from the data in <seealso cref="Image"/>
+        /// Populates the <see cref="AssetData"/> byte array with a JPEG2000
+        /// encoded image created from the data in <see cref="Image"/>
         /// </summary>
-        public override void Encode()
+        public sealed override void Encode()
         {
-            using (var writer = new OpenJpegDotNet.IO.Writer(Image.ExportBitmap()))
-            {
-                AssetData = writer.Encode();
-            }
+            AssetData = J2K.ToBytes(Image.ExportBitmap());
         }
 
         /// <summary>
-        /// Decodes the JPEG2000 data in <code>AssetData</code> to the
-        /// <seealso cref="ManagedImage"/> object <seealso cref="Image"/>
+        /// Decodes the JPEG2000 data in <see cref="AssetData"/>> to the
+        /// <see cref="ManagedImage"/> object <see cref="Image"/>
         /// </summary>
         /// <returns>True if the decoding was successful, otherwise false</returns>
-        public override bool Decode()
+        public sealed override bool Decode()
         {
             if (AssetData == null || AssetData.Length <= 0) { return false; }
 
             this.Components = 0;
 
-            using (var reader = new OpenJpegDotNet.IO.Reader(AssetData))
-            {
-                // *hack: decode from ManagedImage directly or better yet, get rid of ManagedImage entirely!
-                if (!reader.ReadHeader()) { return false; }
-                Image = new ManagedImage(reader.DecodeToBitmap());
-            }
+            var image = J2kImage.FromBytes(AssetData);
+            Image = new ManagedImage(image);
 
             if ((Image.Channels & ManagedImage.ImageChannels.Color) != 0)
                 Components += 3;

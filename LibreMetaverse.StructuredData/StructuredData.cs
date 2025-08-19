@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -68,7 +68,6 @@ namespace OpenMetaverse.StructuredData
         public OSDException(string message) : base(message) { }
         public OSDException() { }
         public OSDException(string message, Exception innerException) : base(message, innerException) { }
-        protected OSDException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) : base(info, context) { }     
     }
 
     /// <summary>
@@ -297,21 +296,15 @@ namespace OpenMetaverse.StructuredData
             }
             if (type == typeof(Vector3))
             {
-                if (value.Type == OSDType.Array)
-                    return ((OSDArray)value).AsVector3();
-                return Vector3.Zero;
+                return value.Type == OSDType.Array ? ((OSDArray)value).AsVector3() : Vector3.Zero;
             }
             if (type == typeof(Vector4))
             {
-                if (value.Type == OSDType.Array)
-                    return ((OSDArray)value).AsVector4();
-                return Vector4.Zero;
+                return value.Type == OSDType.Array ? ((OSDArray)value).AsVector4() : Vector4.Zero;
             }
             if (type == typeof(Quaternion))
             {
-                if (value.Type == OSDType.Array)
-                    return ((OSDArray)value).AsQuaternion();
-                return Quaternion.Identity;
+                return value.Type == OSDType.Array ? ((OSDArray)value).AsQuaternion() : Quaternion.Identity;
             }
             if (type == typeof(OSDArray))
             {
@@ -377,7 +370,7 @@ namespace OpenMetaverse.StructuredData
         #endregion Implicit Conversions
 
         /// <summary>
-        /// Uses reflection to create an SDMap from all of the SD
+        /// Uses reflection to create an SDMap from all SD
         /// serializable types in an object
         /// </summary>
         /// <param name="obj">Class or struct containing serializable types</param>
@@ -425,8 +418,7 @@ namespace OpenMetaverse.StructuredData
             {
                 if (!Attribute.IsDefined(field, typeof(NonSerializedAttribute)))
                 {
-                    OSD serializedField;
-                    if (serialized.TryGetValue(field.Name, out serializedField))
+                    if (serialized.TryGetValue(field.Name, out var serializedField))
                         field.SetValue(obj, ToObject(field.FieldType, serializedField));
                 }
             }
@@ -440,8 +432,8 @@ namespace OpenMetaverse.StructuredData
     {
         private readonly bool _mBool;
 
-        private static readonly byte[] trueBinary = { 0x31 };
-        private static readonly byte[] falseBinary = { 0x30 };
+        private static readonly byte[] TrueBinary = { 0x31 };
+        private static readonly byte[] FalseBinary = { 0x30 };
 
         public override OSDType Type => OSDType.Boolean;
 
@@ -454,7 +446,7 @@ namespace OpenMetaverse.StructuredData
         public override int AsInteger() { return _mBool ? 1 : 0; }
         public override double AsReal() { return _mBool ? 1d : 0d; }
         public override string AsString() { return _mBool ? "1" : "0"; }
-        public override byte[] AsBinary() { return _mBool ? trueBinary : falseBinary; }
+        public override byte[] AsBinary() { return _mBool ? TrueBinary : FalseBinary; }
         public override OSD Copy() { return new OSDBoolean(_mBool); }
 
         public override string ToString() { return AsString(); }
@@ -508,10 +500,10 @@ namespace OpenMetaverse.StructuredData
         {
             if (double.IsNaN(_mReal))
                 return 0;
-            if (_mReal > Int32.MaxValue)
-                return Int32.MaxValue;
-            if (_mReal < Int32.MinValue)
-                return Int32.MinValue;
+            if (_mReal > int.MaxValue)
+                return int.MaxValue;
+            if (_mReal < int.MinValue)
+                return int.MinValue;
             return (int)Math.Round(_mReal);
         }
 
@@ -519,10 +511,10 @@ namespace OpenMetaverse.StructuredData
         {
             if (double.IsNaN(_mReal))
                 return 0;
-            if (_mReal > UInt32.MaxValue)
-                return UInt32.MaxValue;
-            if (_mReal < UInt32.MinValue)
-                return UInt32.MinValue;
+            if (_mReal > uint.MaxValue)
+                return uint.MaxValue;
+            if (_mReal < uint.MinValue)
+                return uint.MinValue;
             return (uint)Math.Round(_mReal);
         }
 
@@ -530,10 +522,10 @@ namespace OpenMetaverse.StructuredData
         {
             if (double.IsNaN(_mReal))
                 return 0;
-            if (_mReal > Int64.MaxValue)
-                return Int64.MaxValue;
-            if (_mReal < Int64.MinValue)
-                return Int64.MinValue;
+            if (_mReal > long.MaxValue)
+                return long.MaxValue;
+            if (_mReal < long.MinValue)
+                return long.MinValue;
             return (long)Math.Round(_mReal);
         }
 
@@ -541,10 +533,10 @@ namespace OpenMetaverse.StructuredData
         {
             if (double.IsNaN(_mReal))
                 return 0;
-            if (_mReal > UInt64.MaxValue)
-                return Int32.MaxValue;
-            if (_mReal < UInt64.MinValue)
-                return UInt64.MinValue;
+            if (_mReal > ulong.MaxValue)
+                return int.MaxValue;
+            if (_mReal < ulong.MinValue)
+                return ulong.MinValue;
             return (ulong)Math.Round(_mReal);
         }
 
@@ -603,58 +595,50 @@ namespace OpenMetaverse.StructuredData
 
         public override int AsInteger()
         {
-            double dbl;
-            if (double.TryParse(_mString, out dbl))
+            if (double.TryParse(_mString, out var dbl))
                 return (int)Math.Floor(dbl);
             return 0;
         }
 
         public override uint AsUInteger()
         {
-            double dbl;
-            if (double.TryParse(_mString, out dbl))
+            if (double.TryParse(_mString, out var dbl))
                 return (uint)Math.Floor(dbl);
             return 0;
         }
 
         public override long AsLong()
         {
-            double dbl;
-            if (double.TryParse(_mString, out dbl))
+            if (double.TryParse(_mString, out var dbl))
                 return (long)Math.Floor(dbl);
             return 0;
         }
 
         public override ulong AsULong()
         {
-            double dbl;
-            if (double.TryParse(_mString, out dbl))
+            if (double.TryParse(_mString, out var dbl))
                 return (ulong)Math.Floor(dbl);
             return 0;
         }
 
         public override double AsReal()
         {
-            double dbl;
-            return Double.TryParse(_mString, out dbl) ? dbl : 0d;
+            return double.TryParse(_mString, out var dbl) ? dbl : 0d;
         }
 
         public override string AsString() { return _mString; }
         public override byte[] AsBinary() { return Encoding.UTF8.GetBytes(_mString); }
         public override UUID AsUUID()
         {
-            UUID uuid;
-            return UUID.TryParse(_mString, out uuid) ? uuid : UUID.Zero;
+            return UUID.TryParse(_mString, out var uuid) ? uuid : UUID.Zero;
         }
         public override DateTime AsDate()
         {
-            DateTime dt;
-            return DateTime.TryParse(_mString, out dt) ? dt : Utils.Epoch;
+            return DateTime.TryParse(_mString, out var dt) ? dt : Utils.Epoch;
         }
         public override Uri AsUri()
         {
-            Uri uri;
-            return Uri.TryCreate(_mString, UriKind.RelativeOrAbsolute, out uri) ? uri : null;
+            return Uri.TryCreate(_mString, UriKind.RelativeOrAbsolute, out var uri) ? uri : null;
         }
 
         public override string ToString() { return AsString(); }
@@ -907,12 +891,8 @@ namespace OpenMetaverse.StructuredData
 
         public OSD this[string key]
         {
-            get
-            {
-                OSD llsd;
-                return _mMap.TryGetValue(key, out llsd) ? llsd : new OSD();
-            }
-            set { _mMap[key] = value; }
+            get => _mMap.TryGetValue(key, out var llsd) ? llsd : new OSD();
+            set => _mMap[key] = value;
         }
 
         public bool ContainsKey(string key)
@@ -947,9 +927,7 @@ namespace OpenMetaverse.StructuredData
 
         public bool Contains(KeyValuePair<string, OSD> kvp)
         {
-            // This is a bizarre function... we don't really implement it
-            // properly, hopefully no one wants to use it
-            return _mMap.ContainsKey(kvp.Key);
+            return _mMap.Contains(kvp);
         }
 
         public void CopyTo(KeyValuePair<string, OSD>[] array, int index)
@@ -1260,7 +1238,9 @@ namespace OpenMetaverse.StructuredData
             if (!stream.CanSeek) { throw new OSDException("Cannot deserialize structured data from unseekable streams"); }
 
             byte[] headerData = new byte[14];
-            stream.Read(headerData, 0, 14);
+            int read = stream.Read(headerData, 0, 14);
+            if (read == 0) { throw new System.IO.EndOfStreamException(); }
+
             stream.Seek(0, SeekOrigin.Begin);
             string header = Encoding.ASCII.GetString(headerData);
 

@@ -1,14 +1,14 @@
 <Project>
 	<PropertyGroup>
-		<Version>2.0.0.0</Version>
+		<Version>2.5.0.0</Version>
 		<Product>LibreMetaverse</Product>
 		<Authors>Sjofn LLC, OpenMetaverse Developers</Authors>
-		<Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2024. All rights reserved.</Copyright>
+		<Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2025. All rights reserved.</Copyright>
 		<Trademark>LibreMetaverse is a trademark of Sjofn LLC.</Trademark>
 		<Company>Sjofn LLC</Company>
 	</PropertyGroup>
 	<PropertyGroup>
-		<PackageVersion>2.0.0.0</PackageVersion>
+		<PackageVersion>2.5.0.0</PackageVersion>
 		<PackageIcon>logo.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>

@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Text;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace OpenMetaverse.TestClient
 {
     public class PlayAnimationCommand : Command
     {        
-        private Dictionary<UUID, string> m_BuiltInAnimations = new Dictionary<UUID, string>(Animations.ToDictionary());
+        private readonly ImmutableDictionary<UUID, string> m_BuiltInAnimations = Animations.ToDictionary();
         public PlayAnimationCommand(TestClient testClient)
         {
             Name = "play";
@@ -16,11 +17,11 @@ namespace OpenMetaverse.TestClient
 
         private string Usage()
         {
-            string usage = "Usage:\n" +
-                "\tplay list - list the built in animations\n" +
-                "\tplay show - show any currently playing animations\n" +
-                "\tplay UUID - play an animation asset\n" +
-                "\tplay ANIMATION - where ANIMATION is one of the values returned from \"play list\"\n";
+            const string usage = "Usage:\n" +
+                                 "\tplay list - list the built in animations\n" +
+                                 "\tplay show - show any currently playing animations\n" +
+                                 "\tplay UUID - play an animation asset\n" +
+                                 "\tplay ANIMATION - where ANIMATION is one of the values returned from \"play list\"\n";
             return usage;
         }
 
@@ -47,9 +48,9 @@ namespace OpenMetaverse.TestClient
             else if (arg.ToLower().Equals("show"))
             {
                 Client.Self.SignaledAnimations.ForEach(delegate(KeyValuePair<UUID, int> kvp) {
-                    if (m_BuiltInAnimations.ContainsKey(kvp.Key))
+                    if (m_BuiltInAnimations.TryGetValue(kvp.Key, out var animation))
                     {
-                        result.AppendFormat("The {0} System Animation is being played, sequence is {1}", m_BuiltInAnimations[kvp.Key], kvp.Value);
+                        result.AppendFormat("The {0} System Animation is being played, sequence is {1}", animation, kvp.Value);
                     }
                     else
                     {

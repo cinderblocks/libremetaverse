@@ -85,15 +85,15 @@ namespace OpenMetaverse.Assets
 
                         string extension = string.Empty;
 
-                        if (ArchiveConstants.ASSET_TYPE_TO_EXTENSION.ContainsKey(asset.AssetType))
+                        if (ArchiveConstants.ASSET_TYPE_TO_EXTENSION.TryGetValue(asset.AssetType, out var value))
                         {
-                            extension = ArchiveConstants.ASSET_TYPE_TO_EXTENSION[asset.AssetType];
+                            extension = value;
                         }
 
                         xtw.WriteElementString("filename", uuid + extension);
 
                         xtw.WriteElementString("name", uuid.ToString());
-                        xtw.WriteElementString("description", String.Empty);
+                        xtw.WriteElementString("description", string.Empty);
                         xtw.WriteElementString("asset-type", asset.AssetType.ToString());
 
                         xtw.WriteEndElement();
@@ -123,13 +123,13 @@ namespace OpenMetaverse.Assets
 
                 string extension = string.Empty;
 
-                if (ArchiveConstants.ASSET_TYPE_TO_EXTENSION.ContainsKey(asset.AssetType))
+                if (ArchiveConstants.ASSET_TYPE_TO_EXTENSION.TryGetValue(asset.AssetType, out var value))
                 {
                     extension = ArchiveConstants.ASSET_TYPE_TO_EXTENSION[asset.AssetType];
                 }
                 else
                 {
-                    Logger.Log(String.Format(
+                    Logger.Log(string.Format(
                         "Unrecognized asset type {0} with uuid {1}.  This asset will be saved but not reloaded",
                         asset.AssetType, asset.AssetID), Helpers.LogLevel.Warning);
                 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2006-2016, openmetaverse.co
  * Copyright (c) 2021-2022, Sjofn LLC.
  * All rights reserved.
@@ -29,7 +29,13 @@ using System;
 using System.Text;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
+using CoreJ2K;
 using OpenMetaverse.Assets;
+using OpenMetaverse.Imaging;
+using Pfim;
+using SkiaSharp;
+using Targa = OpenMetaverse.Imaging.Targa;
 
 namespace OpenMetaverse.TestClient
 {
@@ -59,12 +65,12 @@ namespace OpenMetaverse.TestClient
             {
                 foreach (var sim in Client.Network.Simulators)
                 {
-                    Avatar targetAv = sim.ObjectsAvatars.Find(
-                        avatar => avatar.ID == target
-                    );
+                   var kvp = sim.ObjectsAvatars.FirstOrDefault(
+                       avatar => avatar.Value.ID == target);
 
-                    if (targetAv != null)
+                    if (kvp.Value != null)
                     {
+                        var targetAv = kvp.Value;
                         StringBuilder output = new StringBuilder("Downloading ");
 
                         lock (OutfitAssets) OutfitAssets.Clear();
@@ -114,15 +120,15 @@ namespace OpenMetaverse.TestClient
                         try
                         {
                             File.WriteAllBytes(assetTexture.AssetID + ".jp2", assetTexture.AssetData);
-                            Console.WriteLine("Wrote JPEG2000 image " + assetTexture.AssetID + ".jp2");
+                            Console.WriteLine($"Wrote JPEG2000 image {assetTexture.AssetID}.jp2");
 
-                            using (var reader = new OpenJpegDotNet.IO.Reader(assetTexture.AssetData))
+                            using (var bitmap = J2kImage.FromBytes(assetTexture.AssetData).As<SKBitmap>())
                             {
-                                reader.ReadHeader();
-                                OpenJpegDotNet.RawImage tga = reader.Decode().ToTarga();
-                                File.WriteAllBytes(assetTexture.AssetID + ".tga", tga.Bytes);
+                                var mi = new ManagedImage(bitmap);
+                                var bytes = Targa.Encode(mi);
+                                File.WriteAllBytes(assetTexture.AssetID + ".tga", bytes);
+                                Console.WriteLine($"Wrote TGA image {assetTexture.AssetID}.tga");
                             }
-                            Console.WriteLine("Wrote TGA image " + assetTexture.AssetID + ".tga");
                         }
                         catch (Exception e)
                         {
@@ -131,7 +137,7 @@ namespace OpenMetaverse.TestClient
                     }
                     else
                     {
-                        Console.WriteLine("Failed to download image " + assetTexture.AssetID);
+                        Console.WriteLine($"Failed to download image {assetTexture.AssetID}");
                     }
 
                     OutfitAssets.Remove(assetTexture.AssetID);

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2022, Sjofn LLC.
+ * Copyright (c) 2022-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -25,9 +25,11 @@
  */
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
-using OpenMetaverse.Http;
+using System.Threading.Tasks;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
 
@@ -42,7 +44,7 @@ namespace OpenMetaverse
         CanSeeOnline = 1,
         /// <summary>The avatar can see the location of the target avatar on the map</summary>
         CanSeeOnMap = 2,
-        /// <summary>The avatar can modify the ojects of the target avatar </summary>
+        /// <summary>The avatar can modify the objects of the target avatar </summary>
         CanModifyObjects = 4
     }
 
@@ -179,7 +181,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Used internally when building the initial list of friends at login time
         /// </summary>
-        /// <param name="id">System ID of the avatar being prepesented</param>
+        /// <param name="id">System ID of the avatar being represented</param>
         /// <param name="theirRights">Rights the friend has to see you online and to modify your objects</param>
         /// <param name="myRights">Rights you have to see your friend online and to modify their objects</param>
         internal FriendInfo(UUID id, FriendRights theirRights, FriendRights myRights)
@@ -197,7 +199,7 @@ namespace OpenMetaverse
         /// <summary>
         /// FriendInfo represented as a string
         /// </summary>
-        /// <returns>A string reprentation of both my rights and my friends rights</returns>
+        /// <returns><see cref="string"/> representation of both my rights and my friends rights</returns>
         public override string ToString()
         {
             return !string.IsNullOrEmpty(Name) 
@@ -230,7 +232,7 @@ namespace OpenMetaverse
             remove { lock (m_FriendsListReadyLock) { m_FriendsListReadyResponse -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<FriendInfoEventArgs> m_FriendOnline;
 
         /// <summary>Raises the FriendOnline event</summary>
@@ -252,7 +254,7 @@ namespace OpenMetaverse
             remove { lock (m_FriendOnlineLock) { m_FriendOnline -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<FriendInfoEventArgs> m_FriendOffline;
 
         /// <summary>Raises the FriendOffline event</summary>
@@ -274,7 +276,7 @@ namespace OpenMetaverse
             remove { lock (m_FriendOfflineLock) { m_FriendOffline -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<FriendInfoEventArgs> m_FriendRights;
 
         /// <summary>Raises the FriendRightsUpdate event</summary>
@@ -296,7 +298,7 @@ namespace OpenMetaverse
             remove { lock (m_FriendRightsLock) { m_FriendRights -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<FriendNamesEventArgs> m_FriendNames;
 
         /// <summary>Raises the FriendNames event</summary>
@@ -318,7 +320,7 @@ namespace OpenMetaverse
             remove { lock (m_FriendNamesLock) { m_FriendNames -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<FriendshipOfferedEventArgs> m_FriendshipOffered;
 
         /// <summary>Raises the FriendshipOffered event</summary>
@@ -340,7 +342,7 @@ namespace OpenMetaverse
             remove { lock (m_FriendshipOfferedLock) { m_FriendshipOffered -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<FriendshipResponseEventArgs> m_FriendshipResponse;
 
         /// <summary>Raises the FriendshipResponse event</summary>
@@ -362,7 +364,7 @@ namespace OpenMetaverse
             remove { lock (m_FriendshipResponseLock) { m_FriendshipResponse -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<FriendshipTerminatedEventArgs> m_FriendshipTerminated;
 
         /// <summary>Raises the FriendshipTerminated event</summary>
@@ -385,7 +387,7 @@ namespace OpenMetaverse
             remove { lock (m_FriendshipTerminatedLock) { m_FriendshipTerminated -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<FriendFoundReplyEventArgs> m_FriendFound;
 
         /// <summary>Raises the FriendFoundReply event</summary>
@@ -410,27 +412,23 @@ namespace OpenMetaverse
 
         #endregion Delegates
 
-        #region Events
-
-        #endregion Events
-
         private readonly GridClient Client;
         /// <summary>
         /// A dictionary of key/value pairs containing known friends of this avatar. 
         /// 
-        /// The Key is the <seealso cref="UUID"/> of the friend, the value is a <seealso cref="FriendInfo"/>
+        /// The Key is the <see cref="UUID"/> of the friend, the value is a <see cref="FriendInfo"/>
         /// object that contains detailed information including permissions you have and have given to the friend
         /// </summary>
-        public InternalDictionary<UUID, FriendInfo> FriendList = new InternalDictionary<UUID, FriendInfo>();
+        public ConcurrentDictionary<UUID, FriendInfo> FriendList = new ConcurrentDictionary<UUID, FriendInfo>();
 
         /// <summary>
-        /// A Dictionary of key/value pairs containing current pending frienship offers.
+        /// A Dictionary of key/value pairs containing current pending friendship offers.
         /// 
-        /// The key is the <seealso cref="UUID"/> of the avatar making the request, 
-        /// the value is the <seealso cref="UUID"/> of the request which is used to accept
+        /// The key is the <see cref="UUID"/> of the avatar making the request, 
+        /// the value is the <see cref="UUID"/> of the request which is used to accept
         /// or decline the friendship offer
         /// </summary>
-        public InternalDictionary<UUID, UUID> FriendRequests = new InternalDictionary<UUID, UUID>();
+        public ConcurrentDictionary<UUID, UUID> FriendRequests = new ConcurrentDictionary<UUID, UUID>();
 
         /// <summary>
         /// Internal constructor
@@ -450,14 +448,13 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.TerminateFriendship, TerminateFriendshipHandler);
             Client.Network.RegisterCallback(PacketType.FindAgent, OnFindAgentReplyHandler);
 
-            Client.Network.RegisterLoginResponseCallback(new NetworkManager.LoginResponseCallback(Network_OnLoginResponse),
-                new string[] { "buddy-list" });
+            Client.Network.RegisterLoginResponseCallback(Network_OnLoginResponse, new[] { "buddy-list" });
         }
 
         #region Public Methods
 
         /// <summary>
-        /// Accept a friendship request
+        /// Accept a friendship request via LLUDP packet
         /// </summary>
         /// <param name="fromAgentID">agentID of avatar to form friendship with</param>
         /// <param name="imSessionID">imSessionID of the friendship request message</param>
@@ -488,22 +485,20 @@ namespace OpenMetaverse
             FriendInfo friend = new FriendInfo(fromAgentID, FriendRights.CanSeeOnline,
                 FriendRights.CanSeeOnline);
 
-            if (!FriendList.ContainsKey(fromAgentID))
-                FriendList.Add(friend.UUID, friend);
-
-            if (FriendRequests.ContainsKey(fromAgentID))
-                FriendRequests.Remove(fromAgentID);
+            FriendList.TryAdd(friend.UUID, friend);
+            FriendRequests.TryRemove(fromAgentID, out _);
 
             Client.Avatars.RequestAvatarName(fromAgentID);
         }
 
         /// <summary>
         /// Accept friendship request. Only to be used if request was sent via Offline Msg cap
-        /// This can be determined by the presence of a <seealso cref="InstantMessageEventArgs.Simulator"/>
-        /// value in <seealso cref="InstantMessageEventArgs" />
+        /// This can be determined by the presence of a <see cref="InstantMessageEventArgs.Simulator"/>
+        /// value in <see cref="InstantMessageEventArgs" />
         /// </summary>
         /// <param name="fromAgentID">agentID of avatar to form friendship with</param>
-        public void AcceptFriendshipCapability(UUID fromAgentID)
+        /// <param name="cancellationToken"></param>
+        public async Task AcceptFriendshipViaCapAsync(UUID fromAgentID, CancellationToken cancellationToken = default)
         {
             Uri acceptFriendshipCap = Client.Network.CurrentSim.Caps.CapabilityURI("AcceptFriendship");
             if (acceptFriendshipCap == null)
@@ -513,14 +508,14 @@ namespace OpenMetaverse
             }
             UriBuilder builder = new UriBuilder(acceptFriendshipCap)
             {
-                // Second Life has some infintely stupid escaped agent name as part of the uri query.
-                // Hopefully we don't need it because it makes no goddamn sense at all. Period, but just in case:
+                // Second Life has some infinitely stupid escaped agent name as part of the uri query.
+                // Hopefully we don't need it because it makes no sense at all. Period, but just in case:
                 // ?from={fromAgentID}&agent_name=\"This%20Sucks\"
                 Query = $"from={fromAgentID}"
             };
             acceptFriendshipCap = builder.Uri;
 
-            _ = Client.HttpCapsClient.PostRequestAsync(acceptFriendshipCap, OSDFormat.Xml, new OSD(), CancellationToken.None,
+            await Client.HttpCapsClient.PostRequestAsync(acceptFriendshipCap, OSDFormat.Xml, new OSD(), cancellationToken,
                 (response, data, error) =>
                 {
                     if (error != null)
@@ -534,23 +529,18 @@ namespace OpenMetaverse
                     {
                         FriendInfo friend = new FriendInfo(fromAgentID, FriendRights.CanSeeOnline, FriendRights.CanSeeOnline);
 
-                        if (!FriendList.ContainsKey(fromAgentID))
-                        {
-                            FriendList.Add(friend.UUID, friend);
-                        }
-                        if (FriendRequests.ContainsKey(fromAgentID))
-                        {
-                            FriendRequests.Remove(fromAgentID);
-                        }
+                        FriendList.TryAdd(friend.UUID, friend);
+                        FriendRequests.TryRemove(fromAgentID, out _);
+
                         Client.Avatars.RequestAvatarName(fromAgentID);
                     }
                 });
         }
 
         /// <summary>
-        /// Decline a friendship request
+        /// Decline a friendship request via LLUDP packet
         /// </summary>
-        /// <param name="fromAgentID"><seealso cref="UUID"/> of friend</param>
+        /// <param name="fromAgentID"><see cref="UUID"/> of friend</param>
         /// <param name="imSessionID">imSessionID of the friendship request message</param>
         public void DeclineFriendship(UUID fromAgentID, UUID imSessionID)
         {
@@ -568,19 +558,17 @@ namespace OpenMetaverse
             };
             Client.Network.SendPacket(request);
 
-            if (FriendRequests.ContainsKey(fromAgentID))
-            {
-                FriendRequests.Remove(fromAgentID);
-            }
+            FriendRequests.TryRemove(fromAgentID, out _);
         }
 
         /// <summary>
         /// Decline friendship request. Only to be used if request was sent via Offline Msg cap
-        /// This can be determined by the presence of a <seealso cref="InstantMessageEventArgs.Simulator"/>
-        /// value in <seealso cref="InstantMessageEventArgs" />
+        /// This can be determined by the presence of a <see cref="InstantMessageEventArgs.Simulator"/>
+        /// value in <see cref="InstantMessageEventArgs" />
         /// </summary>
-        /// <param name="fromAgentID"><seealso cref="UUID"/> of friend</param>
-        public void DeclineFriendshipCap(UUID fromAgentID)
+        /// <param name="fromAgentID"><see cref="UUID"/> of friend</param>
+        /// <param name="cancellationToken"></param>
+        public async Task DeclineFriendshipViaCapAsync(UUID fromAgentID, CancellationToken cancellationToken = default)
         {
             Uri declineFriendshipCap = Client.Network.CurrentSim.Caps.CapabilityURI("DeclineFriendship");
             if (declineFriendshipCap == null)
@@ -594,7 +582,7 @@ namespace OpenMetaverse
             };
             declineFriendshipCap = builder.Uri;
 
-            _ = Client.HttpCapsClient.DeleteRequestAsync(declineFriendshipCap, OSDFormat.Xml, new OSD(), CancellationToken.None,
+            await Client.HttpCapsClient.DeleteRequestAsync(declineFriendshipCap, OSDFormat.Xml, new OSD(), cancellationToken,
                 (response, data, error) =>
                 {
                     if (error != null)
@@ -607,10 +595,7 @@ namespace OpenMetaverse
                     OSD result = OSDParser.Deserialize(data);
                     if (result is OSDMap resMap && resMap.ContainsKey("success") && resMap["success"].AsBoolean())
                     {
-                        if (FriendRequests.ContainsKey(fromAgentID))
-                        {
-                            FriendRequests.Remove(fromAgentID);
-                        }
+                        FriendRequests.TryRemove(fromAgentID, out _);
                     }
                 });
         }
@@ -666,10 +651,7 @@ namespace OpenMetaverse
 
                 Client.Network.SendPacket(request);
 
-                if (FriendList.ContainsKey(agentID))
-                {
-                    FriendList.Remove(agentID);
-                }
+                FriendList.TryRemove(agentID, out _);
             }
         }
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
@@ -681,10 +663,10 @@ namespace OpenMetaverse
             TerminateFriendshipPacket itsOver = (TerminateFriendshipPacket)packet;
             string name = string.Empty;
 
-            if (FriendList.ContainsKey(itsOver.ExBlock.OtherID))
+            if (FriendList.TryGetValue(itsOver.ExBlock.OtherID, out var friend))
             {
-                name = FriendList[itsOver.ExBlock.OtherID].Name;
-                FriendList.Remove(itsOver.ExBlock.OtherID);
+                name = friend.Name;
+                FriendList.TryRemove(itsOver.ExBlock.OtherID, out _);
             }
 
             if (m_FriendshipTerminated != null)
@@ -696,7 +678,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Change the rights of a friend avatar.
         /// </summary>
-        /// <param name="friendID">the <seealso cref="UUID"/> of the friend</param>
+        /// <param name="friendID">the <see cref="UUID"/> of the friend</param>
         /// <param name="rights">the new rights to give the friend</param>
         /// <remarks>This method will implicitly set the rights to those passed in the rights parameter.</remarks>
         public void GrantRights(UUID friendID, FriendRights rights)
@@ -723,7 +705,7 @@ namespace OpenMetaverse
         /// Use to map a friends location on the grid.
         /// </summary>
         /// <param name="friendID">Friends UUID to find</param>
-        /// <remarks><seealso cref="E:OnFriendFound"/></remarks>
+        /// <remarks><see cref="E:OnFriendFound"/></remarks>
         public void MapFriend(UUID friendID)
         {
             FindAgentPacket stalk = new FindAgentPacket
@@ -808,18 +790,12 @@ namespace OpenMetaverse
                 return;
             }
 
-            List<UUID> names = new List<UUID>();
+            var names = (from friend in FriendList 
+                where friend.Value != null && string.IsNullOrEmpty(friend.Value.Name) 
+                select friend.Key).ToList();
 
-            if (FriendList.Count > 0)
+            if (names.Any())
             {
-                FriendList.ForEach(
-                    kvp =>
-                    {
-                        if (string.IsNullOrEmpty(kvp.Value.Name))
-                            names.Add(kvp.Key);
-                    }
-                );
-
                 Client.Avatars.RequestAvatarNames(names);
             }
         }
@@ -832,21 +808,19 @@ namespace OpenMetaverse
         /// <param name="e">names corresponding to the list of IDs sent to RequestAvatarNames.</param>
         private void Avatars_OnAvatarNames(object sender, UUIDNameReplyEventArgs e)
         {
-            Dictionary<UUID, string> newNames = new Dictionary<UUID, string>();
+            var newNames = new Dictionary<UUID, string>();
 
-            foreach (KeyValuePair<UUID, string> kvp in e.Names)
+            foreach (var kvp in e.Names)
             {
-                FriendInfo friend;
-                lock (FriendList.Dictionary)
+                if (FriendList.TryGetValue(kvp.Key, out var friend))
                 {
-                    if (FriendList.TryGetValue(kvp.Key, out friend))
+                    if (friend.Name == null)
                     {
-                        if (friend.Name == null)
-                            newNames.Add(kvp.Key, e.Names[kvp.Key]);
-
-                        friend.Name = e.Names[kvp.Key];
-                        FriendList[kvp.Key] = friend;
+                        newNames.Add(kvp.Key, e.Names[kvp.Key]);
                     }
+
+                    friend.Name = e.Names[kvp.Key];
+                    FriendList[kvp.Key] = friend;
                 }
             }
 
@@ -872,18 +846,15 @@ namespace OpenMetaverse
                 foreach (OnlineNotificationPacket.AgentBlockBlock block in notification.AgentBlock)
                 {
                     FriendInfo friend;
-                    lock (FriendList.Dictionary)
+                    if (!FriendList.ContainsKey(block.AgentID))
                     {
-                        if (!FriendList.ContainsKey(block.AgentID))
-                        {
-                            friend = new FriendInfo(block.AgentID, FriendRights.CanSeeOnline,
-                                FriendRights.CanSeeOnline);
-                            FriendList.Add(block.AgentID, friend);
-                        }
-                        else
-                        {
-                            friend = FriendList[block.AgentID];
-                        }
+                        friend = new FriendInfo(block.AgentID, FriendRights.CanSeeOnline,
+                            FriendRights.CanSeeOnline);
+                        FriendList.TryAdd(block.AgentID, friend);
+                    }
+                    else
+                    {
+                        friend = FriendList[block.AgentID];
                     }
 
                     bool doNotify = !friend.IsOnline;
@@ -911,19 +882,15 @@ namespace OpenMetaverse
                 {
                     FriendInfo friend = new FriendInfo(block.AgentID, FriendRights.CanSeeOnline, FriendRights.CanSeeOnline);
 
-                    lock (FriendList.Dictionary)
+                    FriendList.TryAdd(block.AgentID, friend);
+                    if (FriendList.TryGetValue(block.AgentID, out friend))
                     {
-                        if (!FriendList.Dictionary.ContainsKey(block.AgentID))
-                            FriendList.Dictionary[block.AgentID] = friend;
+                        friend.IsOnline = false;
 
-                        friend = FriendList.Dictionary[block.AgentID];
-                    }
-
-                    friend.IsOnline = false;
-
-                    if (m_FriendOffline != null)
-                    {
-                        OnFriendOffline(new FriendInfoEventArgs(friend));
+                        if (m_FriendOffline != null)
+                        {
+                            OnFriendOffline(new FriendInfoEventArgs(friend));
+                        }
                     }
                 }
             }
@@ -938,13 +905,12 @@ namespace OpenMetaverse
             Packet packet = e.Packet;
             if (packet.Type == PacketType.ChangeUserRights)
             {
-                FriendInfo friend;
                 ChangeUserRightsPacket rights = (ChangeUserRightsPacket)packet;
 
                 foreach (ChangeUserRightsPacket.RightsBlock block in rights.Rights)
                 {
                     FriendRights newRights = (FriendRights)block.RelatedRights;
-                    if (FriendList.TryGetValue(block.AgentRelated, out friend))
+                    if (FriendList.TryGetValue(block.AgentRelated, out var friend))
                     {
                         friend.TheirFriendRights = newRights;
                         if (m_FriendRights != null)
@@ -977,10 +943,9 @@ namespace OpenMetaverse
                 Packet packet = e.Packet;
                 FindAgentPacket reply = (FindAgentPacket)packet;
 
-                float x, y;
                 UUID prey = reply.AgentBlock.Prey;
                 ulong regionHandle = Helpers.GlobalPosToRegionHandle((float)reply.LocationBlock[0].GlobalX,
-                    (float)reply.LocationBlock[0].GlobalY, out x, out y);
+                    (float)reply.LocationBlock[0].GlobalY, out var x, out var y);
                 Vector3 xyz = new Vector3(x, y, 0f);
 
                 OnFriendFoundReply(new FriendFoundReplyEventArgs(prey, regionHandle, xyz));
@@ -995,10 +960,7 @@ namespace OpenMetaverse
             {
                 if (m_FriendshipOffered != null)
                 {
-                    if (FriendRequests.ContainsKey(e.IM.FromAgentID))
-                        FriendRequests[e.IM.FromAgentID] = e.IM.IMSessionID;
-                    else
-                        FriendRequests.Add(e.IM.FromAgentID, e.IM.IMSessionID);
+                    FriendRequests.TryAdd(e.IM.FromAgentID, e.IM.IMSessionID);
 
                     OnFriendshipOffered(new FriendshipOfferedEventArgs(e.IM.FromAgentID, e.IM.FromAgentName, e.IM.IMSessionID));
                 }
@@ -1010,7 +972,7 @@ namespace OpenMetaverse
                 {
                     Name = e.IM.FromAgentName
                 };
-                lock (FriendList.Dictionary) FriendList[friend.UUID] = friend;
+                FriendList[friend.UUID] = friend;
 
                 if (m_FriendshipResponse != null)
                 {
@@ -1028,13 +990,13 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Populate FriendList <seealso cref="InternalDictionary"/> with data from the login reply
+        /// Populate FriendList <see cref="LockingDictionary{TKey,TValue}"/> with data from the login reply
         /// </summary>
         /// <param name="loginSuccess">true if login was successful</param>
         /// <param name="redirect">true if login request is requiring a redirect</param>
         /// <param name="message">A string containing the response to the login request</param>
         /// <param name="reason">A string containing the reason for the request</param>
-        /// <param name="replyData">A <seealso cref="LoginResponseData"/> object containing the decoded 
+        /// <param name="replyData">A <see cref="LoginResponseData"/> object containing the decoded 
         /// reply from the login server</param>
         private void Network_OnLoginResponse(bool loginSuccess, bool redirect, string message, string reason,
             LoginResponseData replyData)
@@ -1045,19 +1007,12 @@ namespace OpenMetaverse
             {
                 foreach (BuddyListEntry buddy in replyData.BuddyList)
                 {
-                    UUID bubid;
                     string id = buddy.BuddyId.Length > uuidLength ? buddy.BuddyId.Substring(0, uuidLength) : buddy.BuddyId;
-                    if (UUID.TryParse(id, out bubid))
+                    if (UUID.TryParse(id, out var bubid))
                     {
-                        lock (FriendList.Dictionary)
-                        {
-                            if (!FriendList.ContainsKey(bubid))
-                            {
-                                FriendList[bubid] = new FriendInfo(bubid, 
-                                    (FriendRights)buddy.BuddyRightsGiven,
-                                    (FriendRights)buddy.BuddyRightsHas);
-                            }
-                        }
+                        _ = FriendList.TryAdd(bubid, new FriendInfo(bubid, 
+                            (FriendRights)buddy.BuddyRightsGiven,
+                            (FriendRights)buddy.BuddyRightsHas));
                     }
                 }
                 OnfriendsListReady(new FriendsReadyEventArgs(FriendList.Count));

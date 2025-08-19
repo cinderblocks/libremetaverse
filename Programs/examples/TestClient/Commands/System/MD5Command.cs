@@ -11,10 +11,7 @@ namespace OpenMetaverse.TestClient
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            if (args.Length == 1)
-                return Utils.MD5(args[0]);
-            else
-                return "Usage: md5 [password]";
+            return args.Length == 1 ? Utils.MD5(args[0]) : "Usage: md5 [password]";
         }
     }
 }

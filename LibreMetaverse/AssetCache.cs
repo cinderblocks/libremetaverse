@@ -1,5 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -27,6 +28,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 
 namespace OpenMetaverse
@@ -48,8 +50,8 @@ namespace OpenMetaverse
         private bool autoPruneEnabled = true;
 
         /// <summary>
-        /// Allows setting weather to periodicale prune the cache if it grows too big
-        /// Default is enabled, when caching is enabled
+        /// Auto-prune periodically if the cache grows too big.
+        /// Default is enabled when caching is enabled.
         /// </summary>
         public bool AutoPruneEnabled
         {
@@ -66,7 +68,7 @@ namespace OpenMetaverse
                     DestroyTimer();
                 }
             }
-            get { return autoPruneEnabled; }
+            get => autoPruneEnabled;
         }
 
         /// <summary>
@@ -79,7 +81,7 @@ namespace OpenMetaverse
                 pruneInterval = value;
                 SetupTimer();
             }
-            get { return pruneInterval; }
+            get => pruneInterval;
         }
 
         /// <summary>
@@ -147,12 +149,12 @@ namespace OpenMetaverse
 
                 if (File.Exists(FileName(assetID)))
                 {
-                    DebugLog("Reading " + FileName(assetID) + " from asset cache.");
+                    //DebugLog($"Reading {FileName(assetID)} from asset cache.");
                     data = File.ReadAllBytes(FileName(assetID));
                 }
                 else
                 {
-                    DebugLog("Reading " + StaticFileName(assetID) + " from static asset cache.");
+                    //DebugLog($"Reading {StaticFileName(assetID)} from static asset cache.");
                     data = File.ReadAllBytes(StaticFileName(assetID));
 
                 }
@@ -177,16 +179,17 @@ namespace OpenMetaverse
                 return null;
 
             byte[] imageData = GetCachedAssetBytes(imageID);
-            if (imageData == null)
-                return null;
-            ImageDownload transfer = new ImageDownload();
-            transfer.AssetType = AssetType.Texture;
-            transfer.ID = imageID;
-            transfer.Simulator = Client.Network.CurrentSim;
-            transfer.Size = imageData.Length;
-            transfer.Success = true;
-            transfer.Transferred = imageData.Length;
-            transfer.AssetData = imageData;
+            if (imageData == null) { return null; }
+            ImageDownload transfer = new ImageDownload
+            {
+                AssetType = AssetType.Texture,
+                ID = imageID,
+                Simulator = Client.Network.CurrentSim,
+                Size = imageData.Length,
+                Success = true,
+                Transferred = imageData.Length,
+                AssetData = imageData
+            };
             return transfer;
         }
 
@@ -211,7 +214,7 @@ namespace OpenMetaverse
         /// <returns>String with the file name of the static cached asset</returns>
         private string StaticFileName(UUID assetID)
         {
-            return Settings.RESOURCE_DIR + Path.DirectorySeparatorChar + "static_assets" + Path.DirectorySeparatorChar + assetID;
+            return Path.Combine(Settings.RESOURCE_DIR, "static_assets", assetID.ToString());
         }
 
         /// <summary>
@@ -266,10 +269,7 @@ namespace OpenMetaverse
 
             string fileName = FileName(assetID);
 
-            if (File.Exists(fileName))
-                return fileName;
-            else
-                return null;
+            return File.Exists(fileName) ? fileName : null;
         }
 
         /// <summary>
@@ -279,14 +279,9 @@ namespace OpenMetaverse
         /// <returns>True is the asset is stored in the cache, otherwise false</returns>
         public bool HasAsset(UUID assetID)
         {
-            if (!Operational())
-                return false;
-            else
-                if (File.Exists(FileName(assetID)))
-                    return true;
-                else
-                    return File.Exists(StaticFileName(assetID));
-
+            return Operational() 
+                && (File.Exists(FileName(assetID)) 
+                    || File.Exists(StaticFileName(assetID)));
         }
 
         /// <summary>
@@ -295,10 +290,7 @@ namespace OpenMetaverse
         public void Clear()
         {
             string cacheDir = Client.Settings.ASSET_CACHE_DIR;
-            if (!Directory.Exists(cacheDir))
-            {
-                return;
-            }
+            if (!Directory.Exists(cacheDir)) { return; }
 
             DirectoryInfo di = new DirectoryInfo(cacheDir);
             // We save file with UUID as file name, only delete those
@@ -311,7 +303,7 @@ namespace OpenMetaverse
                 ++num;
             }
 
-            DebugLog("Wiped out " + num + " files from the cache directory.");
+            DebugLog($"Cleared out {num} files from the cache directory.");
         }
 
         /// <summary>
@@ -345,11 +337,11 @@ namespace OpenMetaverse
                         break;
                     }
                 }
-                DebugLog(num + " files deleted from the cache, cache size now: " + NiceFileSize(size));
+                DebugLog($"{num} files deleted from the cache, cache size now: {NiceFileSize(size)}");
             }
             else
             {
-                DebugLog("Cache size is " + NiceFileSize(size) + ", file deletion not needed");
+                DebugLog($"Cache size is {NiceFileSize(size)} file deletion not needed");
             }
 
             cleanerEvent.Reset();
@@ -364,7 +356,7 @@ namespace OpenMetaverse
             if (!cleanerEvent.IsSet)
             {
                 cleanerEvent.Set();
-                ThreadPool.QueueUserWorkItem((_) => Prune());
+                ThreadPool.QueueUserWorkItem(_ => Prune());
             }
         }
 
@@ -373,12 +365,7 @@ namespace OpenMetaverse
         /// </summary>
         long GetFileSize(FileInfo[] files)
         {
-            long ret = 0;
-            foreach (FileInfo file in files)
-            {
-                ret += file.Length;
-            }
-            return ret;
+            return files.Sum(file => file.Length);
         }
 
         /// <summary>
@@ -406,11 +393,11 @@ namespace OpenMetaverse
         {
             string size = "0 Bytes";
             if (byteCount >= 1073741824)
-                size = String.Format("{0:##.##}", byteCount / 1073741824) + " GB";
+                size = $"{byteCount / 1073741824:##.##}" + " GB";
             else if (byteCount >= 1048576)
-                size = String.Format("{0:##.##}", byteCount / 1048576) + " MB";
+                size = $"{byteCount / 1048576:##.##}" + " MB";
             else if (byteCount >= 1024)
-                size = String.Format("{0:##.##}", byteCount / 1024) + " KB";
+                size = $"{byteCount / 1024:##.##}" + " KB";
             else if (byteCount > 0 && byteCount < 1024)
                 size = byteCount + " Bytes";
 

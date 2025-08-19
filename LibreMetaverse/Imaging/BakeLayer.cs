@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2007-2008, openmetaverse.co
+ * Copyright (c) 2024-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -27,7 +28,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Drawing;
+using SkiaSharp;
 using OpenMetaverse.Assets;
 
 namespace OpenMetaverse.Imaging
@@ -356,20 +357,20 @@ namespace OpenMetaverse.Imaging
         {
             try
             {
-                Bitmap bitmap = null;
+                SKBitmap bitmap = null;
                 lock (ResourceSync)
                 {
-                    using (Stream stream = Helpers.GetResourceStream(fileName, Settings.RESOURCE_DIR))
+                    using (Stream stream = Helpers.GetResourceStream(fileName, Path.Combine(Settings.RESOURCE_DIR, "static_assets")))
                     {
                         if (stream != null)
                         {
-                            bitmap = LoadTGAClass.LoadTGA(stream);
+                            bitmap = Targa.Decode(stream);
                         }
                     }
                 }
                 if (bitmap == null)
                 {
-                    Logger.Log(String.Format("Failed loading resource file: {0}", fileName), Helpers.LogLevel.Error);
+                    Logger.Log($"Failed loading resource file: {fileName}", Helpers.LogLevel.Error);
                     return null;
                 }
                 else
@@ -379,7 +380,7 @@ namespace OpenMetaverse.Imaging
             }
             catch (Exception e)
             {
-                Logger.Log(String.Format("Failed loading resource file: {0} ({1})", fileName, e.Message),
+                Logger.Log($"Failed loading resource file: {fileName} ({e.Message})",
                     Helpers.LogLevel.Error, e);
                 return null;
             }
@@ -440,20 +441,17 @@ namespace OpenMetaverse.Imaging
         {
             if (source == null) return false;
 
-            bool sourceHasColor;
-            bool sourceHasAlpha;
-            bool sourceHasBump;
             int i = 0;
 
-            sourceHasColor = ((source.Channels & ManagedImage.ImageChannels.Color) != 0 &&
-                    source.Red != null && source.Green != null && source.Blue != null);
-            sourceHasAlpha = ((source.Channels & ManagedImage.ImageChannels.Alpha) != 0 && source.Alpha != null);
-            sourceHasBump = ((source.Channels & ManagedImage.ImageChannels.Bump) != 0 && source.Bump != null);
+            var sourceHasColor = ((source.Channels & ManagedImage.ImageChannels.Color) != 0 &&
+                                  source.Red != null && source.Green != null && source.Blue != null);
+            var sourceHasAlpha = ((source.Channels & ManagedImage.ImageChannels.Alpha) != 0 && source.Alpha != null);
+            var sourceHasBump = ((source.Channels & ManagedImage.ImageChannels.Bump) != 0 && source.Bump != null);
 
             addSourceAlpha = (addSourceAlpha && sourceHasAlpha);
 
-            byte alpha = Byte.MaxValue;
-            byte alphaInv = (byte)(Byte.MaxValue - alpha);
+            byte alpha = byte.MaxValue;
+            byte alphaInv = (byte)(byte.MaxValue - alpha);
 
             byte[] bakedRed = bakedTexture.Image.Red;
             byte[] bakedGreen = bakedTexture.Image.Green;
@@ -482,7 +480,7 @@ namespace OpenMetaverse.Imaging
                         {
                             loadedAlpha = true;
                             alpha = sourceAlpha[i];
-                            alphaInv = (byte)(Byte.MaxValue - alpha);
+                            alphaInv = (byte)(byte.MaxValue - alpha);
                         }
                     }
 

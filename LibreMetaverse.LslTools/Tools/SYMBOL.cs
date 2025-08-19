@@ -95,7 +95,7 @@ namespace LibreMetaverse.LslTools
       ParsingInfo parsingInfo = (ParsingInfo) syms.symbolInfo[(object) this.yynum];
       if (parsingInfo == null)
       {
-        string s = string.Format("No parsinginfo for symbol {0} {1}", (object) this.yyname, (object) this.yynum);
+        string s = $"No parsinginfo for symbol {(object)this.yyname} {(object)this.yynum}";
         syms.erh.Error((CSToolsException) new CSToolsFatalException(9, this.yylx, this.yyname, s));
       }
       bool flag = parsingInfo.m_parsetable.Contains((object) snum);
@@ -122,7 +122,7 @@ namespace LibreMetaverse.LslTools
 
     private void ConcreteSyntaxTree(string n)
     {
-      if (this is error)
+      if (this is Error)
         Console.WriteLine(n + " " + this.ToString());
       else
         Console.WriteLine(n + "-" + this.ToString());

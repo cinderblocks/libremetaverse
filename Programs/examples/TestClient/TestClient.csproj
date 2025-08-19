@@ -1,26 +1,41 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-	<AssemblyName>TestClient</AssemblyName>
-	<OutputType>Exe</OutputType>
+    <AssemblyName>TestClient</AssemblyName>
+    <OutputType>Exe</OutputType>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <OutputPath>..\..\..\bin\</OutputPath>
-    <TargetFrameworks>net48;net6.0;net7.0;net8.0</TargetFrameworks>
-    <Platforms>x64;x86</Platforms>
-	<IncludeSymbols>true</IncludeSymbols>
-	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <TargetFrameworks>net481;net8.0;net9.0</TargetFrameworks>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <Optimize>False</Optimize>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DebugType>pdbonly</DebugType>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>True</Optimize>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\..\..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
     <ProjectReference Include="..\..\..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
-    <ProjectReference Include="..\..\..\LibreMetaverse.Voice\LibreMetaverse.Voice.csproj" />
+    <ProjectReference Include="..\..\..\LibreMetaverse.Voice.Vivox\LibreMetaverse.Voice.Vivox.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Pfim" Version="0.11.3" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.0" />
+    <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="3.119.0" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="3.119.0" />
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
   </ItemGroup>
   <ItemGroup>
-	<None Include="..\..\..\LICENSE.txt" Pack="true" PackagePath="\" />
-	<None Include="..\..\..\README.md" Pack="true" PackagePath="\" />
-	<None Include="..\..\..\data\logo.png" Pack="true" PackagePath="\" />
+    <None Include="..\..\..\LICENSE.txt" Pack="true" PackagePath="\" />
+    <None Include="..\..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\..\data\logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>

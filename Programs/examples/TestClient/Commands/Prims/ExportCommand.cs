@@ -10,14 +10,14 @@ namespace OpenMetaverse.TestClient
 {
     public class ExportCommand : Command
     {
-        List<UUID> Textures = new List<UUID>();
-        AutoResetEvent GotPermissionsEvent = new AutoResetEvent(false);
-        Primitive.ObjectProperties Properties;
-        bool GotPermissions = false;
-        UUID SelectedObject = UUID.Zero;
+        private readonly List<UUID> Textures = new List<UUID>();
+        private readonly AutoResetEvent GotPermissionsEvent = new AutoResetEvent(false);
+        private Primitive.ObjectProperties Properties;
+        private bool GotPermissions = false;
+        private UUID SelectedObject = UUID.Zero;
 
-        Dictionary<UUID, Primitive> PrimsWaiting = new Dictionary<UUID, Primitive>();
-        AutoResetEvent AllPropertiesReceived = new AutoResetEvent(false);
+        private readonly Dictionary<UUID, Primitive> PrimsWaiting = new Dictionary<UUID, Primitive>();
+        private readonly AutoResetEvent AllPropertiesReceived = new AutoResetEvent(false);
 
         public ExportCommand(TestClient testClient)
         {
@@ -29,9 +29,9 @@ namespace OpenMetaverse.TestClient
             Name = "export";
             Description = "Exports an object to an xml file. Usage: export uuid outputfile.xml";
             Category = CommandCategory.Objects;
-        }        
+        }
 
-        void Avatars_ViewerEffectPointAt(object sender, ViewerEffectPointAtEventArgs e)
+        private void Avatars_ViewerEffectPointAt(object sender, ViewerEffectPointAtEventArgs e)
         {
             if (e.SourceID == Client.MasterKey)
             {
@@ -46,7 +46,6 @@ namespace OpenMetaverse.TestClient
                 return "Usage: export uuid outputfile.xml";
 
             UUID id;
-            uint localid;
             string file;
 
             if (args.Length == 2)
@@ -61,107 +60,100 @@ namespace OpenMetaverse.TestClient
                 id = SelectedObject;
             }
 
-            Primitive exportPrim;
+            var kvp = Client.Network.CurrentSim.ObjectsPrimitives.FirstOrDefault(
+                prim => prim.Value.ID == id);
 
-            exportPrim = Client.Network.CurrentSim.ObjectsPrimitives.Find(
-                prim => prim.ID == id
-            );
-
-            if (exportPrim != null)
+            if (kvp.Value == null)
             {
-                localid = exportPrim.ParentID != 0 ? exportPrim.ParentID : exportPrim.LocalID;
+                return $"Couldn't find UUID {id} in the objects currently indexed in the current simulator";
+            }
 
-                // Check for export permission first
-                Client.Objects.RequestObjectPropertiesFamily(Client.Network.CurrentSim, id);
-                GotPermissionsEvent.WaitOne(1000 * 10, false);
+            var exportPrim = kvp.Value;
+            var localId = exportPrim.ParentID != 0 ? exportPrim.ParentID : exportPrim.LocalID;
 
-                if (!GotPermissions)
+            // Check for export permission first
+            Client.Objects.RequestObjectPropertiesFamily(Client.Network.CurrentSim, id);
+            GotPermissionsEvent.WaitOne(TimeSpan.FromSeconds(20), false);
+
+            if (!GotPermissions)
+            {
+                return "Couldn't fetch permissions for the requested object, try again";
+            }
+
+            GotPermissions = false;
+
+            if (Properties.OwnerID != Client.Self.AgentID && 
+                Properties.OwnerID != Client.MasterKey)
+            {
+                return "That object is owned by " + Properties.OwnerID + ", we don't have permission " +
+                       "to export it";
+            }
+
+            var prims = (from kvprim in Client.Network.CurrentSim.ObjectsPrimitives 
+                where kvprim.Value != null select kvprim.Value into prim 
+                where prim.LocalID == localId || prim.ParentID == localId select prim).ToList();
+
+            bool complete = RequestObjectProperties(prims, 250);
+
+            if (!complete)
+            {
+                Logger.Log("Warning: Unable to retrieve full properties for:", Helpers.LogLevel.Warning, Client);
+                foreach (UUID uuid in PrimsWaiting.Keys)
+                    Logger.Log(uuid.ToString(), Helpers.LogLevel.Warning, Client);
+            }
+
+            string output = OSDParser.SerializeLLSDXmlString(Helpers.PrimListToOSD(prims));
+            try { File.WriteAllText(file, output); }
+            catch (Exception e) { return e.Message; }
+
+            Logger.Log("Exported " + prims.Count + " prims to " + file, Helpers.LogLevel.Info, Client);
+
+            // Create a list of all the textures to download
+            List<ImageRequest> textureRequests = new List<ImageRequest>();
+
+            lock (Textures)
+            {
+                foreach (var prim in prims)
                 {
-                    return "Couldn't fetch permissions for the requested object, try again";
-                }
-                else
-                {
-                    GotPermissions = false;
-                    if (Properties.OwnerID != Client.Self.AgentID && 
-                        Properties.OwnerID != Client.MasterKey)
+                    if (prim.Textures.DefaultTexture.TextureID != Primitive.TextureEntry.WHITE_TEXTURE &&
+                        !Textures.Contains(prim.Textures.DefaultTexture.TextureID))
                     {
-                        return "That object is owned by " + Properties.OwnerID + ", we don't have permission " +
-                            "to export it";
+                        Textures.Add(prim.Textures.DefaultTexture.TextureID);
                     }
-                }
 
-                List<Primitive> prims = Client.Network.CurrentSim.ObjectsPrimitives.FindAll(
-                    prim => (prim.LocalID == localid || prim.ParentID == localid)
-                );
-
-                bool complete = RequestObjectProperties(prims, 250);
-
-                if (!complete)
-                {
-                    Logger.Log("Warning: Unable to retrieve full properties for:", Helpers.LogLevel.Warning, Client);
-                    foreach (UUID uuid in PrimsWaiting.Keys)
-                        Logger.Log(uuid.ToString(), Helpers.LogLevel.Warning, Client);
-                }
-
-                string output = OSDParser.SerializeLLSDXmlString(Helpers.PrimListToOSD(prims));
-                try { File.WriteAllText(file, output); }
-                catch (Exception e) { return e.Message; }
-
-                Logger.Log("Exported " + prims.Count + " prims to " + file, Helpers.LogLevel.Info, Client);
-
-                // Create a list of all of the textures to download
-                List<ImageRequest> textureRequests = new List<ImageRequest>();
-
-                lock (Textures)
-                {
-                    foreach (var prim in prims)
+                    foreach (var face in prim.Textures.FaceTextures)
                     {
-                        if (prim.Textures.DefaultTexture.TextureID != Primitive.TextureEntry.WHITE_TEXTURE &&
-                            !Textures.Contains(prim.Textures.DefaultTexture.TextureID))
+                        if (face != null &&
+                            face.TextureID != Primitive.TextureEntry.WHITE_TEXTURE &&
+                            !Textures.Contains(face.TextureID))
                         {
-                            Textures.Add(prim.Textures.DefaultTexture.TextureID);
-                        }
-
-                        foreach (var face in prim.Textures.FaceTextures)
-                        {
-                            if (face != null &&
-                                face.TextureID != Primitive.TextureEntry.WHITE_TEXTURE &&
-                                !Textures.Contains(face.TextureID))
-                            {
-                                Textures.Add(face.TextureID);
-                            }
-                        }
-
-                        if (prim.Sculpt != null && prim.Sculpt.SculptTexture != UUID.Zero && !Textures.Contains(prim.Sculpt.SculptTexture))
-                        {
-                            Textures.Add(prim.Sculpt.SculptTexture);
+                            Textures.Add(face.TextureID);
                         }
                     }
 
-                    // Create a request list from all of the images
-                    textureRequests.AddRange(Textures.Select(t => new ImageRequest(t, ImageType.Normal, 1013000.0f, 0)));
+                    if (prim.Sculpt != null && prim.Sculpt.SculptTexture != UUID.Zero && !Textures.Contains(prim.Sculpt.SculptTexture))
+                    {
+                        Textures.Add(prim.Sculpt.SculptTexture);
+                    }
                 }
 
-                // Download all of the textures in the export list
-                foreach (ImageRequest request in textureRequests)
-                {
-                    Client.Assets.RequestImage(request.ImageID, request.Type, Assets_OnImageReceived);
-                }
-
-                return "XML exported, began downloading " + Textures.Count + " textures";
+                // Create a request list from all the images
+                textureRequests.AddRange(Textures.Select(t => new ImageRequest(t, ImageType.Normal, 1013000.0f, 0)));
             }
-            else
+
+            // Download all the textures in the export list
+            foreach (var request in textureRequests)
             {
-                return "Couldn't find UUID " + id + " in the " + 
-                    Client.Network.CurrentSim.ObjectsPrimitives.Count + 
-                    "objects currently indexed in the current simulator";
+                Client.Assets.RequestImage(request.ImageID, request.Type, Assets_OnImageReceived);
             }
+
+            return $"XML exported, downloading {Textures.Count} textures";
         }
 
         private bool RequestObjectProperties(List<Primitive> objects, int msPerRequest)
         {
             // Create an array of the local IDs of all the prims we are requesting properties for
-            uint[] localids = new uint[objects.Count];
+            uint[] localIds = new uint[objects.Count];
             
             lock (PrimsWaiting)
             {
@@ -169,12 +161,12 @@ namespace OpenMetaverse.TestClient
 
                 for (int i = 0; i < objects.Count; ++i)
                 {
-                    localids[i] = objects[i].LocalID;
+                    localIds[i] = objects[i].LocalID;
                     PrimsWaiting.Add(objects[i].ID, objects[i]);
                 }
             }
 
-            Client.Objects.SelectObjects(Client.Network.CurrentSim, localids);
+            Client.Objects.SelectObjects(Client.Network.CurrentSim, localIds);
 
             return AllPropertiesReceived.WaitOne(2000 + msPerRequest * objects.Count, false);
         }
@@ -192,7 +184,7 @@ namespace OpenMetaverse.TestClient
 
                 if (asset.Decode())
                 {
-                    try { File.WriteAllBytes(asset.AssetID + ".tga", asset.Image.ExportTGA()); }
+                    try { File.WriteAllBytes(asset.AssetID + ".tga", Imaging.Targa.Encode(asset.Image)); }
                     catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
                 }
                 else
@@ -204,7 +196,7 @@ namespace OpenMetaverse.TestClient
             }
         }
 
-        void Objects_OnObjectPropertiesFamily(object sender, ObjectPropertiesFamilyEventArgs e)
+        private void Objects_OnObjectPropertiesFamily(object sender, ObjectPropertiesFamilyEventArgs e)
         {
             Properties = new Primitive.ObjectProperties();
             Properties.SetFamilyProperties(e.Properties);
@@ -212,7 +204,7 @@ namespace OpenMetaverse.TestClient
             GotPermissionsEvent.Set();
         }
 
-        void Objects_OnObjectProperties(object sender, ObjectPropertiesEventArgs e)
+        private void Objects_OnObjectProperties(object sender, ObjectPropertiesEventArgs e)
         {
             lock (PrimsWaiting)
             {

@@ -59,9 +59,9 @@ namespace OpenMetaverse.Stats
             {
                 Stat stat;
 
-                if (m_StatsCollection.ContainsKey(key))
+                if (m_StatsCollection.TryGetValue(key, out var value))
                 {
-                    stat = m_StatsCollection[key];
+                    stat = value;
                 }
                 else
                 {

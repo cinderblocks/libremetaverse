@@ -33,7 +33,6 @@
 	  <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
 	  <WarningLevel>4</WarningLevel>
 	  <NoStdLib>False</NoStdLib>
-	  <NoWarn>1591,1574,0419</NoWarn>
 	  <PlatformTarget>AnyCPU</PlatformTarget>
 	</PropertyGroup>
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -50,7 +49,6 @@
 	  <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
 	  <WarningLevel>4</WarningLevel>
 	  <NoStdLib>False</NoStdLib>
-	  <NoWarn>1591,1574,0419</NoWarn>
 	  <PlatformTarget>AnyCPU</PlatformTarget>
 	</PropertyGroup>
 	<ItemGroup>

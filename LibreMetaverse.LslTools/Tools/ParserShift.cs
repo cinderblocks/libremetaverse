@@ -61,7 +61,7 @@ namespace LibreMetaverse.LslTools
       {
         if (this.m_next == null)
           return "?? null shift";
-        return string.Format("shift {0}", (object) this.m_next.m_state);
+        return $"shift {(object)this.m_next.m_state}";
       }
     }
 

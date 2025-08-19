@@ -206,7 +206,7 @@ public class Analyst : ProxyPlugin
 
             string[] valueArray = new string[words.Length - 4];
             Array.Copy(words, 4, valueArray, 0, words.Length - 4);
-            string valueString = String.Join(" ", valueArray);
+            string valueString = string.Join(" ", valueArray);
             object value;
             try
             {
@@ -218,11 +218,8 @@ public class Analyst : ProxyPlugin
                 return;
             }
 
-            Dictionary<BlockField, object> fields;
-            if (modifiedPackets.ContainsKey(pType))
-                fields = (Dictionary<BlockField, object>)modifiedPackets[pType];
-            else
-                fields = new Dictionary<BlockField, object>();
+            var fields = modifiedPackets.TryGetValue(pType, out var packet) 
+                ? packet : new Dictionary<BlockField, object>();
 
             fields[new BlockField(words[2], words[3])] = value;
             modifiedPackets[pType] = fields;
@@ -557,9 +554,9 @@ public class Analyst : ProxyPlugin
             }
             else if (fieldClass == typeof(bool))
             {
-                if (value.ToLower() == "true")
+                if (value.Equals("true", StringComparison.CurrentCultureIgnoreCase))
                     return true;
-                else if (value.ToLower() == "false")
+                else if (value.Equals("false", StringComparison.CurrentCultureIgnoreCase))
                     return false;
                 else
                     throw new Exception();
@@ -626,11 +623,10 @@ public class Analyst : ProxyPlugin
     // Modify: modify a packet
     private Packet Modify(Packet packet, IPEndPoint endPoint, Direction direction)
     {
-        if (modifiedPackets.ContainsKey(packet.Type))
+        if (modifiedPackets.TryGetValue(packet.Type, out var changes))
         {
             try
             {
-                Dictionary<BlockField, object> changes = modifiedPackets[packet.Type];
                 Type packetClass = packet.GetType();
 
                 foreach (KeyValuePair<BlockField, object> change in changes)

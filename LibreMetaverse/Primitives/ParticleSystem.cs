@@ -133,7 +133,7 @@ namespace OpenMetaverse
             /// and serialization breaks unless there is a flag for every
             /// possible bit so it is left as an unsigned integer</remarks>
             public uint PartFlags;
-            /// <summary><seealso cref="T:SourcePattern"/> pattern of particles</summary>
+            /// <summary><see cref="T:SourcePattern"/> pattern of particles</summary>
             public SourcePattern Pattern;
             /// <summary>A <see langword="float"/> representing the maximimum age (in seconds) particle will be displayed</summary>
             /// <remarks>Maximum value is 30 seconds</remarks>
@@ -167,7 +167,7 @@ namespace OpenMetaverse
             public UUID Texture;
             /// <summary>The <see cref="T:UUID"/> Key of the specified target object or avatar particles will follow</summary>
             public UUID Target;
-            /// <summary>Flags of particle from <seealso cref="T:ParticleDataFlags"/></summary>
+            /// <summary>Flags of particle from <see cref="T:ParticleDataFlags"/></summary>
             public ParticleDataFlags PartDataFlags;
             /// <summary>Max Age particle system will emit particles for</summary>
             public float PartMaxAge;
@@ -491,9 +491,9 @@ namespace OpenMetaverse
                     partSys.PartEndScaleX = es.X;
                     partSys.PartEndScaleY = es.Y;
 
-                    if (map.ContainsKey("part_start_glow"))
+                    if (map.TryGetValue("part_start_glow", out var startGlow))
                     {
-                        partSys.PartStartGlow = map["part_start_glow"];
+                        partSys.PartStartGlow = startGlow;
                         partSys.PartEndGlow = map["part_end_glow"];
                     }
 

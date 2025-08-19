@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -29,6 +30,11 @@ using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+using LibreMetaverse;
+using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse
 {
@@ -75,6 +81,13 @@ namespace OpenMetaverse
         }
 
         #region Enums
+        public enum RegionMaturity
+        {
+            PG = 13,
+            Mature = 21,
+            Adult = 42
+        }
+
         /// <summary>Used in the ReportType field of a LandStatRequest</summary>
         public enum LandStatReportType
         {
@@ -83,7 +96,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>Used by EstateOwnerMessage packets</summary>
-        public enum EstateAccessDelta : uint 
+        public enum EstateAccessDelta : uint
         {
             BanUser = 64,
             BanUserAllEstates = 66,
@@ -158,7 +171,7 @@ namespace OpenMetaverse
 
         #region Event delegates, Raise Events
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<TopCollidersReplyEventArgs> m_TopCollidersReply;
 
         /// <summary>Raises the TopCollidersReply event</summary>
@@ -178,9 +191,9 @@ namespace OpenMetaverse
         {
             add { lock (m_TopCollidersReply_Lock) { m_TopCollidersReply += value; } }
             remove { lock (m_TopCollidersReply_Lock) { m_TopCollidersReply -= value; } }
-        }        
+        }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<TopScriptsReplyEventArgs> m_TopScriptsReply;
 
         /// <summary>Raises the TopScriptsReply event</summary>
@@ -203,7 +216,7 @@ namespace OpenMetaverse
         }
 
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EstateUsersReplyEventArgs> m_EstateUsersReply;
 
         /// <summary>Raises the EstateUsersReply event</summary>
@@ -226,7 +239,7 @@ namespace OpenMetaverse
         }
 
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EstateGroupsReplyEventArgs> m_EstateGroupsReply;
 
         /// <summary>Raises the EstateGroupsReply event</summary>
@@ -248,7 +261,7 @@ namespace OpenMetaverse
             remove { lock (m_EstateGroupsReply_Lock) { m_EstateGroupsReply -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EstateManagersReplyEventArgs> m_EstateManagersReply;
 
         /// <summary>Raises the EstateManagersReply event</summary>
@@ -270,7 +283,7 @@ namespace OpenMetaverse
             remove { lock (m_EstateManagersReply_Lock) { m_EstateManagersReply -= value; } }
         }
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EstateBansReplyEventArgs> m_EstateBansReply;
 
         /// <summary>Raises the EstateBansReply event</summary>
@@ -291,8 +304,8 @@ namespace OpenMetaverse
             add { lock (m_EstateBansReply_Lock) { m_EstateBansReply += value; } }
             remove { lock (m_EstateBansReply_Lock) { m_EstateBansReply -= value; } }
         }
-                
-        /// <summary>The event subscribers. null if no subcribers</summary>
+
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EstateCovenantReplyEventArgs> m_EstateCovenantReply;
 
         /// <summary>Raises the EstateCovenantReply event</summary>
@@ -315,7 +328,7 @@ namespace OpenMetaverse
         }
 
 
-        /// <summary>The event subscribers. null if no subcribers</summary>
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EstateUpdateInfoReplyEventArgs> m_EstateUpdateInfoReply;
 
         /// <summary>Raises the EstateUpdateInfoReply event</summary>
@@ -348,13 +361,21 @@ namespace OpenMetaverse
         /// <param name="filter"></param>
         public void LandStatRequest(int parcelLocalID, LandStatReportType reportType, uint requestFlags, string filter)
         {
-            LandStatRequestPacket p = new LandStatRequestPacket();
-            p.AgentData.AgentID = Client.Self.AgentID;
-            p.AgentData.SessionID = Client.Self.SessionID;
-            p.RequestData.Filter = Utils.StringToBytes(filter);
-            p.RequestData.ParcelLocalID = parcelLocalID;
-            p.RequestData.ReportType = (uint)reportType;
-            p.RequestData.RequestFlags = requestFlags;
+            LandStatRequestPacket p = new LandStatRequestPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                RequestData =
+                {
+                    Filter = Utils.StringToBytes(filter),
+                    ParcelLocalID = parcelLocalID,
+                    ReportType = (uint)reportType,
+                    RequestFlags = requestFlags
+                }
+            };
             Client.Network.SendPacket(p);
         }
 
@@ -421,11 +442,19 @@ namespace OpenMetaverse
             }
             else
             {
-                SimWideDeletesPacket simDelete = new SimWideDeletesPacket();
-                simDelete.AgentData.AgentID = Client.Self.AgentID;
-                simDelete.AgentData.SessionID = Client.Self.SessionID;
-                simDelete.DataBlock.TargetID = Target;
-                simDelete.DataBlock.Flags = (uint)flag;
+                SimWideDeletesPacket simDelete = new SimWideDeletesPacket
+                {
+                    AgentData =
+                    {
+                        AgentID = Client.Self.AgentID,
+                        SessionID = Client.Self.SessionID
+                    },
+                    DataBlock =
+                    {
+                        TargetID = Target,
+                        Flags = (uint)flag
+                    }
+                };
                 Client.Network.SendPacket(simDelete);
             }
         }
@@ -447,17 +476,27 @@ namespace OpenMetaverse
         /// <param name="listParams">List of parameters to include</param>
         public void EstateOwnerMessage(string method, List<string> listParams)
         {
-            EstateOwnerMessagePacket estate = new EstateOwnerMessagePacket();
-            estate.AgentData.AgentID = Client.Self.AgentID;
-            estate.AgentData.SessionID = Client.Self.SessionID;
-            estate.AgentData.TransactionID = UUID.Zero;
-            estate.MethodData.Invoice = UUID.Random();
-            estate.MethodData.Method = Utils.StringToBytes(method);
-            estate.ParamList = new EstateOwnerMessagePacket.ParamListBlock[listParams.Count];
+            EstateOwnerMessagePacket estate = new EstateOwnerMessagePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    TransactionID = UUID.Zero
+                },
+                MethodData =
+                {
+                    Invoice = UUID.Random(),
+                    Method = Utils.StringToBytes(method)
+                },
+                ParamList = new EstateOwnerMessagePacket.ParamListBlock[listParams.Count]
+            };
             for (int i = 0; i < listParams.Count; i++)
             {
-                estate.ParamList[i] = new EstateOwnerMessagePacket.ParamListBlock();
-                estate.ParamList[i].Parameter = Utils.StringToBytes(listParams[i]);
+                estate.ParamList[i] = new EstateOwnerMessagePacket.ParamListBlock
+                {
+                    Parameter = Utils.StringToBytes(listParams[i])
+                };
             }
             Client.Network.SendPacket((Packet)estate);
         }
@@ -559,9 +598,72 @@ namespace OpenMetaverse
             EstateOwnerMessage("restart", "-1");
         }
 
-        /// <summary>Estate panel "Region" tab settings</summary>
-        public void SetRegionInfo(bool blockTerraform, bool blockFly, bool allowDamage, bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, bool mature)
+        [Obsolete("Use SetRegionInfo with new arguments or SetRegionInfoUdp")]
+        public void SetRegionInfo(bool blockTerraform, bool blockFly, bool allowDamage, bool allowLandResell,
+            bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus,
+            RegionMaturity maturity)
         {
+            SetRegionInfo(blockTerraform, blockFly, false, allowDamage, allowLandResell, restrictPushing,
+                allowParcelJoinDivide, agentLimit, objectBonus, false, maturity);
+        }
+        
+        public void SetRegionInfo(bool blockTerraform, bool blockFly, bool blockFlyOver, bool allowDamage, 
+            bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, 
+            bool blockParcelSearch, RegionMaturity maturity)
+        {
+            if (Client.Network.CurrentSim?.Caps?.CapabilityURI("DispatchRegionInfo") == null 
+                || !SetRegionInfoHttp(blockTerraform, blockFly, blockFlyOver, allowDamage, allowLandResell, restrictPushing, 
+                    allowParcelJoinDivide, agentLimit, objectBonus, blockParcelSearch, maturity).Result)
+            {
+                Logger.Log("Falling back to LLUDP SetRegionInfo", Helpers.LogLevel.Info);
+                SetRegionInfoUdp(blockTerraform, blockFly, allowDamage, allowLandResell, restrictPushing,
+                    allowParcelJoinDivide, agentLimit, objectBonus, maturity);
+            }
+        }
+        
+        public async Task<bool> SetRegionInfoHttp(bool blockTerraform, bool blockFly, bool blockFlyOver, bool allowDamage, 
+            bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, 
+            bool blockParcelSearch, RegionMaturity maturity)
+        {
+            var uri = Client.Network.CurrentSim?.Caps?.CapabilityURI("DispatchRegionInfo");
+            if (uri != null)
+            {
+                var req = new OSDMap
+                {
+                    ["block_terraform"] = blockTerraform,
+                    ["block_fly"] = blockFly,
+                    ["block_fly_over"] = blockFlyOver,
+                    ["allow_damage"] = allowDamage,
+                    ["allow_land_resell"] = allowLandResell,
+                    ["agent_limit"] = agentLimit,
+                    ["prim_bonus"] = objectBonus,
+                    ["sim_access"] = maturity.ToString("D"),
+                    ["restrict_pushobject"] = restrictPushing,
+                    ["allow_parcel_changes"] = allowParcelJoinDivide,
+                    ["block_parcel_search"] = blockParcelSearch
+                };
+                using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(req), Encoding.UTF8,
+                           "application/llsd+xml"))
+                {
+                    using (var reply = await Client.HttpCapsClient.PostAsync(uri, content))
+                    {
+                        if (reply.IsSuccessStatusCode)
+                        {
+                            return true;
+                        }
+
+                        Logger.Log($"Failed to set region info via capability: {reply.ReasonPhrase}", Helpers.LogLevel.Warning);
+                    }
+                }
+            }
+            return false;
+        }
+        
+        /// <summary>Estate panel "Region" tab settings</summary>
+        public void SetRegionInfoUdp(bool blockTerraform, bool blockFly, bool allowDamage, bool allowLandResell, 
+            bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, RegionMaturity maturity)
+        {
+
             List<string> listParams = new List<string>();
             listParams.Add(blockTerraform ? "Y" : "N");
             listParams.Add(blockFly ? "Y" : "N");
@@ -569,7 +671,7 @@ namespace OpenMetaverse
             listParams.Add(allowLandResell ? "Y" : "N");
             listParams.Add(agentLimit.ToString(CultureInfo.InvariantCulture));
             listParams.Add(objectBonus.ToString(CultureInfo.InvariantCulture));
-            listParams.Add(mature ? "21" : "13"); //FIXME - enumerate these settings
+            listParams.Add(maturity.ToString("D"));
             listParams.Add(restrictPushing ? "Y" : "N");
             listParams.Add(allowParcelJoinDivide ? "Y" : "N");
             EstateOwnerMessage("setregioninfo", listParams);
@@ -616,10 +718,49 @@ namespace OpenMetaverse
         /// <summary>Requests the estate covenant</summary>
         public void RequestCovenant()
         {
-            EstateCovenantRequestPacket req = new EstateCovenantRequestPacket();
-            req.AgentData.AgentID = Client.Self.AgentID;
-            req.AgentData.SessionID = Client.Self.SessionID;
+            EstateCovenantRequestPacket req = new EstateCovenantRequestPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                }
+            };
             Client.Network.SendPacket(req);
+        }
+
+        /// <summary>
+        /// Requests Estate Covenant notecard from <see cref="Client.Network.CurrentSim" /> asset service
+        /// </summary>
+        /// <param name="covenantId">Asset UUID for estate covenant notecard</param>
+        /// <param name="callback">Asset Received callback</param>
+        /// <seealso cref="AssetManager.RequestAssetUDP"/>
+        public void RequestCovenantNotecard(UUID covenantId, AssetManager.AssetReceivedCallback callback)
+        {
+            RequestCovenantNotecard(covenantId, Client.Network.CurrentSim, callback);
+        }
+
+        /// <summary>
+        /// Requests Estate Covenant notecard from asset service
+        /// </summary>
+        /// <param name="covenantId">Asset UUID for estate covenant notecard</param>
+        /// <param name="simulator">Requested simulator</param>
+        /// <param name="callback">Asset Received callback</param>
+        /// <seealso cref="AssetManager.RequestAssetUDP"/>
+        public void RequestCovenantNotecard(UUID covenantId, Simulator simulator, AssetManager.AssetReceivedCallback callback)
+        {
+            var transfer = new AssetDownload
+            {
+                ID = UUID.Random(),
+                AssetID = covenantId,
+                AssetType = AssetType.Notecard,
+                Priority = 101.0f,
+                Channel = ChannelType.Asset,
+                Source = SourceType.SimEstate,
+                Simulator = simulator,
+                Callback = callback
+            };
+            Client.Assets.RequestEstateAsset(transfer, EstateAssetType.Covenant);
         }
 
         /// <summary>
@@ -630,17 +771,19 @@ namespace OpenMetaverse
         /// <returns>The Id of the transfer request</returns>
         public UUID UploadTerrain(byte[] fileData, string fileName)
         {
-            AssetUpload upload = new AssetUpload();
-            upload.AssetData = fileData;
-            upload.AssetType = AssetType.Unknown;
-            upload.Size = fileData.Length;
-            upload.ID = UUID.Random();
+            AssetUpload upload = new AssetUpload
+            {
+                AssetData = fileData,
+                AssetType = AssetType.Unknown,
+                Size = fileData.Length,
+                ID = UUID.Random()
+            };
 
             // Tell the library we have a pending file to upload
             Client.Assets.SetPendingAssetUploadData(upload);
 
             // Create and populate a list with commands specific to uploading a raw terrain file
-            List<String> paramList = new List<string>();
+            List<string> paramList = new List<string>();
             paramList.Add("upload filename");
             paramList.Add(fileName);
 
@@ -904,13 +1047,15 @@ namespace OpenMetaverse
 
                 foreach (LandStatReplyPacket.ReportDataBlock rep in p.ReportData)
                 {
-                    EstateTask task = new EstateTask();
-                    task.Position = new Vector3(rep.LocationX, rep.LocationY, rep.LocationZ);
-                    task.Score = rep.Score;
-                    task.TaskID = rep.TaskID;
-                    task.TaskLocalID = rep.TaskLocalID;
-                    task.TaskName = Utils.BytesToString(rep.TaskName);
-                    task.OwnerName = Utils.BytesToString(rep.OwnerName);
+                    EstateTask task = new EstateTask
+                    {
+                        Position = new Vector3(rep.LocationX, rep.LocationY, rep.LocationZ),
+                        Score = rep.Score,
+                        TaskID = rep.TaskID,
+                        TaskLocalID = rep.TaskLocalID,
+                        TaskName = Utils.BytesToString(rep.TaskName),
+                        OwnerName = Utils.BytesToString(rep.OwnerName)
+                    };
                     Tasks.Add(task.TaskID, task);
                 }
 
@@ -918,11 +1063,11 @@ namespace OpenMetaverse
 
                 if (type == LandStatReportType.TopScripts)
                 {
-                    OnTopScriptsReply(new TopScriptsReplyEventArgs((int)p.RequestData.TotalObjectCount, Tasks)); 
+                    OnTopScriptsReply(new TopScriptsReplyEventArgs((int)p.RequestData.TotalObjectCount, Tasks));
                 }
                 else if (type == LandStatReportType.TopColliders)
                 {
-                    OnTopCollidersReply(new TopCollidersReplyEventArgs((int) p.RequestData.TotalObjectCount, Tasks)); 
+                    OnTopCollidersReply(new TopCollidersReplyEventArgs((int)p.RequestData.TotalObjectCount, Tasks));
                 }
 
                 /*
@@ -940,7 +1085,6 @@ namespace OpenMetaverse
 
             }
         }
-
         private void LandStatCapsReplyHandler(string capsKey, IMessage message, Simulator simulator)
         {
             LandStatReplyMessage m = (LandStatReplyMessage)message;
@@ -948,14 +1092,16 @@ namespace OpenMetaverse
 
             foreach (LandStatReplyMessage.ReportDataBlock rep in m.ReportDataBlocks)
             {
-                EstateTask task = new EstateTask();
-                task.Position = rep.Location;
-                task.Score = rep.Score;
-                task.MonoScore = rep.MonoScore;
-                task.TaskID = rep.TaskID;
-                task.TaskLocalID = rep.TaskLocalID;
-                task.TaskName = rep.TaskName;
-                task.OwnerName = rep.OwnerName;
+                EstateTask task = new EstateTask
+                {
+                    Position = rep.Location,
+                    Score = rep.Score,
+                    MonoScore = rep.MonoScore,
+                    TaskID = rep.TaskID,
+                    TaskLocalID = rep.TaskLocalID,
+                    TaskName = rep.TaskName,
+                    OwnerName = rep.OwnerName
+                };
                 Tasks.Add(task.TaskID, task);
             }
 
@@ -963,11 +1109,11 @@ namespace OpenMetaverse
 
             if (type == LandStatReportType.TopScripts)
             {
-                OnTopScriptsReply(new TopScriptsReplyEventArgs((int)m.TotalObjectCount, Tasks)); 
+                OnTopScriptsReply(new TopScriptsReplyEventArgs((int)m.TotalObjectCount, Tasks));
             }
             else if (type == LandStatReportType.TopColliders)
             {
-                OnTopCollidersReply(new TopCollidersReplyEventArgs((int)m.TotalObjectCount, Tasks)); 
+                OnTopCollidersReply(new TopCollidersReplyEventArgs((int)m.TotalObjectCount, Tasks));
             }
         }
         #endregion
@@ -1156,7 +1302,7 @@ namespace OpenMetaverse
         /// <summary>
         /// The Estate name
         /// </summary>
-        public String EstateName { get; }
+        public string EstateName { get; }
 
         /// <summary>
         /// The Estate Owner's ID (can be a GroupID)
@@ -1185,7 +1331,7 @@ namespace OpenMetaverse
         /// <summary>
         /// The estate's name
         /// </summary>
-        public String EstateName { get; }
+        public string EstateName { get; }
 
         /// <summary>
         /// The Estate Owner's ID (can be a GroupID)

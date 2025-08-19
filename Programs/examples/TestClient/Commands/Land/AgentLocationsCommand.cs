@@ -27,7 +27,7 @@ namespace OpenMetaverse.TestClient
                 return "Usage: agentlocations [regionhandle]";
 
             List<MapItem> items = Client.Grid.MapItems(regionHandle, GridItemType.AgentLocations, 
-                GridLayerType.Objects, 1000 * 20);
+                GridLayerType.Objects, TimeSpan.FromSeconds(20));
 
             if (items != null)
             {

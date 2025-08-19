@@ -42,7 +42,7 @@ namespace LibreMetaverse.Tests
             string test = "Your squirrel, your imagination";
             byte[] bytes = Utils.StringToBytes(test);
             string decoded = Utils.BytesToString(bytes);
-            Assert.AreEqual(test, decoded);
+            Assert.That(decoded, Is.EqualTo(test));
         }
     }
 }

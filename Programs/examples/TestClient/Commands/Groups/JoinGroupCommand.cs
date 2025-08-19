@@ -47,7 +47,7 @@ namespace OpenMetaverse.TestClient
                                 
                 queryID = Client.Directory.StartGroupSearch(groupName, 0);
 
-                GetGroupsSearchEvent.WaitOne(60000, false);
+                GetGroupsSearchEvent.WaitOne(TimeSpan.FromMinutes(1), false);
 
                 Client.Directory.DirGroupsReply -= Directory_DirGroups;
 
@@ -69,7 +69,7 @@ namespace OpenMetaverse.TestClient
              * TODO: implement the pay to join procedure.
              */
 
-            GetGroupsSearchEvent.WaitOne(60000, false);
+            GetGroupsSearchEvent.WaitOne(TimeSpan.FromMinutes(1), false);
 
             Client.Groups.GroupJoinedReply -= Groups_GroupJoined;
             GetGroupsSearchEvent.Reset();
@@ -111,7 +111,7 @@ namespace OpenMetaverse.TestClient
                             Console.WriteLine(groupRetrieved.GroupName + "\t\t\t(" +
                                 Name + " UUID " + groupRetrieved.GroupID + ")");
 
-                            if (groupRetrieved.GroupName.ToLower() == groupName.ToLower())
+                            if (string.Equals(groupRetrieved.GroupName, groupName, StringComparison.CurrentCultureIgnoreCase))
                             {
                                 resolvedGroupID = groupRetrieved.GroupID;
                                 resolvedGroupName = groupRetrieved.GroupName;

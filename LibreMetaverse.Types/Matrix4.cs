@@ -185,12 +185,12 @@ namespace OpenMetaverse
         /// <param name="yaw">Z euler angle</param>
         public void GetEulerAngles(out float roll, out float pitch, out float yaw)
         {
-            double angleX, angleY, angleZ;
-            double cx, cy, cz; // cosines
+            double angleX, angleZ;
+            double cx, cz; // cosines
             double sx, sz; // sines
 
-            angleY = Math.Asin(Utils.Clamp(M13, -1f, 1f));
-            cy = Math.Cos(angleY);
+            var angleY = Math.Asin(Utils.Clamp(M13, -1f, 1f));
+            var cy = Math.Cos(angleY);
 
             if (Math.Abs(cy) > 0.005f)
             {
@@ -235,7 +235,7 @@ namespace OpenMetaverse
             Quaternion quat = new Quaternion();
             float trace = Trace() + 1f;
 
-            if (trace > Single.Epsilon)
+            if (trace > float.Epsilon)
             {
                 float s = 0.5f / (float)Math.Sqrt(trace);
 
@@ -383,18 +383,15 @@ namespace OpenMetaverse
         {
             Matrix4 m;
 
-            float a, b, c, d, e, f;
-            float ad, bd;
+            var a = (float)Math.Cos(roll);
+            var b = (float)Math.Sin(roll);
+            var c = (float)Math.Cos(pitch);
+            var d = (float)Math.Sin(pitch);
+            var e = (float)Math.Cos(yaw);
+            var f = (float)Math.Sin(yaw);
 
-            a = (float)Math.Cos(roll);
-            b = (float)Math.Sin(roll);
-            c = (float)Math.Cos(pitch);
-            d = (float)Math.Sin(pitch);
-            e = (float)Math.Cos(yaw);
-            f = (float)Math.Sin(yaw);
-
-            ad = a * d;
-            bd = b * d;
+            var ad = a * d;
+            var bd = b * d;
 
             m.M11 = c * e;
             m.M12 = -c * f;

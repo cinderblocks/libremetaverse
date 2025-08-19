@@ -23,18 +23,9 @@ namespace OpenMetaverse.TestClient
             {
                 return "Invalid UUID";
             }
-            else
-            {
-                Console.WriteLine("Teleporting to " + landmark);
-            }
-            if (Client.Self.Teleport(landmark))
-            {
-                return "Teleport Successful";
-            }
-            else
-            {
-                return "Teleport Failed";
-            }
+
+            Console.WriteLine("Teleporting to " + landmark);
+            return Client.Self.Teleport(landmark) ? "Teleport Successful" : "Teleport Failed";
         }
     }
 }

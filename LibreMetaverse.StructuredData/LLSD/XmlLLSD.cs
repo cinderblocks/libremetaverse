@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@ namespace OpenMetaverse.StructuredData
     /// </summary>
     public static partial class OSDParser
     {
-        private static string linden_lab_loves_bad_pi = "<? LLSD/";
+        private const string LINDEN_LAB_LOVES_BAD_PI = "<? LLSD/";
 
         /// <summary>
         /// Deserialize LLSD/XML stream
@@ -49,7 +49,7 @@ namespace OpenMetaverse.StructuredData
         public static OSD DeserializeLLSDXml(Stream xmlStream)
         {
             // XmlReader don't take no shit from nobody. Parse out Linden Lab's bad PI.
-            bool match = linden_lab_loves_bad_pi.All(t => xmlStream.ReadByte() == t);
+            bool match = LINDEN_LAB_LOVES_BAD_PI.All(t => xmlStream.ReadByte() == t);
             if (match)
             {
                 // read until the linebreak >
@@ -67,7 +67,7 @@ namespace OpenMetaverse.StructuredData
                 IgnoreProcessingInstructions = false,
                 DtdProcessing = DtdProcessing.Ignore
             };
-            using (XmlReader xrd = XmlReader.Create(xmlStream))
+            using (XmlReader xrd = XmlReader.Create(xmlStream, settings))
             {
                 return DeserializeLLSDXml(xrd);
             }

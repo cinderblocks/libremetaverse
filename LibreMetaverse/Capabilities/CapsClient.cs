@@ -58,7 +58,7 @@ namespace OpenMetaverse.Http
         /// <summary>
         /// CapsClient Ctor 
         /// </summary>
-        /// <param name="capability"><seealso cref="Uri"/> for simulator capability</param>
+        /// <param name="capability"><see cref="Uri"/> for simulator capability</param>
         public CapsClient(Uri capability)
             : this(capability, null, null)
         {
@@ -67,7 +67,7 @@ namespace OpenMetaverse.Http
         /// <summary>
         /// CapsClient Ctor with name
         /// </summary>
-        /// <param name="capability"><seealso cref="Uri"/> for simulator capability</param>
+        /// <param name="capability"><see cref="Uri"/> for simulator capability</param>
         /// <param name="cap_name">Simulator capability name</param>
         public CapsClient(Uri capability, string cap_name)
             : this(capability, cap_name, null)
@@ -77,9 +77,9 @@ namespace OpenMetaverse.Http
         /// <summary>
         /// CapsClient Ctor with name and certificate
         /// </summary>
-        /// <param name="capability"><seealso cref="Uri"/> for simulator capability</param>
+        /// <param name="capability"><see cref="Uri"/> for simulator capability</param>
         /// <param name="cap_name">Simulator capability name</param>
-        /// <param name="clientCert"><seealso cref="X509Certificate2"/> client certificate</param>
+        /// <param name="clientCert"><see cref="X509Certificate2"/> client certificate</param>
         public CapsClient(Uri capability, string cap_name, X509Certificate2 clientCert)
         {
             _Address = capability;
@@ -302,7 +302,7 @@ namespace OpenMetaverse.Http
         /// <summary>
         /// Serializes OSD data for http request
         /// </summary>
-        /// <param name="data"><seealso cref="OSD"/>formatted data for input</param>
+        /// <param name="data"><see cref="OSD"/>formatted data for input</param>
         /// <param name="format">Format to serialize data to</param>
         /// <param name="serializedData">Output serialized data as byte array</param>
         /// <param name="contentType">content-type string of serialized data</param>

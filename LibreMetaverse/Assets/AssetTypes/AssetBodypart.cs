@@ -27,12 +27,12 @@
 namespace OpenMetaverse.Assets
 {
     /// <summary>
-    /// Represents an <seealso cref="AssetWearable"/> that represents an avatars body ie: Hair, Etc.
+    /// Represents an <see cref="AssetWearable"/> that represents an avatars body ie: Hair, Etc.
     /// </summary>
     public class AssetBodypart : AssetWearable
     {
         /// <summary>Override the base classes AssetType</summary>
-        public override AssetType AssetType { get { return AssetType.Bodypart; } }
+        public override AssetType AssetType => AssetType.Bodypart;
 
         /// <summary>Initializes a new instance of an AssetBodyPart object</summary>
         public AssetBodypart() { }

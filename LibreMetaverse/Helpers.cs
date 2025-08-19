@@ -72,7 +72,7 @@ namespace OpenMetaverse
             /// pass this to the Log() function, use DebugLog() instead.
             /// </summary>
             Debug
-        };
+        }
 
         /// <summary>
         /// 
@@ -88,7 +88,7 @@ namespace OpenMetaverse
 
         public static IEnumerable<string> SplitBy(this string str, int chunkLength)
         {
-            if (String.IsNullOrEmpty(str)) throw new ArgumentException();
+            if (string.IsNullOrEmpty(str)) throw new ArgumentException();
             if (chunkLength < 1) throw new ArgumentException();
 
             for (int i = 0; i < str.Length; i += chunkLength)
@@ -318,10 +318,10 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log(String.Format("Zerodecoding error: i={0}, srclen={1}, bodylen={2}, zerolen={3}\n{4}\n{5}",
+                Logger.Log(string.Format("Zerodecoding error: i={0}, srclen={1}, bodylen={2}, zerolen={3}\n{4}\n{5}",
                     i, srclen, bodylen, zerolen, Utils.BytesToHexString(src, srclen, null), ex), LogLevel.Error);
 
-                throw new IndexOutOfRangeException(String.Format("Zerodecoding error: i={0}, srclen={1}, bodylen={2}, zerolen={3}\n{4}\n{5}",
+                throw new IndexOutOfRangeException(string.Format("Zerodecoding error: i={0}, srclen={1}, bodylen={2}, zerolen={3}\n{4}\n{5}",
                     i, srclen, bodylen, zerolen, Utils.BytesToHexString(src, srclen, null), ex.InnerException));
             }
         }
@@ -545,7 +545,7 @@ namespace OpenMetaverse
             foreach (KeyValuePair<string, StructuredData.OSD> kvp in map)
             {
                 Primitive prim = Primitive.FromOSD(kvp.Value);
-                prim.LocalID = UInt32.Parse(kvp.Key);
+                prim.LocalID = uint.Parse(kvp.Key);
                 prims.Add(prim);
             }
 

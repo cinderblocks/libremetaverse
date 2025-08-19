@@ -166,7 +166,7 @@ namespace OpenMetaverse
             var i = data.IndexOfAny(Separators);
             if (i < 1)
             {
-                Name = String.Empty;
+                Name = string.Empty;
                 Type = ValueType.Unknown;
                 Class = ClassType.Unknown;
                 Sendto = SendtoType.Unknown;
@@ -211,7 +211,7 @@ namespace OpenMetaverse
         public static string NameValuesToString(NameValue[] values)
         {
             if (values == null || values.Length == 0)
-                return String.Empty;
+                return string.Empty;
 
             StringBuilder output = new StringBuilder();
 
@@ -221,7 +221,7 @@ namespace OpenMetaverse
 
                 if (value.Value != null)
                 {
-                    string newLine = (i < values.Length - 1) ? "\n" : String.Empty;
+                    string newLine = (i < values.Length - 1) ? "\n" : string.Empty;
                     output.AppendFormat("{0} {1} {2} {3} {4}{5}", value.Name, TypeStrings[(int)value.Type],
                         ClassStrings[(int)value.Class], SendtoStrings[(int)value.Sendto], value.Value, newLine);
                 }
@@ -248,21 +248,21 @@ namespace OpenMetaverse
                 case ValueType.S32:
                 {
                     int temp;
-                    Int32.TryParse(value, out temp);
+                    int.TryParse(value, out temp);
                     Value = temp;
                     break;
                 }
                 case ValueType.U32:
                 {
                     uint temp;
-                    UInt32.TryParse(value, out temp);
+                    uint.TryParse(value, out temp);
                     Value = temp;
                     break;
                 }
                 case ValueType.U64:
                 {
                     ulong temp;
-                    UInt64.TryParse(value, out temp);
+                    ulong.TryParse(value, out temp);
                     Value = temp;
                     break;
                 }

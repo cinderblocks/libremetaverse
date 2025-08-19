@@ -1,23 +1,19 @@
 init:
-  - ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { $env:TAG_VERSION = "$env:APPVEYOR_REPO_TAG_NAME.$env:APPVEYOR_BUILD_NUMBER" } else { $env:TAG_VERSION = "v2.0.0.$env:APPVEYOR_BUILD_NUMBER-alpha" }
+  - ps: if ($env:APPVEYOR_REPO_TAG -eq "true") { $env:TAG_VERSION = "$env:APPVEYOR_REPO_TAG_NAME.$env:APPVEYOR_BUILD_NUMBER" } else { $env:TAG_VERSION = "v2.5.0.$env:APPVEYOR_BUILD_NUMBER-alpha" }
   - ps: $env:TAG_VERSION = $env:TAG_VERSION -replace 'v',''
   - ps: Write-Host "Setting version to '$env:TAG_VERSION'"
   - ps: Update-AppveyorBuild -Version "$env:TAG_VERSION"
 
 environment:
   matrix:
-  - job_name: Windows x64 Build
-    platform: x64
-    appveyor_build_worker_image: Visual Studio 2022
-    configuration: Release
-  - job_name: Windows x86 Build
-    platform: x64
+  - job_name: Windows Build
+    platform: Any CPU
     appveyor_build_worker_image: Visual Studio 2022
     configuration: Release
   - job_name: Linux Build
-    platform: x64
-    appveyor_build_worker_image: Ubuntu
-    configuration: ReleaseNoGui
+    platform: Any CPU
+    appveyor_build_worker_image: Ubuntu2204
+    configuration: Release
 
   LMVTestAgentUsername: SecretAgentTest Resident
   LMVTestAgentPassword:
@@ -28,10 +24,12 @@ environment:
     secure: nAIqrjhaoamhiuAcae/xNw==
   PfxPassword:
     secure: +vWSGzLkiBGVIxfPb+iRtD+/maQjI2d92hN4PoNAxMc=
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE: true
 
 matrix:
   allow_failures:
-  - image: Ubuntu
+  - image: Ubuntu2204
 
 pull_requests:
   do_not_increment_build_number: false
@@ -65,40 +63,51 @@ artifacts:
   - path: 'nuget_libraries.zip'
     name: 'Nuget Library Archive'
     type: Auto
+  - path: 'nuget_libraries_symbols.zip'
+    name: 'Nuget Library Symbols'
+    type: Auto
 
 deploy:
   - provider: NuGet
     name: nuget_release
     api_key:
-      secure: A0kUKZQCzVX2Wt/pUgN18oYV83YNbRiMBxKczUFE+i0z6x3+CkJKzdYO15npvoKA
+      secure: 43t/Xitgn6+MOe2nh5dHPxR7Hk7dtETAGzvX9oeKomg0JVg9CIYfJb5IolXqdgxL
     artifact: /.*LibreMetaverse.*(\.|\.s)nupkg/
     skip_symbols: false
     draft: false
     prerelease: false
     on:
-      job_name: Windows x64 build
+      job_name: Windows build
       APPVEYOR_REPO_TAG: true
   - provider: GitHub
     name: github_releases
-    description: Release v$(appveyor_build_version)
-    tag: $(appveyor_build_version)
+    description: Release v$(TAG_VERSION)
     auth_token:
-      secure: lzcaOIXHRZG5WwFThR/DpNiVFh/q4zVis8YcLkmXhJHjFsq8tZgewzVhTmopZhjW
+      secure: KPXQ74CJ+1aD3/H12JeVwMedPvcyr4aL9O/CFL8sGJHN/WZCYjKw92m8CodgO90D
     artifact: /.*LibreMetaverse.*(\.|\.s)nupkg/
     skip_symbols: false
     draft: false
     prerelease: false
     on:
-      job_name: Windows x64 build
+      job_name: Windows build
       APPVEYOR_REPO_TAG: true
 
 for:
 -
   matrix:
-    only:
-      - job_name: Windows x64 Build
+    only: 
+      - job_name: Linux Build
+  
+  test: off # remove either when mono stops crashing or we stop supporting net481
 
+-
+  matrix:
+    only:
+      - job_name: Windows Build
+
+  test: off
   after_build:
-    - ps: util/InstallRemotePfx.ps1 -PfxDownloadUrl $env:PfxDownloadUrl -PfxDownloadUser AppVeyor -PfxDownloadPasswd $env:PfxDownloadPasswd -PfxPasswd $env:PfxPassword
-    - ps: util/SignPackages.ps1 -PfxPasswd $env:PfxPassword
+#    - ps: util/InstallRemotePfx.ps1 -PfxDownloadUrl $env:PfxDownloadUrl -PfxDownloadUser AppVeyor -PfxDownloadPasswd $env:PfxDownloadPasswd -PfxPasswd $env:PfxPassword
+#    - ps: util/SignPackages.ps1 -PfxPasswd $env:PfxPassword
     - ps: Get-ChildItem -Filter "*.nupkg" -Path "C:\Users\appveyor\AppData\Local\Temp\" -recurse | Compress-Archive -DestinationPath "nuget_libraries.zip" -Verbose
+    - ps: Get-ChildItem -Filter "*.snupkg" -Path "C:\Users\appveyor\AppData\Local\Temp\" -recurse | Compress-Archive -DestinationPath "nuget_libraries_symbols.zip" -Verbose

@@ -288,6 +288,34 @@ namespace OpenMetaverse
             }
         }
 
+        /// <summary>
+        /// The simulator can send down a list of attachments the avatar is wearing,
+        /// this can be helpful in knowing when the avatar is ready to render.
+        ///
+        /// See also: Primitive.ChildCount
+        /// </summary>
+        public struct Attachment : IEquatable<Attachment>
+        {
+            /// <summary>
+            /// The attachment point (see avatar_lad.xml for a list)
+            /// </summary>
+            public byte AttachmentPoint;
+            /// <summary>
+            /// The UUID (global) of the attachment on this point.
+            /// </summary>
+            public UUID AttachmentID;
+
+            /// <summary>
+            /// Determine if this is the same as another attachment object.
+            /// </summary>
+            /// <param name="other">Target for comparison</param>
+            /// <returns>Are these attachments the same object?</returns>
+            public bool Equals(Attachment other)
+            {
+                return other.AttachmentPoint == AttachmentPoint && other.AttachmentID == AttachmentID;
+            }
+        }
+
         #endregion Subclasses
 
         #region Public Members
@@ -312,6 +340,11 @@ namespace OpenMetaverse
         public byte[] VisualParameters = null;
 
         /// <summary>
+        /// The avatars hover height (as indicated by the simulator)
+        /// </summary>
+        public Vector3 HoverHeight = Vector3.Zero;
+
+        /// <summary>
         /// Appearance version. Value greater than 0 indicates using server side baking
         /// </summary>
         public byte AppearanceVersion = 0;
@@ -331,10 +364,15 @@ namespace OpenMetaverse
         /// </summary>
         public List<Animation> Animations;
 
+        /// <summary>
+        /// List of (known) attachments, hinted by the simulator. See: https://jira.secondlife.com/browse/SL-20635
+        /// </summary>
+        public List<Attachment> Attachments;
+
         #endregion Public Members
 
-        protected string name;
-        protected string groupName;
+        internal string _cachedName;
+        internal string _cachedGroupName;
 
         #region Properties
 
@@ -373,16 +411,16 @@ namespace OpenMetaverse
         {
             get
             {
-                if (!string.IsNullOrEmpty(name))
+                if (!string.IsNullOrEmpty(_cachedName))
                 {
-                    return name;
+                    return _cachedName;
                 }
                 if (NameValues != null && NameValues.Length > 0)
                 {
                     lock (NameValues)
                     {
-                        string firstName = String.Empty;
-                        string lastName = String.Empty;
+                        string firstName = string.Empty;
+                        string lastName = string.Empty;
 
                         for (int i = 0; i < NameValues.Length; i++)
                         {
@@ -392,10 +430,10 @@ namespace OpenMetaverse
                                 lastName = (string)NameValues[i].Value;
                         }
 
-                        if (firstName != string.Empty && lastName != String.Empty)
+                        if (firstName != string.Empty && lastName != string.Empty)
                         {
-                            name = $"{firstName} {lastName}";
-                            return name;
+                            _cachedName = $"{firstName} {lastName}";
+                            return _cachedName;
                         }
                         else
                         {
@@ -415,13 +453,13 @@ namespace OpenMetaverse
         {
             get
             {
-                if (!string.IsNullOrEmpty(groupName))
+                if (_cachedGroupName != null)
                 {
-                    return groupName;
+                    return _cachedGroupName;
                 }
                 if (NameValues == null || NameValues.Length == 0)
                 {
-                    return string.Empty;
+                    return _cachedGroupName = string.Empty;
                 }
                 else
                 {
@@ -431,12 +469,12 @@ namespace OpenMetaverse
                         {
                             if (NameValues[i].Name == "Title" && NameValues[i].Type == NameValue.ValueType.String)
                             {
-                                groupName = (string)NameValues[i].Value;
-                                return groupName;
+                                _cachedGroupName = (string)NameValues[i].Value;
+                                return _cachedGroupName;
                             }
                         }
                     }
-                    return string.Empty;
+                    return _cachedGroupName = string.Empty;
                 }
             }
         }

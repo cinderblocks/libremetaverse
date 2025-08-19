@@ -1,6 +1,6 @@
-/**
+/*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2024, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -27,9 +27,9 @@
 
 using System;
 using System.Threading;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using OpenMetaverse.Imaging;
+using CoreJ2K;
+using CoreJ2K.j2k.util;
+using SkiaSharp;
 
 namespace OpenMetaverse.TestClient
 {
@@ -48,16 +48,14 @@ namespace OpenMetaverse.TestClient
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            string inventoryName;
             uint timeout;
-            string fileName;
 
             if (args.Length != 3)
                 return "Usage: uploadimage [inventoryname] [timeout] [filename]";
 
             TextureID = UUID.Zero;
-            inventoryName = args[0];
-            fileName = args[2];
+            var inventoryName = args[0];
+            var fileName = args[2];
             if (!uint.TryParse(args[1], out timeout))
                 return "Usage: uploadimage [inventoryname] [timeout] [filename]";
 
@@ -69,14 +67,9 @@ namespace OpenMetaverse.TestClient
             start = DateTime.Now;
             DoUpload(jpeg2k, inventoryName);
 
-            if (UploadCompleteEvent.WaitOne((int)timeout, false))
-            {
-                return $"Texture upload {((TextureID != UUID.Zero) ? "succeeded" : "failed")}: {TextureID}";
-            }
-            else
-            {
-                return "Texture upload timed out";
-            }
+            return UploadCompleteEvent.WaitOne((int)timeout, false) 
+                ? $"Texture upload {((TextureID != UUID.Zero) ? "succeeded" : "failed")}: {TextureID}" 
+                : "Texture upload timed out";
         }
 
         private void DoUpload(byte[] UploadData, string FileName)
@@ -103,44 +96,42 @@ namespace OpenMetaverse.TestClient
 
         private byte[] LoadImage(string fileName)
         {
-            byte[] UploadData = { };
+            byte[] uploadData;
             string lowfilename = fileName.ToLower();
-            Bitmap bitmap = null;
 
             try
             {
+                SKBitmap bitmap;
                 if (lowfilename.EndsWith(".jp2") || lowfilename.EndsWith(".j2c"))
                 {
                     // Upload JPEG2000 images untouched
-                    UploadData = System.IO.File.ReadAllBytes(fileName);
+                    uploadData = System.IO.File.ReadAllBytes(fileName);
 
-                    using (var reader = new OpenJpegDotNet.IO.Reader(UploadData))
-                    {
-                        reader.ReadHeader();
-                        bitmap = reader.DecodeToBitmap();
-                    }
+                    bitmap = J2kImage.FromBytes(uploadData).As<SKBitmap>();
                 }
                 else
                 {
-                    if (lowfilename.EndsWith(".tga")) {
-                        bitmap = LoadTGAClass.LoadTGA(fileName);
-                    } else {
-                        bitmap = (Bitmap)Image.FromFile(fileName);
+                    if (lowfilename.EndsWith(".tga") || lowfilename.EndsWith(".targa"))
+                    {
+                        bitmap = Imaging.Targa.Decode(fileName);
                     }
+                    else
+                    {
+                        var img = SKImage.FromEncodedData(fileName);
+                        bitmap = SKBitmap.FromImage(img);
+                    }
+                    
                     int oldwidth = bitmap.Width;
                     int oldheight = bitmap.Height;
 
                     if (!IsPowerOfTwo((uint)oldwidth) || !IsPowerOfTwo((uint)oldheight))
                     {
-                        Bitmap resized = new Bitmap(256, 256, bitmap.PixelFormat);
-                        Graphics graphics = Graphics.FromImage(resized);
-
-                        graphics.SmoothingMode = SmoothingMode.HighQuality;
-                        graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                        graphics.DrawImage(bitmap, 0, 0, 256, 256);
+                        var info = new SKImageInfo(256, 256);
+                        var scaledImage = new SKBitmap(info);
+                        bitmap.ScalePixels(scaledImage.PeekPixels(), new SKSamplingOptions(SKFilterMode.Linear));
 
                         bitmap.Dispose();
-                        bitmap = resized;
+                        bitmap = scaledImage;
 
                         oldwidth = 256;
                         oldheight = 256;
@@ -152,29 +143,23 @@ namespace OpenMetaverse.TestClient
                         int newwidth = (oldwidth > 1024) ? 1024 : oldwidth;
                         int newheight = (oldheight > 1024) ? 1024 : oldheight;
 
-                        Bitmap resized = new Bitmap(newwidth, newheight, bitmap.PixelFormat);
-                        Graphics graphics = Graphics.FromImage(resized);
-
-                        graphics.SmoothingMode = SmoothingMode.HighQuality;
-                        graphics.InterpolationMode =
-                           InterpolationMode.HighQualityBicubic;
-                        graphics.DrawImage(bitmap, 0, 0, newwidth, newheight);
+                        var info = new SKImageInfo(newwidth, newheight);
+                        var scaledImage = new SKBitmap(info);
+                        bitmap.ScalePixels(scaledImage.PeekPixels(), new SKSamplingOptions(SKFilterMode.Linear));
 
                         bitmap.Dispose();
-                        bitmap = resized;
-                    }
-                    using (var writer = new OpenJpegDotNet.IO.Writer(bitmap))
-                    {
-                        UploadData = writer.Encode();
+                        bitmap = scaledImage;
                     }
                 }
+                
+                uploadData = Imaging.J2K.ToBytes(bitmap);
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex + " SL Image Upload ");
                 return null;
             }
-            return UploadData;
+            return uploadData;
         }
 
         private static bool IsPowerOfTwo(uint n)

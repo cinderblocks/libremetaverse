@@ -85,7 +85,7 @@ namespace OpenMetaverse.Rendering
         /// Read a 16 bit integer
         /// </summary>
         /// <returns>A 16 bit integer in the system's endianness</returns>
-        public override Int16 ReadInt16()
+        public override short ReadInt16()
         {
             m_a16 = base.ReadBytes(2);
             if (m_shouldReverseOrder)
@@ -97,7 +97,7 @@ namespace OpenMetaverse.Rendering
         /// Read a 64 bit integer
         /// </summary>
         /// <returns>A 64 bit integer in the system's endianness</returns>
-        public override Int64 ReadInt64()
+        public override long ReadInt64()
         {
             m_a64 = base.ReadBytes(8);
             if (m_shouldReverseOrder)
@@ -109,7 +109,7 @@ namespace OpenMetaverse.Rendering
         /// Read an unsigned 32 bit integer
         /// </summary>
         /// <returns>A 32 bit unsigned integer in the system's endianness</returns>
-        public override UInt32 ReadUInt32()
+        public override uint ReadUInt32()
         {
             m_a32 = base.ReadBytes(4);
             if (m_shouldReverseOrder)

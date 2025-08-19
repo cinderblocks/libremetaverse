@@ -31,7 +31,7 @@ namespace OpenMetaverse.TestClient.Commands
             // send the request to the directory manager
             Client.Directory.StartEventsSearch(searchText, 0);
             string result;
-            if (waitQuery.WaitOne(20000, false) && Client.Network.Connected)
+            if (waitQuery.WaitOne(TimeSpan.FromSeconds(20), false) && Client.Network.Connected)
             {
                 result =  "Your query '" + searchText + "' matched " + resultCount + " Events. ";
             }

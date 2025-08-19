@@ -1,18 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>GridProxy</AssemblyName>
-	<PackageId>GridProxy</PackageId>
-	<OutputType>Library</OutputType>
+    <PackageId>GridProxy</PackageId>
+    <OutputType>Library</OutputType>
     <RootNamespace>GridProxy</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-	<TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
-    <Platforms>x64;x86</Platforms>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <OutputPath>..\..\bin\</OutputPath>
-	<IsPackable>false</IsPackable>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="log4net" Version="2.0.15" />
-    <PackageReference Include="XmlRpcCore" Version="3.1.2.77" />
+    <PackageReference Include="log4net" Version="3.1.0" />
+    <PackageReference Include="XmlRpcCore" Version="3.1.3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\LibreMetaverse\LibreMetaverse.csproj" />
@@ -20,8 +20,8 @@
     <ProjectReference Include="..\..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
   </ItemGroup>
   <ItemGroup>
-	<None Include="..\..\LICENSE.txt" Pack="true" PackagePath="\" />
-	<None Include="..\..\README.md" Pack="true" PackagePath="\" />
-	<None Include="..\..\data\logo.png" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="\" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\data\logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>

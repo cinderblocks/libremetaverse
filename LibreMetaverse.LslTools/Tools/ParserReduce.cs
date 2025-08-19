@@ -90,7 +90,7 @@ namespace LibreMetaverse.LslTools
       {
         if (this.m_prod == null)
           return "?? null reduce";
-        return string.Format("reduce {0}", (object) this.m_prod.m_pno);
+        return $"reduce {(object)this.m_prod.m_pno}";
       }
     }
 

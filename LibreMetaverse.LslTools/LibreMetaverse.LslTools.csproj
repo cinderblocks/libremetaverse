@@ -1,47 +1,29 @@
-<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-		<TargetFrameworks>net48;netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
-		<AssemblyName>LibreMetaverse.LslTools</AssemblyName>
-	    <PackageId>LibreMetaverse.LslTools</PackageId>
-	    <Description>Lexer for LSL scrripting language</Description>
-        <RootNamespace>Tools</RootNamespace>
-	    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-	    <IncludeSymbols>true</IncludeSymbols>
-		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-	    <NoWarn>0419,1574,1591,0618</NoWarn>
-        <Platforms>x64;x86;AnyCPU</Platforms>
-	    <OutputPath>..\bin\</OutputPath>
-    </PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
-		<DefineConstants>TRACE;DEBUG</DefineConstants>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-		<DefineConstants>TRACE;DEBUG</DefineConstants>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-	  <DefineConstants>TRACE;DEBUG</DefineConstants>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<DebugType>pdbonly</DebugType>
-		<DefineConstants>TRACE</DefineConstants>
-		<Optimize>True</Optimize>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<DebugType>pdbonly</DebugType>
-		<DefineConstants>TRACE</DefineConstants>
-		<Optimize>True</Optimize>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-	  <GenerateDocumentationFile>true</GenerateDocumentationFile>
-	  <DebugType>pdbonly</DebugType>
-	  <DefineConstants>TRACE</DefineConstants>
-	  <Optimize>True</Optimize>
-	</PropertyGroup>
-	<ItemGroup>
-		<None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
-		<None Include="..\README.md" Pack="true" PackagePath="\" />
-		<None Include="..\data\logo.png" Pack="true" PackagePath="\" />
-	</ItemGroup>
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
+    <AssemblyName>LibreMetaverse.LslTools</AssemblyName>
+    <PackageId>LibreMetaverse.LslTools</PackageId>
+    <Description>Lexer for LSL scrripting language</Description>
+    <RootNamespace>Tools</RootNamespace>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <NoWarn>$(NoWarn);SYSLIB0001;CS0419;CS1591;CS1574</NoWarn>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <OutputPath>..\bin\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DebugType>pdbonly</DebugType>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>True</Optimize>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\data\logo.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
 </Project>
