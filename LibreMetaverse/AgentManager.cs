@@ -3241,6 +3241,7 @@ namespace OpenMetaverse
                             queueEvent.Set();
                     };
 
+                // Skip this if the EventQueue has not been initialized yet
                 if (Client.Network.CurrentSim?.Caps?.EventQueue != null)
                 {
                     Logger.Log("Event queue restart requested.", Helpers.LogLevel.Info, Client);
