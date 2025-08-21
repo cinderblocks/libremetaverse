@@ -15,9 +15,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
             var sampleTree = SampleInventoryTree.BuildInventoryTree();
             var sharedFolder = sampleTree.Root;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.AttachAsync(It.IsAny<IReadOnlyList<AttachmentRequest>>(), It.IsAny<CancellationToken>())
@@ -63,9 +64,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
 
             sampleTree.Clothing_Hats_Folder.Name = ".hats";
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.AttachAsync(It.IsAny<IReadOnlyList<AttachmentRequest>>(), It.IsAny<CancellationToken>())
@@ -109,9 +111,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
 
             sampleTree.Clothing_Hats_Folder.Name = "+hats";
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.AttachAsync(It.IsAny<IReadOnlyList<AttachmentRequest>>(), It.IsAny<CancellationToken>())
@@ -157,9 +160,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
 
             sampleTree.Clothing_Folder.Name = ".auto_attach";
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.AttachAsync(It.IsAny<IReadOnlyList<AttachmentRequest>>(), It.IsAny<CancellationToken>())

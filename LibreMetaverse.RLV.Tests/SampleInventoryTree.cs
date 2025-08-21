@@ -19,20 +19,6 @@ namespace LibreMetaverse.RLV.Tests
         public RlvInventoryItem Root_Accessories_Glasses { get; set; } = null!;
         public RlvInventoryItem Root_Accessories_Watch { get; set; } = null!;
 
-
-        public static List<RlvInventoryItem> BuildCurrentOutfit(RlvSharedFolder sharedFolder)
-        {
-            var inventoryMap = new InventoryMap(sharedFolder);
-
-            var result = inventoryMap
-                .Items
-                .Where(n => n.Value.WornOn != null | n.Value.AttachedTo != null)
-                .Select(n => n.Value)
-                .ToList();
-
-            return result;
-        }
-
         public static SampleInventoryTree BuildInventoryTree()
         {
             // #RLV

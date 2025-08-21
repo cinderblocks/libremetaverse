@@ -35,32 +35,33 @@ namespace LibreMetaverse.RLV.Tests.Restrictions
             sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedTo = RlvAttachmentPoint.Spine;
             sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId = new Guid("11111111-0003-4aaa-8aaa-ffffffffffff");
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             Assert.True(await _rlv.ProcessMessage("@detachthis=n", sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId!.Value, sampleTree.Root_Clothing_Hats_PartyHat_Spine.Name));
 
             // #RLV/Clothing/Hats/Party Hat (LOCKED)
-            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true));
+            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine));
 
             // #RLV/Clothing/Hats/Fancy Hat (LOCKED)
-            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin, true));
+            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin));
 
             // #RLV/Clothing/Business Pants ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_BusinessPants_Pelvis, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_BusinessPants_Pelvis));
 
             // #RLV/Clothing/Happy Shirt ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_HappyShirt, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_HappyShirt));
 
             // #RLV/Clothing/Retro Pants ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_RetroPants, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_RetroPants));
 
             // #RLV/Accessories/Glasses ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Glasses, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Glasses));
 
             // #RLV/Accessories/Watch ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Watch, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Watch));
 
             var lockedFolders = _rlv.Restrictions.GetLockedFolders();
             Assert.Single(lockedFolders);
@@ -103,34 +104,35 @@ namespace LibreMetaverse.RLV.Tests.Restrictions
             sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedTo = RlvAttachmentPoint.Pelvis;
             sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId = new Guid("11111111-0003-4aaa-8aaa-ffffffffffff");
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             // This should lock the #RLV/Clothing folder because the Business Pants are issuing the command, which is in the Clothing folder.
             //   Business Pants cannot be detached, but hats are still detachable.
             Assert.True(await _rlv.ProcessMessage("@detachthis=n", sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId!.Value, sampleTree.Root_Clothing_BusinessPants_Pelvis.Name));
 
             // #RLV/Clothing/Hats/Party Hat ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine));
 
             // #RLV/Clothing/Hats/Fancy Hat ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin));
 
             // #RLV/Clothing/Business Pants (LOCKED)
-            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_BusinessPants_Pelvis, true));
+            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_BusinessPants_Pelvis));
 
             // #RLV/Clothing/Happy Shirt (LOCKED)
-            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_HappyShirt, true));
+            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_HappyShirt));
 
             // #RLV/Clothing/Retro Pants (LOCKED)
-            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_RetroPants, true));
+            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_RetroPants));
 
             // #RLV/Accessories/Glasses ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Glasses, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Glasses));
 
             // #RLV/Accessories/Watch ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Watch, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Watch));
 
             var lockedFolders = _rlv.Restrictions.GetLockedFolders();
             Assert.Single(lockedFolders);
@@ -169,33 +171,34 @@ namespace LibreMetaverse.RLV.Tests.Restrictions
             var sampleTree = SampleInventoryTree.BuildInventoryTree();
             var sharedFolder = sampleTree.Root;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             // This should lock the Hats folder, all hats are no longer detachable
             Assert.True(await _rlv.ProcessMessage("@detachthis:Clothing=n", _sender.Id, _sender.Name));
 
             // #RLV/Clothing/Hats/Party Hat ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine));
 
             // #RLV/Clothing/Hats/Fancy Hat ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin));
 
             // #RLV/Clothing/Business Pants (LOCKED)
-            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_BusinessPants_Pelvis, true));
+            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_BusinessPants_Pelvis));
 
             // #RLV/Clothing/Happy Shirt (LOCKED)
-            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_HappyShirt, true));
+            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_HappyShirt));
 
             // #RLV/Clothing/Retro Pants (LOCKED)
-            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_RetroPants, true));
+            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_RetroPants));
 
             // #RLV/Accessories/Glasses ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Glasses, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Glasses));
 
             // #RLV/Accessories/Watch ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Watch, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Watch));
 
             var lockedFolders = _rlv.Restrictions.GetLockedFolders();
             Assert.Single(lockedFolders);
@@ -240,33 +243,34 @@ namespace LibreMetaverse.RLV.Tests.Restrictions
             sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedTo = RlvAttachmentPoint.Pelvis;
             sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId = new Guid("11111111-0003-4aaa-8aaa-ffffffffffff");
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             // This should lock the Hats folder, all hats are no longer detachable
             Assert.True(await _rlv.ProcessMessage("@detachthis:pelvis=n", _sender.Id, _sender.Name));
 
             // #RLV/Clothing/Hats/Party Hat (LOCKED)
-            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true));
+            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine));
 
             // #RLV/Clothing/Hats/Fancy Hat (LOCKED) - folder was locked because PartyHat 
-            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin, true));
+            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin));
 
             // #RLV/Clothing/Business Pants (LOCKED)
-            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_BusinessPants_Pelvis, true));
+            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_BusinessPants_Pelvis));
 
             // #RLV/Clothing/Happy Shirt (LOCKED)
-            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_HappyShirt, true));
+            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_HappyShirt));
 
             // #RLV/Clothing/Retro Pants (LOCKED) - folder was locked because BusinessPants
-            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_RetroPants, true));
+            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_RetroPants));
 
             // #RLV/Accessories/Glasses ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Glasses, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Glasses));
 
             // #RLV/Accessories/Watch ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Watch, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Watch));
 
             var lockedFolders = _rlv.Restrictions.GetLockedFolders();
             Assert.Equal(2, lockedFolders.Count);
@@ -313,33 +317,34 @@ namespace LibreMetaverse.RLV.Tests.Restrictions
 
             sampleTree.Root_Accessories_Watch.WornOn = RlvWearableType.Tattoo;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             // This should lock the Hats folder, all hats are no longer detachable
             Assert.True(await _rlv.ProcessMessage("@detachthis:tattoo=n", _sender.Id, _sender.Name));
 
             // #RLV/Clothing/Hats/Party Hat ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine));
 
             // #RLV/Clothing/Hats/Fancy Hat ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin));
 
             // #RLV/Clothing/Business Pants ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_BusinessPants_Pelvis, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_BusinessPants_Pelvis));
 
             // #RLV/Clothing/Happy Shirt ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_HappyShirt, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_HappyShirt));
 
             // #RLV/Clothing/Retro Pants ()
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_RetroPants, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_RetroPants));
 
             // #RLV/Accessories/Glasses (LOCKED) - folder was locked from Watch (tattoo)
-            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Glasses, true));
+            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Glasses));
 
             // #RLV/Accessories/Watch (LOCKED)
-            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Watch, true));
+            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Watch));
 
             var lockedFolders = _rlv.Restrictions.GetLockedFolders();
             Assert.Single(lockedFolders);
@@ -386,20 +391,21 @@ namespace LibreMetaverse.RLV.Tests.Restrictions
 
             sampleTree.Root_Accessories_Watch.WornOn = RlvWearableType.Tattoo;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             Assert.True(await _rlv.ProcessMessage("@detachthis:tattoo=n", _sender.Id, _sender.Name));
             Assert.True(await _rlv.ProcessMessage("@detachthis:tattoo=y", _sender.Id, _sender.Name));
 
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true));
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin, true));
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_BusinessPants_Pelvis, true));
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_HappyShirt, true));
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_RetroPants, true));
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Glasses, true));
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Watch, true));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_BusinessPants_Pelvis));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_HappyShirt));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_RetroPants));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Glasses));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Watch));
 
             var lockedFolders = _rlv.Restrictions.GetLockedFolders();
             Assert.Empty(lockedFolders);

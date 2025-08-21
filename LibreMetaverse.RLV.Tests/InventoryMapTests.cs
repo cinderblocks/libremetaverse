@@ -29,7 +29,7 @@
             var sampleTree = SampleInventoryTree.BuildInventoryTree();
             var sharedFolder = sampleTree.Root;
 
-            var inventoryMap = new InventoryMap(sharedFolder);
+            var inventoryMap = new InventoryMap(sharedFolder, []);
 
             Assert.True(inventoryMap.TryGetFolderFromPath("Clothing/Hats", true, out var foundFolder));
             Assert.Equal(foundFolder, sampleTree.Clothing_Hats_Folder);
@@ -61,7 +61,7 @@
             var sampleTree = SampleInventoryTree.BuildInventoryTree();
             var sharedFolder = sampleTree.Root;
 
-            var inventoryMap = new InventoryMap(sharedFolder);
+            var inventoryMap = new InventoryMap(sharedFolder, []);
 
             Assert.False(inventoryMap.TryGetFolderFromPath("", true, out var foundFolder));
             Assert.Null(foundFolder);
@@ -95,7 +95,7 @@
 
             sampleTree.Clothing_Folder.Name = "Clo/thing";
 
-            var inventoryMap = new InventoryMap(sharedFolder);
+            var inventoryMap = new InventoryMap(sharedFolder, []);
 
             Assert.True(inventoryMap.TryGetFolderFromPath("Clo/thing/Hats", true, out var foundFolder));
             Assert.Equal(foundFolder, sampleTree.Clothing_Hats_Folder);
@@ -130,7 +130,7 @@
             sampleTree.Clothing_Folder.Name = "/Clo//thing//";
             sampleTree.Clothing_Hats_Folder.Name = "//h/ats/";
 
-            var inventoryMap = new InventoryMap(sharedFolder);
+            var inventoryMap = new InventoryMap(sharedFolder, []);
 
             Assert.True(inventoryMap.TryGetFolderFromPath($"{sampleTree.Clothing_Folder.Name}/{sampleTree.Clothing_Hats_Folder.Name}", true, out var foundFolder));
             Assert.Equal(foundFolder, sampleTree.Clothing_Hats_Folder);
@@ -164,7 +164,7 @@
 
             sampleTree.Clothing_Folder.Name = "/Clothing";
 
-            var inventoryMap = new InventoryMap(sharedFolder);
+            var inventoryMap = new InventoryMap(sharedFolder, []);
 
             Assert.True(inventoryMap.TryGetFolderFromPath($"{sampleTree.Clothing_Folder.Name}", true, out var foundFolder));
             Assert.Equal(foundFolder, sampleTree.Clothing_Folder);
@@ -198,7 +198,7 @@
 
             sampleTree.Clothing_Folder.Name = "Clothing/";
 
-            var inventoryMap = new InventoryMap(sharedFolder);
+            var inventoryMap = new InventoryMap(sharedFolder, []);
 
             Assert.True(inventoryMap.TryGetFolderFromPath($"{sampleTree.Clothing_Folder.Name}", true, out var foundFolder));
             Assert.Equal(foundFolder, sampleTree.Clothing_Folder);
@@ -232,7 +232,7 @@
 
             sampleTree.Clothing_Folder.Name = "/Clothing/";
 
-            var inventoryMap = new InventoryMap(sharedFolder);
+            var inventoryMap = new InventoryMap(sharedFolder, []);
 
             Assert.True(inventoryMap.TryGetFolderFromPath($"{sampleTree.Clothing_Folder.Name}", true, out var foundFolder));
             Assert.Equal(foundFolder, sampleTree.Clothing_Folder);
@@ -272,7 +272,7 @@
             sampleTree.Clothing_Folder.Name = "Clothing///";
             sampleTree.Clothing_Hats_Folder.Name = "//h/ats/";
 
-            var inventoryMap = new InventoryMap(sharedFolder);
+            var inventoryMap = new InventoryMap(sharedFolder, []);
 
             // We prefer the exact match of "Clothing///" over the not so exact match of "+Clothing///" since it's exactly what we're searching for
             Assert.True(inventoryMap.TryGetFolderFromPath($"{sampleTree.Clothing_Folder.Name}/{sampleTree.Clothing_Hats_Folder.Name}", true, out var foundFolder));
@@ -305,7 +305,7 @@
             var sampleTree = SampleInventoryTree.BuildInventoryTree();
             var sharedFolder = sampleTree.Root;
 
-            var inventoryMap = new InventoryMap(sharedFolder);
+            var inventoryMap = new InventoryMap(sharedFolder, []);
 
             Assert.False(inventoryMap.TryGetFolderFromPath("Clothing/Hats123", true, out var foundFolder));
         }
@@ -339,7 +339,7 @@
             sampleTree.Clothing_Folder.Name = "~Clothing";
             sampleTree.Clothing_Hats_Folder.Name = "+Hats";
 
-            var inventoryMap = new InventoryMap(sharedFolder);
+            var inventoryMap = new InventoryMap(sharedFolder, []);
 
             Assert.True(inventoryMap.TryGetFolderFromPath("Clothing/Hats", true, out var foundFolder));
             Assert.Equal(foundFolder, sampleTree.Clothing_Hats_Folder);
@@ -373,7 +373,7 @@
 
             sampleTree.Clothing_Folder.Name = ".Clothing";
 
-            var inventoryMap = new InventoryMap(sharedFolder);
+            var inventoryMap = new InventoryMap(sharedFolder, []);
 
             Assert.False(inventoryMap.TryGetFolderFromPath(".Clothing", true, out var foundFolder));
         }
@@ -406,7 +406,7 @@
 
             sampleTree.Clothing_Folder.Name = ".Clothing";
 
-            var inventoryMap = new InventoryMap(sharedFolder);
+            var inventoryMap = new InventoryMap(sharedFolder, []);
 
             Assert.True(inventoryMap.TryGetFolderFromPath(".Clothing", false, out var foundFolder));
             Assert.Equal(sampleTree.Clothing_Folder, foundFolder);
@@ -444,7 +444,7 @@
             sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedTo = RlvAttachmentPoint.Spine;
             sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId = new Guid("11111111-0002-4aaa-8aaa-ffffffffffff");
 
-            var inventoryMap = new InventoryMap(sharedFolder);
+            var inventoryMap = new InventoryMap(sharedFolder, []);
 
             var actual = inventoryMap.FindFoldersContaining(false, sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId, null, null);
 
@@ -487,7 +487,7 @@
             sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedTo = RlvAttachmentPoint.Chin;
             sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedPrimId = new Guid("11111111-0003-4aaa-8aaa-ffffffffffff");
 
-            var inventoryMap = new InventoryMap(sharedFolder);
+            var inventoryMap = new InventoryMap(sharedFolder, []);
 
             var actual = inventoryMap.FindFoldersContaining(false, null, RlvAttachmentPoint.Chin, null);
 
@@ -531,7 +531,7 @@
             sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedTo = RlvAttachmentPoint.Chin;
             sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedPrimId = new Guid("11111111-0003-4aaa-8aaa-ffffffffffff");
 
-            var inventoryMap = new InventoryMap(sharedFolder);
+            var inventoryMap = new InventoryMap(sharedFolder, []);
 
             // What this returns doesn't seem to be really defined. 'return single result' is deprecated since there can be multiple results nowadays
             var actual = inventoryMap.FindFoldersContaining(true, null, RlvAttachmentPoint.Chin, null);
@@ -572,7 +572,7 @@
             sampleTree.Root_Clothing_HappyShirt.WornOn = RlvWearableType.Pants;
             sampleTree.Root_Clothing_Hats_FancyHat_Chin.WornOn = RlvWearableType.Hair;
 
-            var inventoryMap = new InventoryMap(sharedFolder);
+            var inventoryMap = new InventoryMap(sharedFolder, []);
 
             var actual = inventoryMap.FindFoldersContaining(false, null, null, RlvWearableType.Pants);
 

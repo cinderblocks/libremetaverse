@@ -34,9 +34,10 @@ namespace LibreMetaverse.RLV.Tests.Restrictions
             sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedTo = RlvAttachmentPoint.Spine;
             sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId = new Guid("11111111-0003-4aaa-8aaa-ffffffffffff");
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             Assert.True(await _rlv.ProcessMessage("@attachthis=n", sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId!.Value, sampleTree.Root_Clothing_Hats_PartyHat_Spine.Name));
 
@@ -101,9 +102,10 @@ namespace LibreMetaverse.RLV.Tests.Restrictions
             sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedTo = RlvAttachmentPoint.Pelvis;
             sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId = new Guid("11111111-0001-4aaa-8aaa-ffffffffffff");
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             // This should lock the #RLV/Clothing folder because the Business Pants are issuing the command, which is in the Clothing folder.
             //   Business Pants cannot be attached, but hats are still attachable.
@@ -167,9 +169,10 @@ namespace LibreMetaverse.RLV.Tests.Restrictions
             var sampleTree = SampleInventoryTree.BuildInventoryTree();
             var sharedFolder = sampleTree.Root;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             Assert.True(await _rlv.ProcessMessage("@attachthis:Clothing/Hats=n", _sender.Id, _sender.Name));
 
@@ -237,9 +240,10 @@ namespace LibreMetaverse.RLV.Tests.Restrictions
             sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedTo = RlvAttachmentPoint.Pelvis;
             sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId = new Guid("11111111-0002-4aaa-8aaa-ffffffffffff");
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             // This should lock the Hats folder, all hats are no longer attachable
             Assert.True(await _rlv.ProcessMessage("@attachthis:pelvis=n", _sender.Id, _sender.Name));
@@ -311,9 +315,10 @@ namespace LibreMetaverse.RLV.Tests.Restrictions
 
             sampleTree.Root_Accessories_Watch.WornOn = RlvWearableType.Tattoo;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             // This should lock the Hats folder, all hats are no longer attachable
             Assert.True(await _rlv.ProcessMessage("@attachthis:tattoo=n", _sender.Id, _sender.Name));
@@ -385,9 +390,10 @@ namespace LibreMetaverse.RLV.Tests.Restrictions
 
             sampleTree.Root_Accessories_Watch.WornOn = RlvWearableType.Tattoo;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             // This should lock the Hats folder, all hats are no longer attachable
             Assert.True(await _rlv.ProcessMessage("@attachthis:tattoo=n", _sender.Id, _sender.Name));

@@ -40,15 +40,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
 
             sampleTree.Root_Clothing_RetroPants.WornOn = RlvWearableType.Pants;
 
-            var currentOutfit = SampleInventoryTree.BuildCurrentOutfit(sampleTree.Root);
-
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
-
-            _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
@@ -118,7 +113,6 @@ namespace LibreMetaverse.RLV.Tests.Commands
 
             sampleTree.Root_Clothing_RetroPants.WornOn = RlvWearableType.Pants;
 
-            var currentOutfit = SampleInventoryTree.BuildCurrentOutfit(sampleTree.Root);
 
             var externalWearable = new RlvInventoryItem(
                 new Guid("12312312-0001-4aaa-8aaa-aaaaaaaaaaaa"),
@@ -135,16 +129,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
                 new Guid("12312312-0002-4aaa-8aaa-ffffffffffff"),
                 null);
 
-            currentOutfit.Add(externalWearable);
-            currentOutfit.Add(externalAttachable);
-
+            var inventoryMap = new InventoryMap(sharedFolder, [externalWearable, externalAttachable]);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
-
-            _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
@@ -211,15 +199,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
 
             sampleTree.Root_Clothing_RetroPants.WornOn = RlvWearableType.Pants;
 
-            var currentOutfit = SampleInventoryTree.BuildCurrentOutfit(sampleTree.Root);
-
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
-
-            _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
@@ -288,8 +271,6 @@ namespace LibreMetaverse.RLV.Tests.Commands
 
             sampleTree.Root_Clothing_RetroPants.WornOn = RlvWearableType.Pants;
 
-            var currentOutfit = SampleInventoryTree.BuildCurrentOutfit(sampleTree.Root);
-
             var externalAttachable = new RlvInventoryItem(
                 new Guid("12312312-0002-4aaa-8aaa-aaaaaaaaaaaa"),
                 "External Chest Thing",
@@ -298,15 +279,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
                 new Guid("12312312-0002-4aaa-8aaa-ffffffffffff"),
                 null);
 
-            currentOutfit.Add(externalAttachable);
-
+            var inventoryMap = new InventoryMap(sharedFolder, [externalAttachable]);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
-
-            _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
@@ -372,15 +348,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
 
             sampleTree.Root_Clothing_RetroPants.WornOn = RlvWearableType.Pants;
 
-            var currentOutfit = SampleInventoryTree.BuildCurrentOutfit(sampleTree.Root);
-
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
-
-            _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
@@ -444,15 +415,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
 
             sampleTree.Root_Clothing_RetroPants.WornOn = RlvWearableType.Pants;
 
-            var currentOutfit = SampleInventoryTree.BuildCurrentOutfit(sampleTree.Root);
-
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
-
-            _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
@@ -517,15 +483,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
 
             sampleTree.Root_Clothing_RetroPants.WornOn = RlvWearableType.Pants;
 
-            var currentOutfit = SampleInventoryTree.BuildCurrentOutfit(sampleTree.Root);
-
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
-
-            _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
@@ -595,8 +556,6 @@ namespace LibreMetaverse.RLV.Tests.Commands
 
             sampleTree.Root_Clothing_RetroPants.WornOn = RlvWearableType.Pants;
 
-            var currentOutfit = SampleInventoryTree.BuildCurrentOutfit(sampleTree.Root);
-
             var externalAttachable = new RlvInventoryItem(
                 new Guid("12312312-0002-4aaa-8aaa-aaaaaaaaaaaa"),
                 "External Chest Thing",
@@ -605,15 +564,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
                 new Guid("12312312-0002-4aaa-8aaa-ffffffffffff"),
                 null);
 
-            currentOutfit.Add(externalAttachable);
-
+            var inventoryMap = new InventoryMap(sharedFolder, [externalAttachable]);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
-
-            _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())

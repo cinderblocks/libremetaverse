@@ -37,9 +37,10 @@ namespace LibreMetaverse.RLV.Tests.Restrictions
             sampleTree.Root_Clothing_HappyShirt.WornOn = RlvWearableType.Shirt;
             sampleTree.Root_Clothing_Hats_FancyHat_Chin.WornOn = RlvWearableType.Hair;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             Assert.True(await _rlv.ProcessMessage("@addoutfit=n", sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId!.Value, sampleTree.Root_Clothing_Hats_PartyHat_Spine.Name));
 
@@ -76,9 +77,10 @@ namespace LibreMetaverse.RLV.Tests.Restrictions
             sampleTree.Root_Clothing_HappyShirt.WornOn = RlvWearableType.Shirt;
             sampleTree.Root_Clothing_Hats_FancyHat_Chin.WornOn = RlvWearableType.Hair;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             Assert.True(await _rlv.ProcessMessage("@addoutfit:shirt=n", _sender.Id, _sender.Name));
 

@@ -1,5 +1,3 @@
-using Moq;
-
 namespace LibreMetaverse.RLV.Tests.Restrictions
 {
     public class TpLureSecRestrictionTests : RestrictionsBase

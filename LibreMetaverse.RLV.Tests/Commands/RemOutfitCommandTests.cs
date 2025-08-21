@@ -36,15 +36,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
             sampleTree.Root_Clothing_Hats_FancyHat_Chin.WornOn = RlvWearableType.Tattoo;
             sampleTree.Root_Clothing_Hats_PartyHat_Spine.WornOn = RlvWearableType.Skin;
 
-            var currentOutfit = SampleInventoryTree.BuildCurrentOutfit(sampleTree.Root);
-
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
-
-            _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.RemOutfitAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
@@ -112,8 +107,6 @@ namespace LibreMetaverse.RLV.Tests.Commands
             sampleTree.Root_Clothing_Hats_FancyHat_Chin.WornOn = RlvWearableType.Tattoo;
             sampleTree.Root_Clothing_Hats_PartyHat_Spine.WornOn = RlvWearableType.Skin;
 
-            var currentOutfit = SampleInventoryTree.BuildCurrentOutfit(sampleTree.Root);
-
             var externalWearable = new RlvInventoryItem(
                 new Guid("12312312-0001-4aaa-8aaa-aaaaaaaaaaaa"),
                 "External Tattoo",
@@ -122,15 +115,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
                 null,
                 RlvWearableType.Tattoo);
 
-            currentOutfit.Add(externalWearable);
-
+            var inventoryMap = new InventoryMap(sharedFolder, [externalWearable]);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
-
-            _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.RemOutfitAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
@@ -207,16 +195,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
                 null,
                 RlvWearableType.Tattoo);
 
-            var currentOutfit = SampleInventoryTree.BuildCurrentOutfit(sampleTree.Root);
-            currentOutfit.Add(externalWearable);
-
+            var inventoryMap = new InventoryMap(sharedFolder, [externalWearable]);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
-
-            _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.RemOutfitAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
@@ -280,15 +262,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
             sampleTree.Root_Clothing_Hats_FancyHat_Chin.WornOn = RlvWearableType.Tattoo;
             sampleTree.Root_Clothing_Hats_PartyHat_Spine.WornOn = RlvWearableType.Skin;
 
-            var currentOutfit = SampleInventoryTree.BuildCurrentOutfit(sampleTree.Root);
-
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
-
-            _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.RemOutfitAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
@@ -350,15 +327,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
             sampleTree.Root_Clothing_Hats_FancyHat_Chin.WornOn = RlvWearableType.Tattoo;
             sampleTree.Root_Clothing_Hats_PartyHat_Spine.WornOn = RlvWearableType.Skin;
 
-            var currentOutfit = SampleInventoryTree.BuildCurrentOutfit(sampleTree.Root);
-
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
-
-            _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.RemOutfitAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
@@ -421,15 +393,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
             sampleTree.Root_Clothing_Hats_FancyHat_Chin.WornOn = RlvWearableType.Tattoo;
             sampleTree.Root_Clothing_Hats_PartyHat_Spine.WornOn = RlvWearableType.Skin;
 
-            var currentOutfit = SampleInventoryTree.BuildCurrentOutfit(sampleTree.Root);
-
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
-
-            _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.RemOutfitAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())

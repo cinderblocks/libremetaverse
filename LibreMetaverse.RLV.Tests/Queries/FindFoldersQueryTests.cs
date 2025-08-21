@@ -31,9 +31,10 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var sampleTree = SampleInventoryTree.BuildInventoryTree();
             var sharedFolder = sampleTree.Root;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -70,9 +71,10 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var sampleTree = SampleInventoryTree.BuildInventoryTree();
             var sharedFolder = sampleTree.Root;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             var expected = new List<(int Channel, string Text)>
             {

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -46,13 +45,6 @@ namespace LibreMetaverse.RLV
         Task<(bool Success, Guid SitId)> TryGetSitIdAsync(CancellationToken cancellationToken);
 
         /// <summary>
-        /// Gets the RLV shared folder
-        /// </summary>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Success flag and shared folder successful</returns>
-        Task<(bool Success, RlvSharedFolder? SharedFolder)> TryGetSharedFolderAsync(CancellationToken cancellationToken);
-
-        /// <summary>
         /// Gets current camera settings
         /// </summary>
         /// <param name="cancellationToken">Cancellation token</param>
@@ -67,41 +59,10 @@ namespace LibreMetaverse.RLV
         Task<(bool Success, string ActiveGroupName)> TryGetActiveGroupNameAsync(CancellationToken cancellationToken);
 
         /// <summary>
-        /// Gets the current user's outfit. This will be all worn and attached items and may include
-        /// items outside of the shared #RLV folder
+        /// Gets the complete RLV inventory map including shared folder structure, current outfit, and externally worn/attached items
         /// </summary>
         /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Success flag and current outfit if successful</returns>
-        Task<(bool Success, IReadOnlyList<RlvInventoryItem>? CurrentOutfit)> TryGetCurrentOutfitAsync(CancellationToken cancellationToken);
-    }
-
-    /// <summary>
-    /// Represents a request to attach an item to the avatar
-    /// </summary>
-    public class AttachmentRequest
-    {
-        public Guid ItemId { get; }
-        public RlvAttachmentPoint AttachmentPoint { get; }
-        public bool ReplaceExistingAttachments { get; }
-
-        public AttachmentRequest(Guid itemId, RlvAttachmentPoint attachmentPoint, bool replaceExistingAttachments)
-        {
-            ItemId = itemId;
-            AttachmentPoint = attachmentPoint;
-            ReplaceExistingAttachments = replaceExistingAttachments;
-        }
-
-        public override bool Equals(object obj)
-        {
-            return obj is AttachmentRequest request &&
-                   ItemId.Equals(request.ItemId) &&
-                   AttachmentPoint == request.AttachmentPoint &&
-                   ReplaceExistingAttachments == request.ReplaceExistingAttachments;
-        }
-
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(ItemId, AttachmentPoint, ReplaceExistingAttachments);
-        }
+        /// <returns>Success flag and inventory map if successful</returns>
+        Task<(bool Success, InventoryMap? InventoryMap)> TryGetInventoryMapAsync(CancellationToken cancellationToken);
     }
 }

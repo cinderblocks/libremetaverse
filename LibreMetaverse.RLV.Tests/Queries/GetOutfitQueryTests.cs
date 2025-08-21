@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Moq;
+﻿using Moq;
 
 namespace LibreMetaverse.RLV.Tests.Queries
 {
@@ -14,11 +9,15 @@ namespace LibreMetaverse.RLV.Tests.Queries
         public async Task GetOutfit_WearingNothing()
         {
             var actual = _actionCallbacks.RecordReplies();
-            var currentOutfit = new List<RlvInventoryItem>();
+            var externalItems = new List<RlvInventoryItem>();
 
+            var sampleTree = SampleInventoryTree.BuildInventoryTree();
+            var sharedFolder = sampleTree.Root;
+
+            var inventoryMap = new InventoryMap(sharedFolder, externalItems);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -33,8 +32,6 @@ namespace LibreMetaverse.RLV.Tests.Queries
         public async Task GetOutfit_ExternalItems()
         {
             var actual = _actionCallbacks.RecordReplies();
-
-            var currentOutfit = new List<RlvInventoryItem>();
 
             var externalWearable = new RlvInventoryItem(
                 new Guid("12312312-0001-4aaa-8aaa-aaaaaaaaaaaa"),
@@ -51,12 +48,13 @@ namespace LibreMetaverse.RLV.Tests.Queries
                 new Guid("12312312-0002-4aaa-8aaa-ffffffffffff"),
                 null);
 
-            currentOutfit.Add(externalWearable);
-            currentOutfit.Add(externalAttachable);
+            var sampleTree = SampleInventoryTree.BuildInventoryTree();
+            var sharedFolder = sampleTree.Root;
 
+            var inventoryMap = new InventoryMap(sharedFolder, [externalWearable, externalAttachable]);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -71,15 +69,19 @@ namespace LibreMetaverse.RLV.Tests.Queries
         public async Task GetOutfit_WearingSomeItems()
         {
             var actual = _actionCallbacks.RecordReplies();
-            var currentOutfit = new List<RlvInventoryItem>()
+            var externalItems = new List<RlvInventoryItem>()
             {
                 new(new Guid($"c0000000-cccc-4ccc-8ccc-cccccccccccc"), "My Socks", new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc"), null, null, RlvWearableType.Socks),
                 new(new Guid($"c0000001-cccc-4ccc-8ccc-cccccccccccc"), "My Hair", new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc"), null, null, RlvWearableType.Hair)
             };
 
+            var sampleTree = SampleInventoryTree.BuildInventoryTree();
+            var sharedFolder = sampleTree.Root;
+
+            var inventoryMap = new InventoryMap(sharedFolder, externalItems);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -94,7 +96,7 @@ namespace LibreMetaverse.RLV.Tests.Queries
         public async Task GetOutfit_WearingEverything()
         {
             var actual = _actionCallbacks.RecordReplies();
-            var currentOutfit = new List<RlvInventoryItem>();
+            var externalItems = new List<RlvInventoryItem>();
             foreach (var item in Enum.GetValues<RlvWearableType>())
             {
                 if (item == RlvWearableType.Invalid)
@@ -102,7 +104,7 @@ namespace LibreMetaverse.RLV.Tests.Queries
                     continue;
                 }
 
-                currentOutfit.Add(new RlvInventoryItem(
+                externalItems.Add(new RlvInventoryItem(
                     new Guid($"c{(int)item:D7}-cccc-4ccc-8ccc-cccccccccccc"),
                     $"My {item}",
                     new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc"),
@@ -111,9 +113,13 @@ namespace LibreMetaverse.RLV.Tests.Queries
                     item));
             }
 
+            var sampleTree = SampleInventoryTree.BuildInventoryTree();
+            var sharedFolder = sampleTree.Root;
+
+            var inventoryMap = new InventoryMap(sharedFolder, externalItems);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -128,14 +134,18 @@ namespace LibreMetaverse.RLV.Tests.Queries
         public async Task GetOutfit_Specific_Exists()
         {
             var actual = _actionCallbacks.RecordReplies();
-            var currentOutfit = new List<RlvInventoryItem>()
+            var externalItems = new List<RlvInventoryItem>()
             {
                 new(new Guid($"c0000000-cccc-4ccc-8ccc-cccccccccccc"), "My Socks", new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc"), null, null, RlvWearableType.Socks)
             };
 
+            var sampleTree = SampleInventoryTree.BuildInventoryTree();
+            var sharedFolder = sampleTree.Root;
+
+            var inventoryMap = new InventoryMap(sharedFolder, externalItems);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -150,14 +160,18 @@ namespace LibreMetaverse.RLV.Tests.Queries
         public async Task GetOutfit_Specific_NotExists()
         {
             var actual = _actionCallbacks.RecordReplies();
-            var currentOutfit = new List<RlvInventoryItem>()
+            var externalItems = new List<RlvInventoryItem>()
             {
                 new(new Guid($"c0000001-cccc-4ccc-8ccc-cccccccccccc"), "My Hair", new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc"), null, null, RlvWearableType.Hair)
             };
 
+            var sampleTree = SampleInventoryTree.BuildInventoryTree();
+            var sharedFolder = sampleTree.Root;
+
+            var inventoryMap = new InventoryMap(sharedFolder, externalItems);
             _queryCallbacks.Setup(e =>
-                e.TryGetCurrentOutfitAsync(default)
-            ).ReturnsAsync((true, currentOutfit));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             var expected = new List<(int Channel, string Text)>
             {

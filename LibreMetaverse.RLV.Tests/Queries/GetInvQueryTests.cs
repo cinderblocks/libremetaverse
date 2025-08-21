@@ -12,9 +12,10 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var sampleTree = SampleInventoryTree.BuildInventoryTree();
             var sharedFolder = sampleTree.Root;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -43,9 +44,10 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var item1 = outfitsFolder.AddItem(new Guid("12312399-0001-0001-8999-999999999999"), "First Item", null, null, null);
             var item2 = outfitsFolder.AddItem(new Guid("12312399-0001-0002-8999-999999999999"), "Second Item", null, null, null);
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -66,9 +68,10 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var outfitsFolder = sampleTree.Root.AddChild(new Guid("12312399-9999-4999-8999-999999999999"), "~MyOutfits");
             var outfitSubfolder1 = outfitsFolder.AddChild(new Guid("12312399-0001-4999-8999-999999999999"), "First outfit");
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -89,9 +92,10 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var outfitsFolder = sampleTree.Root.AddChild(new Guid("12312399-9999-4999-8999-999999999999"), "~MyOutfits");
             var outfitSubfolder1 = outfitsFolder.AddChild(new Guid("12312399-0001-4999-8999-999999999999"), "First outfit");
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -112,9 +116,10 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var outfitsFolder = sampleTree.Root.AddChild(new Guid("12312399-9999-4999-8999-999999999999"), "~MyOutfits");
             var outfitSubfolder1 = outfitsFolder.AddChild(new Guid("12312399-0001-4999-8999-999999999999"), "First outfit");
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -139,9 +144,11 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var outfitSubfolder1 = outfitsFolder.AddChild(outfitSubfolder1Id, "First outfit");
             var item1 = outfitSubfolder1.AddItem(new Guid("12312399-0001-0001-8999-999999999999"), "First Item", null, null, null);
             var item2 = outfitSubfolder1.AddItem(new Guid("12312399-0001-0002-8999-999999999999"), "Second Item", null, null, null);
+
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -159,9 +166,10 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var sampleTree = SampleInventoryTree.BuildInventoryTree();
             var sharedFolder = sampleTree.Root;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -179,9 +187,10 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var sampleTree = SampleInventoryTree.BuildInventoryTree();
             var sharedFolder = sampleTree.Root;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -199,9 +208,10 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var sampleTree = SampleInventoryTree.BuildInventoryTree();
             var sharedFolder = sampleTree.Root;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             var expected = new List<(int Channel, string Text)>
             {

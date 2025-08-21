@@ -171,7 +171,7 @@ namespace LibreMetaverse.RLV
                 return false;
             }
 
-            if (enforceRestrictions && !_manager.CanDetach(item, true))
+            if (enforceRestrictions && !_manager.CanDetach(item))
             {
                 return false;
             }
@@ -245,12 +245,11 @@ namespace LibreMetaverse.RLV
         // @attach:[folder]=force
         private async Task<bool> HandleAttach(RlvMessage command, bool replaceExistingAttachments, bool recursive, CancellationToken cancellationToken)
         {
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return false;
             }
-            var inventoryMap = new InventoryMap(sharedFolder);
 
             if (!inventoryMap.TryGetFolderFromPath(command.Option, false, out var folder))
             {
@@ -269,14 +268,13 @@ namespace LibreMetaverse.RLV
 
         private async Task<bool> HandleAttachThis(RlvMessage command, bool replaceExistingAttachments, bool recursive, CancellationToken cancellationToken)
         {
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return false;
             }
 
             var skipHiddenFolders = true;
-            var inventoryMap = new InventoryMap(sharedFolder);
             var folderPaths = new List<RlvSharedFolder>();
 
             if (command.Option.Length == 0)
@@ -287,18 +285,14 @@ namespace LibreMetaverse.RLV
             }
             else if (Guid.TryParse(command.Option, out var attachedPrimId))
             {
-                var item = inventoryMap.Items
-                    .Where(n => n.Value.AttachedPrimId == attachedPrimId)
-                    .Select(n => n.Value)
-                    .FirstOrDefault();
-                if (item == null)
+                if (!inventoryMap.TryGetItemByPrimId(attachedPrimId, out var item))
                 {
                     return false;
                 }
 
-                if (item.FolderId.HasValue && inventoryMap.Folders.TryGetValue(item.FolderId.Value, out var folder))
+                if (item.Folder != null)
                 {
-                    folderPaths.Add(folder);
+                    folderPaths.Add(item.Folder);
                 }
             }
             else if (RlvCommon.RlvWearableTypeMap.TryGetValue(command.Option, out var wearableType))
@@ -352,30 +346,21 @@ namespace LibreMetaverse.RLV
             }
         }
 
-        // @remattach[:<folder|attachpt|uuid>]=force
+        // @remattach[:<folder|attachpt|attachedPrimId>]=force
         // TODO: Add support for Attachment groups (RLVa)
         private async Task<bool> HandleRemAttach(RlvMessage command, CancellationToken cancellationToken)
         {
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return false;
             }
-
-            var (hasCurrentOutfit, currentOutfit) = await _queryCallbacks.TryGetCurrentOutfitAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasCurrentOutfit || currentOutfit == null)
-            {
-                return false;
-            }
-
-            var inventoryMap = new InventoryMap(sharedFolder);
 
             var itemIdsToDetach = new List<Guid>();
 
-            if (Guid.TryParse(command.Option, out var uuid))
+            if (Guid.TryParse(command.Option, out var attachedPrimId))
             {
-                var item = currentOutfit.FirstOrDefault(n => n.AttachedPrimId == uuid);
-                if (item != null)
+                if (inventoryMap.TryGetItemByPrimId(attachedPrimId, out var item))
                 {
                     if (CanRemAttachItem(item, true, false))
                     {
@@ -389,23 +374,25 @@ namespace LibreMetaverse.RLV
             }
             else if (RlvCommon.RlvAttachmentPointMap.TryGetValue(command.Option, out var attachmentPoint))
             {
-                itemIdsToDetach = currentOutfit
+                itemIdsToDetach = inventoryMap.Items
+                    .Union(inventoryMap.ExternalItems)
                     .Where(n =>
-                        n.AttachedTo == attachmentPoint &&
-                        CanRemAttachItem(n, true, false)
+                        n.Value.AttachedTo == attachmentPoint &&
+                        CanRemAttachItem(n.Value, true, false)
                     )
-                    .Select(n => n.Id)
+                    .Select(n => n.Value.Id)
                     .Distinct()
                     .ToList();
             }
             else if (command.Option.Length == 0)
             {
                 // Everything attachable will be detached (excludes clothing/wearable types)
-                itemIdsToDetach = currentOutfit
+                itemIdsToDetach = inventoryMap.Items
+                    .Union(inventoryMap.ExternalItems)
                     .Where(n =>
-                        n.AttachedTo != null && CanRemAttachItem(n, true, false)
+                        n.Value.AttachedTo != null && CanRemAttachItem(n.Value, true, false)
                     )
-                    .Select(n => n.Id)
+                    .Select(n => n.Value.Id)
                     .Distinct()
                     .ToList();
             }
@@ -420,12 +407,11 @@ namespace LibreMetaverse.RLV
 
         private async Task<bool> HandleDetachAll(RlvMessage command, CancellationToken cancellationToken)
         {
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return false;
             }
-            var inventoryMap = new InventoryMap(sharedFolder);
 
             if (!inventoryMap.TryGetFolderFromPath(command.Option, false, out var folder))
             {
@@ -441,12 +427,12 @@ namespace LibreMetaverse.RLV
 
         private async Task<bool> HandleDetachThis(RlvMessage command, bool recursive, CancellationToken cancellationToken)
         {
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return false;
             }
-            var inventoryMap = new InventoryMap(sharedFolder);
+
             var folderPaths = new List<RlvSharedFolder>();
             var ignoreHiddenFolders = true;
 
@@ -458,18 +444,14 @@ namespace LibreMetaverse.RLV
             }
             else if (Guid.TryParse(command.Option, out var attachedPrimId))
             {
-                var item = inventoryMap.Items
-                    .Where(n => n.Value.AttachedPrimId == attachedPrimId)
-                    .Select(n => n.Value)
-                    .FirstOrDefault();
-                if (item == null)
+                if (!inventoryMap.TryGetItemByPrimId(attachedPrimId, out var item))
                 {
                     return false;
                 }
 
-                if (item.FolderId.HasValue && inventoryMap.Folders.TryGetValue(item.FolderId.Value, out var folder))
+                if (item.Folder != null)
                 {
-                    folderPaths.Add(folder);
+                    folderPaths.Add(item.Folder);
                 }
             }
             else if (RlvCommon.RlvWearableTypeMap.TryGetValue(command.Option, out var wearableType))
@@ -500,19 +482,13 @@ namespace LibreMetaverse.RLV
         // @detachme=force
         private async Task<bool> HandleDetachMe(RlvMessage command, CancellationToken cancellationToken)
         {
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return false;
             }
-            var inventoryMap = new InventoryMap(sharedFolder);
 
-            var senderItem = inventoryMap.Items
-                .Where(n => n.Value.AttachedPrimId == command.Sender)
-                .Select(n => n.Value)
-                .FirstOrDefault();
-
-            if (senderItem == null)
+            if (!inventoryMap.TryGetItemByPrimId(command.Sender, out var senderItem))
             {
                 return false;
             }
@@ -535,18 +511,11 @@ namespace LibreMetaverse.RLV
         // TODO: Add support for Attachment groups (RLVa)
         private async Task<bool> HandleRemOutfit(RlvMessage command, CancellationToken cancellationToken)
         {
-            var (hasCurrentOutfit, currentOutfit) = await _queryCallbacks.TryGetCurrentOutfitAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasCurrentOutfit || currentOutfit == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return false;
             }
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
-            {
-                return false;
-            }
-
-            var inventoryMap = new InventoryMap(sharedFolder);
 
             Guid? folderId = null;
             RlvWearableType? wearableType = null;
@@ -564,17 +533,18 @@ namespace LibreMetaverse.RLV
                 return false;
             }
 
-            var itemsToDetach = currentOutfit
+            var itemsToDetach = inventoryMap.Items
+                .Union(inventoryMap.ExternalItems)
                 .Where(n =>
-                    n.WornOn != null &&
-                    (folderId == null || n.FolderId == folderId) &&
-                    (wearableType == null || n.WornOn == wearableType) &&
-                    CanRemAttachItem(n, true, false)
+                    n.Value.WornOn != null &&
+                    (folderId == null || n.Value.FolderId == folderId) &&
+                    (wearableType == null || n.Value.WornOn == wearableType) &&
+                    CanRemAttachItem(n.Value, true, false)
                 )
                 .ToList();
 
             var itemIdsToDetach = itemsToDetach
-                .Select(n => n.Id)
+                .Select(n => n.Value.Id)
                 .Distinct()
                 .ToList();
 

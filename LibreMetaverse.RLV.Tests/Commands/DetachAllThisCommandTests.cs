@@ -42,9 +42,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
             sampleTree.Root_Accessories_Glasses.AttachedTo = RlvAttachmentPoint.Chest;
             sampleTree.Root_Accessories_Glasses.AttachedPrimId = new Guid("11111111-0004-4aaa-8aaa-ffffffffffff");
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
@@ -113,9 +114,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
             sampleTree.Root_Accessories_Glasses.AttachedTo = RlvAttachmentPoint.Chest;
             sampleTree.Root_Accessories_Glasses.AttachedPrimId = new Guid("11111111-0004-4aaa-8aaa-ffffffffffff");
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
@@ -184,9 +186,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
             sampleTree.Root_Accessories_Glasses.AttachedTo = RlvAttachmentPoint.Chest;
             sampleTree.Root_Accessories_Glasses.AttachedPrimId = new Guid("11111111-0004-4aaa-8aaa-ffffffffffff");
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
@@ -253,9 +256,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
             sampleTree.Root_Accessories_Glasses.WornOn = RlvWearableType.Pants;
             sampleTree.Root_Clothing_HappyShirt.WornOn = RlvWearableType.Pants;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
@@ -324,9 +328,10 @@ namespace LibreMetaverse.RLV.Tests.Commands
             sampleTree.Root_Accessories_Glasses.WornOn = RlvWearableType.Pants;
             sampleTree.Root_Clothing_HappyShirt.WornOn = RlvWearableType.Pants;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             _actionCallbacks.Setup(e =>
                 e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())

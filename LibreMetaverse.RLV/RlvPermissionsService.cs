@@ -839,13 +839,13 @@ namespace LibreMetaverse.RLV
             return true;
         }
 
-        public bool CanDetach(RlvInventoryItem item, bool isShared)
+        public bool CanDetach(RlvInventoryItem item)
         {
             return CanDetach(
                 item.Id,
                 item.AttachedPrimId,
                 item.FolderId,
-                isShared,
+                item.Folder != null,
                 item.AttachedTo,
                 item.WornOn
             );

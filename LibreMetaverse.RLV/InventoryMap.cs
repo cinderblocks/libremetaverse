@@ -9,6 +9,7 @@ namespace LibreMetaverse.RLV
     public class InventoryMap
     {
         public ImmutableDictionary<Guid, RlvInventoryItem> Items { get; }
+        public ImmutableDictionary<Guid, RlvInventoryItem> ExternalItems { get; }
         public ImmutableDictionary<Guid, RlvSharedFolder> Folders { get; }
         public RlvSharedFolder Root { get; }
 
@@ -16,8 +17,9 @@ namespace LibreMetaverse.RLV
         /// Creates a mapping of all items and folders for a given InventoryFolder.
         /// </summary>
         /// <param name="root">Root of the shared folder. Generally the #RLV folder.</param>
+        /// <param name="externalItems">Collection of worn or attached external items that exist outside of the #RLV folder.</param>
         /// <exception cref="ArgumentNullException">root is null</exception>
-        public InventoryMap(RlvSharedFolder root)
+        public InventoryMap(RlvSharedFolder root, IReadOnlyCollection<RlvInventoryItem> externalItems)
         {
             if (root == null)
             {
@@ -31,6 +33,7 @@ namespace LibreMetaverse.RLV
             Root = root;
             Items = itemsTemp.ToImmutableDictionary();
             Folders = foldersTemp.ToImmutableDictionary();
+            ExternalItems = externalItems.ToImmutableDictionary(k => k.Id, v => v);
         }
 
         private bool TryGetFolderFromPath_Internal(string path, bool skipPrivateFolders, [NotNullWhen(returnValue: true)] out RlvSharedFolder? folder)
@@ -188,15 +191,15 @@ namespace LibreMetaverse.RLV
         }
 
         /// <summary>
-        /// Finds all folders containing the specified attachedPrimId, all folders containing an item
+        /// Finds all folders containing the specified attachedPrimId, all folders containing an outFoundItem
         /// that is attached to the specified attachment point, or all folders containing an
-        /// item that is worn as the specified wearable type. Only one search criteria may be
+        /// outFoundItem that is worn as the specified wearable type. Only one search criteria may be
         /// specified.
         /// </summary>
         /// <param name="limitToOneResult">Deprecated, should always be false. Returns only the first found folder. This only exists to support the deprecated @GetPath command</param>
         /// <param name="attachedPrimId">If specified, find the folder containing this prim ID</param>
-        /// <param name="attachmentPoint">If specified, find all folders containing an item currently attached to this attachment point</param>
-        /// <param name="wearableType">If specified, find all folders containing an item currently worn as this type</param>
+        /// <param name="attachmentPoint">If specified, find all folders containing an outFoundItem currently attached to this attachment point</param>
+        /// <param name="wearableType">If specified, find all folders containing an outFoundItem currently worn as this type</param>
         /// <returns>Collection of folders matching the search criteria</returns>
         public IEnumerable<RlvSharedFolder> FindFoldersContaining(
             bool limitToOneResult,
@@ -311,6 +314,60 @@ namespace LibreMetaverse.RLV
 
             finalPath = string.Join("/", path);
             return true;
+        }
+
+        /// <summary>
+        /// Attempts to find a known outFoundItem by ID. This will search the shared folder as well as all worn non-shared/external items
+        /// </summary>
+        /// <param name="itemId">ID of the outFoundItem</param>
+        /// <param name="item">Found outFoundItem if successful, otherwise null</param>
+        /// <returns>True on success</returns>
+        public bool TryGetItem(Guid itemId, [NotNullWhen(true)] out RlvInventoryItem? outFoundItem)
+        {
+            foreach (var kvp in Items)
+            {
+                if (kvp.Value.Id == itemId)
+                {
+                    outFoundItem = kvp.Value;
+                    return true;
+                }
+            }
+
+            foreach (var kvp in ExternalItems)
+            {
+                if (kvp.Value.Id == itemId)
+                {
+                    outFoundItem = kvp.Value;
+                    return true;
+                }
+            }
+
+            outFoundItem = null;
+            return false;
+        }
+
+        public bool TryGetItemByPrimId(Guid primId, [NotNullWhen(true)] out RlvInventoryItem? outFoundItem)
+        {
+            foreach (var kvp in Items)
+            {
+                if (kvp.Value.AttachedPrimId == primId)
+                {
+                    outFoundItem = kvp.Value;
+                    return true;
+                }
+            }
+
+            foreach (var kvp in ExternalItems)
+            {
+                if (kvp.Value.AttachedPrimId == primId)
+                {
+                    outFoundItem = kvp.Value;
+                    return true;
+                }
+            }
+
+            outFoundItem = null;
+            return false;
         }
 
         private static void CreateInventoryMap(
