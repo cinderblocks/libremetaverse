@@ -619,55 +619,63 @@ namespace OpenMetaverse
                 Logger.Log("Could not retrieve Current Outfit folder", Helpers.LogLevel.Warning, Client);
                 return null;
             }
-
+        
             var contents = Client.Inventory.FolderContents(cof.UUID, cof.OwnerID, true, true,
                 InventorySortOrder.ByDate, TimeSpan.FromMinutes(1), true);
-
+        
             var wearables = new MultiValueDictionary<WearableType, WearableData>();
             foreach (var item in contents)
             {
-                switch (item)
+                try
                 {
-                    case InventoryWearable wearable:
+                    switch (item)
                     {
-                        var w = wearable;
-                        if (wearable.IsLink() && Client.Inventory.Store.Contains(wearable.ActualUUID))
-                        {
-                            w = Client.Inventory.Store[wearable.ActualUUID] as InventoryWearable;
-                        }
-                        wearables.Add(w.WearableType, new WearableData()
-                        {
-                            ItemID = w.UUID,
-                            AssetID = w.ActualUUID,
-                            AssetType = w.AssetType,
-                            WearableType = w.WearableType
-                        });
-                        break;
+                        case InventoryWearable wearable:
+                            {
+                                var w = wearable;
+                                if (wearable.IsLink() && Client.Inventory.Store.Contains(wearable.ActualUUID))
+                                {
+                                    w = Client.Inventory.Store[wearable.ActualUUID] as InventoryWearable;
+                                }
+                                wearables.Add(w.WearableType, new WearableData()
+                                {
+                                    ItemID = w.UUID,
+                                    AssetID = w.ActualUUID,
+                                    AssetType = w.AssetType,
+                                    WearableType = w.WearableType
+                                });
+                                break;
+                            }
+                        case InventoryAttachment attachment:
+                            {
+                                var a = attachment;
+                                if (attachment.IsLink() && Client.Inventory.Store.Contains(attachment.ActualUUID))
+                                {
+                                    a = Client.Inventory.Store[attachment.ActualUUID] as InventoryAttachment;
+                                }
+                                Attachments.AddOrUpdate(a.ActualUUID, a.AttachmentPoint, (id, point) => a.AttachmentPoint);
+                                break;
+                            }
+                        case InventoryObject attachedObject:
+                            {
+                                var a = attachedObject;
+                                if (attachedObject.IsLink() && Client.Inventory.Store.Contains(attachedObject.ActualUUID))
+                                {
+                                    a = Client.Inventory.Store[attachedObject.ActualUUID] as InventoryObject;
+                                }
+                                Attachments.AddOrUpdate(a.ActualUUID, a.AttachPoint, (id, point) => a.AttachPoint);
+                                break;
+                            }
                     }
-                    case InventoryAttachment attachment:
-                    {
-                        var a = attachment;
-                        if (attachment.IsLink() && Client.Inventory.Store.Contains(attachment.ActualUUID))
-                        {
-                            a = Client.Inventory.Store[attachment.ActualUUID] as InventoryAttachment;
-                        }
-                        Attachments.AddOrUpdate(a.ActualUUID, a.AttachmentPoint, (id, point) => a.AttachmentPoint);
-                        break;
-                    }
-                    case InventoryObject attachedObject:
-                    {
-                        var a = attachedObject;
-                        if (attachedObject.IsLink() && Client.Inventory.Store.Contains(attachedObject.ActualUUID))
-                        {
-                            a = Client.Inventory.Store[attachedObject.ActualUUID] as InventoryObject;
-                        }
-                        Attachments.AddOrUpdate(a.ActualUUID, a.AttachPoint, (id, point) => a.AttachPoint);
-                        break;
-                    }
+                }
+                catch
+                {
+                    // Ignore any items that fail to parse
+                    Logger.Log($"Failed to parse attached in RequestAgentWorn, skipping", Helpers.LogLevel.Warning, Client);
                 }
             }
             lock (Wearables) { Wearables = wearables; }
-
+        
             OnAgentWearables(new AgentWearablesReplyEventArgs());
             return contents;
         }
@@ -2976,4 +2984,5 @@ namespace OpenMetaverse
 
     }
     #endregion
+
 }
