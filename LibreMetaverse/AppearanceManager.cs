@@ -2445,7 +2445,22 @@ namespace OpenMetaverse
             var blocks = new List<RezMultipleAttachmentsFromInvPacket.ObjectDataBlock>();
 
             // RequestAgentWorn can return null in some cases
-            var worn = RequestAgentWorn() ?? new List<InventoryBase>();
+            var worn = new List<InventoryBase>();
+            try
+            {
+                var wornResult = RequestAgentWorn();
+                if (wornResult != null)
+                {
+                    worn.AddRange(wornResult);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Log($"Failed to request worn items: {e.Message}", Helpers.LogLevel.Error, Client);
+
+                // Skip sending the outfit
+                return;
+            }
 
             Logger.Log($"{worn.Count} inventory items in 'Current Outfit' folder", Helpers.LogLevel.Info, Client);
 
@@ -2987,6 +3002,7 @@ namespace OpenMetaverse
     #endregion
 
 }
+
 
 
 
