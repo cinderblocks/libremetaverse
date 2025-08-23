@@ -2444,7 +2444,7 @@ namespace OpenMetaverse
         {
             var blocks = new List<RezMultipleAttachmentsFromInvPacket.ObjectDataBlock>();
 
-            var worn = RequestAgentWorn();
+            var worn = RequestAgentWorn() ?? [];
 
             Logger.Log($"{worn.Count} inventory items in 'Current Outfit' folder", Helpers.LogLevel.Info, Client);
 
@@ -2986,3 +2986,4 @@ namespace OpenMetaverse
     #endregion
 
 }
+
