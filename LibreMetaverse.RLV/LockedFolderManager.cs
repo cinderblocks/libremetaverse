@@ -196,49 +196,56 @@ namespace LibreMetaverse.RLV
         {
             if (restriction.Args.Count == 0)
             {
-                if (!inventoryMap.TryGetItemByPrimId(restriction.Sender, out var senderItem))
+                if (!inventoryMap.TryGetItemByPrimId(restriction.Sender, out var senderItems))
                 {
                     return false;
                 }
 
-                if (senderItem.Folder == null)
+                foreach (var senderItem in senderItems)
                 {
-                    return false;
-                }
+                    if (senderItem.Folder == null)
+                    {
+                        return false;
+                    }
 
-                AddLockedFolder(senderItem.Folder, restriction);
+                    AddLockedFolder(senderItem.Folder, restriction);
+                }
             }
             else if (restriction.Args[0] is RlvWearableType wearableType)
             {
-                var wornItems = sharedFolder.GetWornItems(wearableType);
-                var foldersToLock = wornItems
-                    .Where(n => n.Folder != null)
-                    .Select(n => n.Folder);
-
-                foreach (var folder in foldersToLock)
+                var foldersToLock = new Dictionary<Guid, RlvSharedFolder>();
+                foreach (var items in inventoryMap.Items)
                 {
-                    if (folder == null)
+                    foreach (var item in items.Value)
                     {
-                        continue;
+                        if (item.Folder != null && item.WornOn == wearableType)
+                        {
+                            foldersToLock[item.Folder.Id] = item.Folder;
+                        }
                     }
+                }
 
+                foreach (var folder in foldersToLock.Values)
+                {
                     AddLockedFolder(folder, restriction);
                 }
             }
             else if (restriction.Args[0] is RlvAttachmentPoint attachmentPoint)
             {
-                var attachedItems = sharedFolder.GetAttachedItems(attachmentPoint);
-                var foldersToLock = attachedItems
-                    .Where(n => n.Folder != null)
-                    .Select(n => n.Folder);
-
-                foreach (var folder in foldersToLock)
+                var foldersToLockMap = new Dictionary<Guid, RlvSharedFolder>();
+                foreach (var items in inventoryMap.Items)
                 {
-                    if (folder == null)
+                    foreach (var item in items.Value)
                     {
-                        continue;
+                        if (item.Folder != null && item.AttachedTo == attachmentPoint)
+                        {
+                            foldersToLockMap[item.Folder.Id] = item.Folder;
+                        }
                     }
+                }
 
+                foreach (var folder in foldersToLockMap.Values)
+                {
                     AddLockedFolder(folder, restriction);
                 }
             }

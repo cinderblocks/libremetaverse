@@ -2,13 +2,12 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 
 namespace LibreMetaverse.RLV
 {
     public class InventoryMap
     {
-        public ImmutableDictionary<Guid, RlvInventoryItem> Items { get; }
+        public ImmutableDictionary<Guid, ImmutableList<RlvInventoryItem>> Items { get; }
         public ImmutableDictionary<Guid, RlvInventoryItem> ExternalItems { get; }
         public ImmutableDictionary<Guid, RlvSharedFolder> Folders { get; }
         public RlvSharedFolder Root { get; }
@@ -26,12 +25,13 @@ namespace LibreMetaverse.RLV
                 throw new ArgumentNullException(nameof(root));
             }
 
-            var itemsTemp = new Dictionary<Guid, RlvInventoryItem>();
+            var itemsTemp = new Dictionary<Guid, List<RlvInventoryItem>>();
             var foldersTemp = new Dictionary<Guid, RlvSharedFolder>();
+
             CreateInventoryMap(root, foldersTemp, itemsTemp);
 
             Root = root;
-            Items = itemsTemp.ToImmutableDictionary();
+            Items = itemsTemp.ToImmutableDictionary(k => k.Key, v => v.Value.ToImmutableList());
             Folders = foldersTemp.ToImmutableDictionary();
             ExternalItems = externalItems.ToImmutableDictionary(k => k.Id, v => v);
         }
@@ -191,15 +191,12 @@ namespace LibreMetaverse.RLV
         }
 
         /// <summary>
-        /// Finds all folders containing the specified attachedPrimId, all folders containing an outFoundItem
-        /// that is attached to the specified attachment point, or all folders containing an
-        /// outFoundItem that is worn as the specified wearable type. Only one search criteria may be
-        /// specified.
+        /// Finds all folders containing an item that either has the specified prim ID, is attached to specified attachment point, or is worn as the specified wearable type
         /// </summary>
         /// <param name="limitToOneResult">Deprecated, should always be false. Returns only the first found folder. This only exists to support the deprecated @GetPath command</param>
         /// <param name="attachedPrimId">If specified, find the folder containing this prim ID</param>
-        /// <param name="attachmentPoint">If specified, find all folders containing an outFoundItem currently attached to this attachment point</param>
-        /// <param name="wearableType">If specified, find all folders containing an outFoundItem currently worn as this type</param>
+        /// <param name="attachmentPoint">If specified, find all folders containing an outFoundItems currently attached to this attachment point</param>
+        /// <param name="wearableType">If specified, find all folders containing an outFoundItems currently worn as this type</param>
         /// <returns>Collection of folders matching the search criteria</returns>
         public IEnumerable<RlvSharedFolder> FindFoldersContaining(
             bool limitToOneResult,
@@ -208,74 +205,50 @@ namespace LibreMetaverse.RLV
             RlvWearableType? wearableType)
         {
             var folders = new List<RlvSharedFolder>();
+            IReadOnlyList<RlvInventoryItem>? foundItems = null;
 
             if (attachedPrimId.HasValue)
             {
-                var senderItem = Items
-                    .Where(n => n.Value.AttachedPrimId == attachedPrimId)
-                    .Select(n => n.Value)
-                    .FirstOrDefault();
-                if (senderItem == null)
+                if (!TryGetItemByPrimId(attachedPrimId.Value, out foundItems))
                 {
                     return [];
                 }
-
-                if (!senderItem.FolderId.HasValue || !Folders.TryGetValue(senderItem.FolderId.Value, out var folder))
-                {
-                    return [];
-                }
-
-                folders.Add(folder);
             }
             else if (attachmentPoint.HasValue)
             {
-                var foldersContainingAttachments = new HashSet<Guid>();
-                foreach (var item in Items.Values)
+                if (!TryGetItemByAttachmentPoint(attachmentPoint.Value, out foundItems))
                 {
-                    if (item.Folder == null)
-                    {
-                        // External folders are unknown to RLV
-                        continue;
-                    }
-
-                    if (item.AttachedTo == attachmentPoint)
-                    {
-                        if (foldersContainingAttachments.Add(item.Folder.Id))
-                        {
-                            folders.Add(item.Folder);
-
-                            if (limitToOneResult)
-                            {
-                                break;
-                            }
-                        }
-                    }
+                    return [];
                 }
             }
             else if (wearableType.HasValue)
             {
-                var foldersIdsContainingWearables = new HashSet<Guid>();
-                foreach (var item in Items.Values)
+                if (!TryGetItemByWearableType(wearableType.Value, out foundItems))
+                {
+                    return [];
+                }
+            }
+
+            if (foundItems != null)
+            {
+                var foundFolders = new HashSet<Guid>();
+                foreach (var item in foundItems)
                 {
                     if (item.Folder == null)
                     {
-                        // External folders are unknown to RLV
-                        continue;
+                        return [];
                     }
 
-                    if (item.WornOn == wearableType)
+                    if (foundFolders.Add(item.Folder.Id))
                     {
-                        if (foldersIdsContainingWearables.Add(item.Folder.Id))
-                        {
-                            folders.Add(item.Folder);
-
-                            if (limitToOneResult)
-                            {
-                                break;
-                            }
-                        }
+                        folders.Add(item.Folder);
                     }
                 }
+            }
+
+            if (limitToOneResult && folders.Count > 0)
+            {
+                return [folders[0]];
             }
 
             return folders;
@@ -317,43 +290,47 @@ namespace LibreMetaverse.RLV
         }
 
         /// <summary>
-        /// Attempts to find a known outFoundItem by ID. This will search the shared folder as well as all worn non-shared/external items
+        /// Attempts to find a known outFoundItems by ID. This will search the shared folder as well as all worn non-shared/external items
         /// </summary>
-        /// <param name="itemId">ID of the outFoundItem</param>
-        /// <param name="item">Found outFoundItem if successful, otherwise null</param>
+        /// <param name="itemId">ID of the outFoundItems</param>
+        /// <param name="outFoundItems">Found items if successful, otherwise null</param>
         /// <returns>True on success</returns>
-        public bool TryGetItem(Guid itemId, [NotNullWhen(true)] out RlvInventoryItem? outFoundItem)
+        public bool TryGetItem(Guid itemId, [NotNullWhen(true)] out IReadOnlyList<RlvInventoryItem>? outFoundItems)
         {
-            foreach (var kvp in Items)
+            List<RlvInventoryItem> foundItems = new List<RlvInventoryItem>();
+            if (Items.TryGetValue(itemId, out var tempFoundItems))
             {
-                if (kvp.Value.Id == itemId)
-                {
-                    outFoundItem = kvp.Value;
-                    return true;
-                }
+                foundItems.AddRange(tempFoundItems);
             }
 
-            foreach (var kvp in ExternalItems)
+            if (ExternalItems.TryGetValue(itemId, out var tempFoundExternalItem))
             {
-                if (kvp.Value.Id == itemId)
-                {
-                    outFoundItem = kvp.Value;
-                    return true;
-                }
+                foundItems.Add(tempFoundExternalItem);
             }
 
-            outFoundItem = null;
+            if (foundItems.Count > 0)
+            {
+                outFoundItems = foundItems.ToImmutableList();
+                return true;
+            }
+
+            outFoundItems = null;
             return false;
         }
 
-        public bool TryGetItemByPrimId(Guid primId, [NotNullWhen(true)] out RlvInventoryItem? outFoundItem)
+
+        public bool TryGetItemByPrimId(Guid primId, [NotNullWhen(true)] out IReadOnlyList<RlvInventoryItem>? outFoundItems)
         {
+            List<RlvInventoryItem> foundItems = new List<RlvInventoryItem>();
+
             foreach (var kvp in Items)
             {
-                if (kvp.Value.AttachedPrimId == primId)
+                foreach (var item in kvp.Value)
                 {
-                    outFoundItem = kvp.Value;
-                    return true;
+                    if (item.AttachedPrimId == primId)
+                    {
+                        foundItems.Add(item);
+                    }
                 }
             }
 
@@ -361,19 +338,116 @@ namespace LibreMetaverse.RLV
             {
                 if (kvp.Value.AttachedPrimId == primId)
                 {
-                    outFoundItem = kvp.Value;
-                    return true;
+                    foundItems.Add(kvp.Value);
                 }
             }
 
-            outFoundItem = null;
+            if (foundItems.Count > 0)
+            {
+                outFoundItems = foundItems.ToImmutableList();
+                return true;
+            }
+
+            outFoundItems = null;
             return false;
+        }
+
+        public bool TryGetItemByAttachmentPoint(RlvAttachmentPoint attachmentPoint, [NotNullWhen(true)] out IReadOnlyList<RlvInventoryItem>? outFoundItems)
+        {
+            List<RlvInventoryItem> foundItems = new List<RlvInventoryItem>();
+
+            foreach (var kvp in Items)
+            {
+                foreach (var item in kvp.Value)
+                {
+                    if (item.AttachedTo == attachmentPoint)
+                    {
+                        foundItems.Add(item);
+                    }
+                }
+            }
+
+            foreach (var kvp in ExternalItems)
+            {
+                if (kvp.Value.AttachedTo == attachmentPoint)
+                {
+                    foundItems.Add(kvp.Value);
+                }
+            }
+
+            if (foundItems.Count > 0)
+            {
+                outFoundItems = foundItems.ToImmutableList();
+                return true;
+            }
+
+            outFoundItems = null;
+            return false;
+        }
+
+        public bool TryGetItemByWearableType(RlvWearableType wearableType, [NotNullWhen(true)] out IReadOnlyList<RlvInventoryItem>? outFoundItems)
+        {
+            List<RlvInventoryItem> foundItems = new List<RlvInventoryItem>();
+
+            foreach (var kvp in Items)
+            {
+                foreach (var item in kvp.Value)
+                {
+                    if (item.WornOn == wearableType)
+                    {
+                        foundItems.Add(item);
+                    }
+                }
+            }
+
+            foreach (var kvp in ExternalItems)
+            {
+                if (kvp.Value.WornOn == wearableType)
+                {
+                    foundItems.Add(kvp.Value);
+                }
+            }
+
+            if (foundItems.Count > 0)
+            {
+                outFoundItems = foundItems.ToImmutableList();
+                return true;
+            }
+
+            outFoundItems = null;
+            return false;
+        }
+
+        public List<RlvInventoryItem> GetCurrentOutfit()
+        {
+            List<RlvInventoryItem> foundItems = new List<RlvInventoryItem>();
+
+            foreach (var kvp in Items)
+            {
+                foreach (var item in kvp.Value)
+                {
+                    if (item.WornOn != null || item.AttachedTo != null)
+                    {
+                        foundItems.Add(item);
+                    }
+                }
+            }
+
+            foreach (var kvp in ExternalItems)
+            {
+                if (kvp.Value.WornOn != null || kvp.Value.AttachedTo != null)
+                {
+                    foundItems.Add(kvp.Value);
+                }
+            }
+
+            return foundItems;
         }
 
         private static void CreateInventoryMap(
             RlvSharedFolder root,
             Dictionary<Guid, RlvSharedFolder> folders,
-            Dictionary<Guid, RlvInventoryItem> items)
+            Dictionary<Guid, List<RlvInventoryItem>> items)
         {
             if (folders.ContainsKey(root.Id))
             {
@@ -383,7 +457,13 @@ namespace LibreMetaverse.RLV
             folders[root.Id] = root;
             foreach (var item in root.Items)
             {
-                items[item.Id] = item;
+                if (!items.TryGetValue(item.Id, out var itemsSharingItemId))
+                {
+                    itemsSharingItemId = new List<RlvInventoryItem>();
+                    items.Add(item.Id, itemsSharingItemId);
+                }
+
+                itemsSharingItemId.Add(item);
             }
 
             foreach (var child in root.Children)

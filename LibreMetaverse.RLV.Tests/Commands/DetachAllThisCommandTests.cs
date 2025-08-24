@@ -78,6 +78,78 @@ namespace LibreMetaverse.RLV.Tests.Commands
         }
 
         [Fact]
+        public async Task DetachAllThisForce_Nostrip()
+        {
+            // #RLV
+            //  |
+            //  |- .private
+            //  |
+            //  |- Clothing
+            //  |    |= Business Pants
+            //  |    |= Happy Shirt [SENDER] (attached chest) <-- Expected detach
+            //  |    |= nostrip Retro Pants (attached pelvis) <-- No detach due to 'nostrip' in item name
+            //  |    \- nostrip Hats
+            //  |        |
+            //  |        |- Sub Hats
+            //  |        |    \ (Empty)
+            //  |        |
+            //  |        |= Fancy Hat (attached chin) <-- No detach due to 'nostrip' in folder name
+            //  |        \= Party Hat
+            //   \-Accessories
+            //        |= Watch
+            //        \= Glasses (attached chest)
+
+            var sampleTree = SampleInventoryTree.BuildInventoryTree();
+            var sharedFolder = sampleTree.Root;
+
+            sampleTree.Clothing_Hats_Folder.Name = "nostrip Hats";
+            sampleTree.Root_Clothing_HappyShirt.AttachedTo = RlvAttachmentPoint.Chest;
+            sampleTree.Root_Clothing_HappyShirt.AttachedPrimId = new Guid("11111111-0001-4aaa-8aaa-ffffffffffff");
+
+            sampleTree.Root_Clothing_RetroPants.Name = "nostrip Retro Pants";
+            sampleTree.Root_Clothing_RetroPants.AttachedTo = RlvAttachmentPoint.Pelvis;
+            sampleTree.Root_Clothing_RetroPants.AttachedPrimId = new Guid("11111111-0002-4aaa-8aaa-ffffffffffff");
+
+            sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedTo = RlvAttachmentPoint.Chin;
+            sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedPrimId = new Guid("11111111-0003-4aaa-8aaa-ffffffffffff");
+
+            sampleTree.Root_Accessories_Glasses.AttachedTo = RlvAttachmentPoint.Chest;
+            sampleTree.Root_Accessories_Glasses.AttachedPrimId = new Guid("11111111-0004-4aaa-8aaa-ffffffffffff");
+
+            var inventoryMap = new InventoryMap(sharedFolder, []);
+            _queryCallbacks.Setup(e =>
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
+
+            _actionCallbacks.Setup(e =>
+                e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
+            ).Returns(Task.CompletedTask);
+
+            var expected = new HashSet<Guid>()
+            {
+                sampleTree.Root_Clothing_HappyShirt.Id,
+            };
+
+            // Act
+            await _rlv.ProcessMessage("@detachallthis=force", sampleTree.Root_Clothing_HappyShirt.AttachedPrimId!.Value, sampleTree.Root_Clothing_HappyShirt.Name);
+
+            // Assert
+            _actionCallbacks.Verify(e =>
+                e.DetachAsync(
+                    It.Is<IReadOnlyList<Guid>>(ids =>
+                        ids != null &&
+                        ids.Count == expected.Count &&
+                        expected.SetEquals(ids)
+                    ),
+                    It.IsAny<CancellationToken>()
+                ),
+                Times.Once
+            );
+
+            _actionCallbacks.VerifyNoOtherCalls();
+        }
+
+        [Fact]
         public async Task DetachAllThisForce_ById()
         {
             // #RLV
@@ -128,6 +200,79 @@ namespace LibreMetaverse.RLV.Tests.Commands
                 sampleTree.Root_Clothing_HappyShirt.Id,
                 sampleTree.Root_Clothing_RetroPants.Id,
                 sampleTree.Root_Clothing_Hats_FancyHat_Chin.Id,
+            };
+
+            // Act
+            await _rlv.ProcessMessage($"@detachallthis:{sampleTree.Root_Clothing_HappyShirt.AttachedPrimId}=force", _sender.Id, _sender.Name);
+
+            // Assert
+            _actionCallbacks.Verify(e =>
+                e.DetachAsync(
+                    It.Is<IReadOnlyList<Guid>>(ids =>
+                        ids != null &&
+                        ids.Count == expected.Count &&
+                        expected.SetEquals(ids)
+                    ),
+                    It.IsAny<CancellationToken>()
+                ),
+                Times.Once
+            );
+
+            _actionCallbacks.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task DetachAllThisForce_ById_Nostrip()
+        {
+            // #RLV
+            //  |
+            //  |- .private
+            //  |
+            //  |- Clothing
+            //  |    |= Business Pants
+            //  |    |= Happy Shirt (attached chest) <-- Expected detach
+            //  |    |= nostrip Retro Pants (attached pelvis) <-- no detach due to 'nostrip' in item name
+            //  |    \- nostrip Hats
+            //  |        |
+            //  |        |- Sub Hats
+            //  |        |    \ (Empty)
+            //  |        |
+            //  |        |= Fancy Hat (attached chin) <-- no detach due to 'nostrip' in folder name
+            //  |        \= Party Hat
+            //   \-Accessories
+            //        |= Watch
+            //        \= Glasses (attached chest)
+
+            var sampleTree = SampleInventoryTree.BuildInventoryTree();
+            var sharedFolder = sampleTree.Root;
+
+            sampleTree.Clothing_Hats_Folder.Name = "nostrip Hats";
+
+            sampleTree.Root_Clothing_HappyShirt.AttachedTo = RlvAttachmentPoint.Chest;
+            sampleTree.Root_Clothing_HappyShirt.AttachedPrimId = new Guid("11111111-0001-4aaa-8aaa-ffffffffffff");
+
+            sampleTree.Root_Clothing_RetroPants.Name = "nostrip Retro Pants";
+            sampleTree.Root_Clothing_RetroPants.AttachedTo = RlvAttachmentPoint.Pelvis;
+            sampleTree.Root_Clothing_RetroPants.AttachedPrimId = new Guid("11111111-0002-4aaa-8aaa-ffffffffffff");
+
+            sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedTo = RlvAttachmentPoint.Chin;
+            sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedPrimId = new Guid("11111111-0003-4aaa-8aaa-ffffffffffff");
+
+            sampleTree.Root_Accessories_Glasses.AttachedTo = RlvAttachmentPoint.Chest;
+            sampleTree.Root_Accessories_Glasses.AttachedPrimId = new Guid("11111111-0004-4aaa-8aaa-ffffffffffff");
+
+            var inventoryMap = new InventoryMap(sharedFolder, []);
+            _queryCallbacks.Setup(e =>
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
+
+            _actionCallbacks.Setup(e =>
+                e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
+            ).Returns(Task.CompletedTask);
+
+            var expected = new HashSet<Guid>()
+            {
+                sampleTree.Root_Clothing_HappyShirt.Id,
             };
 
             // Act
@@ -223,6 +368,80 @@ namespace LibreMetaverse.RLV.Tests.Commands
         }
 
         [Fact]
+        public async Task DetachThisAllForce_ByRlvAttachmentPoint_NoStrip()
+        {
+            // #RLV
+            //  |
+            //  |- .private
+            //  |
+            //  |- Clothing
+            //  |    |= Business Pants
+            //  |    |= Happy Shirt (attached chest) <-- Expected detach
+            //  |    |= nostrip Retro Pants (attached pelvis) <-- No detach due to 'nostrip' in item name
+            //  |    \- nostrip Hats
+            //  |        |
+            //  |        |- Sub Hats
+            //  |        |    \ (Empty)
+            //  |        |
+            //  |        |= Fancy Hat (attached chin) <-- No detach due to 'nostrip' in folder name
+            //  |        \= Party Hat
+            //   \-Accessories
+            //        |= Watch
+            //        \= Glasses (attached chest) <-- Expected detach
+
+            var sampleTree = SampleInventoryTree.BuildInventoryTree();
+            var sharedFolder = sampleTree.Root;
+
+            sampleTree.Clothing_Hats_Folder.Name = "nostrip Hats";
+
+            sampleTree.Root_Clothing_HappyShirt.AttachedTo = RlvAttachmentPoint.Chest;
+            sampleTree.Root_Clothing_HappyShirt.AttachedPrimId = new Guid("11111111-0001-4aaa-8aaa-ffffffffffff");
+
+            sampleTree.Root_Clothing_RetroPants.Name = "nostrip Retro Pants";
+            sampleTree.Root_Clothing_RetroPants.AttachedTo = RlvAttachmentPoint.Pelvis;
+            sampleTree.Root_Clothing_RetroPants.AttachedPrimId = new Guid("11111111-0002-4aaa-8aaa-ffffffffffff");
+
+            sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedTo = RlvAttachmentPoint.Chin;
+            sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedPrimId = new Guid("11111111-0003-4aaa-8aaa-ffffffffffff");
+
+            sampleTree.Root_Accessories_Glasses.AttachedTo = RlvAttachmentPoint.Chest;
+            sampleTree.Root_Accessories_Glasses.AttachedPrimId = new Guid("11111111-0004-4aaa-8aaa-ffffffffffff");
+
+            var inventoryMap = new InventoryMap(sharedFolder, []);
+            _queryCallbacks.Setup(e =>
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
+
+            _actionCallbacks.Setup(e =>
+                e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
+            ).Returns(Task.CompletedTask);
+
+            var expected = new HashSet<Guid>()
+            {
+                sampleTree.Root_Clothing_HappyShirt.Id,
+                sampleTree.Root_Accessories_Glasses.Id,
+            };
+
+            // Act
+            await _rlv.ProcessMessage("@detachallthis:chest=force", _sender.Id, _sender.Name);
+
+            // Assert
+            _actionCallbacks.Verify(e =>
+                e.DetachAsync(
+                    It.Is<IReadOnlyList<Guid>>(ids =>
+                        ids != null &&
+                        ids.Count == expected.Count &&
+                        expected.SetEquals(ids)
+                    ),
+                    It.IsAny<CancellationToken>()
+                ),
+                Times.Once
+            );
+
+            _actionCallbacks.VerifyNoOtherCalls();
+        }
+
+        [Fact]
         public async Task DetachAllThisForce_ByRlvWearableType()
         {
             // #RLV
@@ -270,6 +489,77 @@ namespace LibreMetaverse.RLV.Tests.Commands
                 sampleTree.Root_Clothing_HappyShirt.Id,
                 sampleTree.Root_Clothing_RetroPants.Id,
                 sampleTree.Root_Clothing_Hats_FancyHat_Chin.Id,
+                sampleTree.Root_Accessories_Glasses.Id,
+            };
+
+            // Act
+            await _rlv.ProcessMessage("@detachallthis:pants=force", _sender.Id, _sender.Name);
+
+            // Assert
+            _actionCallbacks.Verify(e =>
+                e.DetachAsync(
+                    It.Is<IReadOnlyList<Guid>>(ids =>
+                        ids != null &&
+                        ids.Count == expected.Count &&
+                        expected.SetEquals(ids)
+                    ),
+                    It.IsAny<CancellationToken>()
+                ),
+                Times.Once
+            );
+
+            _actionCallbacks.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task DetachAllThisForce_ByRlvWearableType_NoStrip()
+        {
+            // #RLV
+            //  |
+            //  |- .private
+            //  |
+            //  |- Clothing
+            //  |    |= Business Pants
+            //  |    |= Happy Shirt (worn pants) <-- Expected detach
+            //  |    |= nostrip Retro Pants (attached pelvis) <-- No detach due to 'nostrip' in item name
+            //  |    \- nostrip Hats
+            //  |        |
+            //  |        |- Sub Hats
+            //  |        |    \ (Empty)
+            //  |        |
+            //  |        |= Fancy Hat (attached chin) <-- No detach due to 'nostrip' in folder name
+            //  |        \= Party Hat
+            //   \-Accessories
+            //        |= Watch
+            //        \= Glasses (worn pants) <-- Expected detach
+
+            var sampleTree = SampleInventoryTree.BuildInventoryTree();
+            var sharedFolder = sampleTree.Root;
+
+            sampleTree.Clothing_Hats_Folder.Name = "nostrip Hats";
+
+            sampleTree.Root_Clothing_RetroPants.Name = "nostrip Retro Pants";
+            sampleTree.Root_Clothing_RetroPants.AttachedTo = RlvAttachmentPoint.Pelvis;
+            sampleTree.Root_Clothing_RetroPants.AttachedPrimId = new Guid("11111111-0002-4aaa-8aaa-ffffffffffff");
+
+            sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedTo = RlvAttachmentPoint.Chin;
+            sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedPrimId = new Guid("11111111-0003-4aaa-8aaa-ffffffffffff");
+
+            sampleTree.Root_Accessories_Glasses.WornOn = RlvWearableType.Pants;
+            sampleTree.Root_Clothing_HappyShirt.WornOn = RlvWearableType.Pants;
+
+            var inventoryMap = new InventoryMap(sharedFolder, []);
+            _queryCallbacks.Setup(e =>
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
+
+            _actionCallbacks.Setup(e =>
+                e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
+            ).Returns(Task.CompletedTask);
+
+            var expected = new HashSet<Guid>()
+            {
+                sampleTree.Root_Clothing_HappyShirt.Id,
                 sampleTree.Root_Accessories_Glasses.Id,
             };
 

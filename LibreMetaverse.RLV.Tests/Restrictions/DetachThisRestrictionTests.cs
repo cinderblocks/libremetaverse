@@ -4,7 +4,7 @@ namespace LibreMetaverse.RLV.Tests.Restrictions
 {
     public class DetachThisRestrictionTests : RestrictionsBase
     {
-        #region @detachthis[:<layer>|<attachpt>|<path_to_folder>]=<y/n>
+        #region @detachthis[:<layer>|<attachpt>|<uuid>]=<y/n>
 
         [Fact]
         public async Task DetachThis()

@@ -67,54 +67,6 @@ namespace LibreMetaverse.RLV
             return newItem;
         }
 
-        /// <summary>
-        /// Gets a list of items currently worn as the specified wearable type
-        /// </summary>
-        /// <param name="wearableType">Finds all items worn of this type</param>
-        /// <returns>Collection of items that are worn as the specified wearable type</returns>
-        public IEnumerable<RlvInventoryItem> GetWornItems(RlvWearableType wearableType)
-        {
-            foreach (var item in Items)
-            {
-                if (item.WornOn == wearableType)
-                {
-                    yield return item;
-                }
-            }
-
-            foreach (var child in Children)
-            {
-                foreach (var childItem in child.GetWornItems(wearableType))
-                {
-                    yield return childItem;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets a list of items currently attached to the specified attachment point
-        /// </summary>
-        /// <param name="attachmentPoint">Finds all items attached to this attachment point</param>
-        /// <returns>Collection of items currently attached to the specified attachment point</returns>
-        public IEnumerable<RlvInventoryItem> GetAttachedItems(RlvAttachmentPoint attachmentPoint)
-        {
-            foreach (var item in Items)
-            {
-                if (item.AttachedTo == attachmentPoint)
-                {
-                    yield return item;
-                }
-            }
-
-            foreach (var child in Children)
-            {
-                foreach (var childItem in child.GetAttachedItems(attachmentPoint))
-                {
-                    yield return childItem;
-                }
-            }
-        }
-
         public override string ToString()
         {
             return $"{Name ?? Id.ToString()} (Children: {_children.Count}, Items: {_items.Count})";

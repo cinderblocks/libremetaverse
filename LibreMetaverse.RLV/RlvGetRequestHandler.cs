@@ -87,12 +87,24 @@ namespace LibreMetaverse.RLV
                 return string.Empty;
             }
 
-            var wornTypes = inventoryMap.Items
-                .Union(inventoryMap.ExternalItems)
-                .Where(n => n.Value.WornOn.HasValue)
-                .Select(n => n.Value.WornOn!.Value)
-                .Distinct()
-                .ToImmutableHashSet();
+            var wornTypes = new HashSet<RlvWearableType>();
+            foreach (var kvp in inventoryMap.Items)
+            {
+                foreach (var item in kvp.Value)
+                {
+                    if (item.WornOn.HasValue)
+                    {
+                        wornTypes.Add(item.WornOn.Value);
+                    }
+                }
+            }
+            foreach (var kvp in inventoryMap.ExternalItems)
+            {
+                if (kvp.Value.WornOn.HasValue)
+                {
+                    wornTypes.Add(kvp.Value.WornOn.Value);
+                }
+            }
 
             if (specificType.HasValue)
             {
@@ -137,16 +149,29 @@ namespace LibreMetaverse.RLV
                 return string.Empty;
             }
 
-            var wornTypes = inventoryMap.Items
-                .Union(inventoryMap.ExternalItems)
-                .Where(n => n.Value.AttachedTo.HasValue)
-                .Select(n => n.Value.AttachedTo!.Value)
-                .Distinct()
-                .ToImmutableHashSet();
+            var attachedTypes = new HashSet<RlvAttachmentPoint>();
+            foreach (var kvp in inventoryMap.Items)
+            {
+                foreach (var item in kvp.Value)
+                {
+                    if (item.AttachedTo.HasValue)
+                    {
+                        attachedTypes.Add(item.AttachedTo.Value);
+                    }
+                }
+            }
+            foreach (var kvp in inventoryMap.ExternalItems)
+            {
+                if (kvp.Value.AttachedTo.HasValue)
+                {
+                    attachedTypes.Add(kvp.Value.AttachedTo.Value);
+                }
+            }
+
 
             if (specificType.HasValue)
             {
-                if (wornTypes.Contains(specificType.Value))
+                if (attachedTypes.Contains(specificType.Value))
                 {
                     return "1";
                 }
@@ -162,7 +187,7 @@ namespace LibreMetaverse.RLV
             // digit corresponds directly to the value of enum, unlike ProcessGetOutfit
             foreach (RlvAttachmentPoint attachmentPoint in attachmentPointTypes)
             {
-                sb.Append(wornTypes.Contains(attachmentPoint) ? '1' : '0');
+                sb.Append(attachedTypes.Contains(attachmentPoint) ? '1' : '0');
             }
 
             return sb.ToString();
