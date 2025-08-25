@@ -27,7 +27,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CoreJ2K.Skia" Version="1.1.2.50" />
-    <PackageReference Include="log4net" Version="3.1.0" />
+    <PackageReference Include="log4net" Version="3.2.0" />
     <PackageReference Include="MessagePack" Version="3.1.4" />
     <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.8" />
     <PackageReference Include="OggVorbisEncoder" Version="1.2.2" />
