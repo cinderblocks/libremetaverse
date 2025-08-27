@@ -426,7 +426,7 @@ namespace LibreMetaverse.RLV
             {
                 foreach (var item in kvp.Value)
                 {
-                    if (item.WornOn != null || item.AttachedTo != null)
+                    if (item.WornOn != null || item.AttachedTo != null || item.GestureState == RlvGestureState.Active)
                     {
                         foundItems.Add(item);
                     }
@@ -435,7 +435,7 @@ namespace LibreMetaverse.RLV
 
             foreach (var kvp in ExternalItems)
             {
-                if (kvp.Value.WornOn != null || kvp.Value.AttachedTo != null)
+                if (kvp.Value.WornOn != null || kvp.Value.AttachedTo != null || kvp.Value.GestureState == RlvGestureState.Active)
                 {
                     foundItems.Add(kvp.Value);
                 }

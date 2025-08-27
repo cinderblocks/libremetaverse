@@ -151,7 +151,7 @@ namespace LibreMetaverse.RLV
 
         private bool CanRemAttachItem(RlvInventoryItem item, bool enforceNostrip, bool enforceRestrictions)
         {
-            if (item.WornOn == null && item.AttachedTo == null)
+            if (item.WornOn == null && item.AttachedTo == null && item.GestureState != RlvGestureState.Active)
             {
                 return false;
             }
@@ -161,7 +161,9 @@ namespace LibreMetaverse.RLV
                 return false;
             }
 
-            if (enforceNostrip && item.Folder != null && item.Folder.Name.ToLowerInvariant().Contains("nostrip"))
+            // Special exception: If a folder with (nostrip) contains inventory links to other items, those linked items can still
+            //   be removed. Only the objects actual parent folder or the actual item itself counts.
+            if (enforceNostrip && !item.IsLink && item.Folder != null && item.Folder.Name.ToLowerInvariant().Contains("nostrip"))
             {
                 return false;
             }
@@ -199,7 +201,7 @@ namespace LibreMetaverse.RLV
 
             foreach (var item in folder.Items)
             {
-                if (item.AttachedTo != null || item.WornOn != null)
+                if (item.AttachedTo != null || item.WornOn != null || item.GestureState == RlvGestureState.Active)
                 {
                     continue;
                 }
@@ -263,7 +265,7 @@ namespace LibreMetaverse.RLV
         {
             foreach (var item in items)
             {
-                if (item.AttachedTo == null && item.WornOn == null)
+                if (item.AttachedTo == null && item.WornOn == null && item.GestureState != RlvGestureState.Active)
                 {
                     continue;
                 }

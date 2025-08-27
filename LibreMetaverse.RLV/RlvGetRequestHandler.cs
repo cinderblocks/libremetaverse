@@ -168,7 +168,6 @@ namespace LibreMetaverse.RLV
                 }
             }
 
-
             if (specificType.HasValue)
             {
                 if (attachedTypes.Contains(specificType.Value))
@@ -440,7 +439,7 @@ namespace LibreMetaverse.RLV
         }
         private static void GetInvWornInfo_Internal(RlvSharedFolder folder, bool recursive, ref int totalItems, ref int totalItemsWorn)
         {
-            totalItemsWorn += folder.Items.Count(n => n.AttachedTo != null || n.WornOn != null);
+            totalItemsWorn += folder.Items.Count(n => n.AttachedTo != null || n.WornOn != null || n.GestureState == RlvGestureState.Active);
             totalItems += folder.Items.Count;
 
             if (recursive)
