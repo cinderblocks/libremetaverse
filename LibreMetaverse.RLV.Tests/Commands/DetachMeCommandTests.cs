@@ -169,9 +169,11 @@ namespace LibreMetaverse.RLV.Tests.Commands
             sampleTree.Clothing_Hats_Folder.AddItem(
                 sampleTree.Root_Clothing_RetroPants.Id,
                 sampleTree.Root_Clothing_RetroPants.Name,
+                sampleTree.Root_Clothing_RetroPants.IsLink,
                 sampleTree.Root_Clothing_RetroPants.AttachedTo,
                 sampleTree.Root_Clothing_RetroPants.AttachedPrimId,
-                sampleTree.Root_Clothing_RetroPants.WornOn
+                sampleTree.Root_Clothing_RetroPants.WornOn,
+                sampleTree.Root_Clothing_RetroPants.GestureState
             );
 
             sampleTree.Root_Clothing_HappyShirt.AttachedTo = RlvAttachmentPoint.Spine;
@@ -246,9 +248,11 @@ namespace LibreMetaverse.RLV.Tests.Commands
             sampleTree.Clothing_Hats_Folder.AddItem(
                 sampleTree.Root_Clothing_RetroPants.Id,
                 sampleTree.Root_Clothing_RetroPants.Name,
+                sampleTree.Root_Clothing_RetroPants.IsLink,
                 sampleTree.Root_Clothing_RetroPants.AttachedTo,
                 sampleTree.Root_Clothing_RetroPants.AttachedPrimId,
-                sampleTree.Root_Clothing_RetroPants.WornOn
+                sampleTree.Root_Clothing_RetroPants.WornOn,
+                sampleTree.Root_Clothing_RetroPants.GestureState
             );
 
             sampleTree.Root_Clothing_HappyShirt.AttachedTo = RlvAttachmentPoint.Spine;

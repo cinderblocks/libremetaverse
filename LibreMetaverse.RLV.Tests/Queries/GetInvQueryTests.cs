@@ -41,8 +41,8 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var outfitSubfolder1 = outfitsFolder.AddChild(outfitSubfolder1Id, "First outfit");
             var outfitSubfolder2 = outfitsFolder.AddChild(outfitSubfolder2Id, "Second outfit");
 
-            var item1 = outfitsFolder.AddItem(new Guid("12312399-0001-0001-8999-999999999999"), "First Item", null, null, null);
-            var item2 = outfitsFolder.AddItem(new Guid("12312399-0001-0002-8999-999999999999"), "Second Item", null, null, null);
+            var item1 = outfitsFolder.AddItem(new Guid("12312399-0001-0001-8999-999999999999"), "First Item", false, null, null, null, null);
+            var item2 = outfitsFolder.AddItem(new Guid("12312399-0001-0002-8999-999999999999"), "Second Item", false, null, null, null, null);
 
             var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
@@ -142,8 +142,8 @@ namespace LibreMetaverse.RLV.Tests.Queries
 
             var outfitsFolder = sampleTree.Root.AddChild(outfitsFolderId, ".outfits");
             var outfitSubfolder1 = outfitsFolder.AddChild(outfitSubfolder1Id, "First outfit");
-            var item1 = outfitSubfolder1.AddItem(new Guid("12312399-0001-0001-8999-999999999999"), "First Item", null, null, null);
-            var item2 = outfitSubfolder1.AddItem(new Guid("12312399-0001-0002-8999-999999999999"), "Second Item", null, null, null);
+            var item1 = outfitSubfolder1.AddItem(new Guid("12312399-0001-0001-8999-999999999999"), "First Item", false, null, null, null, null);
+            var item2 = outfitSubfolder1.AddItem(new Guid("12312399-0001-0002-8999-999999999999"), "Second Item", false, null, null, null, null);
 
             var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>

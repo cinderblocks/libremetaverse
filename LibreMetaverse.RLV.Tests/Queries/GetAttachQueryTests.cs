@@ -36,16 +36,20 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var externalWearable = new RlvInventoryItem(
                 new Guid("12312312-0001-4aaa-8aaa-aaaaaaaaaaaa"),
                 "External Tattoo",
+                false,
                 new Guid("12312312-aaaa-4aaa-8aaa-aaaaaaaaaaaa"),
                 null,
                 null,
-                RlvWearableType.Tattoo);
+                RlvWearableType.Tattoo,
+                null);
             var externalAttachable = new RlvInventoryItem(
                 new Guid("12312312-0002-4aaa-8aaa-aaaaaaaaaaaa"),
                 "External Jaw Thing",
+                false,
                 new Guid("12312312-aaaa-4aaa-8aaa-aaaaaaaaaaaa"),
                 RlvAttachmentPoint.Jaw,
                 new Guid("12312312-0002-4aaa-8aaa-ffffffffffff"),
+                null,
                 null);
 
             var sampleTree = SampleInventoryTree.BuildInventoryTree();
@@ -71,8 +75,8 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var actual = _actionCallbacks.RecordReplies();
             var externalItems = new List<RlvInventoryItem>()
             {
-                new(new Guid($"c0000000-cccc-4ccc-8ccc-cccccccccccc"), "My Socks", new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc"), RlvAttachmentPoint.LeftFoot, new Guid($"c0000000-cccc-4ccc-8ccc-ffffffffffff"), null ),
-                new(new Guid($"c0000001-cccc-4ccc-8ccc-cccccccccccc"), "My Hair", new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc"), RlvAttachmentPoint.Skull, new Guid($"c0000001-cccc-4ccc-8ccc-ffffffffffff"), null)
+                new(new Guid($"c0000000-cccc-4ccc-8ccc-cccccccccccc"), "My Socks", false, new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc"), RlvAttachmentPoint.LeftFoot, new Guid($"c0000000-cccc-4ccc-8ccc-ffffffffffff"), null, null),
+                new(new Guid($"c0000001-cccc-4ccc-8ccc-cccccccccccc"), "My Hair", false, new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc"), RlvAttachmentPoint.Skull, new Guid($"c0000001-cccc-4ccc-8ccc-ffffffffffff"), null, null)
             };
 
             var sampleTree = SampleInventoryTree.BuildInventoryTree();
@@ -102,9 +106,11 @@ namespace LibreMetaverse.RLV.Tests.Queries
                 externalItems.Add(new RlvInventoryItem(
                     new Guid($"c{(int)item:D7}-cccc-4ccc-8ccc-cccccccccccc"),
                     $"My {item}",
+                    false,
                     new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc"),
                     item,
                     new Guid($"c{(int)item:D7}-cccc-4ccc-8ccc-ffffffffffff"),
+                    null,
                     null
                 ));
             }
@@ -132,7 +138,15 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var actual = _actionCallbacks.RecordReplies();
             var externalItems = new List<RlvInventoryItem>()
             {
-                new(new Guid($"c0000000-cccc-4ccc-8ccc-cccccccccccc"), "My Socks", new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc"), RlvAttachmentPoint.LeftFoot, new Guid($"c0000000-cccc-4ccc-8ccc-ffffffffffff"), null ),
+                new(new Guid($"c0000000-cccc-4ccc-8ccc-cccccccccccc"),
+                    "My Socks",
+                    false,
+                    new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc"),
+                    RlvAttachmentPoint.LeftFoot,
+                    new Guid($"c0000000-cccc-4ccc-8ccc-ffffffffffff"),
+                    null,
+                    null
+                ),
             };
 
             var sampleTree = SampleInventoryTree.BuildInventoryTree();
@@ -158,7 +172,16 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var actual = _actionCallbacks.RecordReplies();
             var externalItems = new List<RlvInventoryItem>()
             {
-                new(new Guid($"c0000001-cccc-4ccc-8ccc-cccccccccccc"), "My Hair", new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc"), RlvAttachmentPoint.Skull, new Guid($"c0000001-cccc-4ccc-8ccc-ffffffffffff"), null)
+                new(
+                    new Guid($"c0000001-cccc-4ccc-8ccc-cccccccccccc"),
+                    "My Hair",
+                    false,
+                    new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc"),
+                    RlvAttachmentPoint.Skull,
+                    new Guid($"c0000001-cccc-4ccc-8ccc-ffffffffffff"),
+                    null,
+                    null
+                )
             };
 
             var sampleTree = SampleInventoryTree.BuildInventoryTree();

@@ -361,6 +361,86 @@ namespace LibreMetaverse.RLV.Tests.Commands
         }
 
         [Fact]
+        public async Task DetachAllForce_Recursive_NostripSubFolders_LinkException()
+        {
+            // #RLV
+            //  |
+            //  |- .private
+            //  |
+            //  |- .clothing
+            //  |    |= Business Pants
+            //  |    |= Happy Shirt (worn pants) <-- Expected detach
+            //  |    |= Retro Pants (attached pelvis) <-- Expected detach
+            //  |    \- nostrip hats
+            //  |        |
+            //  |        |- Sub Hats
+            //  |        |    \ (Empty)
+            //  |        |
+            //  |        |= Fancy Hat (attached chin) <-- Detached because Fancy Hat is a link, so folder tag 'nostrip' is ignored
+            //  |        \= Party Hat (attached chin) <-- Not detached because 'nostrip' is in folder name and item is not a link
+            //   \-Accessories
+            //        |= Watch
+            //        \= Glasses (worn pants)
+
+            var sampleTree = SampleInventoryTree.BuildInventoryTree();
+            var sharedFolder = sampleTree.Root;
+
+            sampleTree.Clothing_Folder.Name = ".clothing";
+            sampleTree.Clothing_Hats_Folder.Name = "nostrip hats";
+
+            sampleTree.Root_Clothing_RetroPants.AttachedTo = RlvAttachmentPoint.Pelvis;
+            sampleTree.Root_Clothing_RetroPants.AttachedPrimId = new Guid("11111111-0002-4aaa-8aaa-ffffffffffff");
+
+            sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedTo = RlvAttachmentPoint.Chin;
+            sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedPrimId = new Guid("11111111-0003-4aaa-8aaa-ffffffffffff");
+
+            sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedTo = RlvAttachmentPoint.Chin;
+            sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId = new Guid("11111111-0004-4aaa-8aaa-ffffffffffff");
+
+            sampleTree.Root_Clothing_Hats_FancyHat_Chin.IsLink = true;
+            sampleTree.Root_Clothing_Hats_PartyHat_Spine.IsLink = false;
+
+            sampleTree.Root_Accessories_Glasses.WornOn = RlvWearableType.Pants;
+            sampleTree.Root_Clothing_HappyShirt.WornOn = RlvWearableType.Pants;
+
+            var inventoryMap = new InventoryMap(sharedFolder, []);
+            _queryCallbacks.Setup(e =>
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
+
+            _actionCallbacks.Setup(e =>
+                e.DetachAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>())
+            ).Returns(Task.CompletedTask);
+
+            // Everything under the .clothing folder, and all of its non-private subfolders will be removed. Fancy hat ignores nostrip
+            // restriction and is also detached because it's an item link
+            var expected = new HashSet<Guid>()
+            {
+                sampleTree.Root_Clothing_HappyShirt.Id,
+                sampleTree.Root_Clothing_RetroPants.Id,
+                sampleTree.Root_Clothing_Hats_FancyHat_Chin.Id
+            };
+
+            // Act
+            await _rlv.ProcessMessage("@detachall:.clothing=force", _sender.Id, _sender.Name);
+
+            // Assert
+            _actionCallbacks.Verify(e =>
+                e.DetachAsync(
+                    It.Is<IReadOnlyList<Guid>>(ids =>
+                        ids != null &&
+                        ids.Count == expected.Count &&
+                        expected.SetEquals(ids)
+                    ),
+                    It.IsAny<CancellationToken>()
+                ),
+                Times.Once
+            );
+
+            _actionCallbacks.VerifyNoOtherCalls();
+        }
+
+        [Fact]
         public async Task DetachAllForce_Recursive_NostripItemName()
         {
             // #RLV
