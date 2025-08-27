@@ -3,25 +3,25 @@
  * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
- * - Redistribution and use in source and binary forms, with or without 
+ * - Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions are met:
  *
  * - Redistributions of source code must retain the above copyright notice, this
  *   list of conditions and the following disclaimer.
- * - Neither the name of the openmetaverse.co nor the names 
+ * - Neither the name of the openmetaverse.co nor the names
  *   of its contributors may be used to endorse or promote products derived from
  *   this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -76,7 +76,7 @@ namespace OpenMetaverse
             add { lock (m_InventoryObjectUpdatedLock) { m_InventoryObjectUpdated += value; } }
             remove { lock (m_InventoryObjectUpdatedLock) { m_InventoryObjectUpdated -= value; } }
         }
-       
+
         /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<InventoryObjectRemovedEventArgs> m_InventoryObjectRemoved;
 
@@ -99,7 +99,7 @@ namespace OpenMetaverse
             add { lock (m_InventoryObjectRemovedLock) { m_InventoryObjectRemoved += value; } }
             remove { lock (m_InventoryObjectRemovedLock) { m_InventoryObjectRemoved -= value; } }
         }
-        
+
         /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<InventoryObjectAddedEventArgs> m_InventoryObjectAdded;
 
@@ -132,7 +132,7 @@ namespace OpenMetaverse
         public InventoryFolder RootFolder
         {
             get => RootNode.Data as InventoryFolder;
-            set 
+            set
             {
                 UpdateNodeFor(value);
                 RootNode = Items[value.UUID];
@@ -190,6 +190,32 @@ namespace OpenMetaverse
             Items = new ConcurrentDictionary<UUID, InventoryNode>();
         }
 
+        /// <summary>
+        /// Returns all links of that link the specific <paramref name="assertId"/>.
+        /// </summary>
+        /// <param name="assertId">An inventory items assert UUID.</param>
+        /// <returns></returns>
+        public List<InventoryNode> FindAllLinks(UUID assertId)
+        {
+            List<InventoryNode> links = new List<InventoryNode>();
+            lock (RootNode.Nodes.SyncRoot)
+            {
+                links = Items.Values.Where(node => IsLinkOf(node, assertId)).ToList();
+            }
+
+            return links;
+        }
+
+        private static bool IsLinkOf(InventoryNode node, UUID assertId)
+        {
+            if (node.Data is InventoryItem item && item.AssetType == AssetType.Link)
+            {
+                return item.ActualUUID == assertId;
+            }
+
+            return false;
+        }
+
         public List<InventoryBase> GetContents(InventoryFolder folder)
         {
             return GetContents(folder.UUID);
@@ -216,10 +242,10 @@ namespace OpenMetaverse
         /// <summary>
         /// Updates the state of the InventoryNode and inventory data structure that
         /// is responsible for the InventoryObject. If the item was previously not added to inventory,
-        /// it adds the item, and updates structure accordingly. If it was, it updates the 
-        /// InventoryNode, changing the parent node if <see cref="item.parentUUID"/> does 
+        /// it adds the item, and updates structure accordingly. If it was, it updates the
+        /// InventoryNode, changing the parent node if <see cref="item.parentUUID"/> does
         /// not match <see cref="node.Parent.Data.UUID" />.
-        /// 
+        ///
         /// You can not set the inventory root folder using this method
         /// </summary>
         /// <param name="item">The InventoryObject to store</param>
@@ -449,7 +475,7 @@ namespace OpenMetaverse
         #region Operators
 
         /// <summary>
-        /// By using the bracket operator on this class, the program can get the 
+        /// By using the bracket operator on this class, the program can get the
         /// InventoryObject designated by the specified uuid. If the value for the corresponding
         /// UUID is null, the call is equivalent to a call to <see cref="RemoveNodeFor(InventoryBase)" />.
         /// If the value is non-null, it is equivalent to a call to <see cref="UpdateNodeFor(InventoryBase)" />,
@@ -487,10 +513,10 @@ namespace OpenMetaverse
         }
 
         #endregion Operators
-        
+
     }
     #region EventArgs classes
-    
+
     public class InventoryObjectUpdatedEventArgs : EventArgs
     {
         public InventoryBase OldObject { get; }
