@@ -196,11 +196,7 @@ namespace LibreMetaverse.RLV
         {
             if (restriction.Args.Count == 0)
             {
-                if (!inventoryMap.TryGetItemByPrimId(restriction.Sender, out var senderItems))
-                {
-                    return false;
-                }
-
+                var senderItems = inventoryMap.GetItemsByPrimId(restriction.Sender);
                 foreach (var senderItem in senderItems)
                 {
                     if (senderItem.Folder == null)

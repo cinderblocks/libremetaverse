@@ -349,11 +349,7 @@ namespace LibreMetaverse.RLV
             }
             else if (Guid.TryParse(command.Option, out var attachedPrimId))
             {
-                if (!inventoryMap.TryGetItemByPrimId(attachedPrimId, out var items))
-                {
-                    return false;
-                }
-
+                var items = inventoryMap.GetItemsByPrimId(attachedPrimId);
                 foreach (var item in items)
                 {
                     if (item.Folder != null)
@@ -437,10 +433,8 @@ namespace LibreMetaverse.RLV
             }
             else if (Guid.TryParse(command.Option, out var attachedPrimId))
             {
-                if (inventoryMap.TryGetItemByPrimId(attachedPrimId, out var items))
-                {
-                    UpdateDetachableItemsMap(items, true, true, detachableItemMap);
-                }
+                var items = inventoryMap.GetItemsByPrimId(attachedPrimId);
+                UpdateDetachableItemsMap(items, true, true, detachableItemMap);
             }
             else if (inventoryMap.TryGetFolderFromPath(command.Option, false, out var folder))
             {
@@ -448,10 +442,8 @@ namespace LibreMetaverse.RLV
             }
             else if (RlvCommon.RlvAttachmentPointMap.TryGetValue(command.Option, out var attachmentPoint))
             {
-                if (inventoryMap.TryGetItemByAttachmentPoint(attachmentPoint, out var items))
-                {
-                    UpdateDetachableItemsMap(items, true, true, detachableItemMap);
-                }
+                var items = inventoryMap.GetItemsByAttachmentPoint(attachmentPoint);
+                UpdateDetachableItemsMap(items, true, true, detachableItemMap);
             }
             else
             {
@@ -547,11 +539,7 @@ namespace LibreMetaverse.RLV
             }
             else if (Guid.TryParse(command.Option, out var attachedPrimId))
             {
-                if (!inventoryMap.TryGetItemByPrimId(attachedPrimId, out var items))
-                {
-                    return false;
-                }
-
+                var items = inventoryMap.GetItemsByPrimId(attachedPrimId);
                 foreach (var item in items)
                 {
                     if (item.Folder != null)
@@ -610,7 +598,8 @@ namespace LibreMetaverse.RLV
                 return false;
             }
 
-            if (!inventoryMap.TryGetItemByPrimId(command.Sender, out var senderItems))
+            var senderItems = inventoryMap.GetItemsByPrimId(command.Sender);
+            if (senderItems.Count == 0)
             {
                 return false;
             }
@@ -667,10 +656,8 @@ namespace LibreMetaverse.RLV
             }
             else if (RlvCommon.RlvWearableTypeMap.TryGetValue(command.Option, out var wearableType))
             {
-                if (inventoryMap.TryGetItemByWearableType(wearableType, out var wearableItems))
-                {
-                    UpdateDetachableItemsMap(wearableItems, true, true, detachableItemMap);
-                }
+                var wearableItems = inventoryMap.GetItemsByWearableType(wearableType);
+                UpdateDetachableItemsMap(wearableItems, true, true, detachableItemMap);
             }
             else if (inventoryMap.TryGetFolderFromPath(command.Option, false, out var folder))
             {

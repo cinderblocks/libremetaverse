@@ -209,24 +209,15 @@ namespace LibreMetaverse.RLV
 
             if (attachedPrimId.HasValue)
             {
-                if (!TryGetItemByPrimId(attachedPrimId.Value, out foundItems))
-                {
-                    return [];
-                }
+                foundItems = GetItemsByPrimId(attachedPrimId.Value);
             }
             else if (attachmentPoint.HasValue)
             {
-                if (!TryGetItemByAttachmentPoint(attachmentPoint.Value, out foundItems))
-                {
-                    return [];
-                }
+                foundItems = GetItemsByAttachmentPoint(attachmentPoint.Value);
             }
             else if (wearableType.HasValue)
             {
-                if (!TryGetItemByWearableType(wearableType.Value, out foundItems))
-                {
-                    return [];
-                }
+                foundItems = GetItemsByWearableType(wearableType.Value);
             }
 
             if (foundItems != null)
@@ -290,14 +281,14 @@ namespace LibreMetaverse.RLV
         }
 
         /// <summary>
-        /// Attempts to find a known outFoundItems by ID. This will search the shared folder as well as all worn non-shared/external items
+        /// Retrieves a list of inventory items associated with the specified item ID.
         /// </summary>
-        /// <param name="itemId">ID of the outFoundItems</param>
-        /// <param name="outFoundItems">Found items if successful, otherwise null</param>
-        /// <returns>True on success</returns>
-        public bool TryGetItem(Guid itemId, [NotNullWhen(true)] out IReadOnlyList<RlvInventoryItem>? outFoundItems)
+        /// <param name="itemId">The unique identifier of the inventory item to search for.</param>
+        /// <returns>A read-only list of <see cref="RlvInventoryItem"/> objects associated with the specified item ID. Returns an
+        /// empty list if no items are found.</returns>
+        public IReadOnlyList<RlvInventoryItem> GetItemsById(Guid itemId)
         {
-            List<RlvInventoryItem> foundItems = new List<RlvInventoryItem>();
+            var foundItems = new List<RlvInventoryItem>();
             if (Items.TryGetValue(itemId, out var tempFoundItems))
             {
                 foundItems.AddRange(tempFoundItems);
@@ -308,20 +299,21 @@ namespace LibreMetaverse.RLV
                 foundItems.Add(tempFoundExternalItem);
             }
 
-            if (foundItems.Count > 0)
-            {
-                outFoundItems = foundItems.ToImmutableList();
-                return true;
-            }
-
-            outFoundItems = null;
-            return false;
+            return foundItems;
         }
 
-
-        public bool TryGetItemByPrimId(Guid primId, [NotNullWhen(true)] out IReadOnlyList<RlvInventoryItem>? outFoundItems)
+        /// <summary>
+        /// Retrieves a list of inventory items associated with the specified prim ID.
+        /// </summary>
+        /// <remarks>This method searches both internal and external collections of inventory items to
+        /// find all items that are linked to the given prim ID. The returned list is read-only and may contain zero or
+        /// more items.</remarks>
+        /// <param name="primId">The unique identifier of the prim to search for.</param>
+        /// <returns>A read-only list of <see cref="RlvInventoryItem"/> objects that are associated with the specified prim ID.
+        /// Returns an empty list if no items are found.</returns>
+        public IReadOnlyList<RlvInventoryItem> GetItemsByPrimId(Guid primId)
         {
-            List<RlvInventoryItem> foundItems = new List<RlvInventoryItem>();
+            var foundItems = new List<RlvInventoryItem>();
 
             foreach (var kvp in Items)
             {
@@ -342,19 +334,21 @@ namespace LibreMetaverse.RLV
                 }
             }
 
-            if (foundItems.Count > 0)
-            {
-                outFoundItems = foundItems.ToImmutableList();
-                return true;
-            }
-
-            outFoundItems = null;
-            return false;
+            return foundItems;
         }
 
-        public bool TryGetItemByAttachmentPoint(RlvAttachmentPoint attachmentPoint, [NotNullWhen(true)] out IReadOnlyList<RlvInventoryItem>? outFoundItems)
+        /// <summary>
+        /// Retrieves a list of inventory items associated with the specified attachment point.
+        /// </summary>
+        /// <remarks>This method searches both internal and external collections of inventory items to
+        /// find all items associated with the given attachment point. The returned list is read-only and will not
+        /// include duplicate items.</remarks>
+        /// <param name="attachmentPoint">The attachment point to search for.</param>
+        /// <returns>A read-only list of <see cref="RlvInventoryItem"/> objects that are attached to the specified  <paramref
+        /// name="attachmentPoint"/>. Returns an empty list if no items are found.</returns>
+        public IReadOnlyList<RlvInventoryItem> GetItemsByAttachmentPoint(RlvAttachmentPoint attachmentPoint)
         {
-            List<RlvInventoryItem> foundItems = new List<RlvInventoryItem>();
+            var foundItems = new List<RlvInventoryItem>();
 
             foreach (var kvp in Items)
             {
@@ -375,19 +369,21 @@ namespace LibreMetaverse.RLV
                 }
             }
 
-            if (foundItems.Count > 0)
-            {
-                outFoundItems = foundItems.ToImmutableList();
-                return true;
-            }
-
-            outFoundItems = null;
-            return false;
+            return foundItems;
         }
 
-        public bool TryGetItemByWearableType(RlvWearableType wearableType, [NotNullWhen(true)] out IReadOnlyList<RlvInventoryItem>? outFoundItems)
+        /// <summary>
+        /// Retrieves a list of inventory items associated with the specified wearable type.
+        /// </summary>
+        /// <remarks>This method searches through both internal and external collections of inventory
+        /// items to find  those that are worn on the specified wearable type. The returned list is read-only to ensure 
+        /// immutability of the result.</remarks>
+        /// <param name="wearableType">The wearable type to search for.</param>
+        /// <returns>A read-only list of <see cref="RlvInventoryItem"/> objects that are associated with the specified  <paramref
+        /// name="wearableType"/>. Returns an empty list if no matching items are found.</returns>
+        public IReadOnlyList<RlvInventoryItem> GetItemsByWearableType(RlvWearableType wearableType)
         {
-            List<RlvInventoryItem> foundItems = new List<RlvInventoryItem>();
+            var foundItems = new List<RlvInventoryItem>();
 
             foreach (var kvp in Items)
             {
@@ -408,19 +404,12 @@ namespace LibreMetaverse.RLV
                 }
             }
 
-            if (foundItems.Count > 0)
-            {
-                outFoundItems = foundItems.ToImmutableList();
-                return true;
-            }
-
-            outFoundItems = null;
-            return false;
+            return foundItems;
         }
 
-        public List<RlvInventoryItem> GetCurrentOutfit()
+        internal List<RlvInventoryItem> GetCurrentOutfit()
         {
-            List<RlvInventoryItem> foundItems = new List<RlvInventoryItem>();
+            var foundItems = new List<RlvInventoryItem>();
 
             foreach (var kvp in Items)
             {
