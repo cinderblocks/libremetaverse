@@ -151,12 +151,7 @@ namespace LibreMetaverse.RLV
 
         private bool CanRemAttachItem(RlvInventoryItem item, bool enforceNostrip, bool enforceRestrictions)
         {
-            if (item.WornOn == null && item.AttachedTo == null)
-            {
-                return false;
-            }
-
-            if (item.Name.StartsWith(".", StringComparison.OrdinalIgnoreCase))
+            if (item.WornOn == null && item.AttachedTo == null && item.GestureState != RlvGestureState.Active)
             {
                 return false;
             }
@@ -166,12 +161,9 @@ namespace LibreMetaverse.RLV
                 return false;
             }
 
-            if (enforceNostrip && item.Folder != null && item.Folder.Name.ToLowerInvariant().Contains("nostrip"))
-            {
-                return false;
-            }
-
-            if (enforceRestrictions && !_manager.CanDetach(item, true))
+            // Special exception: If a folder with (nostrip) contains inventory links to other items, those linked items can still
+            //   be removed. Only the objects actual parent folder or the actual item itself counts.
+            if (enforceNostrip && !item.IsLink && item.Folder != null && item.Folder.Name.ToLowerInvariant().Contains("nostrip"))
             {
                 return false;
             }
@@ -181,10 +173,15 @@ namespace LibreMetaverse.RLV
                 return false;
             }
 
+            if (enforceRestrictions && !_manager.CanDetach(item))
+            {
+                return false;
+            }
+
             return true;
         }
 
-        private static void CollectItemsToAttach(RlvSharedFolder folder, bool replaceExistingAttachments, bool recursive, bool skipIfPrivateFolder, List<AttachmentRequest> itemsToAttach)
+        private static void CollectItemsToAttach(RlvSharedFolder folder, InventoryMap inventoryMap, bool replaceExistingAttachments, bool recursive, bool skipIfPrivateFolder, Dictionary<Guid, AttachmentRequest> attachableItemMap)
         {
             if (skipIfPrivateFolder && folder.Name.StartsWith(".", StringComparison.OrdinalIgnoreCase))
             {
@@ -204,27 +201,31 @@ namespace LibreMetaverse.RLV
 
             foreach (var item in folder.Items)
             {
-                if (item.AttachedTo != null || item.WornOn != null)
-                {
-                    continue;
-                }
-
-                if (item.Name.StartsWith(".", StringComparison.OrdinalIgnoreCase))
+                if (item.AttachedTo != null || item.WornOn != null || item.GestureState == RlvGestureState.Active)
                 {
                     continue;
                 }
 
                 if (RlvCommon.TryGetAttachmentPointFromItemName(item.Name, out var attachmentPoint))
                 {
-                    itemsToAttach.Add(new AttachmentRequest(item.Id, attachmentPoint.Value, replaceExistingAttachments));
+                    if (!attachableItemMap.ContainsKey(item.Id))
+                    {
+                        attachableItemMap[item.Id] = new AttachmentRequest(item.Id, attachmentPoint.Value, replaceExistingAttachments);
+                    }
                 }
                 else if (folderAttachmentPoint != null)
                 {
-                    itemsToAttach.Add(new AttachmentRequest(item.Id, folderAttachmentPoint.Value, replaceExistingAttachments));
+                    if (!attachableItemMap.ContainsKey(item.Id))
+                    {
+                        attachableItemMap[item.Id] = new AttachmentRequest(item.Id, folderAttachmentPoint.Value, replaceExistingAttachments);
+                    }
                 }
                 else
                 {
-                    itemsToAttach.Add(new AttachmentRequest(item.Id, RlvAttachmentPoint.Default, replaceExistingAttachments));
+                    if (!attachableItemMap.ContainsKey(item.Id))
+                    {
+                        attachableItemMap[item.Id] = new AttachmentRequest(item.Id, RlvAttachmentPoint.Default, replaceExistingAttachments);
+                    }
                 }
             }
 
@@ -237,20 +238,56 @@ namespace LibreMetaverse.RLV
                         continue;
                     }
 
-                    CollectItemsToAttach(child, replaceExistingAttachments, recursive, true, itemsToAttach);
+                    CollectItemsToAttach(child, inventoryMap, replaceExistingAttachments, recursive, true, attachableItemMap);
                 }
+            }
+        }
+
+        private void CollectItemsToDetach(RlvSharedFolder folder, InventoryMap inventoryMap, bool recursive, bool skipIfPrivateFolder, bool enforceNoStrip, bool enforceRestrictions, Dictionary<Guid, bool> detachableItemMap)
+        {
+            if (skipIfPrivateFolder && folder.Name.StartsWith(".", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            UpdateDetachableItemsMap(folder.Items, enforceNoStrip, enforceRestrictions, detachableItemMap);
+
+            if (recursive)
+            {
+                foreach (var child in folder.Children)
+                {
+                    CollectItemsToDetach(child, inventoryMap, recursive, true, enforceNoStrip, enforceRestrictions, detachableItemMap);
+                }
+            }
+        }
+
+        private void UpdateDetachableItemsMap(IEnumerable<RlvInventoryItem> items, bool enforceNostrip, bool enforceRestrictions, Dictionary<Guid, bool> detachableItemMap)
+        {
+            foreach (var item in items)
+            {
+                if (item.AttachedTo == null && item.WornOn == null && item.GestureState != RlvGestureState.Active)
+                {
+                    continue;
+                }
+
+                if (detachableItemMap.TryGetValue(item.Id, out var canDetach) && canDetach == false)
+                {
+                    continue;
+                }
+
+                canDetach = CanRemAttachItem(item, enforceNostrip, enforceRestrictions);
+                detachableItemMap[item.Id] = canDetach;
             }
         }
 
         // @attach:[folder]=force
         private async Task<bool> HandleAttach(RlvMessage command, bool replaceExistingAttachments, bool recursive, CancellationToken cancellationToken)
         {
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return false;
             }
-            var inventoryMap = new InventoryMap(sharedFolder);
 
             if (!inventoryMap.TryGetFolderFromPath(command.Option, false, out var folder))
             {
@@ -259,323 +296,381 @@ namespace LibreMetaverse.RLV
             }
             else
             {
-                var itemsToAttach = new List<AttachmentRequest>();
-                CollectItemsToAttach(folder, replaceExistingAttachments, recursive, false, itemsToAttach);
+                var attachableItemMap = new Dictionary<Guid, AttachmentRequest>();
+                CollectItemsToAttach(folder, inventoryMap, replaceExistingAttachments, recursive, false, attachableItemMap);
+
+                var itemsToAttach = attachableItemMap
+                    .Values
+                    .ToList();
 
                 await _actionCallbacks.AttachAsync(itemsToAttach, cancellationToken).ConfigureAwait(false);
                 return true;
             }
         }
 
+        // @attachthis[:<attachableType>|<wearableType>|<attachedPrimId>]=force
+        //
+        //  - @attachthis
+        //      * Attach all items in the folders where the sender of this command exists
+        //
+        //  - @attachthis:attachedPrimId
+        //      * Attach all items in the folders where the attached prim id exists
+        //
+        //  - @attachthis:wearableType
+        //      * Attach all items in folders containing worn wearables of the specified wearable type
+        //
+        //  - @attachthis:attachableType
+        //      * Attach all items in folders containing attached attachables of the specified attachable type
+        //
+        //
+        //  * BUG: Ignores locked folders restrictions (@attach[all]this=n)
+        //  * Ignores .private folders
+        //  
         private async Task<bool> HandleAttachThis(RlvMessage command, bool replaceExistingAttachments, bool recursive, CancellationToken cancellationToken)
         {
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return false;
             }
 
             var skipHiddenFolders = true;
-            var inventoryMap = new InventoryMap(sharedFolder);
-            var folderPaths = new List<RlvSharedFolder>();
+            var foldersToAttachMap = new Dictionary<Guid, RlvSharedFolder>();
 
             if (command.Option.Length == 0)
             {
-                var parts = inventoryMap.FindFoldersContaining(false, command.Sender, null, null);
-                folderPaths.AddRange(parts);
+                var folders = inventoryMap.FindFoldersContaining(false, command.Sender, null, null);
+                foreach (var folder in folders)
+                {
+                    foldersToAttachMap[folder.Id] = folder;
+                }
+
                 skipHiddenFolders = false;
             }
             else if (Guid.TryParse(command.Option, out var attachedPrimId))
             {
-                var item = inventoryMap.Items
-                    .Where(n => n.Value.AttachedPrimId == attachedPrimId)
-                    .Select(n => n.Value)
-                    .FirstOrDefault();
-                if (item == null)
+                var items = inventoryMap.GetItemsByPrimId(attachedPrimId);
+                foreach (var item in items)
                 {
-                    return false;
-                }
-
-                if (item.FolderId.HasValue && inventoryMap.Folders.TryGetValue(item.FolderId.Value, out var folder))
-                {
-                    folderPaths.Add(folder);
+                    if (item.Folder != null)
+                    {
+                        foldersToAttachMap[item.Folder.Id] = item.Folder;
+                    }
                 }
             }
             else if (RlvCommon.RlvWearableTypeMap.TryGetValue(command.Option, out var wearableType))
             {
-                var parts = inventoryMap.FindFoldersContaining(false, null, null, wearableType);
-                folderPaths.AddRange(parts);
+                var folders = inventoryMap.FindFoldersContaining(false, null, null, wearableType);
+                foreach (var folder in folders)
+                {
+                    foldersToAttachMap[folder.Id] = folder;
+                }
             }
             else if (RlvCommon.RlvAttachmentPointMap.TryGetValue(command.Option, out var attachmentPoint))
             {
-                var parts = inventoryMap.FindFoldersContaining(false, null, attachmentPoint, null);
-                folderPaths.AddRange(parts);
+                var folders = inventoryMap.FindFoldersContaining(false, null, attachmentPoint, null);
+                foreach (var folder in folders)
+                {
+                    foldersToAttachMap[folder.Id] = folder;
+                }
             }
             else
             {
                 return false;
             }
 
-            var itemsToAttach = new List<AttachmentRequest>();
-            foreach (var item in folderPaths)
+            var attachableItemMap = new Dictionary<Guid, AttachmentRequest>();
+            foreach (var folder in foldersToAttachMap)
             {
-                CollectItemsToAttach(item, replaceExistingAttachments, recursive, skipHiddenFolders, itemsToAttach);
+                CollectItemsToAttach(folder.Value, inventoryMap, replaceExistingAttachments, recursive, skipHiddenFolders, attachableItemMap);
             }
+
+            var itemsToAttach = attachableItemMap
+                .Values
+                .ToList();
 
             await _actionCallbacks.AttachAsync(itemsToAttach, cancellationToken).ConfigureAwait(false);
             return true;
         }
 
-        private static void CollectItemsToDetach(RlvSharedFolder folder, InventoryMap inventoryMap, bool recursive, bool skipIfPrivateFolder, List<Guid> itemsToDetach)
-        {
-            if (skipIfPrivateFolder && folder.Name.StartsWith(".", StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
-            foreach (var item in folder.Items)
-            {
-                if (item.AttachedTo == null && item.WornOn == null)
-                {
-                    continue;
-                }
-
-                itemsToDetach.Add(item.Id);
-            }
-
-            if (recursive)
-            {
-                foreach (var child in folder.Children)
-                {
-                    CollectItemsToDetach(child, inventoryMap, recursive, true, itemsToDetach);
-                }
-            }
-        }
-
-        // @remattach[:<folder|attachpt|uuid>]=force
-        // TODO: Add support for Attachment groups (RLVa)
+        // @remattach[:<folder|attachpt|attachedPrimId>]=force
+        //
+        //  - @remattach
+        //      * Detach all attached items
+        //
+        //  - @remattach:folder
+        //      * Detach and unwear and deactivate everything possible in the folder
+        //
+        //  - @remattach:attachpt -
+        //      * Detach all attachables of the specified type, as long as they are not restricted.
+        //        Having a link to an object in multiple folder, and one of those folders is locked,
+        //        the command will fail because one of the links is in a locked folder
+        //
+        //  - @remattach:attachedPrimId -
+        //      * Detach the item that has the specified prim id (this is the id you get when
+        //        you click 'copy keys' when editing the item attached to your avatar.
+        //
+        //  * Items with (nostrip) will be ignored
+        //  * If any links to the targeted item exists in a locked folder (restricted detach), then
+        //    the item will be ignored and not removed.
+        //
         private async Task<bool> HandleRemAttach(RlvMessage command, CancellationToken cancellationToken)
         {
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return false;
             }
 
-            var (hasCurrentOutfit, currentOutfit) = await _queryCallbacks.TryGetCurrentOutfitAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasCurrentOutfit || currentOutfit == null)
+            var detachableItemMap = new Dictionary<Guid, bool>();
+
+            if (command.Option.Length == 0)
             {
-                return false;
+                var currentOutfit = inventoryMap.GetCurrentOutfit()
+                    .Where(n => n.AttachedTo != null);
+
+                UpdateDetachableItemsMap(currentOutfit, true, true, detachableItemMap);
             }
-
-            var inventoryMap = new InventoryMap(sharedFolder);
-
-            var itemIdsToDetach = new List<Guid>();
-
-            if (Guid.TryParse(command.Option, out var uuid))
+            else if (Guid.TryParse(command.Option, out var attachedPrimId))
             {
-                var item = currentOutfit.FirstOrDefault(n => n.AttachedPrimId == uuid);
-                if (item != null)
-                {
-                    if (CanRemAttachItem(item, true, false))
-                    {
-                        itemIdsToDetach.Add(item.Id);
-                    }
-                }
+                var items = inventoryMap.GetItemsByPrimId(attachedPrimId);
+                UpdateDetachableItemsMap(items, true, true, detachableItemMap);
             }
             else if (inventoryMap.TryGetFolderFromPath(command.Option, false, out var folder))
             {
-                CollectItemsToDetach(folder, inventoryMap, false, false, itemIdsToDetach);
+                UpdateDetachableItemsMap(folder.Items, true, true, detachableItemMap);
             }
             else if (RlvCommon.RlvAttachmentPointMap.TryGetValue(command.Option, out var attachmentPoint))
             {
-                itemIdsToDetach = currentOutfit
-                    .Where(n =>
-                        n.AttachedTo == attachmentPoint &&
-                        CanRemAttachItem(n, true, false)
-                    )
-                    .Select(n => n.Id)
-                    .Distinct()
-                    .ToList();
-            }
-            else if (command.Option.Length == 0)
-            {
-                // Everything attachable will be detached (excludes clothing/wearable types)
-                itemIdsToDetach = currentOutfit
-                    .Where(n =>
-                        n.AttachedTo != null && CanRemAttachItem(n, true, false)
-                    )
-                    .Select(n => n.Id)
-                    .Distinct()
-                    .ToList();
+                var items = inventoryMap.GetItemsByAttachmentPoint(attachmentPoint);
+                UpdateDetachableItemsMap(items, true, true, detachableItemMap);
             }
             else
             {
                 return false;
             }
 
+            var itemIdsToDetach = detachableItemMap
+                .Where(n => n.Value == true)
+                .Select(n => n.Key)
+                .ToList();
+
             await _actionCallbacks.DetachAsync(itemIdsToDetach, cancellationToken).ConfigureAwait(false);
             return true;
         }
 
+
+        // @detachall:<folder>=force
+        //
+        //  - @detachall
+        //      * Detach all attached items, unwear all worn items, and deactivate all gestures in the specified folder recursively
+        //
+        //  * Private folder (. prefix) will be ignored unless it's the target folder
+        //  * Items with (nostrip) will be ignored
+        //  * If any links to the targeted item exists in a locked folder (restricted detach), then
+        //    the item will be ignored and not removed.
+        // 
         private async Task<bool> HandleDetachAll(RlvMessage command, CancellationToken cancellationToken)
         {
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return false;
             }
-            var inventoryMap = new InventoryMap(sharedFolder);
 
             if (!inventoryMap.TryGetFolderFromPath(command.Option, false, out var folder))
             {
                 return false;
             }
 
-            var itemIdsToDetach = new List<Guid>();
-            CollectItemsToDetach(folder, inventoryMap, true, false, itemIdsToDetach);
+            var detachableItemMap = new Dictionary<Guid, bool>();
+
+            CollectItemsToDetach(folder, inventoryMap, true, false, true, true, detachableItemMap);
+
+            var itemIdsToDetach = detachableItemMap
+                .Where(n => n.Value == true)
+                .Select(n => n.Key)
+                .ToList();
 
             await _actionCallbacks.DetachAsync(itemIdsToDetach, cancellationToken).ConfigureAwait(false);
             return true;
         }
 
+        // @detachthis[:<wearableType>|<attachableType>|<uuid>]=force
+        //
+        //  - @detachthis
+        //      * Find all links and objects with the sender prim id and detach/unwear/deactivate everything from those folders
+        //
+        //  - @detachthis:wearableType
+        //      * Find all links and objects worn as the specified wearable type and detach/unwear/deactivate everything from those folders
+        //
+        //  - @detachthis:attachableType
+        //      * Find all links and objects attached to the specified location and detach/unwear/deactivate everything from those folders
+        //
+        //  - @detachthis:uuid
+        //      * Find all links and objects with the given prim ID and detach/unwear/deactivate everything from those folders
+        //
+        //  * BUG: Takes into account rlv restrictions (@attachthis ignores restrictions, this one enforces restrictions. one of these is a bug in firestorm)
+        //  * Private folders (. prefix) will be ignored
+        //  * Items with (nostrip) will be ignored
+        //  * If any links to the targeted item exists in a locked folder (restricted detach), then
+        //    the item will be ignored and not removed.
+        //
         private async Task<bool> HandleDetachThis(RlvMessage command, bool recursive, CancellationToken cancellationToken)
         {
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return false;
             }
-            var inventoryMap = new InventoryMap(sharedFolder);
-            var folderPaths = new List<RlvSharedFolder>();
+
+            var folderPaths = new Dictionary<Guid, RlvSharedFolder>();
             var ignoreHiddenFolders = true;
 
             if (command.Option.Length == 0)
             {
                 var parts = inventoryMap.FindFoldersContaining(false, command.Sender, null, null);
-                folderPaths.AddRange(parts);
+                foreach (var item in parts)
+                {
+                    folderPaths[item.Id] = item;
+                }
+
                 ignoreHiddenFolders = false;
             }
             else if (Guid.TryParse(command.Option, out var attachedPrimId))
             {
-                var item = inventoryMap.Items
-                    .Where(n => n.Value.AttachedPrimId == attachedPrimId)
-                    .Select(n => n.Value)
-                    .FirstOrDefault();
-                if (item == null)
+                var items = inventoryMap.GetItemsByPrimId(attachedPrimId);
+                foreach (var item in items)
                 {
-                    return false;
-                }
-
-                if (item.FolderId.HasValue && inventoryMap.Folders.TryGetValue(item.FolderId.Value, out var folder))
-                {
-                    folderPaths.Add(folder);
+                    if (item.Folder != null)
+                    {
+                        folderPaths[item.Id] = item.Folder;
+                    }
                 }
             }
             else if (RlvCommon.RlvWearableTypeMap.TryGetValue(command.Option, out var wearableType))
             {
                 var parts = inventoryMap.FindFoldersContaining(false, null, null, wearableType);
-                folderPaths.AddRange(parts);
+                foreach (var item in parts)
+                {
+                    folderPaths[item.Id] = item;
+                }
             }
             else if (RlvCommon.RlvAttachmentPointMap.TryGetValue(command.Option, out var attachmentPoint))
             {
                 var parts = inventoryMap.FindFoldersContaining(false, null, attachmentPoint, null);
-                folderPaths.AddRange(parts);
+                foreach (var item in parts)
+                {
+                    folderPaths[item.Id] = item;
+                }
             }
             else
             {
                 return false;
             }
 
-            var itemIdsToDetach = new List<Guid>();
+            var detachableItemMap = new Dictionary<Guid, bool>();
             foreach (var item in folderPaths)
             {
-                CollectItemsToDetach(item, inventoryMap, recursive, ignoreHiddenFolders, itemIdsToDetach);
+                CollectItemsToDetach(item.Value, inventoryMap, recursive, ignoreHiddenFolders, true, true, detachableItemMap);
             }
+
+            var itemIdsToDetach = detachableItemMap
+                .Where(n => n.Value == true)
+                .Select(n => n.Key)
+                .ToList();
 
             await _actionCallbacks.DetachAsync(itemIdsToDetach, cancellationToken).ConfigureAwait(false);
             return true;
         }
 
         // @detachme=force
+        //  Detach the item calling this command, unless it's inside of a locked folder
+        //
+        //  * Detaches the item even if the name or folder contains (nostrip)
+        //
+        //  * Does not detach the item if any links to it exist in a locked folder (restricted detach)
         private async Task<bool> HandleDetachMe(RlvMessage command, CancellationToken cancellationToken)
         {
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
-            {
-                return false;
-            }
-            var inventoryMap = new InventoryMap(sharedFolder);
-
-            var senderItem = inventoryMap.Items
-                .Where(n => n.Value.AttachedPrimId == command.Sender)
-                .Select(n => n.Value)
-                .FirstOrDefault();
-
-            if (senderItem == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return false;
             }
 
-            if (!CanRemAttachItem(senderItem, false, false))
+            var senderItems = inventoryMap.GetItemsByPrimId(command.Sender);
+            if (senderItems.Count == 0)
             {
                 return false;
             }
 
-            var itemIdsToDetach = new List<Guid>
-            {
-                senderItem.Id
-            };
+            var detachableItemMap = new Dictionary<Guid, bool>();
+
+            // NOTE: @detachme ignores nostrip tags
+            UpdateDetachableItemsMap(senderItems, false, true, detachableItemMap);
+
+            var itemIdsToDetach = detachableItemMap
+                .Where(n => n.Value == true)
+                .Select(n => n.Key)
+                .ToList();
 
             await _actionCallbacks.DetachAsync(itemIdsToDetach, cancellationToken).ConfigureAwait(false);
             return true;
         }
 
-        // @remoutfit[:<folder|layer>]=force
+        // @remoutfit[:<folder|wearableType>]=force
+        //
+        //  - @remoutfit
+        //      * Find all worn items and unwear them
+        //      * This will search .private folders
+        //
+        //  - @remoutfit:wearableType
+        //      * Find all links and objects worn as the specified wearable type and unwear them.
+        //      * This will search .private folders
+        //
+        //  - @remoutfit:folder
+        //      * Find all links and objects worn as the specified wearable type and detach/unwear/deactivate everything from those folders
+        //
+        //  * Items with (nostrip) will be ignored
+        //  * If any links to the targeted item exists in a locked folder (restricted detach), then
+        //    the item will be ignored and not removed.
+        //
         // TODO: Add support for Attachment groups (RLVa)
         private async Task<bool> HandleRemOutfit(RlvMessage command, CancellationToken cancellationToken)
         {
-            var (hasCurrentOutfit, currentOutfit) = await _queryCallbacks.TryGetCurrentOutfitAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasCurrentOutfit || currentOutfit == null)
-            {
-                return false;
-            }
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return false;
             }
 
-            var inventoryMap = new InventoryMap(sharedFolder);
+            var detachableItemMap = new Dictionary<Guid, bool>();
 
-            Guid? folderId = null;
-            RlvWearableType? wearableType = null;
-
-            if (RlvCommon.RlvWearableTypeMap.TryGetValue(command.Option, out var wearableTypeTemp))
+            if (command.Option.Length == 0)
             {
-                wearableType = wearableTypeTemp;
+                var currentlyWornItems = inventoryMap
+                    .GetCurrentOutfit()
+                    .Where(n => n.WornOn != null);
+
+                UpdateDetachableItemsMap(currentlyWornItems, true, true, detachableItemMap);
+            }
+            else if (RlvCommon.RlvWearableTypeMap.TryGetValue(command.Option, out var wearableType))
+            {
+                var wearableItems = inventoryMap.GetItemsByWearableType(wearableType);
+                UpdateDetachableItemsMap(wearableItems, true, true, detachableItemMap);
             }
             else if (inventoryMap.TryGetFolderFromPath(command.Option, false, out var folder))
             {
-                folderId = folder.Id;
+                CollectItemsToDetach(folder, inventoryMap, false, false, true, true, detachableItemMap);
             }
-            else if (command.Option.Length != 0)
+            else
             {
                 return false;
             }
 
-            var itemsToDetach = currentOutfit
-                .Where(n =>
-                    n.WornOn != null &&
-                    (folderId == null || n.FolderId == folderId) &&
-                    (wearableType == null || n.WornOn == wearableType) &&
-                    CanRemAttachItem(n, true, false)
-                )
-                .ToList();
-
-            var itemIdsToDetach = itemsToDetach
-                .Select(n => n.Id)
-                .Distinct()
+            var itemIdsToDetach = detachableItemMap
+                .Where(n => n.Value == true)
+                .Select(n => n.Key)
                 .ToList();
 
             await _actionCallbacks.RemOutfitAsync(itemIdsToDetach, cancellationToken).ConfigureAwait(false);

@@ -36,14 +36,15 @@ namespace LibreMetaverse.RLV.Tests.Restrictions
 
             sampleTree.Root_Accessories_Watch.WornOn = RlvWearableType.Tattoo;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             Assert.True(await _rlv.ProcessMessage("@remattach=n", _sender.Id, _sender.Name));
 
-            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin, true));
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Watch, true));
+            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Watch));
         }
 
         [Fact]
@@ -80,15 +81,16 @@ namespace LibreMetaverse.RLV.Tests.Restrictions
 
             sampleTree.Root_Accessories_Watch.WornOn = RlvWearableType.Tattoo;
 
+            var inventoryMap = new InventoryMap(sharedFolder, []);
             _queryCallbacks.Setup(e =>
-                e.TryGetSharedFolderAsync(default)
-            ).ReturnsAsync((true, sharedFolder));
+                e.TryGetInventoryMapAsync(default)
+            ).ReturnsAsync((true, inventoryMap));
 
             Assert.True(await _rlv.ProcessMessage("@remattach:spine=n", _sender.Id, _sender.Name));
 
-            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true));
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin, true));
-            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Watch, true));
+            Assert.False(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin));
+            Assert.True(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Watch));
         }
 
         #endregion

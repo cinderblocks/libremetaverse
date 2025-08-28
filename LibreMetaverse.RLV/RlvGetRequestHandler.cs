@@ -81,15 +81,34 @@ namespace LibreMetaverse.RLV
 
         private async Task<string> ProcessGetOutfit(RlvWearableType? specificType, CancellationToken cancellationToken)
         {
-            var (hasCurrentOutfit, currentOutfit) = await _queryCallbacks.TryGetCurrentOutfitAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasCurrentOutfit || currentOutfit == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return string.Empty;
             }
 
-            if (specificType != null)
+            var wornTypes = new HashSet<RlvWearableType>();
+            foreach (var kvp in inventoryMap.Items)
             {
-                if (currentOutfit.Where(n => n.WornOn == specificType).Any())
+                foreach (var item in kvp.Value)
+                {
+                    if (item.WornOn.HasValue)
+                    {
+                        wornTypes.Add(item.WornOn.Value);
+                    }
+                }
+            }
+            foreach (var kvp in inventoryMap.ExternalItems)
+            {
+                if (kvp.Value.WornOn.HasValue)
+                {
+                    wornTypes.Add(kvp.Value.WornOn.Value);
+                }
+            }
+
+            if (specificType.HasValue)
+            {
+                if (wornTypes.Contains(specificType.Value))
                 {
                     return "1";
                 }
@@ -98,12 +117,6 @@ namespace LibreMetaverse.RLV
                     return "0";
                 }
             }
-
-            var wornTypes = currentOutfit
-                .Where(n => n.WornOn.HasValue)
-                .Select(n => n.WornOn!.Value)
-                .Distinct()
-                .ToImmutableHashSet();
 
             var sb = new StringBuilder(16);
 
@@ -130,15 +143,34 @@ namespace LibreMetaverse.RLV
 
         private async Task<string> ProcessGetAttach(RlvAttachmentPoint? specificType, CancellationToken cancellationToken)
         {
-            var (hasCurrentOutfit, currentOutfit) = await _queryCallbacks.TryGetCurrentOutfitAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasCurrentOutfit || currentOutfit == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return string.Empty;
             }
 
-            if (specificType != null)
+            var attachedTypes = new HashSet<RlvAttachmentPoint>();
+            foreach (var kvp in inventoryMap.Items)
             {
-                if (currentOutfit.Where(n => n.AttachedTo == specificType).Any())
+                foreach (var item in kvp.Value)
+                {
+                    if (item.AttachedTo.HasValue)
+                    {
+                        attachedTypes.Add(item.AttachedTo.Value);
+                    }
+                }
+            }
+            foreach (var kvp in inventoryMap.ExternalItems)
+            {
+                if (kvp.Value.AttachedTo.HasValue)
+                {
+                    attachedTypes.Add(kvp.Value.AttachedTo.Value);
+                }
+            }
+
+            if (specificType.HasValue)
+            {
+                if (attachedTypes.Contains(specificType.Value))
                 {
                     return "1";
                 }
@@ -148,19 +180,13 @@ namespace LibreMetaverse.RLV
                 }
             }
 
-            var wornTypes = currentOutfit
-                .Where(n => n.AttachedTo.HasValue)
-                .Select(n => n.AttachedTo!.Value)
-                .Distinct()
-                .ToImmutableHashSet();
-
             var attachmentPointTypes = Enum.GetValues(typeof(RlvAttachmentPoint));
             var sb = new StringBuilder(attachmentPointTypes.Length);
 
             // digit corresponds directly to the value of enum, unlike ProcessGetOutfit
             foreach (RlvAttachmentPoint attachmentPoint in attachmentPointTypes)
             {
-                sb.Append(wornTypes.Contains(attachmentPoint) ? '1' : '0');
+                sb.Append(attachedTypes.Contains(attachmentPoint) ? '1' : '0');
             }
 
             return sb.ToString();
@@ -342,15 +368,6 @@ namespace LibreMetaverse.RLV
 
                         if (parsedOptions.Count == 0)
                         {
-                            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-                            if (!hasSharedFolder || sharedFolder == null)
-                            {
-                                return false;
-                            }
-
-                            var inventoryMap = new InventoryMap(sharedFolder);
-                            var folderPaths = new List<RlvSharedFolder>();
-
                             response = await HandleGetPath(name == RlvDataRequestType.GetPath, rlvMessage.Sender, null, null, cancellationToken).ConfigureAwait(false);
                         }
                         else if (Guid.TryParse(parsedOptions[0], out var attachedPrimId))
@@ -422,7 +439,7 @@ namespace LibreMetaverse.RLV
         }
         private static void GetInvWornInfo_Internal(RlvSharedFolder folder, bool recursive, ref int totalItems, ref int totalItemsWorn)
         {
-            totalItemsWorn += folder.Items.Count(n => n.AttachedTo != null || n.WornOn != null);
+            totalItemsWorn += folder.Items.Count(n => n.AttachedTo != null || n.WornOn != null || n.GestureState == RlvGestureState.Active);
             totalItems += folder.Items.Count;
 
             if (recursive)
@@ -489,16 +506,15 @@ namespace LibreMetaverse.RLV
 
         private async Task<string> HandleGetInvWorn(string args, CancellationToken cancellationToken)
         {
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return string.Empty;
             }
 
-            var inventoryMap = new InventoryMap(sharedFolder);
             var folders = new List<RlvSharedFolder>();
 
-            var target = sharedFolder;
+            var target = inventoryMap.Root;
             if (args.Length != 0)
             {
                 if (!inventoryMap.TryGetFolderFromPath(args, false, out target))
@@ -555,16 +571,14 @@ namespace LibreMetaverse.RLV
 
         private async Task<string> HandleFindFolders(bool stopOnFirstResult, IEnumerable<string> searchTerms, string separator, CancellationToken cancellationToken)
         {
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return string.Empty;
             }
 
-            var inventoryMap = new InventoryMap(sharedFolder);
-
             var foundFolders = new List<RlvSharedFolder>();
-            SearchFoldersForName(sharedFolder, stopOnFirstResult, searchTerms, foundFolders);
+            SearchFoldersForName(inventoryMap.Root, stopOnFirstResult, searchTerms, foundFolders);
 
             var foundFolderPaths = new List<string>();
             foreach (var folder in foundFolders)
@@ -582,15 +596,13 @@ namespace LibreMetaverse.RLV
 
         private async Task<string> HandleGetInv(string args, CancellationToken cancellationToken)
         {
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return string.Empty;
             }
 
-            var inventoryMap = new InventoryMap(sharedFolder);
-
-            var target = sharedFolder;
+            var target = inventoryMap.Root;
             if (args.Length != 0)
             {
                 if (!inventoryMap.TryGetFolderFromPath(args, false, out target))
@@ -609,13 +621,12 @@ namespace LibreMetaverse.RLV
 
         private async Task<string> HandleGetPath(bool limitToOneResult, Guid? attachedPrimId, RlvAttachmentPoint? attachmentPoint, RlvWearableType? wearableType, CancellationToken cancellationToken)
         {
-            var (hasSharedFolder, sharedFolder) = await _queryCallbacks.TryGetSharedFolderAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSharedFolder || sharedFolder == null)
+            var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);
+            if (!hasInventoryMap || inventoryMap == null)
             {
                 return string.Empty;
             }
 
-            var inventoryMap = new InventoryMap(sharedFolder);
             var folders = inventoryMap.FindFoldersContaining(limitToOneResult, attachedPrimId, attachmentPoint, wearableType);
 
             var sb = new StringBuilder();

@@ -233,10 +233,9 @@ namespace LibreMetaverse.RLV
             return Task.FromResult((false, "None"));
         }
 
-        public virtual Task<(bool Success, IReadOnlyList<RlvInventoryItem>? CurrentOutfit)> TryGetCurrentOutfitAsync(CancellationToken cancellationToken)
+        public virtual Task<(bool Success, InventoryMap? InventoryMap)> TryGetInventoryMapAsync(CancellationToken cancellationToken)
         {
-            IReadOnlyList<RlvInventoryItem> currentOutfit = [];
-            return Task.FromResult((false, (IReadOnlyList<RlvInventoryItem>?)currentOutfit));
+            return Task.FromResult((false, (InventoryMap?)null));
         }
     }
 }

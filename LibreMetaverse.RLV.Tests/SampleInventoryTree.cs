@@ -19,20 +19,6 @@ namespace LibreMetaverse.RLV.Tests
         public RlvInventoryItem Root_Accessories_Glasses { get; set; } = null!;
         public RlvInventoryItem Root_Accessories_Watch { get; set; } = null!;
 
-
-        public static List<RlvInventoryItem> BuildCurrentOutfit(RlvSharedFolder sharedFolder)
-        {
-            var inventoryMap = new InventoryMap(sharedFolder);
-
-            var result = inventoryMap
-                .Items
-                .Where(n => n.Value.WornOn != null | n.Value.AttachedTo != null)
-                .Select(n => n.Value)
-                .ToList();
-
-            return result;
-        }
-
         public static SampleInventoryTree BuildInventoryTree()
         {
             // #RLV
@@ -61,15 +47,15 @@ namespace LibreMetaverse.RLV.Tests
             var privateTree = root.AddChild(new Guid("eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"), ".private");
             var accessories_folder = root.AddChild(new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc"), "Accessories");
 
-            var accessories_watch = accessories_folder.AddItem(new Guid("c0000000-cccc-4ccc-8ccc-cccccccccccc"), "Watch", null, null, null);
-            var accessories_glasses = accessories_folder.AddItem(new Guid("c1111111-cccc-4ccc-8ccc-cccccccccccc"), "Glasses", null, null, null);
+            var accessories_watch = accessories_folder.AddItem(new Guid("c0000000-cccc-4ccc-8ccc-cccccccccccc"), "Watch", false, null, null, null, null);
+            var accessories_glasses = accessories_folder.AddItem(new Guid("c1111111-cccc-4ccc-8ccc-cccccccccccc"), "Glasses", false, null, null, null, null);
 
-            var clothing_businessPants_pelvis = clothing_folder.AddItem(new Guid("b0000000-bbbb-4bbb-8bbb-bbbbbbbbbbbb"), "Business Pants (Pelvis)", null, null, null);
-            var clothing_happyShirt = clothing_folder.AddItem(new Guid("b1111111-bbbb-4bbb-8bbb-bbbbbbbbbbbb"), "Happy Shirt", null, null, null);
-            var clothing_retroPants = clothing_folder.AddItem(new Guid("b2222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb"), "Retro Pants", null, null, null);
+            var clothing_businessPants_pelvis = clothing_folder.AddItem(new Guid("b0000000-bbbb-4bbb-8bbb-bbbbbbbbbbbb"), "Business Pants (Pelvis)", false, null, null, null, null);
+            var clothing_happyShirt = clothing_folder.AddItem(new Guid("b1111111-bbbb-4bbb-8bbb-bbbbbbbbbbbb"), "Happy Shirt", false, null, null, null, null);
+            var clothing_retroPants = clothing_folder.AddItem(new Guid("b2222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb"), "Retro Pants", false, null, null, null, null);
 
-            var clothing_hats_partyHat_spine = clothing_hats_folder.AddItem(new Guid("d0000000-dddd-4ddd-8ddd-dddddddddddd"), "Party Hat (Spine)", null, null, null);
-            var clothing_hats_fancyHat_chin = clothing_hats_folder.AddItem(new Guid("d1111111-dddd-4ddd-8ddd-dddddddddddd"), "Fancy Hat (chin)", null, null, null);
+            var clothing_hats_partyHat_spine = clothing_hats_folder.AddItem(new Guid("d0000000-dddd-4ddd-8ddd-dddddddddddd"), "Party Hat (Spine)", false, null, null, null, null);
+            var clothing_hats_fancyHat_chin = clothing_hats_folder.AddItem(new Guid("d1111111-dddd-4ddd-8ddd-dddddddddddd"), "Fancy Hat (chin)", false, null, null, null, null);
 
             return new SampleInventoryTree()
             {
