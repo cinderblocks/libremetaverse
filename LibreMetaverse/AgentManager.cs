@@ -1253,6 +1253,8 @@ namespace OpenMetaverse
         }
         #endregion Callbacks
 
+        private const string AGENT_PROFILE_CAP = "AgentProfile";
+
         /// <summary>Reference to the GridClient instance</summary>
         private readonly GridClient Client;
         /// <summary>Used for movement and camera tracking</summary>
@@ -1269,7 +1271,7 @@ namespace OpenMetaverse
 
         #region Properties
 
-        /// <summary>Your (client) avatars <see cref="UUID"/></summary>
+        /// <summary>Your (client) avatar's <see cref="UUID"/></summary>
         /// <remarks>"client", "agent", and "avatar" all represent the same thing</remarks>
         public UUID AgentID { get; private set; }
 
@@ -1491,6 +1493,7 @@ namespace OpenMetaverse
         private readonly ManualResetEvent teleportEvent = new ManualResetEvent(false);
         private uint heightWidthGenCounter;
         private readonly Dictionary<UUID, AssetGesture> gestureCache = new Dictionary<UUID, AssetGesture>();
+
         #endregion Private Members
 
         /// <summary>
@@ -3430,14 +3433,36 @@ namespace OpenMetaverse
 
         #endregion Teleporting
 
-        #region Misc
+        #region Profile
 
         /// <summary>
         /// Update agent profile
         /// </summary>
-        /// <param name="profile"><see cref="OpenMetaverse.Avatar.AvatarProperties"/> struct containing updated 
+        /// <param name="profile"><see cref="Avatar.AvatarProperties"/> struct containing updated 
         /// profile information</param>
+        /// <remarks>
+        /// The behavior between LLUDP and Http Capability differs. See each method's remarks
+        /// </remarks>
+        /// <seealso cref="UpdateProfileUdp"/>
+        /// <seealso cref="UpdateProfileHttp"/>
         public void UpdateProfile(Avatar.AvatarProperties profile)
+        {
+            if (Client.Network.CurrentSim.Caps.CapabilityURI(AGENT_PROFILE_CAP) != null)
+            {
+                UpdateProfileHttp(profile);
+            }
+            else
+            {
+                UpdateProfileUdp(profile);
+            }
+        }
+
+        /// <summary>
+        /// Update agent profile via simulator LLUDP
+        /// </summary>
+        /// <param name="profile"><see cref="Avatar.AvatarProperties"/> struct containing updated 
+        /// profile information</param>
+        public void UpdateProfileUdp(Avatar.AvatarProperties profile)
         {
             AvatarPropertiesUpdatePacket apup = new AvatarPropertiesUpdatePacket
             {
@@ -3462,9 +3487,50 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Update agent profile
+        /// </summary>
+        /// <param name="profile"><see cref="Avatar.AvatarProperties"/> struct containing updated
+        /// profile information</param>
+        /// <param name="cancellationToken"></param>
+        /// <remarks>
+        /// Only updates about text fields, profile url, and allow_publish.
+        /// Does not update image UUID, etc. like the legacy LLUDP request.
+        /// </remarks>
+        public async void UpdateProfileHttp(Avatar.AvatarProperties profile, CancellationToken cancellationToken = default)
+        {
+            var payload = new OSDMap
+            {
+                ["sl_about_text"] = profile.AboutText,
+                ["fl_about_text"] = profile.FirstLifeText,
+                ["profile_url"] = profile.ProfileURL,
+                ["allow_publish"] = profile.AllowPublish,
+                // This next pair may or may not do anything! It would be nice if it did.
+                ["sl_image_id"] = profile.ProfileImage,
+                ["fl_image_id"] = profile.FirstLifeImage
+            };
+
+            var capability = Client.Network.CurrentSim.Caps.CapabilityURI(AGENT_PROFILE_CAP);
+            var uri = new Uri($"{capability}/{AgentID}");
+            await Client.HttpCapsClient.PutRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
+                (response, data, error) =>
+                {
+                    if (error != null)
+                    {
+                        Logger.Log($"AgentProfile update failed: {error.Message}", Helpers.LogLevel.Warning);
+                        return;
+                    }
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        Logger.Log("AgentProfile update succeeded.", Helpers.LogLevel.Debug);
+                    }
+                });
+        }
+
+        /// <summary>
         /// Update agent's profile interests
         /// </summary>
-        /// <param name="interests">selection of interests from <see cref="T:OpenMetaverse.Avatar.Interests"/> struct</param>
+        /// <param name="interests">selection of interests from <see cref="Avatar.Interests"/> struct</param>
         public void UpdateInterests(Avatar.Interests interests)
         {
             AvatarInterestsUpdatePacket aiup = new AvatarInterestsUpdatePacket
@@ -3492,7 +3558,21 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="target">target avatar for notes</param>
         /// <param name="notes">notes to store</param>
+        /// <seealso cref="UpdateProfileHttp"/>
+        /// <seealso cref="UpdateProfileUdp"/>
         public void UpdateProfileNotes(UUID target, string notes)
+        {
+            if (Client.Network.CurrentSim.Caps.CapabilityURI(AGENT_PROFILE_CAP) != null)
+            {
+                UpdateProfileNotesHttp(target, notes);
+            }
+            else
+            {
+                UpdateProfileNotesUdp(target, notes);
+            }
+        }
+
+        private void UpdateProfileNotesUdp(UUID target, string notes)
         {
             AvatarNotesUpdatePacket anup = new AvatarNotesUpdatePacket
             {
@@ -3511,31 +3591,35 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Set the height and the width of the client window. This is used
-        /// by the server to build a virtual camera frustum for our avatar
+        /// Update agent's private notes for target avatar using HTTP capability system
         /// </summary>
-        /// <param name="height">New height of the viewer window</param>
-        /// <param name="width">New width of the viewer window</param>
-        public void SetHeightWidth(ushort height, ushort width)
+        /// <param name="target">target avatar for notes</param>
+        /// <param name="notes">notes to store</param>
+        /// <param name="cancellationToken"></param>
+        public async void UpdateProfileNotesHttp(UUID target, string notes, CancellationToken cancellationToken = default)
         {
-            AgentHeightWidthPacket heightwidth = new AgentHeightWidthPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID,
-                    CircuitCode = Client.Network.CircuitCode
-                },
-                HeightWidthBlock =
-                {
-                    Height = height,
-                    Width = width,
-                    GenCounter = heightWidthGenCounter++
-                }
-            };
+            var payload = new OSDMap { ["notes"] = notes };
 
-            Client.Network.SendPacket(heightwidth);
+            var capability = Client.Network.CurrentSim.Caps.CapabilityURI(AGENT_PROFILE_CAP);
+            var uri = new Uri($"{capability}/{target}");
+            await Client.HttpCapsClient.PutRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
+                (response, data, error) =>
+                {
+                    if (error != null)
+                    {
+                        Logger.Log($"AgentProfile notes update failed: {error.Message}", Helpers.LogLevel.Warning);
+                    }
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        Logger.Log("AgentProfile notes update succeeded.", Helpers.LogLevel.Debug);
+                    }
+                });
         }
+
+        #endregion Profile
+
+        #region Mute List
 
         /// <summary>
         /// Request the list of muted objects and avatars for this agent
@@ -3644,10 +3728,41 @@ namespace OpenMetaverse
             }
         }
 
+        #endregion Mute List
+
+        #region Misc
+
+        /// <summary>
+        /// Set the height and the width of the client window. This is used
+        /// by the server to build a virtual camera frustum for our avatar
+        /// </summary>
+        /// <param name="height">New height of the viewer window</param>
+        /// <param name="width">New width of the viewer window</param>
+        public void SetHeightWidth(ushort height, ushort width)
+        {
+            AgentHeightWidthPacket heightwidth = new AgentHeightWidthPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    CircuitCode = Client.Network.CircuitCode
+                },
+                HeightWidthBlock =
+                {
+                    Height = height,
+                    Width = width,
+                    GenCounter = heightWidthGenCounter++
+                }
+            };
+
+            Client.Network.SendPacket(heightwidth);
+        }
+
         /// <summary>
         /// Sets home location to agents current position
         /// </summary>
-        /// <remarks>will fire an AlertMessage (<see cref="E:OpenMetaverse.AgentManager.OnAlertMessage"/>) with 
+        /// <remarks>will fire an AlertMessage (<see cref="OpenMetaverse.AgentManager.OnAlertMessage"/>) with 
         /// success or failure message</remarks>
         public void SetHome()
         {
@@ -3673,7 +3788,7 @@ namespace OpenMetaverse
         /// Move an agent in to a simulator. This packet is the last packet
         /// needed to complete the transition in to a new simulator
         /// </summary>
-        /// <param name="simulator"><see cref="T:OpenMetaverse.Simulator"/> Object</param>
+        /// <param name="simulator"><see cref="OpenMetaverse.Simulator"/> Object</param>
         public void CompleteAgentMovement(Simulator simulator)
         {
             CompleteAgentMovementPacket move = new CompleteAgentMovementPacket
@@ -3693,10 +3808,10 @@ namespace OpenMetaverse
         /// <summary>
         /// Reply to script permissions request
         /// </summary>
-        /// <param name="simulator"><see cref="T:OpenMetaverse.Simulator"/> Object</param>
+        /// <param name="simulator"><see cref="OpenMetaverse.Simulator"/> Object</param>
         /// <param name="itemID"><see cref="UUID"/> of the itemID requesting permissions</param>
         /// <param name="taskID"><see cref="UUID"/> of the taskID requesting permissions</param>
-        /// <param name="permissions"><see cref="OpenMetaverse.ScriptPermission"/> list of permissions to allow</param>
+        /// <param name="permissions"><see cref="ScriptPermission"/> list of permissions to allow</param>
         public void ScriptQuestionReply(Simulator simulator, UUID itemID, UUID taskID, ScriptPermission permissions)
         {
             ScriptAnswerYesPacket yes = new ScriptAnswerYesPacket
