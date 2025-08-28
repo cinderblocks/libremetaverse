@@ -3504,7 +3504,6 @@ namespace OpenMetaverse
                 ["fl_about_text"] = profile.FirstLifeText,
                 ["profile_url"] = profile.ProfileURL,
                 ["allow_publish"] = profile.AllowPublish,
-                // This next pair may or may not do anything! It would be nice if it did.
                 ["sl_image_id"] = profile.ProfileImage,
                 ["fl_image_id"] = profile.FirstLifeImage
             };
