@@ -392,7 +392,7 @@ namespace OpenMetaverse
                 if (overridepublicaccess) bitmask |= 1 << 5;
                 if (overrideenvironment) bitmask |= 1 << 9;
                 config.Add(bitmask.ToString(CultureInfo.InvariantCulture));
-                config.Add((sunhourvalue * 1024.0f).ToString());
+                config.Add((sunhourvalue * 1024.0f).ToString(CultureInfo.InvariantCulture));
                 EstateOwnerMessage("estatechangeinfo", config);
                 return Task.CompletedTask;
             }
@@ -414,7 +414,7 @@ namespace OpenMetaverse
             {
                 var content = new StringContent(requestBody, Encoding.UTF8, "application/llsd+xml");
                 var reply = await Client.HttpCapsClient.PostAsync(uri.ToString(), content);
-                string responseContent = await reply.Content.ReadAsStringAsync();
+                _ = await reply.Content.ReadAsStringAsync();
                 Logger.Log($"EstateChangeInfo update {reply.StatusCode.ToString()}", Helpers.LogLevel.Info);
             }
             catch (Exception e)
