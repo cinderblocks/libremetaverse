@@ -352,6 +352,101 @@ namespace OpenMetaverse
         #endregion
 
         #region Public Methods
+
+
+        /// <summary>
+        /// Updates estate-level configuration settings for the current region.
+        /// Attempts to send the update via the "EstateChangeInfo" HTTP caps if available
+        /// or you can enable a fallback to the legacy method.
+        /// </summary>
+        /// <param name="estateName">The name of the estate.</param>
+        /// <param name="sunhourvalue">The sun hour value (0.0–24.0, scaled internally).</param>
+        /// <param name="issunfixed">Whether the sun position is fixed.</param>
+        /// <param name="isexternallyvisible">Whether the estate is visible externally.</param>
+        /// <param name="allowdirectteleport">Allow direct teleport to the estate.</param>
+        /// <param name="denyanonymous">Deny access to anonymous users.</param>
+        /// <param name="denyageunverified">Deny access to age-unverified users.</param>
+        /// <param name="blockbots">Block bots from entering the estate.</param>
+        /// <param name="allowvoicechat">Allow voice chat in the estate.</param>
+        /// <param name="overridepublicaccess">Override public access settings.</param>
+        /// <param name="overrideenvironment">Override environment settings.</param>
+        /// <param name="allowUpdateWithFallback">If true, use legacy fallback if capability is unavailable.</param>
+        public async void UpdateEstateInfo(
+            string estateName, float sunhourvalue, bool issunfixed, bool isexternallyvisible, 
+            bool allowdirectteleport, bool denyanonymous, bool denyageunverified, bool blockbots, 
+            bool allowvoicechat, bool overridepublicaccess, bool overrideenvironment, bool allowUpdateWithFallback=true)
+        {
+            Uri uri = Client.Network.CurrentSim.Caps.CapabilityURI("EstateChangeInfo");
+            if (uri == null)
+            {
+                if(allowUpdateWithFallback)
+                {
+                    UpdateEstateInfoFallback(estateName, sunhourvalue, issunfixed, isexternallyvisible,
+                        allowdirectteleport, denyanonymous, denyageunverified, blockbots,
+                        allowvoicechat, overridepublicaccess, overrideenvironment);
+                    return;
+                }
+                Logger.Log("EstateChangeInfo caps not supported in region and fallback not enabled", Helpers.LogLevel.Warning);
+                return;
+            }
+            OSDMap body = new OSDMap();
+            body["estate_name"] = estateName;
+            body["sun_hour"] = (sunhourvalue * 1024.0f);
+            body["is_sun_fixed"] = issunfixed;
+            body["is_externally_visible"] = isexternallyvisible;
+            body["allow_direct_teleport"] = allowdirectteleport;
+            body["deny_anonymous"] = denyanonymous;
+            body["deny_age_unverified"] = denyageunverified;
+            body["block_bots"] = blockbots;
+            body["allow_voice_chat"] = allowvoicechat;
+            body["override_public_access"] = overridepublicaccess;
+            body["override_environment"] = overrideenvironment;
+            body["invoice"] = UUID.Random();
+            string requestBody = OSDParser.SerializeLLSDXmlString(body);
+            try
+            {
+                var content = new StringContent(requestBody, Encoding.UTF8, "application/llsd+xml");
+                var reply = await Client.HttpCapsClient.PostAsync(uri.ToString(), content);
+                string responseContent = await reply.Content.ReadAsStringAsync();
+                if (reply.IsSuccessStatusCode)
+                {
+                    Logger.Log("EstateChangeInfo success", Helpers.LogLevel.Info);
+                    return;
+                }
+                Logger.Log($"EstateChangeInfo failed {reply.StatusCode.ToString()} {responseContent}", Helpers.LogLevel.Info);
+            }
+            catch (Exception e)
+            {
+                Logger.Log($"EstateChangeInfo error {e.Message}", Helpers.LogLevel.Error);
+            }
+        }
+
+        /// <summary>
+        /// do not call this directly, use UpdateEstateInfo instead
+        /// this is a fallback method for when the caps are not available
+        /// </summary>
+        protected void UpdateEstateInfoFallback(string estateName, float sunhourvalue, bool issunfixed, bool isexternallyvisible,
+            bool allowdirectteleport, bool denyanonymous, bool denyageunverified, bool blockbots,
+            bool allowvoicechat, bool overridepublicaccess, bool overrideenvironment)
+        {
+            Logger.Log("using UpdateEstateInfoFallback one day we will have working caps for this", Helpers.LogLevel.Info);
+            List<string> config = new List<string>();
+            config.Add(estateName);
+            Int64 bitmask = 0;
+            if (issunfixed) bitmask |= 1 << 4;
+            if (isexternallyvisible) bitmask |= 1 << 15;
+            if (allowdirectteleport) bitmask |= 1 << 20;
+            if (denyanonymous) bitmask |= 1 << 23;
+            if (denyageunverified) bitmask |= 1 << 30;
+            if (blockbots) bitmask |= 1 << 31;
+            if (allowvoicechat) bitmask |= 1 << 28;
+            if (overridepublicaccess) bitmask |= 1 << 5;
+            if (overrideenvironment) bitmask |= 1 << 9;
+            config.Add(bitmask.ToString());
+            config.Add((sunhourvalue * 1024.0f).ToString());
+            EstateOwnerMessage("estatechangeinfo", config);
+        }
+
         /// <summary>
         /// Requests estate information such as top scripts and colliders
         /// </summary>
