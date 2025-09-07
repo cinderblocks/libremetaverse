@@ -370,24 +370,31 @@ namespace OpenMetaverse
         /// <param name="allowvoicechat">Allow voice chat in the estate.</param>
         /// <param name="overridepublicaccess">Override public access settings.</param>
         /// <param name="overrideenvironment">Override environment settings.</param>
-        /// <param name="allowUpdateWithFallback">If true, use legacy fallback if capability is unavailable.</param>
-        public async void UpdateEstateInfo(
+        public async Task<Task> UpdateEstateInfo(
             string estateName, float sunhourvalue, bool issunfixed, bool isexternallyvisible, 
             bool allowdirectteleport, bool denyanonymous, bool denyageunverified, bool blockbots, 
-            bool allowvoicechat, bool overridepublicaccess, bool overrideenvironment, bool allowUpdateWithFallback=true)
+            bool allowvoicechat, bool overridepublicaccess, bool overrideenvironment)
         {
             Uri uri = Client.Network.CurrentSim.Caps.CapabilityURI("EstateChangeInfo");
             if (uri == null)
             {
-                if(allowUpdateWithFallback)
-                {
-                    UpdateEstateInfoFallback(estateName, sunhourvalue, issunfixed, isexternallyvisible,
-                        allowdirectteleport, denyanonymous, denyageunverified, blockbots,
-                        allowvoicechat, overridepublicaccess, overrideenvironment);
-                    return;
-                }
-                Logger.Log("EstateChangeInfo caps not supported in region and fallback not enabled", Helpers.LogLevel.Warning);
-                return;
+                Logger.Log("using UpdateEstateInfoFallback one day we will have working caps for this", Helpers.LogLevel.Info);
+                List<string> config = new List<string>();
+                config.Add(estateName);
+                Int64 bitmask = 0;
+                if (issunfixed) bitmask |= 1 << 4;
+                if (isexternallyvisible) bitmask |= 1 << 15;
+                if (allowdirectteleport) bitmask |= 1 << 20;
+                if (denyanonymous) bitmask |= 1 << 23;
+                if (denyageunverified) bitmask |= 1 << 30;
+                if (blockbots) bitmask |= 1 << 31;
+                if (allowvoicechat) bitmask |= 1 << 28;
+                if (overridepublicaccess) bitmask |= 1 << 5;
+                if (overrideenvironment) bitmask |= 1 << 9;
+                config.Add(bitmask.ToString(CultureInfo.InvariantCulture));
+                config.Add((sunhourvalue * 1024.0f).ToString());
+                EstateOwnerMessage("estatechangeinfo", config);
+                return Task.CompletedTask;
             }
             OSDMap body = new OSDMap();
             body["estate_name"] = estateName;
@@ -408,43 +415,13 @@ namespace OpenMetaverse
                 var content = new StringContent(requestBody, Encoding.UTF8, "application/llsd+xml");
                 var reply = await Client.HttpCapsClient.PostAsync(uri.ToString(), content);
                 string responseContent = await reply.Content.ReadAsStringAsync();
-                if (reply.IsSuccessStatusCode)
-                {
-                    Logger.Log("EstateChangeInfo success", Helpers.LogLevel.Info);
-                    return;
-                }
-                Logger.Log($"EstateChangeInfo failed {reply.StatusCode.ToString()} {responseContent}", Helpers.LogLevel.Info);
+                Logger.Log($"EstateChangeInfo update {reply.StatusCode.ToString()}", Helpers.LogLevel.Info);
             }
             catch (Exception e)
             {
                 Logger.Log($"EstateChangeInfo error {e.Message}", Helpers.LogLevel.Error);
             }
-        }
-
-        /// <summary>
-        /// do not call this directly, use UpdateEstateInfo instead
-        /// this is a fallback method for when the caps are not available
-        /// </summary>
-        protected void UpdateEstateInfoFallback(string estateName, float sunhourvalue, bool issunfixed, bool isexternallyvisible,
-            bool allowdirectteleport, bool denyanonymous, bool denyageunverified, bool blockbots,
-            bool allowvoicechat, bool overridepublicaccess, bool overrideenvironment)
-        {
-            Logger.Log("using UpdateEstateInfoFallback one day we will have working caps for this", Helpers.LogLevel.Info);
-            List<string> config = new List<string>();
-            config.Add(estateName);
-            Int64 bitmask = 0;
-            if (issunfixed) bitmask |= 1 << 4;
-            if (isexternallyvisible) bitmask |= 1 << 15;
-            if (allowdirectteleport) bitmask |= 1 << 20;
-            if (denyanonymous) bitmask |= 1 << 23;
-            if (denyageunverified) bitmask |= 1 << 30;
-            if (blockbots) bitmask |= 1 << 31;
-            if (allowvoicechat) bitmask |= 1 << 28;
-            if (overridepublicaccess) bitmask |= 1 << 5;
-            if (overrideenvironment) bitmask |= 1 << 9;
-            config.Add(bitmask.ToString());
-            config.Add((sunhourvalue * 1024.0f).ToString());
-            EstateOwnerMessage("estatechangeinfo", config);
+            return Task.CompletedTask;
         }
 
         /// <summary>
