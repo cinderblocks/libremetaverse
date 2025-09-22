@@ -720,7 +720,7 @@ namespace OpenMetaverse
 
             var uri = new UriBuilder(Client.Network.CurrentSim.Caps.CapabilityURI("GetDisplayNames"))
             {
-                Query = "ids=" + string.Join("&", ids)
+                Query = "ids=" + string.Join("&ids=", ids)
             };
 
             await Client.HttpCapsClient.GetRequestAsync(uri.Uri, cancellationToken, (response, data, error) =>
