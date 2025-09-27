@@ -607,6 +607,137 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// UpdateParcelAccessList - Update the parcel access or ban list on the simulator
+        /// </summary>
+        /// <param name="Client">The grid client we are using</param>
+        /// <param name="simulator">Simulator to send updates to</param>
+        /// <param name="parcelLocalId">Local ID of the parcel to update</param>
+        /// <param name="flags">what list to update sending AccessList.Both will result in a warning</param>
+        /// <param name="entries">list of avatar entry records</param>
+        public void UpdateParcelAccessList(
+            GridClient Client,
+            Simulator simulator,
+            int parcelLocalId,
+            AccessList flags,
+            List<ParcelManager.ParcelAccessEntry> entries)
+        {
+            // based on Alchemy Viewer's implementation
+            // might want to be cleaned up later
+            if (flags == AccessList.Both)
+            {
+                Logger.Log("Warning: UpdateParcelAccessList called with AccessList.Both, this is not supported. " +
+                    "Use AccessList.Access or AccessList.Ban", Helpers.LogLevel.Warning);
+                return;
+            }
+            if (simulator == null)
+            {
+                Logger.Log("Simulator is null", Helpers.LogLevel.Error);
+            }
+            if (parcelLocalId == 0)
+            {
+                Logger.Log("Parcel LocalID is zero", Helpers.LogLevel.Error);
+                return;
+            }
+            if (Client == null)
+            {
+                Logger.Log("Client is null", Helpers.LogLevel.Error);
+                return;
+            }
+            if (Client.Network == null)
+            {
+                Logger.Log("Client.Network is null", Helpers.LogLevel.Error);
+                return;
+            }
+            if (Client.Network.CurrentSim == null)
+            {
+                Logger.Log("Client.Network.CurrentSim is null not sure if network is fully ready", Helpers.LogLevel.Error);
+                return;
+            }
+            if (entries.Count == 0)
+            {
+                // send an empty block to clear the list
+                Guid sendemptyGuid = Guid.NewGuid();
+                var packet = new ParcelAccessListUpdatePacket
+                {
+                    AgentData = {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                    },
+                    Data = {
+                        Flags = (uint)flags,
+                        LocalID = parcelLocalId,
+                        TransactionID = new UUID(sendemptyGuid.ToString()),
+                        SequenceID = 1,
+                        Sections = 0
+                    },
+                    List = { }
+                };
+                packet.List = new ParcelAccessListUpdatePacket.ListBlock[1];
+                packet.List[0] = new ParcelAccessListUpdatePacket.ListBlock
+                {
+                    ID = UUID.Zero,
+                    Time = 0,
+                    Flags = 0
+                };
+                simulator.SendPacket(packet);
+                return;
+            }
+
+            const int PARCEL_MAX_ENTRIES_PER_PACKET = 48; // ?? matching viewer's limit, but not documented anywhere
+            int count = entries.Count;
+            int numSections = (int)Math.Ceiling((double)count / PARCEL_MAX_ENTRIES_PER_PACKET);
+            int sequenceId = 1;
+            Guid transactionUUID = Guid.NewGuid();
+            int entryIndex = 0;
+            for (int section = 0; section < numSections; section++)
+            {
+                var packet = new ParcelAccessListUpdatePacket
+                {
+                    AgentData = {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                    },
+                    Data = {
+                        Flags = (uint)flags,
+                        LocalID = parcelLocalId,
+                        TransactionID = new UUID(transactionUUID.ToString()),
+                        SequenceID = sequenceId,
+                        Sections = numSections
+                    },
+                    List = new ParcelAccessListUpdatePacket.ListBlock[
+                        Math.Min(PARCEL_MAX_ENTRIES_PER_PACKET, count - entryIndex)
+                    ]
+                };
+
+                for (int i = 0; i < packet.List.Length; i++, entryIndex++)
+                {
+                    var entry = entries[entryIndex];
+                    packet.List[i] = new ParcelAccessListUpdatePacket.ListBlock
+                    {
+                        ID = entry.AgentID,
+                        Time = (int)(entry.Time.Subtract(new DateTime(1970, 1, 1))).TotalSeconds,
+                        Flags = (uint)entry.Flags
+                    };
+                }
+
+                // If there are no entries, send an empty block
+                if (packet.List.Length == 0)
+                {
+                    packet.List = new ParcelAccessListUpdatePacket.ListBlock[1];
+                    packet.List[0] = new ParcelAccessListUpdatePacket.ListBlock
+                    {
+                        ID = UUID.Zero,
+                        Time = 0,
+                        Flags = 0
+                    };
+                }
+
+                simulator.SendPacket(packet);
+                sequenceId++;
+            }
+        }
+
+        /// <summary>
         /// Update the simulator with any local changes to this Parcel object
         /// </summary>
         /// <param name="client">Client message originates from</param>
