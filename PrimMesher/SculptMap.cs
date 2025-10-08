@@ -149,13 +149,13 @@ namespace LibreMetaverse.PrimMesher
 
             var pixScale = 1.0f / 255;
 
-            int rowNdx, colNdx;
+            int rowNdx;
             var smNdx = 0;
 
             for (rowNdx = 0; rowNdx < numRows; rowNdx++)
             {
                 var row = new List<Coord>(numCols);
-                for (colNdx = 0; colNdx < numCols; colNdx++)
+                for (var colNdx = 0; colNdx < numCols; colNdx++)
                 {
                     if (mirror)
                         row.Add(new Coord(-(redBytes[smNdx] * pixScale - 0.5f), greenBytes[smNdx] * pixScale - 0.5f,
