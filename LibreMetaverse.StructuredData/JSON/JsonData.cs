@@ -159,9 +159,7 @@ namespace LitJson
 
         #region IList Indexer
         object IList.this[int index] {
-            get {
-                return EnsureList ()[index];
-            }
+            get => EnsureList ()[index];
 
             set {
                 EnsureList ();
@@ -870,7 +868,7 @@ namespace LitJson
 
     internal class OrderedDictionaryEnumerator : IDictionaryEnumerator
     {
-        IEnumerator<KeyValuePair<string, JsonData>> list_enumerator;
+        readonly IEnumerator<KeyValuePair<string, JsonData>> list_enumerator;
 
 
         public object Current => Entry;

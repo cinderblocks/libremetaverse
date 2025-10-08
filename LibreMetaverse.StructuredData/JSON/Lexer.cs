@@ -33,12 +33,12 @@ namespace LitJson
         private static int[]          fsm_return_table;
         private static StateHandler[] fsm_handler_table;
 
-        private FsmContext    fsm_context;
+        private readonly FsmContext    fsm_context;
         private int           input_buffer;
         private int           input_char;
-        private TextReader    reader;
+        private readonly TextReader    reader;
         private int           state;
-        private StringBuilder string_buffer;
+        private readonly StringBuilder string_buffer;
         private int           unichar;
         #endregion
 

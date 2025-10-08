@@ -385,10 +385,7 @@ namespace OpenMetaverse.StructuredData
                     writer.Write(undefNotationValue);
                     break;
                 case OSDType.Boolean:
-                    if (osd.AsBoolean())
-                        writer.Write(trueNotationValueTwo);
-                    else
-                        writer.Write(falseNotationValueTwo);
+                    writer.Write(osd.AsBoolean() ? trueNotationValueTwo : falseNotationValueTwo);
                     break;
                 case OSDType.Integer:
                     writer.Write(integerNotationMarker);
@@ -481,10 +478,7 @@ namespace OpenMetaverse.StructuredData
                     writer.Write(undefNotationValue);
                     break;
                 case OSDType.Boolean:
-                    if (osd.AsBoolean())
-                        writer.Write(trueNotationValueTwo);
-                    else
-                        writer.Write(falseNotationValueTwo);
+                    writer.Write(osd.AsBoolean() ? trueNotationValueTwo : falseNotationValueTwo);
                     break;
                 case OSDType.Integer:
                     writer.Write(integerNotationMarker);
@@ -723,15 +717,12 @@ namespace OpenMetaverse.StructuredData
             int character;
             int lastIndex = buffer.Length - 1;
             int crrIndex = offset;
-            bool charactersEqual = true;
 
             while ((character = reader.Peek()) > 0 &&
-                    crrIndex <= lastIndex &&
-                    charactersEqual)
+                    crrIndex <= lastIndex)
             {
-                if (((char)character) != buffer[crrIndex])
+                if ((char)character != buffer[crrIndex])
                 {
-                    charactersEqual = false;
                     break;
                 }
                 crrIndex++;

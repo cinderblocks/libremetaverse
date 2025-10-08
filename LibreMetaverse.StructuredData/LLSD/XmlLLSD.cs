@@ -242,8 +242,6 @@ namespace OpenMetaverse.StructuredData
                 case OSDType.LlsdXml:
                     writer.WriteRaw(data.AsString());
                     break;
-                default:
-                    break;
             }
         }
 
@@ -320,13 +318,17 @@ namespace OpenMetaverse.StructuredData
 
                     if (reader.Read())
                     {
-                        double value = 0d;
+                        double value;
                         string str = reader.ReadString().Trim().ToLower();
 
                         if (str == "nan")
+                        {
                             value = double.NaN;
+                        }
                         else
+                        {
                             Utils.TryParseDouble(str, out value);
+                        }
 
                         ret = OSD.FromReal(value);
                         break;
