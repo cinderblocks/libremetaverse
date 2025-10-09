@@ -1287,21 +1287,15 @@ namespace OpenMetaverse
         {
             if (m_DirPeople != null)
             {
-                DirPeopleReplyPacket peopleReply = e.Packet as DirPeopleReplyPacket;
-                List<AgentSearchData> matches = new List<AgentSearchData>(peopleReply.QueryReplies.Length);
-                foreach (DirPeopleReplyPacket.QueryRepliesBlock reply in peopleReply.QueryReplies)
+                if (e.Packet is DirPeopleReplyPacket peopleReply)
                 {
-                    AgentSearchData searchData = new AgentSearchData
-                    {
-                        Online = reply.Online,
-                        FirstName = Utils.BytesToString(reply.FirstName),
-                        LastName = Utils.BytesToString(reply.LastName),
-                        AgentID = reply.AgentID
-                    };
-                    matches.Add(searchData);
-                }
+                    List<AgentSearchData> matches = new List<AgentSearchData>(peopleReply.QueryReplies.Length);
+                    matches.AddRange(peopleReply.QueryReplies.Select(reply 
+                        => new AgentSearchData { Online = reply.Online, FirstName = Utils.BytesToString(reply.FirstName), 
+                            LastName = Utils.BytesToString(reply.LastName), AgentID = reply.AgentID }));
 
-                OnDirPeople(new DirPeopleReplyEventArgs(peopleReply.QueryData.QueryID, matches));
+                    OnDirPeople(new DirPeopleReplyEventArgs(peopleReply.QueryData.QueryID, matches));
+                }
             }
         }
 
@@ -1375,12 +1369,11 @@ namespace OpenMetaverse
             if (m_Places != null)
             {
                 Packet packet = e.Packet;
-                PlacesReplyPacket placesReply = packet as PlacesReplyPacket;
                 List<PlacesSearchData> places = new List<PlacesSearchData>();
 
-                foreach (PlacesReplyPacket.QueryDataBlock block in placesReply.QueryData)
+                if (packet is PlacesReplyPacket placesReply)
                 {
-                    PlacesSearchData place = new PlacesSearchData
+                    places.AddRange(placesReply.QueryData.Select(block => new PlacesSearchData
                     {
                         OwnerID = block.OwnerID,
                         Name = Utils.BytesToString(block.Name),
@@ -1395,12 +1388,10 @@ namespace OpenMetaverse
                         SnapshotID = block.SnapshotID,
                         Dwell = block.Dwell,
                         Price = block.Price
-                    };
+                    }));
 
-                    places.Add(place);
+                    OnPlaces(new PlacesReplyEventArgs(placesReply.TransactionData.TransactionID, places));
                 }
-
-                OnPlaces(new PlacesReplyEventArgs(placesReply.TransactionData.TransactionID, places));                
             }
         }
 

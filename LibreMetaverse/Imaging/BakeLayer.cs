@@ -160,7 +160,7 @@ namespace OpenMetaverse.Imaging
 
             if (bakeType == BakeType.Head)
             {
-                if (DrawLayer(LoadResourceLayer("head_color.tga"), false) == true)
+                if (DrawLayer(LoadResourceLayer("head_color.tga"), false))
                 {
                     AddAlpha(bakedTexture.Image, LoadResourceLayer("head_alpha.tga"));
                     MultiplyLayerFromAlpha(bakedTexture.Image, LoadResourceLayer("head_skingrain.tga"));
@@ -490,7 +490,7 @@ namespace OpenMetaverse.Imaging
                         {
                             if ((sourceRed.Length > i) && (sourceGreen.Length > i) && (sourceBlue.Length > i))
                             {
-                                if (loadedAlpha == true)
+                                if (loadedAlpha)
                                 {
                                     bakedRed[i] = (byte)((bakedRed[i] * alphaInv + sourceRed[i] * alpha) >> 8);
                                     bakedGreen[i] = (byte)((bakedGreen[i] * alphaInv + sourceGreen[i] * alpha) >> 8);

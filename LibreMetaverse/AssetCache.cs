@@ -324,7 +324,7 @@ namespace OpenMetaverse
 
             if (size > Client.Settings.ASSET_CACHE_MAX_SIZE)
             {
-                Array.Sort(files, new SortFilesByAccesTimeHelper());
+                Array.Sort(files, new SortFilesByAccessTimeHelper());
                 long targetSize = (long)(Client.Settings.ASSET_CACHE_MAX_SIZE * 0.9);
                 int num = 0;
                 foreach (FileInfo file in files)
@@ -407,13 +407,13 @@ namespace OpenMetaverse
         /// <summary>
         /// Helper class for sorting files by their last accessed time
         /// </summary>
-        private class SortFilesByAccesTimeHelper : IComparer<FileInfo>
+        private class SortFilesByAccessTimeHelper : IComparer<FileInfo>
         {
             int IComparer<FileInfo>.Compare(FileInfo f1, FileInfo f2)
             {
-                if (f1.LastAccessTime > f2.LastAccessTime)
+                if (f2 != null && f1 != null && f1.LastAccessTime > f2.LastAccessTime)
                     return 1;
-                if (f1.LastAccessTime < f2.LastAccessTime)
+                if (f2 != null && f1 != null && f1.LastAccessTime < f2.LastAccessTime)
                     return -1;
                 else
                     return 0;

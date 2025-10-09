@@ -116,19 +116,15 @@ namespace MapGenerator
 		{
 			var temp = (MapField)obj;
 
-			if (KeywordPosition > temp.KeywordPosition)
+			if (temp != null && KeywordPosition > temp.KeywordPosition)
 			{
 				return 1;
 			}
-
-            if(temp.KeywordPosition == KeywordPosition)
-            {
-                return 0;
-            }
-            else
+            if (temp != null && temp.KeywordPosition < KeywordPosition)
             {
                 return -1;
             }
+            return 0;
         }
 	}
 

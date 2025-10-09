@@ -635,13 +635,16 @@ namespace OpenMetaverse
                         {
                             w = Client.Inventory.Store[wearable.ActualUUID] as InventoryWearable;
                         }
-                        wearables.Add(w.WearableType, new WearableData()
+                        if (w != null)
                         {
-                            ItemID = w.UUID,
-                            AssetID = w.ActualUUID,
-                            AssetType = w.AssetType,
-                            WearableType = w.WearableType
-                        });
+                            wearables.Add(w.WearableType, new WearableData()
+                            {
+                                ItemID = w.UUID,
+                                AssetID = w.ActualUUID,
+                                AssetType = w.AssetType,
+                                WearableType = w.WearableType
+                            });
+                        }
                         break;
                     }
                     case InventoryAttachment attachment:
@@ -651,7 +654,10 @@ namespace OpenMetaverse
                         {
                             a = Client.Inventory.Store[attachment.ActualUUID] as InventoryAttachment;
                         }
-                        Attachments.AddOrUpdate(a.ActualUUID, a.AttachmentPoint, (id, point) => a.AttachmentPoint);
+                        if (a != null)
+                        {
+                            Attachments.AddOrUpdate(a.ActualUUID, a.AttachmentPoint, (id, point) => a.AttachmentPoint);
+                        }
                         break;
                     }
                     case InventoryObject attachedObject:
@@ -661,7 +667,10 @@ namespace OpenMetaverse
                         {
                             a = Client.Inventory.Store[attachedObject.ActualUUID] as InventoryObject;
                         }
-                        Attachments.AddOrUpdate(a.ActualUUID, a.AttachPoint, (id, point) => a.AttachPoint);
+                        if (a != null)
+                        {
+                            Attachments.AddOrUpdate(a.ActualUUID, a.AttachPoint, (id, point) => a.AttachPoint);
+                        }
                         break;
                     }
                 }

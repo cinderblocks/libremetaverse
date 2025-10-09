@@ -897,12 +897,13 @@ namespace LibreMetaverse.Voice.Vivox
 
                 if (pMap.TryGetValue("voice_credentials", out var credential))
                 {
-                    var cred = credential as OSDMap;
-
-                    if (cred.ContainsKey("channel_uri"))
-                        _spatialUri = cred["channel_uri"].AsString();
-                    if (cred.ContainsKey("channel_credentials"))
-                        _spatialCredentials = cred["channel_credentials"].AsString();
+                    if (credential is OSDMap cred)
+                    {
+                        if (cred.ContainsKey("channel_uri"))
+                            _spatialUri = cred["channel_uri"].AsString();
+                        if (cred.ContainsKey("channel_credentials"))
+                            _spatialCredentials = cred["channel_credentials"].AsString();
+                    }
                 }
             }
 
