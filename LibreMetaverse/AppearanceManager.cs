@@ -1048,9 +1048,8 @@ namespace OpenMetaverse
         /// Adds a list of attachments to our agent
         /// </summary>
         /// <param name="attachments">A List containing the attachments to add</param>
-        /// <param name="removeExistingFirst">If true, tells simulator to remove existing attachment
+        /// <param name="removeExistingFirst">If true, tells simulator to remove existing attachment first</param>
         /// <param name="replace">If true replace existing attachment on this attachment point, otherwise add to it (multi-attachments)</param>
-        /// first</param>
         public void AddAttachments(List<InventoryItem> attachments, bool removeExistingFirst, bool replace = true)
         {
             // Use RezMultipleAttachmentsFromInv  to clear out current attachments, and attach new ones
@@ -1133,9 +1132,8 @@ namespace OpenMetaverse
         /// Attach an item to our agent at a specific attach point
         /// </summary>
         /// <param name="item">A <see cref="OpenMetaverse.InventoryItem"/> to attach</param>
-        /// <param name="attachPoint">the <see cref="OpenMetaverse.AttachmentPoint"/> on the avatar 
+        /// <param name="attachPoint">the <see cref="OpenMetaverse.AttachmentPoint"/> on the avatar to attach the item to</param>
         /// <param name="replace">If true replace existing attachment on this attachment point, otherwise add to it (multi-attachments)</param>
-        /// to attach the item to</param>
         public void Attach(InventoryItem item, AttachmentPoint attachPoint, bool replace = true)
         {
             Attach(item.ActualUUID, item.OwnerID, item.Name, item.Description, item.Permissions, item.Flags,
@@ -1151,9 +1149,8 @@ namespace OpenMetaverse
         /// <param name="description">The description of the attachment</param>
         /// <param name="perms">The <see cref="OpenMetaverse.Permissions"/> to apply when attached</param>
         /// <param name="itemFlags">The <see cref="OpenMetaverse.InventoryItemFlags"/> of the attachment</param>
-        /// <param name="attachPoint">The <see cref="OpenMetaverse.AttachmentPoint"/> on the agent
+        /// <param name="attachPoint">The <see cref="OpenMetaverse.AttachmentPoint"/> on the agent to attach the item to</param>
         /// <param name="replace">If true replace existing attachment on this attachment point, otherwise add to it (multi-attachments)</param>
-        /// to attach the item to</param>
         public void Attach(UUID itemID, UUID ownerID, string name, string description,
             Permissions perms, uint itemFlags, AttachmentPoint attachPoint, bool replace = true)
         {
