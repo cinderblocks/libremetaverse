@@ -616,13 +616,17 @@ namespace OpenMetaverse
             var cof = GetCurrentOutfitFolder(CancellationToken.None).Result;
             if (cof == null)
             {
-                Logger.Log("Could not retrieve Current Outfit folder", Helpers.LogLevel.Warning, Client);
+                Logger.Log("Could not retrieve 'Current Outfit' folder", Helpers.LogLevel.Warning, Client);
                 return null;
             }
 
             var contents = Client.Inventory.FolderContents(cof.UUID, cof.OwnerID, true, true,
                 InventorySortOrder.ByDate, TimeSpan.FromMinutes(1), true);
-
+            if (contents == null)
+            {
+                Logger.Log("Could not retrieve 'Current Outfit' folder contents", Helpers.LogLevel.Warning, Client);
+                return null;
+            }
             var wearables = new MultiValueDictionary<WearableType, WearableData>();
             foreach (var item in contents)
             {
@@ -2443,6 +2447,11 @@ namespace OpenMetaverse
             var blocks = new List<RezMultipleAttachmentsFromInvPacket.ObjectDataBlock>();
 
             var worn = RequestAgentWorn();
+            if (worn == null)
+            {
+                Logger.Log("Could not retrieve 'Current Outfit' folder to send to simulator", Helpers.LogLevel.Warning, Client);
+                return;
+            }
 
             Logger.Log($"{worn.Count} inventory items in 'Current Outfit' folder", Helpers.LogLevel.Info, Client);
 
