@@ -851,7 +851,7 @@ namespace OpenMetaverse
         public ConstructionData PrimData;
         /// <summary></summary>
         public ObjectProperties Properties;
-        /// <summary>Objects physics engine propertis</summary>
+        /// <summary>Objects physics engine properties</summary>
         public PhysicsProperties PhysicsProps;
         /// <summary>Extra data about primitive</summary>
         public object Tag;

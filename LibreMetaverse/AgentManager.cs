@@ -4741,7 +4741,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    TeleportMessage = $"Failed to connect to {newSimulator} after teleport";
+                    TeleportMessage = $"Failed to connect to simulator after teleport";
                     teleportStatus = TeleportStatus.Failed;
 
                     // We're going to get disconnected now
