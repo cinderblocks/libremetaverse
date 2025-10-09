@@ -1115,7 +1115,7 @@ namespace OpenMetaverse
                 Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), CancellationToken.None,
                     (response, data, error) =>
                 {
-                    if (error == null)
+                    if (error != null)
                     {
                         Logger.Log("Bake upload failed during uploader retrieval", Helpers.LogLevel.Warning, Client, error);
                         callback(UUID.Zero);
@@ -1440,15 +1440,11 @@ namespace OpenMetaverse
                 return;
             }
 
-            DownloadProgressHandler progressHandler = null;
-
             Uri url = new Uri($"{Client.Network.AgentAppearanceServiceURL}texture/{avatarID}/{bakeName}/{textureID}");
 
             DownloadRequest req = new DownloadRequest(
                 url,
-                "image/x-j2c",
-                progressHandler,
-                (response, responseData, error) =>
+                "image/x-j2c", null, (response, responseData, error) =>
                 {
                     if (error == null && responseData != null && response.IsSuccessStatusCode) // success
                     {
