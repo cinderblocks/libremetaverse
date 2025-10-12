@@ -243,13 +243,18 @@ namespace LibreMetaverse.RLV
             var notificationText = "";
             var isLegal = Permissions.CanAttach(objectFolderId, isShared, attachmentPoint, null);
 
+            if (!RlvCommon.RlvAttachmentPointToNameMap.TryGetValue(attachmentPoint, out var attachmentPointName))
+            {
+                attachmentPointName = "Unknown";
+            }
+
             if (isLegal)
             {
-                notificationText = $"/attached legally {attachmentPoint.ToString().ToLowerInvariant()}";
+                notificationText = $"/attached legally {attachmentPointName}";
             }
             else
             {
-                notificationText = $"/attached illegally {attachmentPoint.ToString().ToLowerInvariant()}";
+                notificationText = $"/attached illegally {attachmentPointName}";
             }
 
             await SendNotification(notificationText, cancellationToken).ConfigureAwait(false);
@@ -269,13 +274,18 @@ namespace LibreMetaverse.RLV
             var notificationText = "";
             var isLegal = Permissions.CanDetach(itemId, primId, objectFolderId, isShared, attachmentPoint, null);
 
+            if (!RlvCommon.RlvAttachmentPointToNameMap.TryGetValue(attachmentPoint, out var attachmentPointName))
+            {
+                attachmentPointName = "Unknown";
+            }
+
             if (isLegal)
             {
-                notificationText = $"/detached legally {attachmentPoint.ToString().ToLowerInvariant()}";
+                notificationText = $"/detached legally {attachmentPointName}";
             }
             else
             {
-                notificationText = $"/detached illegally {attachmentPoint.ToString().ToLowerInvariant()}";
+                notificationText = $"/detached illegally {attachmentPointName}";
             }
 
             await SendNotification(notificationText, cancellationToken).ConfigureAwait(false);

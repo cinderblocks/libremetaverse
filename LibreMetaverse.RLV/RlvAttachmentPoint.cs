@@ -42,7 +42,7 @@
         HUDBottom,
         HUDBottomRight,
         Neck,
-        Root,
+        AvatarCenter,
         LeftHandRing,
         RightHandRing,
         TailBase,
