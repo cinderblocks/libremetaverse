@@ -341,13 +341,13 @@ namespace LibreMetaverse.RLV.Tests.Queries
 
             await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
             await _rlv.ReportItemAttached(itemId1, false, RlvAttachmentPoint.Chest);
-            await _rlv.ReportItemAttached(itemId2, true, RlvAttachmentPoint.Skull);
+            await _rlv.ReportItemAttached(itemId2, true, RlvAttachmentPoint.AvatarCenter);
 
             var expected = new List<(int Channel, string Text)>
             {
                 (1234, $"/notify:1234=n"),
-                (1234, $"/attached legally chest"),
-                (1234, $"/attached legally skull"),
+                (1234, $"/attached legally Chest"),
+                (1234, $"/attached legally Avatar Center"),
             };
 
             Assert.Equal(expected, actual);
@@ -368,7 +368,7 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var expected = new List<(int Channel, string Text)>
             {
                 (1234, $"/notify:1234=n"),
-                (1234, $"/attached illegally chest"),
+                (1234, $"/attached illegally Chest"),
             };
 
             Assert.Equal(expected, actual);
@@ -391,8 +391,8 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var expected = new List<(int Channel, string Text)>
             {
                 (1234, $"/notify:1234=n"),
-                (1234, $"/detached legally chest"),
-                (1234, $"/detached legally skull"),
+                (1234, $"/detached legally Chest"),
+                (1234, $"/detached legally Skull"),
             };
 
             Assert.Equal(expected, actual);
@@ -414,7 +414,7 @@ namespace LibreMetaverse.RLV.Tests.Queries
             var expected = new List<(int Channel, string Text)>
             {
                 (1234, $"/notify:1234=n"),
-                (1234, $"/detached illegally chest"),
+                (1234, $"/detached illegally Chest"),
             };
 
             Assert.Equal(expected, actual);
