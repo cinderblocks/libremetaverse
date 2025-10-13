@@ -28,14 +28,12 @@
 using System;
 using System.IO;
 using System.Net;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Xml.Serialization;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Messages.Linden;
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 
 namespace LibreMetaverse.Tests
 {
@@ -47,9 +45,9 @@ namespace LibreMetaverse.Tests
     [TestFixture]
     public class MessageTests : Assert
     {
-        private Uri testURI = new Uri("https://sim3187.agni.lindenlab.com:12043/cap/6028fc44-c1e5-80a1-f902-19bde114458b");
-        private IPAddress testIP = IPAddress.Parse("127.0.0.1");
-        private ulong testHandle = 1106108697797888;
+        private readonly Uri testURI = new Uri("https://sim3187.agni.lindenlab.com:12043/cap/6028fc44-c1e5-80a1-f902-19bde114458b");
+        private readonly IPAddress testIP = IPAddress.Parse("127.0.0.1");
+        private readonly ulong testHandle = 1106108697797888;
 
         [Test]
         public void AgentGroupDataUpdateMessage()
@@ -111,12 +109,15 @@ namespace LibreMetaverse.Tests
 
             for (int i = 0; i < t.GroupDataBlock.Length; i++)
             {
-                Assert.That(t.GroupDataBlock[i].AcceptNotices, Is.EqualTo(s.GroupDataBlock[i].AcceptNotices));
-                Assert.That(t.GroupDataBlock[i].Contribution, Is.EqualTo(s.GroupDataBlock[i].Contribution));
-                Assert.That(t.GroupDataBlock[i].GroupID, Is.EqualTo(s.GroupDataBlock[i].GroupID));
-                Assert.That(t.GroupDataBlock[i].GroupInsigniaID, Is.EqualTo(s.GroupDataBlock[i].GroupInsigniaID));
-                Assert.That(t.GroupDataBlock[i].GroupName, Is.EqualTo(s.GroupDataBlock[i].GroupName));
-                Assert.That(t.GroupDataBlock[i].GroupPowers, Is.EqualTo(s.GroupDataBlock[i].GroupPowers));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(t.GroupDataBlock[i].AcceptNotices, Is.EqualTo(s.GroupDataBlock[i].AcceptNotices));
+                    Assert.That(t.GroupDataBlock[i].Contribution, Is.EqualTo(s.GroupDataBlock[i].Contribution));
+                    Assert.That(t.GroupDataBlock[i].GroupID, Is.EqualTo(s.GroupDataBlock[i].GroupID));
+                    Assert.That(t.GroupDataBlock[i].GroupInsigniaID, Is.EqualTo(s.GroupDataBlock[i].GroupInsigniaID));
+                    Assert.That(t.GroupDataBlock[i].GroupName, Is.EqualTo(s.GroupDataBlock[i].GroupName));
+                    Assert.That(t.GroupDataBlock[i].GroupPowers, Is.EqualTo(s.GroupDataBlock[i].GroupPowers));
+                }
             }
 
             for (int i = 0; i < t.NewGroupDataBlock.Length; i++)
@@ -145,14 +146,17 @@ namespace LibreMetaverse.Tests
             TeleportFinishMessage t = new TeleportFinishMessage();
             t.Deserialize(map);
 
-            Assert.That(t.AgentID, Is.EqualTo(s.AgentID));
-            Assert.That(t.Flags, Is.EqualTo(s.Flags));
-            Assert.That(t.IP, Is.EqualTo(s.IP));
-            Assert.That(t.LocationID, Is.EqualTo(s.LocationID));
-            Assert.That(t.Port, Is.EqualTo(s.Port));
-            Assert.That(t.RegionHandle, Is.EqualTo(s.RegionHandle));
-            Assert.That(t.SeedCapability, Is.EqualTo(s.SeedCapability));
-            Assert.That(t.SimAccess, Is.EqualTo(s.SimAccess));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(t.AgentID, Is.EqualTo(s.AgentID));
+                Assert.That(t.Flags, Is.EqualTo(s.Flags));
+                Assert.That(t.IP, Is.EqualTo(s.IP));
+                Assert.That(t.LocationID, Is.EqualTo(s.LocationID));
+                Assert.That(t.Port, Is.EqualTo(s.Port));
+                Assert.That(t.RegionHandle, Is.EqualTo(s.RegionHandle));
+                Assert.That(t.SeedCapability, Is.EqualTo(s.SeedCapability));
+                Assert.That(t.SimAccess, Is.EqualTo(s.SimAccess));
+            }
         }
 
         [Test]
@@ -171,10 +175,13 @@ namespace LibreMetaverse.Tests
             EstablishAgentCommunicationMessage t = new EstablishAgentCommunicationMessage();
             t.Deserialize(map);
 
-            Assert.That(t.Address, Is.EqualTo(s.Address));
-            Assert.That(t.AgentID, Is.EqualTo(s.AgentID));
-            Assert.That(t.Port, Is.EqualTo(s.Port));
-            Assert.That(t.SeedCapability, Is.EqualTo(s.SeedCapability));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(t.Address, Is.EqualTo(s.Address));
+                Assert.That(t.AgentID, Is.EqualTo(s.AgentID));
+                Assert.That(t.Port, Is.EqualTo(s.Port));
+                Assert.That(t.SeedCapability, Is.EqualTo(s.SeedCapability));
+            }
         }
 
         [Test]

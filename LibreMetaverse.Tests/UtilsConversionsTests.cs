@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2019-2024, Sjofn LLC
+ * Copyright (c) 2019-2025, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -25,9 +25,6 @@
  */
 
 using NUnit.Framework;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using OpenMetaverse;
 
 namespace LibreMetaverse.Tests

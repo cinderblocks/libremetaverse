@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2024, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@ namespace LibreMetaverse.Tests
             UUID a = new UUID();
             byte[] bytes = a.GetBytes();
             for (int i = 0; i < 16; i++)
-                Assert.That(bytes[i], Is.EqualTo(0x00));
+                Assert.That(bytes[i], Is.Zero);
 
             // Comparison
             a = new UUID(new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
@@ -192,7 +192,7 @@ namespace LibreMetaverse.Tests
 				                         0, 0, 0, 0);
     	
     	    /* determinant of singular matrix returns zero */
-            Assert.That((double)matrix.Determinant(), Is.EqualTo(0d).Within(0.001d));
+            Assert.That((double)matrix.Determinant(), Is.Zero.Within(0.001d));
     	
     	    /* inverse of identity matrix is the identity matrix */
        	    Assert.That(Matrix4.Identity, Is.EqualTo(Matrix4.Inverse(Matrix4.Identity)));

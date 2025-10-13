@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,7 @@ namespace LibreMetaverse.Tests
     [Category("Network")]
     public class NetworkTests : Assert
     {
-        GridClient Client;
+        readonly GridClient Client;
 
         //ulong CurrentRegionHandle = 0;
         //ulong AhernRegionHandle = 1096213093149184;
@@ -157,7 +157,7 @@ namespace LibreMetaverse.Tests
             bool Success = false;
             // make sure caps event queue is running
             System.Threading.AutoResetEvent waitforCAPS = new System.Threading.AutoResetEvent(false);
-            EventHandler<EventQueueRunningEventArgs> capsRunning = delegate(object sender, EventQueueRunningEventArgs e)
+            EventHandler<EventQueueRunningEventArgs> capsRunning = delegate
             {
                 waitforCAPS.Set();
             };            
