@@ -1,8 +1,9 @@
 using System;
 using System.Text;
 using System.Threading;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Land
 {
     public class ParcelPrimOwnersCommand : Command
     {
@@ -30,7 +31,7 @@ namespace OpenMetaverse.TestClient
                 {
                     for (int i = 0; i < e.PrimOwners.Count; i++)
                     {
-                        result.AppendFormat("Owner: {0} Count: {1}" + System.Environment.NewLine, e.PrimOwners[i].OwnerID, e.PrimOwners[i].Count);
+                        result.AppendFormat("Owner: {0} Count: {1}" + global::System.Environment.NewLine, e.PrimOwners[i].OwnerID, e.PrimOwners[i].Count);
                         wait.Set();
                     }
                 };

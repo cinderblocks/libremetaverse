@@ -1,7 +1,8 @@
 using System;
+using OpenMetaverse;
 using OpenMetaverse.Assets;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Inventory
 {
     public class ViewNotecardCommand : Command
     {
@@ -35,9 +36,9 @@ namespace OpenMetaverse.TestClient
                 return "First argument expected agent UUID.";
             }
 
-            System.Threading.AutoResetEvent waitEvent = new System.Threading.AutoResetEvent(false);
+            global::System.Threading.AutoResetEvent waitEvent = new global::System.Threading.AutoResetEvent(false);
 
-            System.Text.StringBuilder result = new System.Text.StringBuilder();
+            global::System.Text.StringBuilder result = new global::System.Text.StringBuilder();
 
             // verify asset is loaded in store
             if (Client.Inventory.Store.Contains(note))
@@ -52,7 +53,7 @@ namespace OpenMetaverse.TestClient
                     {
                         if (transfer.Success)
                         {
-                            result.AppendFormat("Raw Notecard Data: " + System.Environment.NewLine + " {0}", Utils.BytesToString(asset.AssetData));
+                            result.AppendFormat("Raw Notecard Data: " + global::System.Environment.NewLine + " {0}", Utils.BytesToString(asset.AssetData));
                             waitEvent.Set();
                         }
                     }

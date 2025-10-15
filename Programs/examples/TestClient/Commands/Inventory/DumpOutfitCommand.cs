@@ -26,18 +26,18 @@
  */
 
 using System;
-using System.Text;
-using System.IO;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using CoreJ2K;
+using OpenMetaverse;
 using OpenMetaverse.Assets;
 using OpenMetaverse.Imaging;
-using Pfim;
 using SkiaSharp;
 using Targa = OpenMetaverse.Imaging.Targa;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Inventory
 {
     public class DumpOutfitCommand : Command
     {

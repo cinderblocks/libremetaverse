@@ -1,7 +1,8 @@
 using System.Text;
 using LibreMetaverse;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Land
 {
     public class SyntaxIdCommand : Command
     {

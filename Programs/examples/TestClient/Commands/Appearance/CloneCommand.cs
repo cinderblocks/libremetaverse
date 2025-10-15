@@ -2,9 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using LibreMetaverse;
+using OpenMetaverse;
 using OpenMetaverse.Packets;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Appearance
 {
     public class CloneCommand : Command
     {

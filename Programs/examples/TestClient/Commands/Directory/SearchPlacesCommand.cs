@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient.Commands
+namespace TestClient.Commands.Directory
 {
     class SearchPlacesCommand : Command
     {
-        System.Threading.AutoResetEvent waitQuery = new System.Threading.AutoResetEvent(false);
+        global::System.Threading.AutoResetEvent waitQuery = new global::System.Threading.AutoResetEvent(false);
 
         public SearchPlacesCommand(TestClient testClient)
         {
@@ -28,7 +29,7 @@ namespace OpenMetaverse.TestClient.Commands
          
             EventHandler<PlacesReplyEventArgs> callback = delegate(object sender, PlacesReplyEventArgs e)
             {
-                result.AppendFormat("Your search string '{0}' returned {1} results" + System.Environment.NewLine,
+                result.AppendFormat("Your search string '{0}' returned {1} results" + global::System.Environment.NewLine,
                     searchText, e.MatchedPlaces.Count);
                 foreach (DirectoryManager.PlacesSearchData place in e.MatchedPlaces)
                 {

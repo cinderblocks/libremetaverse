@@ -1,9 +1,10 @@
 ﻿using System;
 using System.IO;
 using System.Threading;
+using OpenMetaverse;
 using OpenMetaverse.Assets;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Inventory
 {
     public class DownloadCommand : Command
     {

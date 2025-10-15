@@ -1,7 +1,8 @@
 using System.Linq;
 using System.Text;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Agent
 {
     public class WhoCommand: Command
     {

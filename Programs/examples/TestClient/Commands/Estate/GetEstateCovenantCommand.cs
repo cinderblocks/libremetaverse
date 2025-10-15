@@ -1,9 +1,9 @@
 using System;
 using System.Text;
 using System.Threading;
-using OpenMetaverse.Assets;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Estate
 {
     public class GetEstateCovenantCommand : Command
     {

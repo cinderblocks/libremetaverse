@@ -1,7 +1,7 @@
-using System;
 using System.Text;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Stats
 {
     public class StatsCommand : Command
     {

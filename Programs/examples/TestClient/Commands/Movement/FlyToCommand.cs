@@ -1,6 +1,7 @@
 ﻿using System;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient.Commands.Movement
+namespace TestClient.Commands.Movement
 {
     class FlyToCommand : Command
     {
@@ -152,7 +153,7 @@ namespace OpenMetaverse.TestClient.Commands.Movement
             running = false;
         }
 
-        [System.Diagnostics.Conditional("DEBUG")]
+        [global::System.Diagnostics.Conditional("DEBUG")]
         private void Debug(string x)
         {
             Console.WriteLine(x + " {0,3:##0} {1,3:##0} {2,3:##0} diff {3,5:##0.0} olddiff {4,5:##0.0}  At:{5,5} {6,5}  Up:{7,5} {8,5}  v: {9} w: {10}",

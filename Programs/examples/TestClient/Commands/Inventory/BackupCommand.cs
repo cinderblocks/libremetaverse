@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Text;
 using System.Threading;
-using System.ComponentModel;
+using OpenMetaverse;
 using OpenMetaverse.Assets;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Inventory
 {
     public class QueuedDownloadInfo
     {
@@ -298,7 +299,7 @@ namespace OpenMetaverse.TestClient
                     if (asset.Success)
                     {
                         // create the directory to put this in
-                        Directory.CreateDirectory(Path.GetDirectoryName(r.FileName));
+                        global::System.IO.Directory.CreateDirectory(Path.GetDirectoryName(r.FileName));
 
                         // write out the file
                         File.WriteAllBytes(r.FileName, asset.AssetData);

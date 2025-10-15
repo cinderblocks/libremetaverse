@@ -1,10 +1,12 @@
 ﻿using System;
 using System.IO;
-namespace OpenMetaverse.TestClient
+using OpenMetaverse;
+
+namespace TestClient.Commands.Estate
 {
     public class UploadRawTerrainCommand : Command
     {
-        System.Threading.AutoResetEvent WaitForUploadComplete = new System.Threading.AutoResetEvent(false);
+        global::System.Threading.AutoResetEvent WaitForUploadComplete = new global::System.Threading.AutoResetEvent(false);
 
         public UploadRawTerrainCommand(TestClient testClient)
         {
@@ -23,7 +25,7 @@ namespace OpenMetaverse.TestClient
 
             fileName = args[0];
 
-            if (!System.IO.File.Exists(fileName))
+            if (!global::System.IO.File.Exists(fileName))
             {
                 return $"File {fileName} Does not exist";
             }

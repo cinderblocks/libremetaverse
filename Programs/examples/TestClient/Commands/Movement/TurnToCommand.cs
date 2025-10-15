@@ -23,8 +23,10 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-using System;
-namespace OpenMetaverse.TestClient.Commands.Movement
+
+using OpenMetaverse;
+
+namespace TestClient.Commands.Movement
 {
     class TurnToCommand : Command
     {

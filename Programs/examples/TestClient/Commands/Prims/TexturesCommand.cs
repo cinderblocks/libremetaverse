@@ -1,8 +1,8 @@
-using System;
 using System.Collections.Generic;
+using OpenMetaverse;
 using OpenMetaverse.Assets;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Prims
 {
     public class TexturesCommand : Command
     {

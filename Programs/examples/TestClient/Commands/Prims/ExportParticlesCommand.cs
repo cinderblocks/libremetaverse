@@ -1,8 +1,9 @@
 using System;
 using System.Linq;
 using System.Text;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Prims
 {
     public class ExportParticlesCommand : Command
     {

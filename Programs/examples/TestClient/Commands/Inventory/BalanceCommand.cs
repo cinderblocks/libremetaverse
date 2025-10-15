@@ -1,6 +1,7 @@
 using System;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Inventory
 {
     public class BalanceCommand: Command
     {
@@ -13,7 +14,7 @@ namespace OpenMetaverse.TestClient
 
         public override string Execute(string[] args, UUID fromAgentID)
 		{
-            System.Threading.AutoResetEvent waitBalance = new System.Threading.AutoResetEvent(false);
+            global::System.Threading.AutoResetEvent waitBalance = new global::System.Threading.AutoResetEvent(false);
 
             void balance(object sender, BalanceEventArgs e)
             {

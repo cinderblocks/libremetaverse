@@ -1,6 +1,7 @@
 using System.Text;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Groups
 {
     public class GroupsCommand : Command
     {        

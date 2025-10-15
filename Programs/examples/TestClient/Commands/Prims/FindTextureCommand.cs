@@ -1,7 +1,6 @@
-using System;
-using System.Security.Permissions;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Prims
 {
     public class FindTextureCommand : Command
     {

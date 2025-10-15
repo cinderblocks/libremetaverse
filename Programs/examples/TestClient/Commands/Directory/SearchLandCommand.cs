@@ -26,15 +26,16 @@
 
 using System;
 using System.Text;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient.Commands
+namespace TestClient.Commands.Directory
 {
     /// <summary>
     /// 
     /// </summary>
     public class SearchLandCommand : Command
     {
-        private System.Threading.AutoResetEvent waitQuery = new System.Threading.AutoResetEvent(false);
+        private global::System.Threading.AutoResetEvent waitQuery = new global::System.Threading.AutoResetEvent(false);
         private StringBuilder result = new StringBuilder();
 
         /// <summary>
@@ -142,7 +143,7 @@ namespace OpenMetaverse.TestClient.Commands
                 // add the results to the StringBuilder object that contains the results
                 result.AppendLine(searchResult.ToString());
             }
-            result.AppendFormat("{0} results" + System.Environment.NewLine, e.DirParcels.Count);
+            result.AppendFormat("{0} results" + global::System.Environment.NewLine, e.DirParcels.Count);
             // let the calling method know we have data
             waitQuery.Set();
         }

@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Threading;
+using OpenMetaverse;
+using Vector3 = OpenMetaverse.Vector3;
 
-
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Prims
 {
     public class FindObjectsCommand : Command
     {

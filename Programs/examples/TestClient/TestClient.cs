@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Reflection;
-using OpenMetaverse.Packets;
+using System.Threading;
 using LibreMetaverse.Voice.Vivox;
+using OpenMetaverse;
+using OpenMetaverse.Packets;
+using TestClient.Commands.Appearance;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient
 {
     public class TestClient : GridClient
     {

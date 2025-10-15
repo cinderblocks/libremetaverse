@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Text;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.System
 {
     public class HelpCommand: Command
     {
@@ -40,7 +41,7 @@ namespace OpenMetaverse.TestClient
 
             foreach (KeyValuePair<CommandCategory, List<Command>> kvp in CommandTree)
             {
-                result.AppendFormat(System.Environment.NewLine + "* {0} Related Commands:" + System.Environment.NewLine, kvp.Key.ToString());
+                result.AppendFormat(global::System.Environment.NewLine + "* {0} Related Commands:" + global::System.Environment.NewLine, kvp.Key.ToString());
                 int colMax = 0;
                 foreach (var val in kvp.Value)
                 {
@@ -55,7 +56,7 @@ namespace OpenMetaverse.TestClient
                 }
                 result.AppendLine();
             }
-            result.AppendLine(System.Environment.NewLine + "Help [command] for usage/information");
+            result.AppendLine(global::System.Environment.NewLine + "Help [command] for usage/information");
             
             return result.ToString();
 		}

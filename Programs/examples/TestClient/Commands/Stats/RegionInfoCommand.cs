@@ -1,8 +1,8 @@
-using System;
 using System.Globalization;
 using System.Text;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Stats
 {
     public class RegionInfoCommand : Command
     {

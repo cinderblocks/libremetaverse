@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
+namespace TestClient.Commands.Inventory
 {
     class GiveItemCommand : Command
     {

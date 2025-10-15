@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Inventory
 {
     public class InventoryCommand : Command
     {
-        private Inventory Inventory;
+        private OpenMetaverse.Inventory Inventory;
         private InventoryManager Manager;
 
         public InventoryCommand(TestClient testClient)

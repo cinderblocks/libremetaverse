@@ -1,8 +1,9 @@
 using System;
 using System.Text;
 using System.Threading;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Land
 {
     public class ParcelInfoCommand : Command
     {
@@ -37,12 +38,12 @@ namespace OpenMetaverse.TestClient
 
             if (ParcelsDownloaded.WaitOne(TimeSpan.FromSeconds(30), false) && Client.Network.Connected)
             {
-                sb.AppendFormat("Downloaded {0} Parcels in {1} " + System.Environment.NewLine, 
+                sb.AppendFormat("Downloaded {0} Parcels in {1} " + global::System.Environment.NewLine, 
                     Client.Network.CurrentSim.Parcels.Count, Client.Network.CurrentSim.Name);
 
                 Client.Network.CurrentSim.Parcels.ForEach(delegate(Parcel parcel)
                 {
-                    sb.AppendFormat("Parcel[{0}]: Name: \"{1}\", Description: \"{2}\" ACLBlacklist Count: {3}, ACLWhiteList Count: {5} Traffic: {4}" + System.Environment.NewLine,
+                    sb.AppendFormat("Parcel[{0}]: Name: \"{1}\", Description: \"{2}\" ACLBlacklist Count: {3}, ACLWhiteList Count: {5} Traffic: {4}" + global::System.Environment.NewLine,
                         parcel.LocalID, parcel.Name, parcel.Desc, parcel.AccessBlackList.Count, parcel.Dwell, parcel.AccessWhiteList.Count);
                 });
 

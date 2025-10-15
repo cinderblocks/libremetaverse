@@ -1,6 +1,7 @@
 using System;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Prims
 {
     public class PrimCountCommand: Command
     {

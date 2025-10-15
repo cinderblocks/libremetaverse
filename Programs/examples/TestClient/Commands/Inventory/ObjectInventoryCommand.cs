@@ -1,7 +1,8 @@
 using System;
 using System.Linq;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Inventory
 {
     public class ObjectInventoryCommand : Command
     {

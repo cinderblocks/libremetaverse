@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient.Commands.Inventory.Shell
+namespace TestClient.Commands.Inventory
 {
     public class ChangeDirectoryCommand : Command
     {

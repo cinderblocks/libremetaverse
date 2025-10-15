@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient.Commands
+namespace TestClient.Commands.Directory
 {
     class SearchClassifiedsCommand : Command
     {
-        System.Threading.AutoResetEvent waitQuery = new System.Threading.AutoResetEvent(false);        
+        global::System.Threading.AutoResetEvent waitQuery = new global::System.Threading.AutoResetEvent(false);        
 
         public SearchClassifiedsCommand(TestClient testClient)
         {
@@ -28,7 +29,7 @@ namespace OpenMetaverse.TestClient.Commands
 
             EventHandler<DirClassifiedsReplyEventArgs> callback = delegate(object sender, DirClassifiedsReplyEventArgs e)
             {
-                result.AppendFormat("Your search string '{0}' returned {1} classified ads" + System.Environment.NewLine,
+                result.AppendFormat("Your search string '{0}' returned {1} classified ads" + global::System.Environment.NewLine,
                     searchText, e.Classifieds.Count);
                 foreach (DirectoryManager.Classified ad in e.Classifieds)
                 {

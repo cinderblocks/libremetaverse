@@ -1,6 +1,6 @@
-using System;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient.Commands.Movement
+namespace TestClient.Commands.Movement
 {
     class MovetoCommand : Command
     {

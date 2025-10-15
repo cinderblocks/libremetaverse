@@ -1,8 +1,9 @@
 using System;
-using System.Threading;
 using System.Text;
+using System.Threading;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Friends
 {
     public class MapFriendCommand : Command
     {

@@ -1,7 +1,8 @@
 using System.Text;
+using OpenMetaverse;
 using OpenMetaverse.Packets;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Agent
 {
     /// <summary>
     /// Sends a packet of type GenericMessage to the simulator.

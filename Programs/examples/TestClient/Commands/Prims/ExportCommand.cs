@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using OpenMetaverse.StructuredData;
+using OpenMetaverse;
 using OpenMetaverse.Assets;
+using OpenMetaverse.StructuredData;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Prims
 {
     public class ExportCommand : Command
     {
@@ -184,7 +185,7 @@ namespace OpenMetaverse.TestClient
 
                 if (asset.Decode())
                 {
-                    try { File.WriteAllBytes(asset.AssetID + ".tga", Imaging.Targa.Encode(asset.Image)); }
+                    try { File.WriteAllBytes(asset.AssetID + ".tga", OpenMetaverse.Imaging.Targa.Encode(asset.Image)); }
                     catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
                 }
                 else

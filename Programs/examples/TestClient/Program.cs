@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using CommandLine.Utility;
-using CoreJ2K.Util;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient
 {
     [Serializable]
     public class CommandLineArgumentsException : Exception

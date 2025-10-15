@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Agent
 {
     public class CloneProfileCommand : Command
     {
