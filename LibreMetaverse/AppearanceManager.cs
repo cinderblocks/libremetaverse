@@ -2158,7 +2158,7 @@ namespace OpenMetaverse
                         {
                             // This hasn't actually baked. Retry after a delay.
                             await Task.Delay(REBAKE_DELAY, cancellationToken);
-                            totalRetries = totalRetries - 1;
+                            totalRetries--;
                             continue;
                         }
                     }

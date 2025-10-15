@@ -858,8 +858,8 @@ namespace OpenMetaverse
             {
                 int patchX = x / 16;
                 int patchY = y / 16;
-                x = x % 16;
-                y = y % 16;
+                x %= 16;
+                y %= 16;
 
                 TerrainPatch patch = Terrain[patchY * 16 + patchX];
                 if (patch != null)

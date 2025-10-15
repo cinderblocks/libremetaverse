@@ -425,7 +425,7 @@ namespace OpenMetaverse.ImportExport
                 rotation = Matrix4.CreateFromEulers(90.0f * DEG_TO_RAD, 0.0f, 0.0f);
             }
 
-            rotation = rotation * transform;
+            rotation *= transform;
             transform = rotation;
 
             ParseVisualScene();
