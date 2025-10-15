@@ -1849,9 +1849,8 @@ namespace GridProxy
                     foreach (PacketAckPacket.PacketsBlock pb in ((PacketAckPacket)packet).Packets)
                     {
                         uint id = pb.ID;
-                        if (acks.ContainsKey(id))
+                        if (acks.Remove(id))
                         {
-                            acks.Remove(id);
                             seenAcks.Add(id);
                             changed = true;
                         }

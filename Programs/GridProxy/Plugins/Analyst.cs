@@ -335,9 +335,9 @@ public class Analyst : ProxyPlugin
                         name = lineName;
                         packetClass = openmvAssembly.GetType("OpenMetaverse.Packets." + name + "Packet");
                         if (packetClass == null) throw new Exception("Couldn't get class " + name + "Packet");
-                        ConstructorInfo ctr = packetClass.GetConstructor(new Type[] { });
+                        ConstructorInfo ctr = packetClass.GetConstructor([]);
                         if (ctr == null) throw new Exception("Couldn't get suitable constructor for " + name + "Packet");
-                        packet = (Packet)ctr.Invoke(new object[] { });
+                        packet = (Packet)ctr.Invoke([]);
                         //Console.WriteLine("Created new " + name + "Packet");
                     }
                     else
@@ -352,9 +352,9 @@ public class Analyst : ProxyPlugin
                             if (blockClass.IsArray)
                             {
                                 blockClass = blockClass.GetElementType();
-                                ConstructorInfo ctr = blockClass.GetConstructor(new Type[] { });
+                                ConstructorInfo ctr = blockClass.GetConstructor([]);
                                 if (ctr == null) throw new Exception("Couldn't get suitable constructor for " + blockClass.Name);
-                                blockObj = ctr.Invoke(new object[] { });
+                                blockObj = ctr.Invoke([]);
                                 object[] arr = (object[])blockField.GetValue(packet);
                                 object[] narr = (object[])Array.CreateInstance(blockClass, arr.Length + 1);
                                 Array.Copy(arr, narr, arr.Length);

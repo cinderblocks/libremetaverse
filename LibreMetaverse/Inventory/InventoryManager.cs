@@ -2049,17 +2049,15 @@ namespace OpenMetaverse
                 foreach (var item in items)
                 {
                     var update = (OSDMap)item.GetOSD();
-                    if (update.ContainsKey("asset_id"))
+                    if (update.Remove("asset_id"))
                     {
-                        update.Remove("asset_id");
                         if (item.TransactionID != UUID.Zero)
                         {
                             update["hash_id"] = item.TransactionID;
                         }
                     }
-                    if (update.ContainsKey("shadow_id"))
+                    if (update.Remove("shadow_id"))
                     {
-                        update.Remove("shadow_id");
                         if (item.TransactionID != UUID.Zero)
                         {
                             update["hash_id"] = item.TransactionID;
@@ -4117,10 +4115,8 @@ namespace OpenMetaverse
 
                 // Look for an "item created" callback
                 ItemCreatedCallback createdCallback;
-                if (_ItemCreatedCallbacks.TryGetValue(dataBlock.CallbackID, out createdCallback))
+                if (_ItemCreatedCallbacks.Remove(dataBlock.CallbackID, out createdCallback))
                 {
-                    _ItemCreatedCallbacks.Remove(dataBlock.CallbackID);
-
                     try
                     {
                         createdCallback(true, item);
@@ -4134,10 +4130,8 @@ namespace OpenMetaverse
                 // TODO: Is this callback even triggered when items are copied?
                 // Look for an "item copied" callback
                 ItemCopiedCallback copyCallback;
-                if (_ItemCopiedCallbacks.TryGetValue(dataBlock.CallbackID, out copyCallback))
+                if (_ItemCopiedCallbacks.Remove(dataBlock.CallbackID, out copyCallback))
                 {
-                    _ItemCopiedCallbacks.Remove(dataBlock.CallbackID);
-
                     try
                     {
                         copyCallback(item);
@@ -4210,9 +4204,8 @@ namespace OpenMetaverse
                 lock (_ItemInventoryTypeRequest)
                 {
                     InventoryType storedType = 0;
-                    if (_ItemInventoryTypeRequest.TryGetValue(newItem.CallbackID, out storedType))
+                    if (_ItemInventoryTypeRequest.Remove(newItem.CallbackID, out storedType))
                     {
-                        _ItemInventoryTypeRequest.Remove(newItem.CallbackID);
                         invType = storedType;
                     }
                 }
@@ -4241,20 +4234,16 @@ namespace OpenMetaverse
 
                 // Look for an "item created" callback
                 ItemCreatedCallback callback;
-                if (_ItemCreatedCallbacks.TryGetValue(newItem.CallbackID, out callback))
+                if (_ItemCreatedCallbacks.Remove(newItem.CallbackID, out callback))
                 {
-                    _ItemCreatedCallbacks.Remove(newItem.CallbackID);
-
                     try { callback(true, item); }
                     catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
                 }
 
                 // Look for an "item copied" callback
                 ItemCopiedCallback copyCallback;
-                if (_ItemCopiedCallbacks.TryGetValue(newItem.CallbackID, out copyCallback))
+                if (_ItemCopiedCallbacks.Remove(newItem.CallbackID, out copyCallback))
                 {
-                    _ItemCopiedCallbacks.Remove(newItem.CallbackID);
-
                     try { copyCallback(item); }
                     catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
                 }
@@ -4327,10 +4316,8 @@ namespace OpenMetaverse
 
                     // Look for an "item created" callback
                     ItemCreatedCallback callback;
-                    if (_ItemCreatedCallbacks.TryGetValue(dataBlock.CallbackID, out callback))
+                    if (_ItemCreatedCallbacks.Remove(dataBlock.CallbackID, out callback))
                     {
-                        _ItemCreatedCallbacks.Remove(dataBlock.CallbackID);
-
                         try
                         {
                             callback(true, item);
@@ -4343,10 +4330,8 @@ namespace OpenMetaverse
 
                     // Look for an "item copied" callback
                     ItemCopiedCallback copyCallback;
-                    if (_ItemCopiedCallbacks.TryGetValue(dataBlock.CallbackID, out copyCallback))
+                    if (_ItemCopiedCallbacks.Remove(dataBlock.CallbackID, out copyCallback))
                     {
-                        _ItemCopiedCallbacks.Remove(dataBlock.CallbackID);
-
                         try
                         {
                             copyCallback(item);

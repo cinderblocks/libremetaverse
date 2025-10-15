@@ -753,7 +753,7 @@ namespace LibreMetaverse.Voice.Vivox
                     case XmlNodeType.XmlDeclaration:
                         break;
                     default:
-                        throw new ArgumentOutOfRangeException();
+                        throw new ArgumentOutOfRangeException(nameof(reader.NodeType));
                 }
             }
 
