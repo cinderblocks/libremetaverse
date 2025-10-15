@@ -112,7 +112,7 @@ namespace OpenMetaverse.Http
 
             // Logger.DebugLog(nr.ToString() + " active downloads. Queued textures: " + queue.Count.ToString());
 
-            for (var i = nr; i < ParallelDownloads && queue.IsEmpty; ++i)
+            for (var i = nr; i < ParallelDownloads && queue.Count > 0; ++i)
             {
                 if (!queue.TryDequeue(out var item)) { return; }
 

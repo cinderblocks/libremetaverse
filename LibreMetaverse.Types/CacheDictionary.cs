@@ -95,7 +95,9 @@ namespace LibreMetaverse
             if (_data.Count == _maxSize)
             {
                 TKey keyToRemove = _removalStrategy.GetKeyToRemove();
-                if (!_data.Remove(keyToRemove))
+                if (_data.ContainsKey(keyToRemove))
+                    _data.Remove(keyToRemove);
+                else
                     throw new Exception(
                         $"Could not find a valid key to remove from cache, key = {key.ToString()}");
             }

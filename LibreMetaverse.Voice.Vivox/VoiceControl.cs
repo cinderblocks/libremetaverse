@@ -528,7 +528,7 @@ namespace LibreMetaverse.Voice.Vivox
                 case SessionState.Ringing:
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(e.State));
+                    throw new ArgumentOutOfRangeException();
             }
 
 
