@@ -234,7 +234,7 @@ namespace LibreMetaverse.Voice.Vivox
                 }
                 else
                 {
-                    sb.Append(">");
+                    sb.Append('>');
                     sb.Append(requestXML);
                     sb.Append("</Request>");
                 }

@@ -68,7 +68,7 @@ namespace OpenMetaverse.TestClient
                     if ((exportPrim.ParticleSys.PartDataFlags & Primitive.ParticleSystem.ParticleDataFlags.Emissive) != 0)
                         lsl.Append(" | PSYS_PART_EMISSIVE_MASK");
 
-                    lsl.Append(","); lsl.Append(Environment.NewLine);
+                    lsl.Append(','); lsl.Append(Environment.NewLine);
                     lsl.Append("         PSYS_SRC_PATTERN, 0");
 
                     if ((exportPrim.ParticleSys.Pattern & Primitive.ParticleSystem.SourcePattern.Drop) != 0)

@@ -97,7 +97,7 @@ namespace OpenMetaverse.TestClient
                                 OutfitAssets.Add(face.TextureID);
                                 Client.Assets.RequestImage(face.TextureID, type, Assets_OnImageReceived);
                                 output.Append(((AvatarTextureIndex)j).ToString());
-                                output.Append(" ");
+                                output.Append(' ');
                             }
                         }
 
