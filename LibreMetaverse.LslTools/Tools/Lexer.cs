@@ -27,7 +27,7 @@
 using System;
 using System.IO;
 
-namespace LibreMetaverse.LslTools
+namespace Tools.Tools
 {
   public class Lexer
   {

@@ -26,7 +26,7 @@
 
 using System.Collections;
 
-namespace LibreMetaverse.LslTools
+namespace Tools.Tools
 {
   public delegate Hashtable Relation(Transition a);
 }

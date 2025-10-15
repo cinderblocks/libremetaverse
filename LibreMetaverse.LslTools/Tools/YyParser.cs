@@ -28,7 +28,7 @@ using System;
 using System.Collections;
 using System.IO;
 
-namespace LibreMetaverse.LslTools
+namespace Tools.Tools
 {
   public class YyParser
   {

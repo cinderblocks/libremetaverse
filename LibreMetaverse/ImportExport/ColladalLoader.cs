@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2024, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -45,14 +45,14 @@ namespace OpenMetaverse.ImportExport
     /// </summary>
     public class ColladaLoader
     {
-        COLLADA Model;
-        static XmlSerializer Serializer = null;
-        List<Node> Nodes;
-        List<ModelMaterial> Materials;
-        Dictionary<string, string> MatSymTarget;
-        string FileName;
+        private COLLADA Model;
+        private static XmlSerializer Serializer = null;
+        private List<Node> Nodes;
+        private List<ModelMaterial> Materials;
+        private Dictionary<string, string> MatSymTarget;
+        private string FileName;
 
-        class Node
+        private class Node
         {
             public Matrix4 Transform = Matrix4.Identity;
             public string Name;
@@ -97,7 +97,7 @@ namespace OpenMetaverse.ImportExport
             }
         }
 
-        void LoadImages(IEnumerable<ModelPrim> prims)
+        private void LoadImages(IEnumerable<ModelPrim> prims)
         {
             foreach (var prim in prims)
             {
@@ -111,7 +111,7 @@ namespace OpenMetaverse.ImportExport
             }
         }
 
-        void LoadImage(ModelMaterial material)
+        private void LoadImage(ModelMaterial material)
         {
             var fname = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(FileName), material.Texture);
 
@@ -173,12 +173,12 @@ namespace OpenMetaverse.ImportExport
 
         }
 
-        bool IsPowerOfTwo(uint n)
+        private static bool IsPowerOfTwo(uint n)
         {
             return (n & (n - 1)) == 0 && n != 0;
         }
 
-        int ClosestPowerOwTwo(int n)
+        private int ClosestPowerOwTwo(int n)
         {
             int res = 1;
 
@@ -190,7 +190,7 @@ namespace OpenMetaverse.ImportExport
             return res > 1 ? res / 2 : 1;
         }
 
-        ModelMaterial ExtractMaterial(object diffuse)
+        private ModelMaterial ExtractMaterial(object diffuse)
         {
             ModelMaterial ret = new ModelMaterial();
             if (diffuse is common_color_or_texture_typeColor color)
@@ -205,7 +205,7 @@ namespace OpenMetaverse.ImportExport
 
         }
 
-        void ParseMaterials()
+        private void ParseMaterials()
         {
 
             if (Model == null) return;
@@ -315,7 +315,7 @@ namespace OpenMetaverse.ImportExport
             }
         }
 
-        void ProcessNode(node node)
+        private void ProcessNode(node node)
         {
             Node n = new Node {Name = node.name, ID = node.id};
 
@@ -369,7 +369,7 @@ namespace OpenMetaverse.ImportExport
             }
         }
 
-        void ParseVisualScene()
+        private void ParseVisualScene()
         {
             Nodes = new List<Node>();
             if (Model == null) return;
@@ -389,7 +389,7 @@ namespace OpenMetaverse.ImportExport
             }
         }
 
-        List<ModelPrim> Parse()
+        private List<ModelPrim> Parse()
         {
             var Prims = new List<ModelPrim>();
 
@@ -495,14 +495,14 @@ namespace OpenMetaverse.ImportExport
             return Prims;
         }
 
-        source FindSource(IEnumerable<source> sources, string id)
+        private source FindSource(IEnumerable<source> sources, string id)
         {
             id = id.Substring(1);
 
             return sources.FirstOrDefault(src => src.id == id);
         }
 
-        void AddPositions(out Vector3 scale, out Vector3 offset, mesh mesh, ModelPrim prim, Matrix4 transform)
+        private void AddPositions(out Vector3 scale, out Vector3 offset, mesh mesh, ModelPrim prim, Matrix4 transform)
         {
             prim.Positions = new List<Vector3>();
             source posSrc = FindSource(mesh.source, mesh.vertices.input[0].source);
@@ -545,7 +545,7 @@ namespace OpenMetaverse.ImportExport
             }
         }
 
-        int[] StrToArray(string s)
+        private int[] StrToArray(string s)
         {
             string[] vals = Regex.Split(s.Trim(), @"\s+");
             int[] ret = new int[vals.Length];
@@ -558,7 +558,7 @@ namespace OpenMetaverse.ImportExport
             return ret;
         }
 
-        void AddFacesFromPolyList(polylist list, mesh mesh, ModelPrim prim, Matrix4 transform)
+        private void AddFacesFromPolyList(polylist list, mesh mesh, ModelPrim prim, Matrix4 transform)
         {
             string material = list.material;
             source posSrc = null;
@@ -690,7 +690,7 @@ namespace OpenMetaverse.ImportExport
 
         }
 
-        polylist Triangles2Polylist(triangles triangles)
+        private polylist Triangles2Polylist(triangles triangles)
         {
             polylist poly = new polylist
             {

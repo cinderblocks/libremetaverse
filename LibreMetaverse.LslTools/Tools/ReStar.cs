@@ -26,7 +26,7 @@
 
 using System.IO;
 
-namespace LibreMetaverse.LslTools
+namespace Tools.Tools
 {
   internal class ReStar : Regex
   {

@@ -295,6 +295,7 @@ namespace LibreMetaverse.Tests
             Assert.That(llsdTwoDS.AsString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
         }
 
+        [Test]
         public void DeserializeString()
         {
             string sOne = "''";

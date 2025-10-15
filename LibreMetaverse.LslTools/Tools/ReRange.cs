@@ -28,7 +28,7 @@ using System.Collections;
 using System.IO;
 using System.Text;
 
-namespace LibreMetaverse.LslTools
+namespace Tools.Tools
 {
   internal class ReRange : Regex
   {

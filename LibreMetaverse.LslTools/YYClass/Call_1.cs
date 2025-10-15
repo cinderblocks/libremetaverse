@@ -23,9 +23,10 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-using LibreMetaverse.LslTools;
 
-namespace YYClass
+using Tools.Tools;
+
+namespace Tools.YYClass
 {
   public class Call_1 : Call
   {

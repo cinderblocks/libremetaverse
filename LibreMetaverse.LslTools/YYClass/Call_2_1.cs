@@ -24,9 +24,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using LibreMetaverse.LslTools;
+using Tools.Tools;
 
-namespace YYClass
+namespace Tools.YYClass
 {
   public class Call_2_1 : Call_2
   {

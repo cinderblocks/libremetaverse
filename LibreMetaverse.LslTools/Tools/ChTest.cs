@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace LibreMetaverse.LslTools
+namespace Tools.Tools
 {
   internal delegate bool ChTest(char ch);
 }

@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace LibreMetaverse.LslTools
+namespace Tools.Tools
 {
   public delegate SymbolSet Func(Transition a);
 }

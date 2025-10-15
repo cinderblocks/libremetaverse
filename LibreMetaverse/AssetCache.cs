@@ -363,7 +363,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Adds up file sizes passes in a FileInfo array
         /// </summary>
-        long GetFileSize(FileInfo[] files)
+        private static long GetFileSize(FileInfo[] files)
         {
             return files.Sum(file => file.Length);
         }

@@ -26,7 +26,7 @@
 
 using System;
 
-namespace LibreMetaverse.LslTools
+namespace Tools.Tools
 {
   public class TOKEN : SYMBOL
   {

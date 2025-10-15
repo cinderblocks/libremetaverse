@@ -24,9 +24,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using LibreMetaverse.LslTools;
+using Tools.Tools;
 
-namespace YYClass
+namespace Tools.YYClass
 {
   public class BaseCall_6_1 : BaseCall_6
   {

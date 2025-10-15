@@ -26,7 +26,7 @@
 
 using System.Collections;
 
-namespace LibreMetaverse.LslTools
+namespace Tools.Tools
 {
   public abstract class TokensGen : GenBase
   {

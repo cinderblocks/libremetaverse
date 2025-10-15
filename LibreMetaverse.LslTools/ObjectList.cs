@@ -26,7 +26,7 @@
 
 using System.Collections;
 
-namespace LibreMetaverse
+namespace Tools
 {
 
     public class ObjectList

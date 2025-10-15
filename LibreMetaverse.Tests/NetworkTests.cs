@@ -43,7 +43,7 @@ namespace LibreMetaverse.Tests
         //ulong MorrisRegionHandle = 1096213093149183;
         //ulong DoreRegionHandle = 1095113581521408;
         //ulong HooperRegionHandle = 1106108697797888;
-        bool DetectedObject = false;
+        private bool DetectedObject = false;
 
         public NetworkTests()
         {
@@ -149,7 +149,7 @@ namespace LibreMetaverse.Tests
                 "CAPS Event Queue is not running and failed to start");
         }
 
-        public bool CapsQueueRunning()
+        private bool CapsQueueRunning()
         {
             if (Client.Network.CurrentSim.Caps.IsEventQueueRunning)
                 return true;

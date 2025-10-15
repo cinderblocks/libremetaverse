@@ -27,9 +27,9 @@
 using System;
 using System.IO;
 using System.Text;
-using YYClass;
+using Tools.YYClass;
 
-namespace LibreMetaverse.LslTools
+namespace Tools.Tools
 {
   public class GenBase
   {

@@ -485,7 +485,7 @@ namespace LibreMetaverse.PrimMesher
         private float iX, iY; // intersection point
         internal List<Coord> normals;
 
-        private Angle interpolatePoints(float newPoint, Angle p1, Angle p2)
+        private static Angle interpolatePoints(float newPoint, Angle p1, Angle p2)
         {
             var m = (newPoint - p1.angle) / (p2.angle - p1.angle);
             return new Angle(newPoint, p1.X + m * (p2.X - p1.X), p1.Y + m * (p2.Y - p1.Y));
@@ -2071,7 +2071,7 @@ namespace LibreMetaverse.PrimMesher
         }
 
 
-        private Coord SurfaceNormal(Coord c1, Coord c2, Coord c3)
+        private static Coord SurfaceNormal(Coord c1, Coord c2, Coord c3)
         {
             var edge1 = new Coord(c2.X - c1.X, c2.Y - c1.Y, c2.Z - c1.Z);
             var edge2 = new Coord(c3.X - c1.X, c3.Y - c1.Y, c3.Z - c1.Z);
