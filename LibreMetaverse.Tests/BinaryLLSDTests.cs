@@ -428,7 +428,7 @@ namespace LibreMetaverse.Tests
             OSD llsdEmptyArray = OSDParser.DeserializeLLSDBinary(binaryEmptyArray);
             Assert.That(llsdEmptyArray.Type, Is.EqualTo(OSDType.Array));
             OSDArray llsdEmptyArrayArray = (OSDArray)llsdEmptyArray;
-            Assert.That(llsdEmptyArrayArray.Count, Is.Zero);
+            Assert.That(llsdEmptyArrayArray, Is.Empty);
 
 
             OSD llsdSimpleArray = OSDParser.DeserializeLLSDBinary(binarySimpleArray);
@@ -509,7 +509,7 @@ namespace LibreMetaverse.Tests
         {
             OSDMap llsdEmptyMap = (OSDMap)OSDParser.DeserializeLLSDBinary(binaryEmptyMap);
             Assert.That(llsdEmptyMap.Type, Is.EqualTo(OSDType.Map));
-            Assert.That(llsdEmptyMap.Count, Is.Zero);
+            Assert.That(llsdEmptyMap, Is.Empty);
 
             OSDMap llsdSimpleMap = (OSDMap)OSDParser.DeserializeLLSDBinary(binarySimpleMap);
             Assert.That(llsdSimpleMap.Type, Is.EqualTo(OSDType.Map));

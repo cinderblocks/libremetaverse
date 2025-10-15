@@ -262,7 +262,7 @@ namespace OpenMetaverse.Assets
             data.Append("parameters "); data.Append(Params.Count); data.Append(NL);
             foreach (KeyValuePair<int, float> param in Params)
             {
-                data.Append(param.Key); data.Append(" "); data.Append(Helpers.FloatToTerseString(param.Value)); data.Append(NL);
+                data.Append(param.Key); data.Append(' '); data.Append(Helpers.FloatToTerseString(param.Value)); data.Append(NL);
             }
 
             data.Append("textures "); data.Append(Textures.Count); data.Append(NL);

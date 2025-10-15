@@ -510,7 +510,7 @@ namespace LibreMetaverse.Tests
 
             Assert.That(array[1].Type, Is.EqualTo(OSDType.Binary));
             tempBinary = (OSDBinary)array[2];
-            Assert.That(tempBinary.AsBinary().Length, Is.Zero);
+            Assert.That(tempBinary.AsBinary(), Is.Empty);
         }
 
         /// <summary>

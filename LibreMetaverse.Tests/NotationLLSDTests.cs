@@ -482,7 +482,7 @@ namespace LibreMetaverse.Tests
             string sArrayOne = "[]";
             OSDArray llsdArrayOne = (OSDArray)OSDParser.DeserializeLLSDNotation(sArrayOne);
             Assert.That(llsdArrayOne.Type, Is.EqualTo(OSDType.Array));
-            Assert.That(llsdArrayOne.Count, Is.Zero);
+            Assert.That(llsdArrayOne, Is.Empty);
 
             string sArrayTwo = "[ i0 ]";
             OSDArray llsdArrayTwo = (OSDArray)OSDParser.DeserializeLLSDNotation(sArrayTwo);
@@ -526,7 +526,7 @@ namespace LibreMetaverse.Tests
             string sOne = OSDParser.SerializeLLSDNotation(llsdOne);
             OSDArray llsdOneDS = (OSDArray)OSDParser.DeserializeLLSDNotation(sOne);
             Assert.That(llsdOneDS.Type, Is.EqualTo(OSDType.Array));
-            Assert.That(llsdOneDS.Count, Is.Zero);
+            Assert.That(llsdOneDS, Is.Empty);
 
             OSD llsdTwo = OSD.FromInteger(123234);
             OSD llsdThree = OSD.FromString("asedkfjhaqweiurohzasdf");
@@ -562,7 +562,7 @@ namespace LibreMetaverse.Tests
             string sMapOne = " { } ";
             OSDMap llsdMapOne = (OSDMap)OSDParser.DeserializeLLSDNotation(sMapOne);
             Assert.That(llsdMapOne.Type, Is.EqualTo(OSDType.Map));
-            Assert.That(llsdMapOne.Count, Is.Zero);
+            Assert.That(llsdMapOne, Is.Empty);
 
             string sMapTwo = " { \"test\":i2 } ";
             OSDMap llsdMapTwo = (OSDMap)OSDParser.DeserializeLLSDNotation(sMapTwo);
@@ -604,7 +604,7 @@ namespace LibreMetaverse.Tests
             string sOne = OSDParser.SerializeLLSDNotation(llsdOne);
             OSDMap llsdOneDS = (OSDMap)OSDParser.DeserializeLLSDNotation(sOne);
             Assert.That(llsdOneDS.Type, Is.EqualTo(OSDType.Map));
-            Assert.That(llsdOneDS.Count, Is.Zero);
+            Assert.That(llsdOneDS, Is.Empty);
 
             OSD llsdTwo = OSD.FromInteger(123234);
             OSD llsdThree = OSD.FromString("asedkfjhaqweiurohzasdf");
