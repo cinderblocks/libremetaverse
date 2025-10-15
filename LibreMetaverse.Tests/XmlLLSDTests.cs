@@ -611,7 +611,7 @@ namespace LibreMetaverse.Tests
 
             Assert.That(theSD, Is.InstanceOf<OSDArray>());
             array = (OSDArray)theSD;
-            Assert.That(array.Count, Is.EqualTo(2));
+            Assert.That(array, Has.Count.EqualTo(2));
 
             //The first element of top level array, a map
             Assert.That(array[0].Type, Is.EqualTo(OSDType.Map));
@@ -626,19 +626,19 @@ namespace LibreMetaverse.Tests
             Assert.That(tempSD, Is.Not.Null);
             Assert.That(tempSD.Type, Is.EqualTo(OSDType.Array));
             array = (OSDArray)tempSD;
-            Assert.That(array.Count, Is.EqualTo(2));
+            Assert.That(array, Has.Count.EqualTo(2));
 
             array = (OSDArray)theSD;
             //Second element of top level array, an array
             tempSD = array[1];
             Assert.That(tempSD.Type, Is.EqualTo(OSDType.Array));
             array = (OSDArray)tempSD;
-            Assert.That(array.Count, Is.EqualTo(3));
+            Assert.That(array, Has.Count.EqualTo(3));
             //Nested array
             tempSD = array[2];
             Assert.That(tempSD.Type, Is.EqualTo(OSDType.Array));
             array = (OSDArray)tempSD;
-            Assert.That(array.Count, Is.EqualTo(3));
+            Assert.That(array, Has.Count.EqualTo(3));
         }
     }
 
@@ -653,7 +653,7 @@ namespace LibreMetaverse.Tests
         internal static void TestBinary(OSDBinary inBinary, byte[] inExpected)
         {
             byte[] binary = inBinary.AsBinary();
-            Assert.That(binary.Length, Is.EqualTo(inExpected.Length));
+            Assert.That(binary, Has.Length.EqualTo(inExpected.Length));
             for (int i = 0; i < inExpected.Length; i++)
             {
                 if (inExpected[i] != binary[i])

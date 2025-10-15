@@ -152,7 +152,7 @@ namespace LibreMetaverse.Tests
 
             byte[] teBytes2 = te2.GetBytes();
 
-            Assert.That(teBytes.Length, Is.EqualTo(teBytes2.Length));
+            Assert.That(teBytes, Has.Length.EqualTo(teBytes2.Length));
 
             for (int i = 0; i < teBytes.Length; i++)
             {

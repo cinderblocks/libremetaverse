@@ -487,7 +487,7 @@ namespace LibreMetaverse.Tests
             string sArrayTwo = "[ i0 ]";
             OSDArray llsdArrayTwo = (OSDArray)OSDParser.DeserializeLLSDNotation(sArrayTwo);
             Assert.That(llsdArrayTwo.Type, Is.EqualTo(OSDType.Array));
-            Assert.That(llsdArrayTwo.Count, Is.EqualTo(1));
+            Assert.That(llsdArrayTwo, Has.Count.EqualTo(1));
             OSDInteger llsdIntOne = (OSDInteger)llsdArrayTwo[0];
             Assert.That(llsdIntOne.Type, Is.EqualTo(OSDType.Integer));
             Assert.That(llsdIntOne.AsInteger(), Is.Zero);
@@ -495,7 +495,7 @@ namespace LibreMetaverse.Tests
             string sArrayThree = "[ i0, i1 ]";
             OSDArray llsdArrayThree = (OSDArray)OSDParser.DeserializeLLSDNotation(sArrayThree);
             Assert.That(llsdArrayThree.Type, Is.EqualTo(OSDType.Array));
-            Assert.That(llsdArrayThree.Count, Is.EqualTo(2));
+            Assert.That(llsdArrayThree, Has.Count.EqualTo(2));
             OSDInteger llsdIntTwo = (OSDInteger)llsdArrayThree[0];
             Assert.That(llsdIntTwo.Type, Is.EqualTo(OSDType.Integer));
             Assert.That(llsdIntTwo.AsInteger(), Is.Zero);
@@ -506,7 +506,7 @@ namespace LibreMetaverse.Tests
             string sArrayFour = " [ \"testtest\", \"aha\",t,f,i1, r1.2, [ i1] ] ";
             OSDArray llsdArrayFour = (OSDArray)OSDParser.DeserializeLLSDNotation(sArrayFour);
             Assert.That(llsdArrayFour.Type, Is.EqualTo(OSDType.Array));
-            Assert.That(llsdArrayFour.Count, Is.EqualTo(7));
+            Assert.That(llsdArrayFour, Has.Count.EqualTo(7));
             Assert.That(llsdArrayFour[0].AsString(), Is.EqualTo("testtest"));
             Assert.That(llsdArrayFour[1].AsString(), Is.EqualTo("aha"));
             Assert.That(llsdArrayFour[2].AsBoolean(), Is.True);
@@ -541,7 +541,7 @@ namespace LibreMetaverse.Tests
             string sFive = OSDParser.SerializeLLSDNotation(llsdOne);
             OSDArray llsdFive = (OSDArray)OSDParser.DeserializeLLSDNotation(sFive);
             Assert.That(llsdFive.Type, Is.EqualTo(OSDType.Array));
-            Assert.That(llsdFive.Count, Is.EqualTo(3));
+            Assert.That(llsdFive, Has.Count.EqualTo(3));
             Assert.That(llsdFive[0].Type, Is.EqualTo(OSDType.Integer));
             Assert.That(llsdFive[0].AsInteger(), Is.EqualTo(123234));
             Assert.That(llsdFive[1].Type, Is.EqualTo(OSDType.String));
@@ -549,7 +549,7 @@ namespace LibreMetaverse.Tests
 
             OSDArray llsdSix = (OSDArray)llsdFive[2];
             Assert.That(llsdSix.Type, Is.EqualTo(OSDType.Array));
-            Assert.That(llsdSix.Count, Is.EqualTo(2));
+            Assert.That(llsdSix, Has.Count.EqualTo(2));
             Assert.That(llsdSix[0].Type, Is.EqualTo(OSDType.Integer));
             Assert.That(llsdSix[0].AsInteger(), Is.EqualTo(123234));
             Assert.That(llsdSix[1].Type, Is.EqualTo(OSDType.String));
@@ -567,14 +567,14 @@ namespace LibreMetaverse.Tests
             string sMapTwo = " { \"test\":i2 } ";
             OSDMap llsdMapTwo = (OSDMap)OSDParser.DeserializeLLSDNotation(sMapTwo);
             Assert.That(llsdMapTwo.Type, Is.EqualTo(OSDType.Map));
-            Assert.That(llsdMapTwo.Count, Is.EqualTo(1));
+            Assert.That(llsdMapTwo, Has.Count.EqualTo(1));
             Assert.That(llsdMapTwo["test"].Type, Is.EqualTo(OSDType.Integer));
             Assert.That(llsdMapTwo["test"].AsInteger(), Is.EqualTo(2));
 
             string sMapThree = " { 'test':\"testtesttest\", 'aha':\"muahahaha\" , \"anywhere\":! } ";
             OSDMap llsdMapThree = (OSDMap)OSDParser.DeserializeLLSDNotation(sMapThree);
             Assert.That(llsdMapThree.Type, Is.EqualTo(OSDType.Map));
-            Assert.That(llsdMapThree.Count, Is.EqualTo(3));
+            Assert.That(llsdMapThree, Has.Count.EqualTo(3));
             Assert.That(llsdMapThree["test"].Type, Is.EqualTo(OSDType.String));
             Assert.That(llsdMapThree["test"].AsString(), Is.EqualTo("testtesttest"));
             Assert.That(llsdMapThree["test"].Type, Is.EqualTo(OSDType.String));
@@ -584,12 +584,12 @@ namespace LibreMetaverse.Tests
             string sMapFour = " { 'test' : { 'test' : i1, 't0st' : r2.5 }, 'tist' : \"hello world!\", 'tast' : \"last\" } ";
             OSDMap llsdMapFour = (OSDMap)OSDParser.DeserializeLLSDNotation(sMapFour);
             Assert.That(llsdMapFour.Type, Is.EqualTo(OSDType.Map));
-            Assert.That(llsdMapFour.Count, Is.EqualTo(3));
+            Assert.That(llsdMapFour, Has.Count.EqualTo(3));
             Assert.That(llsdMapFour["tist"].AsString(), Is.EqualTo("hello world!"));
             Assert.That(llsdMapFour["tast"].AsString(), Is.EqualTo("last"));
             OSDMap llsdMapFive = (OSDMap)llsdMapFour["test"];
             Assert.That(llsdMapFive.Type, Is.EqualTo(OSDType.Map));
-            Assert.That(llsdMapFive.Count, Is.EqualTo(2));
+            Assert.That(llsdMapFive, Has.Count.EqualTo(2));
             Assert.That(llsdMapFive["test"].Type, Is.EqualTo(OSDType.Integer));
             Assert.That(llsdMapFive["test"].AsInteger(), Is.EqualTo(1));
             Assert.That(llsdMapFive["t0st"].Type, Is.EqualTo(OSDType.Real));
@@ -619,7 +619,7 @@ namespace LibreMetaverse.Tests
             string sFive = OSDParser.SerializeLLSDNotation(llsdOne);
             OSDMap llsdFive = (OSDMap)OSDParser.DeserializeLLSDNotation(sFive);
             Assert.That(llsdFive.Type, Is.EqualTo(OSDType.Map));
-            Assert.That(llsdFive.Count, Is.EqualTo(3));
+            Assert.That(llsdFive, Has.Count.EqualTo(3));
             Assert.That(llsdFive["test0"].Type, Is.EqualTo(OSDType.Integer));
             Assert.That(llsdFive["test0"].AsInteger(), Is.EqualTo(123234));
             Assert.That(llsdFive["test1"].Type, Is.EqualTo(OSDType.String));
@@ -627,7 +627,7 @@ namespace LibreMetaverse.Tests
 
             OSDMap llsdSix = (OSDMap)llsdFive["test2"];
             Assert.That(llsdSix.Type, Is.EqualTo(OSDType.Map));
-            Assert.That(llsdSix.Count, Is.EqualTo(2));
+            Assert.That(llsdSix, Has.Count.EqualTo(2));
             Assert.That(llsdSix["test0"].Type, Is.EqualTo(OSDType.Integer));
             Assert.That(llsdSix["test0"].AsInteger(), Is.EqualTo(123234));
             Assert.That(llsdSix["test1"].Type, Is.EqualTo(OSDType.String));
@@ -646,7 +646,7 @@ namespace LibreMetaverse.Tests
             string sSeven = OSDParser.SerializeLLSDNotation(llsdSeven);
             OSDMap llsdSevenDS = (OSDMap)OSDParser.DeserializeLLSDNotation(sSeven);
             Assert.That(llsdSevenDS.Type, Is.EqualTo(OSDType.Map));
-            Assert.That(llsdSevenDS.Count, Is.EqualTo(1));
+            Assert.That(llsdSevenDS, Has.Count.EqualTo(1));
             Assert.That(llsdSevenDS[content].AsString(), Is.EqualTo(content));
         }
 
@@ -685,7 +685,7 @@ namespace LibreMetaverse.Tests
             // and the parser doesnt throw an exception
             OSDArray llsdArray = (OSDArray)OSDParser.DeserializeLLSDNotation(realWorldExample);
             Assert.That(llsdArray.Type, Is.EqualTo(OSDType.Array));
-            Assert.That(llsdArray.Count, Is.EqualTo(3));
+            Assert.That(llsdArray, Has.Count.EqualTo(3));
 
             OSDMap llsdMapOne = (OSDMap)llsdArray[0];
             Assert.That(llsdMapOne.Type, Is.EqualTo(OSDType.Map));
@@ -735,7 +735,7 @@ namespace LibreMetaverse.Tests
             // we also try to parse this... and look a little at the results 
             OSDArray llsdSeven = (OSDArray)OSDParser.DeserializeLLSDNotation(sThree);
             Assert.That(llsdSeven.Type, Is.EqualTo(OSDType.Array));
-            Assert.That(llsdSeven.Count, Is.EqualTo(3));
+            Assert.That(llsdSeven, Has.Count.EqualTo(3));
             Assert.That(llsdSeven[0].Type, Is.EqualTo(OSDType.Integer));
             Assert.That(llsdSeven[0].AsInteger(), Is.EqualTo(1));
             Assert.That(llsdSeven[1].Type, Is.EqualTo(OSDType.Integer));

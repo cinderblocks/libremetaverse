@@ -191,7 +191,7 @@ namespace LibreMetaverse.Tests
             byte[][] splitPacket = scriptDialogPacket.ToBytesMultiple();
 
             Assert.That(splitPacket, Is.Not.Null);
-            Assert.That(splitPacket.Length, Is.EqualTo(1),
+            Assert.That(splitPacket, Has.Length.EqualTo(1),
                 "Expected ScriptDialog packet to split into 1 packet but got " + splitPacket.Length);
 
             ParcelReturnObjectsPacket proPacket = new ParcelReturnObjectsPacket();
@@ -207,7 +207,7 @@ namespace LibreMetaverse.Tests
             splitPacket = proPacket.ToBytesMultiple();
 
             Assert.That(splitPacket, Is.Not.Null);
-            Assert.That(splitPacket.Length, Is.EqualTo(1), 
+            Assert.That(splitPacket, Has.Length.EqualTo(1), 
                 "Expected ParcelReturnObjectsPacket packet to split into 1 packet but got " + splitPacket.Length);
 
             InventoryDescendentsPacket invPacket = new InventoryDescendentsPacket();
@@ -225,7 +225,7 @@ namespace LibreMetaverse.Tests
             splitPacket = invPacket.ToBytesMultiple();
 
             Assert.That(splitPacket, Is.Not.Null);
-            Assert.That(splitPacket.Length, Is.EqualTo(1),
+            Assert.That(splitPacket, Has.Length.EqualTo(1),
                 "Split InventoryDescendents packet into " + splitPacket.Length + " instead of 1 packet");
 
             int x = 0;
@@ -234,9 +234,9 @@ namespace LibreMetaverse.Tests
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(invPacket.FolderData.Length, Is.EqualTo(1),
+                Assert.That(invPacket.FolderData, Has.Length.EqualTo(1),
                             "InventoryDescendents packet came back with " + invPacket.FolderData.Length + " FolderData blocks");
-                Assert.That(invPacket.ItemData.Length, Is.EqualTo(5),
+                Assert.That(invPacket.ItemData, Has.Length.EqualTo(5),
                     "InventoryDescendents packet came back with " + invPacket.ItemData.Length + " ItemData blocks");
             }
         }

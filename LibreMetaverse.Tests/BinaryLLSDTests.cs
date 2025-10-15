@@ -441,7 +441,7 @@ namespace LibreMetaverse.Tests
             OSD llsdSimpleArrayTwo = OSDParser.DeserializeLLSDBinary(binarySimpleArrayTwo);
             Assert.That(llsdSimpleArrayTwo.Type, Is.EqualTo(OSDType.Array));
             OSDArray llsdArrayTwo = (OSDArray)llsdSimpleArrayTwo;
-            Assert.That(llsdArrayTwo.Count, Is.EqualTo(2));
+            Assert.That(llsdArrayTwo, Has.Count.EqualTo(2));
 
             Assert.That(llsdArrayTwo[0].Type, Is.EqualTo(OSDType.Integer));
             Assert.That(llsdArrayTwo[0].AsInteger(), Is.Zero);
@@ -513,13 +513,13 @@ namespace LibreMetaverse.Tests
 
             OSDMap llsdSimpleMap = (OSDMap)OSDParser.DeserializeLLSDBinary(binarySimpleMap);
             Assert.That(llsdSimpleMap.Type, Is.EqualTo(OSDType.Map));
-            Assert.That(llsdSimpleMap.Count, Is.EqualTo(1));
+            Assert.That(llsdSimpleMap, Has.Count.EqualTo(1));
             Assert.That(llsdSimpleMap["test"].Type, Is.EqualTo(OSDType.Integer));
             Assert.That(llsdSimpleMap["test"].AsInteger(), Is.Zero);
 
             OSDMap llsdSimpleMapTwo = (OSDMap)OSDParser.DeserializeLLSDBinary(binarySimpleMapTwo);
             Assert.That(llsdSimpleMapTwo.Type, Is.EqualTo(OSDType.Map));
-            Assert.That(llsdSimpleMapTwo.Count, Is.EqualTo(3));
+            Assert.That(llsdSimpleMapTwo, Has.Count.EqualTo(3));
             Assert.That(llsdSimpleMapTwo["test"].Type, Is.EqualTo(OSDType.Unknown));
             Assert.That(llsdSimpleMapTwo["tes1"].Type, Is.EqualTo(OSDType.String));
             Assert.That(llsdSimpleMapTwo["tes1"].AsString(), Is.EqualTo("aha"));
@@ -552,7 +552,7 @@ namespace LibreMetaverse.Tests
             // version created by this deserializer.
             OSDMap llsdSimpleMapDeserialized = (OSDMap)OSDParser.DeserializeLLSDBinary(binarySimpleMapTwoSerialized);
             Assert.That(llsdSimpleMapDeserialized.Type, Is.EqualTo(OSDType.Map));
-            Assert.That(llsdSimpleMapDeserialized.Count, Is.EqualTo(3));
+            Assert.That(llsdSimpleMapDeserialized, Has.Count.EqualTo(3));
             Assert.That(llsdSimpleMapDeserialized["t0st"].Type, Is.EqualTo(OSDType.Integer));
             Assert.That(llsdSimpleMapDeserialized["t0st"].AsInteger(), Is.EqualTo(241));
             Assert.That(llsdSimpleMapDeserialized["tes1"].Type, Is.EqualTo(OSDType.String));
@@ -575,7 +575,7 @@ namespace LibreMetaverse.Tests
             byte[] binarySimpleMapThree = OSDParser.SerializeLLSDBinary(llsdSimpleMapThree);
             OSDMap llsdSimpleMapThreeDS = (OSDMap)OSDParser.DeserializeLLSDBinary(binarySimpleMapThree);
             Assert.That(llsdSimpleMapThreeDS.Type, Is.EqualTo(OSDType.Map));
-            Assert.That(llsdSimpleMapThreeDS.Count, Is.EqualTo(1));
+            Assert.That(llsdSimpleMapThreeDS, Has.Count.EqualTo(1));
             Assert.That(llsdSimpleMapThreeDS[content].AsString(), Is.EqualTo(content));
 
         }
@@ -602,11 +602,11 @@ namespace LibreMetaverse.Tests
             OSD llsdNested = OSDParser.DeserializeLLSDBinary(binaryNested);
             Assert.That(llsdNested.Type, Is.EqualTo(OSDType.Array));
             OSDArray llsdArray = (OSDArray)llsdNested;
-            Assert.That(llsdArray.Count, Is.EqualTo(3));
+            Assert.That(llsdArray, Has.Count.EqualTo(3));
 
             OSDMap llsdMap = (OSDMap)llsdArray[0];
             Assert.That(llsdMap.Type, Is.EqualTo(OSDType.Map));
-            Assert.That(llsdMap.Count, Is.EqualTo(2));
+            Assert.That(llsdMap, Has.Count.EqualTo(2));
 
             OSDArray llsdNestedArray = (OSDArray)llsdMap["t0st"];
             Assert.That(llsdNestedArray.Type, Is.EqualTo(OSDType.Array));
@@ -648,16 +648,16 @@ namespace LibreMetaverse.Tests
             // Because maps don't preserve order, we compare here to a deserialized value. 
             OSDArray llsdNestedDeserialized = (OSDArray)OSDParser.DeserializeLLSDBinary(binaryNestedSerialized);
             Assert.That(llsdNestedDeserialized.Type, Is.EqualTo(OSDType.Array));
-            Assert.That(llsdNestedDeserialized.Count, Is.EqualTo(3));
+            Assert.That(llsdNestedDeserialized, Has.Count.EqualTo(3));
 
             OSDMap llsdMapDeserialized = (OSDMap)llsdNestedDeserialized[0];
             Assert.That(llsdMapDeserialized.Type, Is.EqualTo(OSDType.Map));
-            Assert.That(llsdMapDeserialized.Count, Is.EqualTo(2));
+            Assert.That(llsdMapDeserialized, Has.Count.EqualTo(2));
             Assert.That(llsdMapDeserialized["t0st"].Type, Is.EqualTo(OSDType.Array));
 
             OSDArray llsdNestedArray = (OSDArray)llsdMapDeserialized["t0st"];
             Assert.That(llsdNestedArray.Type, Is.EqualTo(OSDType.Array));
-            Assert.That(llsdNestedArray.Count, Is.EqualTo(2));
+            Assert.That(llsdNestedArray, Has.Count.EqualTo(2));
             Assert.That(llsdNestedArray[0].Type, Is.EqualTo(OSDType.Integer));
             Assert.That(llsdNestedArray[0].AsInteger(), Is.EqualTo(1));
             Assert.That(llsdNestedArray[1].Type, Is.EqualTo(OSDType.Integer));
@@ -701,7 +701,7 @@ namespace LibreMetaverse.Tests
 
             OSDMap llsdMapDS = (OSDMap)OSDParser.DeserializeLLSDBinary( binaryData );
             Assert.That(llsdMapDS.Type, Is.EqualTo(OSDType.Map));
-            Assert.That(llsdMapDS.Count, Is.EqualTo(10));
+            Assert.That(llsdMapDS, Has.Count.EqualTo(10));
             Assert.That(llsdMapDS["testOne"].AsString(), Is.EqualTo(sOne));
             Assert.That(llsdMapDS["testTwo"].AsString(), Is.EqualTo(sTwo));
             Assert.That(llsdMapDS["testThree"].AsString(), Is.EqualTo(sOne));
