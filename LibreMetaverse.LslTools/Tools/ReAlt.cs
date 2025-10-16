@@ -26,7 +26,7 @@
 
 using System.IO;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   internal class ReAlt : Regex
   {
@@ -34,18 +34,18 @@ namespace Tools.Tools
 
     public ReAlt(TokensGen tks, Regex sub, int p, string str)
     {
-      this.m_sub = sub;
-      this.m_alt = new Regex(tks, p, str);
+      m_sub = sub;
+      m_alt = new Regex(tks, p, str);
     }
 
     public override void Print(TextWriter s)
     {
       s.Write("(");
-      if (this.m_sub != null)
-        this.m_sub.Print(s);
+      if (m_sub != null)
+        m_sub.Print(s);
       s.Write("|");
-      if (this.m_alt != null)
-        this.m_alt.Print(s);
+      if (m_alt != null)
+        m_alt.Print(s);
       s.Write(")");
     }
 
@@ -53,10 +53,10 @@ namespace Tools.Tools
     {
       int num1 = -1;
       int num2 = -1;
-      if (this.m_sub != null)
-        num1 = this.m_sub.Match(str, pos, max);
-      if (this.m_alt != null)
-        num2 = this.m_sub.Match(str, pos, max);
+      if (m_sub != null)
+        num1 = m_sub.Match(str, pos, max);
+      if (m_alt != null)
+        num2 = m_sub.Match(str, pos, max);
       if (num1 > num2)
         return num1;
       return num2;
@@ -64,10 +64,10 @@ namespace Tools.Tools
 
     public override void Build(Nfa nfa)
     {
-      if (this.m_alt != null)
+      if (m_alt != null)
       {
-        Nfa nfa1 = new Nfa(nfa.m_tks, this.m_alt);
-        nfa.AddEps((NfaNode) nfa1);
+        Nfa nfa1 = new Nfa(nfa.m_tks, m_alt);
+        nfa.AddEps(nfa1);
         nfa1.m_end.AddEps(nfa.m_end);
       }
       base.Build(nfa);

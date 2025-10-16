@@ -26,7 +26,7 @@
 
 using System.IO;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   internal class ArcEx : Arc
   {
@@ -34,20 +34,20 @@ namespace Tools.Tools
 
     public ArcEx(Regex re, NfaNode next)
     {
-      this.m_ref = re;
-      this.m_next = next;
+      m_ref = re;
+      m_next = next;
     }
 
     public override bool Match(char ch)
     {
-      return this.m_ref.Match(ch);
+      return m_ref.Match(ch);
     }
 
     public override void Print(TextWriter s)
     {
       s.Write("  ");
-      this.m_ref.Print(s);
-      s.WriteLine(this.m_next.m_state);
+      m_ref.Print(s);
+      s.WriteLine(m_next.m_state);
     }
   }
 }

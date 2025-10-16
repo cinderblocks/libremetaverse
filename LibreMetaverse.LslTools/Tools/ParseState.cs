@@ -27,7 +27,7 @@
 using System;
 using System.Collections;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class ParseState
   {
@@ -40,10 +40,10 @@ namespace Tools.Tools
 
     public ParseState(SymbolsGen syms, CSymbol acc)
     {
-      this.m_sgen = syms;
-      this.m_state = syms.state++;
-      this.m_accessingSymbol = acc;
-      this.m_items = new ProdItemList();
+      m_sgen = syms;
+      m_state = syms.state++;
+      m_accessingSymbol = acc;
+      m_items = new ProdItemList();
     }
 
     private ParseState()
@@ -52,7 +52,7 @@ namespace Tools.Tools
 
     public Transition GetTransition(CSymbol s)
     {
-      return (Transition) this.m_transitions[(object) s.yytext] ?? new Transition(this, s);
+      return (Transition) m_transitions[s.yytext] ?? new Transition(this, s);
     }
 
     public bool Accessor(CSymbol[] x)
@@ -67,18 +67,18 @@ namespace Tools.Tools
 
     public void MaybeAdd(ProdItem item)
     {
-      if (!this.m_items.Add(item))
+      if (!m_items.Add(item))
         return;
-      this.m_changed = true;
+      m_changed = true;
     }
 
     public void Closure()
     {
-      while (this.m_changed)
+      while (m_changed)
       {
-        this.m_changed = false;
-        for (ProdItemList prodItemList = this.m_items; prodItemList.m_pi != null; prodItemList = prodItemList.m_next)
-          this.CheckClosure(prodItemList.m_pi);
+        m_changed = false;
+        for (ProdItemList prodItemList = m_items; prodItemList.m_pi != null; prodItemList = prodItemList.m_next)
+          CheckClosure(prodItemList.m_pi);
       }
     }
 
@@ -90,12 +90,12 @@ namespace Tools.Tools
       csymbol.AddStartItems(this, item.FirstOfRest(csymbol.m_parser));
       if (!item.IsReducingAction())
         return;
-      this.MaybeAdd(new ProdItem(item.m_prod, item.m_pos + 1));
+      MaybeAdd(new ProdItem(item.m_prod, item.m_pos + 1));
     }
 
     public void AddEntries()
     {
-      for (ProdItemList prodItemList = this.m_items; prodItemList.m_pi != null; prodItemList = prodItemList.m_next)
+      for (ProdItemList prodItemList = m_items; prodItemList.m_pi != null; prodItemList = prodItemList.m_next)
       {
         ProdItem pi1 = prodItemList.m_pi;
         if (!pi1.m_done)
@@ -103,7 +103,7 @@ namespace Tools.Tools
           CSymbol csymbol = pi1.Next();
           if (csymbol != null && !pi1.IsReducingAction())
           {
-            ParseState parseState = new ParseState(this.m_sgen, csymbol);
+            ParseState parseState = new ParseState(m_sgen, csymbol);
             parseState.MaybeAdd(new ProdItem(pi1.m_prod, pi1.m_pos + 1));
             for (ProdItemList next = prodItemList.m_next; next != null && next.m_pi != null; next = next.m_next)
             {
@@ -114,19 +114,19 @@ namespace Tools.Tools
                 pi2.m_done = true;
               }
             }
-            if (!this.m_items.AtEnd)
+            if (!m_items.AtEnd)
             {
               if (csymbol.IsAction())
               {
                 ParseState next = parseState.CheckExists();
-                foreach (CSymbol key in (IEnumerable) csymbol.m_follow.Keys)
+                foreach (CSymbol key in csymbol.m_follow.Keys)
                 {
-                  if (key != this.m_sgen.m_symbols.EOFSymbol)
-                    this.GetTransition(key).m_next = new ParserShift((ParserAction) csymbol, next);
+                  if (key != m_sgen.m_symbols.EOFSymbol)
+                    GetTransition(key).m_next = new ParserShift((ParserAction) csymbol, next);
                 }
               }
               else
-                this.GetTransition(csymbol).m_next = new ParserShift((ParserAction) null, parseState.CheckExists());
+                GetTransition(csymbol).m_next = new ParserShift(null, parseState.CheckExists());
             }
           }
         }
@@ -135,7 +135,7 @@ namespace Tools.Tools
 
     public void ReduceStates()
     {
-      for (ProdItemList prodItemList = this.m_items; prodItemList.m_pi != null; prodItemList = prodItemList.m_next)
+      for (ProdItemList prodItemList = m_items; prodItemList.m_pi != null; prodItemList = prodItemList.m_next)
       {
         ProdItem pi = prodItemList.m_pi;
         if (pi.Next() == null)
@@ -154,17 +154,17 @@ namespace Tools.Tools
             }
             else
             {
-              this.m_sgen.m_lexer.yytext = "%" + prod.m_lhs.yytext;
-              this.m_sgen.m_prod = prod;
-              var parserSimpleAction = new ParserSimpleAction(this.m_sgen)
+              m_sgen.m_lexer.yytext = "%" + prod.m_lhs.yytext;
+              m_sgen.m_prod = prod;
+              var parserSimpleAction = new ParserSimpleAction(m_sgen)
               {
                   m_sym = prod.m_lhs,
                   m_len = count
               };
-              parserReduce = new ParserReduce((ParserAction) parserSimpleAction, count, prod);
+              parserReduce = new ParserReduce(parserSimpleAction, count, prod);
             }
-            foreach (CSymbol key in (IEnumerable) pi.m_prod.m_lhs.m_follow.Keys)
-              this.GetTransition(key).m_reduce[(object) prod] = (object) parserReduce;
+            foreach (CSymbol key in pi.m_prod.m_lhs.m_follow.Keys)
+              GetTransition(key).m_reduce[prod] = parserReduce;
           }
         }
       }
@@ -172,9 +172,9 @@ namespace Tools.Tools
 
     public bool SameAs(ParseState p)
     {
-      if (this.m_accessingSymbol != p.m_accessingSymbol)
+      if (m_accessingSymbol != p.m_accessingSymbol)
         return false;
-      ProdItemList prodItemList1 = this.m_items;
+      ProdItemList prodItemList1 = m_items;
       ProdItemList prodItemList2;
       for (prodItemList2 = p.m_items; !prodItemList1.AtEnd && !prodItemList2.AtEnd && (prodItemList1.m_pi.m_prod == prodItemList2.m_pi.m_prod && prodItemList1.m_pi.m_pos == prodItemList2.m_pi.m_pos); prodItemList2 = prodItemList2.m_next)
         prodItemList1 = prodItemList1.m_next;
@@ -185,69 +185,69 @@ namespace Tools.Tools
 
     public ParseState CheckExists()
     {
-      this.Closure();
-      foreach (ParseState p in (IEnumerable) this.m_sgen.m_symbols.m_states.Values)
+      Closure();
+      foreach (ParseState p in m_sgen.m_symbols.m_states.Values)
       {
-        if (this.SameAs(p))
+        if (SameAs(p))
           return p;
       }
-      this.m_sgen.m_symbols.m_states[(object) this.m_state] = (object) this;
-      this.AddEntries();
+      m_sgen.m_symbols.m_states[m_state] = this;
+      AddEntries();
       return this;
     }
 
     ~ParseState()
     {
-      if (this.m_sgen == null || this.m_state != this.m_sgen.state - 1)
+      if (m_sgen == null || m_state != m_sgen.state - 1)
         return;
-      --this.m_sgen.state;
+      --m_sgen.state;
     }
 
     public void Print()
     {
       Console.WriteLine();
-      if (this.m_state == 0)
+      if (m_state == 0)
         Console.WriteLine("state 0");
       else
-        Console.WriteLine("state {0} accessed by {1}", (object) this.m_state, (object) this.m_accessingSymbol.yytext);
-      if (this.m_items != null)
+        Console.WriteLine("state {0} accessed by {1}", m_state, m_accessingSymbol.yytext);
+      if (m_items != null)
       {
-        for (ProdItemList prodItemList = this.m_items; prodItemList.m_pi != null; prodItemList = prodItemList.m_next)
+        for (ProdItemList prodItemList = m_items; prodItemList.m_pi != null; prodItemList = prodItemList.m_next)
         {
           prodItemList.m_pi.Print();
           prodItemList.m_pi.m_prod.m_lhs.m_follow.Print();
         }
       }
-      foreach (Transition transition in (IEnumerable) this.m_transitions.Values)
+      foreach (Transition transition in m_transitions.Values)
         transition.Print0();
     }
 
     public void Print0()
     {
       Console.WriteLine();
-      if (this.m_state == 0)
+      if (m_state == 0)
         Console.WriteLine("state 0");
       else
-        Console.WriteLine("state {0} accessed by {1}", (object) this.m_state, (object) this.m_accessingSymbol.yytext);
-      if (this.m_items != null)
+        Console.WriteLine("state {0} accessed by {1}", m_state, m_accessingSymbol.yytext);
+      if (m_items != null)
       {
-        for (ProdItemList prodItemList = this.m_items; prodItemList.m_pi != null; prodItemList = prodItemList.m_next)
+        for (ProdItemList prodItemList = m_items; prodItemList.m_pi != null; prodItemList = prodItemList.m_next)
         {
           prodItemList.m_pi.Print();
           Console.WriteLine();
         }
       }
       Console.WriteLine();
-      foreach (ParsingInfo pi in (IEnumerable) this.m_sgen.m_symbols.symbolInfo.Values)
-        this.PrintTransition(pi);
+      foreach (ParsingInfo pi in m_sgen.m_symbols.symbolInfo.Values)
+        PrintTransition(pi);
     }
 
     private void PrintTransition(ParsingInfo pi)
     {
-      ParserEntry parserEntry = (ParserEntry) pi.m_parsetable[(object) this.m_state];
+      ParserEntry parserEntry = (ParserEntry) pi.m_parsetable[m_state];
       if (parserEntry == null)
         return;
-      Console.Write("        {0}  {1}  ", (object) pi.m_name, (object) parserEntry.str);
+      Console.Write("        {0}  {1}  ", pi.m_name, parserEntry.str);
       if (parserEntry.m_action != null)
         parserEntry.m_action.Print();
       Console.WriteLine();
@@ -256,19 +256,19 @@ namespace Tools.Tools
     public static object Serialise(object o, Serialiser s)
     {
       if (s == null)
-        return (object) new ParseState();
+        return new ParseState();
       ParseState parseState = (ParseState) o;
       if (s.Encode)
       {
-        s.Serialise((object) parseState.m_state);
-        s.Serialise((object) parseState.m_accessingSymbol);
-        s.Serialise((object) parseState.m_changed);
-        return (object) true;
+        s.Serialise(parseState.m_state);
+        s.Serialise(parseState.m_accessingSymbol);
+        s.Serialise(parseState.m_changed);
+        return true;
       }
       parseState.m_state = (int) s.Deserialise();
       parseState.m_accessingSymbol = (CSymbol) s.Deserialise();
       parseState.m_changed = (bool) s.Deserialise();
-      return (object) parseState;
+      return parseState;
     }
   }
 }

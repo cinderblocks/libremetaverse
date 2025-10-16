@@ -28,7 +28,7 @@ using System;
 using System.Collections;
 using System.IO;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class YyParser
   {
@@ -49,63 +49,65 @@ namespace Tools.Tools
     {
       get
       {
-        if (this.m_startSymbol != null)
-          return this.m_startSymbol.yytext;
+        if (m_startSymbol != null)
+          return m_startSymbol.yytext;
         return "<null>";
       }
       set
       {
-        CSymbol symbol = (CSymbol) this.symbols[(object) value];
+        CSymbol symbol = (CSymbol) symbols[value];
         if (symbol == null)
-          this.erh.Error(new CSToolsException(25, "No such symbol <" + value + ">"));
-        this.m_startSymbol = symbol;
+          erh.Error(new CSToolsException(25, "No such symbol <" + value + ">"));
+        m_startSymbol = symbol;
       }
     }
 
     public ParsingInfo GetSymbolInfo(string name, int num)
     {
-      ParsingInfo parsingInfo = (ParsingInfo) this.symbolInfo[(object) num];
+      ParsingInfo parsingInfo = (ParsingInfo) symbolInfo[num];
       if (parsingInfo == null)
-        this.symbolInfo[(object) num] = (object) (parsingInfo = new ParsingInfo(name, num));
+        symbolInfo[num] = parsingInfo = new ParsingInfo(name, num);
       return parsingInfo;
     }
 
     public void ClassInit(SymbolsGen yyp)
     {
-      this.Special = new CSymbol(yyp);
-      this.Special.yytext = "S'";
-      this.EOFSymbol = new EOF(yyp).Resolve();
+      Special = new CSymbol(yyp)
+      {
+          yytext = "S'"
+      };
+      EOFSymbol = new EOF(yyp).Resolve();
     }
 
     public void Transitions(Builder b)
     {
-      foreach (ParseState parseState in (IEnumerable) this.m_states.Values)
+      foreach (ParseState parseState in m_states.Values)
       {
-        foreach (Transition t in (IEnumerable) parseState.m_transitions.Values)
+        foreach (Transition t in parseState.m_transitions.Values)
           b(t);
       }
     }
 
     public void PrintTransitions(Func f, string s)
     {
-      foreach (ParseState parseState in (IEnumerable) this.m_states.Values)
+      foreach (ParseState parseState in m_states.Values)
       {
-        foreach (Transition a in (IEnumerable) parseState.m_transitions.Values)
+        foreach (Transition a in parseState.m_transitions.Values)
           a.Print(f(a), s);
       }
     }
 
     public virtual object Action(Parser yyp, SYMBOL yysym, int yyact)
     {
-      return (object) null;
+      return null;
     }
 
     public void GetEOF(Lexer yyl)
     {
-      this.EOFSymbol = (CSymbol) this.symbols[(object) "EOF"];
-      if (this.EOFSymbol != null)
+      EOFSymbol = (CSymbol) symbols["EOF"];
+      if (EOFSymbol != null)
         return;
-      this.EOFSymbol = (CSymbol) new EOF(yyl);
+      EOFSymbol = new EOF(yyl);
     }
 
     public void Emit(TextWriter m_outFile)
@@ -113,27 +115,27 @@ namespace Tools.Tools
       Serialiser serialiser = new Serialiser(m_outFile);
       serialiser.VersionCheck();
       Console.WriteLine("Serialising the parser");
-      serialiser.Serialise((object) this.m_startSymbol);
-      serialiser.Serialise((object) this.m_accept);
-      serialiser.Serialise((object) this.m_states);
-      serialiser.Serialise((object) this.literals);
-      serialiser.Serialise((object) this.symbolInfo);
-      serialiser.Serialise((object) this.m_concrete);
+      serialiser.Serialise(m_startSymbol);
+      serialiser.Serialise(m_accept);
+      serialiser.Serialise(m_states);
+      serialiser.Serialise(literals);
+      serialiser.Serialise(symbolInfo);
+      serialiser.Serialise(m_concrete);
       m_outFile.WriteLine("0};");
     }
 
     public void GetParser(Lexer m_lexer)
     {
-      Serialiser serialiser = new Serialiser(this.arr);
+      Serialiser serialiser = new Serialiser(arr);
       serialiser.VersionCheck();
-      this.m_startSymbol = (CSymbol) serialiser.Deserialise();
-      this.m_startSymbol.kids = new ObjectList();
-      this.m_accept = (ParseState) serialiser.Deserialise();
-      this.m_states = (Hashtable) serialiser.Deserialise();
-      this.literals = (Hashtable) serialiser.Deserialise();
-      this.symbolInfo = (Hashtable) serialiser.Deserialise();
-      this.m_concrete = (bool) serialiser.Deserialise();
-      this.GetEOF(m_lexer);
+      m_startSymbol = (CSymbol) serialiser.Deserialise();
+      m_startSymbol.kids = new ObjectList();
+      m_accept = (ParseState) serialiser.Deserialise();
+      m_states = (Hashtable) serialiser.Deserialise();
+      literals = (Hashtable) serialiser.Deserialise();
+      symbolInfo = (Hashtable) serialiser.Deserialise();
+      m_concrete = (bool) serialiser.Deserialise();
+      GetEOF(m_lexer);
     }
   }
 }

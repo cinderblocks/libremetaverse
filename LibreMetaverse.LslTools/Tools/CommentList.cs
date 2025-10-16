@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class CommentList
   {
@@ -34,9 +34,9 @@ namespace Tools.Tools
 
     public CommentList(int st, int ln, CommentList t)
     {
-      this.spos = st;
-      this.len = ln;
-      this.tail = t;
+      spos = st;
+      len = ln;
+      tail = t;
     }
   }
 }

@@ -24,9 +24,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using Tools.Tools;
+using LibreMetaverse.LSLTools.Tools;
 
-namespace Tools.YYClass
+namespace LibreMetaverse.LSLTools.YYClass
 {
   public class Call_2_1 : Call_2
   {
@@ -34,11 +34,11 @@ namespace Tools.YYClass
       : base(yyq)
     {
       if (((TOKEN) yyq.StackAt(3).m_value).yytext.Trim() != ((cs0syntax) yyq).Cls)
-        this.yytext = ((TOKEN) yyq.StackAt(3).m_value).yytext + "(" + ((TOKEN) yyq.StackAt(1).m_value).yytext + ")";
+        yytext = ((TOKEN) yyq.StackAt(3).m_value).yytext + "(" + ((TOKEN) yyq.StackAt(1).m_value).yytext + ")";
       else if (((TOKEN) yyq.StackAt(1).m_value).yytext.Length == 0)
-        this.yytext = ((TOKEN) yyq.StackAt(3).m_value).yytext + "(" + ((cs0syntax) yyq).Par + ")";
+        yytext = ((TOKEN) yyq.StackAt(3).m_value).yytext + "(" + ((cs0syntax) yyq).Par + ")";
       else
-        this.yytext = ((TOKEN) yyq.StackAt(3).m_value).yytext + "(" + ((cs0syntax) yyq).Par + "," + ((TOKEN) yyq.StackAt(1).m_value).yytext + ")";
+        yytext = ((TOKEN) yyq.StackAt(3).m_value).yytext + "(" + ((cs0syntax) yyq).Par + "," + ((TOKEN) yyq.StackAt(1).m_value).yytext + ")";
     }
   }
 }

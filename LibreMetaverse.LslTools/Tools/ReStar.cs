@@ -26,30 +26,30 @@
 
 using System.IO;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   internal class ReStar : Regex
   {
     public ReStar(Regex sub)
     {
-      this.m_sub = sub;
+      m_sub = sub;
     }
 
     public override void Print(TextWriter s)
     {
-      this.m_sub.Print(s);
+      m_sub.Print(s);
       s.Write("*");
     }
 
     public override int Match(string str, int pos, int max)
     {
-      int num1 = this.m_sub.Match(str, pos, max);
+      int num1 = m_sub.Match(str, pos, max);
       if (num1 < 0)
         return -1;
       int num2 = 0;
       while (num1 > 0)
       {
-        num1 = this.m_sub.Match(str, pos + num2, max);
+        num1 = m_sub.Match(str, pos + num2, max);
         if (num1 >= 0)
           num2 += num1;
         else
@@ -60,10 +60,10 @@ namespace Tools.Tools
 
     public override void Build(Nfa nfa)
     {
-      Nfa nfa1 = new Nfa(nfa.m_tks, this.m_sub);
-      nfa.AddEps((NfaNode) nfa1);
+      Nfa nfa1 = new Nfa(nfa.m_tks, m_sub);
+      nfa.AddEps(nfa1);
       nfa.AddEps(nfa.m_end);
-      nfa1.m_end.AddEps((NfaNode) nfa);
+      nfa1.m_end.AddEps(nfa);
     }
   }
 }

@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class CSToolsStopException : CSToolsException
   {

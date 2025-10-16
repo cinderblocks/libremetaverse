@@ -26,7 +26,7 @@
 
 using System.Collections;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class ParsingInfo
   {
@@ -36,8 +36,8 @@ namespace Tools.Tools
 
     public ParsingInfo(string name, int num)
     {
-      this.m_name = name;
-      this.m_yynum = num;
+      m_name = name;
+      m_yynum = num;
     }
 
     private ParsingInfo()
@@ -47,19 +47,19 @@ namespace Tools.Tools
     public static object Serialise(object o, Serialiser s)
     {
       if (s == null)
-        return (object) new ParsingInfo();
+        return new ParsingInfo();
       ParsingInfo parsingInfo = (ParsingInfo) o;
       if (s.Encode)
       {
-        s.Serialise((object) parsingInfo.m_name);
-        s.Serialise((object) parsingInfo.m_yynum);
-        s.Serialise((object) parsingInfo.m_parsetable);
-        return (object) null;
+        s.Serialise(parsingInfo.m_name);
+        s.Serialise(parsingInfo.m_yynum);
+        s.Serialise(parsingInfo.m_parsetable);
+        return null;
       }
       parsingInfo.m_name = (string) s.Deserialise();
       parsingInfo.m_yynum = (int) s.Deserialise();
       parsingInfo.m_parsetable = (Hashtable) s.Deserialise();
-      return (object) parsingInfo;
+      return parsingInfo;
     }
   }
 }

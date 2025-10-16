@@ -26,7 +26,7 @@
 
 using System;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class recoveredError : Error
   {
@@ -37,23 +37,23 @@ namespace Tools.Tools
 
     public override string ToString()
     {
-      return "Parse contained " + (object) this.yyps.m_symbols.erh.counter + " errors";
+      return "Parse contained " + yyps.m_symbols.erh.counter + " errors";
     }
 
     public override void ConcreteSyntaxTree()
     {
-      Console.WriteLine(this.ToString());
-      if (this.sym == null)
+      Console.WriteLine(ToString());
+      if (sym == null)
         return;
-      this.sym.ConcreteSyntaxTree();
+      sym.ConcreteSyntaxTree();
     }
 
     public override void Print()
     {
-      Console.WriteLine(this.ToString());
-      if (this.sym == null)
+      Console.WriteLine(ToString());
+      if (sym == null)
         return;
-      this.sym.Print();
+      sym.Print();
     }
   }
 }

@@ -26,47 +26,47 @@
 
 using System;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class Precedence
   {
-    public Precedence.PrecType m_type;
+    public PrecType m_type;
     public int m_prec;
     public Precedence m_next;
 
-    public Precedence(Precedence.PrecType t, int p, Precedence next)
+    public Precedence(PrecType t, int p, Precedence next)
     {
-      if (Precedence.CheckType(next, t, 0) != 0)
+      if (CheckType(next, t, 0) != 0)
         Console.WriteLine("redeclaration of precedence");
-      this.m_next = next;
-      this.m_type = t;
-      this.m_prec = p;
+      m_next = next;
+      m_type = t;
+      m_prec = p;
     }
 
-    private static int CheckType(Precedence p, Precedence.PrecType t, int d)
+    private static int CheckType(Precedence p, PrecType t, int d)
     {
       if (p == null)
         return 0;
-      if (p.m_type == t || p.m_type <= Precedence.PrecType.nonassoc && t <= Precedence.PrecType.nonassoc)
+      if (p.m_type == t || p.m_type <= PrecType.nonassoc && t <= PrecType.nonassoc)
         return p.m_prec;
-      return Precedence.Check(p.m_next, t, d + 1);
+      return Check(p.m_next, t, d + 1);
     }
 
-    public static int Check(Precedence p, Precedence.PrecType t, int d)
+    public static int Check(Precedence p, PrecType t, int d)
     {
       if (p == null)
         return 0;
       if (p.m_type == t)
         return p.m_prec;
-      return Precedence.Check(p.m_next, t, d + 1);
+      return Check(p.m_next, t, d + 1);
     }
 
     public static int Check(CSymbol s, Production p, int d)
     {
       if (s.m_prec == null)
         return 0;
-      int num1 = Precedence.CheckType(s.m_prec, Precedence.PrecType.after, d + 1);
-      int num2 = Precedence.CheckType(s.m_prec, Precedence.PrecType.left, d + 1);
+      int num1 = CheckType(s.m_prec, PrecType.after, d + 1);
+      int num2 = CheckType(s.m_prec, PrecType.left, d + 1);
       if (num1 > num2)
         return num1 - p.m_prec;
       return num2 - p.m_prec;
@@ -82,7 +82,7 @@ namespace Tools.Tools
         case 2:
           if ((CSymbol) p.m_rhs[0] == p.m_lhs)
           {
-            int num = Precedence.Check(((CSymbol) p.m_rhs[1]).m_prec, Precedence.PrecType.after, 0);
+            int num = Check(((CSymbol) p.m_rhs[1]).m_prec, PrecType.after, 0);
             if (num == 0)
               break;
             p.m_prec = num;
@@ -90,13 +90,13 @@ namespace Tools.Tools
           }
           if ((CSymbol) p.m_rhs[1] != p.m_lhs)
             break;
-          int num1 = Precedence.Check(((CSymbol) p.m_rhs[0]).m_prec, Precedence.PrecType.before, 0);
+          int num1 = Check(((CSymbol) p.m_rhs[0]).m_prec, PrecType.before, 0);
           if (num1 == 0)
             break;
           p.m_prec = num1;
           break;
         case 3:
-          int num2 = Precedence.CheckType(((CSymbol) p.m_rhs[1]).m_prec, Precedence.PrecType.left, 0);
+          int num2 = CheckType(((CSymbol) p.m_rhs[1]).m_prec, PrecType.left, 0);
           if (num2 == 0 || (CSymbol) p.m_rhs[2] != p.m_lhs)
             break;
           p.m_prec = num2;

@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public abstract class LNode
   {
@@ -33,8 +33,8 @@ namespace Tools.Tools
 
     protected LNode(TokensGen tks)
     {
-      this.m_tks = tks;
-      this.m_state = tks.NewState();
+      m_tks = tks;
+      m_state = tks.NewState();
     }
 
     protected LNode()

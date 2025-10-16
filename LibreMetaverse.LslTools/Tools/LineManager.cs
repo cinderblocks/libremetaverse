@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class LineManager
   {
@@ -34,32 +34,32 @@ namespace Tools.Tools
 
     public void newline(int pos)
     {
-      ++this.lines;
-      this.backto(pos);
-      this.list = new LineList(pos, this.list);
+      ++lines;
+      backto(pos);
+      list = new LineList(pos, list);
     }
 
     public void backto(int pos)
     {
-      if (pos > this.end)
-        this.end = pos;
-      while (this.list != null && this.list.head >= pos)
+      if (pos > end)
+        end = pos;
+      while (list != null && list.head >= pos)
       {
-        this.list = this.list.tail;
-        --this.lines;
+        list = list.tail;
+        --lines;
       }
     }
 
     public void comment(int pos, int len)
     {
-      if (pos > this.end)
-        this.end = pos;
-      if (this.list == null)
+      if (pos > end)
+        end = pos;
+      if (list == null)
       {
-        this.list = new LineList(0, this.list);
-        this.lines = 1;
+        list = new LineList(0, list);
+        lines = 1;
       }
-      this.list.comments = new CommentList(pos, len, this.list.comments);
+      list.comments = new CommentList(pos, len, list.comments);
     }
   }
 }

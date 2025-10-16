@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   internal class NList
   {
@@ -33,37 +33,37 @@ namespace Tools.Tools
 
     public NList()
     {
-      this.m_node = (NfaNode) null;
-      this.m_next = (NList) null;
+      m_node = null;
+      m_next = null;
     }
 
     private NList(NfaNode nd, NList nx)
     {
-      this.m_node = nd;
-      this.m_next = nx;
+      m_node = nd;
+      m_next = nx;
     }
 
     public bool Add(NfaNode n)
     {
-      if (this.m_node == null)
+      if (m_node == null)
       {
-        this.m_next = new NList();
-        this.m_node = n;
+        m_next = new NList();
+        m_node = n;
       }
-      else if (this.m_node.m_state < n.m_state)
+      else if (m_node.m_state < n.m_state)
       {
-        this.m_next = new NList(this.m_node, this.m_next);
-        this.m_node = n;
+        m_next = new NList(m_node, m_next);
+        m_node = n;
       }
       else
       {
-        if (this.m_node.m_state == n.m_state)
+        if (m_node.m_state == n.m_state)
           return false;
-        return this.m_next.Add(n);
+        return m_next.Add(n);
       }
       return true;
     }
 
-    public bool AtEnd => this.m_node == null;
+    public bool AtEnd => m_node == null;
   }
 }

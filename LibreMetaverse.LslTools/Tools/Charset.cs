@@ -29,7 +29,7 @@ using System.Collections;
 using System.Globalization;
 using System.Text;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class Charset
   {
@@ -43,11 +43,11 @@ namespace Tools.Tools
 
     internal Charset(UnicodeCategory cat)
     {
-      this.m_cat = cat;
-      this.m_generic = char.MinValue;
-      while (char.GetUnicodeCategory(this.m_generic) != cat)
-        ++this.m_generic;
-      this.m_chars[(object) this.m_generic] = (object) true;
+      m_cat = cat;
+      m_generic = char.MinValue;
+      while (char.GetUnicodeCategory(m_generic) != cat)
+        ++m_generic;
+      m_chars[m_generic] = true;
     }
 
     public static Encoding GetEncoding(string enc, ref bool toupper, ErrorHandler erh)
@@ -56,22 +56,22 @@ namespace Tools.Tools
       if (str1 != null)
       {
         string str2 = string.IsInterned(str1);
-        if ((object) str2 == (object) "")
+        if (str2 == (object) "")
           return Encoding.Default;
-        if ((object) str2 == (object) "ASCII")
+        if (str2 == (object) "ASCII")
           return Encoding.ASCII;
-        if ((object) str2 == (object) "ASCIICAPS")
+        if (str2 == (object) "ASCIICAPS")
         {
           toupper = true;
           return Encoding.ASCII;
         }
-        if ((object) str2 == (object) "UTF7")
+        if (str2 == (object) "UTF7")
 #pragma warning disable CS0618
             return Encoding.UTF7;
 #pragma warning restore CS0618
-        if ((object) str2 == (object) "UTF8")
+        if (str2 == (object) "UTF8")
           return Encoding.UTF8;
-        if ((object) str2 == (object) "Unicode")
+        if (str2 == (object) "Unicode")
           return Encoding.Unicode;
       }
       try
@@ -90,19 +90,19 @@ namespace Tools.Tools
     public static object Serialise(object o, Serialiser s)
     {
       if (s == null)
-        return (object) new Charset();
+        return new Charset();
       Charset charset = (Charset) o;
       if (s.Encode)
       {
-        s.Serialise((object) (int) charset.m_cat);
-        s.Serialise((object) charset.m_generic);
-        s.Serialise((object) charset.m_chars);
-        return (object) null;
+        s.Serialise((int) charset.m_cat);
+        s.Serialise(charset.m_generic);
+        s.Serialise(charset.m_chars);
+        return null;
       }
       charset.m_cat = (UnicodeCategory) s.Deserialise();
       charset.m_generic = (char) s.Deserialise();
       charset.m_chars = (Hashtable) s.Deserialise();
-      return (object) charset;
+      return charset;
     }
   }
 }

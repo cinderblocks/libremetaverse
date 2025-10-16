@@ -26,7 +26,7 @@
 
 using System;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class ErrorHandler
   {
@@ -39,12 +39,12 @@ namespace Tools.Tools
 
     public ErrorHandler(bool ee)
     {
-      this.throwExceptions = ee;
+      throwExceptions = ee;
     }
 
     public virtual void Error(CSToolsException e)
     {
-      ++this.counter;
+      ++counter;
       e.Handle(this);
     }
 

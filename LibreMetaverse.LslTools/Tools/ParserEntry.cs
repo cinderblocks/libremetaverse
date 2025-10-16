@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public abstract class ParserEntry
   {
@@ -33,12 +33,12 @@ namespace Tools.Tools
 
     protected ParserEntry()
     {
-      this.m_action = (ParserAction) null;
+      m_action = null;
     }
 
     protected ParserEntry(ParserAction action)
     {
-      this.m_action = action;
+      m_action = action;
     }
 
     public virtual void Pass(ref ParseStackEntry top)
@@ -57,11 +57,11 @@ namespace Tools.Tools
       ParserEntry parserEntry = (ParserEntry) o;
       if (s.Encode)
       {
-        s.Serialise((object) parserEntry.m_action);
-        return (object) null;
+        s.Serialise(parserEntry.m_action);
+        return null;
       }
       parserEntry.m_action = (ParserAction) s.Deserialise();
-      return (object) parserEntry;
+      return parserEntry;
     }
   }
 }

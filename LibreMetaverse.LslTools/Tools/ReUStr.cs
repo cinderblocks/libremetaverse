@@ -26,13 +26,13 @@
 
 using System.IO;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   internal class ReUStr : ReStr
   {
     public ReUStr(TokensGen tks, string str)
     {
-        this.m_str = str;
+        m_str = str;
         foreach (var c in str)
         {
             tks.m_tokens.UsingChar(char.ToLower(c));
@@ -42,24 +42,24 @@ namespace Tools.Tools
 
     public ReUStr(TokensGen tks, char ch)
     {
-      this.m_str = new string(ch, 1);
+      m_str = new string(ch, 1);
       tks.m_tokens.UsingChar(char.ToLower(ch));
       tks.m_tokens.UsingChar(char.ToUpper(ch));
     }
 
     public override void Print(TextWriter s)
     {
-      s.Write($"(U\"{(object)this.m_str}\")");
+      s.Write($"(U\"{(object)m_str}\")");
     }
 
     public override int Match(string str, int pos, int max)
     {
-      int length = this.m_str.Length;
+      int length = m_str.Length;
       if (length > max || length > max - pos)
         return -1;
       for (int index = 0; index < length; ++index)
       {
-        if ((int) char.ToUpper(str[index]) != (int) char.ToUpper(this.m_str[index]))
+        if (char.ToUpper(str[index]) != char.ToUpper(m_str[index]))
           return -1;
       }
       return length;
@@ -67,12 +67,12 @@ namespace Tools.Tools
 
     public override void Build(Nfa nfa)
     {
-      int length = this.m_str.Length;
-      NfaNode nfaNode = (NfaNode) nfa;
+      int length = m_str.Length;
+      NfaNode nfaNode = nfa;
       for (int index = 0; index < length; ++index)
       {
         NfaNode next = new NfaNode(nfa.m_tks);
-        nfaNode.AddUArc(this.m_str[index], next);
+        nfaNode.AddUArc(m_str[index], next);
         nfaNode = next;
       }
       nfaNode.AddEps(nfa.m_end);

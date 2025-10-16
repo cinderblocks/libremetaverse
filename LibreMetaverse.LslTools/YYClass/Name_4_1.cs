@@ -24,16 +24,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using Tools.Tools;
+using LibreMetaverse.LSLTools.Tools;
 
-namespace Tools.YYClass
+namespace LibreMetaverse.LSLTools.YYClass
 {
   public class Name_4_1 : Name_4
   {
     public Name_4_1(Parser yyq)
       : base(yyq)
     {
-      this.yytext = ((TOKEN) yyq.StackAt(3).m_value).yytext + "[" + ((TOKEN) yyq.StackAt(1).m_value).yytext + "]";
+      yytext = ((TOKEN) yyq.StackAt(3).m_value).yytext + "[" + ((TOKEN) yyq.StackAt(1).m_value).yytext + "]";
     }
   }
 }

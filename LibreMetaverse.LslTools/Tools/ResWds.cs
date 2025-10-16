@@ -26,7 +26,7 @@
 
 using System.Collections;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class ResWds
   {
@@ -57,29 +57,29 @@ namespace Tools.Tools
             name = str3.Substring(num).Trim();
             str3 = str3.Substring(0, num);
           }
-          resWds.m_wds[(object) str3] = (object) name;
-          if (tks.m_tokens.tokens[(object) name] == null)
+          resWds.m_wds[str3] = name;
+          if (tks.m_tokens.tokens[name] == null)
           {
-            TokClassDef tokClassDef = new TokClassDef((GenBase) tks, name, "TOKEN");
-            tks.m_outFile.WriteLine("//%{0}+{1}", (object) name, (object) tokClassDef.m_yynum);
-            tks.m_outFile.Write("public class {0} : TOKEN", (object) name);
+            TokClassDef tokClassDef = new TokClassDef(tks, name, "TOKEN");
+            tks.m_outFile.WriteLine("//%{0}+{1}", name, tokClassDef.m_yynum);
+            tks.m_outFile.Write("public class {0} : TOKEN", name);
             tks.m_outFile.WriteLine("{ public override string yyname { get { return \"" + name + "\";}}");
-            tks.m_outFile.WriteLine("public override int yynum { get { return " + (object) tokClassDef.m_yynum + "; }}");
+            tks.m_outFile.WriteLine("public override int yynum { get { return " + tokClassDef.m_yynum + "; }}");
             tks.m_outFile.WriteLine(" public " + name + "(Lexer yyl):base(yyl) {}}");
           }
         }
         return resWds;
       }
       tks.m_tokens.erh.Error(new CSToolsException(47, "bad ResWds element"));
-      return (ResWds) null;
+      return null;
     }
 
     public void Check(Lexer yyl, ref TOKEN tok)
     {
       string str = tok.yytext;
-      if (this.m_upper)
+      if (m_upper)
         str = str.ToUpper();
-      object wd = this.m_wds[(object) str];
+      object wd = m_wds[str];
       if (wd == null)
         return;
       tok = (TOKEN) Tfactory.create((string) wd, yyl);
@@ -88,17 +88,17 @@ namespace Tools.Tools
     public static object Serialise(object o, Serialiser s)
     {
       if (s == null)
-        return (object) new ResWds();
+        return new ResWds();
       ResWds resWds = (ResWds) o;
       if (s.Encode)
       {
-        s.Serialise((object) resWds.m_upper);
-        s.Serialise((object) resWds.m_wds);
-        return (object) null;
+        s.Serialise(resWds.m_upper);
+        s.Serialise(resWds.m_wds);
+        return null;
       }
       resWds.m_upper = (bool) s.Deserialise();
       resWds.m_wds = (Hashtable) s.Deserialise();
-      return (object) resWds;
+      return resWds;
     }
   }
 }

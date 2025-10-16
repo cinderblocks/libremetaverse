@@ -26,93 +26,93 @@
 
 using System.Collections;
 
-namespace Tools
+namespace LibreMetaverse.LSLTools
 {
 
     public class ObjectList
     {
-        private ObjectList.Link head;
-        private ObjectList.Link last;
+        private Link head;
+        private Link last;
 
-        private void Add0(ObjectList.Link a)
+        private void Add0(Link a)
         {
-            if (this.head == null)
-                this.head = this.last = a;
+            if (head == null)
+                head = last = a;
             else
-                this.last = this.last.next = a;
+                last = last.next = a;
         }
 
-        private object Get0(ObjectList.Link a, int x)
+        private object Get0(Link a, int x)
         {
             if (a == null || x < 0)
-                return (object)null;
-            return x == 0 ? a.it : this.Get0(a.next, x - 1);
+                return null;
+            return x == 0 ? a.it : Get0(a.next, x - 1);
         }
 
         public void Add(object o)
         {
-            this.Add0(new ObjectList.Link(o, (ObjectList.Link)null));
-            ++this.Count;
+            Add0(new Link(o, null));
+            ++Count;
         }
 
         public void Push(object o)
         {
-            this.head = new ObjectList.Link(o, this.head);
-            ++this.Count;
+            head = new Link(o, head);
+            ++Count;
         }
 
         public object Pop()
         {
-            object it = this.head.it;
-            this.head = this.head.next;
-            --this.Count;
+            object it = head.it;
+            head = head.next;
+            --Count;
             return it;
         }
 
-        public object Top => this.head.it;
+        public object Top => head.it;
 
         public int Count { get; private set; }
 
-        public object this[int ix] => this.Get0(this.head, ix);
+        public object this[int ix] => Get0(head, ix);
 
         public IEnumerator GetEnumerator()
         {
-            return (IEnumerator)new ObjectList.OListEnumerator(this);
+            return new OListEnumerator(this);
         }
 
         private class Link
         {
             internal object it;
-            internal ObjectList.Link next;
+            internal Link next;
 
-            internal Link(object o, ObjectList.Link x)
+            internal Link(object o, Link x)
             {
-                this.it = o;
-                this.next = x;
+                it = o;
+                next = x;
             }
         }
 
         public class OListEnumerator : IEnumerator
         {
             private ObjectList list;
-            private ObjectList.Link cur;
+            private Link cur;
 
             public OListEnumerator(ObjectList o)
             {
-                this.list = o;
+                list = o;
             }
 
-            public object Current => this.cur.it;
+            public object Current => cur.it;
 
             public bool MoveNext()
             {
-                this.cur = this.cur != null ? this.cur.next : this.list.head;
-                return this.cur != null;
+                cur = cur != null ? cur.next : list.head;
+                return cur != null;
             }
 
             public void Reset()
             {
-                this.cur = (ObjectList.Link)null;
+                cur = null;
             }
         }
     }

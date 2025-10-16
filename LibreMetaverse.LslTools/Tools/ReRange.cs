@@ -28,7 +28,7 @@ using System.Collections;
 using System.IO;
 using System.Text;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   internal class ReRange : Regex
   {
@@ -48,8 +48,8 @@ namespace Tools.Tools
           if (str[index] >= '0' && str[index] <= '7')
           {
             int num2;
-            for (num2 = (int) str[index++] - 48; index < num1 && str[index] >= '0' && str[index] <= '7'; ++index)
-              num2 = num2 * 8 + (int) str[index] - 48;
+            for (num2 = str[index++] - 48; index < num1 && str[index] >= '0' && str[index] <= '7'; ++index)
+              num2 = num2 * 8 + str[index] - 48;
             stringBuilder.Append((char) num2);
           }
           else
@@ -83,53 +83,53 @@ namespace Tools.Tools
       int length = stringBuilder.Length;
       if (length > 0 && stringBuilder[0] == '^')
       {
-        this.m_invert = true;
+        m_invert = true;
         stringBuilder.Remove(0, 1).Append(char.MinValue).Append(char.MaxValue);
       }
       for (int index1 = 0; index1 < length; ++index1)
       {
         if (index1 + 1 < length && stringBuilder[index1 + 1] == '-')
         {
-          for (int index2 = (int) stringBuilder[index1]; index2 <= (int) stringBuilder[index1 + 2]; ++index2)
-            this.Set(tks, (char) index2);
+          for (int index2 = stringBuilder[index1]; index2 <= stringBuilder[index1 + 2]; ++index2)
+            Set(tks, (char) index2);
           index1 += 2;
         }
         else
-          this.Set(tks, stringBuilder[index1]);
+          Set(tks, stringBuilder[index1]);
       }
     }
 
     public override void Print(TextWriter s)
     {
       s.Write("[");
-      if (this.m_invert)
+      if (m_invert)
         s.Write("^");
-      foreach (char key in (IEnumerable) this.m_map.Keys)
+      foreach (char key in m_map.Keys)
         s.Write(key);
       s.Write("]");
     }
 
     private void Set(TokensGen tks, char ch)
     {
-      this.m_map[(object) ch] = (object) true;
+      m_map[ch] = true;
       tks.m_tokens.UsingChar(ch);
     }
 
     public override bool Match(char ch)
     {
-      if (this.m_invert)
-        return !this.m_map.Contains((object) ch);
-      return this.m_map.Contains((object) ch);
+      if (m_invert)
+        return !m_map.Contains(ch);
+      return m_map.Contains(ch);
     }
 
     public override int Match(string str, int pos, int max)
     {
-      return max < pos || !this.Match(str[pos]) ? -1 : 1;
+      return max < pos || !Match(str[pos]) ? -1 : 1;
     }
 
     public override void Build(Nfa nfa)
     {
-      nfa.AddArcEx((Regex) this, nfa.m_end);
+      nfa.AddArcEx(this, nfa.m_end);
     }
   }
 }

@@ -24,21 +24,21 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using Tools.Tools;
+using LibreMetaverse.LSLTools.Tools;
 
-namespace Tools.YYClass
+namespace LibreMetaverse.LSLTools.YYClass
 {
   public class cs0tokens : Lexer
   {
     public string Out;
 
     public cs0tokens()
-      : base((YyLexer) new yycs0tokens(new ErrorHandler(false)))
+      : base(new yycs0tokens(new ErrorHandler(false)))
     {
     }
 
     public cs0tokens(ErrorHandler eh)
-      : base((YyLexer) new yycs0tokens(eh))
+      : base(new yycs0tokens(eh))
     {
     }
 

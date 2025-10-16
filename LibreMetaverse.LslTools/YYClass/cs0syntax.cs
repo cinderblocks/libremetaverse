@@ -24,9 +24,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using Tools.Tools;
+using LibreMetaverse.LSLTools.Tools;
 
-namespace Tools.YYClass
+namespace LibreMetaverse.LSLTools.YYClass
 {
   public class cs0syntax : Parser
   {
@@ -37,17 +37,17 @@ namespace Tools.YYClass
     public bool defconseen;
 
     public cs0syntax()
-      : base((YyParser) new yycs0syntax(), (Lexer) new cs0tokens())
+      : base(new yycs0syntax(), new cs0tokens())
     {
     }
 
     public cs0syntax(YyParser syms)
-      : base(syms, (Lexer) new cs0tokens())
+      : base(syms, new cs0tokens())
     {
     }
 
     public cs0syntax(YyParser syms, ErrorHandler erh)
-      : base(syms, (Lexer) new cs0tokens(erh))
+      : base(syms, new cs0tokens(erh))
     {
     }
   }

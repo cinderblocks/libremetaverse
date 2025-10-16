@@ -26,7 +26,7 @@
 
 using System.IO;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   internal class Arc
   {
@@ -39,18 +39,18 @@ namespace Tools.Tools
 
     public Arc(char ch, NfaNode next)
     {
-      this.m_ch = ch;
-      this.m_next = next;
+      m_ch = ch;
+      m_next = next;
     }
 
     public virtual bool Match(char ch)
     {
-      return (int) ch == (int) this.m_ch;
+      return ch == m_ch;
     }
 
     public virtual void Print(TextWriter s)
     {
-      s.WriteLine($"  {(object)this.m_ch} {(object)this.m_next.m_state}");
+      s.WriteLine($"  {(object)m_ch} {(object)m_next.m_state}");
     }
   }
 }

@@ -24,24 +24,24 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class EOF : CSymbol
   {
     public EOF(SymbolsGen yyp)
       : base(yyp)
     {
-      this.yytext = nameof (EOF);
-      this.m_yynum = 2;
-      this.m_symtype = CSymbol.SymType.eofsymbol;
+      yytext = nameof (EOF);
+      m_yynum = 2;
+      m_symtype = SymType.eofsymbol;
     }
 
     public EOF(Lexer yyl)
       : base(yyl)
     {
-      this.yytext = nameof (EOF);
-      this.pos = yyl.m_LineManager.end;
-      this.m_symtype = CSymbol.SymType.eofsymbol;
+      yytext = nameof (EOF);
+      pos = yyl.m_LineManager.end;
+      m_symtype = SymType.eofsymbol;
     }
 
     private EOF()
@@ -55,7 +55,7 @@ namespace Tools.Tools
     public new static object Serialise(object o, Serialiser s)
     {
       if (s == null)
-        return (object) new EOF();
+        return new EOF();
       return CSymbol.Serialise(o, s);
     }
   }

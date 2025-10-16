@@ -26,15 +26,15 @@
 
 using System;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class ParserSimpleAction : ParserAction
   {
     public ParserSimpleAction(SymbolsGen yyp)
       : base(yyp)
     {
-      yyp.actions.Add((object) this);
-      this.m_symtype = CSymbol.SymType.simpleaction;
+      yyp.actions.Add(this);
+      m_symtype = SymType.simpleaction;
       yyp.SimpleAction(this);
     }
 
@@ -44,22 +44,22 @@ namespace Tools.Tools
 
     public override string TypeStr()
     {
-      return this.m_sym.yytext;
+      return m_sym.yytext;
     }
 
     public override void Print()
     {
-      Console.Write(" %{0}", (object) this.m_sym.yytext);
+      Console.Write(" %{0}", m_sym.yytext);
     }
 
     public new static object Serialise(object o, Serialiser s)
     {
       if (s == null)
-        return (object) new ParserSimpleAction();
+        return new ParserSimpleAction();
       if (!s.Encode)
         return ParserAction.Serialise(o, s);
       ParserAction.Serialise(o, s);
-      return (object) null;
+      return null;
     }
   }
 }

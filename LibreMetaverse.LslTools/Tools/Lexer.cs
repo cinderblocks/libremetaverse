@@ -27,7 +27,7 @@
 using System;
 using System.IO;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class Lexer
   {
@@ -43,8 +43,8 @@ namespace Tools.Tools
 
     public Lexer(YyLexer tks)
     {
-      this.m_state = "YYINITIAL";
-      this.tokens = tks;
+      m_state = "YYINITIAL";
+      tokens = tks;
     }
 
     public SourceLineInfo sourceLineInfo(int pos)
@@ -54,174 +54,173 @@ namespace Tools.Tools
 
     public string sourceLine(SourceLineInfo s)
     {
-      return this.m_buf.Substring(s.startOfLine, s.endOfLine - s.startOfLine);
+      return m_buf.Substring(s.startOfLine, s.endOfLine - s.startOfLine);
     }
 
     public string Saypos(int pos)
     {
-      return this.sourceLineInfo(pos).ToString();
+      return sourceLineInfo(pos).ToString();
     }
 
-    public Dfa m_start => (Dfa) this.m_tokens.starts[(object) this.m_state];
+    public Dfa m_start => (Dfa) m_tokens.starts[m_state];
 
     public YyLexer tokens
     {
-      get => this.m_tokens;
+      get => m_tokens;
       set
       {
-        this.m_tokens = value;
-        this.m_tokens.GetDfa();
+        m_tokens = value;
+        m_tokens.GetDfa();
       }
     }
 
-    public int yypos => this.m_pch;
+    public int yypos => m_pch;
 
     public void yy_begin(string newstate)
     {
-      this.m_state = newstate;
+      m_state = newstate;
     }
 
     private bool Match(ref TOKEN tok, Dfa dfa)
     {
-      char ch = this.PeekChar();
-      int pch = this.m_pch;
+      char ch = PeekChar();
+      int pch = m_pch;
       int mark = 0;
-      if (this.m_debug)
+      if (m_debug)
       {
-        Console.Write("state {0} with ", (object) dfa.m_state);
+        Console.Write("state {0} with ", dfa.m_state);
         if (char.IsLetterOrDigit(ch) || char.IsPunctuation(ch))
           Console.WriteLine(ch);
         else
-          Console.WriteLine("#" + (object) (int) ch);
+          Console.WriteLine("#" + (int) ch);
       }
       if (dfa.m_actions != null)
-        mark = this.Mark();
+        mark = Mark();
       Dfa dfa1;
-      if ((dfa1 = (Dfa) dfa.m_map[(object) this.m_tokens.Filter(ch)]) == null)
+      if ((dfa1 = (Dfa) dfa.m_map[m_tokens.Filter(ch)]) == null)
       {
-        if (this.m_debug)
-          Console.Write("{0} no arc", (object) dfa.m_state);
+        if (m_debug)
+          Console.Write("{0} no arc", dfa.m_state);
         if (dfa.m_actions != null)
         {
-          if (this.m_debug)
+          if (m_debug)
             Console.WriteLine(" terminal");
-          return this.TryActions(dfa, ref tok);
+          return TryActions(dfa, ref tok);
         }
-        if (this.m_debug)
+        if (m_debug)
           Console.WriteLine(" fails");
         return false;
       }
-      this.Advance();
-      if (!this.Match(ref tok, dfa1))
+      Advance();
+      if (!Match(ref tok, dfa1))
       {
-        if (this.m_debug)
-          Console.WriteLine("back to {0} with {1}", (object) dfa.m_state, (object) ch);
+        if (m_debug)
+          Console.WriteLine("back to {0} with {1}", dfa.m_state, ch);
         if (dfa.m_actions != null)
         {
-          if (this.m_debug)
-            Console.WriteLine("{0} succeeds", (object) dfa.m_state);
-          this.Restore(mark);
-          return this.TryActions(dfa, ref tok);
+          if (m_debug)
+            Console.WriteLine("{0} succeeds", dfa.m_state);
+          Restore(mark);
+          return TryActions(dfa, ref tok);
         }
-        if (this.m_debug)
-          Console.WriteLine("{0} fails", (object) dfa.m_state);
+        if (m_debug)
+          Console.WriteLine("{0} fails", dfa.m_state);
         return false;
       }
       if (dfa.m_reswds >= 0)
-        ((ResWds) this.m_tokens.reswds[(object) dfa.m_reswds]).Check(this, ref tok);
-      if (this.m_debug)
+        ((ResWds) m_tokens.reswds[dfa.m_reswds]).Check(this, ref tok);
+      if (m_debug)
       {
-        Console.Write("{0} matched ", (object) dfa.m_state);
-        if (this.m_pch <= this.m_buf.Length)
-          Console.WriteLine(this.m_buf.Substring(pch, this.m_pch - pch));
-        else
-          Console.WriteLine(this.m_buf.Substring(pch));
+          Console.Write("{0} matched ", dfa.m_state);
+          Console.WriteLine(m_pch <= m_buf.Length
+              ? m_buf.Substring(pch, m_pch - pch)
+              : m_buf.Substring(pch));
       }
       return true;
     }
 
     public void Start(StreamReader inFile)
     {
-      this.m_state = "YYINITIAL";
-      this.m_LineManager.lines = 1;
-      this.m_LineManager.list = (LineList) null;
-      inFile = new StreamReader(inFile.BaseStream, this.m_tokens.m_encoding);
-      this.m_buf = inFile.ReadToEnd();
-      if (this.m_tokens.toupper)
-        this.m_buf = this.m_buf.ToUpper();
-      for (this.m_pch = 0; this.m_pch < this.m_buf.Length; ++this.m_pch)
+      m_state = "YYINITIAL";
+      m_LineManager.lines = 1;
+      m_LineManager.list = null;
+      inFile = new StreamReader(inFile.BaseStream, m_tokens.m_encoding);
+      m_buf = inFile.ReadToEnd();
+      if (m_tokens.toupper)
+        m_buf = m_buf.ToUpper();
+      for (m_pch = 0; m_pch < m_buf.Length; ++m_pch)
       {
-        if (this.m_buf[this.m_pch] == '\n')
-          this.m_LineManager.newline(this.m_pch);
+        if (m_buf[m_pch] == '\n')
+          m_LineManager.newline(m_pch);
       }
-      this.m_pch = 0;
+      m_pch = 0;
     }
 
     public void Start(CsReader inFile)
     {
-      this.m_state = "YYINITIAL";
-      inFile = new CsReader(inFile, this.m_tokens.m_encoding);
-      this.m_LineManager = inFile.lm;
+      m_state = "YYINITIAL";
+      inFile = new CsReader(inFile, m_tokens.m_encoding);
+      m_LineManager = inFile.lm;
       if (!inFile.Eof())
       {
-        this.m_buf = inFile.ReadLine();
+        m_buf = inFile.ReadLine();
         while (!inFile.Eof())
         {
-          this.m_buf += "\n";
-          this.m_buf += inFile.ReadLine();
+          m_buf += "\n";
+          m_buf += inFile.ReadLine();
         }
       }
-      if (this.m_tokens.toupper)
-        this.m_buf = this.m_buf.ToUpper();
-      this.m_pch = 0;
+      if (m_tokens.toupper)
+        m_buf = m_buf.ToUpper();
+      m_pch = 0;
     }
 
     public void Start(string buf)
     {
-      this.m_state = "YYINITIAL";
-      this.m_LineManager.lines = 1;
-      this.m_LineManager.list = (LineList) null;
-      this.m_buf = buf + "\n";
-      for (this.m_pch = 0; this.m_pch < this.m_buf.Length; ++this.m_pch)
+      m_state = "YYINITIAL";
+      m_LineManager.lines = 1;
+      m_LineManager.list = null;
+      m_buf = buf + "\n";
+      for (m_pch = 0; m_pch < m_buf.Length; ++m_pch)
       {
-        if (this.m_buf[this.m_pch] == '\n')
-          this.m_LineManager.newline(this.m_pch);
+        if (m_buf[m_pch] == '\n')
+          m_LineManager.newline(m_pch);
       }
-      if (this.m_tokens.toupper)
-        this.m_buf = this.m_buf.ToUpper();
-      this.m_pch = 0;
+      if (m_tokens.toupper)
+        m_buf = m_buf.ToUpper();
+      m_pch = 0;
     }
 
     public TOKEN Next()
     {
-      TOKEN tok = (TOKEN) null;
-      while (this.PeekChar() != char.MinValue)
+      TOKEN tok = null;
+      while (PeekChar() != char.MinValue)
       {
-        this.Matching(true);
-        if (!this.Match(ref tok, (Dfa) this.m_tokens.starts[(object) this.m_state]))
+        Matching(true);
+        if (!Match(ref tok, (Dfa) m_tokens.starts[m_state]))
         {
-          if (this.yypos == 0)
+          if (yypos == 0)
             Console.Write("Check text encoding.. ");
-          int num = (int) this.PeekChar();
-          this.m_tokens.erh.Error((CSToolsException) new CSToolsStopException(2, this, "illegal character <" + (object) (char) num + "> " + (object) num));
-          return (TOKEN) null;
+          int num = PeekChar();
+          m_tokens.erh.Error(new CSToolsStopException(2, this, "illegal character <" + (char) num + "> " + num));
+          return null;
         }
-        this.Matching(false);
+        Matching(false);
         if (tok != null)
         {
-          tok.pos = this.m_pch - this.yytext.Length;
+          tok.pos = m_pch - yytext.Length;
           return tok;
         }
       }
-      return (TOKEN) null;
+      return null;
     }
 
     private bool TryActions(Dfa dfa, ref TOKEN tok)
     {
-      int length = this.m_pch - this.m_startMatch;
+      int length = m_pch - m_startMatch;
       if (length == 0)
         return false;
-      this.yytext = this.m_startMatch + length > this.m_buf.Length ? this.m_buf.Substring(this.m_startMatch) : this.m_buf.Substring(this.m_startMatch, length);
+      yytext = m_startMatch + length > m_buf.Length ? m_buf.Substring(m_startMatch) : m_buf.Substring(m_startMatch, length);
       Dfa.Action action = dfa.m_actions;
       bool reject = true;
       while (reject && action != null)
@@ -231,15 +230,15 @@ namespace Tools.Tools
         action = action.a_next;
         if (action == null && dfa.m_tokClass != "")
         {
-          if (this.m_debug)
+          if (m_debug)
             Console.WriteLine("creating a " + dfa.m_tokClass);
           tok = (TOKEN) Tfactory.create(dfa.m_tokClass, this);
         }
         else
         {
-          tok = this.m_tokens.OldAction(this, ref this.yytext, aAct, ref reject);
-          if (this.m_debug && !reject)
-            Console.WriteLine("Old action " + (object) aAct);
+          tok = m_tokens.OldAction(this, ref yytext, aAct, ref reject);
+          if (m_debug && !reject)
+            Console.WriteLine("Old action " + aAct);
         }
       }
       return !reject;
@@ -247,57 +246,57 @@ namespace Tools.Tools
 
     public char PeekChar()
     {
-      if (this.m_pch < this.m_buf.Length)
-        return this.m_buf[this.m_pch];
-      return this.m_pch == this.m_buf.Length && this.m_tokens.usingEOF ? char.MaxValue : char.MinValue;
+      if (m_pch < m_buf.Length)
+        return m_buf[m_pch];
+      return m_pch == m_buf.Length && m_tokens.usingEOF ? char.MaxValue : char.MinValue;
     }
 
     public void Advance()
     {
-      ++this.m_pch;
+      ++m_pch;
     }
 
     public virtual int GetChar()
     {
-      int num = (int) this.PeekChar();
-      ++this.m_pch;
+      int num = PeekChar();
+      ++m_pch;
       return num;
     }
 
     public void UnGetChar()
     {
-      if (this.m_pch <= 0)
+      if (m_pch <= 0)
         return;
-      --this.m_pch;
+      --m_pch;
     }
 
     private int Mark()
     {
-      return this.m_pch - this.m_startMatch;
+      return m_pch - m_startMatch;
     }
 
     private void Restore(int mark)
     {
-      this.m_pch = this.m_startMatch + mark;
+      m_pch = m_startMatch + mark;
     }
 
     private void Matching(bool b)
     {
-      this.m_matching = b;
+      m_matching = b;
       if (!b)
         return;
-      this.m_startMatch = this.m_pch;
+      m_startMatch = m_pch;
     }
 
-    public Lexer._Enumerator GetEnumerator()
+    public _Enumerator GetEnumerator()
     {
-      return new Lexer._Enumerator(this);
+      return new _Enumerator(this);
     }
 
     public void Reset()
     {
-      this.m_pch = 0;
-      this.m_LineManager.backto(0);
+      m_pch = 0;
+      m_LineManager.backto(0);
     }
 
     public class _Enumerator
@@ -306,21 +305,21 @@ namespace Tools.Tools
 
       public _Enumerator(Lexer x)
       {
-        this.lxr = x;
-        this.Current = (TOKEN) null;
+        lxr = x;
+        Current = null;
       }
 
       public bool MoveNext()
       {
-        this.Current = this.lxr.Next();
-        return this.Current != null;
+        Current = lxr.Next();
+        return Current != null;
       }
 
       public TOKEN Current { get; private set; }
 
       public void Reset()
       {
-        this.lxr.Reset();
+        lxr.Reset();
       }
     }
   }

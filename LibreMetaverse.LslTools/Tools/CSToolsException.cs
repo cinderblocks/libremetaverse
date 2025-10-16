@@ -26,7 +26,7 @@
 
 using System;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class CSToolsException : Exception
   {
@@ -54,13 +54,13 @@ namespace Tools.Tools
     public CSToolsException(int n, TOKEN t, string s)
       : this(n, t.yylx, t.pos, t.yytext, s)
     {
-      this.sym = (SYMBOL) t;
+      sym = t;
     }
 
     public CSToolsException(int n, SYMBOL t, string s)
       : this(n, t.yylx, t.pos, t.yyname, s)
     {
-      this.sym = t;
+      sym = t;
     }
 
     public CSToolsException(int en, Lexer yl, int p, string y, string s)
@@ -71,18 +71,18 @@ namespace Tools.Tools
     public CSToolsException(int en, SourceLineInfo s, string y, string m)
       : base(s + ": " + m)
     {
-      this.nExceptionNumber = en;
-      this.slInfo = s;
-      this.sInput = y;
+      nExceptionNumber = en;
+      slInfo = s;
+      sInput = y;
     }
 
     public virtual void Handle(ErrorHandler erh)
     {
       if (erh.throwExceptions)
         throw this;
-      if (this.handled)
+      if (handled)
         return;
-      this.handled = true;
+      handled = true;
       erh.Report(this);
     }
   }

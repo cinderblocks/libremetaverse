@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class ParserOldAction : ParserAction
   {
@@ -33,10 +33,10 @@ namespace Tools.Tools
     public ParserOldAction(SymbolsGen yyp)
       : base(yyp)
     {
-      this.m_action = yyp.action_num++;
-      yyp.actions.Add((object) this);
-      this.m_sym = (CSymbol) null;
-      this.m_symtype = CSymbol.SymType.oldaction;
+      m_action = yyp.action_num++;
+      yyp.actions.Add(this);
+      m_sym = null;
+      m_symtype = SymType.oldaction;
       yyp.OldAction(this);
     }
 
@@ -47,7 +47,7 @@ namespace Tools.Tools
     public override SYMBOL Action(Parser yyp)
     {
       SYMBOL yysym = base.Action(yyp);
-      object obj = yyp.m_symbols.Action(yyp, yysym, this.m_action);
+      object obj = yyp.m_symbols.Action(yyp, yysym, m_action);
       if (obj != null)
         yysym.m_dollar = obj;
       return yysym;
@@ -55,23 +55,23 @@ namespace Tools.Tools
 
     public override int ActNum()
     {
-      return this.m_action;
+      return m_action;
     }
 
     public new static object Serialise(object o, Serialiser s)
     {
       if (s == null)
-        return (object) new ParserOldAction();
+        return new ParserOldAction();
       ParserOldAction parserOldAction = (ParserOldAction) o;
       if (s.Encode)
       {
-        ParserAction.Serialise((object) parserOldAction, s);
-        s.Serialise((object) parserOldAction.m_action);
-        return (object) null;
+        ParserAction.Serialise(parserOldAction, s);
+        s.Serialise(parserOldAction.m_action);
+        return null;
       }
-      ParserAction.Serialise((object) parserOldAction, s);
+      ParserAction.Serialise(parserOldAction, s);
       parserOldAction.m_action = (int) s.Deserialise();
-      return (object) parserOldAction;
+      return parserOldAction;
     }
   }
 }

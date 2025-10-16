@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class Error : SYMBOL
   {
@@ -34,8 +34,8 @@ namespace Tools.Tools
     public Error(Parser yyp, ParseStackEntry s)
       : base(yyp)
     {
-      this.state = s.m_state;
-      this.sym = s.m_value;
+      state = s.m_state;
+      sym = s.m_value;
     }
 
     public Error(Parser yyp)
@@ -47,13 +47,12 @@ namespace Tools.Tools
 
     public override string ToString()
     {
-      string str = "syntax error occurred in state " + (object) this.state;
-      if (this.sym == null)
+      string str = "syntax error occurred in state " + state;
+      if (sym == null)
         return str;
-      if (!(this.sym is TOKEN))
-        return str + " on symbol " + this.sym.yyname;
-      TOKEN sym = (TOKEN) this.sym;
-      return str + " on input token " + sym.yytext;
+      if (!(sym is TOKEN token))
+        return str + " on symbol " + sym.yyname;
+      return str + " on input token " + token.yytext;
     }
   }
 }

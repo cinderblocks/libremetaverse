@@ -26,24 +26,24 @@
 
 using System.IO;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   internal class ReOpt : Regex
   {
     public ReOpt(Regex sub)
     {
-      this.m_sub = sub;
+      m_sub = sub;
     }
 
     public override void Print(TextWriter s)
     {
-      this.m_sub.Print(s);
+      m_sub.Print(s);
       s.Write("?");
     }
 
     public override int Match(string str, int pos, int max)
     {
-      int num = this.m_sub.Match(str, pos, max);
+      int num = m_sub.Match(str, pos, max);
       if (num < 0)
         num = 0;
       return num;

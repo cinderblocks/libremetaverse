@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class NfaNode : LNode
   {
@@ -39,27 +39,27 @@ namespace Tools.Tools
 
     public void AddArc(char ch, NfaNode next)
     {
-      this.m_arcs.Add((object) new Arc(ch, next));
+      m_arcs.Add(new Arc(ch, next));
     }
 
     public void AddUArc(char ch, NfaNode next)
     {
-      this.m_arcs.Add((object) new UArc(ch, next));
+      m_arcs.Add(new UArc(ch, next));
     }
 
     public void AddArcEx(Regex re, NfaNode next)
     {
-      this.m_arcs.Add((object) new ArcEx(re, next));
+      m_arcs.Add(new ArcEx(re, next));
     }
 
     public void AddEps(NfaNode next)
     {
-      this.m_eps.Add((object) next);
+      m_eps.Add(next);
     }
 
     public void AddTarget(char ch, Dfa next)
     {
-        foreach (var t in this.m_arcs)
+        foreach (var t in m_arcs)
         {
             Arc arc = (Arc) t;
             if (arc.Match(ch))

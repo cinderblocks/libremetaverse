@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
   public class LineList
   {
@@ -34,15 +34,15 @@ namespace Tools.Tools
 
     public LineList(int h, LineList t)
     {
-      this.head = h;
-      this.comments = (CommentList) null;
-      this.tail = t;
+      head = h;
+      comments = null;
+      tail = t;
     }
 
     public int getpos(int pos)
     {
-      int num = pos - this.head;
-      for (CommentList commentList = this.comments; commentList != null; commentList = commentList.tail)
+      int num = pos - head;
+      for (CommentList commentList = comments; commentList != null; commentList = commentList.tail)
       {
         if (pos > commentList.spos)
           num += commentList.len;

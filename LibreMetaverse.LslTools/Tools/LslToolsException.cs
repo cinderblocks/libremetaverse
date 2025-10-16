@@ -26,7 +26,7 @@
 
 using System;
 
-namespace Tools.Tools
+namespace LibreMetaverse.LSLTools.Tools
 {
     [Serializable]
     class LslToolsException : Exception
