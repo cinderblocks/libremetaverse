@@ -26,7 +26,7 @@
 
 using System.IO;
 
-namespace LibreMetaverse.LSLTools.Tools
+namespace LibreMetaverse.LslTools
 {
   internal class ReCat : Regex
   {

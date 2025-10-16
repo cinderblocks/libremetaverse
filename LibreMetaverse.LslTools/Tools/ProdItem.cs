@@ -25,9 +25,8 @@
  */
 
 using System;
-using System.Collections;
 
-namespace LibreMetaverse.LSLTools.Tools
+namespace LibreMetaverse.LslTools
 {
   public class ProdItem
   {

@@ -29,7 +29,7 @@ using System.Collections;
 using System.Globalization;
 using System.Text;
 
-namespace LibreMetaverse.LSLTools.Tools
+namespace LibreMetaverse.LslTools
 {
   public class Charset
   {

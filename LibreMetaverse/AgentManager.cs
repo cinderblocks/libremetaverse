@@ -1254,6 +1254,7 @@ namespace OpenMetaverse
         #endregion Callbacks
 
         private const string AGENT_PROFILE_CAP = "AgentProfile";
+        private const string UPDATE_AGENT_PROFILE_IMG_CAP = "UploadAgentProfileImage";
 
         /// <summary>Reference to the GridClient instance</summary>
         private readonly GridClient Client;
@@ -3614,6 +3615,11 @@ namespace OpenMetaverse
                         Logger.Log("AgentProfile notes update succeeded.", Helpers.LogLevel.Debug);
                     }
                 });
+        }
+
+        public async void UploadProfileImage()
+        {
+
         }
 
         #endregion Profile
