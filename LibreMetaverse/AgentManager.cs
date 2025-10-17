@@ -3617,11 +3617,6 @@ namespace OpenMetaverse
                 });
         }
 
-        public async void UploadProfileImage()
-        {
-
-        }
-
         #endregion Profile
 
         #region Mute List
