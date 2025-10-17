@@ -34,11 +34,9 @@ using System.Threading;
 using System.Xml;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse;
-using OpenMetaverse.Http;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
 using System.Net.Http;
-using System.Threading.Tasks;
 
 namespace LibreMetaverse.Voice.Vivox
 {

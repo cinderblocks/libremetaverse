@@ -33,7 +33,6 @@ using System.Globalization;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using LibreMetaverse;
 using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse

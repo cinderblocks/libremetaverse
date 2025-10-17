@@ -29,7 +29,6 @@ using System.Reflection;
 using log4net;
 using log4net.Appender;
 using log4net.Config;
-using log4net.Layout;
 
 [assembly: XmlConfigurator(Watch = true)]
 
