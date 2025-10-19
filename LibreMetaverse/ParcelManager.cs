@@ -1884,7 +1884,7 @@ namespace OpenMetaverse
 
         protected void ParcelPropertiesReplyHandler(string capsKey, IMessage message, Simulator simulator)
         {
-            if (m_ParcelProperties == null && Client.Settings.PARCEL_TRACKING != true) return;
+            if (m_ParcelProperties == null && !Client.Settings.PARCEL_TRACKING) return;
             ParcelPropertiesMessage msg = (ParcelPropertiesMessage)message;
 
             Parcel parcel = new Parcel(msg.LocalID)

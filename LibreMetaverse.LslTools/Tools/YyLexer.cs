@@ -30,7 +30,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 
-namespace LibreMetaverse.LSLTools.Tools
+namespace LibreMetaverse.LslTools
 {
   public class YyLexer
   {

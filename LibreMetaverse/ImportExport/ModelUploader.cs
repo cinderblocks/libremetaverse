@@ -29,9 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.Assets;
 using OpenMetaverse.StructuredData;
-using OpenMetaverse.Http;
 
 namespace OpenMetaverse.ImportExport
 {

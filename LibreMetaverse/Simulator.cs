@@ -944,7 +944,7 @@ namespace OpenMetaverse
             NetworkManager.OutgoingPacket outgoingPacket = new NetworkManager.OutgoingPacket(this, buffer, type);
 
             // Send ACK and logout packets directly, everything else goes through the queue
-            if (Client.Settings.THROTTLE_OUTGOING_PACKETS == false ||
+            if (!Client.Settings.THROTTLE_OUTGOING_PACKETS ||
                 type == PacketType.PacketAck ||
                 type == PacketType.LogoutRequest)
             {

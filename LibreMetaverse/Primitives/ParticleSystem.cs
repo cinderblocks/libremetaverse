@@ -39,7 +39,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Complete structure for the particle system
         /// </summary>
-        public struct ParticleSystem
+        public struct ParticleSystem : IEquatable<ParticleSystem>
         {
             /// <summary>
             /// Particle source pattern
@@ -505,6 +505,79 @@ namespace OpenMetaverse
                 }
 
                 return partSys;
+            }
+
+            public bool Equals(ParticleSystem other)
+            {
+                return CRC == other.CRC 
+                       && PartFlags == other.PartFlags 
+                       && Pattern == other.Pattern 
+                       && MaxAge.Equals(other.MaxAge) 
+                       && StartAge.Equals(other.StartAge) 
+                       && InnerAngle.Equals(other.InnerAngle) 
+                       && OuterAngle.Equals(other.OuterAngle) 
+                       && BurstRate.Equals(other.BurstRate) 
+                       && BurstRadius.Equals(other.BurstRadius)
+                       && BurstSpeedMin.Equals(other.BurstSpeedMin)
+                       && BurstSpeedMax.Equals(other.BurstSpeedMax) 
+                       && BurstPartCount == other.BurstPartCount 
+                       && AngularVelocity.Equals(other.AngularVelocity) 
+                       && PartAcceleration.Equals(other.PartAcceleration) 
+                       && Texture.Equals(other.Texture) 
+                       && Target.Equals(other.Target) 
+                       && PartDataFlags == other.PartDataFlags 
+                       && PartMaxAge.Equals(other.PartMaxAge) 
+                       && PartStartColor.Equals(other.PartStartColor) 
+                       && PartEndColor.Equals(other.PartEndColor)
+                       && PartStartScaleX.Equals(other.PartStartScaleX)
+                       && PartStartScaleY.Equals(other.PartStartScaleY)
+                       && PartEndScaleX.Equals(other.PartEndScaleX) 
+                       && PartEndScaleY.Equals(other.PartEndScaleY) 
+                       && PartStartGlow.Equals(other.PartStartGlow) 
+                       && PartEndGlow.Equals(other.PartEndGlow) 
+                       && BlendFuncSource == other.BlendFuncSource 
+                       && BlendFuncDest == other.BlendFuncDest;
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is ParticleSystem other && Equals(other);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = (int)CRC;
+                    hashCode = (hashCode * 397) ^ (int)PartFlags;
+                    hashCode = (hashCode * 397) ^ (int)Pattern;
+                    hashCode = (hashCode * 397) ^ MaxAge.GetHashCode();
+                    hashCode = (hashCode * 397) ^ StartAge.GetHashCode();
+                    hashCode = (hashCode * 397) ^ InnerAngle.GetHashCode();
+                    hashCode = (hashCode * 397) ^ OuterAngle.GetHashCode();
+                    hashCode = (hashCode * 397) ^ BurstRate.GetHashCode();
+                    hashCode = (hashCode * 397) ^ BurstRadius.GetHashCode();
+                    hashCode = (hashCode * 397) ^ BurstSpeedMin.GetHashCode();
+                    hashCode = (hashCode * 397) ^ BurstSpeedMax.GetHashCode();
+                    hashCode = (hashCode * 397) ^ BurstPartCount.GetHashCode();
+                    hashCode = (hashCode * 397) ^ AngularVelocity.GetHashCode();
+                    hashCode = (hashCode * 397) ^ PartAcceleration.GetHashCode();
+                    hashCode = (hashCode * 397) ^ Texture.GetHashCode();
+                    hashCode = (hashCode * 397) ^ Target.GetHashCode();
+                    hashCode = (hashCode * 397) ^ (int)PartDataFlags;
+                    hashCode = (hashCode * 397) ^ PartMaxAge.GetHashCode();
+                    hashCode = (hashCode * 397) ^ PartStartColor.GetHashCode();
+                    hashCode = (hashCode * 397) ^ PartEndColor.GetHashCode();
+                    hashCode = (hashCode * 397) ^ PartStartScaleX.GetHashCode();
+                    hashCode = (hashCode * 397) ^ PartStartScaleY.GetHashCode();
+                    hashCode = (hashCode * 397) ^ PartEndScaleX.GetHashCode();
+                    hashCode = (hashCode * 397) ^ PartEndScaleY.GetHashCode();
+                    hashCode = (hashCode * 397) ^ PartStartGlow.GetHashCode();
+                    hashCode = (hashCode * 397) ^ PartEndGlow.GetHashCode();
+                    hashCode = (hashCode * 397) ^ BlendFuncSource.GetHashCode();
+                    hashCode = (hashCode * 397) ^ BlendFuncDest.GetHashCode();
+                    return hashCode;
+                }
             }
         }
 

@@ -33,7 +33,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse.Materials;
 using OpenMetaverse.Packets;
-using OpenMetaverse.Http;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;

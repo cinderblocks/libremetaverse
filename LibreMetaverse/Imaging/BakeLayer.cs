@@ -265,7 +265,7 @@ namespace OpenMetaverse.Imaging
                         {
                             if (!MaskBelongsToBake(kvp.Key.TGAFile)) continue;
 
-                            if (kvp.Key.MultiplyBlend == false && (kvp.Value > 0f || !kvp.Key.SkipIfZero))
+                            if (!kvp.Key.MultiplyBlend && (kvp.Value > 0f || !kvp.Key.SkipIfZero))
                             {
                                 ApplyAlpha(combinedMask, kvp.Key, kvp.Value);
                                 //File.WriteAllBytes(bakeType + "-layer-" + i + "-mask-" + addedMasks + ".tga", combinedMask.ExportTGA());

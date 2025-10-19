@@ -26,7 +26,7 @@
 
 using System.Globalization;
 
-namespace LibreMetaverse.LSLTools.Tools
+namespace LibreMetaverse.LslTools
 {
   public class CatTest
   {

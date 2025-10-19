@@ -60,7 +60,7 @@ namespace OpenMetaverse.Assets
         /// </summary>
         public sealed override void Encode()
         {
-            if (encodedAudio == false)
+            if (!encodedAudio)
             {
                 encodedAudio = true;
                 AssetData = ConvertRawPCMFile(44100, 1, AssetData, PcmSample.SixteenBit, 44100, 2);
