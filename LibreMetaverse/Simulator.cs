@@ -47,68 +47,69 @@ namespace OpenMetaverse
         /// <summary>No flags set</summary>
         None = 0,
         /// <summary>Agents can take damage and be killed</summary>
-        AllowDamage = 1 << 0,
+        AllowDamage = 1UL << 0,
         /// <summary>Landmarks can be created here</summary>
-        AllowLandmark = 1 << 1,
+        AllowLandmark = 1UL << 1,
         /// <summary>Home position can be set in this sim</summary>
-        AllowSetHome = 1 << 2,
+        AllowSetHome = 1UL << 2,
         /// <summary>Home position is reset when an agent teleports away</summary>
-        ResetHomeOnTeleport = 1 << 3,
+        ResetHomeOnTeleport = 1UL << 3,
         /// <summary>Sun does not move</summary>
-        SunFixed = 1 << 4,
+        SunFixed = 1UL << 4,
         /// <summary>Allows private parcels (ie. banlines)</summary>
-        AllowAccessOverride = 1 << 5,
+        AllowAccessOverride = 1UL << 5,
         /// <summary>Disable heightmap alterations (agents can still plant foliage)</summary>
-        BlockTerraform = 1 << 6,
+        BlockTerraform = 1UL << 6,
         /// <summary>Land cannot be released, sold, or purchased</summary>
-        BlockLandResell = 1 << 7,
+        BlockLandResell = 1UL << 7,
         /// <summary>All content is wiped nightly</summary>
-        Sandbox = 1 << 8,
+        Sandbox = 1UL << 8,
         /// <summary>Unknown: Related to the availability of an overview world map tile.(Think mainland images when zoomed out.)</summary>
-        NullLayer = 1 << 9,
+        NullLayer = 1UL << 9,
         /// <summary>Unknown: Related to region debug flags. Possibly to skip processing of agent interaction with world. </summary>
-        SkipAgentAction = 1 << 10,
+        SkipAgentAction = 1UL << 10,
         /// <summary>Region does not update agent prim interest lists. Internal debugging option.</summary>
-        SkipUpdateInterestList = 1 << 11,
+        SkipUpdateInterestList = 1UL << 11,
         /// <summary>No collision detection for non-agent objects</summary>
-        SkipCollisions = 1 << 12,
+        SkipCollisions = 1UL << 12,
         /// <summary>No scripts are ran</summary>
-        SkipScripts = 1 << 13,
+        SkipScripts = 1UL << 13,
         /// <summary>All physics processing is turned off</summary>
-        SkipPhysics = 1 << 14,
+        SkipPhysics = 1UL << 14,
         /// <summary>Region can be seen from other regions on world map. (Legacy world map option?) </summary>
-        ExternallyVisible = 1 << 15,
+        ExternallyVisible = 1UL << 15,
         /// <summary>Region can be seen from mainland on world map. (Legacy world map option?) </summary>
-        MainlandVisible = 1 << 16,
+        MainlandVisible = 1UL << 16,
         /// <summary>Agents not explicitly on the access list can visit the region. </summary>
-        PublicAllowed = 1 << 17,
+        PublicAllowed = 1UL << 17,
         /// <summary>Traffic calculations are not run across entire region, overrides parcel settings. </summary>
-        BlockDwell = 1 << 18,
+        BlockDwell = 1UL << 18,
         /// <summary>Flight is disabled (not currently enforced by the sim)</summary>
-        NoFly = 1 << 19,
+        NoFly = 1UL << 19,
         /// <summary>Allow direct (p2p) teleporting</summary>
-        AllowDirectTeleport = 1 << 20,
+        AllowDirectTeleport = 1UL << 20,
         /// <summary>Estate owner has temporarily disabled scripting</summary>
-        EstateSkipScripts = 1 << 21,
+        EstateSkipScripts = 1UL << 21,
         /// <summary>Restricts the usage of the LSL llPushObject function, applies to whole region.</summary>
-        RestrictPushObject = 1 << 22,
+        RestrictPushObject = 1UL << 22,
         /// <summary>Deny agents with no payment info on file</summary>
-        DenyAnonymous = 1 << 23,
+        DenyAnonymous = 1UL << 23,
         /// <summary>Deny agents with payment info on file</summary>
-        DenyIdentified = 1 << 24,
+        DenyIdentified = 1UL << 24,
         /// <summary>Deny agents who have made a monetary transaction</summary>
-        DenyTransacted = 1 << 25,
+        DenyTransacted = 1UL << 25,
         /// <summary>Parcels within the region may be joined or divided by anyone, not just estate owners/managers. </summary>
-        AllowParcelChanges = 1 << 26,
+        AllowParcelChanges = 1UL << 26,
         /// <summary>Abuse reports sent from within this region are sent to the estate owner defined email. </summary>
-        AbuseEmailToEstateOwner = 1 << 27,
+        AbuseEmailToEstateOwner = 1UL << 27,
         /// <summary>Region is Voice Enabled</summary>
-        AllowVoice = 1 << 28,
+        AllowVoice = 1UL << 28,
         /// <summary>Removes the ability from parcel owners to set their parcels to show in search.</summary>
-        BlockParcelSearch = 1 << 29,
+        BlockParcelSearch = 1UL << 29,
         /// <summary>Deny agents who have not been age verified from entering the region.</summary>
-        DenyAgeUnverified = 1 << 30
-
+        DenyAgeUnverified = 1UL << 30,
+        /// <summary>Deny scripted agents from entering the region</summary>
+        DenyBots = 1UL << 31
     }
 
     /// <summary>
@@ -120,9 +121,9 @@ namespace OpenMetaverse
         /// <summary>Nothing special</summary>
         None = 0,
         /// <summary>Region supports Server side Appearance</summary>
-        AgentAppearanceService = 1 << 0,
+        AgentAppearanceService = 1UL << 0,
         /// <summary>Viewer supports Server side Appearance</summary>
-        SelfAppearanceSupport = 1 << 2
+        SelfAppearanceSupport = 1UL << 2
     }
 
     /// <summary>
