@@ -18,7 +18,7 @@ namespace LibreMetaverse.RLV
             ReplaceExistingAttachments = replaceExistingAttachments;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is AttachmentRequest request &&
                    ItemId.Equals(request.ItemId) &&
