@@ -1003,7 +1003,6 @@ namespace OpenMetaverse
 
         #endregion Public Methods
 
-
         #region Packet Handlers
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
@@ -1025,40 +1024,36 @@ namespace OpenMetaverse
         protected void EstateOwnerMessageHandler(object sender, PacketReceivedEventArgs e)
         {
             var message = (EstateOwnerMessagePacket)e.Packet;
-            uint estateID;
             var method = Utils.BytesToString(message.MethodData.Method);
-            //List<string> parameters = new List<string>();
 
             if (method == "estateupdateinfo")
             {
                 var estateName = Utils.BytesToString(message.ParamList[0].Parameter);
                 var estateOwner = new UUID(Utils.BytesToString(message.ParamList[1].Parameter));
-                estateID = Utils.BytesToUInt(message.ParamList[2].Parameter);
-                /*
-                foreach (EstateOwnerMessagePacket.ParamListBlock param in message.ParamList)
-                {
-                    parameters.Add(Utils.BytesToString(param.Parameter));
-                }
-                */
-                bool denyNoPaymentInfo;
-                if (Utils.BytesToUInt(message.ParamList[8].Parameter) == 0) denyNoPaymentInfo = true;
-                else denyNoPaymentInfo = false;
+                var estateID = Utils.BytesToUInt(message.ParamList[2].Parameter);
+                var flags = (RegionFlags)Utils.BytesToUInt64(message.ParamList[3].Parameter);
+                var sunHour = Utils.BytesToInt(message.ParamList[4].Parameter);
+                
+                //var parentEstateID = Utils.BytesToUInt(message.ParamList[5].Parameter);
+                //var covenantID = new UUID(Utils.BytesToString(message.ParamList[6].Parameter));
+                //var covenantTimestamp = Utils.BytesToString(message.ParamList[7].Parameter);
+                //var sendToAgentOnly = Utils.BytesToString(message.ParamList[8].Parameter);
+                //var abuseEmail = Utils.BytesToString(message.ParamList[9].Parameter);
 
-                OnEstateUpdateInfoReply(new EstateUpdateInfoReplyEventArgs(estateName, estateOwner, estateID, denyNoPaymentInfo));
+                OnEstateUpdateInfoReply(new EstateUpdateInfoReplyEventArgs(estateName, estateOwner, estateID, flags, sunHour));
             }
-
             else if (method == "setaccess")
             {
-                int count;
-                estateID = Utils.BytesToUInt(message.ParamList[0].Parameter);
+                uint estateID = Utils.BytesToUInt(message.ParamList[0].Parameter);
                 if (message.ParamList.Length > 1)
                 {
                     //param comes in as a string for some reason
                     uint param;
-                    if (!uint.TryParse(Utils.BytesToString(message.ParamList[1].Parameter), out param)) return;
+                    if (!uint.TryParse(Utils.BytesToString(message.ParamList[1].Parameter), out param)) { return; }
 
                     var accessType = (EstateAccessReplyDelta)param;
 
+                    int count;
                     switch (accessType)
                     {
                         case EstateAccessReplyDelta.EstateManagers:
@@ -1066,7 +1061,7 @@ namespace OpenMetaverse
                             {
                                 if (message.ParamList.Length > 5)
                                 {
-                                    if (!int.TryParse(Utils.BytesToString(message.ParamList[5].Parameter), out count)) return;
+                                    if (!int.TryParse(Utils.BytesToString(message.ParamList[5].Parameter), out count)) { return; }
                                     var managers = new List<UUID>();
                                     for (var i = 6; i < message.ParamList.Length; i++)
                                     {
@@ -1087,7 +1082,7 @@ namespace OpenMetaverse
                             {
                                 if (message.ParamList.Length > 5)
                                 {
-                                    if (!int.TryParse(Utils.BytesToString(message.ParamList[4].Parameter), out count)) return;
+                                    if (!int.TryParse(Utils.BytesToString(message.ParamList[4].Parameter), out count)) { return; }
                                     var bannedUsers = new List<UUID>();
                                     for (var i = 6; i < message.ParamList.Length; i++)
                                     {
@@ -1108,7 +1103,7 @@ namespace OpenMetaverse
                             {
                                 if (message.ParamList.Length > 5)
                                 {
-                                    if (!int.TryParse(Utils.BytesToString(message.ParamList[2].Parameter), out count)) return;
+                                    if (!int.TryParse(Utils.BytesToString(message.ParamList[2].Parameter), out count)) { return; }
                                     var allowedUsers = new List<UUID>();
                                     for (var i = 6; i < message.ParamList.Length; i++)
                                     {
@@ -1129,7 +1124,7 @@ namespace OpenMetaverse
                             {
                                 if (message.ParamList.Length > 5)
                                 {
-                                    if (!int.TryParse(Utils.BytesToString(message.ParamList[3].Parameter), out count)) return;
+                                    if (!int.TryParse(Utils.BytesToString(message.ParamList[3].Parameter), out count)) { return; }
                                     var allowedGroups = new List<UUID>();
                                     for (var i = 6; i < message.ParamList.Length; i++)
                                     {
@@ -1146,6 +1141,10 @@ namespace OpenMetaverse
                             break;
                     }
                 }
+            } 
+            else if (method == "setexperience")
+            {
+                // TODO: Implement me!
             }
         }
 
@@ -1439,7 +1438,6 @@ namespace OpenMetaverse
         }
     }
 
-
     /// <summary>Returned, along with other info, upon a successful .RequestInfo()</summary>
     public class EstateUpdateInfoReplyEventArgs : EventArgs
     {
@@ -1458,20 +1456,25 @@ namespace OpenMetaverse
         /// </summary>
         public uint EstateID { get; }
 
-        /// <summary></summary>
-        public bool DenyNoPaymentInfo { get; }
+        /// <summary><see cref="RegionFlags"/> for estate</summary>
+        public RegionFlags Flags { get; }
+
+        /// <summary>Sun hour in estate</summary>
+        public int SunHour { get; }
 
         /// <summary>Construct a new instance of the EstateUpdateInfoReplyEventArgs class</summary>
         /// <param name="estateName">The estate's name</param>
         /// <param name="estateOwner">The Estate Owners ID (can be a GroupID)</param>
         /// <param name="estateID">The estate's identifier on the grid</param>
-        /// <param name="denyNoPaymentInfo"></param>
-        public EstateUpdateInfoReplyEventArgs(string estateName, UUID estateOwner, uint estateID, bool denyNoPaymentInfo)
+        /// <param name="flags">The state <see cref="RegionFlags"/></param>
+        /// <param name="sunHour">Sun hour on the estate</param>
+        public EstateUpdateInfoReplyEventArgs(string estateName, UUID estateOwner, uint estateID, RegionFlags flags, int sunHour)
         {
             this.EstateName = estateName;
             this.EstateOwner = estateOwner;
             this.EstateID = estateID;
-            this.DenyNoPaymentInfo = denyNoPaymentInfo;
+            this.Flags = flags;
+            this.SunHour = sunHour;
 
         }
     }
