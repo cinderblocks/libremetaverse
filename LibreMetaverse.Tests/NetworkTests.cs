@@ -67,7 +67,7 @@ namespace LibreMetaverse.Tests
             // Connect to the grid
             string startLoc = NetworkManager.StartLocation("Hooper", 179, 18, 32);
             Assert.That(Client.Network.Login(username[0], username[1], password, "Unit Test Framework", 
-                    startLoc, "contact@radegast.life"), Is.True,
+                    startLoc, "admin@radegast.life"), Is.True,
                 "Client failed to login, reason: " + Client.Network.LoginMessage);
             Console.WriteLine("Done");
 
@@ -154,7 +154,6 @@ namespace LibreMetaverse.Tests
             if (Client.Network.CurrentSim.Caps.IsEventQueueRunning)
                 return true;
 
-            bool Success = false;
             // make sure caps event queue is running
             System.Threading.AutoResetEvent waitforCAPS = new System.Threading.AutoResetEvent(false);
             EventHandler<EventQueueRunningEventArgs> capsRunning = delegate
@@ -163,17 +162,12 @@ namespace LibreMetaverse.Tests
             };            
 
             Client.Network.EventQueueRunning += capsRunning;
-            if (waitforCAPS.WaitOne(10000, false))
+            if (!waitforCAPS.WaitOne(10000, false))
             {
-                Success = true;
-            }
-            else
-            {
-                Success = false;
                 Assert.Fail("Timeout waiting for event Queue to startup");
             }
             Client.Network.EventQueueRunning -= capsRunning;
-            return Success;
+            return true;
         }
 
         private void ObjectUpdateHandler(object sender, PacketReceivedEventArgs e)
