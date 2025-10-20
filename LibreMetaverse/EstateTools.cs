@@ -25,16 +25,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
+using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse
 {
@@ -140,6 +141,7 @@ namespace OpenMetaverse
             /// <summary>Returns target's scripted objects and objects on other parcels</summary>
             ReturnScriptedAndOnOthers = 7
         }
+
         #endregion
 
         #region Structs
@@ -490,7 +492,7 @@ namespace OpenMetaverse
                 },
                 MethodData =
                 {
-                    Invoice = UUID.Random(),
+                    Invoice = UUID.Random(), // FIXME:
                     Method = Utils.StringToBytes(method)
                 },
                 ParamList = new EstateOwnerMessagePacket.ParamListBlock[listParams.Count]
@@ -785,7 +787,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="fileData">A byte array containing the encoded terrain data</param>
         /// <param name="fileName">The name of the file being uploaded</param>
-        /// <returns>The Id of the transfer request</returns>
+        /// <returns>The id of the transfer request</returns>
         public UUID UploadTerrain(byte[] fileData, string fileName)
         {
             var upload = new AssetUpload
@@ -856,7 +858,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Add's an agent to the estate Allowed list</summary>
         /// <param name="userID">Key of Agent to Add</param>
-        /// <param name="allEstates">Add agent as an allowed reisdent to All estates if true</param>
+        /// <param name="allEstates">Add agent as an allowed resident to All estates if true</param>
         public void AddAllowedUser(UUID userID, bool allEstates)
         {
             var flag = allEstates ? (uint)EstateAccessDelta.AddAllowedAllEstates : (uint)EstateAccessDelta.AddUserAsAllowed;
@@ -914,7 +916,92 @@ namespace OpenMetaverse
             listParams.Add(groupID.ToString());
             EstateOwnerMessage("estateaccessdelta", listParams);
         }
-        #endregion
+
+        #region EstateInfo
+        /// <summary>
+        /// Commit EstateChangeInfo for a given estate
+        /// </summary>
+        /// <param name="estateName">Name of estate to change</param>
+        /// <param name="sunHour">Sun hour</param>
+        /// <param name="flags"><see cref="RegionFlags"/> to commit</param>
+        /// <returns></returns>
+        public async Task SendEstateChangeInfo(string estateName, float sunHour, RegionFlags flags)
+        {
+            var cap = Client.Network.CurrentSim.Caps.CapabilityURI("EstateChangeInfo");
+            if (cap != null)
+            {
+                if (await SendEstateChangeInfoHttp(cap, estateName, sunHour, flags))
+                {
+                    return;
+                }
+            }
+            SendEstateChangeInfoDataserver(estateName, sunHour, flags);
+        }
+
+        /// <summary>
+        /// Commit EstateChangeInfo for a given estate via HTTP cap.
+        /// </summary>
+        /// <param name="uri"></param>
+        /// <param name="estateName"></param>
+        /// <param name="sunHour"></param>
+        /// <param name="flags"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns>Success of request</returns>
+        /// <seealso cref="SendEstateChangeInfo"/>
+        /// <remarks>Prefer <see cref="SendEstateChangeInfo"/> which handles HTTP with LLUDP fallback</remarks>
+        public async Task<bool> SendEstateChangeInfoHttp(Uri uri, string estateName, float sunHour, RegionFlags flags, CancellationToken cancellationToken = default)
+        {
+            var payload = new OSDMap
+            {
+                ["estate_name"] = estateName,
+                ["is_sun_fixed"] = flags.HasFlag(RegionFlags.SunFixed),
+                ["is_externally_visible"] = flags.HasFlag(RegionFlags.ExternallyVisible),
+                ["allow_direct_teleport"] = flags.HasFlag(RegionFlags.AllowDirectTeleport),
+                ["deny_anonymous"] = flags.HasFlag(RegionFlags.DenyAnonymous),
+                ["deny_age_unverified"] = flags.HasFlag(RegionFlags.DenyAgeUnverified), 
+                ["block_bots"] = flags.HasFlag(RegionFlags.DenyBots),
+                ["allow_voice_chat"] = flags.HasFlag(RegionFlags.AllowVoice),
+                ["override_public_access"] = flags.HasFlag(RegionFlags.AllowAccessOverride),
+                ["invoice"] = UUID.Random() // FIXME:
+            };
+            using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(payload), Encoding.UTF8, "application/llsd+xml")) 
+            {
+                using (var reply = await Client.HttpCapsClient.PostAsync(uri, content, cancellationToken))
+                {
+                    if (reply != null && reply.IsSuccessStatusCode)
+                    {
+                        Logger.Log($"Committed estate change info for {estateName}", Helpers.LogLevel.Info, Client);
+                        return true;
+                    }
+                    Logger.Log($"Failed to commit estate info for {estateName}", Helpers.LogLevel.Warning, Client);
+                    return false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Commit EstateChangeInfo for a given estate via LLUDP
+        /// </summary>
+        /// <param name="estateName"></param>
+        /// <param name="sunHour"></param>
+        /// <param name="flags"></param>
+        /// <seealso cref="SendEstateChangeInfo"/>
+        /// <remarks>This is the deprecated way of doing things and is best NOT to use outright.
+        /// Prefer <see cref="SendEstateChangeInfo"/></remarks>
+        public void SendEstateChangeInfoDataserver(string estateName, float sunHour, RegionFlags flags)
+        {
+            var payload = new List<string>
+            {
+                estateName,
+                ((uint)flags).ToString(CultureInfo.InvariantCulture),
+                ((int)(sunHour * 1024.0f)).ToString(CultureInfo.InvariantCulture)
+            };
+            EstateOwnerMessage("estatechangeinfo", payload);
+        }
+
+        #endregion EstateInfo
+
+        #endregion Public Methods
 
 
         #region Packet Handlers
