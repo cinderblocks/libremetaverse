@@ -322,8 +322,8 @@ namespace LibreMetaverse.Voice.WebRTC
             };
 
             // SDP negotiation
-var audioTrack = new MediaStreamTrack(AudioDevice.Source.GetAudioSourceFormats());
-pc.addTrack(audioTrack);
+            var audioTrack = new MediaStreamTrack(AudioDevice.Source.GetAudioSourceFormats());
+            pc.addTrack(audioTrack);
             var offer = pc.createOffer();
             var rawSdp = offer.sdp.ToString();
             var processedSdp = ProcessLocalSdp(rawSdp);
@@ -730,14 +730,14 @@ pc.addTrack(audioTrack);
                     // Helper functions
                     int? JInt(JsonData d) => ToInt(d);
                     bool? JBool(JsonData d) => ToBool(d);
-                    string JStr(JsonData d) { try { return d == null ? null : d.ToString().Trim('"'); } catch { return null; } }
+                    string JStr(JsonData d) { try { return d?.ToString().Trim('"'); } catch { return null; } }
 
                     var contains = new Func<System.Collections.IDictionary, string, bool>((dict, key) => dict != null && dict.Contains(key));
 
                     var jdContains = jdDict;
 
                     // Join
-                    if (jdContains != null && contains(jdContains, "j") && jd["j"].IsObject)
+                    if (contains(jdContains, "j") && jd["j"].IsObject)
                     {
                         UUID peerId = SessionId;
                         var joinMap = jd["j"] as JsonData;
@@ -749,10 +749,10 @@ pc.addTrack(audioTrack);
                     }
 
                     // Leave
-                    if (jdContains != null && contains(jdContains, "l") && JBool(jd["l"]) == true)
+                    if (contains(jdContains, "l") && JBool(jd["l"]) == true)
                     {
                         UUID peerId = SessionId;
-                        var idStr = JStr(jdContains != null && jdContains.Contains("id") ? jd["id"] : null);
+                        var idStr = JStr(jdContains.Contains("id") ? jd["id"] : null);
                         if (!string.IsNullOrEmpty(idStr)) UUID.TryParse(idStr, out peerId);
                         Peers.TryRemove(peerId, out _);
                         OnPeerLeft?.Invoke(peerId);
@@ -762,7 +762,7 @@ pc.addTrack(audioTrack);
                     var avatarPos = new AvatarPosition { AgentId = SessionId };
                     bool posChanged = false;
 
-                    if (jdContains != null && contains(jdContains, "sp") && jd["sp"].IsObject)
+                    if (contains(jdContains, "sp") && jd["sp"].IsObject)
                     {
                         var sp = jd["sp"] as JsonData;
                         var spDict = sp as System.Collections.IDictionary;

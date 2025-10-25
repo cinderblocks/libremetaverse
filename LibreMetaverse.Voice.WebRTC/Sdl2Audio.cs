@@ -26,8 +26,6 @@
 
 using LibreMetaverse.Voice.WebRTC;
 using OpenMetaverse;
-using SDL2;
-using SIPSorcery.Net;
 using SIPSorceryMedia.Abstractions;
 using SIPSorceryMedia.SDL2;
 using System;

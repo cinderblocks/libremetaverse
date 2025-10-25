@@ -24,9 +24,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using LibreMetaverse.Voice.WebRTC;
 using OpenMetaverse;
 using System;
-using LibreMetaverse.Voice.WebRTC;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace WebRtcTest
@@ -49,13 +50,6 @@ namespace WebRtcTest
     internal class WebRtcTest
     {
         private static readonly AutoResetEvent EventQueueRunningEvent = new AutoResetEvent(false);
-        private static readonly AutoResetEvent ProvisionEvent = new AutoResetEvent(false);
-        private static readonly AutoResetEvent ParcelVoiceInfoEvent = new AutoResetEvent(false);
-        private static string VoiceAccount = string.Empty;
-        private static string VoicePassword = string.Empty;
-        private static string VoiceRegionName = string.Empty;
-        private static int VoiceLocalID = 0;
-        private static string VoiceChannelURI = string.Empty;
 
         private static void Main(string[] args)
         {
@@ -69,6 +63,8 @@ namespace WebRtcTest
             string lastName = args[1];
             string password = args[2];
 
+            Settings.LOG_LEVEL = Helpers.LogLevel.Debug;
+
             GridClient client = new GridClient
             {
                 Settings =
@@ -81,7 +77,8 @@ namespace WebRtcTest
                     SEND_AGENT_UPDATES = true
                 }
             };
-            Settings.LOG_LEVEL = Helpers.LogLevel.Debug;
+            client.Network.EventQueueRunning += client_OnEventQueueRunning;
+            client.Network.LoginProgress += client_OnLoginProgress;
 
             string loginURI = client.Settings.LOGIN_SERVER;
             if (4 == args.Length)
@@ -90,29 +87,14 @@ namespace WebRtcTest
             }
 
             VoiceManager voice = new VoiceManager(client);
-            //voice.OnProvisionAccount += voice_OnProvisionAccount;
-            //voice.OnParcelVoiceInfo += voice_OnParcelVoiceInfo;
-
-            client.Network.EventQueueRunning += client_OnEventQueueRunning;
+            voice.PeerAudioUpdated += WebRtc_PeerAudioUpdated;
+            voice.PeerPositionUpdatedTyped += WebRtc_PeerPositionUpdatedTyped;
+            voice.MuteMapReceived += WebRtc_MuteMapReceived;
+            voice.GainMapReceived += WebRtc_GainMapReceived;
 
             // SETUP!
             try
             {
-                /*List<string> captureDevices = voice.CaptureDevices();
-
-                Console.WriteLine("Capture Devices:");
-                for (int i = 0; i < captureDevices.Count; i++)
-                    Console.WriteLine("{0}. \"{1}\"", i, captureDevices[i]);
-                Console.WriteLine();
-
-                List<string> renderDevices = voice.RenderDevices();
-
-                Console.WriteLine("Render Devices:");
-                for (int i = 0; i < renderDevices.Count; i++)
-                    Console.WriteLine("{0}. \"{1}\"", i, renderDevices[i]);
-                Console.WriteLine();*/
-
-
                 // Login
                 Console.WriteLine($"Logging into the grid as {firstName} {lastName}...");
                 LoginParams loginParams =
@@ -144,19 +126,8 @@ namespace WebRtcTest
                 else
                 {
                     Console.WriteLine($"Connected to voice in '{client.Network.CurrentSim.Name}'");
-                    //Console.WriteLine($"==== OFFER ====\n{voice.sdpLocal}\n ==== ANSWER ====\n{voice.sdpRemote}");
                 }
                 
-
-                /*if (!voice.RequestParcelVoiceInfo())
-                    throw new Exception("Failed to request parcel voice info");
-                if (!ParcelVoiceInfoEvent.WaitOne(45 * 1000, false))
-                    throw new VoiceTestException("Failed to obtain parcel info voice", true);
-
-
-                Console.WriteLine("Parcel Voice Info obtained. Region name {0}, local parcel ID {1}, channel URI {2}",
-                    VoiceRegionName, VoiceLocalID, VoiceChannelURI);*/
-
                 Console.WriteLine($"Connected Primary Region to voice {client.Network.CurrentSim.Name}...");
 
                 Console.WriteLine("Press any key to disconnect...");
@@ -176,26 +147,45 @@ namespace WebRtcTest
             }
         }
 
-        private static void client_OnEventQueueRunning(object sender, EventQueueRunningEventArgs e)
+        #region GridClient handlers
+
+        private static void client_OnLoginProgress(object sender, LoginProgressEventArgs args)
+        {
+            if (args.Status == LoginStatus.Success)
+            {
+
+            }
+        }
+
+        private static void client_OnEventQueueRunning(object sender, EventQueueRunningEventArgs args)
         {
             EventQueueRunningEvent.Set();
         }
 
-        private static void voice_OnProvisionAccount(string username, string password)
-        {
-            VoiceAccount = username;
-            VoicePassword = password;
+        #endregion GridClient handlers
 
-            ProvisionEvent.Set();
+        #region WebRTC handlers
+
+        private static void WebRtc_PeerAudioUpdated(UUID id, VoiceSession.PeerAudioState state)
+        {
+            Logger.Log($"[Voice] PeerAudioUpdated {id} Power={state.Power} VAD={state.VoiceActive} JoinedPrimary={state.JoinedPrimary} Left={state.Left}", Helpers.LogLevel.Info);
         }
 
-        private static void voice_OnParcelVoiceInfo(string regionName, int localID, string channelURI)
+        private static void WebRtc_PeerPositionUpdatedTyped(UUID id, VoiceSession.AvatarPosition pos)
         {
-            VoiceRegionName = regionName;
-            VoiceLocalID = localID;
-            VoiceChannelURI = channelURI;
-
-            ParcelVoiceInfoEvent.Set();
+            Logger.Log($"[Voice] PeerPosition {id} sp={pos.SenderPosition?.X},{pos.SenderPosition?.Y},{pos.SenderPosition?.Z}", Helpers.LogLevel.Info);
         }
+
+        private static void WebRtc_MuteMapReceived(Dictionary<UUID, bool> m)
+        {
+            foreach (var kv in m) Logger.Log($"[Voice] Mute {kv.Key} = {kv.Value}", Helpers.LogLevel.Info);
+        }
+
+        private static void WebRtc_GainMapReceived(Dictionary<UUID, int> g)
+        {
+            foreach (var kv in g) Logger.Log($"[Voice] Gain {kv.Key} = {kv.Value}", Helpers.LogLevel.Info);
+        }
+
+        #endregion
     }
 }
