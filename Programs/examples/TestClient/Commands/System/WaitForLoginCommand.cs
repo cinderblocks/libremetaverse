@@ -1,4 +1,6 @@
-﻿namespace OpenMetaverse.TestClient
+﻿using OpenMetaverse;
+
+namespace TestClient.Commands.System
 {
     public class WaitForLoginCommand : Command
     {
@@ -13,7 +15,7 @@
         {
             while (ClientManager.Instance.PendingLogins > 0)
             {
-                System.Threading.Thread.Sleep(1000);
+                global::System.Threading.Thread.Sleep(1000);
                 Logger.Log("Pending logins: " + ClientManager.Instance.PendingLogins, Helpers.LogLevel.Info);
             }
 

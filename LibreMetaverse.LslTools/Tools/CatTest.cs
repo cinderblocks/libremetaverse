@@ -34,12 +34,12 @@ namespace LibreMetaverse.LslTools
 
     public CatTest(UnicodeCategory c)
     {
-      this.cat = c;
+      cat = c;
     }
 
     public bool Test(char ch)
     {
-      return char.GetUnicodeCategory(ch) == this.cat;
+      return char.GetUnicodeCategory(ch) == cat;
     }
   }
 }

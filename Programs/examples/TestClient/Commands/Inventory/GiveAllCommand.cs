@@ -1,4 +1,6 @@
-namespace OpenMetaverse.TestClient
+using OpenMetaverse;
+
+namespace TestClient.Commands.Inventory
 {
     public class GiveAllCommand: Command
     {

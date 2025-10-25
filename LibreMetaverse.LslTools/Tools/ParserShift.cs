@@ -37,21 +37,21 @@ namespace LibreMetaverse.LslTools
     public ParserShift(ParserAction action, ParseState next)
       : base(action)
     {
-      this.m_next = next;
+      m_next = next;
     }
 
     public override void Pass(ref ParseStackEntry top)
     {
       Parser yyps = top.yyps;
-      if (this.m_action == null)
+      if (m_action == null)
       {
         yyps.Push(top);
-        top = new ParseStackEntry(yyps, this.m_next.m_state, yyps.NextSym());
+        top = new ParseStackEntry(yyps, m_next.m_state, yyps.NextSym());
       }
       else
       {
-        yyps.Push(new ParseStackEntry(yyps, top.m_state, this.m_action.Action(yyps)));
-        top.m_state = this.m_next.m_state;
+        yyps.Push(new ParseStackEntry(yyps, top.m_state, m_action.Action(yyps)));
+        top.m_state = m_next.m_state;
       }
     }
 
@@ -59,26 +59,26 @@ namespace LibreMetaverse.LslTools
     {
       get
       {
-        if (this.m_next == null)
+        if (m_next == null)
           return "?? null shift";
-        return $"shift {(object)this.m_next.m_state}";
+        return $"shift {(object)m_next.m_state}";
       }
     }
 
     public new static object Serialise(object o, Serialiser s)
     {
       if (s == null)
-        return (object) new ParserShift();
+        return new ParserShift();
       ParserShift parserShift = (ParserShift) o;
       if (s.Encode)
       {
-        ParserEntry.Serialise((object) parserShift, s);
-        s.Serialise((object) parserShift.m_next);
-        return (object) null;
+        ParserEntry.Serialise(parserShift, s);
+        s.Serialise(parserShift.m_next);
+        return null;
       }
-      ParserEntry.Serialise((object) parserShift, s);
+      ParserEntry.Serialise(parserShift, s);
       parserShift.m_next = (ParseState) s.Deserialise();
-      return (object) parserShift;
+      return parserShift;
     }
   }
 }

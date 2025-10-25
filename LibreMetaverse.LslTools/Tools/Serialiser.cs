@@ -46,74 +46,74 @@ namespace LibreMetaverse.LslTools
 
         public Serialiser(TextWriter ff)
         {
-            this.f = ff;
+            f = ff;
         }
 
         public Serialiser(int[] bb)
         {
-            this.b = bb;
+            b = bb;
         }
 
         static Serialiser()
         {
-            Serialiser.srs[(object)Serialiser.SerType.Null] = (object)new Serialiser.ObjectSerialiser(Serialiser.NullSerialise);
-            Serialiser.tps[(object)typeof(int)] = (object)Serialiser.SerType.Int;
-            Serialiser.srs[(object)Serialiser.SerType.Int] = (object)new Serialiser.ObjectSerialiser(Serialiser.IntSerialise);
-            Serialiser.tps[(object)typeof(string)] = (object)Serialiser.SerType.String;
-            Serialiser.srs[(object)Serialiser.SerType.String] = (object)new Serialiser.ObjectSerialiser(Serialiser.StringSerialise);
-            Serialiser.tps[(object)typeof(Hashtable)] = (object)Serialiser.SerType.Hashtable;
-            Serialiser.srs[(object)Serialiser.SerType.Hashtable] = (object)new Serialiser.ObjectSerialiser(Serialiser.HashtableSerialise);
-            Serialiser.tps[(object)typeof(char)] = (object)Serialiser.SerType.Char;
-            Serialiser.srs[(object)Serialiser.SerType.Char] = (object)new Serialiser.ObjectSerialiser(Serialiser.CharSerialise);
-            Serialiser.tps[(object)typeof(bool)] = (object)Serialiser.SerType.Bool;
-            Serialiser.srs[(object)Serialiser.SerType.Bool] = (object)new Serialiser.ObjectSerialiser(Serialiser.BoolSerialise);
-            Serialiser.tps[(object)typeof(Encoding)] = (object)Serialiser.SerType.Encoding;
-            Serialiser.srs[(object)Serialiser.SerType.Encoding] = (object)new Serialiser.ObjectSerialiser(Serialiser.EncodingSerialise);
-            Serialiser.tps[(object)typeof(UnicodeCategory)] = (object)Serialiser.SerType.UnicodeCategory;
-            Serialiser.srs[(object)Serialiser.SerType.UnicodeCategory] = (object)new Serialiser.ObjectSerialiser(Serialiser.UnicodeCategorySerialise);
-            Serialiser.tps[(object)typeof(CSymbol.SymType)] = (object)Serialiser.SerType.Symtype;
-            Serialiser.srs[(object)Serialiser.SerType.Symtype] = (object)new Serialiser.ObjectSerialiser(Serialiser.SymtypeSerialise);
-            Serialiser.tps[(object)typeof(Charset)] = (object)Serialiser.SerType.Charset;
-            Serialiser.srs[(object)Serialiser.SerType.Charset] = (object)new Serialiser.ObjectSerialiser(Charset.Serialise);
-            Serialiser.tps[(object)typeof(TokClassDef)] = (object)Serialiser.SerType.TokClassDef;
-            Serialiser.srs[(object)Serialiser.SerType.TokClassDef] = (object)new Serialiser.ObjectSerialiser(TokClassDef.Serialise);
-            Serialiser.tps[(object)typeof(Dfa)] = (object)Serialiser.SerType.Dfa;
-            Serialiser.srs[(object)Serialiser.SerType.Dfa] = (object)new Serialiser.ObjectSerialiser(Dfa.Serialise);
-            Serialiser.tps[(object)typeof(ResWds)] = (object)Serialiser.SerType.ResWds;
-            Serialiser.srs[(object)Serialiser.SerType.ResWds] = (object)new Serialiser.ObjectSerialiser(ResWds.Serialise);
-            Serialiser.tps[(object)typeof(Dfa.Action)] = (object)Serialiser.SerType.Action;
-            Serialiser.srs[(object)Serialiser.SerType.Action] = (object)new Serialiser.ObjectSerialiser(Dfa.Action.Serialise);
-            Serialiser.tps[(object)typeof(ParserOldAction)] = (object)Serialiser.SerType.ParserOldAction;
-            Serialiser.srs[(object)Serialiser.SerType.ParserOldAction] = (object)new Serialiser.ObjectSerialiser(ParserOldAction.Serialise);
-            Serialiser.tps[(object)typeof(ParserSimpleAction)] = (object)Serialiser.SerType.ParserSimpleAction;
-            Serialiser.srs[(object)Serialiser.SerType.ParserSimpleAction] = (object)new Serialiser.ObjectSerialiser(ParserSimpleAction.Serialise);
-            Serialiser.tps[(object)typeof(ParserShift)] = (object)Serialiser.SerType.ParserShift;
-            Serialiser.srs[(object)Serialiser.SerType.ParserShift] = (object)new Serialiser.ObjectSerialiser(ParserShift.Serialise);
-            Serialiser.tps[(object)typeof(ParserReduce)] = (object)Serialiser.SerType.ParserReduce;
-            Serialiser.srs[(object)Serialiser.SerType.ParserReduce] = (object)new Serialiser.ObjectSerialiser(ParserReduce.Serialise);
-            Serialiser.tps[(object)typeof(ParseState)] = (object)Serialiser.SerType.ParseState;
-            Serialiser.srs[(object)Serialiser.SerType.ParseState] = (object)new Serialiser.ObjectSerialiser(ParseState.Serialise);
-            Serialiser.tps[(object)typeof(ParsingInfo)] = (object)Serialiser.SerType.ParsingInfo;
-            Serialiser.srs[(object)Serialiser.SerType.ParsingInfo] = (object)new Serialiser.ObjectSerialiser(ParsingInfo.Serialise);
-            Serialiser.tps[(object)typeof(CSymbol)] = (object)Serialiser.SerType.CSymbol;
-            Serialiser.srs[(object)Serialiser.SerType.CSymbol] = (object)new Serialiser.ObjectSerialiser(CSymbol.Serialise);
-            Serialiser.tps[(object)typeof(Literal)] = (object)Serialiser.SerType.Literal;
-            Serialiser.srs[(object)Serialiser.SerType.Literal] = (object)new Serialiser.ObjectSerialiser(Literal.Serialise);
-            Serialiser.tps[(object)typeof(Production)] = (object)Serialiser.SerType.Production;
-            Serialiser.srs[(object)Serialiser.SerType.Production] = (object)new Serialiser.ObjectSerialiser(Production.Serialise);
-            Serialiser.tps[(object)typeof(EOF)] = (object)Serialiser.SerType.EOF;
-            Serialiser.srs[(object)Serialiser.SerType.EOF] = (object)new Serialiser.ObjectSerialiser(EOF.Serialise);
+            srs[SerType.Null] = new ObjectSerialiser(NullSerialise);
+            tps[typeof(int)] = SerType.Int;
+            srs[SerType.Int] = new ObjectSerialiser(IntSerialise);
+            tps[typeof(string)] = SerType.String;
+            srs[SerType.String] = new ObjectSerialiser(StringSerialise);
+            tps[typeof(Hashtable)] = SerType.Hashtable;
+            srs[SerType.Hashtable] = new ObjectSerialiser(HashtableSerialise);
+            tps[typeof(char)] = SerType.Char;
+            srs[SerType.Char] = new ObjectSerialiser(CharSerialise);
+            tps[typeof(bool)] = SerType.Bool;
+            srs[SerType.Bool] = new ObjectSerialiser(BoolSerialise);
+            tps[typeof(Encoding)] = SerType.Encoding;
+            srs[SerType.Encoding] = new ObjectSerialiser(EncodingSerialise);
+            tps[typeof(UnicodeCategory)] = SerType.UnicodeCategory;
+            srs[SerType.UnicodeCategory] = new ObjectSerialiser(UnicodeCategorySerialise);
+            tps[typeof(CSymbol.SymType)] = SerType.Symtype;
+            srs[SerType.Symtype] = new ObjectSerialiser(SymtypeSerialise);
+            tps[typeof(Charset)] = SerType.Charset;
+            srs[SerType.Charset] = new ObjectSerialiser(Charset.Serialise);
+            tps[typeof(TokClassDef)] = SerType.TokClassDef;
+            srs[SerType.TokClassDef] = new ObjectSerialiser(TokClassDef.Serialise);
+            tps[typeof(Dfa)] = SerType.Dfa;
+            srs[SerType.Dfa] = new ObjectSerialiser(Dfa.Serialise);
+            tps[typeof(ResWds)] = SerType.ResWds;
+            srs[SerType.ResWds] = new ObjectSerialiser(ResWds.Serialise);
+            tps[typeof(Dfa.Action)] = SerType.Action;
+            srs[SerType.Action] = new ObjectSerialiser(Dfa.Action.Serialise);
+            tps[typeof(ParserOldAction)] = SerType.ParserOldAction;
+            srs[SerType.ParserOldAction] = new ObjectSerialiser(ParserOldAction.Serialise);
+            tps[typeof(ParserSimpleAction)] = SerType.ParserSimpleAction;
+            srs[SerType.ParserSimpleAction] = new ObjectSerialiser(ParserSimpleAction.Serialise);
+            tps[typeof(ParserShift)] = SerType.ParserShift;
+            srs[SerType.ParserShift] = new ObjectSerialiser(ParserShift.Serialise);
+            tps[typeof(ParserReduce)] = SerType.ParserReduce;
+            srs[SerType.ParserReduce] = new ObjectSerialiser(ParserReduce.Serialise);
+            tps[typeof(ParseState)] = SerType.ParseState;
+            srs[SerType.ParseState] = new ObjectSerialiser(ParseState.Serialise);
+            tps[typeof(ParsingInfo)] = SerType.ParsingInfo;
+            srs[SerType.ParsingInfo] = new ObjectSerialiser(ParsingInfo.Serialise);
+            tps[typeof(CSymbol)] = SerType.CSymbol;
+            srs[SerType.CSymbol] = new ObjectSerialiser(CSymbol.Serialise);
+            tps[typeof(Literal)] = SerType.Literal;
+            srs[SerType.Literal] = new ObjectSerialiser(Literal.Serialise);
+            tps[typeof(Production)] = SerType.Production;
+            srs[SerType.Production] = new ObjectSerialiser(Production.Serialise);
+            tps[typeof(EOF)] = SerType.EOF;
+            srs[SerType.EOF] = new ObjectSerialiser(EOF.Serialise);
         }
 
         public void VersionCheck()
         {
-            if (this.Encode)
+            if (Encode)
             {
-                this.Serialise((object)"4.5");
+                Serialise("4.5");
             }
             else
             {
-                string str = this.Deserialise() as string;
+                string str = Deserialise() as string;
                 if (str == null)
                     throw new LslToolsException("Serialisation error - found data from version 4.4 or earlier");
                 if (str != "4.5")
@@ -121,68 +121,68 @@ namespace LibreMetaverse.LslTools
             }
         }
 
-        public bool Encode => this.f != null;
+        public bool Encode => f != null;
 
-        private void _Write(Serialiser.SerType t)
+        private void _Write(SerType t)
         {
-            this._Write((int)t);
+            _Write((int)t);
         }
 
         public void _Write(int i)
         {
-            if (this.cl == 5)
+            if (cl == 5)
             {
-                this.f.WriteLine();
-                this.cl = 0;
+                f.WriteLine();
+                cl = 0;
             }
-            ++this.cl;
-            this.f.Write(i);
-            this.f.Write(",");
+            ++cl;
+            f.Write(i);
+            f.Write(",");
         }
 
         public int _Read()
         {
-            return this.b[this.pos++];
+            return b[pos++];
         }
 
         private static object NullSerialise(object o, Serialiser s)
         {
-            return (object)null;
+            return null;
         }
 
         private static object IntSerialise(object o, Serialiser s)
         {
             if (!s.Encode)
-                return (object)s._Read();
+                return s._Read();
             s._Write((int)o);
-            return (object)null;
+            return null;
         }
 
         private static object StringSerialise(object o, Serialiser s)
         {
             if (s == null)
-                return (object)"";
+                return "";
             var encoding = new UnicodeEncoding();
             if (s.Encode)
             {
                 byte[] bytes = encoding.GetBytes((string)o);
                 s._Write(bytes.Length);
                 foreach (var t in bytes)
-                    s._Write((int)t);
+                    s._Write(t);
 
-                return (object)null;
+                return null;
             }
             int count = s._Read();
             byte[] bytes1 = new byte[count];
             for (int index = 0; index < count; ++index)
                 bytes1[index] = (byte)s._Read();
-            return (object)encoding.GetString(bytes1, 0, count);
+            return encoding.GetString(bytes1, 0, count);
         }
 
         private static object HashtableSerialise(object o, Serialiser s)
         {
             if (s == null)
-                return (object)new Hashtable();
+                return new Hashtable();
             Hashtable hashtable = (Hashtable)o;
             if (s.Encode)
             {
@@ -192,7 +192,7 @@ namespace LibreMetaverse.LslTools
                     s.Serialise(dictionaryEntry.Key);
                     s.Serialise(dictionaryEntry.Value);
                 }
-                return (object)null;
+                return null;
             }
             int num = s._Read();
             for (int index1 = 0; index1 < num; ++index1)
@@ -201,7 +201,7 @@ namespace LibreMetaverse.LslTools
                 object obj = s.Deserialise();
                 hashtable[index2] = obj;
             }
-            return (object)hashtable;
+            return hashtable;
         }
 
         private static object CharSerialise(object o, Serialiser s)
@@ -210,24 +210,24 @@ namespace LibreMetaverse.LslTools
             if (s.Encode)
             {
                 byte[] bytes = encoding.GetBytes(new string((char)o, 1));
-                s._Write((int)bytes[0]);
-                s._Write((int)bytes[1]);
-                return (object)null;
+                s._Write(bytes[0]);
+                s._Write(bytes[1]);
+                return null;
             }
             byte[] bytes1 = new byte[2]
             {
         (byte) s._Read(),
         (byte) s._Read()
             };
-            return (object)encoding.GetString(bytes1, 0, 2)[0];
+            return encoding.GetString(bytes1, 0, 2)[0];
         }
 
         private static object BoolSerialise(object o, Serialiser s)
         {
             if (!s.Encode)
-                return (object)(s._Read() != 0);
+                return s._Read() != 0;
             s._Write(!(bool)o ? 0 : 1);
-            return (object)null;
+            return null;
         }
 
         private static object EncodingSerialise(object o, Serialiser s)
@@ -235,28 +235,28 @@ namespace LibreMetaverse.LslTools
             if (s.Encode)
             {
                 Encoding encoding = (Encoding)o;
-                s.Serialise((object)encoding.WebName);
-                return (object)null;
+                s.Serialise(encoding.WebName);
+                return null;
             }
             string name = (string)s.Deserialise();
             string str1 = name;
             if (str1 != null)
             {
                 string str2 = string.IsInterned(str1);
-                if ((object)str2 == (object)"us-ascii")
-                    return (object)Encoding.ASCII;
-                if ((object)str2 == (object)"utf-16")
-                    return (object)Encoding.Unicode;
-                if ((object)str2 == (object)"utf-7")
+                if (str2 == (object)"us-ascii")
+                    return Encoding.ASCII;
+                if (str2 == (object)"utf-16")
+                    return Encoding.Unicode;
+                if (str2 == (object)"utf-7")
 #pragma warning disable CS0618
-                    return (object)Encoding.UTF7;
+                    return Encoding.UTF7;
 #pragma warning restore CS0618
-                if ((object)str2 == (object)"utf-8")
-                    return (object)Encoding.UTF8;
+                if (str2 == (object)"utf-8")
+                    return Encoding.UTF8;
             }
             try
             {
-                return (object)Encoding.GetEncoding(name);
+                return Encoding.GetEncoding(name);
             }
             catch (Exception ex)
             {
@@ -267,72 +267,72 @@ namespace LibreMetaverse.LslTools
         private static object UnicodeCategorySerialise(object o, Serialiser s)
         {
             if (!s.Encode)
-                return (object)(UnicodeCategory)s._Read();
+                return (UnicodeCategory)s._Read();
             s._Write((int)o);
-            return (object)null;
+            return null;
         }
 
         private static object SymtypeSerialise(object o, Serialiser s)
         {
             if (!s.Encode)
-                return (object)(CSymbol.SymType)s._Read();
+                return (CSymbol.SymType)s._Read();
             s._Write((int)o);
-            return (object)null;
+            return null;
         }
 
         public void Serialise(object o)
         {
             if (o == null)
-                this._Write(Serialiser.SerType.Null);
+                _Write(SerType.Null);
             else if (o is Encoding)
             {
-                this._Write(Serialiser.SerType.Encoding);
-                Serialiser.EncodingSerialise(o, this);
+                _Write(SerType.Encoding);
+                EncodingSerialise(o, this);
             }
             else
             {
                 Type type = o.GetType();
                 if (type.IsClass)
                 {
-                    object ob = this.obs[o];
+                    object ob = obs[o];
                     if (ob != null)
                     {
-                        this._Write((int)ob);
+                        _Write((int)ob);
                         return;
                     }
-                    int i = ++this.id;
-                    this._Write(i);
-                    this.obs[o] = (object)i;
+                    int i = ++id;
+                    _Write(i);
+                    obs[o] = i;
                 }
-                object tp = Serialiser.tps[(object)type];
+                object tp = tps[type];
                 if (tp == null)
                     throw new LslToolsException("unknown type " + type.FullName);
-                Serialiser.SerType t = (Serialiser.SerType)tp;
-                this._Write(t);
-                object obj = ((Serialiser.ObjectSerialiser)Serialiser.srs[(object)t])(o, this);
+                SerType t = (SerType)tp;
+                _Write(t);
+                object obj = ((ObjectSerialiser)srs[t])(o, this);
             }
         }
 
         public object Deserialise()
         {
-            int num1 = this._Read();
+            int num1 = _Read();
             int num2 = 0;
             if (num1 > 100)
             {
                 num2 = num1;
-                if (num2 <= this.obs.Count + 100)
-                    return this.obs[(object)num2];
-                num1 = this._Read();
+                if (num2 <= obs.Count + 100)
+                    return obs[num2];
+                num1 = _Read();
             }
-            Serialiser.ObjectSerialiser sr = (Serialiser.ObjectSerialiser)Serialiser.srs[(object)(Serialiser.SerType)num1];
+            ObjectSerialiser sr = (ObjectSerialiser)srs[(SerType)num1];
             if (sr == null)
-                throw new LslToolsException("unknown type " + (object)num1);
+                throw new LslToolsException("unknown type " + num1);
             if (num2 <= 0)
-                return sr((object)null, this);
-            object o = sr((object)null, (Serialiser)null);
-            this.obs[(object)num2] = o;
+                return sr(null, this);
+            object o = sr(null, null);
+            obs[num2] = o;
             object obj = sr(o, this);
-            this.obs[(object)num2] = obj;
+            obs[num2] = obj;
             return obj;
         }
 

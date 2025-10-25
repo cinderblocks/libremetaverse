@@ -1,6 +1,7 @@
 using System;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Inventory
 {
     public class TreeCommand: Command
     {

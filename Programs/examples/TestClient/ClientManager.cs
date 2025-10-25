@@ -29,8 +29,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using OpenMetaverse;
+using TestClient.Commands.Inventory;
+using TestClient.Commands.System;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient
 {
     public class LoginDetails
     {

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2024, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -28,14 +28,13 @@
 using System;
 using System.Text;
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 
 namespace LibreMetaverse.Tests
 {
     /// <summary>
-    /// XmlSDTests is a suite of tests for libsl implementation of the SD XML for
+    /// XmlSDTests is a suite of tests for LibSL implementation of the SD XML for
     /// </summary>
     [TestFixture]
     public class XmlSDTests
@@ -85,73 +84,73 @@ namespace LibreMetaverse.Tests
             theSD = OSDParser.DeserializeLLSDXml(bytes);
 
             //Confirm the contents
-            ClassicAssert.IsNotNull(theSD);
-            ClassicAssert.IsTrue(theSD is OSDMap);
-            ClassicAssert.IsTrue(theSD.Type == OSDType.Map);
+            Assert.That(theSD, Is.Not.Null);
+            Assert.That(theSD, Is.InstanceOf<OSDMap>());
+            Assert.That(theSD.Type, Is.EqualTo(OSDType.Map));
             map = (OSDMap)theSD;
 
             tempSD = map["region_id"];
-            ClassicAssert.IsNotNull(tempSD);
-            ClassicAssert.IsTrue(tempSD is OSDUUID);
-            ClassicAssert.IsTrue(tempSD.Type == OSDType.UUID);
+            Assert.That(tempSD, Is.Not.Null);
+            Assert.That(tempSD, Is.InstanceOf<OSDUUID>());
+            Assert.That(tempSD.Type, Is.EqualTo(OSDType.UUID));
             tempUUID = (OSDUUID)tempSD;
-            ClassicAssert.AreEqual(new UUID("67153d5b-3659-afb4-8510-adda2c034649"), tempUUID.AsUUID());
+            Assert.That(tempUUID.AsUUID(), Is.EqualTo(new UUID("67153d5b-3659-afb4-8510-adda2c034649")));
 
             tempSD = map["scale"];
-            ClassicAssert.IsNotNull(tempSD);
-            ClassicAssert.IsTrue(tempSD is OSDString);
-            ClassicAssert.IsTrue(tempSD.Type == OSDType.String);
+            Assert.That(tempSD, Is.Not.Null);
+            Assert.That(tempSD, Is.InstanceOf<OSDString>());
+            Assert.That(tempSD.Type, Is.EqualTo(OSDType.String));
             tempStr = (OSDString)tempSD;
-            ClassicAssert.AreEqual("one minute", tempStr.AsString());
+            Assert.That(tempStr.AsString(), Is.EqualTo("one minute"));
 
             tempSD = map["simulator statistics"];
-            ClassicAssert.IsNotNull(tempSD);
-            ClassicAssert.IsTrue(tempSD is OSDMap);
-            ClassicAssert.IsTrue(tempSD.Type == OSDType.Map);
+            Assert.That(tempSD, Is.Not.Null);
+            Assert.That(tempSD, Is.InstanceOf<OSDMap>());
+            Assert.That(tempSD.Type, Is.EqualTo(OSDType.Map));
             map = (OSDMap)tempSD;
 
             tempSD = map["time dilation"];
-            ClassicAssert.IsNotNull(tempSD);
-            ClassicAssert.IsTrue(tempSD is OSDReal);
-            ClassicAssert.IsTrue(tempSD.Type == OSDType.Real);
+            Assert.That(tempSD, Is.Not.Null);
+            Assert.That(tempSD, Is.InstanceOf<OSDReal>());
+            Assert.That(tempSD.Type, Is.EqualTo(OSDType.Real));
             tempReal = (OSDReal)tempSD;
-            
-            ClassicAssert.AreEqual(0.9878624d, tempReal.AsReal());
+
+            Assert.That(tempReal.AsReal(), Is.EqualTo(0.9878624d));
             //TODO - figure out any relevant rounding variability for 64 bit reals
             tempSD = map["sim fps"];
-            ClassicAssert.IsNotNull(tempSD);
-            ClassicAssert.IsTrue(tempSD is OSDReal);
-            ClassicAssert.IsTrue(tempSD.Type == OSDType.Real);
+            Assert.That(tempSD, Is.Not.Null);
+            Assert.That(tempSD, Is.InstanceOf<OSDReal>());
+            Assert.That(tempSD.Type, Is.EqualTo(OSDType.Real));
             tempReal = (OSDReal)tempSD;
-            ClassicAssert.AreEqual(44.38898d, tempReal.AsReal());
+            Assert.That(tempReal.AsReal(), Is.EqualTo(44.38898d));
 
             tempSD = map["agent updates per second"];
-            ClassicAssert.IsNotNull(tempSD);
-            ClassicAssert.IsTrue(tempSD is OSDReal);
-            ClassicAssert.IsTrue(tempSD.Type == OSDType.Real);
+            Assert.That(tempSD, Is.Not.Null);
+            Assert.That(tempSD, Is.InstanceOf<OSDReal>());
+            Assert.That(tempSD.Type, Is.EqualTo(OSDType.Real));
             tempReal = (OSDReal)tempSD;
-            ClassicAssert.AreEqual(double.NaN, tempSD.AsReal());
+            Assert.That(tempSD.AsReal(), Is.EqualTo(double.NaN));
 
             tempSD = map["total task count"];
-            ClassicAssert.IsNotNull(tempSD);
-            ClassicAssert.IsTrue(tempSD is OSDReal);
-            ClassicAssert.IsTrue(tempSD.Type == OSDType.Real);
+            Assert.That(tempSD, Is.Not.Null);
+            Assert.That(tempSD, Is.InstanceOf<OSDReal>());
+            Assert.That(tempSD.Type, Is.EqualTo(OSDType.Real));
             tempReal = (OSDReal)tempSD;
-            ClassicAssert.AreEqual(4.0d, tempReal.AsReal());
+            Assert.That(tempReal.AsReal(), Is.EqualTo(4.0d));
 
             tempSD = map["active task count"];
-            ClassicAssert.IsNotNull(tempSD);
-            ClassicAssert.IsTrue(tempSD is OSDReal);
-            ClassicAssert.IsTrue(tempSD.Type == OSDType.Real);
+            Assert.That(tempSD, Is.Not.Null);
+            Assert.That(tempSD, Is.InstanceOf<OSDReal>());
+            Assert.That(tempSD.Type, Is.EqualTo(OSDType.Real));
             tempReal = (OSDReal)tempSD;
-            ClassicAssert.AreEqual(0.0d, tempReal.AsReal());
+            Assert.That(tempReal.AsReal(), Is.Zero);
 
             tempSD = map["pending uploads"];
-            ClassicAssert.IsNotNull(tempSD);
-            ClassicAssert.IsTrue(tempSD is OSDReal);
-            ClassicAssert.IsTrue(tempSD.Type == OSDType.Real);
+            Assert.That(tempSD, Is.Not.Null);
+            Assert.That(tempSD, Is.InstanceOf<OSDReal>());
+            Assert.That(tempSD.Type, Is.EqualTo(OSDType.Real));
             tempReal = (OSDReal)tempSD;
-            ClassicAssert.AreEqual(0.0001096525d, tempReal.AsReal());
+            Assert.That(tempReal.AsReal(), Is.EqualTo(0.0001096525d));
 
         }
 
@@ -172,12 +171,12 @@ namespace LibreMetaverse.Tests
 
             byte[] bytes = Encoding.UTF8.GetBytes(testSD);
             OSD theSD = OSDParser.DeserializeLLSDXml(bytes);
-            
-            ClassicAssert.IsTrue(theSD is OSDMap);
+
+            Assert.That(theSD, Is.InstanceOf<OSDMap>());
             OSDMap map = (OSDMap)theSD;
 
-            ClassicAssert.AreEqual(map["MINUTES"].AsInteger(), 5);
-            ClassicAssert.AreEqual(map["NAME"].AsString(), "Hippotropolis");
+            Assert.That(map["MINUTES"].AsInteger(), Is.EqualTo(5));
+            Assert.That(map["NAME"].AsString(), Is.EqualTo("Hippotropolis"));
         }
 
         /// <summary>
@@ -199,11 +198,11 @@ namespace LibreMetaverse.Tests
             byte[] bytes = Encoding.UTF8.GetBytes(testSD);
             OSD theSD = OSDParser.DeserializeLLSDXml(bytes);
 
-            ClassicAssert.IsTrue(theSD is OSDMap);
+            Assert.That(theSD, Is.InstanceOf<OSDMap>());
             OSDMap map = (OSDMap)theSD;
 
-            ClassicAssert.AreEqual(map["MINUTES"].AsInteger(), 5);
-            ClassicAssert.AreEqual(map["NAME"].AsString(), "Hippotropolis");
+            Assert.That(map["MINUTES"].AsInteger(), Is.EqualTo(5));
+            Assert.That(map["NAME"].AsString(), Is.EqualTo("Hippotropolis"));
         }
 
         /// <summary>
@@ -230,28 +229,28 @@ namespace LibreMetaverse.Tests
             byte[] bytes = Encoding.UTF8.GetBytes(testSD);
             theSD = OSDParser.DeserializeLLSDXml(bytes);
 
-            ClassicAssert.IsTrue(theSD is OSDArray);
+            Assert.That(theSD, Is.InstanceOf<OSDArray>());
             array = (OSDArray)theSD;
 
-            ClassicAssert.AreEqual(OSDType.Real, array[0].Type);
+            Assert.That(array[0].Type, Is.EqualTo(OSDType.Real));
             tempReal = (OSDReal)array[0];
-            ClassicAssert.AreEqual(44.38898d, tempReal.AsReal());
+            Assert.That(tempReal.AsReal(), Is.EqualTo(44.38898d));
 
-            ClassicAssert.AreEqual(OSDType.Real, array[1].Type);
+            Assert.That(array[1].Type, Is.EqualTo(OSDType.Real));
             tempReal = (OSDReal)array[1];
-            ClassicAssert.AreEqual(double.NaN, tempReal.AsReal());
+            Assert.That(tempReal.AsReal(), Is.EqualTo(double.NaN));
 
-            ClassicAssert.AreEqual(OSDType.Real, array[2].Type);
+            Assert.That(array[2].Type, Is.EqualTo(OSDType.Real));
             tempReal = (OSDReal)array[2];
-            ClassicAssert.AreEqual(4.0d, tempReal.AsReal());
+            Assert.That(tempReal.AsReal(), Is.EqualTo(4.0d));
 
-            ClassicAssert.AreEqual(OSDType.Real, array[3].Type);
+            Assert.That(array[3].Type, Is.EqualTo(OSDType.Real));
             tempReal = (OSDReal)array[3];
-            ClassicAssert.AreEqual(-13.333d, tempReal.AsReal());
+            Assert.That(tempReal.AsReal(), Is.EqualTo(-13.333d));
 
-            ClassicAssert.AreEqual(OSDType.Real, array[4].Type);
+            Assert.That(array[4].Type, Is.EqualTo(OSDType.Real));
             tempReal = (OSDReal)array[4];
-            ClassicAssert.AreEqual(0d, tempReal.AsReal());
+            Assert.That(tempReal.AsReal(), Is.Zero);
         }
 
         /// <summary>
@@ -277,32 +276,32 @@ namespace LibreMetaverse.Tests
             byte[] bytes = Encoding.UTF8.GetBytes(testSD);
             theSD = OSDParser.DeserializeLLSDXml(bytes);
 
-            ClassicAssert.IsTrue(theSD is OSDArray);
+            Assert.That(theSD, Is.InstanceOf<OSDArray>());
             array = (OSDArray)theSD;
 
-            ClassicAssert.AreEqual(OSDType.String, array[0].Type);
+            Assert.That(array[0].Type, Is.EqualTo(OSDType.String));
             tempStr = (OSDString)array[0];
-            ClassicAssert.AreEqual("Kissling", tempStr.AsString());
+            Assert.That(tempStr.AsString(), Is.EqualTo("Kissling"));
 
-            ClassicAssert.AreEqual(OSDType.String, array[1].Type);
+            Assert.That(array[1].Type, Is.EqualTo(OSDType.String));
             tempStr = (OSDString)array[1];
-            ClassicAssert.AreEqual("Attack ships on fire off the shoulder of Orion", tempStr.AsString());
+            Assert.That(tempStr.AsString(), Is.EqualTo("Attack ships on fire off the shoulder of Orion"));
 
-            ClassicAssert.AreEqual(OSDType.String, array[2].Type);
+            Assert.That(array[2].Type, Is.EqualTo(OSDType.String));
             tempStr = (OSDString)array[2];
-            ClassicAssert.AreEqual("< > & \' \"", tempStr.AsString());
+            Assert.That(tempStr.AsString(), Is.EqualTo("< > & \' \""));
 
-            ClassicAssert.AreEqual(OSDType.String, array[3].Type);
+            Assert.That(array[3].Type, Is.EqualTo(OSDType.String));
             tempStr = (OSDString)array[3];
-            ClassicAssert.AreEqual("", tempStr.AsString());
+            Assert.That(tempStr.AsString(), Is.Empty);
 
         }
 
         /// <summary>
         /// Test that various Integer representations are parsed correctly.
         /// These tests currently only test for values within the range of a
-        /// 32 bit signed integer, even though the SD specification says
-        /// the type is a 64 bit signed integer, because LLSInteger is currently
+        /// 32-bit signed integer, even though the SD specification says
+        /// the type is a 64-bit signed integer, because LLSInteger is currently
         /// implemented using int, a.k.a. Int32.  Not testing Int64 range until
         /// it's understood if there was a design reason for the Int32.
         /// </summary>
@@ -327,28 +326,28 @@ namespace LibreMetaverse.Tests
             byte[] bytes = Encoding.UTF8.GetBytes(testSD);
             theSD = OSDParser.DeserializeLLSDXml(bytes);
 
-            ClassicAssert.IsTrue(theSD is OSDArray);
+            Assert.That(theSD, Is.InstanceOf<OSDArray>());
             array = (OSDArray)theSD;
 
-            ClassicAssert.AreEqual(OSDType.Integer, array[0].Type);
+            Assert.That(array[0].Type, Is.EqualTo(OSDType.Integer));
             tempInt = (OSDInteger)array[0];
-            ClassicAssert.AreEqual(2147483647, tempInt.AsInteger());
+            Assert.That(tempInt.AsInteger(), Is.EqualTo(2147483647));
 
-            ClassicAssert.AreEqual(OSDType.Integer, array[1].Type);
+            Assert.That(array[1].Type, Is.EqualTo(OSDType.Integer));
             tempInt = (OSDInteger)array[1];
-            ClassicAssert.AreEqual(-2147483648, tempInt.AsInteger());
+            Assert.That(tempInt.AsInteger(), Is.EqualTo(-2147483648));
 
-            ClassicAssert.AreEqual(OSDType.Integer, array[2].Type);
+            Assert.That(array[2].Type, Is.EqualTo(OSDType.Integer));
             tempInt = (OSDInteger)array[2];
-            ClassicAssert.AreEqual(0, tempInt.AsInteger());
+            Assert.That(tempInt.AsInteger(), Is.Zero);
 
-            ClassicAssert.AreEqual(OSDType.Integer, array[3].Type);
+            Assert.That(array[3].Type, Is.EqualTo(OSDType.Integer));
             tempInt = (OSDInteger)array[3];
-            ClassicAssert.AreEqual(13, tempInt.AsInteger());
+            Assert.That(tempInt.AsInteger(), Is.EqualTo(13));
 
-            ClassicAssert.AreEqual(OSDType.Integer, array[4].Type);
+            Assert.That(array[4].Type, Is.EqualTo(OSDType.Integer));
             tempInt = (OSDInteger)array[4];
-            ClassicAssert.AreEqual(0, tempInt.AsInteger());
+            Assert.That(tempInt.AsInteger(), Is.Zero);
         }
 
         /// <summary>
@@ -372,16 +371,16 @@ namespace LibreMetaverse.Tests
             byte[] bytes = Encoding.UTF8.GetBytes(testSD);
             theSD = OSDParser.DeserializeLLSDXml(bytes);
 
-            ClassicAssert.IsTrue(theSD is OSDArray);
+            Assert.That(theSD, Is.InstanceOf<OSDArray>());
             array = (OSDArray)theSD;
 
-            ClassicAssert.AreEqual(OSDType.UUID, array[0].Type);
+            Assert.That(array[0].Type, Is.EqualTo(OSDType.UUID));
             tempUUID = (OSDUUID)array[0];
-            ClassicAssert.AreEqual(new UUID("d7f4aeca-88f1-42a1-b385-b9db18abb255"), tempUUID.AsUUID());
+            Assert.That(tempUUID.AsUUID(), Is.EqualTo(new UUID("d7f4aeca-88f1-42a1-b385-b9db18abb255")));
 
-            ClassicAssert.AreEqual(OSDType.UUID, array[1].Type);
+            Assert.That(array[1].Type, Is.EqualTo(OSDType.UUID));
             tempUUID = (OSDUUID)array[1];
-            ClassicAssert.AreEqual(UUID.Zero, tempUUID.AsUUID());
+            Assert.That(tempUUID.AsUUID(), Is.EqualTo(UUID.Zero));
         }
 
         /// <summary>
@@ -393,7 +392,6 @@ namespace LibreMetaverse.Tests
             OSD theSD = null;
             OSDArray array = null;
             OSDDate tempDate = null;
-            DateTime testDate;
 
             string testSD = @"<?xml version='1.0' encoding='UTF-8'?>
             <llsd>
@@ -407,22 +405,22 @@ namespace LibreMetaverse.Tests
             byte[] bytes = Encoding.UTF8.GetBytes(testSD);
             theSD = OSDParser.DeserializeLLSDXml(bytes);
 
-            ClassicAssert.IsTrue(theSD is OSDArray);
+            Assert.That(theSD, Is.InstanceOf<OSDArray>());
             array = (OSDArray)theSD;
 
-            ClassicAssert.AreEqual(OSDType.Date, array[0].Type);
+            Assert.That(array[0].Type, Is.EqualTo(OSDType.Date));
             tempDate = (OSDDate)array[0];
-            DateTime.TryParse("2006-02-01T14:29:53Z", out testDate);
-            ClassicAssert.AreEqual(testDate, tempDate.AsDate());
+            DateTime.TryParse("2006-02-01T14:29:53Z", out var testDate);
+            Assert.That(tempDate.AsDate(), Is.EqualTo(testDate));
 
-            ClassicAssert.AreEqual(OSDType.Date, array[1].Type);
+            Assert.That(array[1].Type, Is.EqualTo(OSDType.Date));
             tempDate = (OSDDate)array[1];
             DateTime.TryParse("1999-01-01T00:00:00Z", out testDate);
-            ClassicAssert.AreEqual(testDate, tempDate.AsDate());
+            Assert.That(tempDate.AsDate(), Is.EqualTo(testDate));
 
-            ClassicAssert.AreEqual(OSDType.Date, array[2].Type);
+            Assert.That(array[2].Type, Is.EqualTo(OSDType.Date));
             tempDate = (OSDDate)array[2];
-            ClassicAssert.AreEqual(Utils.Epoch, tempDate.AsDate());
+            Assert.That(tempDate.AsDate(), Is.EqualTo(Utils.Epoch));
         }
 
         /// <summary>
@@ -449,28 +447,28 @@ namespace LibreMetaverse.Tests
             byte[] bytes = Encoding.UTF8.GetBytes(testSD);
             theSD = OSDParser.DeserializeLLSDXml(bytes);
 
-            ClassicAssert.IsTrue(theSD is OSDArray);
+            Assert.That(theSD, Is.InstanceOf<OSDArray>());
             array = (OSDArray)theSD;
 
-            ClassicAssert.AreEqual(OSDType.Boolean, array[0].Type);
+            Assert.That(array[0].Type, Is.EqualTo(OSDType.Boolean));
             tempBool = (OSDBoolean)array[0];
-            ClassicAssert.AreEqual(true, tempBool.AsBoolean());
+            Assert.That(tempBool.AsBoolean(), Is.True);
 
-            ClassicAssert.AreEqual(OSDType.Boolean, array[1].Type);
+            Assert.That(array[1].Type, Is.EqualTo(OSDType.Boolean));
             tempBool = (OSDBoolean)array[1];
-            ClassicAssert.AreEqual(true, tempBool.AsBoolean());
+            Assert.That(tempBool.AsBoolean(), Is.True);
 
-            ClassicAssert.AreEqual(OSDType.Boolean, array[2].Type);
+            Assert.That(array[2].Type, Is.EqualTo(OSDType.Boolean));
             tempBool = (OSDBoolean)array[2];
-            ClassicAssert.AreEqual(false, tempBool.AsBoolean());
+            Assert.That(tempBool.AsBoolean(), Is.False);
 
-            ClassicAssert.AreEqual(OSDType.Boolean, array[3].Type);
+            Assert.That(array[3].Type, Is.EqualTo(OSDType.Boolean));
             tempBool = (OSDBoolean)array[3];
-            ClassicAssert.AreEqual(false, tempBool.AsBoolean());
+            Assert.That(tempBool.AsBoolean(), Is.False);
 
-            ClassicAssert.AreEqual(OSDType.Boolean, array[4].Type);
+            Assert.That(array[4].Type, Is.EqualTo(OSDType.Boolean));
             tempBool = (OSDBoolean)array[4];
-            ClassicAssert.AreEqual(false, tempBool.AsBoolean());
+            Assert.That(tempBool.AsBoolean(), Is.False);
         }
 
         /// <summary>
@@ -496,28 +494,28 @@ namespace LibreMetaverse.Tests
             byte[] bytes = Encoding.UTF8.GetBytes(testSD);
             theSD = OSDParser.DeserializeLLSDXml(bytes);
 
-            ClassicAssert.IsTrue(theSD is OSDArray);
+            Assert.That(theSD, Is.InstanceOf<OSDArray>());
             array = (OSDArray)theSD;
 
-            ClassicAssert.AreEqual(OSDType.Binary, array[0].Type);
+            Assert.That(array[0].Type, Is.EqualTo(OSDType.Binary));
             tempBinary = (OSDBinary)array[0];
             byte[] testData1 = {114, 97, 110, 100, 111, 109};
             TestHelper.TestBinary(tempBinary, testData1);
 
-            ClassicAssert.AreEqual(OSDType.Binary, array[1].Type);
+            Assert.That(array[1].Type, Is.EqualTo(OSDType.Binary));
             tempBinary = (OSDBinary)array[1];
             byte[] testData2 = {116, 104, 101, 32, 113, 117, 105, 99, 107, 32, 98, 
                                 114, 111, 119, 110, 32, 102, 111, 120};
             TestHelper.TestBinary(tempBinary, testData2);
 
-            ClassicAssert.AreEqual(OSDType.Binary, array[1].Type);
+            Assert.That(array[1].Type, Is.EqualTo(OSDType.Binary));
             tempBinary = (OSDBinary)array[2];
-            ClassicAssert.AreEqual(0, tempBinary.AsBinary().Length);
+            Assert.That(tempBinary.AsBinary(), Is.Empty);
         }
 
         /// <summary>
-        /// Test that undefened elements are parsed correctly.
-        /// Currently this just checks that there is no error since undefined has no
+        /// Test that undefined elements are parsed correctly.
+        /// Currently, this just checks that there is no error since undefined has no
         /// value and there is no SD child class for Undefined elements - the
         /// current implementation generates an instance of SD
         /// </summary>
@@ -534,7 +532,7 @@ namespace LibreMetaverse.Tests
             byte[] bytes = Encoding.UTF8.GetBytes(testSD);
             theSD = OSDParser.DeserializeLLSDXml(bytes);
 
-            ClassicAssert.IsTrue(theSD != null);
+            Assert.That(theSD, Is.Not.Null);
         }
 
         /// <summary>
@@ -558,17 +556,17 @@ namespace LibreMetaverse.Tests
             byte[] bytes = Encoding.UTF8.GetBytes(testSD);
             theSD = OSDParser.DeserializeLLSDXml(bytes);
 
-            ClassicAssert.IsTrue(theSD is OSDArray);
+            Assert.That(theSD, Is.InstanceOf<OSDArray>());
             array = (OSDArray)theSD;
 
-            ClassicAssert.AreEqual(OSDType.URI, array[0].Type);
+            Assert.That(array[0].Type, Is.EqualTo(OSDType.URI));
             tempURI = (OSDUri)array[0];
             Uri testURI = new Uri("http://sim956.agni.lindenlab.com:12035/runtime/agents");
-            ClassicAssert.AreEqual(testURI, tempURI.AsUri());
+            Assert.That(tempURI.AsUri(), Is.EqualTo(testURI));
 
-            ClassicAssert.AreEqual(OSDType.URI, array[1].Type);
+            Assert.That(array[1].Type, Is.EqualTo(OSDType.URI));
             tempURI = (OSDUri)array[1];
-            ClassicAssert.AreEqual("", tempURI.AsUri().ToString());
+            Assert.That(tempURI.AsUri().ToString(), Is.Empty);
         }
 
         /// <summary>
@@ -611,36 +609,36 @@ namespace LibreMetaverse.Tests
             byte[] bytes = Encoding.UTF8.GetBytes(testSD);
             theSD = OSDParser.DeserializeLLSDXml(bytes);
 
-            ClassicAssert.IsTrue(theSD is OSDArray);
+            Assert.That(theSD, Is.InstanceOf<OSDArray>());
             array = (OSDArray)theSD;
-            ClassicAssert.AreEqual(2, array.Count);
+            Assert.That(array, Has.Count.EqualTo(2));
 
             //The first element of top level array, a map
-            ClassicAssert.AreEqual(OSDType.Map, array[0].Type);
+            Assert.That(array[0].Type, Is.EqualTo(OSDType.Map));
             map = (OSDMap)array[0];
             //First nested map
             tempSD = map["Map One"];
-            ClassicAssert.IsNotNull(tempSD);
-            ClassicAssert.AreEqual(OSDType.Map, tempSD.Type);
+            Assert.That(tempSD, Is.Not.Null);
+            Assert.That(tempSD.Type, Is.EqualTo(OSDType.Map));
             map = (OSDMap)tempSD;
             //First nested array
             tempSD = map["Array One"];
-            ClassicAssert.IsNotNull(tempSD);
-            ClassicAssert.AreEqual(OSDType.Array, tempSD.Type);
+            Assert.That(tempSD, Is.Not.Null);
+            Assert.That(tempSD.Type, Is.EqualTo(OSDType.Array));
             array = (OSDArray)tempSD;
-            ClassicAssert.AreEqual(2, array.Count);
+            Assert.That(array, Has.Count.EqualTo(2));
 
             array = (OSDArray)theSD;
             //Second element of top level array, an array
             tempSD = array[1];
-            ClassicAssert.AreEqual(OSDType.Array, tempSD.Type);
+            Assert.That(tempSD.Type, Is.EqualTo(OSDType.Array));
             array = (OSDArray)tempSD;
-            ClassicAssert.AreEqual(3, array.Count);
+            Assert.That(array, Has.Count.EqualTo(3));
             //Nested array
             tempSD = array[2];
-            ClassicAssert.AreEqual(OSDType.Array, tempSD.Type);
+            Assert.That(tempSD.Type, Is.EqualTo(OSDType.Array));
             array = (OSDArray)tempSD;
-            ClassicAssert.AreEqual(3, array.Count);
+            Assert.That(array, Has.Count.EqualTo(3));
         }
     }
 
@@ -655,12 +653,12 @@ namespace LibreMetaverse.Tests
         internal static void TestBinary(OSDBinary inBinary, byte[] inExpected)
         {
             byte[] binary = inBinary.AsBinary();
-            ClassicAssert.AreEqual(inExpected.Length, binary.Length);
+            Assert.That(binary, Has.Length.EqualTo(inExpected.Length));
             for (int i = 0; i < inExpected.Length; i++)
             {
                 if (inExpected[i] != binary[i])
                 {
-                    ClassicAssert.Fail("Expected " + inExpected[i] + " at position " + i +
+                    Assert.Fail("Expected " + inExpected[i] + " at position " + i +
                         " but saw " + binary[i]);
                 }
             }

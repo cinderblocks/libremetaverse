@@ -43,13 +43,13 @@ namespace LibreMetaverse.LslTools
     {
       if (yyl == null)
         return;
-      this.m_str = yyl.yytext;
+      m_str = yyl.yytext;
     }
 
     public TOKEN(Lexer yyl, string s)
       : base(yyl)
     {
-      this.m_str = s;
+      m_str = s;
     }
 
     protected TOKEN()
@@ -58,8 +58,8 @@ namespace LibreMetaverse.LslTools
 
     public string yytext
     {
-      get => this.m_str;
-      set => this.m_str = value;
+      get => m_str;
+      set => m_str = value;
     }
 
     public override bool IsTerminal()
@@ -69,40 +69,40 @@ namespace LibreMetaverse.LslTools
 
     public override bool Pass(YyParser syms, int snum, out ParserEntry entry)
     {
-      if (this.yynum == 1)
+      if (yynum == 1)
       {
-        Literal literal = (Literal) syms.literals[(object) this.yytext];
+        Literal literal = (Literal) syms.literals[yytext];
         if (literal != null)
-          this.num = literal.m_yynum;
+          num = literal.m_yynum;
       }
-      ParsingInfo parsingInfo = (ParsingInfo) syms.symbolInfo[(object) this.yynum];
+      ParsingInfo parsingInfo = (ParsingInfo) syms.symbolInfo[yynum];
       if (parsingInfo == null)
       {
-        string s = $"Parser does not recognise literal {(object)this.yytext}";
-        syms.erh.Error((CSToolsException) new CSToolsFatalException(9, this.yylx, this.yyname, s));
+        string s = $"Parser does not recognise literal {(object)yytext}";
+        syms.erh.Error(new CSToolsFatalException(9, yylx, yyname, s));
       }
-      bool flag = parsingInfo.m_parsetable.Contains((object) snum);
-      entry = !flag ? (ParserEntry) null : (ParserEntry) parsingInfo.m_parsetable[(object) snum];
+      bool flag = parsingInfo.m_parsetable.Contains(snum);
+      entry = !flag ? null : (ParserEntry) parsingInfo.m_parsetable[snum];
       return flag;
     }
 
     public override string yyname => nameof (TOKEN);
 
-    public override int yynum => this.num;
+    public override int yynum => num;
 
     public override bool Matches(string s)
     {
-      return s.Equals(this.m_str);
+      return s.Equals(m_str);
     }
 
     public override string ToString()
     {
-      return this.yyname + "<" + this.yytext + ">";
+      return yyname + "<" + yytext + ">";
     }
 
     public override void Print()
     {
-      Console.WriteLine(this.ToString());
+      Console.WriteLine(ToString());
     }
   }
 }

@@ -1,8 +1,8 @@
-using System;
 using System.Linq;
+using OpenMetaverse;
 using OpenMetaverse.Packets;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Movement
 {
     public class FollowCommand: Command
     {

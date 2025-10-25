@@ -1,8 +1,9 @@
 using System;
 using System.Linq;
 using System.Threading;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.System
 {
     public class SetMasterCommand: Command
     {

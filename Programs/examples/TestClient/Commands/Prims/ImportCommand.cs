@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Prims
 {
     public class ImportCommand : Command
     {

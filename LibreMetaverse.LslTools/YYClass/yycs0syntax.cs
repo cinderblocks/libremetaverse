@@ -24,15 +24,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using LibreMetaverse.LslTools;
-
-namespace YYClass
+namespace LibreMetaverse.LslTools
 {
   public class yycs0syntax : YyParser
   {
     public yycs0syntax()
     {
-      this.arr = new int[6405]
+      arr = new int[6405]
       {
         101,
         4,
@@ -281,7 +279,7 @@ namespace YYClass
         0,
         1,
         118,
-        (int) sbyte.MaxValue,
+        sbyte.MaxValue,
         18,
         1,
         118,
@@ -1505,7 +1503,7 @@ namespace YYClass
         152,
         1,
         19,
-        (int) byte.MaxValue,
+        byte.MaxValue,
         17,
         256,
         15,
@@ -2880,7 +2878,7 @@ namespace YYClass
         149,
         1,
         19,
-        (int) byte.MaxValue,
+        byte.MaxValue,
         1,
         20,
         261,
@@ -3049,7 +3047,7 @@ namespace YYClass
         248,
         1,
         19,
-        (int) byte.MaxValue,
+        byte.MaxValue,
         1,
         20,
         261,
@@ -3224,7 +3222,7 @@ namespace YYClass
         170,
         1,
         19,
-        (int) byte.MaxValue,
+        byte.MaxValue,
         1,
         20,
         261,
@@ -3393,7 +3391,7 @@ namespace YYClass
         248,
         1,
         19,
-        (int) byte.MaxValue,
+        byte.MaxValue,
         1,
         20,
         261,
@@ -3565,7 +3563,7 @@ namespace YYClass
         248,
         1,
         19,
-        (int) byte.MaxValue,
+        byte.MaxValue,
         1,
         20,
         261,
@@ -3734,7 +3732,7 @@ namespace YYClass
         248,
         1,
         19,
-        (int) byte.MaxValue,
+        byte.MaxValue,
         1,
         20,
         261,
@@ -3909,7 +3907,7 @@ namespace YYClass
         248,
         1,
         19,
-        (int) byte.MaxValue,
+        byte.MaxValue,
         1,
         20,
         261,
@@ -4060,7 +4058,7 @@ namespace YYClass
         248,
         1,
         19,
-        (int) byte.MaxValue,
+        byte.MaxValue,
         1,
         20,
         261,
@@ -4172,7 +4170,7 @@ namespace YYClass
         470,
         16,
         0,
-        (int) sbyte.MaxValue,
+        sbyte.MaxValue,
         1,
         118,
         238,
@@ -4362,7 +4360,7 @@ namespace YYClass
         248,
         1,
         19,
-        (int) byte.MaxValue,
+        byte.MaxValue,
         1,
         20,
         261,
@@ -4504,7 +4502,7 @@ namespace YYClass
         248,
         1,
         19,
-        (int) byte.MaxValue,
+        byte.MaxValue,
         1,
         20,
         261,
@@ -4649,7 +4647,7 @@ namespace YYClass
         248,
         1,
         19,
-        (int) byte.MaxValue,
+        byte.MaxValue,
         1,
         20,
         261,
@@ -6440,90 +6438,90 @@ namespace YYClass
         1,
         0
       };
-      Sfactory sfactory1 = new Sfactory((YyParser) this, "Name", new SCreator(yycs0syntax.Name_factory));
-      Sfactory sfactory2 = new Sfactory((YyParser) this, "Cons_1", new SCreator(yycs0syntax.Cons_1_factory));
-      Sfactory sfactory3 = new Sfactory((YyParser) this, "Cons_2", new SCreator(yycs0syntax.Cons_2_factory));
-      Sfactory sfactory4 = new Sfactory((YyParser) this, "BaseCall_1", new SCreator(yycs0syntax.BaseCall_1_factory));
-      Sfactory sfactory5 = new Sfactory((YyParser) this, "BaseCall_2", new SCreator(yycs0syntax.BaseCall_2_factory));
-      Sfactory sfactory6 = new Sfactory((YyParser) this, "BaseCall_3", new SCreator(yycs0syntax.BaseCall_3_factory));
-      Sfactory sfactory7 = new Sfactory((YyParser) this, "BaseCall_4", new SCreator(yycs0syntax.BaseCall_4_factory));
-      Sfactory sfactory8 = new Sfactory((YyParser) this, "BaseCall_5", new SCreator(yycs0syntax.BaseCall_5_factory));
-      Sfactory sfactory9 = new Sfactory((YyParser) this, "BaseCall_6", new SCreator(yycs0syntax.BaseCall_6_factory));
-      Sfactory sfactory10 = new Sfactory((YyParser) this, "GStuff", new SCreator(yycs0syntax.GStuff_factory));
-      Sfactory sfactory11 = new Sfactory((YyParser) this, "Item_18_1", new SCreator(yycs0syntax.Item_18_1_factory));
-      Sfactory sfactory12 = new Sfactory((YyParser) this, "ClassBody", new SCreator(yycs0syntax.ClassBody_factory));
-      Sfactory sfactory13 = new Sfactory((YyParser) this, "Item_20_1", new SCreator(yycs0syntax.Item_20_1_factory));
-      Sfactory sfactory14 = new Sfactory((YyParser) this, "Stuff_4_1", new SCreator(yycs0syntax.Stuff_4_1_factory));
-      Sfactory sfactory15 = new Sfactory((YyParser) this, "Item_12_1", new SCreator(yycs0syntax.Item_12_1_factory));
-      Sfactory sfactory16 = new Sfactory((YyParser) this, "Item_2", new SCreator(yycs0syntax.Item_2_factory));
-      Sfactory sfactory17 = new Sfactory((YyParser) this, "Item_3", new SCreator(yycs0syntax.Item_3_factory));
-      Sfactory sfactory18 = new Sfactory((YyParser) this, "Item_4", new SCreator(yycs0syntax.Item_4_factory));
-      Sfactory sfactory19 = new Sfactory((YyParser) this, "Item_5", new SCreator(yycs0syntax.Item_5_factory));
-      Sfactory sfactory20 = new Sfactory((YyParser) this, "Item_6", new SCreator(yycs0syntax.Item_6_factory));
-      Sfactory sfactory21 = new Sfactory((YyParser) this, "Item_7", new SCreator(yycs0syntax.Item_7_factory));
-      Sfactory sfactory22 = new Sfactory((YyParser) this, "Item_8", new SCreator(yycs0syntax.Item_8_factory));
-      Sfactory sfactory23 = new Sfactory((YyParser) this, "Item_9", new SCreator(yycs0syntax.Item_9_factory));
-      Sfactory sfactory24 = new Sfactory((YyParser) this, "BaseCall_6_1", new SCreator(yycs0syntax.BaseCall_6_1_factory));
-      Sfactory sfactory25 = new Sfactory((YyParser) this, "Cons", new SCreator(yycs0syntax.Cons_factory));
-      Sfactory sfactory26 = new Sfactory((YyParser) this, "error", new SCreator(yycs0syntax.error_factory));
-      Sfactory sfactory27 = new Sfactory((YyParser) this, "Item_20", new SCreator(yycs0syntax.Item_20_factory));
-      Sfactory sfactory28 = new Sfactory((YyParser) this, "Item_21", new SCreator(yycs0syntax.Item_21_factory));
-      Sfactory sfactory29 = new Sfactory((YyParser) this, "Item_22", new SCreator(yycs0syntax.Item_22_factory));
-      Sfactory sfactory30 = new Sfactory((YyParser) this, "Item_1", new SCreator(yycs0syntax.Item_1_factory));
-      Sfactory sfactory31 = new Sfactory((YyParser) this, "Item_6_1", new SCreator(yycs0syntax.Item_6_1_factory));
-      Sfactory sfactory32 = new Sfactory((YyParser) this, "Call", new SCreator(yycs0syntax.Call_factory));
-      Sfactory sfactory33 = new Sfactory((YyParser) this, "Stuff", new SCreator(yycs0syntax.Stuff_factory));
-      Sfactory sfactory34 = new Sfactory((YyParser) this, "Item", new SCreator(yycs0syntax.Item_factory));
-      Sfactory sfactory35 = new Sfactory((YyParser) this, "Name_4_1", new SCreator(yycs0syntax.Name_4_1_factory));
-      Sfactory sfactory36 = new Sfactory((YyParser) this, "Item_16_1", new SCreator(yycs0syntax.Item_16_1_factory));
-      Sfactory sfactory37 = new Sfactory((YyParser) this, "Call_2", new SCreator(yycs0syntax.Call_2_factory));
-      Sfactory sfactory38 = new Sfactory((YyParser) this, "Stuff_2_1", new SCreator(yycs0syntax.Stuff_2_1_factory));
-      Sfactory sfactory39 = new Sfactory((YyParser) this, "Item_10_1", new SCreator(yycs0syntax.Item_10_1_factory));
-      Sfactory sfactory40 = new Sfactory((YyParser) this, "Item_24_1", new SCreator(yycs0syntax.Item_24_1_factory));
-      Sfactory sfactory41 = new Sfactory((YyParser) this, "Stuff_1", new SCreator(yycs0syntax.Stuff_1_factory));
-      Sfactory sfactory42 = new Sfactory((YyParser) this, "Stuff_2", new SCreator(yycs0syntax.Stuff_2_factory));
-      Sfactory sfactory43 = new Sfactory((YyParser) this, "Stuff_3", new SCreator(yycs0syntax.Stuff_3_factory));
-      Sfactory sfactory44 = new Sfactory((YyParser) this, "Stuff_4", new SCreator(yycs0syntax.Stuff_4_factory));
-      Sfactory sfactory45 = new Sfactory((YyParser) this, "BaseCall", new SCreator(yycs0syntax.BaseCall_factory));
-      Sfactory sfactory46 = new Sfactory((YyParser) this, "Call_2_1", new SCreator(yycs0syntax.Call_2_1_factory));
-      Sfactory sfactory47 = new Sfactory((YyParser) this, "GStuff_6_1", new SCreator(yycs0syntax.GStuff_6_1_factory));
-      Sfactory sfactory48 = new Sfactory((YyParser) this, "BaseCall_4_1", new SCreator(yycs0syntax.BaseCall_4_1_factory));
-      Sfactory sfactory49 = new Sfactory((YyParser) this, "Item_10", new SCreator(yycs0syntax.Item_10_factory));
-      Sfactory sfactory50 = new Sfactory((YyParser) this, "Item_11", new SCreator(yycs0syntax.Item_11_factory));
-      Sfactory sfactory51 = new Sfactory((YyParser) this, "Item_12", new SCreator(yycs0syntax.Item_12_factory));
-      Sfactory sfactory52 = new Sfactory((YyParser) this, "Item_13", new SCreator(yycs0syntax.Item_13_factory));
-      Sfactory sfactory53 = new Sfactory((YyParser) this, "Item_14", new SCreator(yycs0syntax.Item_14_factory));
-      Sfactory sfactory54 = new Sfactory((YyParser) this, "Item_15", new SCreator(yycs0syntax.Item_15_factory));
-      Sfactory sfactory55 = new Sfactory((YyParser) this, "Item_16", new SCreator(yycs0syntax.Item_16_factory));
-      Sfactory sfactory56 = new Sfactory((YyParser) this, "Item_17", new SCreator(yycs0syntax.Item_17_factory));
-      Sfactory sfactory57 = new Sfactory((YyParser) this, "Item_18", new SCreator(yycs0syntax.Item_18_factory));
-      Sfactory sfactory58 = new Sfactory((YyParser) this, "Item_19", new SCreator(yycs0syntax.Item_19_factory));
-      Sfactory sfactory59 = new Sfactory((YyParser) this, "Name_3", new SCreator(yycs0syntax.Name_3_factory));
-      Sfactory sfactory60 = new Sfactory((YyParser) this, "GStuff_1", new SCreator(yycs0syntax.GStuff_1_factory));
-      Sfactory sfactory61 = new Sfactory((YyParser) this, "GStuff_2", new SCreator(yycs0syntax.GStuff_2_factory));
-      Sfactory sfactory62 = new Sfactory((YyParser) this, "GStuff_3", new SCreator(yycs0syntax.GStuff_3_factory));
-      Sfactory sfactory63 = new Sfactory((YyParser) this, "GStuff_4", new SCreator(yycs0syntax.GStuff_4_factory));
-      Sfactory sfactory64 = new Sfactory((YyParser) this, "GStuff_5", new SCreator(yycs0syntax.GStuff_5_factory));
-      Sfactory sfactory65 = new Sfactory((YyParser) this, "GStuff_6", new SCreator(yycs0syntax.GStuff_6_factory));
-      Sfactory sfactory66 = new Sfactory((YyParser) this, "Item_4_1", new SCreator(yycs0syntax.Item_4_1_factory));
-      Sfactory sfactory67 = new Sfactory((YyParser) this, "Cons_2_1", new SCreator(yycs0syntax.Cons_2_1_factory));
-      Sfactory sfactory68 = new Sfactory((YyParser) this, "Item_23", new SCreator(yycs0syntax.Item_23_factory));
-      Sfactory sfactory69 = new Sfactory((YyParser) this, "Item_24", new SCreator(yycs0syntax.Item_24_factory));
-      Sfactory sfactory70 = new Sfactory((YyParser) this, "Call_1", new SCreator(yycs0syntax.Call_1_factory));
-      Sfactory sfactory71 = new Sfactory((YyParser) this, "ClassBody_2_1", new SCreator(yycs0syntax.ClassBody_2_1_factory));
-      Sfactory sfactory72 = new Sfactory((YyParser) this, "Name_4", new SCreator(yycs0syntax.Name_4_factory));
-      Sfactory sfactory73 = new Sfactory((YyParser) this, "Name_2_1", new SCreator(yycs0syntax.Name_2_1_factory));
-      Sfactory sfactory74 = new Sfactory((YyParser) this, "Item_14_1", new SCreator(yycs0syntax.Item_14_1_factory));
-      Sfactory sfactory75 = new Sfactory((YyParser) this, "ClassBody_1", new SCreator(yycs0syntax.ClassBody_1_factory));
-      Sfactory sfactory76 = new Sfactory((YyParser) this, "ClassBody_2", new SCreator(yycs0syntax.ClassBody_2_factory));
-      Sfactory sfactory77 = new Sfactory((YyParser) this, "Item_22_1", new SCreator(yycs0syntax.Item_22_1_factory));
-      Sfactory sfactory78 = new Sfactory((YyParser) this, "GStuff_4_1", new SCreator(yycs0syntax.GStuff_4_1_factory));
-      Sfactory sfactory79 = new Sfactory((YyParser) this, "Name_1", new SCreator(yycs0syntax.Name_1_factory));
-      Sfactory sfactory80 = new Sfactory((YyParser) this, "Name_2", new SCreator(yycs0syntax.Name_2_factory));
-      Sfactory sfactory81 = new Sfactory((YyParser) this, "BaseCall_2_1", new SCreator(yycs0syntax.BaseCall_2_1_factory));
-      Sfactory sfactory82 = new Sfactory((YyParser) this, "Item_8_1", new SCreator(yycs0syntax.Item_8_1_factory));
-      Sfactory sfactory83 = new Sfactory((YyParser) this, "GStuff_2_1", new SCreator(yycs0syntax.GStuff_2_1_factory));
-      Sfactory sfactory84 = new Sfactory((YyParser) this, "Item_2_1", new SCreator(yycs0syntax.Item_2_1_factory));
+      Sfactory sfactory1 = new Sfactory(this, "Name", Name_factory);
+      Sfactory sfactory2 = new Sfactory(this, "Cons_1", Cons_1_factory);
+      Sfactory sfactory3 = new Sfactory(this, "Cons_2", Cons_2_factory);
+      Sfactory sfactory4 = new Sfactory(this, "BaseCall_1", BaseCall_1_factory);
+      Sfactory sfactory5 = new Sfactory(this, "BaseCall_2", BaseCall_2_factory);
+      Sfactory sfactory6 = new Sfactory(this, "BaseCall_3", BaseCall_3_factory);
+      Sfactory sfactory7 = new Sfactory(this, "BaseCall_4", BaseCall_4_factory);
+      Sfactory sfactory8 = new Sfactory(this, "BaseCall_5", BaseCall_5_factory);
+      Sfactory sfactory9 = new Sfactory(this, "BaseCall_6", BaseCall_6_factory);
+      Sfactory sfactory10 = new Sfactory(this, "GStuff", GStuff_factory);
+      Sfactory sfactory11 = new Sfactory(this, "Item_18_1", Item_18_1_factory);
+      Sfactory sfactory12 = new Sfactory(this, "ClassBody", ClassBody_factory);
+      Sfactory sfactory13 = new Sfactory(this, "Item_20_1", Item_20_1_factory);
+      Sfactory sfactory14 = new Sfactory(this, "Stuff_4_1", Stuff_4_1_factory);
+      Sfactory sfactory15 = new Sfactory(this, "Item_12_1", Item_12_1_factory);
+      Sfactory sfactory16 = new Sfactory(this, "Item_2", Item_2_factory);
+      Sfactory sfactory17 = new Sfactory(this, "Item_3", Item_3_factory);
+      Sfactory sfactory18 = new Sfactory(this, "Item_4", Item_4_factory);
+      Sfactory sfactory19 = new Sfactory(this, "Item_5", Item_5_factory);
+      Sfactory sfactory20 = new Sfactory(this, "Item_6", Item_6_factory);
+      Sfactory sfactory21 = new Sfactory(this, "Item_7", Item_7_factory);
+      Sfactory sfactory22 = new Sfactory(this, "Item_8", Item_8_factory);
+      Sfactory sfactory23 = new Sfactory(this, "Item_9", Item_9_factory);
+      Sfactory sfactory24 = new Sfactory(this, "BaseCall_6_1", BaseCall_6_1_factory);
+      Sfactory sfactory25 = new Sfactory(this, "Cons", Cons_factory);
+      Sfactory sfactory26 = new Sfactory(this, "error", error_factory);
+      Sfactory sfactory27 = new Sfactory(this, "Item_20", Item_20_factory);
+      Sfactory sfactory28 = new Sfactory(this, "Item_21", Item_21_factory);
+      Sfactory sfactory29 = new Sfactory(this, "Item_22", Item_22_factory);
+      Sfactory sfactory30 = new Sfactory(this, "Item_1", Item_1_factory);
+      Sfactory sfactory31 = new Sfactory(this, "Item_6_1", Item_6_1_factory);
+      Sfactory sfactory32 = new Sfactory(this, "Call", Call_factory);
+      Sfactory sfactory33 = new Sfactory(this, "Stuff", Stuff_factory);
+      Sfactory sfactory34 = new Sfactory(this, "Item", Item_factory);
+      Sfactory sfactory35 = new Sfactory(this, "Name_4_1", Name_4_1_factory);
+      Sfactory sfactory36 = new Sfactory(this, "Item_16_1", Item_16_1_factory);
+      Sfactory sfactory37 = new Sfactory(this, "Call_2", Call_2_factory);
+      Sfactory sfactory38 = new Sfactory(this, "Stuff_2_1", Stuff_2_1_factory);
+      Sfactory sfactory39 = new Sfactory(this, "Item_10_1", Item_10_1_factory);
+      Sfactory sfactory40 = new Sfactory(this, "Item_24_1", Item_24_1_factory);
+      Sfactory sfactory41 = new Sfactory(this, "Stuff_1", Stuff_1_factory);
+      Sfactory sfactory42 = new Sfactory(this, "Stuff_2", Stuff_2_factory);
+      Sfactory sfactory43 = new Sfactory(this, "Stuff_3", Stuff_3_factory);
+      Sfactory sfactory44 = new Sfactory(this, "Stuff_4", Stuff_4_factory);
+      Sfactory sfactory45 = new Sfactory(this, "BaseCall", BaseCall_factory);
+      Sfactory sfactory46 = new Sfactory(this, "Call_2_1", Call_2_1_factory);
+      Sfactory sfactory47 = new Sfactory(this, "GStuff_6_1", GStuff_6_1_factory);
+      Sfactory sfactory48 = new Sfactory(this, "BaseCall_4_1", BaseCall_4_1_factory);
+      Sfactory sfactory49 = new Sfactory(this, "Item_10", Item_10_factory);
+      Sfactory sfactory50 = new Sfactory(this, "Item_11", Item_11_factory);
+      Sfactory sfactory51 = new Sfactory(this, "Item_12", Item_12_factory);
+      Sfactory sfactory52 = new Sfactory(this, "Item_13", Item_13_factory);
+      Sfactory sfactory53 = new Sfactory(this, "Item_14", Item_14_factory);
+      Sfactory sfactory54 = new Sfactory(this, "Item_15", Item_15_factory);
+      Sfactory sfactory55 = new Sfactory(this, "Item_16", Item_16_factory);
+      Sfactory sfactory56 = new Sfactory(this, "Item_17", Item_17_factory);
+      Sfactory sfactory57 = new Sfactory(this, "Item_18", Item_18_factory);
+      Sfactory sfactory58 = new Sfactory(this, "Item_19", Item_19_factory);
+      Sfactory sfactory59 = new Sfactory(this, "Name_3", Name_3_factory);
+      Sfactory sfactory60 = new Sfactory(this, "GStuff_1", GStuff_1_factory);
+      Sfactory sfactory61 = new Sfactory(this, "GStuff_2", GStuff_2_factory);
+      Sfactory sfactory62 = new Sfactory(this, "GStuff_3", GStuff_3_factory);
+      Sfactory sfactory63 = new Sfactory(this, "GStuff_4", GStuff_4_factory);
+      Sfactory sfactory64 = new Sfactory(this, "GStuff_5", GStuff_5_factory);
+      Sfactory sfactory65 = new Sfactory(this, "GStuff_6", GStuff_6_factory);
+      Sfactory sfactory66 = new Sfactory(this, "Item_4_1", Item_4_1_factory);
+      Sfactory sfactory67 = new Sfactory(this, "Cons_2_1", Cons_2_1_factory);
+      Sfactory sfactory68 = new Sfactory(this, "Item_23", Item_23_factory);
+      Sfactory sfactory69 = new Sfactory(this, "Item_24", Item_24_factory);
+      Sfactory sfactory70 = new Sfactory(this, "Call_1", Call_1_factory);
+      Sfactory sfactory71 = new Sfactory(this, "ClassBody_2_1", ClassBody_2_1_factory);
+      Sfactory sfactory72 = new Sfactory(this, "Name_4", Name_4_factory);
+      Sfactory sfactory73 = new Sfactory(this, "Name_2_1", Name_2_1_factory);
+      Sfactory sfactory74 = new Sfactory(this, "Item_14_1", Item_14_1_factory);
+      Sfactory sfactory75 = new Sfactory(this, "ClassBody_1", ClassBody_1_factory);
+      Sfactory sfactory76 = new Sfactory(this, "ClassBody_2", ClassBody_2_factory);
+      Sfactory sfactory77 = new Sfactory(this, "Item_22_1", Item_22_1_factory);
+      Sfactory sfactory78 = new Sfactory(this, "GStuff_4_1", GStuff_4_1_factory);
+      Sfactory sfactory79 = new Sfactory(this, "Name_1", Name_1_factory);
+      Sfactory sfactory80 = new Sfactory(this, "Name_2", Name_2_factory);
+      Sfactory sfactory81 = new Sfactory(this, "BaseCall_2_1", BaseCall_2_1_factory);
+      Sfactory sfactory82 = new Sfactory(this, "Item_8_1", Item_8_1_factory);
+      Sfactory sfactory83 = new Sfactory(this, "GStuff_2_1", GStuff_2_1_factory);
+      Sfactory sfactory84 = new Sfactory(this, "Item_2_1", Item_2_1_factory);
     }
 
     public override object Action(Parser yyq, SYMBOL yysym, int yyact)
@@ -6532,427 +6530,427 @@ namespace YYClass
 #pragma warning disable CS0642 // Possible mistaken empty statement
                 ;
 #pragma warning restore CS0642 // Possible mistaken empty statement
-            return (object) null;
+            return null;
     }
 
     public static object Name_factory(Parser yyp)
     {
-      return (object) new Name(yyp);
+      return new Name(yyp);
     }
 
     public static object Cons_1_factory(Parser yyp)
     {
-      return (object) new Cons_1(yyp);
+      return new Cons_1(yyp);
     }
 
     public static object Cons_2_factory(Parser yyp)
     {
-      return (object) new Cons_2(yyp);
+      return new Cons_2(yyp);
     }
 
     public static object BaseCall_1_factory(Parser yyp)
     {
-      return (object) new BaseCall_1(yyp);
+      return new BaseCall_1(yyp);
     }
 
     public static object BaseCall_2_factory(Parser yyp)
     {
-      return (object) new BaseCall_2(yyp);
+      return new BaseCall_2(yyp);
     }
 
     public static object BaseCall_3_factory(Parser yyp)
     {
-      return (object) new BaseCall_3(yyp);
+      return new BaseCall_3(yyp);
     }
 
     public static object BaseCall_4_factory(Parser yyp)
     {
-      return (object) new BaseCall_4(yyp);
+      return new BaseCall_4(yyp);
     }
 
     public static object BaseCall_5_factory(Parser yyp)
     {
-      return (object) new BaseCall_5(yyp);
+      return new BaseCall_5(yyp);
     }
 
     public static object BaseCall_6_factory(Parser yyp)
     {
-      return (object) new BaseCall_6(yyp);
+      return new BaseCall_6(yyp);
     }
 
     public static object GStuff_factory(Parser yyp)
     {
-      return (object) new GStuff(yyp);
+      return new GStuff(yyp);
     }
 
     public static object Item_18_1_factory(Parser yyp)
     {
-      return (object) new Item_18_1(yyp);
+      return new Item_18_1(yyp);
     }
 
     public static object ClassBody_factory(Parser yyp)
     {
-      return (object) new ClassBody(yyp);
+      return new ClassBody(yyp);
     }
 
     public static object Item_20_1_factory(Parser yyp)
     {
-      return (object) new Item_20_1(yyp);
+      return new Item_20_1(yyp);
     }
 
     public static object Stuff_4_1_factory(Parser yyp)
     {
-      return (object) new Stuff_4_1(yyp);
+      return new Stuff_4_1(yyp);
     }
 
     public static object Item_12_1_factory(Parser yyp)
     {
-      return (object) new Item_12_1(yyp);
+      return new Item_12_1(yyp);
     }
 
     public static object Item_2_factory(Parser yyp)
     {
-      return (object) new Item_2(yyp);
+      return new Item_2(yyp);
     }
 
     public static object Item_3_factory(Parser yyp)
     {
-      return (object) new Item_3(yyp);
+      return new Item_3(yyp);
     }
 
     public static object Item_4_factory(Parser yyp)
     {
-      return (object) new Item_4(yyp);
+      return new Item_4(yyp);
     }
 
     public static object Item_5_factory(Parser yyp)
     {
-      return (object) new Item_5(yyp);
+      return new Item_5(yyp);
     }
 
     public static object Item_6_factory(Parser yyp)
     {
-      return (object) new Item_6(yyp);
+      return new Item_6(yyp);
     }
 
     public static object Item_7_factory(Parser yyp)
     {
-      return (object) new Item_7(yyp);
+      return new Item_7(yyp);
     }
 
     public static object Item_8_factory(Parser yyp)
     {
-      return (object) new Item_8(yyp);
+      return new Item_8(yyp);
     }
 
     public static object Item_9_factory(Parser yyp)
     {
-      return (object) new Item_9(yyp);
+      return new Item_9(yyp);
     }
 
     public static object BaseCall_6_1_factory(Parser yyp)
     {
-      return (object) new BaseCall_6_1(yyp);
+      return new BaseCall_6_1(yyp);
     }
 
     public static object Cons_factory(Parser yyp)
     {
-      return (object) new Cons(yyp);
+      return new Cons(yyp);
     }
 
     public static object error_factory(Parser yyp)
     {
-      return (object) new Error(yyp);
+      return new Error(yyp);
     }
 
     public static object Item_20_factory(Parser yyp)
     {
-      return (object) new Item_20(yyp);
+      return new Item_20(yyp);
     }
 
     public static object Item_21_factory(Parser yyp)
     {
-      return (object) new Item_21(yyp);
+      return new Item_21(yyp);
     }
 
     public static object Item_22_factory(Parser yyp)
     {
-      return (object) new Item_22(yyp);
+      return new Item_22(yyp);
     }
 
     public static object Item_1_factory(Parser yyp)
     {
-      return (object) new Item_1(yyp);
+      return new Item_1(yyp);
     }
 
     public static object Item_6_1_factory(Parser yyp)
     {
-      return (object) new Item_6_1(yyp);
+      return new Item_6_1(yyp);
     }
 
     public static object Call_factory(Parser yyp)
     {
-      return (object) new Call(yyp);
+      return new Call(yyp);
     }
 
     public static object Stuff_factory(Parser yyp)
     {
-      return (object) new Stuff(yyp);
+      return new Stuff(yyp);
     }
 
     public static object Item_factory(Parser yyp)
     {
-      return (object) new Item(yyp);
+      return new Item(yyp);
     }
 
     public static object Name_4_1_factory(Parser yyp)
     {
-      return (object) new Name_4_1(yyp);
+      return new Name_4_1(yyp);
     }
 
     public static object Item_16_1_factory(Parser yyp)
     {
-      return (object) new Item_16_1(yyp);
+      return new Item_16_1(yyp);
     }
 
     public static object Call_2_factory(Parser yyp)
     {
-      return (object) new Call_2(yyp);
+      return new Call_2(yyp);
     }
 
     public static object Stuff_2_1_factory(Parser yyp)
     {
-      return (object) new Stuff_2_1(yyp);
+      return new Stuff_2_1(yyp);
     }
 
     public static object Item_10_1_factory(Parser yyp)
     {
-      return (object) new Item_10_1(yyp);
+      return new Item_10_1(yyp);
     }
 
     public static object Item_24_1_factory(Parser yyp)
     {
-      return (object) new Item_24_1(yyp);
+      return new Item_24_1(yyp);
     }
 
     public static object Stuff_1_factory(Parser yyp)
     {
-      return (object) new Stuff_1(yyp);
+      return new Stuff_1(yyp);
     }
 
     public static object Stuff_2_factory(Parser yyp)
     {
-      return (object) new Stuff_2(yyp);
+      return new Stuff_2(yyp);
     }
 
     public static object Stuff_3_factory(Parser yyp)
     {
-      return (object) new Stuff_3(yyp);
+      return new Stuff_3(yyp);
     }
 
     public static object Stuff_4_factory(Parser yyp)
     {
-      return (object) new Stuff_4(yyp);
+      return new Stuff_4(yyp);
     }
 
     public static object BaseCall_factory(Parser yyp)
     {
-      return (object) new BaseCall(yyp);
+      return new BaseCall(yyp);
     }
 
     public static object Call_2_1_factory(Parser yyp)
     {
-      return (object) new Call_2_1(yyp);
+      return new Call_2_1(yyp);
     }
 
     public static object GStuff_6_1_factory(Parser yyp)
     {
-      return (object) new GStuff_6_1(yyp);
+      return new GStuff_6_1(yyp);
     }
 
     public static object BaseCall_4_1_factory(Parser yyp)
     {
-      return (object) new BaseCall_4_1(yyp);
+      return new BaseCall_4_1(yyp);
     }
 
     public static object Item_10_factory(Parser yyp)
     {
-      return (object) new Item_10(yyp);
+      return new Item_10(yyp);
     }
 
     public static object Item_11_factory(Parser yyp)
     {
-      return (object) new Item_11(yyp);
+      return new Item_11(yyp);
     }
 
     public static object Item_12_factory(Parser yyp)
     {
-      return (object) new Item_12(yyp);
+      return new Item_12(yyp);
     }
 
     public static object Item_13_factory(Parser yyp)
     {
-      return (object) new Item_13(yyp);
+      return new Item_13(yyp);
     }
 
     public static object Item_14_factory(Parser yyp)
     {
-      return (object) new Item_14(yyp);
+      return new Item_14(yyp);
     }
 
     public static object Item_15_factory(Parser yyp)
     {
-      return (object) new Item_15(yyp);
+      return new Item_15(yyp);
     }
 
     public static object Item_16_factory(Parser yyp)
     {
-      return (object) new Item_16(yyp);
+      return new Item_16(yyp);
     }
 
     public static object Item_17_factory(Parser yyp)
     {
-      return (object) new Item_17(yyp);
+      return new Item_17(yyp);
     }
 
     public static object Item_18_factory(Parser yyp)
     {
-      return (object) new Item_18(yyp);
+      return new Item_18(yyp);
     }
 
     public static object Item_19_factory(Parser yyp)
     {
-      return (object) new Item_19(yyp);
+      return new Item_19(yyp);
     }
 
     public static object Name_3_factory(Parser yyp)
     {
-      return (object) new Name_3(yyp);
+      return new Name_3(yyp);
     }
 
     public static object GStuff_1_factory(Parser yyp)
     {
-      return (object) new GStuff_1(yyp);
+      return new GStuff_1(yyp);
     }
 
     public static object GStuff_2_factory(Parser yyp)
     {
-      return (object) new GStuff_2(yyp);
+      return new GStuff_2(yyp);
     }
 
     public static object GStuff_3_factory(Parser yyp)
     {
-      return (object) new GStuff_3(yyp);
+      return new GStuff_3(yyp);
     }
 
     public static object GStuff_4_factory(Parser yyp)
     {
-      return (object) new GStuff_4(yyp);
+      return new GStuff_4(yyp);
     }
 
     public static object GStuff_5_factory(Parser yyp)
     {
-      return (object) new GStuff_5(yyp);
+      return new GStuff_5(yyp);
     }
 
     public static object GStuff_6_factory(Parser yyp)
     {
-      return (object) new GStuff_6(yyp);
+      return new GStuff_6(yyp);
     }
 
     public static object Item_4_1_factory(Parser yyp)
     {
-      return (object) new Item_4_1(yyp);
+      return new Item_4_1(yyp);
     }
 
     public static object Cons_2_1_factory(Parser yyp)
     {
-      return (object) new Cons_2_1(yyp);
+      return new Cons_2_1(yyp);
     }
 
     public static object Item_23_factory(Parser yyp)
     {
-      return (object) new Item_23(yyp);
+      return new Item_23(yyp);
     }
 
     public static object Item_24_factory(Parser yyp)
     {
-      return (object) new Item_24(yyp);
+      return new Item_24(yyp);
     }
 
     public static object Call_1_factory(Parser yyp)
     {
-      return (object) new Call_1(yyp);
+      return new Call_1(yyp);
     }
 
     public static object ClassBody_2_1_factory(Parser yyp)
     {
-      return (object) new ClassBody_2_1(yyp);
+      return new ClassBody_2_1(yyp);
     }
 
     public static object Name_4_factory(Parser yyp)
     {
-      return (object) new Name_4(yyp);
+      return new Name_4(yyp);
     }
 
     public static object Name_2_1_factory(Parser yyp)
     {
-      return (object) new Name_2_1(yyp);
+      return new Name_2_1(yyp);
     }
 
     public static object Item_14_1_factory(Parser yyp)
     {
-      return (object) new Item_14_1(yyp);
+      return new Item_14_1(yyp);
     }
 
     public static object ClassBody_1_factory(Parser yyp)
     {
-      return (object) new ClassBody_1(yyp);
+      return new ClassBody_1(yyp);
     }
 
     public static object ClassBody_2_factory(Parser yyp)
     {
-      return (object) new ClassBody_2(yyp);
+      return new ClassBody_2(yyp);
     }
 
     public static object Item_22_1_factory(Parser yyp)
     {
-      return (object) new Item_22_1(yyp);
+      return new Item_22_1(yyp);
     }
 
     public static object GStuff_4_1_factory(Parser yyp)
     {
-      return (object) new GStuff_4_1(yyp);
+      return new GStuff_4_1(yyp);
     }
 
     public static object Name_1_factory(Parser yyp)
     {
-      return (object) new Name_1(yyp);
+      return new Name_1(yyp);
     }
 
     public static object Name_2_factory(Parser yyp)
     {
-      return (object) new Name_2(yyp);
+      return new Name_2(yyp);
     }
 
     public static object BaseCall_2_1_factory(Parser yyp)
     {
-      return (object) new BaseCall_2_1(yyp);
+      return new BaseCall_2_1(yyp);
     }
 
     public static object Item_8_1_factory(Parser yyp)
     {
-      return (object) new Item_8_1(yyp);
+      return new Item_8_1(yyp);
     }
 
     public static object GStuff_2_1_factory(Parser yyp)
     {
-      return (object) new GStuff_2_1(yyp);
+      return new GStuff_2_1(yyp);
     }
 
     public static object Item_2_1_factory(Parser yyp)
     {
-      return (object) new Item_2_1(yyp);
+      return new Item_2_1(yyp);
     }
   }
 }

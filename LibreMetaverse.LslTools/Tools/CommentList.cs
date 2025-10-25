@@ -34,9 +34,9 @@ namespace LibreMetaverse.LslTools
 
     public CommentList(int st, int ln, CommentList t)
     {
-      this.spos = st;
-      this.len = ln;
-      this.tail = t;
+      spos = st;
+      len = ln;
+      tail = t;
     }
   }
 }

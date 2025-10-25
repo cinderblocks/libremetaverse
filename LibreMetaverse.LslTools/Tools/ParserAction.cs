@@ -44,18 +44,18 @@ namespace LibreMetaverse.LslTools
 
     public virtual SYMBOL Action(Parser yyp)
     {
-      SYMBOL symbol1 = (SYMBOL) Sfactory.create(this.m_sym.yytext, yyp);
-      if (symbol1.yyname == this.m_sym.yytext)
+      SYMBOL symbol1 = (SYMBOL) Sfactory.create(m_sym.yytext, yyp);
+      if (symbol1.yyname == m_sym.yytext)
       {
-        SYMBOL symbol2 = yyp.StackAt(this.m_len - 1).m_value;
-        symbol1.m_dollar = this.m_len == 0 || symbol2 == null ? (object) null : symbol2.m_dollar;
+        SYMBOL symbol2 = yyp.StackAt(m_len - 1).m_value;
+        symbol1.m_dollar = m_len == 0 || symbol2 == null ? null : symbol2.m_dollar;
       }
       return symbol1;
     }
 
     public override void Print()
     {
-      Console.Write(this.m_sym.yytext);
+      Console.Write(m_sym.yytext);
     }
 
     public override bool IsAction()
@@ -73,15 +73,15 @@ namespace LibreMetaverse.LslTools
       ParserAction parserAction = (ParserAction) o;
       if (s.Encode)
       {
-        CSymbol.Serialise((object) parserAction, s);
-        s.Serialise((object) parserAction.m_sym);
-        s.Serialise((object) parserAction.m_len);
-        return (object) null;
+        CSymbol.Serialise(parserAction, s);
+        s.Serialise(parserAction.m_sym);
+        s.Serialise(parserAction.m_len);
+        return null;
       }
-      CSymbol.Serialise((object) parserAction, s);
+      CSymbol.Serialise(parserAction, s);
       parserAction.m_sym = (CSymbol) s.Deserialise();
       parserAction.m_len = (int) s.Deserialise();
-      return (object) parserAction;
+      return parserAction;
     }
   }
 }

@@ -32,12 +32,12 @@ namespace LibreMetaverse.LslTools
   {
     public Tfactory(YyLexer tks, string cls_name, TCreator cr)
     {
-      tks.types[(object) cls_name] = (object) cr;
+      tks.types[cls_name] = cr;
     }
 
     public static object create(string cls_name, Lexer yyl)
     {
-      TCreator type1 = (TCreator) yyl.tokens.types[(object) cls_name];
+      TCreator type1 = (TCreator) yyl.tokens.types[cls_name];
       if (type1 == null)
         yyl.tokens.erh.Error(new CSToolsException(6, yyl, cls_name, $"no factory for {(object)cls_name}"));
       try
@@ -56,11 +56,11 @@ namespace LibreMetaverse.LslTools
       int length = cls_name.LastIndexOf('_');
       if (length > 0)
       {
-        TCreator type2 = (TCreator) yyl.tokens.types[(object) cls_name.Substring(0, length)];
+        TCreator type2 = (TCreator) yyl.tokens.types[cls_name.Substring(0, length)];
         if (type2 != null)
           return type2(yyl);
       }
-      return (object) null;
+      return null;
     }
   }
 }

@@ -39,21 +39,21 @@ namespace LibreMetaverse.LslTools
 
     public Production(SymbolsGen syms)
     {
-      this.m_lhs = (CSymbol) null;
-      this.m_prec = 0;
-      this.m_pno = syms.pno++;
-      this.m_actionsOnly = true;
-      syms.prods.Add((object) this);
+      m_lhs = null;
+      m_prec = 0;
+      m_pno = syms.pno++;
+      m_actionsOnly = true;
+      syms.prods.Add(this);
     }
 
     public Production(SymbolsGen syms, CSymbol lhs)
     {
-      this.m_lhs = lhs;
-      this.m_prec = 0;
-      this.m_pno = syms.pno++;
-      this.m_actionsOnly = true;
-      syms.prods.Add((object) this);
-      lhs.m_prods.Add((object) this);
+      m_lhs = lhs;
+      m_prec = 0;
+      m_pno = syms.pno++;
+      m_actionsOnly = true;
+      syms.prods.Add(this);
+      lhs.m_prods.Add(this);
     }
 
     private Production()
@@ -62,15 +62,15 @@ namespace LibreMetaverse.LslTools
 
     public void AddToRhs(CSymbol s)
     {
-      this.m_rhs.Add((object) s);
-      this.m_actionsOnly = this.m_actionsOnly && s.IsAction();
+      m_rhs.Add(s);
+      m_actionsOnly = m_actionsOnly && s.IsAction();
     }
 
     public void AddFirst(CSymbol s, int j)
     {
-      for (; j < this.m_rhs.Count; ++j)
+      for (; j < m_rhs.Count; ++j)
       {
-        CSymbol rh = (CSymbol) this.m_rhs[j];
+        CSymbol rh = (CSymbol) m_rhs[j];
         s.AddFollow(rh.m_first);
         if (!rh.IsNullable())
           break;
@@ -79,9 +79,9 @@ namespace LibreMetaverse.LslTools
 
     public bool CouldBeEmpty(int j)
     {
-      for (; j < this.m_rhs.Count; ++j)
+      for (; j < m_rhs.Count; ++j)
       {
-        if (!((CSymbol) this.m_rhs[j]).IsNullable())
+        if (!((CSymbol) m_rhs[j]).IsNullable())
           return false;
       }
       return true;
@@ -91,29 +91,29 @@ namespace LibreMetaverse.LslTools
     {
       CSymbol[] csymbolArray = new CSymbol[i];
       for (int index = 0; index < i; ++index)
-        csymbolArray[index] = (CSymbol) this.m_rhs[index];
+        csymbolArray[index] = (CSymbol) m_rhs[index];
       return csymbolArray;
     }
 
     public void StackRef(ref string str, int ch, int ix)
     {
-      int num = this.m_rhs.Count + 1;
-      CSymbol rh = (CSymbol) this.m_rhs[ix - 1];
+      int num = m_rhs.Count + 1;
+      CSymbol rh = (CSymbol) m_rhs[ix - 1];
       str += $"\n\t(({(object)rh.TypeStr()})(yyq.StackAt({(object)(num - ix - 1)}).m_value))\n\t";
     }
 
     public static object Serialise(object o, Serialiser s)
     {
       if (s == null)
-        return (object) new Production();
+        return new Production();
       Production production = (Production) o;
       if (s.Encode)
       {
-        s.Serialise((object) production.m_pno);
-        return (object) null;
+        s.Serialise(production.m_pno);
+        return null;
       }
       production.m_pno = (int) s.Deserialise();
-      return (object) production;
+      return production;
     }
   }
 }

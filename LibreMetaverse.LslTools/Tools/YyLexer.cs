@@ -48,27 +48,27 @@ namespace LibreMetaverse.LslTools
 
     public YyLexer(ErrorHandler eh)
     {
-      this.erh = eh;
-      this.UsingCat(UnicodeCategory.OtherPunctuation);
-      this.m_gencat = UnicodeCategory.OtherPunctuation;
-      Tfactory tfactory = new Tfactory(this, "TOKEN", new TCreator(this.Tokenfactory));
+      erh = eh;
+      UsingCat(UnicodeCategory.OtherPunctuation);
+      m_gencat = UnicodeCategory.OtherPunctuation;
+      Tfactory tfactory = new Tfactory(this, "TOKEN", TokenFactory);
     }
 
     public void GetDfa()
     {
-      if (this.tokens.Count > 0)
+      if (tokens.Count > 0)
         return;
-      Serialiser serialiser = new Serialiser(this.arr);
+      Serialiser serialiser = new Serialiser(arr);
       serialiser.VersionCheck();
-      this.m_encoding = (Encoding) serialiser.Deserialise();
-      this.toupper = (bool) serialiser.Deserialise();
-      this.cats = (Hashtable) serialiser.Deserialise();
-      this.m_gencat = (UnicodeCategory) serialiser.Deserialise();
-      this.usingEOF = (bool) serialiser.Deserialise();
-      this.starts = (Hashtable) serialiser.Deserialise();
-      Dfa.SetTokens(this, this.starts);
-      this.tokens = (Hashtable) serialiser.Deserialise();
-      this.reswds = (Hashtable) serialiser.Deserialise();
+      m_encoding = (Encoding) serialiser.Deserialise();
+      toupper = (bool) serialiser.Deserialise();
+      cats = (Hashtable) serialiser.Deserialise();
+      m_gencat = (UnicodeCategory) serialiser.Deserialise();
+      usingEOF = (bool) serialiser.Deserialise();
+      starts = (Hashtable) serialiser.Deserialise();
+      Dfa.SetTokens(this, starts);
+      tokens = (Hashtable) serialiser.Deserialise();
+      reswds = (Hashtable) serialiser.Deserialise();
     }
 
     public void EmitDfa(TextWriter outFile)
@@ -76,76 +76,76 @@ namespace LibreMetaverse.LslTools
       Console.WriteLine("Serializing the lexer");
       Serialiser serialiser = new Serialiser(outFile);
       serialiser.VersionCheck();
-      serialiser.Serialise((object) this.m_encoding);
-      serialiser.Serialise((object) this.toupper);
-      serialiser.Serialise((object) this.cats);
-      serialiser.Serialise((object) this.m_gencat);
-      serialiser.Serialise((object) this.usingEOF);
-      serialiser.Serialise((object) this.starts);
-      serialiser.Serialise((object) this.tokens);
-      serialiser.Serialise((object) this.reswds);
+      serialiser.Serialise(m_encoding);
+      serialiser.Serialise(toupper);
+      serialiser.Serialise(cats);
+      serialiser.Serialise(m_gencat);
+      serialiser.Serialise(usingEOF);
+      serialiser.Serialise(starts);
+      serialiser.Serialise(tokens);
+      serialiser.Serialise(reswds);
       outFile.WriteLine("0};");
     }
 
     public string InputEncoding
     {
-      set => this.m_encoding = Charset.GetEncoding(value, ref this.toupper, this.erh);
+      set => m_encoding = Charset.GetEncoding(value, ref toupper, erh);
     }
 
-    protected object Tokenfactory(Lexer yyl)
+    protected object TokenFactory(Lexer yyl)
     {
-      return (object) new TOKEN(yyl);
+      return new TOKEN(yyl);
     }
 
     public Charset UsingCat(UnicodeCategory cat)
     {
-      if (cat == this.m_gencat)
+      if (cat == m_gencat)
       {
         for (int index = 0; index < 28; ++index)
         {
-          if (Enum.IsDefined(typeof (UnicodeCategory), (object) index))
+          if (Enum.IsDefined(typeof (UnicodeCategory), index))
           {
             UnicodeCategory cat1 = (UnicodeCategory) index;
-            if (cat1 != UnicodeCategory.Surrogate && this.cats[(object) cat1] == null)
+            if (cat1 != UnicodeCategory.Surrogate && cats[cat1] == null)
             {
-              this.UsingCat(cat1);
-              this.m_gencat = cat1;
+              UsingCat(cat1);
+              m_gencat = cat1;
             }
           }
         }
-        return (Charset) this.cats[(object) cat];
+        return (Charset) cats[cat];
       }
-      if (this.cats[(object) cat] != null)
-        return (Charset) this.cats[(object) cat];
+      if (cats[cat] != null)
+        return (Charset) cats[cat];
       Charset charset = new Charset(cat);
-      this.cats[(object) cat] = (object) charset;
+      cats[cat] = charset;
       return charset;
     }
 
     internal void UsingChar(char ch)
     {
-      Charset charset = this.UsingCat(char.GetUnicodeCategory(ch));
-      if ((int) charset.m_generic == (int) ch)
+      Charset charset = UsingCat(char.GetUnicodeCategory(ch));
+      if (charset.m_generic == ch)
       {
         while (charset.m_generic != char.MaxValue)
         {
           ++charset.m_generic;
-          if (char.GetUnicodeCategory(charset.m_generic) == charset.m_cat && !charset.m_chars.Contains((object) charset.m_generic))
+          if (char.GetUnicodeCategory(charset.m_generic) == charset.m_cat && !charset.m_chars.Contains(charset.m_generic))
           {
-            charset.m_chars[(object) charset.m_generic] = (object) true;
+            charset.m_chars[charset.m_generic] = true;
             return;
           }
         }
         charset.m_generic = ch;
       }
       else
-        charset.m_chars[(object) ch] = (object) true;
+        charset.m_chars[ch] = true;
     }
 
     internal char Filter(char ch)
     {
-      Charset charset = (Charset) this.cats[(object) char.GetUnicodeCategory(ch)] ?? (Charset) this.cats[(object) this.m_gencat];
-      if (charset.m_chars.Contains((object) ch))
+      Charset charset = (Charset) cats[char.GetUnicodeCategory(ch)] ?? (Charset) cats[m_gencat];
+      if (charset.m_chars.Contains(ch))
         return ch;
       return charset.m_generic;
     }
@@ -186,13 +186,12 @@ namespace LibreMetaverse.LslTools
     {
       try
       {
-        object obj = Enum.Parse(typeof (UnicodeCategory), name);
-        if (obj != null)
-        {
-          UnicodeCategory unicodeCategory = (UnicodeCategory) obj;
-          this.UsingCat(unicodeCategory);
-          return new ChTest(new CatTest(unicodeCategory).Test);
-        }
+          object obj = Enum.Parse(typeof (UnicodeCategory), name);
+          {
+              UnicodeCategory unicodeCategory = (UnicodeCategory) obj;
+              UsingCat(unicodeCategory);
+              return new CatTest(unicodeCategory).Test;
+          }
       }
       catch (Exception)
       {
@@ -201,91 +200,91 @@ namespace LibreMetaverse.LslTools
       if (str1 != null)
       {
         string str2 = string.IsInterned(str1);
-        if ((object) str2 == (object) "Symbol")
+        if (str2 == (object) "Symbol")
         {
-          this.UsingCat(UnicodeCategory.OtherSymbol);
-          this.UsingCat(UnicodeCategory.ModifierSymbol);
-          this.UsingCat(UnicodeCategory.CurrencySymbol);
-          this.UsingCat(UnicodeCategory.MathSymbol);
-          return new ChTest(this.CharIsSymbol);
+          UsingCat(UnicodeCategory.OtherSymbol);
+          UsingCat(UnicodeCategory.ModifierSymbol);
+          UsingCat(UnicodeCategory.CurrencySymbol);
+          UsingCat(UnicodeCategory.MathSymbol);
+          return CharIsSymbol;
         }
-        if ((object) str2 == (object) "Punctuation")
+        if (str2 == (object) "Punctuation")
         {
-          this.UsingCat(UnicodeCategory.OtherPunctuation);
-          this.UsingCat(UnicodeCategory.FinalQuotePunctuation);
-          this.UsingCat(UnicodeCategory.InitialQuotePunctuation);
-          this.UsingCat(UnicodeCategory.ClosePunctuation);
-          this.UsingCat(UnicodeCategory.OpenPunctuation);
-          this.UsingCat(UnicodeCategory.DashPunctuation);
-          this.UsingCat(UnicodeCategory.ConnectorPunctuation);
-          return new ChTest(char.IsPunctuation);
+          UsingCat(UnicodeCategory.OtherPunctuation);
+          UsingCat(UnicodeCategory.FinalQuotePunctuation);
+          UsingCat(UnicodeCategory.InitialQuotePunctuation);
+          UsingCat(UnicodeCategory.ClosePunctuation);
+          UsingCat(UnicodeCategory.OpenPunctuation);
+          UsingCat(UnicodeCategory.DashPunctuation);
+          UsingCat(UnicodeCategory.ConnectorPunctuation);
+          return char.IsPunctuation;
         }
-        if ((object) str2 == (object) "Separator")
+        if (str2 == (object) "Separator")
         {
-          this.UsingCat(UnicodeCategory.ParagraphSeparator);
-          this.UsingCat(UnicodeCategory.LineSeparator);
-          this.UsingCat(UnicodeCategory.SpaceSeparator);
-          return new ChTest(this.CharIsSeparator);
+          UsingCat(UnicodeCategory.ParagraphSeparator);
+          UsingCat(UnicodeCategory.LineSeparator);
+          UsingCat(UnicodeCategory.SpaceSeparator);
+          return CharIsSeparator;
         }
-        if ((object) str2 == (object) "WhiteSpace")
+        if (str2 == (object) "WhiteSpace")
         {
-          this.UsingCat(UnicodeCategory.Control);
-          this.UsingCat(UnicodeCategory.ParagraphSeparator);
-          this.UsingCat(UnicodeCategory.LineSeparator);
-          this.UsingCat(UnicodeCategory.SpaceSeparator);
-          return new ChTest(char.IsWhiteSpace);
+          UsingCat(UnicodeCategory.Control);
+          UsingCat(UnicodeCategory.ParagraphSeparator);
+          UsingCat(UnicodeCategory.LineSeparator);
+          UsingCat(UnicodeCategory.SpaceSeparator);
+          return char.IsWhiteSpace;
         }
-        if ((object) str2 == (object) "Number")
+        if (str2 == (object) "Number")
         {
-          this.UsingCat(UnicodeCategory.OtherNumber);
-          this.UsingCat(UnicodeCategory.LetterNumber);
-          this.UsingCat(UnicodeCategory.DecimalDigitNumber);
-          return new ChTest(char.IsNumber);
+          UsingCat(UnicodeCategory.OtherNumber);
+          UsingCat(UnicodeCategory.LetterNumber);
+          UsingCat(UnicodeCategory.DecimalDigitNumber);
+          return char.IsNumber;
         }
-        if ((object) str2 == (object) "Digit")
+        if (str2 == (object) "Digit")
         {
-          this.UsingCat(UnicodeCategory.DecimalDigitNumber);
-          return new ChTest(char.IsDigit);
+          UsingCat(UnicodeCategory.DecimalDigitNumber);
+          return char.IsDigit;
         }
-        if ((object) str2 == (object) "Letter")
+        if (str2 == (object) "Letter")
         {
-          this.UsingCat(UnicodeCategory.OtherLetter);
-          this.UsingCat(UnicodeCategory.ModifierLetter);
-          this.UsingCat(UnicodeCategory.TitlecaseLetter);
-          this.UsingCat(UnicodeCategory.LowercaseLetter);
-          this.UsingCat(UnicodeCategory.UppercaseLetter);
-          return new ChTest(char.IsLetter);
+          UsingCat(UnicodeCategory.OtherLetter);
+          UsingCat(UnicodeCategory.ModifierLetter);
+          UsingCat(UnicodeCategory.TitlecaseLetter);
+          UsingCat(UnicodeCategory.LowercaseLetter);
+          UsingCat(UnicodeCategory.UppercaseLetter);
+          return char.IsLetter;
         }
-        if ((object) str2 == (object) "Lower")
+        if (str2 == (object) "Lower")
         {
-          this.UsingCat(UnicodeCategory.LowercaseLetter);
-          return new ChTest(char.IsLower);
+          UsingCat(UnicodeCategory.LowercaseLetter);
+          return char.IsLower;
         }
-        if ((object) str2 == (object) "Upper")
+        if (str2 == (object) "Upper")
         {
-          this.UsingCat(UnicodeCategory.UppercaseLetter);
-          return new ChTest(char.IsUpper);
+          UsingCat(UnicodeCategory.UppercaseLetter);
+          return char.IsUpper;
         }
-        if ((object) str2 == (object) "EOF")
+        if (str2 == (object) "EOF")
         {
-          this.UsingCat(UnicodeCategory.OtherNotAssigned);
-          this.UsingChar(char.MaxValue);
-          this.usingEOF = true;
-          return new ChTest(this.testEOF);
+          UsingCat(UnicodeCategory.OtherNotAssigned);
+          UsingChar(char.MaxValue);
+          usingEOF = true;
+          return testEOF;
         }
       }
-      this.erh.Error(new CSToolsException(24, "No such Charset " + name));
-      return new ChTest(char.IsControl);
+      erh.Error(new CSToolsException(24, "No such Charset " + name));
+      return char.IsControl;
     }
 
     public virtual TOKEN OldAction(Lexer yyl, ref string yytext, int action, ref bool reject)
     {
-      return (TOKEN) null;
+      return null;
     }
 
     public IEnumerator GetEnumerator()
     {
-      return this.tokens.Values.GetEnumerator();
+      return tokens.Values.GetEnumerator();
     }
   }
 }

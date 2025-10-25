@@ -28,10 +28,10 @@
 using System;
 using System.Threading;
 using CoreJ2K;
-using CoreJ2K.j2k.util;
+using OpenMetaverse;
 using SkiaSharp;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Inventory
 {
     public class UploadImageCommand : Command
     {
@@ -76,7 +76,7 @@ namespace OpenMetaverse.TestClient
         {
             if (UploadData != null)
             {
-                string name = System.IO.Path.GetFileNameWithoutExtension(FileName);
+                string name = global::System.IO.Path.GetFileNameWithoutExtension(FileName);
 
                 Client.Inventory.RequestCreateItemFromAsset(UploadData, name, "Uploaded with TestClient",
                     AssetType.Texture, InventoryType.Texture, Client.Inventory.FindFolderForType(AssetType.Texture),
@@ -105,7 +105,7 @@ namespace OpenMetaverse.TestClient
                 if (lowfilename.EndsWith(".jp2") || lowfilename.EndsWith(".j2c"))
                 {
                     // Upload JPEG2000 images untouched
-                    uploadData = System.IO.File.ReadAllBytes(fileName);
+                    uploadData = global::System.IO.File.ReadAllBytes(fileName);
 
                     bitmap = J2kImage.FromBytes(uploadData).As<SKBitmap>();
                 }
@@ -113,7 +113,7 @@ namespace OpenMetaverse.TestClient
                 {
                     if (lowfilename.EndsWith(".tga") || lowfilename.EndsWith(".targa"))
                     {
-                        bitmap = Imaging.Targa.Decode(fileName);
+                        bitmap = OpenMetaverse.Imaging.Targa.Decode(fileName);
                     }
                     else
                     {
@@ -152,7 +152,7 @@ namespace OpenMetaverse.TestClient
                     }
                 }
                 
-                uploadData = Imaging.J2K.ToBytes(bitmap);
+                uploadData = OpenMetaverse.Imaging.J2K.ToBytes(bitmap);
             }
             catch (Exception ex)
             {

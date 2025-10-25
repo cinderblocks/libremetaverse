@@ -40,94 +40,93 @@ namespace LibreMetaverse.LslTools
 
     public Parser(YyParser syms, Lexer lexer)
     {
-      this.m_lexer = lexer;
-      this.m_symbols = syms;
-      this.m_symbols.erh = this.m_lexer.tokens.erh;
+      m_lexer = lexer;
+      m_symbols = syms;
+      m_symbols.erh = m_lexer.tokens.erh;
     }
 
     private void Create()
     {
-      this.m_symbols.GetParser(this.m_lexer);
+      m_symbols.GetParser(m_lexer);
     }
 
     protected bool Error(ref ParseStackEntry top, string str)
     {
       var ns = (SYMBOL) new Error(this, top);
-      if (this.m_debug)
+      if (m_debug)
         Console.WriteLine("Error encountered: " + str);
       ns.pos = top.m_value.pos;
-      if (this.m_symbols.symbolInfo[(object) 0] != null && this.m_symbols.erh.counter < 1000)
+      if (m_symbols.symbolInfo[0] != null && m_symbols.erh.counter < 1000)
       {
-        while (top != null && this.m_stack.Count > 0)
+        while (top != null && m_stack.Count > 0)
         {
-          if (this.m_debug)
-            Console.WriteLine("Error recovery uncovers state {0}", (object) top.m_state);
-          ParserEntry entry;
-          if (ns.Pass(this.m_symbols, top.m_state, out entry))
+          if (m_debug)
+            Console.WriteLine("Error recovery uncovers state {0}", top.m_state);
+          if (ns.Pass(m_symbols, top.m_state, out var entry))
           {
             SYMBOL symbol1 = top.m_value;
             top.m_value = ns;
             entry.Pass(ref top);
-            while (top.m_value != this.m_symbols.EOFSymbol && !top.m_value.Pass(this.m_symbols, top.m_state, out entry))
+            while (top.m_value != m_symbols.EOFSymbol && !top.m_value.Pass(m_symbols, top.m_state, out entry))
             {
               if (entry != null && entry.IsReduce())
               {
-                SYMBOL symbol2 = (SYMBOL) null;
+                SYMBOL symbol2 = null;
                 if (entry.m_action != null)
                   symbol2 = entry.m_action.Action(this);
-                this.m_ungot = top.m_value;
-                this.Pop(ref top, ((ParserReduce) entry).m_depth, ns);
+                m_ungot = top.m_value;
+                Pop(ref top, ((ParserReduce) entry).m_depth, ns);
                 symbol2.pos = top.m_value.pos;
                 top.m_value = symbol2;
               }
               else
               {
                 string yyname = top.m_value.yyname;
-                if (this.m_debug)
+                if (m_debug)
                 {
                   if (yyname == "TOKEN")
-                    Console.WriteLine("Error recovery discards literal {0}", (object) ((TOKEN) top.m_value).yytext);
+                    Console.WriteLine("Error recovery discards literal {0}", ((TOKEN) top.m_value).yytext);
                   else
-                    Console.WriteLine("Error recovery discards token {0}", (object) yyname);
+                    Console.WriteLine("Error recovery discards token {0}", yyname);
                 }
-                top.m_value = this.NextSym();
+                top.m_value = NextSym();
               }
             }
-            if (this.m_debug)
+            if (m_debug)
               Console.WriteLine("Recovery complete");
-            ++this.m_symbols.erh.counter;
+            ++m_symbols.erh.counter;
             return true;
           }
-          this.Pop(ref top, 1, ns);
+          Pop(ref top, 1, ns);
         }
       }
-      this.m_symbols.erh.Error(new CSToolsException(13, this.m_lexer, ns.pos, "syntax error", str));
+      m_symbols.erh.Error(new CSToolsException(13, m_lexer, ns.pos, "syntax error", str));
       top.m_value = ns;
       return false;
     }
 
     public SYMBOL Parse(StreamReader input)
     {
-      this.m_lexer.Start(input);
-      return this.Parse();
+      m_lexer.Start(input);
+      return Parse();
     }
 
     public SYMBOL Parse(CsReader inFile)
     {
-      this.m_lexer.Start(inFile);
-      return this.Parse();
+      m_lexer.Start(inFile);
+      return Parse();
     }
 
     public SYMBOL Parse(string buf)
     {
-      this.m_lexer.Start(buf);
-      return this.Parse();
+      m_lexer.Start(buf);
+      return Parse();
     }
 
     private SYMBOL Parse()
     {
-      this.Create();
-      ParseStackEntry s = new ParseStackEntry(this, 0, this.NextSym());
+      Create();
+      ParseStackEntry s = new ParseStackEntry(this, 0, NextSym());
       try
       {
         while (true)
@@ -135,105 +134,103 @@ namespace LibreMetaverse.LslTools
           do
           {
             string yyname = s.m_value.yyname;
-            if (this.m_debug)
+            if (m_debug)
             {
-              if (yyname.Equals("TOKEN"))
                 Console.WriteLine(
-                  $"State {(object)s.m_state} with {(object)yyname} \"{(object)((TOKEN)s.m_value).yytext}\"");
-              else
-                Console.WriteLine($"State {(object)s.m_state} with {(object)yyname}");
+                    yyname.Equals("TOKEN")
+                        ? $"State {(object)s.m_state} with {(object)yyname} \"{(object)((TOKEN)s.m_value).yytext}\""
+                        : $"State {(object)s.m_state} with {(object)yyname}");
             }
-            ParserEntry entry;
-            if (s.m_value != null && s.m_value.Pass(this.m_symbols, s.m_state, out entry))
+
+            if (s.m_value != null && s.m_value.Pass(m_symbols, s.m_state, out var entry))
               entry.Pass(ref s);
-            else if (s.m_value == this.m_symbols.EOFSymbol)
+            else if (s.m_value == m_symbols.EOFSymbol)
             {
-              if (s.m_state == this.m_symbols.m_accept.m_state)
+              if (s.m_state == m_symbols.m_accept.m_state)
               {
-                this.Pop(ref s, 1, (SYMBOL) this.m_symbols.m_startSymbol);
-                if (this.m_symbols.erh.counter > 0)
-                  return (SYMBOL) new recoveredError(this, s);
+                Pop(ref s, 1, m_symbols.m_startSymbol);
+                if (m_symbols.erh.counter > 0)
+                  return new recoveredError(this, s);
                 SYMBOL symbol = s.m_value;
-                s.m_value = (SYMBOL) null;
+                s.m_value = null;
                 return symbol;
               }
-              if (!this.Error(ref s, "Unexpected EOF"))
+              if (!Error(ref s, "Unexpected EOF"))
                 return s.m_value;
             }
-            else if (!this.Error(ref s, "syntax error"))
+            else if (!Error(ref s, "syntax error"))
               return s.m_value;
           }
-          while (!this.m_debug);
+          while (!m_debug);
           if (s.m_value != null)
           {
             object dollar = s.m_value.m_dollar;
-            Console.WriteLine("In state {0} top {1} value {2}", (object) s.m_state, (object) s.m_value.yyname, dollar != null ? (object) dollar.GetType().Name : (object) "null");
+            Console.WriteLine("In state {0} top {1} value {2}", s.m_state, s.m_value.yyname, dollar != null ? dollar.GetType().Name : (object) "null");
             if (dollar != null && dollar.GetType().Name.Equals("Int32"))
               Console.WriteLine((int) dollar);
             else
               s.m_value.Print();
           }
           else
-            Console.WriteLine("In state {0} top NULL", (object) s.m_state);
+            Console.WriteLine("In state {0} top NULL", s.m_state);
         }
       }
       catch (CSToolsStopException ex)
       {
-        if (this.m_symbols.erh.throwExceptions)
+        if (m_symbols.erh.throwExceptions)
           throw;
-        this.m_symbols.erh.Report((CSToolsException) ex);
+        m_symbols.erh.Report(ex);
       }
-      return (SYMBOL) null;
+      return null;
     }
 
     internal void Push(ParseStackEntry elt)
     {
-      this.m_stack.Push((object) elt);
+      m_stack.Push(elt);
     }
 
     internal void Pop(ref ParseStackEntry elt, int depth, SYMBOL ns)
     {
-      for (; this.m_stack.Count > 0 && depth > 0; --depth)
+      for (; m_stack.Count > 0 && depth > 0; --depth)
       {
-        elt = (ParseStackEntry) this.m_stack.Pop();
-        if (this.m_symbols.m_concrete)
-          ns.kids.Push((object) elt.m_value);
+        elt = (ParseStackEntry) m_stack.Pop();
+        if (m_symbols.m_concrete)
+          ns.kids.Push(elt.m_value);
       }
       if (depth == 0)
         return;
-      this.m_symbols.erh.Error(new CSToolsException(14, this.m_lexer, "Pop failed"));
+      m_symbols.erh.Error(new CSToolsException(14, m_lexer, "Pop failed"));
     }
 
     public ParseStackEntry StackAt(int ix)
     {
-      int count = this.m_stack.Count;
-      if (this.m_stkdebug)
-        Console.WriteLine("StackAt({0}),count {1}", (object) ix, (object) count);
-      ParseStackEntry parseStackEntry = (ParseStackEntry) this.m_stack[ix];
+      int count = m_stack.Count;
+      if (m_stkdebug)
+        Console.WriteLine("StackAt({0}),count {1}", ix, count);
+      ParseStackEntry parseStackEntry = (ParseStackEntry) m_stack[ix];
       if (parseStackEntry == null)
-        return new ParseStackEntry(this, 0, (SYMBOL) this.m_symbols.Special);
+        return new ParseStackEntry(this, 0, m_symbols.Special);
       if (parseStackEntry.m_value is Null)
-        return new ParseStackEntry(this, parseStackEntry.m_state, (SYMBOL) null);
-      if (this.m_stkdebug)
+        return new ParseStackEntry(this, parseStackEntry.m_state, null);
+      if (m_stkdebug)
         Console.WriteLine(parseStackEntry.m_value.yyname);
       return parseStackEntry;
     }
 
     public SYMBOL NextSym()
     {
-      SYMBOL ungot = this.m_ungot;
+      SYMBOL ungot = m_ungot;
       if (ungot == null)
-        return (SYMBOL) this.m_lexer.Next() ?? (SYMBOL) this.m_symbols.EOFSymbol;
-      this.m_ungot = (SYMBOL) null;
+        return (SYMBOL) m_lexer.Next() ?? m_symbols.EOFSymbol;
+      m_ungot = null;
       return ungot;
     }
 
     public void Error(int n, SYMBOL sym, string s)
     {
-      if (sym != null)
-        this.m_symbols.erh.Error(new CSToolsException(n, sym.yylx, sym.pos, "", s));
-      else
-        this.m_symbols.erh.Error(new CSToolsException(n, s));
+        m_symbols.erh.Error(sym != null
+            ? new CSToolsException(n, sym.yylx, sym.pos, "", s)
+            : new CSToolsException(n, s));
     }
   }
 }

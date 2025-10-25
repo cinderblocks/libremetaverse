@@ -314,6 +314,19 @@ namespace OpenMetaverse
             {
                 return other.AttachmentPoint == AttachmentPoint && other.AttachmentID == AttachmentID;
             }
+
+            public override bool Equals(object obj)
+            {
+                return obj is Attachment objA && Equals(objA);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return (AttachmentPoint.GetHashCode() * 397) ^ AttachmentID.GetHashCode();
+                }
+            }
         }
 
         #endregion Subclasses

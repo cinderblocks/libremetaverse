@@ -106,7 +106,7 @@ namespace OpenMetaverse
     /// <summary>
     /// Represents a group on the grid
     /// </summary>
-    public struct Group
+    public struct Group : IEquatable<Group>
     {
         /// <summary>Key of Group</summary>
         public UUID ID;
@@ -122,7 +122,7 @@ namespace OpenMetaverse
         public string Charter;
         /// <summary>Title of "everyone" role</summary>
         public string MemberTitle;
-        /// <summary>Is the group open for enrolement to everyone</summary>
+        /// <summary>Is the group open for enrollment to everyone</summary>
         public bool OpenEnrollment;
         /// <summary>Will group show up in search</summary>
         public bool ShowInList;
@@ -152,6 +152,61 @@ namespace OpenMetaverse
         public override string ToString()
         {
             return Name;
+        }
+
+        public bool Equals(Group other)
+        {
+            return ID.Equals(other.ID) 
+                   && InsigniaID.Equals(other.InsigniaID) 
+                   && FounderID.Equals(other.FounderID) 
+                   && OwnerRole.Equals(other.OwnerRole)
+                   && Name == other.Name 
+                   && Charter == other.Charter
+                   && MemberTitle == other.MemberTitle
+                   && OpenEnrollment == other.OpenEnrollment
+                   && ShowInList == other.ShowInList 
+                   && Powers == other.Powers 
+                   && AcceptNotices == other.AcceptNotices
+                   && AllowPublish == other.AllowPublish 
+                   && MaturePublish == other.MaturePublish
+                   && MembershipFee == other.MembershipFee 
+                   && Money == other.Money 
+                   && Contribution == other.Contribution 
+                   && GroupMembershipCount == other.GroupMembershipCount 
+                   && GroupRolesCount == other.GroupRolesCount 
+                   && ListInProfile == other.ListInProfile;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is Group other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hashCode = ID.GetHashCode();
+                hashCode = (hashCode * 397) ^ InsigniaID.GetHashCode();
+                hashCode = (hashCode * 397) ^ FounderID.GetHashCode();
+                hashCode = (hashCode * 397) ^ OwnerRole.GetHashCode();
+                hashCode = (hashCode * 397) ^ (Name != null ? Name.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Charter != null ? Charter.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (MemberTitle != null ? MemberTitle.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ OpenEnrollment.GetHashCode();
+                hashCode = (hashCode * 397) ^ ShowInList.GetHashCode();
+                hashCode = (hashCode * 397) ^ Powers.GetHashCode();
+                hashCode = (hashCode * 397) ^ AcceptNotices.GetHashCode();
+                hashCode = (hashCode * 397) ^ AllowPublish.GetHashCode();
+                hashCode = (hashCode * 397) ^ MaturePublish.GetHashCode();
+                hashCode = (hashCode * 397) ^ MembershipFee;
+                hashCode = (hashCode * 397) ^ Money;
+                hashCode = (hashCode * 397) ^ Contribution;
+                hashCode = (hashCode * 397) ^ GroupMembershipCount;
+                hashCode = (hashCode * 397) ^ GroupRolesCount;
+                hashCode = (hashCode * 397) ^ ListInProfile.GetHashCode();
+                return hashCode;
+            }
         }
     }
 
@@ -293,7 +348,7 @@ namespace OpenMetaverse
     /// <summary>
     /// Struct representing a member of a group chat session and their settings
     /// </summary>
-    public struct ChatSessionMember
+    public struct ChatSessionMember : IEquatable<ChatSessionMember>
     {
         /// <summary>The <see cref="UUID"/> of the Avatar</summary>
         public UUID AvatarKey;
@@ -305,6 +360,33 @@ namespace OpenMetaverse
         public bool MuteText;
         /// <summary>True if a moderator has muted this avatars voice</summary>
         public bool MuteVoice;
+
+        public bool Equals(ChatSessionMember other)
+        {
+            return AvatarKey.Equals(other.AvatarKey) 
+                   && CanVoiceChat == other.CanVoiceChat 
+                   && IsModerator == other.IsModerator 
+                   && MuteText == other.MuteText
+                   && MuteVoice == other.MuteVoice;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is ChatSessionMember other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hashCode = AvatarKey.GetHashCode();
+                hashCode = (hashCode * 397) ^ CanVoiceChat.GetHashCode();
+                hashCode = (hashCode * 397) ^ IsModerator.GetHashCode();
+                hashCode = (hashCode * 397) ^ MuteText.GetHashCode();
+                hashCode = (hashCode * 397) ^ MuteVoice.GetHashCode();
+                return hashCode;
+            }
+        }
     }
 
     #endregion Structs

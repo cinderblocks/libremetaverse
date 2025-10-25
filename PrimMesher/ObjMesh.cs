@@ -78,12 +78,12 @@ namespace LibreMetaverse.PrimMesher
 
         public VertexIndexer GetVertexIndexer()
         {
-            var vi = new VertexIndexer();
-            vi.numPrimFaces = numPrimFaces;
-            vi.viewerPolygons = viewerPolygons;
-            vi.viewerVertices = viewerVertices;
-
-            return vi;
+            return new VertexIndexer
+            {
+                numPrimFaces = numPrimFaces,
+                viewerPolygons = viewerPolygons,
+                viewerVertices = viewerVertices
+            };
         }
 
 

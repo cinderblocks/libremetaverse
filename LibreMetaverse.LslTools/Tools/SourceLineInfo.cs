@@ -37,32 +37,32 @@ namespace LibreMetaverse.LslTools
 
     public SourceLineInfo(int pos)
     {
-      this.lineNumber = 1;
-      this.startOfLine = 0;
-      this.endOfLine = this.rawCharPosition = this.charPosition = pos;
+      lineNumber = 1;
+      startOfLine = 0;
+      endOfLine = rawCharPosition = charPosition = pos;
     }
 
     public SourceLineInfo(LineManager lm, int pos)
     {
-      this.lineNumber = lm.lines;
-      this.startOfLine = 0;
-      this.endOfLine = lm.end;
-      this.charPosition = pos;
-      this.rawCharPosition = pos;
+      lineNumber = lm.lines;
+      startOfLine = 0;
+      endOfLine = lm.end;
+      charPosition = pos;
+      rawCharPosition = pos;
       LineList lineList = lm.list;
       while (lineList != null)
       {
         if (lineList.head > pos)
         {
-          this.endOfLine = lineList.head;
+          endOfLine = lineList.head;
           lineList = lineList.tail;
-          --this.lineNumber;
+          --lineNumber;
         }
         else
         {
-          this.startOfLine = lineList.head + 1;
-          this.rawCharPosition = lineList.getpos(pos);
-          this.charPosition = pos - this.startOfLine + 1;
+          startOfLine = lineList.head + 1;
+          rawCharPosition = lineList.getpos(pos);
+          charPosition = pos - startOfLine + 1;
           break;
         }
       }
@@ -71,21 +71,21 @@ namespace LibreMetaverse.LslTools
     public SourceLineInfo(Lexer lx, int pos)
       : this(lx.m_LineManager, pos)
     {
-      this.lxr = lx;
+      lxr = lx;
     }
 
     public override string ToString()
     {
-      return "Line " + (object) this.lineNumber + ", char " + (object) this.rawCharPosition;
+      return "Line " + lineNumber + ", char " + rawCharPosition;
     }
 
     public string sourceLine
     {
       get
       {
-        if (this.lxr == null)
+        if (lxr == null)
           return "";
-        return this.lxr.sourceLine(this);
+        return lxr.sourceLine(this);
       }
     }
   }

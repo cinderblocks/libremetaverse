@@ -28,6 +28,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using SkiaSharp;
 
 namespace LibreMetaverse.PrimMesher
@@ -95,15 +96,15 @@ namespace LibreMetaverse.PrimMesher
 
             viewerFaces = new List<ViewerFace>();
 
-            int p1, p2, p3, p4;
-
-            int x, y;
-            int xStart = 0, yStart = 0;
+            int y;
+            const int xStart = 0;
+            const int yStart = 0;
 
             for (y = yStart; y < numYElements; y++)
             {
                 var rowOffset = y * numXElements;
 
+                int x;
                 for (x = xStart; x < numXElements; x++)
                 {
                     /*
@@ -114,11 +115,11 @@ namespace LibreMetaverse.PrimMesher
                     *   p3-----p4
                     */
 
-                    p4 = rowOffset + x;
-                    p3 = p4 - 1;
+                    var p4 = rowOffset + x;
+                    var p3 = p4 - 1;
 
-                    p2 = p4 - numXElements;
-                    p1 = p3 - numXElements;
+                    var p2 = p4 - numXElements;
+                    var p1 = p3 - numXElements;
 
                     var c = new Coord(xBegin + x * xStep, yBegin + y * yStep, zMap[y, x]);
                     coords.Add(c);
@@ -200,7 +201,7 @@ namespace LibreMetaverse.PrimMesher
 
         /// <summary>
         ///     converts a bitmap to a list of lists of coords, while scaling the image.
-        ///     the scaling is done in floating point so as to allow for reduced vertex position
+        ///     the scaling is done in floating point to allow for reduced vertex position
         ///     quantization as the position will be averaged between pixel values. this routine will
         ///     likely fail if the bitmap width and height are not powers of 2.
         /// </summary>
@@ -217,16 +218,14 @@ namespace LibreMetaverse.PrimMesher
             var pixScale = 1.0f / (scale * scale);
             pixScale /= 255;
 
-            int imageX, imageY = 0;
-
-            int rowNdx, colNdx;
+            int rowNdx;
 
             for (rowNdx = 0; rowNdx < numRows; rowNdx++)
             {
                 var row = new List<Coord>(numCols);
-                for (colNdx = 0; colNdx < numCols; colNdx++)
+                for (int colNdx = 0; colNdx < numCols; colNdx++)
                 {
-                    imageX = colNdx * scale;
+                    var imageX = colNdx * scale;
                     var imageYStart = rowNdx * scale;
                     var imageYEnd = imageYStart + scale;
                     var imageXEnd = imageX + scale;
@@ -234,18 +233,22 @@ namespace LibreMetaverse.PrimMesher
                     var gSum = 0.0f;
                     var bSum = 0.0f;
                     for (; imageX < imageXEnd; imageX++)
-                    for (imageY = imageYStart; imageY < imageYEnd; imageY++)
                     {
-                        var c = bitmap.GetPixel(imageX, imageY);
-                        if (c.Alpha != 255)
+                        int imageY;
+                        for (imageY = imageYStart; imageY < imageYEnd; imageY++)
                         {
-                            bitmap.SetPixel(imageX, imageY, c.WithAlpha(255));
-                            c = bitmap.GetPixel(imageX, imageY);
+                            var c = bitmap.GetPixel(imageX, imageY);
+                            if (c.Alpha != 255)
+                            {
+                                bitmap.SetPixel(imageX, imageY, c.WithAlpha(255));
+                                c = bitmap.GetPixel(imageX, imageY);
+                            }
+                            rSum += c.Red;
+                            gSum += c.Green;
+                            bSum += c.Blue;
                         }
-                        rSum += c.Red;
-                        gSum += c.Green;
-                        bSum += c.Blue;
                     }
+
                     row.Add(mirror
                         ? new Coord(-(rSum * pixScale - 0.5f), gSum * pixScale - 0.5f, bSum * pixScale - 0.5f)
                         : new Coord(rSum * pixScale - 0.5f, gSum * pixScale - 0.5f, bSum * pixScale - 0.5f));
@@ -261,20 +264,18 @@ namespace LibreMetaverse.PrimMesher
             var numCols = bitmap.Width / scale;
             var rows = new List<List<Coord>>(numRows);
 
-            var pixScale = 1.0f / 256.0f;
+            const float pixScale = 1.0f / 256.0f;
 
-            int imageX, imageY = 0;
-
-            int rowNdx, colNdx;
+            int rowNdx;
 
             for (rowNdx = 0; rowNdx <= numRows; rowNdx++)
             {
                 var row = new List<Coord>(numCols);
-                imageY = rowNdx * scale;
-                if (rowNdx == numRows) imageY--;
-                for (colNdx = 0; colNdx <= numCols; colNdx++)
+                var imageY = rowNdx * scale;
+                if (rowNdx == numRows) { imageY--; }
+                for (int colNdx = 0; colNdx <= numCols; colNdx++)
                 {
-                    imageX = colNdx * scale;
+                    var imageX = colNdx * scale;
                     if (colNdx == numCols) imageX--;
 
                     var c = bitmap.GetPixel(imageX, imageY);
@@ -317,9 +318,7 @@ namespace LibreMetaverse.PrimMesher
 
             var width = rows[0].Count;
 
-            int p1, p2, p3, p4;
-
-            int imageX, imageY;
+            int imageY;
 
             if (sculptType != SculptType.plane)
                 if (rows.Count % 2 == 0)
@@ -381,6 +380,7 @@ namespace LibreMetaverse.PrimMesher
             {
                 var rowOffset = imageY * coordsAcross;
 
+                int imageX;
                 for (imageX = 0; imageX < coordsAcross; imageX++)
                 {
                     /*
@@ -391,11 +391,11 @@ namespace LibreMetaverse.PrimMesher
                     *   p3-----p4
                     */
 
-                    p4 = rowOffset + imageX;
-                    p3 = p4 - 1;
+                    var p4 = rowOffset + imageX;
+                    var p3 = p4 - 1;
 
-                    p2 = p4 - coordsAcross;
-                    p1 = p3 - coordsAcross;
+                    var p2 = p4 - coordsAcross;
+                    var p1 = p3 - coordsAcross;
 
                     coords.Add(rows[imageY][imageX]);
                     if (viewerMode)
@@ -503,25 +503,22 @@ namespace LibreMetaverse.PrimMesher
                         (normals[rowOffset] + normals[rowOffset + xSize - 1]).Normalize();
                 }
 
-            foreach (var face in faces)
+            foreach (var vf in faces.Select(face => new ViewerFace(0)
+                     {
+                         v1 = coords[face.v1],
+                         v2 = coords[face.v2],
+                         v3 = coords[face.v3],
+                         coordIndex1 = face.v1,
+                         coordIndex2 = face.v2,
+                         coordIndex3 = face.v3,
+                         n1 = normals[face.n1],
+                         n2 = normals[face.n2],
+                         n3 = normals[face.n3],
+                         uv1 = uvs[face.uv1],
+                         uv2 = uvs[face.uv2],
+                         uv3 = uvs[face.uv3]
+                     }))
             {
-                var vf = new ViewerFace(0);
-                vf.v1 = coords[face.v1];
-                vf.v2 = coords[face.v2];
-                vf.v3 = coords[face.v3];
-
-                vf.coordIndex1 = face.v1;
-                vf.coordIndex2 = face.v2;
-                vf.coordIndex3 = face.v3;
-
-                vf.n1 = normals[face.n1];
-                vf.n2 = normals[face.n2];
-                vf.n3 = normals[face.n3];
-
-                vf.uv1 = uvs[face.uv1];
-                vf.uv2 = uvs[face.uv2];
-                vf.uv3 = uvs[face.uv3];
-
                 viewerFaces.Add(vf);
             }
         }
@@ -536,11 +533,10 @@ namespace LibreMetaverse.PrimMesher
         {
             int i;
             var numVerts = coords.Count;
-            Coord vert;
 
             for (i = 0; i < numVerts; i++)
             {
-                vert = coords[i];
+                var vert = coords[i];
                 vert.X += x;
                 vert.Y += y;
                 vert.Z += z;

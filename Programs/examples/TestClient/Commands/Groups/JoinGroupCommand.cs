@@ -1,7 +1,8 @@
 using System;
 using System.Threading;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Groups
 {
     public class JoinGroupCommand : Command
     {

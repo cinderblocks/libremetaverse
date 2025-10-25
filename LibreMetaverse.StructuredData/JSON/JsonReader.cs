@@ -43,28 +43,28 @@ namespace LitJson
         #region Fields
         private static IDictionary<int, IDictionary<int, int[]>> parse_table;
 
-        private Stack<int>    automaton_stack;
+        private readonly Stack<int>    automaton_stack;
         private int           current_input;
         private int           current_symbol;
-        private Lexer         lexer;
+        private readonly Lexer         lexer;
         private bool          parser_in_string;
         private bool          parser_return;
         private bool          read_started;
         private TextReader    reader;
-        private bool          reader_is_owned;
+        private readonly bool          reader_is_owned;
 
         #endregion
 
 
         #region Public Properties
         public bool AllowComments {
-            get { return lexer.AllowComments; }
-            set { lexer.AllowComments = value; }
+            get => lexer.AllowComments;
+            set => lexer.AllowComments = value;
         }
 
         public bool AllowSingleQuotedStrings {
-            get { return lexer.AllowSingleQuotedStrings; }
-            set { lexer.AllowSingleQuotedStrings = value; }
+            get => lexer.AllowSingleQuotedStrings;
+            set => lexer.AllowSingleQuotedStrings = value;
         }
 
         public bool EndOfInput { get; private set; }

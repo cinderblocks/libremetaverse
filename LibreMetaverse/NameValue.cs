@@ -33,7 +33,7 @@ namespace OpenMetaverse
     /// A Name Value pair with additional settings, used in the protocol
     /// primarily to transmit avatar names and active group in object packets
     /// </summary>
-    public struct NameValue
+    public struct NameValue : IEquatable<NameValue>
     {
         #region Enums
 
@@ -334,6 +334,33 @@ namespace OpenMetaverse
                 type = SendtoType.Sim;
 
             return type;
+        }
+
+        public bool Equals(NameValue other)
+        {
+            return Name == other.Name 
+                   && Type == other.Type 
+                   && Class == other.Class 
+                   && Sendto == other.Sendto 
+                   && Equals(Value, other.Value);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is NameValue other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hashCode = (Name != null ? Name.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (int)Type;
+                hashCode = (hashCode * 397) ^ (int)Class;
+                hashCode = (hashCode * 397) ^ (int)Sendto;
+                hashCode = (hashCode * 397) ^ (Value != null ? Value.GetHashCode() : 0);
+                return hashCode;
+            }
         }
     }
 }

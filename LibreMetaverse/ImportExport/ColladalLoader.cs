@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2024, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -33,7 +33,6 @@ using System.IO;
 using System.Xml;
 using System.Linq;
 using System.Xml.Serialization;
-using CoreJ2K;
 using OpenMetaverse.ImportExport.Collada14;
 using OpenMetaverse.Rendering;
 using SkiaSharp;
@@ -45,14 +44,14 @@ namespace OpenMetaverse.ImportExport
     /// </summary>
     public class ColladaLoader
     {
-        COLLADA Model;
-        static XmlSerializer Serializer = null;
-        List<Node> Nodes;
-        List<ModelMaterial> Materials;
-        Dictionary<string, string> MatSymTarget;
-        string FileName;
+        private COLLADA Model;
+        private static XmlSerializer Serializer = null;
+        private List<Node> Nodes;
+        private List<ModelMaterial> Materials;
+        private Dictionary<string, string> MatSymTarget;
+        private string FileName;
 
-        class Node
+        private class Node
         {
             public Matrix4 Transform = Matrix4.Identity;
             public string Name;
@@ -97,7 +96,7 @@ namespace OpenMetaverse.ImportExport
             }
         }
 
-        void LoadImages(IEnumerable<ModelPrim> prims)
+        private void LoadImages(IEnumerable<ModelPrim> prims)
         {
             foreach (var prim in prims)
             {
@@ -111,7 +110,7 @@ namespace OpenMetaverse.ImportExport
             }
         }
 
-        void LoadImage(ModelMaterial material)
+        private void LoadImage(ModelMaterial material)
         {
             var fname = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(FileName), material.Texture);
 
@@ -173,12 +172,12 @@ namespace OpenMetaverse.ImportExport
 
         }
 
-        bool IsPowerOfTwo(uint n)
+        private static bool IsPowerOfTwo(uint n)
         {
             return (n & (n - 1)) == 0 && n != 0;
         }
 
-        int ClosestPowerOwTwo(int n)
+        private int ClosestPowerOwTwo(int n)
         {
             int res = 1;
 
@@ -190,7 +189,7 @@ namespace OpenMetaverse.ImportExport
             return res > 1 ? res / 2 : 1;
         }
 
-        ModelMaterial ExtractMaterial(object diffuse)
+        private ModelMaterial ExtractMaterial(object diffuse)
         {
             ModelMaterial ret = new ModelMaterial();
             if (diffuse is common_color_or_texture_typeColor color)
@@ -205,7 +204,7 @@ namespace OpenMetaverse.ImportExport
 
         }
 
-        void ParseMaterials()
+        private void ParseMaterials()
         {
 
             if (Model == null) return;
@@ -315,7 +314,7 @@ namespace OpenMetaverse.ImportExport
             }
         }
 
-        void ProcessNode(node node)
+        private void ProcessNode(node node)
         {
             Node n = new Node {Name = node.name, ID = node.id};
 
@@ -369,7 +368,7 @@ namespace OpenMetaverse.ImportExport
             }
         }
 
-        void ParseVisualScene()
+        private void ParseVisualScene()
         {
             Nodes = new List<Node>();
             if (Model == null) return;
@@ -389,7 +388,7 @@ namespace OpenMetaverse.ImportExport
             }
         }
 
-        List<ModelPrim> Parse()
+        private List<ModelPrim> Parse()
         {
             var Prims = new List<ModelPrim>();
 
@@ -425,7 +424,7 @@ namespace OpenMetaverse.ImportExport
                 rotation = Matrix4.CreateFromEulers(90.0f * DEG_TO_RAD, 0.0f, 0.0f);
             }
 
-            rotation = rotation * transform;
+            rotation *= transform;
             transform = rotation;
 
             ParseVisualScene();
@@ -439,56 +438,54 @@ namespace OpenMetaverse.ImportExport
                             continue;
 
                         var nodes = Nodes.FindAll(n => n.MeshID == geo.id);     // Find all instances of this geometry
-                        if (nodes != null) {
-                            ModelPrim firstPrim = null;         // The first prim is actually calculated, the others are just copied from it.
+                        ModelPrim firstPrim = null;         // The first prim is actually calculated, the others are just copied from it.
 
-                            Vector3 asset_scale = new Vector3(1,1,1);
-                            Vector3 asset_offset = new Vector3(0, 0, 0);            // Scale and offset between Collada and OS asset (Which is always in a unit cube)
+                        Vector3 asset_scale = new Vector3(1,1,1);
+                        Vector3 asset_offset = new Vector3(0, 0, 0);            // Scale and offset between Collada and OS asset (Which is always in a unit cube)
 
-                            foreach (var node in nodes) {
-                                var prim = new ModelPrim
-                                {
-                                    ID = node.ID
-                                };
-                                Prims.Add(prim);
+                        foreach (var node in nodes) {
+                            var prim = new ModelPrim
+                            {
+                                ID = node.ID
+                            };
+                            Prims.Add(prim);
 
-                                // First node is used to create the asset. This is as the code to crate the byte array is somewhat
-                                // erroneously placed in the ModelPrim class.
-                                if (firstPrim == null) {
-                                    firstPrim = prim;
-                                    AddPositions(out asset_scale, out asset_offset, mesh, prim, transform);     // transform is used only for inch -> meter and up axis transform. 
+                            // First node is used to create the asset. This is as the code to crate the byte array is somewhat
+                            // erroneously placed in the ModelPrim class.
+                            if (firstPrim == null) {
+                                firstPrim = prim;
+                                AddPositions(out asset_scale, out asset_offset, mesh, prim, transform);     // transform is used only for inch -> meter and up axis transform. 
 
-                                    foreach (var mitem in mesh.Items) {
-                                        if (mitem is triangles triangles)
-                                            AddFacesFromPolyList(Triangles2Polylist(triangles), mesh, prim, transform);  // Transform is used to turn normals according to up axis
-                                        if (mitem is polylist polylist)
-                                            AddFacesFromPolyList(polylist, mesh, prim, transform);
-                                    }
-
-                                    prim.CreateAsset(UUID.Zero);
-                                }
-                                else {
-                                     // Copy the values set by Addpositions and AddFacesFromPolyList as these are the same as long as the mesh is the same
-                                     prim.Asset = firstPrim.Asset;
-                                     prim.BoundMin = firstPrim.BoundMin;
-                                     prim.BoundMax = firstPrim.BoundMax;
-                                     prim.Positions = firstPrim.Positions;
-                                     prim.Faces = firstPrim.Faces;
+                                foreach (var mitem in mesh.Items) {
+                                    if (mitem is triangles triangles)
+                                        AddFacesFromPolyList(Triangles2Polylist(triangles), mesh, prim, transform);  // Transform is used to turn normals according to up axis
+                                    if (mitem is polylist polylist)
+                                        AddFacesFromPolyList(polylist, mesh, prim, transform);
                                 }
 
-                                // Note: This ignores any shear or similar non-linear effects. This can cause some problems but it
-                                // is unlikely that authoring software can generate such matrices.
-                                node.Transform.Decompose(out prim.Scale, out prim.Rotation, out prim.Position);
-                                float roll, pitch, yaw;
-                                node.Transform.GetEulerAngles(out roll, out pitch, out yaw);
-
-                                // The offset created when normalizing the mesh vertices into the OS unit cube must be rotated
-                                // before being added to the position part of the Collada transform. 
-                                Matrix4 rot = Matrix4.CreateFromQuaternion(prim.Rotation);              // Convert rotation to matrix for for Transform
-                                Vector3 offset = Vector3.Transform(asset_offset * prim.Scale, rot);     // The offset must be rotated and mutiplied by the Collada file's scale as the offset is added during rendering with the unit cube mesh already multiplied by the compound scale.
-                                prim.Position += offset;
-                                prim.Scale *= asset_scale;                                              // Modify scale from Collada instance by the rescaling done in AddPositions()
+                                prim.CreateAsset(UUID.Zero);
                             }
+                            else {
+                                // Copy the values set by Addpositions and AddFacesFromPolyList as these are the same as long as the mesh is the same
+                                prim.Asset = firstPrim.Asset;
+                                prim.BoundMin = firstPrim.BoundMin;
+                                prim.BoundMax = firstPrim.BoundMax;
+                                prim.Positions = firstPrim.Positions;
+                                prim.Faces = firstPrim.Faces;
+                            }
+
+                            // Note: This ignores any shear or similar non-linear effects. This can cause some problems but it
+                            // is unlikely that authoring software can generate such matrices.
+                            node.Transform.Decompose(out prim.Scale, out prim.Rotation, out prim.Position);
+                            float roll, pitch, yaw;
+                            node.Transform.GetEulerAngles(out roll, out pitch, out yaw);
+
+                            // The offset created when normalizing the mesh vertices into the OS unit cube must be rotated
+                            // before being added to the position part of the Collada transform. 
+                            Matrix4 rot = Matrix4.CreateFromQuaternion(prim.Rotation);              // Convert rotation to matrix for for Transform
+                            Vector3 offset = Vector3.Transform(asset_offset * prim.Scale, rot);     // The offset must be rotated and mutiplied by the Collada file's scale as the offset is added during rendering with the unit cube mesh already multiplied by the compound scale.
+                            prim.Position += offset;
+                            prim.Scale *= asset_scale;                                              // Modify scale from Collada instance by the rescaling done in AddPositions()
                         }
                     }
                 }
@@ -497,14 +494,14 @@ namespace OpenMetaverse.ImportExport
             return Prims;
         }
 
-        source FindSource(IEnumerable<source> sources, string id)
+        private source FindSource(IEnumerable<source> sources, string id)
         {
             id = id.Substring(1);
 
             return sources.FirstOrDefault(src => src.id == id);
         }
 
-        void AddPositions(out Vector3 scale, out Vector3 offset, mesh mesh, ModelPrim prim, Matrix4 transform)
+        private void AddPositions(out Vector3 scale, out Vector3 offset, mesh mesh, ModelPrim prim, Matrix4 transform)
         {
             prim.Positions = new List<Vector3>();
             source posSrc = FindSource(mesh.source, mesh.vertices.input[0].source);
@@ -547,7 +544,7 @@ namespace OpenMetaverse.ImportExport
             }
         }
 
-        int[] StrToArray(string s)
+        private int[] StrToArray(string s)
         {
             string[] vals = Regex.Split(s.Trim(), @"\s+");
             int[] ret = new int[vals.Length];
@@ -560,7 +557,7 @@ namespace OpenMetaverse.ImportExport
             return ret;
         }
 
-        void AddFacesFromPolyList(polylist list, mesh mesh, ModelPrim prim, Matrix4 transform)
+        private void AddFacesFromPolyList(polylist list, mesh mesh, ModelPrim prim, Matrix4 transform)
         {
             string material = list.material;
             source posSrc = null;
@@ -692,7 +689,7 @@ namespace OpenMetaverse.ImportExport
 
         }
 
-        polylist Triangles2Polylist(triangles triangles)
+        private polylist Triangles2Polylist(triangles triangles)
         {
             polylist poly = new polylist
             {

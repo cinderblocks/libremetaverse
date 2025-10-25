@@ -45,13 +45,13 @@ namespace LibreMetaverse.LslTools
 
     public Transition(ParseState p, CSymbol a)
     {
-      this.m_ps = p;
-      this.m_A = a;
-      this.m_tno = p.m_sgen.m_trans++;
-      p.m_transitions[(object) a.yytext] = (object) this;
+      m_ps = p;
+      m_A = a;
+      m_tno = p.m_sgen.m_trans++;
+      p.m_transitions[a.yytext] = this;
     }
 
-    private ParsingInfo ParsingInfo => this.m_ps.m_sgen.m_symbols.GetSymbolInfo(this.m_A.yytext, this.m_A.m_yynum);
+    private ParsingInfo ParsingInfo => m_ps.m_sgen.m_symbols.GetSymbolInfo(m_A.yytext, m_A.m_yynum);
 
     public static Hashtable reads(Transition a)
     {
@@ -94,7 +94,7 @@ namespace LibreMetaverse.LslTools
       t.m_DR = new SymbolSet(sgen);
       if (t.m_next == null)
         return;
-      foreach (Transition transition in (IEnumerable) t.m_next.m_next.m_transitions.Values)
+      foreach (Transition transition in t.m_next.m_next.m_transitions.Values)
       {
         if (transition.m_next != null && (transition.m_A.m_symtype == CSymbol.SymType.terminal || transition.m_A.m_symtype == CSymbol.SymType.eofsymbol))
           t.m_DR.AddIn(transition.m_A);
@@ -112,10 +112,10 @@ namespace LibreMetaverse.LslTools
       ParseState parseState = t.m_A.Next(t.m_ps);
       if (parseState == null)
         return;
-      foreach (Transition transition in (IEnumerable) parseState.m_transitions.Values)
+      foreach (Transition transition in parseState.m_transitions.Values)
       {
         if (transition.m_A.IsNullable())
-          t.m_reads[(object) transition] = (object) true;
+          t.m_reads[transition] = true;
       }
     }
 
@@ -128,7 +128,7 @@ namespace LibreMetaverse.LslTools
         {
           CSymbol rh = (CSymbol) prod.m_rhs[i];
           if (rh.m_symtype == CSymbol.SymType.nonterminal)
-            ((Transition) (i <= 0 ? t.m_ps : new Path(t.m_ps, prod.Prefix(i)).Top).m_transitions[(object) rh.yytext]).m_includes[(object) t] = (object) true;
+            ((Transition) (i <= 0 ? t.m_ps : new Path(t.m_ps, prod.Prefix(i)).Top).m_transitions[rh.yytext]).m_includes[t] = true;
           if (!rh.IsNullable())
             break;
         }
@@ -137,13 +137,13 @@ namespace LibreMetaverse.LslTools
 
     public static void BuildLookback(Transition t)
     {
-      foreach (ParserReduce parserReduce in (IEnumerable) t.m_reduce.Values)
+      foreach (ParserReduce parserReduce in t.m_reduce.Values)
         parserReduce.BuildLookback(t);
     }
 
     public static void BuildLA(Transition t)
     {
-      foreach (ParserReduce key in (IEnumerable) t.m_lookbackOf.Keys)
+      foreach (ParserReduce key in t.m_lookbackOf.Keys)
         key.m_lookAhead.Add(t.m_Follow);
     }
 
@@ -151,8 +151,8 @@ namespace LibreMetaverse.LslTools
     {
       YyParser symbols = t.m_ps.m_sgen.m_symbols;
       ParsingInfo parsingInfo = t.ParsingInfo;
-      ParserReduce parserReduce1 = (ParserReduce) null;
-      foreach (ParserReduce parserReduce2 in (IEnumerable) t.m_reduce.Values)
+      ParserReduce parserReduce1 = null;
+      foreach (ParserReduce parserReduce2 in t.m_reduce.Values)
       {
         if ((!t.m_ps.m_sgen.m_lalrParser ? (parserReduce2.m_prod.m_lhs.m_follow.Contains(t.m_A) ? 1 : 0) : (parserReduce2.m_lookAhead.Contains(t.m_A) ? 1 : 0)) != 0)
         {
@@ -167,17 +167,17 @@ namespace LibreMetaverse.LslTools
       {
         if (parserReduce1 == null)
         {
-          parsingInfo.m_parsetable[(object) t.m_ps.m_state] = (object) t.m_next;
+          parsingInfo.m_parsetable[t.m_ps.m_state] = t.m_next;
         }
         else
         {
           switch (t.m_A.ShiftPrecedence(parserReduce1.m_prod, t.m_ps))
           {
             case Precedence.PrecType.left:
-              parsingInfo.m_parsetable[(object) t.m_ps.m_state] = (object) t.m_next;
+              parsingInfo.m_parsetable[t.m_ps.m_state] = t.m_next;
               break;
             case Precedence.PrecType.right:
-              parsingInfo.m_parsetable[(object) t.m_ps.m_state] = (object) parserReduce1;
+              parsingInfo.m_parsetable[t.m_ps.m_state] = parserReduce1;
               break;
           }
         }
@@ -186,23 +186,23 @@ namespace LibreMetaverse.LslTools
       {
         if (parserReduce1 == null)
           return;
-        parsingInfo.m_parsetable[(object) t.m_ps.m_state] = (object) parserReduce1;
+        parsingInfo.m_parsetable[t.m_ps.m_state] = parserReduce1;
       }
     }
 
     public void Print0()
     {
-      Console.Write("    " + this.m_A.yytext);
-      if (this.m_next != null)
-        Console.Write("  shift " + (object) this.m_next.m_next.m_state);
-      foreach (Production key in (IEnumerable) this.m_reduce.Keys)
-        Console.Write("  reduce (" + (object) key.m_pno + ")");
+      Console.Write("    " + m_A.yytext);
+      if (m_next != null)
+        Console.Write("  shift " + m_next.m_next.m_state);
+      foreach (Production key in m_reduce.Keys)
+        Console.Write("  reduce (" + key.m_pno + ")");
       Console.WriteLine();
     }
 
     public void Print(SymbolSet x, string s)
     {
-      Console.Write("Transition (" + (object) this.m_ps.m_state + "," + this.m_A.yytext + ") " + s + " ");
+      Console.Write("Transition (" + m_ps.m_state + "," + m_A.yytext + ") " + s + " ");
       x.Print();
     }
   }

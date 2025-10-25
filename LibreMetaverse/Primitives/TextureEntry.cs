@@ -1256,7 +1256,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Controls the texture animation of a particular prim
         /// </summary>
-        public struct TextureAnimation
+        public struct TextureAnimation : IEquatable<TextureAnimation>
         {
             /// <summary></summary>
             public TextureAnimMode Flags;
@@ -1356,6 +1356,37 @@ namespace OpenMetaverse
                 }
 
                 return anim;
+            }
+
+            public bool Equals(TextureAnimation other)
+            {
+                return Flags == other.Flags 
+                       && Face == other.Face 
+                       && SizeX == other.SizeX 
+                       && SizeY == other.SizeY 
+                       && Start.Equals(other.Start) 
+                       && Length.Equals(other.Length) 
+                       && Rate.Equals(other.Rate);
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is TextureAnimation other && Equals(other);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = (int)Flags;
+                    hashCode = (hashCode * 397) ^ (int)Face;
+                    hashCode = (hashCode * 397) ^ (int)SizeX;
+                    hashCode = (hashCode * 397) ^ (int)SizeY;
+                    hashCode = (hashCode * 397) ^ Start.GetHashCode();
+                    hashCode = (hashCode * 397) ^ Length.GetHashCode();
+                    hashCode = (hashCode * 397) ^ Rate.GetHashCode();
+                    return hashCode;
+                }
             }
         }
 

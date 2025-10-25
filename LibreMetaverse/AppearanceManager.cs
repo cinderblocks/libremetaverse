@@ -426,6 +426,7 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.AgentCachedTextureResponse, AgentCachedTextureResponseHandler);
             Client.Network.RegisterCallback(PacketType.RebakeAvatarTextures, RebakeAvatarTexturesHandler);
 
+            Client.Objects.ObjectUpdate += Objects_AttachmentUpdate;
             Client.Network.Disconnected += Network_OnDisconnected;
             Client.Network.SimChanged += Network_OnSimChanged;
         }
@@ -615,13 +616,17 @@ namespace OpenMetaverse
             var cof = GetCurrentOutfitFolder(CancellationToken.None).Result;
             if (cof == null)
             {
-                Logger.Log("Could not retrieve Current Outfit folder", Helpers.LogLevel.Warning, Client);
+                Logger.Log("Could not retrieve 'Current Outfit' folder", Helpers.LogLevel.Warning, Client);
                 return null;
             }
 
             var contents = Client.Inventory.FolderContents(cof.UUID, cof.OwnerID, true, true,
                 InventorySortOrder.ByDate, TimeSpan.FromMinutes(1), true);
-
+            if (contents == null)
+            {
+                Logger.Log("Could not retrieve 'Current Outfit' folder contents", Helpers.LogLevel.Warning, Client);
+                return null;
+            }
             var wearables = new MultiValueDictionary<WearableType, WearableData>();
             foreach (var item in contents)
             {
@@ -634,13 +639,16 @@ namespace OpenMetaverse
                         {
                             w = Client.Inventory.Store[wearable.ActualUUID] as InventoryWearable;
                         }
-                        wearables.Add(w.WearableType, new WearableData()
+                        if (w != null)
                         {
-                            ItemID = w.UUID,
-                            AssetID = w.ActualUUID,
-                            AssetType = w.AssetType,
-                            WearableType = w.WearableType
-                        });
+                            wearables.Add(w.WearableType, new WearableData()
+                            {
+                                ItemID = w.UUID,
+                                AssetID = w.ActualUUID,
+                                AssetType = w.AssetType,
+                                WearableType = w.WearableType
+                            });
+                        }
                         break;
                     }
                     case InventoryAttachment attachment:
@@ -650,7 +658,10 @@ namespace OpenMetaverse
                         {
                             a = Client.Inventory.Store[attachment.ActualUUID] as InventoryAttachment;
                         }
-                        Attachments.AddOrUpdate(a.ActualUUID, a.AttachmentPoint, (id, point) => a.AttachmentPoint);
+                        if (a != null)
+                        {
+                            Attachments.AddOrUpdate(a.ActualUUID, a.AttachmentPoint, (id, point) => a.AttachmentPoint);
+                        }
                         break;
                     }
                     case InventoryObject attachedObject:
@@ -660,7 +671,10 @@ namespace OpenMetaverse
                         {
                             a = Client.Inventory.Store[attachedObject.ActualUUID] as InventoryObject;
                         }
-                        Attachments.AddOrUpdate(a.ActualUUID, a.AttachPoint, (id, point) => a.AttachPoint);
+                        if (a != null)
+                        {
+                            Attachments.AddOrUpdate(a.ActualUUID, a.AttachPoint, (id, point) => a.AttachPoint);
+                        }
                         break;
                     }
                 }
@@ -1047,9 +1061,8 @@ namespace OpenMetaverse
         /// Adds a list of attachments to our agent
         /// </summary>
         /// <param name="attachments">A List containing the attachments to add</param>
-        /// <param name="removeExistingFirst">If true, tells simulator to remove existing attachment
+        /// <param name="removeExistingFirst">If true, tells simulator to remove existing attachment first</param>
         /// <param name="replace">If true replace existing attachment on this attachment point, otherwise add to it (multi-attachments)</param>
-        /// first</param>
         public void AddAttachments(List<InventoryItem> attachments, bool removeExistingFirst, bool replace = true)
         {
             // Use RezMultipleAttachmentsFromInv  to clear out current attachments, and attach new ones
@@ -1132,9 +1145,8 @@ namespace OpenMetaverse
         /// Attach an item to our agent at a specific attach point
         /// </summary>
         /// <param name="item">A <see cref="OpenMetaverse.InventoryItem"/> to attach</param>
-        /// <param name="attachPoint">the <see cref="OpenMetaverse.AttachmentPoint"/> on the avatar 
+        /// <param name="attachPoint">the <see cref="OpenMetaverse.AttachmentPoint"/> on the avatar to attach the item to</param>
         /// <param name="replace">If true replace existing attachment on this attachment point, otherwise add to it (multi-attachments)</param>
-        /// to attach the item to</param>
         public void Attach(InventoryItem item, AttachmentPoint attachPoint, bool replace = true)
         {
             Attach(item.ActualUUID, item.OwnerID, item.Name, item.Description, item.Permissions, item.Flags,
@@ -1150,9 +1162,8 @@ namespace OpenMetaverse
         /// <param name="description">The description of the attachment</param>
         /// <param name="perms">The <see cref="OpenMetaverse.Permissions"/> to apply when attached</param>
         /// <param name="itemFlags">The <see cref="OpenMetaverse.InventoryItemFlags"/> of the attachment</param>
-        /// <param name="attachPoint">The <see cref="OpenMetaverse.AttachmentPoint"/> on the agent
+        /// <param name="attachPoint">The <see cref="OpenMetaverse.AttachmentPoint"/> on the agent to attach the item to</param>
         /// <param name="replace">If true replace existing attachment on this attachment point, otherwise add to it (multi-attachments)</param>
-        /// to attach the item to</param>
         public void Attach(UUID itemID, UUID ownerID, string name, string description,
             Permissions perms, uint itemFlags, AttachmentPoint attachPoint, bool replace = true)
         {
@@ -2147,7 +2158,7 @@ namespace OpenMetaverse
                         {
                             // This hasn't actually baked. Retry after a delay.
                             await Task.Delay(REBAKE_DELAY, cancellationToken);
-                            totalRetries = totalRetries - 1;
+                            totalRetries--;
                             continue;
                         }
                     }
@@ -2436,6 +2447,11 @@ namespace OpenMetaverse
             var blocks = new List<RezMultipleAttachmentsFromInvPacket.ObjectDataBlock>();
 
             var worn = RequestAgentWorn();
+            if (worn == null)
+            {
+                Logger.Log("Could not retrieve 'Current Outfit' folder to send to simulator", Helpers.LogLevel.Warning, Client);
+                return;
+            }
 
             Logger.Log($"{worn.Count} inventory items in 'Current Outfit' folder", Helpers.LogLevel.Info, Client);
 
@@ -2714,6 +2730,37 @@ namespace OpenMetaverse
         private void Network_OnSimChanged(object sender, SimChangedEventArgs e)
         {
             Client.Network.CurrentSim.Caps.CapabilitiesReceived += Simulator_OnCapabilitiesReceived;
+        }
+
+        private void Objects_AttachmentUpdate(object sender, PrimEventArgs e)
+        {
+            Primitive prim = e.Prim;
+
+            if (Client.Self.LocalID == 0
+                || prim.ParentID != Client.Self.LocalID
+                || prim.NameValues == null
+                || !prim.IsAttachment
+                || !e.IsNew)
+            {
+                return;
+            }
+
+            // Updates Attachment points as soon as the data arrives
+            for (int i = 0; i < prim.NameValues.Length; ++i)
+            {
+                if (prim.NameValues[i].Name != "AttachItemID")
+                {
+                    continue;
+                }
+
+                UUID inventoryID = new UUID(prim.NameValues[i].Value.ToString());
+
+                if (Attachments.TryGetValue(inventoryID, out AttachmentPoint attachmentPoint))
+                {
+                    Attachments.AddOrUpdate(inventoryID, attachmentPoint, (id, value) => prim.PrimData.AttachmentPoint);
+                }
+                break;
+            }
         }
 
         private void Simulator_OnCapabilitiesReceived(object sender, CapabilitiesReceivedEventArgs e)

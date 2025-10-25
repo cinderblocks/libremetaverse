@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -25,6 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using System.IO;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
@@ -49,7 +50,7 @@ namespace OpenMetaverse
         public const string ADITI_LOGIN_SERVER = "https://login.aditi.lindenlab.com/cgi-bin/login.cgi";
 
         /// <summary>The relative directory where external resources are kept</summary>
-        public static string RESOURCE_DIR = "openmetaverse_data";
+        public static string RESOURCE_DIR = "linden";
 
         /// <summary>Login server to connect to</summary>
         public string LOGIN_SERVER = AGNI_LOGIN_SERVER;
@@ -286,7 +287,7 @@ namespace OpenMetaverse
         public bool USE_ASSET_CACHE = true;
 
         /// <summary>Path to store cached texture data</summary>
-        public string ASSET_CACHE_DIR = RESOURCE_DIR + "/cache";
+        public string ASSET_CACHE_DIR = Path.Combine(RESOURCE_DIR, "cache");
 
         /// <summary>Maximum size cached files are allowed to take on disk (bytes)</summary>
         public long ASSET_CACHE_MAX_SIZE = 1024 * 1024 * 1024; // 1GB

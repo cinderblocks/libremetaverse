@@ -1,7 +1,7 @@
-using System;
+using OpenMetaverse;
 using OpenMetaverse.Packets;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.System
 {
     public class SleepCommand : Command
     {
@@ -33,7 +33,7 @@ namespace OpenMetaverse.TestClient
             Client.Network.SendPacket(pause);
 
             // Sleep
-            System.Threading.Thread.Sleep(seconds * 1000);
+            global::System.Threading.Thread.Sleep(seconds * 1000);
 
             AgentResumePacket resume = new AgentResumePacket
             {

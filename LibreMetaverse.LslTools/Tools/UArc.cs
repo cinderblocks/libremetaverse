@@ -41,12 +41,12 @@ namespace LibreMetaverse.LslTools
 
     public override bool Match(char ch)
     {
-      return (int) char.ToUpper(ch) == (int) char.ToUpper(this.m_ch);
+      return char.ToUpper(ch) == char.ToUpper(m_ch);
     }
 
     public override void Print(TextWriter s)
     {
-      s.WriteLine($"  U'{(object)this.m_ch}' {(object)this.m_next.m_state}");
+      s.WriteLine($"  U'{(object)m_ch}' {(object)m_next.m_state}");
     }
   }
 }

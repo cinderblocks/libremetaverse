@@ -24,9 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using LibreMetaverse.LslTools;
-
-namespace YYClass
+namespace LibreMetaverse.LslTools
 {
   public class Cons_2_1 : Cons_2
   {
@@ -36,17 +34,17 @@ namespace YYClass
       cs0syntax cs0syntax = (cs0syntax) yyq;
       if (((TOKEN) yyq.StackAt(4).m_value).yytext.Trim() != cs0syntax.Cls)
       {
-        this.yytext = ((TOKEN) yyq.StackAt(4).m_value).yytext + "(" + ((TOKEN) yyq.StackAt(2).m_value).yytext + ")";
+        yytext = ((TOKEN) yyq.StackAt(4).m_value).yytext + "(" + ((TOKEN) yyq.StackAt(2).m_value).yytext + ")";
       }
       else
       {
         if (((TOKEN) yyq.StackAt(2).m_value).yytext.Length == 0)
         {
-          this.yytext = ((TOKEN) yyq.StackAt(4).m_value).yytext + "(" + cs0syntax.Ctx + ")";
+          yytext = ((TOKEN) yyq.StackAt(4).m_value).yytext + "(" + cs0syntax.Ctx + ")";
           cs0syntax.defconseen = true;
         }
         else
-          this.yytext = ((TOKEN) yyq.StackAt(4).m_value).yytext + "(" + cs0syntax.Ctx + "," + ((TOKEN) yyq.StackAt(2).m_value).yytext + ")";
+          yytext = ((TOKEN) yyq.StackAt(4).m_value).yytext + "(" + cs0syntax.Ctx + "," + ((TOKEN) yyq.StackAt(2).m_value).yytext + ")";
         if (((TOKEN) yyq.StackAt(0).m_value).yytext.Length == 0)
         {
           Cons_2_1 cons21 = this;

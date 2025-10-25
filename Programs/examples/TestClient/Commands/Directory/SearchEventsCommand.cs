@@ -1,11 +1,12 @@
 using System;
 using System.Linq;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient.Commands
+namespace TestClient.Commands.Directory
 {
     class SearchEventsCommand : Command
     {
-        System.Threading.AutoResetEvent waitQuery = new System.Threading.AutoResetEvent(false);
+        global::System.Threading.AutoResetEvent waitQuery = new global::System.Threading.AutoResetEvent(false);
         int resultCount;
 
         public SearchEventsCommand(TestClient testClient)

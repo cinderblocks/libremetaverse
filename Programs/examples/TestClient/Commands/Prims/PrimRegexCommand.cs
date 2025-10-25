@@ -1,7 +1,8 @@
 using System.Linq;
 using System.Text.RegularExpressions;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Prims
 {
     public class PrimRegexCommand : Command
     {
@@ -61,7 +62,7 @@ namespace OpenMetaverse.TestClient
                         Helpers.LogLevel.Info, Client);
                 }
             }
-            catch (System.Exception e)
+            catch (global::System.Exception e)
             {
                 Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
                 return "Error searching";

@@ -31,15 +31,15 @@ namespace LibreMetaverse.LslTools
     public Null(Lexer yyl, string proxy)
       : base(yyl)
     {
-      this.yytext = proxy;
+      yytext = proxy;
     }
 
     public Null(Parser yyp, string proxy)
       : base(yyp)
     {
-      this.yytext = proxy;
+      yytext = proxy;
     }
 
-    public override string yyname => this.yytext;
+    public override string yyname => yytext;
   }
 }

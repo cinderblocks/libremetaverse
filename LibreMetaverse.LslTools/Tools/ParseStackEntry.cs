@@ -34,14 +34,14 @@ namespace LibreMetaverse.LslTools
 
     public ParseStackEntry(Parser yyp)
     {
-      this.yyps = yyp;
+      yyps = yyp;
     }
 
     public ParseStackEntry(Parser yyp, int state, SYMBOL value)
     {
-      this.yyps = yyp;
-      this.m_state = state;
-      this.m_value = value;
+      yyps = yyp;
+      m_state = state;
+      m_value = value;
     }
   }
 }

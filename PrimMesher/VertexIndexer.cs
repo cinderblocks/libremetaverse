@@ -27,6 +27,7 @@
 
 
 using System.Collections.Generic;
+using System.Linq;
 
 namespace LibreMetaverse.PrimMesher
 {
@@ -63,7 +64,6 @@ namespace LibreMetaverse.PrimMesher
         public int numPrimFaces;
         public List<List<ViewerPolygon>> viewerPolygons;
         public List<List<ViewerVertex>> viewerVertices;
-        private readonly int[][] viewerVertIndices;
 
         public VertexIndexer()
         {
@@ -72,11 +72,7 @@ namespace LibreMetaverse.PrimMesher
 
         public VertexIndexer(PrimMesh primMesh)
         {
-            var maxPrimFaceNumber = 0;
-
-            foreach (var vf in primMesh.viewerFaces)
-                if (maxPrimFaceNumber < vf.primFaceNumber)
-                    maxPrimFaceNumber = vf.primFaceNumber;
+            var maxPrimFaceNumber = primMesh.viewerFaces.Select(vf => vf.primFaceNumber).Prepend(0).Max();
 
             numPrimFaces = maxPrimFaceNumber + 1;
 
@@ -94,7 +90,7 @@ namespace LibreMetaverse.PrimMesher
 
             viewerVertices = new List<List<ViewerVertex>>(numPrimFaces);
             viewerPolygons = new List<List<ViewerPolygon>>(numPrimFaces);
-            viewerVertIndices = new int[numPrimFaces][];
+            var viewerVertIndices = new int[numPrimFaces][];
 
             // create index lists
             for (var primFaceNumber = 0; primFaceNumber < numPrimFaces; primFaceNumber++)

@@ -1,7 +1,8 @@
 using System;
 using System.Text;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient.Commands
+namespace TestClient.Commands.Directory
 {
     class ShowEventDetailsCommand : Command
     {
@@ -35,7 +36,7 @@ namespace OpenMetaverse.TestClient.Commands
         {
             float x, y;
             Helpers.GlobalPosToRegionHandle((float)e.MatchedEvent.GlobalPos.X, (float)e.MatchedEvent.GlobalPos.Y, out x, out y);
-            StringBuilder sb = new StringBuilder("secondlife://" + e.MatchedEvent.SimName + "/" + x + "/" + y + "/0" + System.Environment.NewLine);
+            StringBuilder sb = new StringBuilder("secondlife://" + e.MatchedEvent.SimName + "/" + x + "/" + y + "/0" + global::System.Environment.NewLine);
             sb.AppendLine(e.MatchedEvent.ToString());
             
             //sb.AppendFormat("       Name: {0} ({1})" + System.Environment.NewLine, e.MatchedEvent.Name, e.MatchedEvent.ID);

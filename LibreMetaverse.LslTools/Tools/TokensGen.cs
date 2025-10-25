@@ -43,12 +43,12 @@ namespace LibreMetaverse.LslTools
 
     public int NewState()
     {
-      return ++this.state;
+      return ++state;
     }
 
     public string FixActions(string str)
     {
-      return str.Replace("yybegin", "yym.yy_begin").Replace("yyl", "((" + this.m_outname + ")yym)");
+      return str.Replace("yybegin", "yym.yy_begin").Replace("yyl", "((" + m_outname + ")yym)");
     }
   }
 }

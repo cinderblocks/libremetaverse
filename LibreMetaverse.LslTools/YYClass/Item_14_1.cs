@@ -24,16 +24,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using LibreMetaverse.LslTools;
-
-namespace YYClass
+namespace LibreMetaverse.LslTools
 {
   public class Item_14_1 : Item_14
   {
     public Item_14_1(Parser yyq)
       : base(yyq)
     {
-      this.yytext = ":";
+      yytext = ":";
     }
   }
 }

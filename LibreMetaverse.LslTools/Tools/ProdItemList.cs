@@ -33,37 +33,37 @@ namespace LibreMetaverse.LslTools
 
     public ProdItemList(ProdItem pi, ProdItemList n)
     {
-      this.m_pi = pi;
-      this.m_next = n;
+      m_pi = pi;
+      m_next = n;
     }
 
     public ProdItemList()
     {
-      this.m_pi = (ProdItem) null;
-      this.m_next = (ProdItemList) null;
+      m_pi = null;
+      m_next = null;
     }
 
     public bool Add(ProdItem pi)
     {
-      if (this.m_pi == null)
+      if (m_pi == null)
       {
-        this.m_next = new ProdItemList();
-        this.m_pi = pi;
+        m_next = new ProdItemList();
+        m_pi = pi;
       }
-      else if (this.m_pi.m_prod.m_pno < pi.m_prod.m_pno || this.m_pi.m_prod.m_pno == pi.m_prod.m_pno && this.m_pi.m_pos < pi.m_pos)
+      else if (m_pi.m_prod.m_pno < pi.m_prod.m_pno || m_pi.m_prod.m_pno == pi.m_prod.m_pno && m_pi.m_pos < pi.m_pos)
       {
-        this.m_next = new ProdItemList(this.m_pi, this.m_next);
-        this.m_pi = pi;
+        m_next = new ProdItemList(m_pi, m_next);
+        m_pi = pi;
       }
       else
       {
-        if (this.m_pi.m_prod.m_pno == pi.m_prod.m_pno && this.m_pi.m_pos == pi.m_pos)
+        if (m_pi.m_prod.m_pno == pi.m_prod.m_pno && m_pi.m_pos == pi.m_pos)
           return false;
-        return this.m_next.Add(pi);
+        return m_next.Add(pi);
       }
       return true;
     }
 
-    public bool AtEnd => this.m_pi == null;
+    public bool AtEnd => m_pi == null;
   }
 }

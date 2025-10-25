@@ -1,4 +1,6 @@
-namespace OpenMetaverse.TestClient
+using OpenMetaverse;
+
+namespace TestClient.Commands.Appearance
 {
     /// <summary>
     /// Set avatars current appearance to appearance last stored on simulator

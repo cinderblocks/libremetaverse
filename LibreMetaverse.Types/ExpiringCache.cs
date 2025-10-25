@@ -27,6 +27,7 @@
 using System;
 using System.Threading;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OpenMetaverse
 {
@@ -410,9 +411,8 @@ namespace OpenMetaverse
 
                     if (expiredItems.IsValueCreated)
                     {
-                        foreach (TKey key in expiredItems.Value)
+                        foreach (TimedCacheKey<TKey> timedKey in from TKey key in expiredItems.Value select timedStorageIndex[key])
                         {
-                            var timedKey = timedStorageIndex[key];
                             timedStorageIndex.Remove(timedKey.Key);
                             timedStorage.Remove(timedKey);
                         }

@@ -38,11 +38,11 @@ namespace LibreMetaverse.LslTools
     {
       if (gbs is TokensGen tokensGen)
       {
-        this.m_name = name;
-        tokensGen.m_tokens.tokens[(object) name] = (object) this;
-        this.m_refToken = bas;
+        m_name = name;
+        tokensGen.m_tokens.tokens[name] = this;
+        m_refToken = bas;
       }
-      this.m_yynum = ++gbs.LastSymbol;
+      m_yynum = ++gbs.LastSymbol;
     }
 
     private TokClassDef()
@@ -52,17 +52,17 @@ namespace LibreMetaverse.LslTools
     public static object Serialise(object o, Serialiser s)
     {
       if (s == null)
-        return (object) new TokClassDef();
+        return new TokClassDef();
       TokClassDef tokClassDef = (TokClassDef) o;
       if (s.Encode)
       {
-        s.Serialise((object) tokClassDef.m_name);
-        s.Serialise((object) tokClassDef.m_yynum);
-        return (object) null;
+        s.Serialise(tokClassDef.m_name);
+        s.Serialise(tokClassDef.m_yynum);
+        return null;
       }
       tokClassDef.m_name = (string) s.Deserialise();
       tokClassDef.m_yynum = (int) s.Deserialise();
-      return (object) tokClassDef;
+      return tokClassDef;
     }
   }
 }

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -36,14 +36,14 @@ namespace LibreMetaverse.Tests
     [Category("Network")]
     public class NetworkTests : Assert
     {
-        GridClient Client;
+        readonly GridClient Client;
 
         //ulong CurrentRegionHandle = 0;
         //ulong AhernRegionHandle = 1096213093149184;
         //ulong MorrisRegionHandle = 1096213093149183;
         //ulong DoreRegionHandle = 1095113581521408;
         //ulong HooperRegionHandle = 1106108697797888;
-        bool DetectedObject = false;
+        private bool DetectedObject = false;
 
         public NetworkTests()
         {
@@ -67,7 +67,7 @@ namespace LibreMetaverse.Tests
             // Connect to the grid
             string startLoc = NetworkManager.StartLocation("Hooper", 179, 18, 32);
             Assert.That(Client.Network.Login(username[0], username[1], password, "Unit Test Framework", 
-                    startLoc, "contact@radegast.life"), Is.True,
+                    startLoc, "admin@radegast.life"), Is.True,
                 "Client failed to login, reason: " + Client.Network.LoginMessage);
             Console.WriteLine("Done");
 
@@ -149,31 +149,25 @@ namespace LibreMetaverse.Tests
                 "CAPS Event Queue is not running and failed to start");
         }
 
-        public bool CapsQueueRunning()
+        private bool CapsQueueRunning()
         {
             if (Client.Network.CurrentSim.Caps.IsEventQueueRunning)
                 return true;
 
-            bool Success = false;
             // make sure caps event queue is running
             System.Threading.AutoResetEvent waitforCAPS = new System.Threading.AutoResetEvent(false);
-            EventHandler<EventQueueRunningEventArgs> capsRunning = delegate(object sender, EventQueueRunningEventArgs e)
+            EventHandler<EventQueueRunningEventArgs> capsRunning = delegate
             {
                 waitforCAPS.Set();
             };            
 
             Client.Network.EventQueueRunning += capsRunning;
-            if (waitforCAPS.WaitOne(10000, false))
+            if (!waitforCAPS.WaitOne(10000, false))
             {
-                Success = true;
-            }
-            else
-            {
-                Success = false;
                 Assert.Fail("Timeout waiting for event Queue to startup");
             }
             Client.Network.EventQueueRunning -= capsRunning;
-            return Success;
+            return true;
         }
 
         private void ObjectUpdateHandler(object sender, PacketReceivedEventArgs e)

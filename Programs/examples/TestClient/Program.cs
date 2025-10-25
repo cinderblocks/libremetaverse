@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using CommandLine.Utility;
-using CoreJ2K.Util;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient
 {
     [Serializable]
     public class CommandLineArgumentsException : Exception
@@ -34,8 +33,6 @@ namespace OpenMetaverse.TestClient
 
         static void Main(string[] args)
         {
-            SKBitmapImageCreator.Register();
-            
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             Console.InputEncoding = System.Text.Encoding.UTF8;
 

@@ -42,25 +42,25 @@ namespace LibreMetaverse.LslTools
 
     public SYMBOL(Lexer yyl)
     {
-      this.yylx = yyl;
+      yylx = yyl;
     }
 
     public SYMBOL(Parser yyp)
     {
-      this.yyps = yyp;
-      this.yylx = yyp.m_lexer;
+      yyps = yyp;
+      yylx = yyp.m_lexer;
     }
 
-    public int Line => this.yylx.sourceLineInfo(this.pos).lineNumber;
+    public int Line => yylx.sourceLineInfo(pos).lineNumber;
 
-    public int Position => this.yylx.sourceLineInfo(this.pos).rawCharPosition;
+    public int Position => yylx.sourceLineInfo(pos).rawCharPosition;
 
-    public string Pos => this.yylx.Saypos(this.pos);
+    public string Pos => yylx.Saypos(pos);
 
     public object yylval
     {
-      get => this.m_dollar;
-      set => this.m_dollar = value;
+      get => m_dollar;
+      set => m_dollar = value;
     }
 
     public virtual int yynum => 0;
@@ -84,22 +84,22 @@ namespace LibreMetaverse.LslTools
     {
       get
       {
-        if (this.yyps != null)
-          return this.yyps.m_symbols;
-        return (YyParser) null;
+        if (yyps != null)
+          return yyps.m_symbols;
+        return null;
       }
     }
 
     public virtual bool Pass(YyParser syms, int snum, out ParserEntry entry)
     {
-      ParsingInfo parsingInfo = (ParsingInfo) syms.symbolInfo[(object) this.yynum];
+      ParsingInfo parsingInfo = (ParsingInfo) syms.symbolInfo[yynum];
       if (parsingInfo == null)
       {
-        string s = $"No parsinginfo for symbol {(object)this.yyname} {(object)this.yynum}";
-        syms.erh.Error((CSToolsException) new CSToolsFatalException(9, this.yylx, this.yyname, s));
+        string s = $"No parsinginfo for symbol {(object)yyname} {(object)yynum}";
+        syms.erh.Error(new CSToolsFatalException(9, yylx, yyname, s));
       }
-      bool flag = parsingInfo.m_parsetable.Contains((object) snum);
-      entry = !flag ? (ParserEntry) null : (ParserEntry) parsingInfo.m_parsetable[(object) snum];
+      bool flag = parsingInfo.m_parsetable.Contains(snum);
+      entry = !flag ? null : (ParserEntry) parsingInfo.m_parsetable[snum];
       return flag;
     }
 
@@ -107,7 +107,7 @@ namespace LibreMetaverse.LslTools
 
     public override string ToString()
     {
-      return this.yyname;
+      return yyname;
     }
 
     public virtual bool Matches(string s)
@@ -117,23 +117,23 @@ namespace LibreMetaverse.LslTools
 
     public virtual void Print()
     {
-      Console.WriteLine(this.ToString());
+      Console.WriteLine(ToString());
     }
 
     private void ConcreteSyntaxTree(string n)
     {
       if (this is Error)
-        Console.WriteLine(n + " " + this.ToString());
+        Console.WriteLine(n + " " + ToString());
       else
-        Console.WriteLine(n + "-" + this.ToString());
+        Console.WriteLine(n + "-" + ToString());
       int num = 0;
-      foreach (SYMBOL kid in this.kids)
-        kid.ConcreteSyntaxTree(n + (num++ != this.kids.Count - 1 ? " |" : "  "));
+      foreach (SYMBOL kid in kids)
+        kid.ConcreteSyntaxTree(n + (num++ != kids.Count - 1 ? " |" : "  "));
     }
 
     public virtual void ConcreteSyntaxTree()
     {
-      this.ConcreteSyntaxTree("");
+      ConcreteSyntaxTree("");
     }
 
     public static implicit operator int(SYMBOL s)
@@ -150,7 +150,7 @@ namespace LibreMetaverse.LslTools
       }
       catch (Exception)
       {
-        Console.WriteLine("attempt to convert from " + (object) s.m_dollar.GetType());
+        Console.WriteLine("attempt to convert from " + s.m_dollar.GetType());
         throw;
       }
     }

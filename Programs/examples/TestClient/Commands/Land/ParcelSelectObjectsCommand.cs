@@ -1,8 +1,9 @@
 using System;
 using System.Text;
 using System.Threading;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Land
 {
     public class ParcelSelectObjectsCommand : Command
     {

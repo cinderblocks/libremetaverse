@@ -50,9 +50,9 @@ namespace LibreMetaverse.LslTools
     {
       if (sym.yytext.Equals("Null") || sym.yytext[0] == '\'')
         return true;
-      if (this.stypes == null)
+      if (stypes == null)
         return false;
-      return this.stypes._Find(sym.yytext) != null;
+      return stypes._Find(sym.yytext) != null;
     }
 
     public abstract void ParserDirective();

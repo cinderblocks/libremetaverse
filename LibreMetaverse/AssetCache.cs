@@ -214,7 +214,7 @@ namespace OpenMetaverse
         /// <returns>String with the file name of the static cached asset</returns>
         private string StaticFileName(UUID assetID)
         {
-            return Settings.RESOURCE_DIR + Path.DirectorySeparatorChar + "static_assets" + Path.DirectorySeparatorChar + assetID;
+            return Path.Combine(Settings.RESOURCE_DIR, "static_assets", assetID.ToString());
         }
 
         /// <summary>
@@ -324,7 +324,7 @@ namespace OpenMetaverse
 
             if (size > Client.Settings.ASSET_CACHE_MAX_SIZE)
             {
-                Array.Sort(files, new SortFilesByAccesTimeHelper());
+                Array.Sort(files, new SortFilesByAccessTimeHelper());
                 long targetSize = (long)(Client.Settings.ASSET_CACHE_MAX_SIZE * 0.9);
                 int num = 0;
                 foreach (FileInfo file in files)
@@ -363,7 +363,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Adds up file sizes passes in a FileInfo array
         /// </summary>
-        long GetFileSize(FileInfo[] files)
+        private static long GetFileSize(FileInfo[] files)
         {
             return files.Sum(file => file.Length);
         }
@@ -407,13 +407,13 @@ namespace OpenMetaverse
         /// <summary>
         /// Helper class for sorting files by their last accessed time
         /// </summary>
-        private class SortFilesByAccesTimeHelper : IComparer<FileInfo>
+        private class SortFilesByAccessTimeHelper : IComparer<FileInfo>
         {
             int IComparer<FileInfo>.Compare(FileInfo f1, FileInfo f2)
             {
-                if (f1.LastAccessTime > f2.LastAccessTime)
+                if (f2 != null && f1 != null && f1.LastAccessTime > f2.LastAccessTime)
                     return 1;
-                if (f1.LastAccessTime < f2.LastAccessTime)
+                if (f2 != null && f1 != null && f1.LastAccessTime < f2.LastAccessTime)
                     return -1;
                 else
                     return 0;

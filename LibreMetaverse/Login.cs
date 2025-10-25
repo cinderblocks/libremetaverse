@@ -26,7 +26,6 @@
  */
 
 using XmlRpcCore;
-using OpenMetaverse.Http;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
 using System;

@@ -88,8 +88,8 @@ namespace OpenMetaverse
 
         public static IEnumerable<string> SplitBy(this string str, int chunkLength)
         {
-            if (string.IsNullOrEmpty(str)) throw new ArgumentException();
-            if (chunkLength < 1) throw new ArgumentException();
+            if (string.IsNullOrEmpty(str)) throw new ArgumentException(nameof(str));
+            if (chunkLength < 1) throw new ArgumentException(nameof(chunkLength));
 
             for (int i = 0; i < str.Length; i += chunkLength)
             {

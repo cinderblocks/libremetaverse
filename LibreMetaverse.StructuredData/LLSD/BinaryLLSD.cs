@@ -109,7 +109,7 @@ namespace OpenMetaverse.StructuredData
         }
 
         /// <summary>
-        /// Serializes OSD to binary format. It does no prepend header
+        /// Serializes OSD to binary format. It does not prepend header
         /// </summary>
         /// <param name="osd">OSD to serialize</param>
         /// <returns>Serialized data</returns>
@@ -135,7 +135,7 @@ namespace OpenMetaverse.StructuredData
         }
 
         /// <summary>
-        /// Serializes OSD to binary format. It does no prepend header
+        /// Serializes OSD to binary format. It does not prepend header
         /// </summary>
         /// <param name="data">OSD to serialize</param>
         /// <returns>Serialized data</returns>
@@ -425,7 +425,9 @@ namespace OpenMetaverse.StructuredData
                     crrIndex++;
                 }
                 else
+                {
                     found = false;
+                }
             }
 
             if (found && crrIndex > lastIndexToFind)

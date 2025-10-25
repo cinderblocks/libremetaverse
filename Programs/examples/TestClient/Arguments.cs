@@ -1,7 +1,7 @@
 using System.Collections.Specialized;
 using System.Text.RegularExpressions;
 
-namespace CommandLine.Utility
+namespace TestClient
 {
     /// <summary>
     /// Arguments class

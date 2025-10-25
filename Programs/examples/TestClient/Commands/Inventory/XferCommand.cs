@@ -1,8 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Threading;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Inventory
 {
     public class XferCommand : Command
     {

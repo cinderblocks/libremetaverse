@@ -1,4 +1,6 @@
-namespace OpenMetaverse.TestClient
+using OpenMetaverse;
+
+namespace TestClient.Commands.Communication
 {
     public class EchoMasterCommand: Command
     {

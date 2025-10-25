@@ -38,30 +38,30 @@ namespace LibreMetaverse.LslTools
 
     public ReStr(TokensGen tks, string str)
     {
-        this.m_str = str;
+        m_str = str;
         foreach (var c in str)
             tks.m_tokens.UsingChar(c);
     }
 
     public ReStr(TokensGen tks, char ch)
     {
-      this.m_str = new string(ch, 1);
+      m_str = new string(ch, 1);
       tks.m_tokens.UsingChar(ch);
     }
 
     public override void Print(TextWriter s)
     {
-      s.Write($"(\"{(object)this.m_str}\")");
+      s.Write($"(\"{(object)m_str}\")");
     }
 
     public override int Match(string str, int pos, int max)
     {
-      int length = this.m_str.Length;
+      int length = m_str.Length;
       if (length > max || length > max - pos)
         return -1;
       for (int index = 0; index < length; ++index)
       {
-        if ((int) str[index] != (int) this.m_str[index])
+        if (str[index] != m_str[index])
           return -1;
       }
       return length;
@@ -69,12 +69,12 @@ namespace LibreMetaverse.LslTools
 
     public override void Build(Nfa nfa)
     {
-      int length = this.m_str.Length;
-      NfaNode nfaNode = (NfaNode) nfa;
+      int length = m_str.Length;
+      NfaNode nfaNode = nfa;
       for (int index = 0; index < length; ++index)
       {
         NfaNode next = new NfaNode(nfa.m_tks);
-        nfaNode.AddArc(this.m_str[index], next);
+        nfaNode.AddArc(m_str[index], next);
         nfaNode = next;
       }
       nfaNode.AddEps(nfa.m_end);

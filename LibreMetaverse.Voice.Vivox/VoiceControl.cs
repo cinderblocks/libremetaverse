@@ -34,7 +34,6 @@ using System.Threading;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 using System.Net.Http;
-using System.Threading.Tasks;
 
 namespace LibreMetaverse.Voice.Vivox
 {
@@ -528,7 +527,7 @@ namespace LibreMetaverse.Voice.Vivox
                 case SessionState.Ringing:
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new ArgumentOutOfRangeException(nameof(e.State));
             }
 
 
@@ -897,12 +896,13 @@ namespace LibreMetaverse.Voice.Vivox
 
                 if (pMap.TryGetValue("voice_credentials", out var credential))
                 {
-                    var cred = credential as OSDMap;
-
-                    if (cred.ContainsKey("channel_uri"))
-                        _spatialUri = cred["channel_uri"].AsString();
-                    if (cred.ContainsKey("channel_credentials"))
-                        _spatialCredentials = cred["channel_credentials"].AsString();
+                    if (credential is OSDMap cred)
+                    {
+                        if (cred.ContainsKey("channel_uri"))
+                            _spatialUri = cred["channel_uri"].AsString();
+                        if (cred.ContainsKey("channel_credentials"))
+                            _spatialCredentials = cred["channel_credentials"].AsString();
+                    }
                 }
             }
 

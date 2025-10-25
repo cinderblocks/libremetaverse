@@ -39,7 +39,7 @@ namespace LibreMetaverse.LslTools
       int num1 = 0;
       int num2 = 0;
       int num3 = 0;
-      this.m_sub = (Regex) null;
+      m_sub = null;
       if (length == 0)
         return;
       int startIndex;
@@ -56,10 +56,10 @@ namespace LibreMetaverse.LslTools
           {
             if (str[index] == '"' || str[index] == '\'')
             {
-              if (num3 == (int) str[index])
+              if (num3 == str[index])
                 num3 = 0;
               else if (num3 == 0)
-                num3 = (int) str[index];
+                num3 = str[index];
             }
             else if (num3 <= 0)
             {
@@ -74,7 +74,7 @@ namespace LibreMetaverse.LslTools
         }
         if (index != length)
         {
-          this.m_sub = new Regex(tks, p + 1, str.Substring(1, index - 1));
+          m_sub = new Regex(tks, p + 1, str.Substring(1, index - 1));
           startIndex = index + 1;
         }
         else
@@ -90,7 +90,7 @@ namespace LibreMetaverse.LslTools
         }
         if (index != length)
         {
-          this.m_sub = (Regex) new ReRange(tks, str.Substring(0, index + 1));
+          m_sub = new ReRange(tks, str.Substring(0, index + 1));
           startIndex = index + 1;
         }
         else
@@ -100,7 +100,7 @@ namespace LibreMetaverse.LslTools
       {
         StringBuilder stringBuilder = new StringBuilder();
         int index;
-        for (index = 1; index < length && (int) str[index] != (int) str[0]; ++index)
+        for (index = 1; index < length && str[index] != str[0]; ++index)
         {
           if (str[index] == '\\')
           {
@@ -148,7 +148,7 @@ namespace LibreMetaverse.LslTools
         if (index != length)
         {
           startIndex = index + 1;
-          this.m_sub = (Regex) new ReStr(tks, stringBuilder.ToString());
+          m_sub = new ReStr(tks, stringBuilder.ToString());
         }
         else
           goto label_99;
@@ -157,7 +157,7 @@ namespace LibreMetaverse.LslTools
       {
         StringBuilder stringBuilder = new StringBuilder();
         int index;
-        for (index = 2; index < length && (int) str[index] != (int) str[1]; ++index)
+        for (index = 2; index < length && str[index] != str[1]; ++index)
         {
           if (str[index] == '\\')
           {
@@ -202,7 +202,7 @@ namespace LibreMetaverse.LslTools
         if (index != length)
         {
           startIndex = index + 1;
-          this.m_sub = (Regex) new ReUStr(tks, stringBuilder.ToString());
+          m_sub = new ReUStr(tks, stringBuilder.ToString());
         }
         else
           goto label_99;
@@ -230,7 +230,7 @@ namespace LibreMetaverse.LslTools
             }
             break;
         }
-        this.m_sub = (Regex) new ReStr(tks, ch1);
+        m_sub = new ReStr(tks, ch1);
         startIndex = 2;
       }
       else if (str[0] == '{')
@@ -241,8 +241,8 @@ namespace LibreMetaverse.LslTools
         if (index != length)
         {
           string str1 = str.Substring(1, index - 1);
-          string define = (string) tks.defines[(object) str1];
-          this.m_sub = define != null ? new Regex(tks, p + 1, define) : (Regex) new ReCategory(tks, str1);
+          string define = (string) tks.defines[str1];
+          m_sub = define != null ? new Regex(tks, p + 1, define) : new ReCategory(tks, str1);
           startIndex = index + 1;
         }
         else
@@ -257,32 +257,32 @@ namespace LibreMetaverse.LslTools
         return;
       if (str[startIndex] == '?')
       {
-        this.m_sub = (Regex) new ReOpt(this.m_sub);
+        m_sub = new ReOpt(m_sub);
         ++startIndex;
       }
       else if (str[startIndex] == '*')
       {
-        this.m_sub = (Regex) new ReStar(this.m_sub);
+        m_sub = new ReStar(m_sub);
         ++startIndex;
       }
       else if (str[startIndex] == '+')
       {
-        this.m_sub = (Regex) new RePlus(this.m_sub);
+        m_sub = new RePlus(m_sub);
         ++startIndex;
       }
       if (startIndex >= length)
         return;
       if (str[startIndex] == '|')
       {
-        this.m_sub = (Regex) new ReAlt(tks, this.m_sub, p + startIndex + 1, str.Substring(startIndex + 1, length - startIndex - 1));
+        m_sub = new ReAlt(tks, m_sub, p + startIndex + 1, str.Substring(startIndex + 1, length - startIndex - 1));
         return;
       }
       if (startIndex >= length)
         return;
-      this.m_sub = (Regex) new ReCat(tks, this.m_sub, p + startIndex, str.Substring(startIndex, length - startIndex));
+      m_sub = new ReCat(tks, m_sub, p + startIndex, str.Substring(startIndex, length - startIndex));
       return;
 label_99:
-      tks.erh.Error((CSToolsException) new CSToolsFatalException(1, tks.sourceLineInfo(p), str, "ill-formed regular expression " + str));
+      tks.erh.Error(new CSToolsFatalException(1, tks.sourceLineInfo(p), str, "ill-formed regular expression " + str));
     }
 
     protected Regex()
@@ -291,9 +291,9 @@ label_99:
 
     public virtual void Print(TextWriter s)
     {
-      if (this.m_sub == null)
+      if (m_sub == null)
         return;
-      this.m_sub.Print(s);
+      m_sub.Print(s);
     }
 
     public virtual bool Match(char ch)
@@ -303,24 +303,24 @@ label_99:
 
     public int Match(string str)
     {
-      return this.Match(str, 0, str.Length);
+      return Match(str, 0, str.Length);
     }
 
     public virtual int Match(string str, int pos, int max)
     {
       if (max < 0)
         return -1;
-      if (this.m_sub != null)
-        return this.m_sub.Match(str, pos, max);
+      if (m_sub != null)
+        return m_sub.Match(str, pos, max);
       return 0;
     }
 
     public virtual void Build(Nfa nfa)
     {
-      if (this.m_sub != null)
+      if (m_sub != null)
       {
-        Nfa nfa1 = new Nfa(nfa.m_tks, this.m_sub);
-        nfa.AddEps((NfaNode) nfa1);
+        Nfa nfa1 = new Nfa(nfa.m_tks, m_sub);
+        nfa.AddEps(nfa1);
         nfa1.m_end.AddEps(nfa.m_end);
       }
       else

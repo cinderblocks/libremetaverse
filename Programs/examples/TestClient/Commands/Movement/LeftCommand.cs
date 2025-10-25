@@ -1,6 +1,7 @@
 using System;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient.Commands.Movement
+namespace TestClient.Commands.Movement
 {
     class LeftCommand : Command
     {
@@ -41,7 +42,7 @@ namespace OpenMetaverse.TestClient.Commands.Movement
                     // The movement timer will do this automatically, but we do it here as an example
                     // and to make sure updates are being sent out fast enough
                     Client.Self.Movement.SendUpdate(false);
-                    System.Threading.Thread.Sleep(100);
+                    global::System.Threading.Thread.Sleep(100);
                 }
 
                 Client.Self.Movement.LeftPos = false;

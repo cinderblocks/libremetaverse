@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Text;
+using System.Threading;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Groups
 {
     /// <summary>
     /// dumps group members to console

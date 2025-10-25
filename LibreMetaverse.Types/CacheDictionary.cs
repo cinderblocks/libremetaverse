@@ -99,7 +99,7 @@ namespace LibreMetaverse
                     _data.Remove(keyToRemove);
                 else
                     throw new Exception(
-                        $"Could not find a valid key to remove from cache, key = {(key == null ? "null" : key.ToString())}");
+                        $"Could not find a valid key to remove from cache, key = {key.ToString()}");
             }
             _data.Add(key, value);
             _removalStrategy.KeyAdded(key);

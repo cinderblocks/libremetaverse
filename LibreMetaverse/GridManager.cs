@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2022, Sjofn, LLC.
+ * Copyright (c) 2022-2025, Sjofn, LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using OpenMetaverse.StructuredData;
@@ -160,16 +159,15 @@ namespace OpenMetaverse
         public uint GlobalY;
 
         /// <summary>Get the Local X position of the item</summary>
-        public uint LocalX { get { return GlobalX % Simulator.DefaultRegionSizeX; } }
+        public uint LocalX => GlobalX % Simulator.DefaultRegionSizeX;
+
         /// <summary>Get the Local Y position of the item</summary>
-        public uint LocalY { get { return GlobalY % Simulator.DefaultRegionSizeY; } }
+        public uint LocalY => GlobalY % Simulator.DefaultRegionSizeY;
 
         /// <summary>Get the Handle of the region</summary>
-        public ulong RegionHandle
-        {
-            get { return Utils.UIntsToLong((uint)(GlobalX - (GlobalX % Simulator.DefaultRegionSizeX)),
-                                    (uint)(GlobalY - (GlobalY % Simulator.DefaultRegionSizeY))); }
-        }
+        public ulong RegionHandle =>
+            Utils.UIntsToLong((uint)(GlobalX - (GlobalX % Simulator.DefaultRegionSizeX)),
+                (uint)(GlobalY - (GlobalY % Simulator.DefaultRegionSizeY)));
     }
 
     /// <summary>
@@ -578,7 +576,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Retrieves <see cref="GridRegion"/> information using the region name
+        /// Retrieves <see cref="GridRegion"/> information using the region handle
         /// </summary>
         /// <remarks>This function will block until it can find the region or gives up</remarks>
         /// <param name="handle">Region Handle of requested <see cref="GridRegion"/></param>
@@ -595,10 +593,7 @@ namespace OpenMetaverse
                 return true;
             }
 
-            uint globalX,
-                 globalY;
-
-            Utils.LongToUInts(handle, out globalX, out globalY);
+            Utils.LongToUInts(handle, out var globalX, out var globalY);
             const uint regionWidthUnits = 256;
             ushort gridX = (ushort)(globalX / regionWidthUnits);
             ushort gridY = (ushort)(globalY / regionWidthUnits);
@@ -663,7 +658,7 @@ namespace OpenMetaverse
 
             void Callback(object sender, GridRegionEventArgs e)
             {
-                if (e.Region.Name.ToLowerInvariant() == name.ToLowerInvariant())
+                if (string.Equals(e.Region.Name, name, StringComparison.InvariantCultureIgnoreCase))
                 {
                     regionEvent.Set();
                 }

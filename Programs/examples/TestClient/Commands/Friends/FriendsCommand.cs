@@ -1,7 +1,8 @@
 using System.Text;
+using OpenMetaverse;
 
 // the Namespace used for all TestClient commands
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Friends
 {
     /// <summary>
     /// Shows a list of friends

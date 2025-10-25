@@ -39,7 +39,7 @@ namespace LitJson
     public class JsonWriter
     {
         #region Fields
-        private static NumberFormatInfo number_format;
+        private static readonly NumberFormatInfo number_format;
 
         private WriterContext        context;
         private Stack<WriterContext> ctx_stack;
@@ -47,14 +47,14 @@ namespace LitJson
         private char[]               hex_seq;
         private int                  indentation;
         private int                  indent_value;
-        private StringBuilder        inst_string_builder;
+        private readonly StringBuilder        inst_string_builder;
 
         #endregion
 
 
         #region Properties
         public int IndentValue {
-            get { return indent_value; }
+            get => indent_value;
             set {
                 indentation = (indentation / indent_value) * value;
                 indent_value = value;

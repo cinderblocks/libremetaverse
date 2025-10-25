@@ -39,12 +39,12 @@ namespace LibreMetaverse.LslTools
 
     public ErrorHandler(bool ee)
     {
-      this.throwExceptions = ee;
+      throwExceptions = ee;
     }
 
     public virtual void Error(CSToolsException e)
     {
-      ++this.counter;
+      ++counter;
       e.Handle(this);
     }
 

@@ -1,23 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Agent
 {
     public class CloneProfileCommand : Command
     {
-        Avatar.AvatarProperties Properties;
-        Avatar.Interests Interests;
-        List<UUID> Groups = new List<UUID>();
-        bool ReceivedProperties = false;
-        bool ReceivedInterests = false;
-        bool ReceivedGroups = false;
-        ManualResetEvent ReceivedProfileEvent = new ManualResetEvent(false);
+        private Avatar.AvatarProperties Properties;
+        private Avatar.Interests Interests;
+        private readonly List<UUID> Groups = new List<UUID>();
+        private bool ReceivedProfile = false;
+        private bool ReceivedInterests = false;
+        private bool ReceivedGroups = false;
+        private readonly ManualResetEvent ReceivedProfileEvent = new ManualResetEvent(false);
 
         public CloneProfileCommand(TestClient testClient)
         {
             testClient.Avatars.AvatarInterestsReply += Avatars_AvatarInterestsReply;
-            testClient.Avatars.AvatarPropertiesReply += Avatars_AvatarPropertiesReply;
             testClient.Avatars.AvatarGroupsReply += Avatars_AvatarGroupsReply;            
             testClient.Groups.GroupJoinedReply += Groups_OnGroupJoined;
             testClient.Avatars.AvatarPicksReply += Avatars_AvatarPicksReply;            
@@ -31,11 +31,9 @@ namespace OpenMetaverse.TestClient
         
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            if (args.Length != 1)
-                return Description;
+            if (args.Length != 1) { return Description; }
 
             UUID targetID;
-            ReceivedProperties = false;
             ReceivedInterests = false;
             ReceivedGroups = false;
 
@@ -48,10 +46,26 @@ namespace OpenMetaverse.TestClient
                 return Description;
             }
 
-            // Request all of the packets that make up an avatar profile
-            Client.Avatars.RequestAvatarProperties(targetID);
+            // Request all packets that make up an avatar profile
+            Client.Avatars.RequestAgentProfile(targetID, (success, profile) =>
+            {
+                if (success)
+                {
+                    ReceivedProfile = true;
+                    Properties = new Avatar.AvatarProperties
+                    {
+                        AboutText = profile.SecondLifeAboutText,
+                        FirstLifeText = profile.FirstLifeAboutText,
+                        ProfileImage = profile.SecondLifeImageID,
+                        FirstLifeImage = profile.FirstLifeImageID,
+                        ProfileURL = profile.HomePage,
+                        AllowPublish = true,
+                        MaturePublish = profile.IsMatureProfile
+                    };
+                }
+            }).Wait(TimeSpan.FromSeconds(5));
 
-            //Request all of the avatars pics
+            //Request all avatars pics
             Client.Avatars.RequestAvatarPicks(Client.Self.AgentID);
             Client.Avatars.RequestAvatarPicks(targetID);
 
@@ -60,8 +74,10 @@ namespace OpenMetaverse.TestClient
             ReceivedProfileEvent.WaitOne(TimeSpan.FromSeconds(5), false);
 
             // Check if everything showed up
-            if (!ReceivedInterests || !ReceivedProperties || !ReceivedGroups)
+            if (!ReceivedProfile || !ReceivedInterests || !ReceivedGroups)
+            {
                 return "Failed to retrieve a complete profile for that UUID";
+            }
 
             // Synchronize our profile
             Client.Self.UpdateInterests(Interests);
@@ -76,28 +92,28 @@ namespace OpenMetaverse.TestClient
                 Client.Groups.RequestJoinGroup(groupID);
             }
 
-            return "Synchronized our profile to the profile of " + targetID;
-        }                           
+            return $"Synchronized our profile to the profile of {targetID}";
+        }
 
-        void Groups_OnGroupJoined(object sender, GroupOperationEventArgs e)
+        private void Groups_OnGroupJoined(object sender, GroupOperationEventArgs e)
         {
             Console.WriteLine(Client + (e.Success ? " joined " : " failed to join ") +
                 e.GroupID);
 
             if (e.Success)
             {
-                Console.WriteLine(Client + " setting " + e.GroupID +
-                    " as the active group");
+                Console.WriteLine($"{Client} setting {e.GroupID} as the active group");
                 Client.Groups.ActivateGroup(e.GroupID);
             }
         }
 
-        void Avatars_PickInfoReply(object sender, PickInfoReplyEventArgs e)
+        private void Avatars_PickInfoReply(object sender, PickInfoReplyEventArgs e)
         {
-            Client.Self.PickInfoUpdate(e.PickID, e.Pick.TopPick, e.Pick.ParcelID, e.Pick.Name, e.Pick.PosGlobal, e.Pick.SnapshotID, e.Pick.Desc);
+            Client.Self.PickInfoUpdate(e.PickID, e.Pick.TopPick, e.Pick.ParcelID, e.Pick.Name, e.Pick.PosGlobal, 
+                e.Pick.SnapshotID, e.Pick.Desc);
         }
 
-        void Avatars_AvatarPicksReply(object sender, AvatarPicksReplyEventArgs e)
+        private void Avatars_AvatarPicksReply(object sender, AvatarPicksReplyEventArgs e)
         {
             foreach (KeyValuePair<UUID, string> kvp in e.Picks)
             {
@@ -112,7 +128,7 @@ namespace OpenMetaverse.TestClient
             }
         }
 
-        void Avatars_AvatarGroupsReply(object sender, AvatarGroupsReplyEventArgs e)
+        private void Avatars_AvatarGroupsReply(object sender, AvatarGroupsReplyEventArgs e)
         {
             lock (ReceivedProfileEvent)
             {
@@ -123,31 +139,19 @@ namespace OpenMetaverse.TestClient
 
                 ReceivedGroups = true;
 
-                if (ReceivedInterests && ReceivedProperties && ReceivedGroups)
+                if (ReceivedInterests && ReceivedGroups)
                     ReceivedProfileEvent.Set();
             }
         }
 
-        void Avatars_AvatarPropertiesReply(object sender, AvatarPropertiesReplyEventArgs e)
-        {
-            lock (ReceivedProfileEvent)
-            {
-                Properties = e.Properties;
-                ReceivedProperties = true;
-
-                if (ReceivedInterests && ReceivedProperties && ReceivedGroups)
-                    ReceivedProfileEvent.Set();
-            }
-        }
-
-        void Avatars_AvatarInterestsReply(object sender, AvatarInterestsReplyEventArgs e)
+        private void Avatars_AvatarInterestsReply(object sender, AvatarInterestsReplyEventArgs e)
         {
             lock (ReceivedProfileEvent)
             {
                 Interests = e.Interests;
                 ReceivedInterests = true;
 
-                if (ReceivedInterests && ReceivedProperties && ReceivedGroups)
+                if (ReceivedInterests && ReceivedGroups)
                     ReceivedProfileEvent.Set();
             }
         }        

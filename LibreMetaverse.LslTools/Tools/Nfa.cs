@@ -33,13 +33,13 @@ namespace LibreMetaverse.LslTools
     public Nfa(TokensGen tks)
       : base(tks)
     {
-      this.m_end = new NfaNode(this.m_tks);
+      m_end = new NfaNode(m_tks);
     }
 
     public Nfa(TokensGen tks, Regex re)
       : base(tks)
     {
-      this.m_end = new NfaNode(tks);
+      m_end = new NfaNode(tks);
       re.Build(this);
     }
   }

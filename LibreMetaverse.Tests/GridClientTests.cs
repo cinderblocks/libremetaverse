@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2021-2024, Sjofn LLC
+ * Copyright (c) 2021-2025, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@ namespace LibreMetaverse.Tests
     [Category("GridClient")]
     class GridClientTests : Assert
     {
-        GridClient Client;
+        readonly GridClient Client;
 
         public GridClientTests()
         {
@@ -80,8 +80,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void GetGridRegion()
         {
-            GridRegion region;
-            Assert.That(Client.Grid.GetGridRegion("Hippo Hollow", GridLayerType.Terrain, out region), Is.True);
+            Assert.That(Client.Grid.GetGridRegion("Hippo Hollow", GridLayerType.Terrain, out var region), Is.True);
             Assert.That(region.Name, Is.EqualTo("hippo hollow").IgnoreCase);
         }
     }

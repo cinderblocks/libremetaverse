@@ -1,6 +1,6 @@
-using System;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Communication
 {
     public class SayCommand: Command
     {

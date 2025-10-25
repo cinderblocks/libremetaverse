@@ -32,12 +32,12 @@ namespace LibreMetaverse.LslTools
   {
     public Sfactory(YyParser syms, string cls_name, SCreator cr)
     {
-      syms.types[(object) cls_name] = (object) cr;
+      syms.types[cls_name] = cr;
     }
 
     public static object create(string cls_name, Parser yyp)
     {
-      SCreator type1 = (SCreator) yyp.m_symbols.types[(object) cls_name];
+      SCreator type1 = (SCreator) yyp.m_symbols.types[cls_name];
       if (type1 == null)
         yyp.m_symbols.erh.Error(new CSToolsException(16, yyp.m_lexer, "no factory for {" + cls_name + ")"));
       try
@@ -56,15 +56,15 @@ namespace LibreMetaverse.LslTools
       int length = cls_name.LastIndexOf('_');
       if (length > 0)
       {
-        SCreator type2 = (SCreator) yyp.m_symbols.types[(object) cls_name.Substring(0, length)];
+        SCreator type2 = (SCreator) yyp.m_symbols.types[cls_name.Substring(0, length)];
         if (type2 != null)
         {
           SYMBOL symbol = (SYMBOL) type2(yyp);
-          symbol.m_dollar = (object) 0;
-          return (object) symbol;
+          symbol.m_dollar = 0;
+          return symbol;
         }
       }
-      return (object) null;
+      return null;
     }
   }
 }

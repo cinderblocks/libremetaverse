@@ -431,13 +431,17 @@ namespace OpenMetaverse
 
         #endregion Events
 
+        /// <summary>Texture download cache</summary>
+        public AssetCache Cache;
+
+        private readonly TexturePipeline Texture;
+
+        private readonly DownloadManager HttpDownloads;
+
         private readonly GridClient Client;
 
-        public AssetCache Cache;
-        private readonly TexturePipeline Texture;
-        private readonly DownloadManager HttpDownloads;
-        private readonly Task HttpDownloadsTask;
         private readonly Dictionary<UUID, Transfer> Transfers = new Dictionary<UUID, Transfer>();
+
         private AssetUpload PendingUpload;
         private readonly object PendingUploadLock = new object();
         private volatile bool WaitingForUploadConfirm = false;
@@ -468,8 +472,6 @@ namespace OpenMetaverse
 
             // Simulator is responding to a request to download a file
             Client.Network.RegisterCallback(PacketType.InitiateDownload, InitiateDownloadPacketHandler);
-
-            HttpDownloadsTask = HttpDownloads.StartConsumer();
 
         }
 
@@ -925,9 +927,30 @@ namespace OpenMetaverse
             RequestInventoryAsset(item.AssetUUID, item.UUID, UUID.Zero, item.OwnerID, item.AssetType, priority, transferID, callback);
         }
 
-        public void RequestEstateAsset()
+        public void RequestEstateAsset(AssetDownload transfer, EstateAssetType eat)
         {
-            throw new Exception("This function is not implemented yet!");
+            // Add this transfer to the dictionary
+            lock (Transfers) Transfers[transfer.ID] = transfer;
+            
+            // Build the request packet and send it
+            var request = new TransferRequestPacket
+            {
+                TransferInfo =
+                {
+                    ChannelType = (int) transfer.Channel,
+                    Priority = transfer.Priority,
+                    SourceType = (int) transfer.Source,
+                    TransferID = transfer.ID
+                }
+            };
+            
+            var paramField = new byte[36];
+            Buffer.BlockCopy(Client.Self.AgentID.GetBytes(), 0, paramField, 0, 16);
+            Buffer.BlockCopy(Client.Self.SessionID.GetBytes(), 0, paramField, 16, 16);
+            Buffer.BlockCopy(Utils.IntToBytes((int)eat), 0, paramField, 32, 4);
+            request.TransferInfo.Params = paramField;
+
+            Client.Network.SendPacket(request, transfer.Simulator);
         }
 
 #region Uploads
@@ -1092,7 +1115,7 @@ namespace OpenMetaverse
                 Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), CancellationToken.None,
                     (response, data, error) =>
                 {
-                    if (error == null)
+                    if (error != null)
                     {
                         Logger.Log("Bake upload failed during uploader retrieval", Helpers.LogLevel.Warning, Client, error);
                         callback(UUID.Zero);
@@ -1494,7 +1517,7 @@ namespace OpenMetaverse
 
             if (progress)
             {
-                progressHandler = (totalBytesToReceive, bytesReceived, progressPercent) =>
+                progressHandler = (totalBytesToReceive, bytesReceived, progresPercent) =>
                     {
                         FireImageProgressEvent(textureID, (int)bytesReceived, (int)totalBytesToReceive);
                     };

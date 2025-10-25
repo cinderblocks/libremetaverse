@@ -1,7 +1,8 @@
 using System;
 using System.Text;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Land
 {
     public class ParcelDetailsCommand : Command
     {
@@ -28,12 +29,12 @@ namespace OpenMetaverse.TestClient
                 
                 // Use reflection to dynamically get the fields from the Parcel struct
                 Type t = parcel.GetType();
-                System.Reflection.FieldInfo[] fields = t.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+                global::System.Reflection.FieldInfo[] fields = t.GetFields(global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Public);
 
                 StringBuilder sb = new StringBuilder();
-                foreach (System.Reflection.FieldInfo field in fields)
+                foreach (global::System.Reflection.FieldInfo field in fields)
                 {
-                    sb.AppendFormat("{0} = {1}" + System.Environment.NewLine, field.Name, field.GetValue(parcel));
+                    sb.AppendFormat("{0} = {1}" + global::System.Environment.NewLine, field.Name, field.GetValue(parcel));
                 }
                 return sb.ToString();
             }

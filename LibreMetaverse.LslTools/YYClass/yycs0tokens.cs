@@ -24,16 +24,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using LibreMetaverse.LslTools;
-
-namespace YYClass
+namespace LibreMetaverse.LslTools
 {
   public class yycs0tokens : YyLexer
   {
     public yycs0tokens(ErrorHandler eh)
       : base(eh)
     {
-      this.arr = new int[9345]
+      arr = new int[9345]
       {
         101,
         4,
@@ -575,7 +573,7 @@ namespace YYClass
         3,
         160,
         0,
-        (int) sbyte.MaxValue,
+        sbyte.MaxValue,
         5,
         2,
         3,
@@ -6693,7 +6691,7 @@ namespace YYClass
         108,
         0,
         208,
-        (int) byte.MaxValue,
+        byte.MaxValue,
         11,
         1,
         164,
@@ -9381,84 +9379,84 @@ namespace YYClass
         0,
         0
       };
-      Tfactory tfactory1 = new Tfactory((YyLexer) this, "ANY", new TCreator(yycs0tokens.ANY_factory));
-      Tfactory tfactory2 = new Tfactory((YyLexer) this, "NEW", new TCreator(yycs0tokens.NEW_factory));
-      Tfactory tfactory3 = new Tfactory((YyLexer) this, "THIS", new TCreator(yycs0tokens.THIS_factory));
-      Tfactory tfactory4 = new Tfactory((YyLexer) this, "ID", new TCreator(yycs0tokens.ID_factory));
-      Tfactory tfactory5 = new Tfactory((YyLexer) this, "BASE", new TCreator(yycs0tokens.BASE_factory));
-      Tfactory tfactory6 = new Tfactory((YyLexer) this, "LBRACE", new TCreator(yycs0tokens.LBRACE_factory));
-      Tfactory tfactory7 = new Tfactory((YyLexer) this, "RBRACE", new TCreator(yycs0tokens.RBRACE_factory));
-      Tfactory tfactory8 = new Tfactory((YyLexer) this, "LPAREN", new TCreator(yycs0tokens.LPAREN_factory));
-      Tfactory tfactory9 = new Tfactory((YyLexer) this, "SEMICOLON", new TCreator(yycs0tokens.SEMICOLON_factory));
-      Tfactory tfactory10 = new Tfactory((YyLexer) this, "LBRACK", new TCreator(yycs0tokens.LBRACK_factory));
-      Tfactory tfactory11 = new Tfactory((YyLexer) this, "RBRACK", new TCreator(yycs0tokens.RBRACK_factory));
-      Tfactory tfactory12 = new Tfactory((YyLexer) this, "COLON", new TCreator(yycs0tokens.COLON_factory));
-      Tfactory tfactory13 = new Tfactory((YyLexer) this, "RPAREN", new TCreator(yycs0tokens.RPAREN_factory));
+      Tfactory tfactory1 = new Tfactory(this, "ANY", ANY_factory);
+      Tfactory tfactory2 = new Tfactory(this, "NEW", NEW_factory);
+      Tfactory tfactory3 = new Tfactory(this, "THIS", THIS_factory);
+      Tfactory tfactory4 = new Tfactory(this, "ID", ID_factory);
+      Tfactory tfactory5 = new Tfactory(this, "BASE", BASE_factory);
+      Tfactory tfactory6 = new Tfactory(this, "LBRACE", LBRACE_factory);
+      Tfactory tfactory7 = new Tfactory(this, "RBRACE", RBRACE_factory);
+      Tfactory tfactory8 = new Tfactory(this, "LPAREN", LPAREN_factory);
+      Tfactory tfactory9 = new Tfactory(this, "SEMICOLON", SEMICOLON_factory);
+      Tfactory tfactory10 = new Tfactory(this, "LBRACK", LBRACK_factory);
+      Tfactory tfactory11 = new Tfactory(this, "RBRACK", RBRACK_factory);
+      Tfactory tfactory12 = new Tfactory(this, "COLON", COLON_factory);
+      Tfactory tfactory13 = new Tfactory(this, "RPAREN", RPAREN_factory);
     }
 
     public static object ANY_factory(Lexer yyl)
     {
-      return (object) new ANY(yyl);
+      return new ANY(yyl);
     }
 
     public static object NEW_factory(Lexer yyl)
     {
-      return (object) new NEW(yyl);
+      return new NEW(yyl);
     }
 
     public static object THIS_factory(Lexer yyl)
     {
-      return (object) new THIS(yyl);
+      return new THIS(yyl);
     }
 
     public static object ID_factory(Lexer yyl)
     {
-      return (object) new ID(yyl);
+      return new ID(yyl);
     }
 
     public static object BASE_factory(Lexer yyl)
     {
-      return (object) new BASE(yyl);
+      return new BASE(yyl);
     }
 
     public static object LBRACE_factory(Lexer yyl)
     {
-      return (object) new LBRACE(yyl);
+      return new LBRACE(yyl);
     }
 
     public static object RBRACE_factory(Lexer yyl)
     {
-      return (object) new RBRACE(yyl);
+      return new RBRACE(yyl);
     }
 
     public static object LPAREN_factory(Lexer yyl)
     {
-      return (object) new LPAREN(yyl);
+      return new LPAREN(yyl);
     }
 
     public static object SEMICOLON_factory(Lexer yyl)
     {
-      return (object) new SEMICOLON(yyl);
+      return new SEMICOLON(yyl);
     }
 
     public static object LBRACK_factory(Lexer yyl)
     {
-      return (object) new LBRACK(yyl);
+      return new LBRACK(yyl);
     }
 
     public static object RBRACK_factory(Lexer yyl)
     {
-      return (object) new RBRACK(yyl);
+      return new RBRACK(yyl);
     }
 
     public static object COLON_factory(Lexer yyl)
     {
-      return (object) new COLON(yyl);
+      return new COLON(yyl);
     }
 
     public static object RPAREN_factory(Lexer yyl)
     {
-      return (object) new RPAREN(yyl);
+      return new RPAREN(yyl);
     }
 
     public override TOKEN OldAction(
@@ -9473,19 +9471,19 @@ namespace YYClass
         case 0:
         case 3:
 label_5:
-          return (TOKEN) null;
+          return null;
         default:
           switch (num)
           {
             case 8:
               yytext = "yym.yy_begin";
-              return (TOKEN) new ANY(yym);
+              return new ANY(yym);
             case 55:
               yytext = "((" + ((cs0tokens) yym).Out + ")yym)";
-              return (TOKEN) new ANY(yym);
+              return new ANY(yym);
             case 74:
               yytext = "((" + ((cs0tokens) yym).Out + ")yyq)";
-              return (TOKEN) new ANY(yym);
+              return new ANY(yym);
             default:
               goto label_5;
           }

@@ -1,5 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -51,7 +52,7 @@ namespace OpenMetaverse.Assets
     public abstract class GestureStep
     {
         /// <summary>
-        /// Retururns what kind of gesture step this is
+        /// Returns what kind of gesture step this is
         /// </summary>
         public abstract GestureStepType GestureStepType { get; }
     }
@@ -116,7 +117,7 @@ namespace OpenMetaverse.Assets
 
         public override string ToString()
         {
-            return "Sound: " + Name;
+            return $"Sound: {Name}";
         }
 
     }
@@ -138,7 +139,7 @@ namespace OpenMetaverse.Assets
 
         public override string ToString()
         {
-            return "Chat: " + Text;
+            return $"Chat: {Text}";
         }
     }
 
@@ -197,7 +198,7 @@ namespace OpenMetaverse.Assets
 
         public override string ToString()
         {
-            return "End of guesture sequence";
+            return "End of gesture sequence";
         }
     }
 
@@ -214,7 +215,7 @@ namespace OpenMetaverse.Assets
         public override AssetType AssetType => AssetType.Gesture;
 
         /// <summary>
-        /// Keyboard key that triggers the gestyre
+        /// Keyboard key that triggers the gesture
         /// </summary>
         public byte TriggerKey;
 
@@ -239,12 +240,12 @@ namespace OpenMetaverse.Assets
         public List<GestureStep> Sequence;
 
         /// <summary>
-        /// Constructs guesture asset
+        /// Constructs gesture asset
         /// </summary>
         public AssetGesture() { }
 
         /// <summary>
-        /// Constructs guesture asset
+        /// Constructs gesture asset
         /// </summary>
         /// <param name="assetID">A unique <see cref="UUID"/> specific to this asset</param>
         /// <param name="assetData">A byte array containing the raw asset data</param>
@@ -254,7 +255,7 @@ namespace OpenMetaverse.Assets
         }
 
         /// <summary>
-        /// Encodes gesture asset suitable for uplaod
+        /// Encodes gesture asset suitable for upload
         /// </summary>
         public sealed override void Encode()
         {
@@ -264,18 +265,10 @@ namespace OpenMetaverse.Assets
             sb.Append(TriggerKeyMask + "\n");
             sb.Append(Trigger + "\n");
             sb.Append(ReplaceWith + "\n");
+            sb.Append(Sequence.Count + "\n");
 
-            int count = 0;
-            if (Sequence != null)
+            foreach (var step in Sequence)
             {
-                count = Sequence.Count;
-            }
-
-            sb.Append(count + "\n");
-
-            for (int i = 0; i < count; i++)
-            {
-                GestureStep step = Sequence[i];
                 sb.Append((int)step.GestureStepType + "\n");
 
                 switch (step.GestureStepType)
@@ -287,15 +280,7 @@ namespace OpenMetaverse.Assets
                         GestureStepAnimation animstep = (GestureStepAnimation)step;
                         sb.Append(animstep.Name + "\n");
                         sb.Append(animstep.ID + "\n");
-
-                        if (animstep.AnimationStart)
-                        {
-                            sb.Append("0\n");
-                        }
-                        else
-                        {
-                            sb.Append("1\n");
-                        }
+                        sb.Append(animstep.AnimationStart ? "0\n" : "1\n");
                         break;
 
                     case GestureStepType.Sound:
@@ -336,7 +321,7 @@ namespace OpenMetaverse.Assets
         }
 
         /// <summary>
-        /// Decodes gesture assset into play sequence
+        /// Decodes gesture asset into play sequence
         /// </summary>
         /// <returns>true if the asset data was decoded successfully</returns>
         public sealed override bool Decode()
@@ -378,19 +363,14 @@ namespace OpenMetaverse.Assets
 
                         case GestureStepType.Animation:
                             {
-                                GestureStepAnimation step = new GestureStepAnimation();
-                                step.Name = lines[i++];
-                                step.ID = new UUID(lines[i++]);
+                                GestureStepAnimation step = new GestureStepAnimation
+                                {
+                                    Name = lines[i++],
+                                    ID = new UUID(lines[i++])
+                                };
                                 int flags = int.Parse(lines[i++]);
 
-                                if (flags == 0)
-                                {
-                                    step.AnimationStart = true;
-                                }
-                                else
-                                {
-                                    step.AnimationStart = false;
-                                }
+                                step.AnimationStart = flags == 0;
 
                                 Sequence.Add(step);
                                 break;
@@ -398,9 +378,11 @@ namespace OpenMetaverse.Assets
 
                         case GestureStepType.Sound:
                             {
-                                GestureStepSound step = new GestureStepSound();
-                                step.Name = lines[i++].Replace("\r", "");
-                                step.ID = new UUID(lines[i++]);
+                                GestureStepSound step = new GestureStepSound
+                                {
+                                    Name = lines[i++].Replace("\r", ""),
+                                    ID = new UUID(lines[i++])
+                                };
                                 int flags = int.Parse(lines[i++]);
 
                                 Sequence.Add(step);
@@ -409,8 +391,10 @@ namespace OpenMetaverse.Assets
 
                         case GestureStepType.Chat:
                             {
-                                GestureStepChat step = new GestureStepChat();
-                                step.Text = lines[i++];
+                                GestureStepChat step = new GestureStepChat
+                                {
+                                    Text = lines[i++]
+                                };
                                 int flags = int.Parse(lines[i++]);
 
                                 Sequence.Add(step);
@@ -419,8 +403,10 @@ namespace OpenMetaverse.Assets
 
                         case GestureStepType.Wait:
                             {
-                                GestureStepWait step = new GestureStepWait();
-                                step.WaitTime = float.Parse(lines[i++], Utils.EnUsCulture);
+                                GestureStepWait step = new GestureStepWait
+                                {
+                                    WaitTime = float.Parse(lines[i++], Utils.EnUsCulture)
+                                };
                                 int flags = int.Parse(lines[i++]);
 
                                 step.WaitForTime = (flags & 0x01) != 0;

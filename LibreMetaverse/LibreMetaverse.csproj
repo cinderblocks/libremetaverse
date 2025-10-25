@@ -26,22 +26,29 @@
     <Optimize>True</Optimize>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CoreJ2K.Skia" Version="1.1.2.50" />
-    <PackageReference Include="log4net" Version="3.1.0" />
+    <PackageReference Include="CoreJ2K.Skia" Version="1.2.0.55" />
+    <PackageReference Include="log4net" Version="3.2.0" />
     <PackageReference Include="MessagePack" Version="3.1.4" />
-    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.6" />
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.9" />
     <PackageReference Include="OggVorbisEncoder" Version="1.2.2" />
     <PackageReference Include="Pfim" Version="0.11.3" />
-    <PackageReference Include="System.Linq.Async" Version="6.0.3" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
-    <PackageReference Include="System.Threading.Channels" Version="9.0.6" />
+    <PackageReference Include="System.Threading.Channels" Version="9.0.9" />
     <PackageReference Include="XmlRpcCore" Version="3.1.3" />
     <PackageReference Include="zlib.net-mutliplatform" Version="1.0.8" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
     <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="linden\**" Pack="true">
+      <PackagePath>contentFiles\any\any\linden;content\linden</PackagePath>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />

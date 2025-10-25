@@ -31,7 +31,7 @@ namespace LibreMetaverse.LslTools
     public Literal(SymbolsGen yyp)
       : base(yyp)
     {
-      this.m_symtype = CSymbol.SymType.terminal;
+      m_symtype = SymType.terminal;
     }
 
     private Literal()
@@ -40,24 +40,24 @@ namespace LibreMetaverse.LslTools
 
     public override CSymbol Resolve()
     {
-      int length = this.yytext.Length;
+      int length = yytext.Length;
       string str = "";
       for (int index = 1; index + 1 < length; ++index)
       {
-        if (this.yytext[index] == '\\')
+        if (yytext[index] == '\\')
         {
           if (index + 1 < length)
             ++index;
-          if (this.yytext[index] >= '0' && this.yytext[index] <= '7')
+          if (yytext[index] >= '0' && yytext[index] <= '7')
           {
             int num;
-            for (num = (int) this.yytext[index++] - 48; index < length && this.yytext[index] >= '0' && this.yytext[index] <= '7'; ++index)
-              num = num * 8 + (int) this.yytext[index] - 48;
+            for (num = yytext[index++] - 48; index < length && yytext[index] >= '0' && yytext[index] <= '7'; ++index)
+              num = num * 8 + yytext[index] - 48;
             str += (string) (object) (char) num;
           }
           else
           {
-            char ch = this.yytext[index];
+            char ch = yytext[index];
             switch (ch)
             {
               case 'r':
@@ -67,22 +67,22 @@ namespace LibreMetaverse.LslTools
                 str += (string) (object) '\t';
                 continue;
               default:
-                str = ch == 'n' ? str + (object) '\n' : str + (object) this.yytext[index];
+                str = ch == 'n' ? str + '\n' : str + yytext[index];
                 continue;
             }
           }
         }
         else
-          str += (string) (object) this.yytext[index];
+          str += (string) (object) yytext[index];
       }
-      this.yytext = str;
-      CSymbol literal = (CSymbol) this.m_parser.m_symbols.literals[(object) this.yytext];
+      yytext = str;
+      CSymbol literal = (CSymbol) m_parser.m_symbols.literals[yytext];
       if (literal != null)
         return literal;
-      this.m_yynum = ++this.m_parser.LastSymbol;
-      this.m_parser.m_symbols.literals[(object) this.yytext] = (object) this;
-      this.m_parser.m_symbols.symbolInfo[(object) this.m_yynum] = (object) new ParsingInfo(this.yytext, this.m_yynum);
-      return (CSymbol) this;
+      m_yynum = ++m_parser.LastSymbol;
+      m_parser.m_symbols.literals[yytext] = this;
+      m_parser.m_symbols.symbolInfo[m_yynum] = new ParsingInfo(yytext, m_yynum);
+      return this;
     }
 
     public bool CouldStart(CSymbol nonterm)
@@ -98,7 +98,7 @@ namespace LibreMetaverse.LslTools
     public new static object Serialise(object o, Serialiser s)
     {
       if (s == null)
-        return (object) new Literal();
+        return new Literal();
       return CSymbol.Serialise(o, s);
     }
   }

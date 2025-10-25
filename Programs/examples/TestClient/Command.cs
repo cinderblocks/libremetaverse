@@ -1,6 +1,7 @@
 using System;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient
 {
     public enum CommandCategory
     {

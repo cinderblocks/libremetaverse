@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2007-2008, openmetaverse.co
- * Copyright (c) 2024, Sjofn LLC.
+ * Copyright (c) 2024-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -160,7 +160,7 @@ namespace OpenMetaverse.Imaging
 
             if (bakeType == BakeType.Head)
             {
-                if (DrawLayer(LoadResourceLayer("head_color.tga"), false) == true)
+                if (DrawLayer(LoadResourceLayer("head_color.tga"), false))
                 {
                     AddAlpha(bakedTexture.Image, LoadResourceLayer("head_alpha.tga"));
                     MultiplyLayerFromAlpha(bakedTexture.Image, LoadResourceLayer("head_skingrain.tga"));
@@ -265,7 +265,7 @@ namespace OpenMetaverse.Imaging
                         {
                             if (!MaskBelongsToBake(kvp.Key.TGAFile)) continue;
 
-                            if (kvp.Key.MultiplyBlend == false && (kvp.Value > 0f || !kvp.Key.SkipIfZero))
+                            if (!kvp.Key.MultiplyBlend && (kvp.Value > 0f || !kvp.Key.SkipIfZero))
                             {
                                 ApplyAlpha(combinedMask, kvp.Key, kvp.Value);
                                 //File.WriteAllBytes(bakeType + "-layer-" + i + "-mask-" + addedMasks + ".tga", combinedMask.ExportTGA());
@@ -360,7 +360,7 @@ namespace OpenMetaverse.Imaging
                 SKBitmap bitmap = null;
                 lock (ResourceSync)
                 {
-                    using (Stream stream = Helpers.GetResourceStream(fileName, Settings.RESOURCE_DIR))
+                    using (Stream stream = Helpers.GetResourceStream(fileName, Path.Combine(Settings.RESOURCE_DIR, "static_assets")))
                     {
                         if (stream != null)
                         {
@@ -490,7 +490,7 @@ namespace OpenMetaverse.Imaging
                         {
                             if ((sourceRed.Length > i) && (sourceGreen.Length > i) && (sourceBlue.Length > i))
                             {
-                                if (loadedAlpha == true)
+                                if (loadedAlpha)
                                 {
                                     bakedRed[i] = (byte)((bakedRed[i] * alphaInv + sourceRed[i] * alpha) >> 8);
                                     bakedGreen[i] = (byte)((bakedGreen[i] * alphaInv + sourceGreen[i] * alpha) >> 8);

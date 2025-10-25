@@ -28,8 +28,6 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.IO;
-using ComponentAce.Compression.Libs.zlib;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Interfaces;
 
@@ -2152,9 +2150,9 @@ namespace OpenMetaverse.Messages.Linden
         /// <param name="map">An <see cref="OSDMap"/> containing the data</param>
         public void Deserialize(OSDMap map)
         {
-            if (map.ContainsKey("state") && map["state"].Equals("upload"))
+            if (map.ContainsKey("state") && map["state"].AsString().Equals("upload"))
                 Request = new UploaderRequestUpload();
-            else if (map.ContainsKey("state") && map["state"].Equals("complete"))
+            else if (map.ContainsKey("state") && map["state"].AsString().Equals("complete"))
                 Request = new UploaderRequestComplete();
             else
                 Logger.Log("Unable to deserialize UploadScriptTask: No message handler exists for state " + map["state"].AsString(), Helpers.LogLevel.Warning);

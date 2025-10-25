@@ -25,7 +25,6 @@
  */
 
 using System;
-using System.Collections;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -1127,7 +1126,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Packs to 32-bit unsigned integers in to a 64-bit unsigned integer
+        /// Packs two 32-bit unsigned integers in to a 64-bit unsigned integer
         /// </summary>
         /// <param name="a">The left-hand (or X) value</param>
         /// <param name="b">The right-hand (or Y) value</param>

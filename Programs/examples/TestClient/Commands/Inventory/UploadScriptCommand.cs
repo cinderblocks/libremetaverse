@@ -1,8 +1,9 @@
 using System;
 using System.IO;
 using System.Linq;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Inventory
 {
     /// <summary>
     /// Example of how to put a new script in your inventory
@@ -51,7 +52,7 @@ namespace OpenMetaverse.TestClient
                             if (success)
                                 // upload the asset
                                 Client.Inventory.RequestUpdateScriptAgentInventory(
-                                    System.Text.Encoding.UTF8.GetBytes(body), item.UUID, true,
+                                    global::System.Text.Encoding.UTF8.GetBytes(body), item.UUID, true,
                                     (uploadSuccess, uploadStatus, compileSuccess, compileMessages, itemId, assetId) =>
                                     {
                                         var log = $"Filename: {file}";

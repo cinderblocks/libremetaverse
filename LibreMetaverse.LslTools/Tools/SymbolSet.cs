@@ -37,53 +37,53 @@ namespace LibreMetaverse.LslTools
 
     public SymbolSet(SymbolsGen syms)
     {
-      this.m_symbols = syms;
+      m_symbols = syms;
     }
 
     public SymbolSet(SymbolSet s)
       : this(s.m_symbols)
     {
-      this.Add(s);
+      Add(s);
     }
 
     public bool Contains(CSymbol a)
     {
-      return this.m_set.Contains((object) a);
+      return m_set.Contains(a);
     }
 
-    public ICollection Keys => this.m_set.Keys;
+    public ICollection Keys => m_set.Keys;
 
     public IDictionaryEnumerator GetEnumerator()
     {
-      return this.m_set.GetEnumerator();
+      return m_set.GetEnumerator();
     }
 
-    public int Count => this.m_set.Count;
+    public int Count => m_set.Count;
 
     public bool CheckIn(CSymbol a)
     {
-      if (this.Contains(a))
+      if (Contains(a))
         return false;
-      this.AddIn(a);
+      AddIn(a);
       return true;
     }
 
     public SymbolSet Resolve()
     {
-      return this.find(this.m_symbols.lahead);
+      return find(m_symbols.lahead);
     }
 
     private SymbolSet find(SymbolSet h)
     {
       if (h == null)
       {
-        this.m_next = this.m_symbols.lahead;
-        this.m_symbols.lahead = this;
+        m_next = m_symbols.lahead;
+        m_symbols.lahead = this;
         return this;
       }
-      if (SymbolSet.Equals(h, this))
+      if (Equals(h, this))
         return h;
-      return this.find(h.m_next);
+      return find(h.m_next);
     }
 
     private static bool Equals(SymbolSet s, SymbolSet t)
@@ -104,26 +104,26 @@ namespace LibreMetaverse.LslTools
 
     public void AddIn(CSymbol t)
     {
-      this.m_set[(object) t] = (object) true;
+      m_set[t] = true;
     }
 
     public void Add(SymbolSet s)
     {
       if (s == this)
         return;
-      foreach (CSymbol key in (IEnumerable) s.Keys)
-        this.AddIn(key);
+      foreach (CSymbol key in s.Keys)
+        AddIn(key);
     }
 
     public void Print()
     {
       string str = "[";
       int num = 0;
-      foreach (CSymbol key in (IEnumerable) this.Keys)
+      foreach (CSymbol key in Keys)
       {
         ++num;
         str = !key.yytext.Equals("\n") ? str + key.yytext : str + "\\n";
-        if (num < this.Count)
+        if (num < Count)
           str += ",";
       }
       Console.WriteLine(str + "]");

@@ -1,6 +1,7 @@
 using System.Linq;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Movement
 {
     public class SitOnCommand : Command
     {

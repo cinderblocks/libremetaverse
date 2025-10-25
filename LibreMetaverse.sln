@@ -45,6 +45,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse.LslTools", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse.Voice.Vivox", "LibreMetaverse.Voice.Vivox\LibreMetaverse.Voice.Vivox.csproj", "{FB07C6DE-F791-4336-B6E2-B32EEAC34792}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibreMetaverse.RLV", "LibreMetaverse.RLV\LibreMetaverse.RLV.csproj", "{A1A5515E-5C0B-86BD-CAD7-9A6FBA18EBC8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibreMetaverse.RLV.Tests", "LibreMetaverse.RLV.Tests\LibreMetaverse.RLV.Tests.csproj", "{180C7F12-3D94-F406-4F52-3EAC47C5A3D4}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibreMetaverse.Voice.WebRTC", "LibreMetaverse.Voice.WebRTC\LibreMetaverse.Voice.WebRTC.csproj", "{40B22CB8-0597-49BF-B25C-01F3E8ACB791}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebRtcTest", "Programs\WebRtcTest\WebRtcTest.csproj", "{04BB39B5-3B21-4271-AEFB-F51AAE58EE32}"
@@ -118,6 +122,14 @@ Global
 		{FB07C6DE-F791-4336-B6E2-B32EEAC34792}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FB07C6DE-F791-4336-B6E2-B32EEAC34792}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FB07C6DE-F791-4336-B6E2-B32EEAC34792}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1A5515E-5C0B-86BD-CAD7-9A6FBA18EBC8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1A5515E-5C0B-86BD-CAD7-9A6FBA18EBC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1A5515E-5C0B-86BD-CAD7-9A6FBA18EBC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1A5515E-5C0B-86BD-CAD7-9A6FBA18EBC8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{180C7F12-3D94-F406-4F52-3EAC47C5A3D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{180C7F12-3D94-F406-4F52-3EAC47C5A3D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{180C7F12-3D94-F406-4F52-3EAC47C5A3D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{180C7F12-3D94-F406-4F52-3EAC47C5A3D4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{40B22CB8-0597-49BF-B25C-01F3E8ACB791}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{40B22CB8-0597-49BF-B25C-01F3E8ACB791}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{40B22CB8-0597-49BF-B25C-01F3E8ACB791}.Release|Any CPU.ActiveCfg = Release|Any CPU

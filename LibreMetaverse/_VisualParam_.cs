@@ -37,7 +37,7 @@ namespace OpenMetaverse
     /// Represents alpha blending and bump infor for a visual parameter
     /// such as sleive length
     /// </summary>
-    public struct VisualAlphaParam
+    public struct VisualAlphaParam : IEquatable<VisualAlphaParam>
     {
         /// <summary>Stregth of the alpha to apply</summary>
         public float Domain;
@@ -52,18 +52,43 @@ namespace OpenMetaverse
         public bool MultiplyBlend;
 
         /// <summary>
-        /// Create new alhpa information for a visual param
+        /// Create new alpha information for a visual param
         /// </summary>
-        /// <param name="domain">Stregth of the alpha to apply</param>
+        /// <param name="domain">Strength of the alpha to apply</param>
         /// <param name="tgaFile">File containing the alpha channel</param>
         /// <param name="skipIfZero">Skip blending if parameter value is 0</param>
-        /// <param name="multiplyBlend">Use miltiply insted of alpha blending</param>
+        /// <param name="multiplyBlend">Use multiply instead of alpha blending</param>
         public VisualAlphaParam(float domain, string tgaFile, bool skipIfZero, bool multiplyBlend)
         {
             Domain = domain;
             TGAFile = tgaFile;
             SkipIfZero = skipIfZero;
             MultiplyBlend = multiplyBlend;
+        }
+
+        public bool Equals(VisualAlphaParam other)
+        {
+            return Domain.Equals(other.Domain) 
+                   && TGAFile == other.TGAFile 
+                   && SkipIfZero == other.SkipIfZero 
+                   && MultiplyBlend == other.MultiplyBlend;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is VisualAlphaParam other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hashCode = Domain.GetHashCode();
+                hashCode = (hashCode * 397) ^ (TGAFile != null ? TGAFile.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ SkipIfZero.GetHashCode();
+                hashCode = (hashCode * 397) ^ MultiplyBlend.GetHashCode();
+                return hashCode;
+            }
         }
     }
     /// <summary>

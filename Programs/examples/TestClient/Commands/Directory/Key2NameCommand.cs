@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient.Commands
+namespace TestClient.Commands.Directory
 {
     class key2nameCommand : Command
     {
-        System.Threading.AutoResetEvent waitQuery = new System.Threading.AutoResetEvent(false);
+        global::System.Threading.AutoResetEvent waitQuery = new global::System.Threading.AutoResetEvent(false);
         StringBuilder result = new StringBuilder();
         public key2nameCommand(TestClient testClient)
         {

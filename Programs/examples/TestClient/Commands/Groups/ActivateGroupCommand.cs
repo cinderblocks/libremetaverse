@@ -1,9 +1,10 @@
 using System;
 using System.Linq;
 using System.Threading;
+using OpenMetaverse;
 using OpenMetaverse.Packets;
 
-namespace OpenMetaverse.TestClient
+namespace TestClient.Commands.Groups
 {
     /// <summary>
     /// Changes Avatars currently active group

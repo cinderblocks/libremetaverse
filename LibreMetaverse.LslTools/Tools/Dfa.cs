@@ -36,7 +36,7 @@ namespace LibreMetaverse.LslTools
     public int m_reswds = -1;
     internal NList m_nfa = new NList();
     private YyLexer m_tokens;
-    public Dfa.Action m_actions;
+    public Action m_actions;
 
     private Dfa()
     {
@@ -45,45 +45,45 @@ namespace LibreMetaverse.LslTools
     public Dfa(TokensGen tks)
       : base(tks)
     {
-      this.m_tokens = tks.m_tokens;
+      m_tokens = tks.m_tokens;
     }
 
     public Dfa(Nfa nfa)
       : base(nfa.m_tks)
     {
-      this.m_tokens = this.m_tks.m_tokens;
-      this.AddNfaNode((NfaNode) nfa);
-      this.Closure();
-      this.AddActions();
+      m_tokens = m_tks.m_tokens;
+      AddNfaNode(nfa);
+      Closure();
+      AddActions();
     }
 
     public static void SetTokens(YyLexer tks, Hashtable h)
     {
-      foreach (Dfa dfa in (IEnumerable) h.Values)
+      foreach (Dfa dfa in h.Values)
       {
         if (dfa.m_tokens == null)
         {
           dfa.m_tokens = tks;
-          Dfa.SetTokens(tks, dfa.m_map);
+          SetTokens(tks, dfa.m_map);
         }
       }
     }
 
     private void AddAction(int act)
     {
-      this.m_actions = new Dfa.Action(act, this.m_actions);
+      m_actions = new Action(act, m_actions);
     }
 
     private void MakeLastAction(int act)
     {
-      while (this.m_actions != null && this.m_actions.a_act >= act)
-        this.m_actions = this.m_actions.a_next;
-      this.AddAction(act);
+      while (m_actions != null && m_actions.a_act >= act)
+        m_actions = m_actions.a_next;
+      AddAction(act);
     }
 
     internal bool AddNfaNode(NfaNode nfa)
     {
-      if (!this.m_nfa.Add(nfa))
+      if (!m_nfa.Add(nfa))
         return false;
       if (nfa.m_sTerminal != "")
       {
@@ -106,19 +106,19 @@ namespace LibreMetaverse.LslTools
           string str2 = nfa.m_sTerminal.Substring(length + 1).Trim();
           if (str2.Length > 0 && str2.StartsWith("%except"))
           {
-            this.m_reswds = nfa.m_state;
-            this.m_tks.m_tokens.reswds[(object) nfa.m_state] = (object) ResWds.New(this.m_tks, str2.Substring(7));
+            m_reswds = nfa.m_state;
+            m_tks.m_tokens.reswds[nfa.m_state] = ResWds.New(m_tks, str2.Substring(7));
           }
         }
         if (str1 == "")
         {
-          if (this.m_tokClass == "" || this.m_actions.a_act > nfa.m_state)
-            this.AddAction(nfa.m_state);
+          if (m_tokClass == "" || m_actions.a_act > nfa.m_state)
+            AddAction(nfa.m_state);
         }
-        else if (this.m_actions == null || this.m_actions.a_act > nfa.m_state)
+        else if (m_actions == null || m_actions.a_act > nfa.m_state)
         {
-          this.MakeLastAction(nfa.m_state);
-          this.m_tokClass = str1;
+          MakeLastAction(nfa.m_state);
+          m_tokClass = str1;
         }
       }
       return true;
@@ -126,27 +126,27 @@ namespace LibreMetaverse.LslTools
 
     internal void AddActions()
     {
-      this.m_tks.states.Add((object) this);
-      foreach (Charset charset in (IEnumerable) this.m_tks.m_tokens.cats.Values)
+      m_tks.states.Add(this);
+      foreach (Charset charset in m_tks.m_tokens.cats.Values)
       {
-        foreach (char key in (IEnumerable) charset.m_chars.Keys)
+        foreach (char key in charset.m_chars.Keys)
         {
-          Dfa dfa = this.Target(key);
+          Dfa dfa = Target(key);
           if (dfa != null)
-            this.m_map[(object) key] = (object) dfa;
+            m_map[key] = dfa;
         }
       }
     }
 
     internal Dfa Target(char ch)
     {
-      Dfa dfa = new Dfa(this.m_tks);
-      for (NList nlist = this.m_nfa; !nlist.AtEnd; nlist = nlist.m_next)
+      Dfa dfa = new Dfa(m_tks);
+      for (NList nlist = m_nfa; !nlist.AtEnd; nlist = nlist.m_next)
         nlist.m_node.AddTarget(ch, dfa);
       if (dfa.m_nfa.AtEnd)
-        return (Dfa) null;
+        return null;
       dfa.Closure();
-      foreach (var t in this.m_tks.states)
+      foreach (var t in m_tks.states)
       {
           if (((Dfa) t).SameAs(dfa))
               return (Dfa) t;
@@ -157,8 +157,8 @@ namespace LibreMetaverse.LslTools
 
     private void Closure()
     {
-      for (NList nlist = this.m_nfa; !nlist.AtEnd; nlist = nlist.m_next)
-        this.ClosureAdd(nlist.m_node);
+      for (NList nlist = m_nfa; !nlist.AtEnd; nlist = nlist.m_next)
+        ClosureAdd(nlist.m_node);
     }
 
     private void ClosureAdd(NfaNode nfa)
@@ -166,14 +166,14 @@ namespace LibreMetaverse.LslTools
         foreach (var t in nfa.m_eps)
         {
             NfaNode ep = (NfaNode) t;
-            if (this.AddNfaNode(ep))
-                this.ClosureAdd(ep);
+            if (AddNfaNode(ep))
+                ClosureAdd(ep);
         }
     }
 
     internal bool SameAs(Dfa dfa)
     {
-      NList nlist1 = this.m_nfa;
+      NList nlist1 = m_nfa;
       NList nlist2;
       for (nlist2 = dfa.m_nfa; nlist1.m_node == nlist2.m_node && !nlist1.AtEnd; nlist2 = nlist2.m_next)
         nlist1 = nlist1.m_next;
@@ -184,45 +184,45 @@ namespace LibreMetaverse.LslTools
     {
       Dfa dfa;
       int num;
-      if (ix < str.Length && (dfa = (Dfa) this.m_map[(object) this.m_tokens.Filter(str[ix])]) != null && (num = dfa.Match(str, ix + 1, ref action)) >= 0)
+      if (ix < str.Length && (dfa = (Dfa) m_map[m_tokens.Filter(str[ix])]) != null && (num = dfa.Match(str, ix + 1, ref action)) >= 0)
         return num + 1;
-      if (this.m_actions == null)
+      if (m_actions == null)
         return -1;
-      action = this.m_actions.a_act;
+      action = m_actions.a_act;
       return 0;
     }
 
     public void Print()
     {
-      Console.Write("{0}:", (object) this.m_state);
-      if (this.m_actions != null)
+      Console.Write("{0}:", m_state);
+      if (m_actions != null)
       {
         Console.Write(" (");
-        for (Dfa.Action action = this.m_actions; action != null; action = action.a_next)
-          Console.Write("{0} <", (object) action.a_act);
-        if (this.m_tokClass != "")
-          Console.Write(this.m_tokClass);
+        for (Action action = m_actions; action != null; action = action.a_next)
+          Console.Write("{0} <", action.a_act);
+        if (m_tokClass != "")
+          Console.Write(m_tokClass);
         Console.Write(">)");
       }
       Console.WriteLine();
       Hashtable hashtable = new Hashtable();
-      IDictionaryEnumerator enumerator1 = this.m_map.GetEnumerator();
-      int count = this.m_map.Count;
+      IDictionaryEnumerator enumerator1 = m_map.GetEnumerator();
+      int count = m_map.Count;
       while (count-- > 0)
       {
         enumerator1.MoveNext();
         char key1 = (char) enumerator1.Key;
         Dfa dfa1 = (Dfa) enumerator1.Value;
-        if (!hashtable.Contains((object) key1))
+        if (!hashtable.Contains(key1))
         {
-          hashtable[(object) key1] = (object) true;
-          Console.Write("  {0}  ", (object) dfa1.m_state);
-          int num1 = (int) key1;
+          hashtable[key1] = true;
+          Console.Write("  {0}  ", dfa1.m_state);
+          int num1 = key1;
           if (num1 >= 32 && num1 < 128)
             Console.Write(key1);
           else
-            Console.Write(" #{0} ", (object) num1);
-          IDictionaryEnumerator enumerator2 = this.m_map.GetEnumerator();
+            Console.Write(" #{0} ", num1);
+          IDictionaryEnumerator enumerator2 = m_map.GetEnumerator();
           do
           {
             enumerator2.MoveNext();
@@ -235,12 +235,12 @@ namespace LibreMetaverse.LslTools
             Dfa dfa2 = (Dfa) enumerator2.Value;
             if (dfa1 == dfa2)
             {
-              hashtable[(object) key2] = (object) true;
-              int num2 = (int) key2;
+              hashtable[key2] = true;
+              int num2 = key2;
               if (num2 >= 32 && num2 < 128)
                 Console.Write(key2);
               else
-                Console.Write(" #{0} ", (object) num2);
+                Console.Write(" #{0} ", num2);
             }
           }
           Console.WriteLine();
@@ -251,34 +251,34 @@ namespace LibreMetaverse.LslTools
     public static object Serialise(object o, Serialiser s)
     {
       if (s == null)
-        return (object) new Dfa();
+        return new Dfa();
       Dfa dfa = (Dfa) o;
       if (s.Encode)
       {
-        s.Serialise((object) dfa.m_state);
-        s.Serialise((object) dfa.m_map);
-        s.Serialise((object) dfa.m_actions);
-        s.Serialise((object) dfa.m_tokClass);
-        s.Serialise((object) dfa.m_reswds);
-        return (object) null;
+        s.Serialise(dfa.m_state);
+        s.Serialise(dfa.m_map);
+        s.Serialise(dfa.m_actions);
+        s.Serialise(dfa.m_tokClass);
+        s.Serialise(dfa.m_reswds);
+        return null;
       }
       dfa.m_state = (int) s.Deserialise();
       dfa.m_map = (Hashtable) s.Deserialise();
-      dfa.m_actions = (Dfa.Action) s.Deserialise();
+      dfa.m_actions = (Action) s.Deserialise();
       dfa.m_tokClass = (string) s.Deserialise();
       dfa.m_reswds = (int) s.Deserialise();
-      return (object) dfa;
+      return dfa;
     }
 
     public class Action
     {
       public int a_act;
-      public Dfa.Action a_next;
+      public Action a_next;
 
-      public Action(int act, Dfa.Action next)
+      public Action(int act, Action next)
       {
-        this.a_act = act;
-        this.a_next = next;
+        a_act = act;
+        a_next = next;
       }
 
       private Action()
@@ -288,17 +288,17 @@ namespace LibreMetaverse.LslTools
       public static object Serialise(object o, Serialiser s)
       {
         if (s == null)
-          return (object) new Dfa.Action();
-        Dfa.Action action = (Dfa.Action) o;
+          return new Action();
+        Action action = (Action) o;
         if (s.Encode)
         {
-          s.Serialise((object) action.a_act);
-          s.Serialise((object) action.a_next);
-          return (object) null;
+          s.Serialise(action.a_act);
+          s.Serialise(action.a_next);
+          return null;
         }
         action.a_act = (int) s.Deserialise();
-        action.a_next = (Dfa.Action) s.Deserialise();
-        return (object) action;
+        action.a_next = (Action) s.Deserialise();
+        return action;
       }
     }
   }

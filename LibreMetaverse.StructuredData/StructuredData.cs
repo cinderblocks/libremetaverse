@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -26,10 +26,7 @@
  */
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -418,8 +415,7 @@ namespace OpenMetaverse.StructuredData
             {
                 if (!Attribute.IsDefined(field, typeof(NonSerializedAttribute)))
                 {
-                    OSD serializedField;
-                    if (serialized.TryGetValue(field.Name, out serializedField))
+                    if (serialized.TryGetValue(field.Name, out var serializedField))
                         field.SetValue(obj, ToObject(field.FieldType, serializedField));
                 }
             }
@@ -433,8 +429,8 @@ namespace OpenMetaverse.StructuredData
     {
         private readonly bool _mBool;
 
-        private static readonly byte[] trueBinary = { 0x31 };
-        private static readonly byte[] falseBinary = { 0x30 };
+        private static readonly byte[] TrueBinary = { 0x31 };
+        private static readonly byte[] FalseBinary = { 0x30 };
 
         public override OSDType Type => OSDType.Boolean;
 
@@ -447,7 +443,7 @@ namespace OpenMetaverse.StructuredData
         public override int AsInteger() { return _mBool ? 1 : 0; }
         public override double AsReal() { return _mBool ? 1d : 0d; }
         public override string AsString() { return _mBool ? "1" : "0"; }
-        public override byte[] AsBinary() { return _mBool ? trueBinary : falseBinary; }
+        public override byte[] AsBinary() { return _mBool ? TrueBinary : FalseBinary; }
         public override OSD Copy() { return new OSDBoolean(_mBool); }
 
         public override string ToString() { return AsString(); }
@@ -596,58 +592,50 @@ namespace OpenMetaverse.StructuredData
 
         public override int AsInteger()
         {
-            double dbl;
-            if (double.TryParse(_mString, out dbl))
+            if (double.TryParse(_mString, out var dbl))
                 return (int)Math.Floor(dbl);
             return 0;
         }
 
         public override uint AsUInteger()
         {
-            double dbl;
-            if (double.TryParse(_mString, out dbl))
+            if (double.TryParse(_mString, out var dbl))
                 return (uint)Math.Floor(dbl);
             return 0;
         }
 
         public override long AsLong()
         {
-            double dbl;
-            if (double.TryParse(_mString, out dbl))
+            if (double.TryParse(_mString, out var dbl))
                 return (long)Math.Floor(dbl);
             return 0;
         }
 
         public override ulong AsULong()
         {
-            double dbl;
-            if (double.TryParse(_mString, out dbl))
+            if (double.TryParse(_mString, out var dbl))
                 return (ulong)Math.Floor(dbl);
             return 0;
         }
 
         public override double AsReal()
         {
-            double dbl;
-            return double.TryParse(_mString, out dbl) ? dbl : 0d;
+            return double.TryParse(_mString, out var dbl) ? dbl : 0d;
         }
 
         public override string AsString() { return _mString; }
         public override byte[] AsBinary() { return Encoding.UTF8.GetBytes(_mString); }
         public override UUID AsUUID()
         {
-            UUID uuid;
-            return UUID.TryParse(_mString, out uuid) ? uuid : UUID.Zero;
+            return UUID.TryParse(_mString, out var uuid) ? uuid : UUID.Zero;
         }
         public override DateTime AsDate()
         {
-            DateTime dt;
-            return DateTime.TryParse(_mString, out dt) ? dt : Utils.Epoch;
+            return DateTime.TryParse(_mString, out var dt) ? dt : Utils.Epoch;
         }
         public override Uri AsUri()
         {
-            Uri uri;
-            return Uri.TryCreate(_mString, UriKind.RelativeOrAbsolute, out uri) ? uri : null;
+            return Uri.TryCreate(_mString, UriKind.RelativeOrAbsolute, out var uri) ? uri : null;
         }
 
         public override string ToString() { return AsString(); }
@@ -847,423 +835,6 @@ namespace OpenMetaverse.StructuredData
         public override string ToString()
         {
             return Utils.BytesToHexString(_mBytes, null);
-        }
-    }
-
-    /// <summary>
-    /// OSD Map Element
-    /// </summary>
-    public sealed class OSDMap : OSD, IDictionary<string, OSD>
-    {
-        private readonly Dictionary<string, OSD> _mMap;
-
-        public override OSDType Type => OSDType.Map;
-
-        public OSDMap()
-        {
-            _mMap = new Dictionary<string, OSD>();
-        }
-
-        public OSDMap(int capacity)
-        {
-            _mMap = new Dictionary<string, OSD>(capacity);
-        }
-
-        public OSDMap(Dictionary<string, OSD> value)
-        {
-            this._mMap = value ?? new Dictionary<string, OSD>();
-        }
-
-        public override bool AsBoolean() { return _mMap.Count > 0; }
-
-        public override string ToString()
-        {
-            return OSDParser.SerializeJsonString(this, true);
-        }
-
-        public override OSD Copy()
-        {
-            return new OSDMap(new Dictionary<string, OSD>(_mMap));
-        }
-
-        public Hashtable ToHashtable()
-        {
-            return new Hashtable(_mMap);
-        }
-
-        #region IDictionary Implementation
-
-        public int Count => _mMap.Count;
-        public bool IsReadOnly => false;
-        public ICollection<string> Keys => _mMap.Keys;
-        public ICollection<OSD> Values => _mMap.Values;
-
-        public OSD this[string key]
-        {
-            get
-            {
-                OSD llsd;
-                return _mMap.TryGetValue(key, out llsd) ? llsd : new OSD();
-            }
-            set { _mMap[key] = value; }
-        }
-
-        public bool ContainsKey(string key)
-        {
-            return _mMap.ContainsKey(key);
-        }
-
-        public void Add(string key, OSD llsd)
-        {
-            _mMap.Add(key, llsd);
-        }
-
-        public void Add(KeyValuePair<string, OSD> kvp)
-        {
-            _mMap.Add(kvp.Key, kvp.Value);
-        }
-
-        public bool Remove(string key)
-        {
-            return _mMap.Remove(key);
-        }
-
-        public bool TryGetValue(string key, out OSD llsd)
-        {
-            return _mMap.TryGetValue(key, out llsd);
-        }
-
-        public void Clear()
-        {
-            _mMap.Clear();
-        }
-
-        public bool Contains(KeyValuePair<string, OSD> kvp)
-        {
-            // This is a bizarre function... we don't really implement it
-            // properly, hopefully no one wants to use it
-            return _mMap.ContainsKey(kvp.Key);
-        }
-
-        public void CopyTo(KeyValuePair<string, OSD>[] array, int index)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool Remove(KeyValuePair<string, OSD> kvp)
-        {
-            return _mMap.Remove(kvp.Key);
-        }
-
-        public IDictionaryEnumerator GetEnumerator()
-        {
-            return _mMap.GetEnumerator();
-        }
-
-        IEnumerator<KeyValuePair<string, OSD>> IEnumerable<KeyValuePair<string, OSD>>.GetEnumerator()
-        {
-            return null;
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _mMap.GetEnumerator();
-        }
-
-        #endregion IDictionary Implementation
-    }
-
-    /// <summary>
-    /// OSD Array Element
-    /// </summary>
-    public sealed class OSDArray : OSD, IList<OSD>
-    {
-        private readonly List<OSD> _mArray;
-
-        public override OSDType Type => OSDType.Array;
-
-        public OSDArray()
-        {
-            _mArray = new List<OSD>();
-        }
-
-        public OSDArray(int capacity)
-        {
-            _mArray = new List<OSD>(capacity);
-        }
-
-        public OSDArray(List<OSD> value)
-        {
-            this._mArray = value ?? new List<OSD>();
-        }
-
-        public override byte[] AsBinary()
-        {
-            byte[] binary = new byte[_mArray.Count];
-
-            for (int i = 0; i < _mArray.Count; i++)
-                binary[i] = (byte)_mArray[i].AsInteger();
-
-            return binary;
-        }
-
-        public override long AsLong()
-        {
-            OSDBinary binary = new OSDBinary(AsBinary());
-            return binary.AsLong();
-        }
-
-        public override ulong AsULong()
-        {
-            OSDBinary binary = new OSDBinary(AsBinary());
-            return binary.AsULong();
-        }
-
-        public override uint AsUInteger()
-        {
-            OSDBinary binary = new OSDBinary(AsBinary());
-            return binary.AsUInteger();
-        }
-
-        public override Vector2 AsVector2()
-        {
-            Vector2 vector = Vector2.Zero;
-
-            if (Count == 2)
-            {
-                vector.X = (float)this[0].AsReal();
-                vector.Y = (float)this[1].AsReal();
-            }
-
-            return vector;
-        }
-
-        public override Vector3 AsVector3()
-        {
-            Vector3 vector = Vector3.Zero;
-
-            if (Count == 3)
-            {
-                vector.X = (float)this[0].AsReal();
-                vector.Y = (float)this[1].AsReal();
-                vector.Z = (float)this[2].AsReal();
-            }
-
-            return vector;
-        }
-
-        public override Vector3d AsVector3d()
-        {
-            Vector3d vector = Vector3d.Zero;
-
-            if (Count == 3)
-            {
-                vector.X = this[0].AsReal();
-                vector.Y = this[1].AsReal();
-                vector.Z = this[2].AsReal();
-            }
-
-            return vector;
-        }
-
-        public override Vector4 AsVector4()
-        {
-            Vector4 vector = Vector4.Zero;
-
-            if (Count == 4)
-            {
-                vector.X = (float)this[0].AsReal();
-                vector.Y = (float)this[1].AsReal();
-                vector.Z = (float)this[2].AsReal();
-                vector.W = (float)this[3].AsReal();
-            }
-
-            return vector;
-        }
-
-        public override Quaternion AsQuaternion()
-        {
-            Quaternion quaternion = Quaternion.Identity;
-
-            if (Count == 4)
-            {
-                quaternion.X = (float)this[0].AsReal();
-                quaternion.Y = (float)this[1].AsReal();
-                quaternion.Z = (float)this[2].AsReal();
-                quaternion.W = (float)this[3].AsReal();
-            }
-
-            return quaternion;
-        }
-
-        public override Color4 AsColor4()
-        {
-            Color4 color = Color4.Black;
-
-            if (Count == 4)
-            {
-                color.R = (float)this[0].AsReal();
-                color.G = (float)this[1].AsReal();
-                color.B = (float)this[2].AsReal();
-                color.A = (float)this[3].AsReal();
-            }
-
-            return color;
-        }
-
-        public override OSD Copy()
-        {
-            return new OSDArray(new List<OSD>(_mArray));
-        }
-
-        public override bool AsBoolean() { return _mArray.Count > 0; }
-
-        public override string ToString()
-        {
-            return OSDParser.SerializeJsonString(this, true);
-        }
-
-        public ArrayList ToArrayList()
-        {
-            return new ArrayList(_mArray);
-        }
-
-        #region IList Implementation
-
-        public int Count => _mArray.Count;
-        public bool IsReadOnly => false;
-
-        public OSD this[int index]
-        {
-            get => _mArray[index];
-            set => _mArray[index] = value;
-        }
-
-        public int IndexOf(OSD item)
-        {
-            return _mArray.IndexOf(item);
-        }
-
-        public void Insert(int index, OSD item)
-        {
-            _mArray.Insert(index, item);
-        }
-
-        public void RemoveAt(int index)
-        {
-            _mArray.RemoveAt(index);
-        }
-
-        public void Add(OSD llsd)
-        {
-            _mArray.Add(llsd);
-        }
-
-        public void Clear()
-        {
-            _mArray.Clear();
-        }
-
-        public bool Contains(OSD llsd)
-        {
-            return _mArray.Contains(llsd);
-        }
-
-        public bool Contains(string element)
-        {
-            return _mArray.Any(t => t.Type == OSDType.String && t.AsString() == element);
-        }
-
-        public void CopyTo(OSD[] array, int index)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool Remove(OSD llsd)
-        {
-            return _mArray.Remove(llsd);
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _mArray.GetEnumerator();
-        }
-
-        IEnumerator<OSD> IEnumerable<OSD>.GetEnumerator()
-        {
-            return _mArray.GetEnumerator();
-        }
-
-        #endregion IList Implementation
-    }
-
-    public partial class OSDParser
-    {
-        private const string LLSD_BINARY_HEADER = "<? llsd/binary ?>";
-        private const string LLSD_XML_HEADER = "<llsd>";
-        private const string LLSD_XML_ALT_HEADER = "<?xml";
-        private const string LLSD_XML_ALT2_HEADER = "<? llsd/xml ?>";
-
-        public static OSD Deserialize(byte[] data)
-        {
-            string header = Encoding.ASCII.GetString(data, 0, data.Length >= 17 ? 17 : data.Length);
-
-            try
-            {
-                string uHeader = Encoding.UTF8.GetString(data, 0, data.Length >= 17 ? 17 : data.Length).TrimStart();
-                if (uHeader.StartsWith(LLSD_XML_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                    uHeader.StartsWith(LLSD_XML_ALT_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                    uHeader.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    return DeserializeLLSDXml(data);
-                }
-            }
-            catch { }
-
-            if (header.StartsWith(LLSD_BINARY_HEADER, StringComparison.InvariantCultureIgnoreCase))
-            {
-                return DeserializeLLSDBinary(data);
-            }
-            if (header.StartsWith(LLSD_XML_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                header.StartsWith(LLSD_XML_ALT_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                header.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.InvariantCultureIgnoreCase))
-            {
-                return DeserializeLLSDXml(data);
-            }
-            return DeserializeJson(Encoding.UTF8.GetString(data));
-        }
-
-        public static OSD Deserialize(string data)
-        {
-            if (data.StartsWith(LLSD_BINARY_HEADER, StringComparison.InvariantCultureIgnoreCase))
-            {
-                return DeserializeLLSDBinary(Encoding.UTF8.GetBytes(data));
-            }
-            if (data.StartsWith(LLSD_XML_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                data.StartsWith(LLSD_XML_ALT_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                data.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.InvariantCultureIgnoreCase))
-            {
-                return DeserializeLLSDXml(data);
-            }
-            return DeserializeJson(data);
-        }
-
-        public static OSD Deserialize(Stream stream)
-        {
-            if (!stream.CanSeek) { throw new OSDException("Cannot deserialize structured data from unseekable streams"); }
-
-            byte[] headerData = new byte[14];
-            int read = stream.Read(headerData, 0, 14);
-            if (read == 0) { throw new System.IO.EndOfStreamException(); }
-
-            stream.Seek(0, SeekOrigin.Begin);
-            string header = Encoding.ASCII.GetString(headerData);
-
-            if (header.StartsWith(LLSD_BINARY_HEADER))
-                return DeserializeLLSDBinary(stream);
-            if (header.StartsWith(LLSD_XML_HEADER) || header.StartsWith(LLSD_XML_ALT_HEADER) || header.StartsWith(LLSD_XML_ALT2_HEADER))
-                return DeserializeLLSDXml(stream);
-            return DeserializeJson(stream);
         }
     }
 }

@@ -32,24 +32,24 @@ namespace LibreMetaverse.LslTools
   {
     public RePlus(Regex sub)
     {
-      this.m_sub = sub;
+      m_sub = sub;
     }
 
     public override void Print(TextWriter s)
     {
-      this.m_sub.Print(s);
+      m_sub.Print(s);
       s.Write("+");
     }
 
     public override int Match(string str, int pos, int max)
     {
-      int num1 = this.m_sub.Match(str, pos, max);
+      int num1 = m_sub.Match(str, pos, max);
       if (num1 < 0)
         return -1;
       int num2 = num1;
       while (num1 > 0)
       {
-        num1 = this.m_sub.Match(str, pos + num2, max);
+        num1 = m_sub.Match(str, pos + num2, max);
         if (num1 >= 0)
           num2 += num1;
         else
@@ -61,7 +61,7 @@ namespace LibreMetaverse.LslTools
     public override void Build(Nfa nfa)
     {
       base.Build(nfa);
-      nfa.m_end.AddEps((NfaNode) nfa);
+      nfa.m_end.AddEps(nfa);
     }
   }
 }

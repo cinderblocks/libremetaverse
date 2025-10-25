@@ -192,36 +192,33 @@ namespace LibreMetaverse.PrimMesher
         {
             // From http://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/transforms/
 
-            var c2 = new Coord(0.0f, 0.0f, 0.0f);
-
-            c2.X = q.W * q.W * v.X +
-                   2f * q.Y * q.W * v.Z -
-                   2f * q.Z * q.W * v.Y +
-                   q.X * q.X * v.X +
-                   2f * q.Y * q.X * v.Y +
-                   2f * q.Z * q.X * v.Z -
-                   q.Z * q.Z * v.X -
-                   q.Y * q.Y * v.X;
-
-            c2.Y =
-                2f * q.X * q.Y * v.X +
-                q.Y * q.Y * v.Y +
-                2f * q.Z * q.Y * v.Z +
-                2f * q.W * q.Z * v.X -
-                q.Z * q.Z * v.Y +
-                q.W * q.W * v.Y -
-                2f * q.X * q.W * v.Z -
-                q.X * q.X * v.Y;
-
-            c2.Z =
-                2f * q.X * q.Z * v.X +
-                2f * q.Y * q.Z * v.Y +
-                q.Z * q.Z * v.Z -
-                2f * q.W * q.Y * v.X -
-                q.Y * q.Y * v.Z +
-                2f * q.W * q.X * v.Y -
-                q.X * q.X * v.Z +
-                q.W * q.W * v.Z;
+            var c2 = new Coord(0.0f, 0.0f, 0.0f)
+            {
+                X = q.W * q.W * v.X +
+                    2f * q.Y * q.W * v.Z -
+                    2f * q.Z * q.W * v.Y +
+                    q.X * q.X * v.X +
+                    2f * q.Y * q.X * v.Y +
+                    2f * q.Z * q.X * v.Z -
+                    q.Z * q.Z * v.X -
+                    q.Y * q.Y * v.X,
+                Y = 2f * q.X * q.Y * v.X +
+                    q.Y * q.Y * v.Y +
+                    2f * q.Z * q.Y * v.Z +
+                    2f * q.W * q.Z * v.X -
+                    q.Z * q.Z * v.Y +
+                    q.W * q.W * v.Y -
+                    2f * q.X * q.W * v.Z -
+                    q.X * q.X * v.Y,
+                Z = 2f * q.X * q.Z * v.X +
+                    2f * q.Y * q.Z * v.Y +
+                    q.Z * q.Z * v.Z -
+                    2f * q.W * q.Y * v.X -
+                    q.Y * q.Y * v.Z +
+                    2f * q.W * q.X * v.Y -
+                    q.X * q.X * v.Z +
+                    q.W * q.W * v.Z
+            };
 
             return c2;
         }
@@ -488,7 +485,7 @@ namespace LibreMetaverse.PrimMesher
         private float iX, iY; // intersection point
         internal List<Coord> normals;
 
-        private Angle interpolatePoints(float newPoint, Angle p1, Angle p2)
+        private static Angle interpolatePoints(float newPoint, Angle p1, Angle p2)
         {
             var m = (newPoint - p1.angle) / (p2.angle - p1.angle);
             return new Angle(newPoint, p1.X + m * (p2.X - p1.X), p1.Y + m * (p2.Y - p1.Y));
@@ -788,7 +785,7 @@ namespace LibreMetaverse.PrimMesher
                 coords.Add(newVert);
                 if (this.calcVertexNormals)
                 {
-                    outerCoordIndices.Add(coords.Count - 1);
+                    outerCoordIndices?.Add(coords.Count - 1);
 
                     if (sides < 5)
                     {
@@ -988,10 +985,6 @@ namespace LibreMetaverse.PrimMesher
 
             MakeFaceUVs();
 
-            hollowCoords = null;
-            hollowNormals = null;
-            hollowUs = null;
-
             if (calcVertexNormals)
             {
                 // calculate prim face numbers
@@ -1089,11 +1082,10 @@ namespace LibreMetaverse.PrimMesher
         {
             int i;
             var numVerts = coords.Count;
-            Coord vert;
 
             for (i = 0; i < numVerts; i++)
             {
-                vert = coords[i];
+                var vert = coords[i];
                 vert.X += x;
                 vert.Y += y;
                 vert.Z += z;
@@ -1125,11 +1117,10 @@ namespace LibreMetaverse.PrimMesher
         {
             int i;
             var numVerts = coords.Count;
-            Coord vert;
 
             for (i = 0; i < numVerts; i++)
             {
-                vert = coords[i];
+                var vert = coords[i];
                 vert.X *= x;
                 vert.Y *= y;
                 coords[i] = vert;
@@ -1142,17 +1133,11 @@ namespace LibreMetaverse.PrimMesher
         /// </summary>
         public void FlipNormals()
         {
-            int i;
             var numFaces = faces.Count;
-            Face tmpFace;
-            int tmp;
-
-            for (i = 0; i < numFaces; i++)
+            for (int i = 0; i < numFaces; i++)
             {
-                tmpFace = faces[i];
-                tmp = tmpFace.v3;
-                tmpFace.v3 = tmpFace.v1;
-                tmpFace.v1 = tmp;
+                Face tmpFace = faces[i];
+                (tmpFace.v3, tmpFace.v1) = (tmpFace.v1, tmpFace.v3);
                 faces[i] = tmpFace;
             }
 
@@ -1172,7 +1157,7 @@ namespace LibreMetaverse.PrimMesher
             faceNormal.Z = -faceNormal.Z;
 
             var numfaceUVs = faceUVs.Count;
-            for (i = 0; i < numfaceUVs; i++)
+            for (int i = 0; i < numfaceUVs; i++)
             {
                 var uv = faceUVs[i];
                 uv.V = 1.0f - uv.V;
@@ -1183,10 +1168,9 @@ namespace LibreMetaverse.PrimMesher
         public void AddValue2FaceVertexIndices(int num)
         {
             var numFaces = faces.Count;
-            Face tmpFace;
             for (var i = 0; i < numFaces; i++)
             {
-                tmpFace = faces[i];
+                var tmpFace = faces[i];
                 tmpFace.v1 += num;
                 tmpFace.v2 += num;
                 tmpFace.v3 += num;
@@ -1200,10 +1184,9 @@ namespace LibreMetaverse.PrimMesher
             if (calcVertexNormals)
             {
                 var numFaces = faces.Count;
-                Face tmpFace;
                 for (var i = 0; i < numFaces; i++)
                 {
-                    tmpFace = faces[i];
+                    var tmpFace = faces[i];
                     tmpFace.n1 += num;
                     tmpFace.n2 += num;
                     tmpFace.n3 += num;
@@ -1375,10 +1358,10 @@ namespace LibreMetaverse.PrimMesher
                 var yShearCompensation = 1.0f + Math.Abs(topShearY) * 0.25f;
 
                 // It's not quite clear what pushY (Y top shear) does, but subtracting it from the start and end
-                // angles appears to approximate it's effects on path cut. Likewise, adding it to the angle used
-                // to calculate the sine for generating the path radius appears to approximate it's effects there
+                // angles appears to approximate its effects on path cut. Likewise, adding it to the angle used
+                // to calculate the sine for generating the path radius appears to approximate its effects there
                 // too, but there are some subtle differences in the radius which are noticeable as the prim size
-                // increases and it may affect megaprims quite a bit. The effect of the Y top shear parameter on
+                // increases, and it may affect megaprims quite a bit. The effect of the Y top shear parameter on
                 // the meshes generated with this technique appear nearly identical in shape to the same prims when
                 // displayed by the viewer.
 
@@ -1550,7 +1533,7 @@ namespace LibreMetaverse.PrimMesher
         public bool HasHollow { get; private set; }
 
         /// <summary>
-        ///     Human readable string representation of the parameters used to create a mesh.
+        ///     Human-readable string representation of the parameters used to create a mesh.
         /// </summary>
         /// <returns></returns>
         public string ParamsToDisplayString()
@@ -1590,7 +1573,7 @@ namespace LibreMetaverse.PrimMesher
         /// </summary>
         public void Extrude(PathType pathType)
         {
-            var needEndFaces = false;
+            bool needEndFaces;
 
             coords = new List<Coord>();
             this.faces = new List<Face>();
@@ -1753,7 +1736,6 @@ namespace LibreMetaverse.PrimMesher
 
             var lastCutNormal1 = new Coord();
             var lastCutNormal2 = new Coord();
-            var thisV = 0.0f;
             var lastV = 0.0f;
 
             var path = new Path
@@ -1852,7 +1834,7 @@ namespace LibreMetaverse.PrimMesher
                 var newFace1 = new Face();
                 var newFace2 = new Face();
 
-                thisV = 1.0f - node.percentOfPath;
+                var thisV = 1.0f - node.percentOfPath;
 
                 if (nodeIndex > 0)
                 {
@@ -2089,7 +2071,7 @@ namespace LibreMetaverse.PrimMesher
         }
 
 
-        private Coord SurfaceNormal(Coord c1, Coord c2, Coord c3)
+        private static Coord SurfaceNormal(Coord c1, Coord c2, Coord c3)
         {
             var edge1 = new Coord(c2.X - c1.X, c2.Y - c1.Y, c2.Z - c1.Z);
             var edge2 = new Coord(c3.X - c1.X, c3.Y - c1.Y, c3.Z - c1.Z);
@@ -2197,13 +2179,11 @@ namespace LibreMetaverse.PrimMesher
         /// <param name="z"></param>
         public void AddPos(float x, float y, float z)
         {
-            int i;
             var numVerts = coords.Count;
-            Coord vert;
 
-            for (i = 0; i < numVerts; i++)
+            for (var i = 0; i < numVerts; i++)
             {
-                vert = coords[i];
+                var vert = coords[i];
                 vert.X += x;
                 vert.Y += y;
                 vert.Z += z;
@@ -2214,7 +2194,7 @@ namespace LibreMetaverse.PrimMesher
             {
                 var numViewerFaces = viewerFaces.Count;
 
-                for (i = 0; i < numViewerFaces; i++)
+                for (var i = 0; i < numViewerFaces; i++)
                 {
                     var v = viewerFaces[i];
                     v.AddPos(x, y, z);
@@ -2229,16 +2209,15 @@ namespace LibreMetaverse.PrimMesher
         /// <param name="q"></param>
         public void AddRot(Quat q)
         {
-            int i;
             var numVerts = coords.Count;
 
-            for (i = 0; i < numVerts; i++)
+            for (var i = 0; i < numVerts; i++)
                 coords[i] *= q;
 
             if (normals != null)
             {
                 var numNormals = normals.Count;
-                for (i = 0; i < numNormals; i++)
+                for (var i = 0; i < numNormals; i++)
                     normals[i] *= q;
             }
 
@@ -2246,7 +2225,7 @@ namespace LibreMetaverse.PrimMesher
             {
                 var numViewerFaces = viewerFaces.Count;
 
-                for (i = 0; i < numViewerFaces; i++)
+                for (var i = 0; i < numViewerFaces; i++)
                 {
                     var v = viewerFaces[i];
                     v.v1 *= q;
@@ -2280,7 +2259,6 @@ namespace LibreMetaverse.PrimMesher
         {
             int i;
             var numVerts = coords.Count;
-            //Coord vert;
 
             var m = new Coord(x, y, z);
             for (i = 0; i < numVerts; i++)

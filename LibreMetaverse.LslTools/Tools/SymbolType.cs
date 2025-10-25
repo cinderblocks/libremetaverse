@@ -24,8 +24,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
-
 namespace LibreMetaverse.LslTools
 {
   public class SymbolType
@@ -57,18 +55,18 @@ namespace LibreMetaverse.LslTools
       CSymbol csymbol2 = csymbol1.Resolve();
       if (defined)
         csymbol2.m_defined = true;
-      this.m_name = name;
-      this.m_next = yyp.stypes;
+      m_name = name;
+      m_next = yyp.stypes;
       yyp.stypes = this;
     }
 
     public SymbolType _Find(string name)
     {
-      if (name.Equals(this.m_name))
+      if (name.Equals(m_name))
         return this;
-      if (this.m_next == null)
-        return (SymbolType) null;
-      return this.m_next._Find(name);
+      if (m_next == null)
+        return null;
+      return m_next._Find(name);
     }
   }
 }

@@ -1,8 +1,8 @@
-using System;
 using System.Linq;
 using System.Text;
+using OpenMetaverse;
 
-namespace OpenMetaverse.TestClient.Commands.Appearance
+namespace TestClient.Commands.Appearance
 {
     public class AvatarInfoCommand : Command
     {

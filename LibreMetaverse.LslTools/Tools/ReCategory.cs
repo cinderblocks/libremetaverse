@@ -35,23 +35,23 @@ namespace LibreMetaverse.LslTools
 
     public ReCategory(TokensGen tks, string str)
     {
-      this.m_str = str;
-      this.m_test = tks.m_tokens.GetTest(str);
+      m_str = str;
+      m_test = tks.m_tokens.GetTest(str);
     }
 
     public override bool Match(char ch)
     {
-      return this.m_test(ch);
+      return m_test(ch);
     }
 
     public override void Print(TextWriter s)
     {
-      s.WriteLine("{" + this.m_str + "}");
+      s.WriteLine("{" + m_str + "}");
     }
 
     public override void Build(Nfa nfa)
     {
-      nfa.AddArcEx((Regex) this, nfa.m_end);
+      nfa.AddArcEx(this, nfa.m_end);
     }
   }
 }
