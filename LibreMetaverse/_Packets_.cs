@@ -2338,7 +2338,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 10;
             Header.Reliable = true;
             TelehubBlock = new TelehubBlockBlock();
-            SpawnPointBlock = null;
+            SpawnPointBlock = Array.Empty<SpawnPointBlockBlock>();
         }
 
         public TelehubInfoPacket(byte[] bytes, ref int i) : this()
@@ -2977,7 +2977,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 28;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            Data = null;
+            Data = Array.Empty<DataBlock>();
         }
 
         public AvatarPickerReplyPacket(byte[] bytes, ref int i) : this()
@@ -3525,7 +3525,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             TransactionData = new TransactionDataBlock();
-            QueryData = null;
+            QueryData = Array.Empty<QueryDataBlock>();
         }
 
         public PlacesReplyPacket(byte[] bytes, ref int i) : this()
@@ -4218,9 +4218,9 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            QueryData = null;
-            QueryReplies = null;
-            StatusData = null;
+            QueryData = Array.Empty<QueryDataBlock>();
+            QueryReplies = Array.Empty<QueryRepliesBlock>();
+            StatusData = Array.Empty<StatusDataBlock>();
         }
 
         public DirPlacesReplyPacket(byte[] bytes, ref int i) : this()
@@ -4593,7 +4593,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = new QueryDataBlock();
-            QueryReplies = null;
+            QueryReplies = Array.Empty<QueryRepliesBlock>();
         }
 
         public DirPeopleReplyPacket(byte[] bytes, ref int i) : this()
@@ -4933,8 +4933,8 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = new QueryDataBlock();
-            QueryReplies = null;
-            StatusData = null;
+            QueryReplies = Array.Empty<QueryRepliesBlock>();
+            StatusData = Array.Empty<StatusDataBlock>();
         }
 
         public DirEventsReplyPacket(byte[] bytes, ref int i) : this()
@@ -5261,7 +5261,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = new QueryDataBlock();
-            QueryReplies = null;
+            QueryReplies = Array.Empty<QueryRepliesBlock>();
         }
 
         public DirGroupsReplyPacket(byte[] bytes, ref int i) : this()
@@ -5775,8 +5775,8 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = new QueryDataBlock();
-            QueryReplies = null;
-            StatusData = null;
+            QueryReplies = Array.Empty<QueryRepliesBlock>();
+            StatusData = Array.Empty<StatusDataBlock>();
         }
 
         public DirClassifiedReplyPacket(byte[] bytes, ref int i) : this()
@@ -6058,7 +6058,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 42;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            Data = null;
+            Data = Array.Empty<DataBlock>();
         }
 
         public AvatarClassifiedReplyPacket(byte[] bytes, ref int i) : this()
@@ -7417,7 +7417,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = new QueryDataBlock();
-            QueryReplies = null;
+            QueryReplies = Array.Empty<QueryRepliesBlock>();
         }
 
         public DirLandReplyPacket(byte[] bytes, ref int i) : this()
@@ -7866,7 +7866,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             QueryData = new QueryDataBlock();
-            QueryReplies = null;
+            QueryReplies = Array.Empty<QueryRepliesBlock>();
         }
 
         public DirPopularReplyPacket(byte[] bytes, ref int i) : this()
@@ -8598,7 +8598,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 57;
             Header.Reliable = true;
             Header.Zerocoded = true;
-            Data = null;
+            Data = Array.Empty<DataBlock>();
         }
 
         public ParcelObjectOwnersReplyPacket(byte[] bytes, ref int i) : this()
@@ -9007,7 +9007,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 59;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            Data = null;
+            Data = Array.Empty<DataBlock>();
         }
 
         public GroupNoticesListReplyPacket(byte[] bytes, ref int i) : this()
@@ -10325,7 +10325,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
             Info = new InfoBlock();
-            TargetData = null;
+            TargetData = Array.Empty<TargetDataBlock>();
         }
 
         public StartLurePacket(byte[] bytes, ref int i) : this()
@@ -10924,7 +10924,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 74;
             Header.Reliable = true;
             Info = new InfoBlock();
-            AlertInfo = null;
+            AlertInfo = Array.Empty<AlertInfoBlock>();
         }
 
         public TeleportFailedPacket(byte[] bytes, ref int i) : this()
@@ -11156,7 +11156,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 75;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public UndoPacket(byte[] bytes, ref int i) : this()
@@ -11388,7 +11388,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 76;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public RedoPacket(byte[] bytes, ref int i) : this()
@@ -12743,9 +12743,9 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            WearableData = null;
+            WearableData = Array.Empty<WearableDataBlock>();
             ObjectData = new ObjectDataBlock();
-            VisualParam = null;
+            VisualParam = Array.Empty<VisualParamBlock>();
         }
 
         public AgentSetAppearancePacket(byte[] bytes, ref int i) : this()
@@ -13447,7 +13447,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectDeletePacket(byte[] bytes, ref int i) : this()
@@ -13724,7 +13724,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             SharedData = new SharedDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectDuplicatePacket(byte[] bytes, ref int i) : this()
@@ -13987,7 +13987,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectDuplicateOnRayPacket(byte[] bytes, ref int i) : this()
@@ -14220,7 +14220,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectScalePacket(byte[] bytes, ref int i) : this()
@@ -14453,7 +14453,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectRotationPacket(byte[] bytes, ref int i) : this()
@@ -14710,7 +14710,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ExtraPhysics = null;
+            ExtraPhysics = Array.Empty<ExtraPhysicsBlock>();
         }
 
         public ObjectFlagUpdatePacket(byte[] bytes, ref int i) : this()
@@ -14943,7 +14943,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectClickActionPacket(byte[] bytes, ref int i) : this()
@@ -15190,7 +15190,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectImagePacket(byte[] bytes, ref int i) : this()
@@ -15423,7 +15423,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectMaterialPacket(byte[] bytes, ref int i) : this()
@@ -15712,7 +15712,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectShapePacket(byte[] bytes, ref int i) : this()
@@ -15961,7 +15961,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectExtraParamsPacket(byte[] bytes, ref int i) : this()
@@ -16238,7 +16238,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             HeaderData = new HeaderDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectOwnerPacket(byte[] bytes, ref int i) : this()
@@ -16477,7 +16477,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectGroupPacket(byte[] bytes, ref int i) : this()
@@ -16719,7 +16719,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectBuyPacket(byte[] bytes, ref int i) : this()
@@ -17280,7 +17280,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             HeaderData = new HeaderDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectPermissionsPacket(byte[] bytes, ref int i) : this()
@@ -17522,7 +17522,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectSaleInfoPacket(byte[] bytes, ref int i) : this()
@@ -17761,7 +17761,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectNamePacket(byte[] bytes, ref int i) : this()
@@ -18000,7 +18000,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectDescriptionPacket(byte[] bytes, ref int i) : this()
@@ -18233,7 +18233,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectCategoryPacket(byte[] bytes, ref int i) : this()
@@ -18463,7 +18463,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectSelectPacket(byte[] bytes, ref int i) : this()
@@ -18693,7 +18693,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectDeselectPacket(byte[] bytes, ref int i) : this()
@@ -18929,7 +18929,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectAttachPacket(byte[] bytes, ref int i) : this()
@@ -19158,7 +19158,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 113;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectDetachPacket(byte[] bytes, ref int i) : this()
@@ -19387,7 +19387,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 114;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectDropPacket(byte[] bytes, ref int i) : this()
@@ -19616,7 +19616,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 115;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectLinkPacket(byte[] bytes, ref int i) : this()
@@ -19845,7 +19845,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 116;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectDelinkPacket(byte[] bytes, ref int i) : this()
@@ -20134,7 +20134,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = new ObjectDataBlock();
-            SurfaceInfo = null;
+            SurfaceInfo = Array.Empty<SurfaceInfoBlock>();
         }
 
         public ObjectGrabPacket(byte[] bytes, ref int i) : this()
@@ -20435,7 +20435,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ObjectData = new ObjectDataBlock();
-            SurfaceInfo = null;
+            SurfaceInfo = Array.Empty<SurfaceInfoBlock>();
         }
 
         public ObjectGrabUpdatePacket(byte[] bytes, ref int i) : this()
@@ -20726,7 +20726,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
             ObjectData = new ObjectDataBlock();
-            SurfaceInfo = null;
+            SurfaceInfo = Array.Empty<SurfaceInfoBlock>();
         }
 
         public ObjectDeGrabPacket(byte[] bytes, ref int i) : this()
@@ -21449,7 +21449,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectExportSelectedPacket(byte[] bytes, ref int i) : this()
@@ -21782,8 +21782,8 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ModifyBlock = new ModifyBlockBlock();
-            ParcelData = null;
-            ModifyBlockExtended = null;
+            ParcelData = Array.Empty<ParcelDataBlock>();
+            ModifyBlockExtended = Array.Empty<ModifyBlockExtendedBlock>();
         }
 
         public ModifyLandPacket(byte[] bytes, ref int i) : this()
@@ -23095,7 +23095,7 @@ namespace OpenMetaverse.Packets
             DownloadTotals = new DownloadTotalsBlock();
             NetStats = new NetStatsBlock[2];
             FailStats = new FailStatsBlock();
-            MiscStats = null;
+            MiscStats = Array.Empty<MiscStatsBlock>();
         }
 
         public ViewerStatsPacket(byte[] bytes, ref int i) : this()
@@ -23788,8 +23788,8 @@ namespace OpenMetaverse.Packets
             Header.ID = 134;
             Header.Reliable = true;
             AlertData = new AlertDataBlock();
-            AlertInfo = null;
-            AgentInfo = null;
+            AlertInfo = Array.Empty<AlertInfoBlock>();
+            AgentInfo = Array.Empty<AgentInfoBlock>();
         }
 
         public AlertMessagePacket(byte[] bytes, ref int i) : this()
@@ -24190,7 +24190,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 136;
             Header.Reliable = true;
             Header.Zerocoded = true;
-            MeanCollision = null;
+            MeanCollision = Array.Empty<MeanCollisionBlock>();
         }
 
         public MeanCollisionAlertPacket(byte[] bytes, ref int i) : this()
@@ -24871,7 +24871,7 @@ namespace OpenMetaverse.Packets
             Region = new RegionBlock();
             Stat = null;
             PidStat = new PidStatBlock();
-            RegionInfo = null;
+            RegionInfo = Array.Empty<RegionInfoBlock>();
         }
 
         public SimStatsPacket(byte[] bytes, ref int i) : this()
@@ -25456,9 +25456,9 @@ namespace OpenMetaverse.Packets
             AgentData = new AgentDataBlock();
             RegionInfo = new RegionInfoBlock();
             RegionInfo2 = new RegionInfo2Block();
-            RegionInfo3 = null;
-            RegionInfo5 = null;
-            CombatSettings = null;
+            RegionInfo3 = Array.Empty<RegionInfo3Block>();
+            RegionInfo5 = Array.Empty<RegionInfo5Block>();
+            CombatSettings = Array.Empty<CombatSettingsBlock>();
         }
 
         public RegionInfoPacket(byte[] bytes, ref int i) : this()
@@ -25844,7 +25844,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             RegionInfo = new RegionInfoBlock();
-            RegionInfo2 = null;
+            RegionInfo2 = Array.Empty<RegionInfo2Block>();
         }
 
         public GodUpdateRegionInfoPacket(byte[] bytes, ref int i) : this()
@@ -26263,7 +26263,7 @@ namespace OpenMetaverse.Packets
             RegionInfo = new RegionInfoBlock();
             RegionInfo2 = new RegionInfo2Block();
             RegionInfo3 = new RegionInfo3Block();
-            RegionInfo4 = null;
+            RegionInfo4 = Array.Empty<RegionInfo4Block>();
         }
 
         public RegionHandshakePacket(byte[] bytes, ref int i) : this()
@@ -27786,10 +27786,10 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             Sender = new SenderBlock();
             ObjectData = new ObjectDataBlock();
-            VisualParam = null;
-            AppearanceData = null;
-            AppearanceHover = null;
-            AttachmentBlock = null;
+            VisualParam = Array.Empty<VisualParamBlock>();
+            AppearanceData = Array.Empty<AppearanceDataBlock>();
+            AppearanceHover = Array.Empty<AppearanceHoverBlock>();
+            AttachmentBlock = Array.Empty<AttachmentBlockBlock>();
         }
 
         public AvatarAppearancePacket(byte[] bytes, ref int i) : this()
@@ -28138,7 +28138,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 159;
             Header.Reliable = true;
             ObjectData = new ObjectDataBlock();
-            CameraProperty = null;
+            CameraProperty = Array.Empty<CameraPropertyBlock>();
         }
 
         public SetFollowCamPropertiesPacket(byte[] bytes, ref int i) : this()
@@ -28589,7 +28589,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 162;
             Header.Reliable = true;
             ObjectData = new ObjectDataBlock();
-            ButtonData = null;
+            ButtonData = Array.Empty<ButtonDataBlock>();
         }
 
         public PayPriceReplyPacket(byte[] bytes, ref int i) : this()
@@ -30021,7 +30021,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            GroupData = null;
+            GroupData = Array.Empty<GroupDataBlock>();
             NewGroupData = new NewGroupDataBlock();
         }
 
@@ -30925,7 +30925,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 178;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            Data = null;
+            Data = Array.Empty<DataBlock>();
         }
 
         public AvatarPicksReplyPacket(byte[] bytes, ref int i) : this()
@@ -32942,7 +32942,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 189;
             Header.Reliable = true;
-            Data = null;
+            Data = Array.Empty<DataBlock>();
         }
 
         public ScriptControlChangePacket(byte[] bytes, ref int i) : this()
@@ -33247,8 +33247,8 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             Data = new DataBlock();
-            Buttons = null;
-            OwnerData = null;
+            Buttons = Array.Empty<ButtonsBlock>();
+            OwnerData = Array.Empty<OwnerDataBlock>();
         }
 
         public ScriptDialogPacket(byte[] bytes, ref int i) : this()
@@ -34122,7 +34122,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 195;
             Header.Reliable = true;
             Data = new DataBlock();
-            Options = null;
+            Options = Array.Empty<OptionsBlock>();
         }
 
         public ScriptTeleportRequestPacket(byte[] bytes, ref int i) : this()
@@ -34954,8 +34954,8 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ParcelData = new ParcelDataBlock();
-            TaskIDs = null;
-            OwnerIDs = null;
+            TaskIDs = Array.Empty<TaskIDsBlock>();
+            OwnerIDs = Array.Empty<OwnerIDsBlock>();
         }
 
         public ParcelReturnObjectsPacket(byte[] bytes, ref int i) : this()
@@ -35477,8 +35477,8 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ParcelData = new ParcelDataBlock();
-            TaskIDs = null;
-            OwnerIDs = null;
+            TaskIDs = Array.Empty<TaskIDsBlock>();
+            OwnerIDs = Array.Empty<OwnerIDsBlock>();
         }
 
         public ParcelDisableObjectsPacket(byte[] bytes, ref int i) : this()
@@ -35796,7 +35796,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             ParcelData = new ParcelDataBlock();
-            ReturnIDs = null;
+            ReturnIDs = Array.Empty<ReturnIDsBlock>();
         }
 
         public ParcelSelectObjectsPacket(byte[] bytes, ref int i) : this()
@@ -36268,7 +36268,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 205;
             Header.Reliable = true;
             _Header = new HeaderBlock();
-            Data = null;
+            Data = Array.Empty<DataBlock>();
         }
 
         public ForceObjectSelectPacket(byte[] bytes, ref int i) : this()
@@ -37034,7 +37034,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
-            ParcelData = null;
+            ParcelData = Array.Empty<ParcelDataBlock>();
         }
 
         public ParcelClaimPacket(byte[] bytes, ref int i) : this()
@@ -38326,7 +38326,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             Data = new DataBlock();
-            List = null;
+            List = Array.Empty<ListBlock>();
         }
 
         public ParcelAccessListReplyPacket(byte[] bytes, ref int i) : this()
@@ -38615,7 +38615,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             Data = new DataBlock();
-            List = null;
+            List = Array.Empty<ListBlock>();
         }
 
         public ParcelAccessListUpdatePacket(byte[] bytes, ref int i) : this()
@@ -39451,7 +39451,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 235;
             Header.Reliable = true;
-            UUIDNameBlock = null;
+            UUIDNameBlock = Array.Empty<UUIDNameBlockBlock>();
         }
 
         public UUIDNameRequestPacket(byte[] bytes, ref int i) : this()
@@ -39646,7 +39646,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 236;
             Header.Reliable = true;
-            UUIDNameBlock = null;
+            UUIDNameBlock = Array.Empty<UUIDNameBlockBlock>();
         }
 
         public UUIDNameReplyPacket(byte[] bytes, ref int i) : this()
@@ -39825,7 +39825,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 237;
             Header.Reliable = true;
-            UUIDNameBlock = null;
+            UUIDNameBlock = Array.Empty<UUIDNameBlockBlock>();
         }
 
         public UUIDGroupNameRequestPacket(byte[] bytes, ref int i) : this()
@@ -40013,7 +40013,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 238;
             Header.Reliable = true;
-            UUIDNameBlock = null;
+            UUIDNameBlock = Array.Empty<UUIDNameBlockBlock>();
         }
 
         public UUIDGroupNameReplyPacket(byte[] bytes, ref int i) : this()
@@ -41199,7 +41199,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             Requester = new RequesterBlock();
-            SensedData = null;
+            SensedData = Array.Empty<SensedDataBlock>();
         }
 
         public ScriptSensorReplyPacket(byte[] bytes, ref int i) : this()
@@ -41880,7 +41880,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            InventoryData = null;
+            InventoryData = Array.Empty<InventoryDataBlock>();
         }
 
         public LogoutReplyPacket(byte[] bytes, ref int i) : this()
@@ -42248,7 +42248,7 @@ namespace OpenMetaverse.Packets
             AgentData = new AgentDataBlock();
             MessageBlock = new MessageBlockBlock();
             EstateBlock = new EstateBlockBlock();
-            MetaData = null;
+            MetaData = Array.Empty<MetaDataBlock>();
         }
 
         public ImprovedInstantMessagePacket(byte[] bytes, ref int i) : this()
@@ -42609,7 +42609,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 256;
             Header.Reliable = true;
             AgentBlock = new AgentBlockBlock();
-            LocationBlock = null;
+            LocationBlock = Array.Empty<LocationBlockBlock>();
         }
 
         public FindAgentPacket(byte[] bytes, ref int i) : this()
@@ -43222,7 +43222,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             MethodData = new MethodDataBlock();
-            ParamList = null;
+            ParamList = Array.Empty<ParamListBlock>();
         }
 
         public GodlikeMessagePacket(byte[] bytes, ref int i) : this()
@@ -43517,7 +43517,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             MethodData = new MethodDataBlock();
-            ParamList = null;
+            ParamList = Array.Empty<ParamListBlock>();
         }
 
         public EstateOwnerMessagePacket(byte[] bytes, ref int i) : this()
@@ -43812,7 +43812,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             MethodData = new MethodDataBlock();
-            ParamList = null;
+            ParamList = Array.Empty<ParamListBlock>();
         }
 
         public GenericMessagePacket(byte[] bytes, ref int i) : this()
@@ -44596,7 +44596,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             NotecardData = new NotecardDataBlock();
-            InventoryData = null;
+            InventoryData = Array.Empty<InventoryDataBlock>();
         }
 
         public CopyInventoryFromNotecardPacket(byte[] bytes, ref int i) : this()
@@ -44908,7 +44908,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            InventoryData = null;
+            InventoryData = Array.Empty<InventoryDataBlock>();
         }
 
         public UpdateInventoryItemPacket(byte[] bytes, ref int i) : this()
@@ -45214,7 +45214,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            InventoryData = null;
+            InventoryData = Array.Empty<InventoryDataBlock>();
         }
 
         public UpdateCreateInventoryItemPacket(byte[] bytes, ref int i) : this()
@@ -45459,7 +45459,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            InventoryData = null;
+            InventoryData = Array.Empty<InventoryDataBlock>();
         }
 
         public MoveInventoryItemPacket(byte[] bytes, ref int i) : this()
@@ -45707,7 +45707,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            InventoryData = null;
+            InventoryData = Array.Empty<InventoryDataBlock>();
         }
 
         public CopyInventoryItemPacket(byte[] bytes, ref int i) : this()
@@ -45936,7 +45936,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 270;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            InventoryData = null;
+            InventoryData = Array.Empty<InventoryDataBlock>();
         }
 
         public RemoveInventoryItemPacket(byte[] bytes, ref int i) : this()
@@ -46168,7 +46168,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 271;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            InventoryData = null;
+            InventoryData = Array.Empty<InventoryDataBlock>();
         }
 
         public ChangeInventoryItemFlagsPacket(byte[] bytes, ref int i) : this()
@@ -46745,7 +46745,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 274;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            FolderData = null;
+            FolderData = Array.Empty<FolderDataBlock>();
         }
 
         public UpdateInventoryFolderPacket(byte[] bytes, ref int i) : this()
@@ -46981,7 +46981,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            InventoryData = null;
+            InventoryData = Array.Empty<InventoryDataBlock>();
         }
 
         public MoveInventoryFolderPacket(byte[] bytes, ref int i) : this()
@@ -47210,7 +47210,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 276;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            FolderData = null;
+            FolderData = Array.Empty<FolderDataBlock>();
         }
 
         public RemoveInventoryFolderPacket(byte[] bytes, ref int i) : this()
@@ -47747,8 +47747,8 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            FolderData = null;
-            ItemData = null;
+            FolderData = Array.Empty<FolderDataBlock>();
+            ItemData = Array.Empty<ItemDataBlock>();
         }
 
         public InventoryDescendentsPacket(byte[] bytes, ref int i) : this()
@@ -48019,7 +48019,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            InventoryData = null;
+            InventoryData = Array.Empty<InventoryDataBlock>();
         }
 
         public FetchInventoryPacket(byte[] bytes, ref int i) : this()
@@ -48316,7 +48316,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            InventoryData = null;
+            InventoryData = Array.Empty<InventoryDataBlock>();
         }
 
         public FetchInventoryReplyPacket(byte[] bytes, ref int i) : this()
@@ -48675,8 +48675,8 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            FolderData = null;
-            ItemData = null;
+            FolderData = Array.Empty<FolderDataBlock>();
+            ItemData = Array.Empty<ItemDataBlock>();
         }
 
         public BulkUpdateInventoryPacket(byte[] bytes, ref int i) : this()
@@ -48984,8 +48984,8 @@ namespace OpenMetaverse.Packets
             Header.ID = 284;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            FolderData = null;
-            ItemData = null;
+            FolderData = Array.Empty<FolderDataBlock>();
+            ItemData = Array.Empty<ItemDataBlock>();
         }
 
         public RemoveInventoryObjectsPacket(byte[] bytes, ref int i) : this()
@@ -50359,7 +50359,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             AgentBlock = new AgentBlockBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public DeRezObjectPacket(byte[] bytes, ref int i) : this()
@@ -51141,7 +51141,7 @@ namespace OpenMetaverse.Packets
             AgentData = new AgentDataBlock();
             RezData = new RezDataBlock();
             NotecardData = new NotecardDataBlock();
-            InventoryData = null;
+            InventoryData = Array.Empty<InventoryDataBlock>();
         }
 
         public RezObjectFromNotecardPacket(byte[] bytes, ref int i) : this()
@@ -51423,7 +51423,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
             TransactionBlock = new TransactionBlockBlock();
-            FolderData = null;
+            FolderData = Array.Empty<FolderDataBlock>();
         }
 
         public AcceptFriendshipPacket(byte[] bytes, ref int i) : this()
@@ -52179,7 +52179,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
             TransactionBlock = new TransactionBlockBlock();
-            FolderData = null;
+            FolderData = Array.Empty<FolderDataBlock>();
         }
 
         public AcceptCallingCardPacket(byte[] bytes, ref int i) : this()
@@ -54302,7 +54302,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 316;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            Data = null;
+            Data = Array.Empty<DataBlock>();
         }
 
         public ActivateGesturesPacket(byte[] bytes, ref int i) : this()
@@ -54537,7 +54537,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 317;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            Data = null;
+            Data = Array.Empty<DataBlock>();
         }
 
         public DeactivateGesturesPacket(byte[] bytes, ref int i) : this()
@@ -55000,7 +55000,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 320;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            Rights = null;
+            Rights = Array.Empty<RightsBlock>();
         }
 
         public GrantUserRightsPacket(byte[] bytes, ref int i) : this()
@@ -55229,7 +55229,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 321;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            Rights = null;
+            Rights = Array.Empty<RightsBlock>();
         }
 
         public ChangeUserRightsPacket(byte[] bytes, ref int i) : this()
@@ -55414,7 +55414,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 322;
             Header.Reliable = true;
-            AgentBlock = null;
+            AgentBlock = Array.Empty<AgentBlockBlock>();
         }
 
         public OnlineNotificationPacket(byte[] bytes, ref int i) : this()
@@ -55593,7 +55593,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 323;
             Header.Reliable = true;
-            AgentBlock = null;
+            AgentBlock = Array.Empty<AgentBlockBlock>();
         }
 
         public OfflineNotificationPacket(byte[] bytes, ref int i) : this()
@@ -56795,7 +56795,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 342;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            RoleChange = null;
+            RoleChange = Array.Empty<RoleChangeBlock>();
         }
 
         public GroupRoleChangesPacket(byte[] bytes, ref int i) : this()
@@ -57384,7 +57384,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
-            EjectData = null;
+            EjectData = Array.Empty<EjectDataBlock>();
         }
 
         public EjectGroupMemberRequestPacket(byte[] bytes, ref int i) : this()
@@ -58182,7 +58182,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
-            InviteData = null;
+            InviteData = Array.Empty<InviteDataBlock>();
         }
 
         public InviteGroupRequestPacket(byte[] bytes, ref int i) : this()
@@ -59428,7 +59428,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             MoneyData = new MoneyDataBlock();
-            HistoryData = null;
+            HistoryData = Array.Empty<HistoryDataBlock>();
         }
 
         public GroupAccountDetailsReplyPacket(byte[] bytes, ref int i) : this()
@@ -59915,7 +59915,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             MoneyData = new MoneyDataBlock();
-            HistoryData = null;
+            HistoryData = Array.Empty<HistoryDataBlock>();
         }
 
         public GroupAccountTransactionsReplyPacket(byte[] bytes, ref int i) : this()
@@ -60448,7 +60448,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             TransactionData = new TransactionDataBlock();
-            ProposalData = null;
+            ProposalData = Array.Empty<ProposalDataBlock>();
         }
 
         public GroupActiveProposalItemReplyPacket(byte[] bytes, ref int i) : this()
@@ -61039,7 +61039,7 @@ namespace OpenMetaverse.Packets
             AgentData = new AgentDataBlock();
             TransactionData = new TransactionDataBlock();
             HistoryItemData = new HistoryItemDataBlock();
-            VoteItem = null;
+            VoteItem = Array.Empty<VoteItemBlock>();
         }
 
         public GroupVoteHistoryItemReplyPacket(byte[] bytes, ref int i) : this()
@@ -61861,7 +61861,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
-            MemberData = null;
+            MemberData = Array.Empty<MemberDataBlock>();
         }
 
         public GroupMembersReplyPacket(byte[] bytes, ref int i) : this()
@@ -62818,7 +62818,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
             GroupData = new GroupDataBlock();
-            RoleData = null;
+            RoleData = Array.Empty<RoleDataBlock>();
         }
 
         public GroupRoleDataReplyPacket(byte[] bytes, ref int i) : this()
@@ -63224,7 +63224,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 374;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            MemberData = null;
+            MemberData = Array.Empty<MemberDataBlock>();
         }
 
         public GroupRoleMembersReplyPacket(byte[] bytes, ref int i) : this()
@@ -63589,7 +63589,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            GroupData = null;
+            GroupData = Array.Empty<GroupDataBlock>();
         }
 
         public GroupTitlesReplyPacket(byte[] bytes, ref int i) : this()
@@ -63970,7 +63970,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 378;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            RoleData = null;
+            RoleData = Array.Empty<RoleDataBlock>();
         }
 
         public GroupRoleUpdatePacket(byte[] bytes, ref int i) : this()
@@ -64560,7 +64560,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            WearableData = null;
+            WearableData = Array.Empty<WearableDataBlock>();
         }
 
         public AgentWearablesUpdatePacket(byte[] bytes, ref int i) : this()
@@ -64793,7 +64793,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            WearableData = null;
+            WearableData = Array.Empty<WearableDataBlock>();
         }
 
         public AgentIsNowWearingPacket(byte[] bytes, ref int i) : this()
@@ -65028,7 +65028,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 384;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            WearableData = null;
+            WearableData = Array.Empty<WearableDataBlock>();
         }
 
         public AgentCachedTexturePacket(byte[] bytes, ref int i) : this()
@@ -65272,7 +65272,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 385;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            WearableData = null;
+            WearableData = Array.Empty<WearableDataBlock>();
         }
 
         public AgentCachedTextureResponsePacket(byte[] bytes, ref int i) : this()
@@ -65735,7 +65735,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 388;
             Header.Reliable = true;
             Header.Zerocoded = true;
-            AgentGroupData = null;
+            AgentGroupData = Array.Empty<AgentGroupDataBlock>();
         }
 
         public GroupDataUpdatePacket(byte[] bytes, ref int i) : this()
@@ -65977,7 +65977,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            GroupData = null;
+            GroupData = Array.Empty<GroupDataBlock>();
         }
 
         public AgentGroupDataUpdatePacket(byte[] bytes, ref int i) : this()
@@ -66597,7 +66597,7 @@ namespace OpenMetaverse.Packets
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
             HeaderData = new HeaderDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public RezMultipleAttachmentsFromInvPacket(byte[] bytes, ref int i) : this()
@@ -66990,7 +66990,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
             HeaderData = new HeaderDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public CreateNewOutfitAttachmentsPacket(byte[] bytes, ref int i) : this()
@@ -67984,7 +67984,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 406;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            LayerData = null;
+            LayerData = Array.Empty<LayerDataBlock>();
         }
 
         public MapLayerReplyPacket(byte[] bytes, ref int i) : this()
@@ -68597,7 +68597,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 409;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            Data = null;
+            Data = Array.Empty<DataBlock>();
         }
 
         public MapBlockReplyPacket(byte[] bytes, ref int i) : this()
@@ -69059,7 +69059,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
             RequestData = new RequestDataBlock();
-            Data = null;
+            Data = Array.Empty<DataBlock>();
         }
 
         public MapItemReplyPacket(byte[] bytes, ref int i) : this()
@@ -69973,7 +69973,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 422;
             Header.Reliable = true;
             RequestData = new RequestDataBlock();
-            ReportData = null;
+            ReportData = Array.Empty<ReportDataBlock>();
         }
 
         public LandStatReplyPacket(byte[] bytes, ref int i) : this()
@@ -70397,7 +70397,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 424;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectIncludeInSearchPacket(byte[] bytes, ref int i) : this()
@@ -71579,7 +71579,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
             MethodData = new MethodDataBlock();
-            ParamList = null;
+            ParamList = Array.Empty<ParamListBlock>();
         }
 
         public LargeGenericMessagePacket(byte[] bytes, ref int i) : this()
@@ -71828,7 +71828,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectBypassModUpdatePacket(byte[] bytes, ref int i) : this()
@@ -72021,7 +72021,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Low;
             Header.ID = 65531;
             Header.Reliable = true;
-            Packets = null;
+            Packets = Array.Empty<PacketsBlock>();
         }
 
         public PacketAckPacket(byte[] bytes, ref int i) : this()
@@ -72773,7 +72773,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public MultipleObjectUpdatePacket(byte[] bytes, ref int i) : this()
@@ -73006,7 +73006,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public RequestMultipleObjectsPacket(byte[] bytes, ref int i) : this()
@@ -73239,7 +73239,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectPositionPacket(byte[] bytes, ref int i) : this()
@@ -73681,7 +73681,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Location = null;
             Index = new IndexBlock();
-            AgentData = null;
+            AgentData = Array.Empty<AgentDataBlock>();
         }
 
         public CoarseLocationUpdatePacket(byte[] bytes, ref int i) : this()
@@ -74273,7 +74273,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 9;
             Header.Reliable = true;
             Header.Zerocoded = true;
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectPropertiesPacket(byte[] bytes, ref int i) : this()
@@ -75037,7 +75037,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.Medium;
             Header.ID = 15;
             Header.Reliable = true;
-            DataBlock = null;
+            DataBlock = Array.Empty<DataBlockBlock>();
         }
 
         public PreloadSoundPacket(byte[] bytes, ref int i) : this()
@@ -75283,7 +75283,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            Effect = null;
+            Effect = Array.Empty<EffectBlock>();
         }
 
         public ViewerEffectPacket(byte[] bytes, ref int i) : this()
@@ -76027,8 +76027,8 @@ namespace OpenMetaverse.Packets
             Header.ID = 5;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            AnimationList = null;
-            PhysicalAvatarEventList = null;
+            AnimationList = Array.Empty<AnimationListBlock>();
+            PhysicalAvatarEventList = Array.Empty<PhysicalAvatarEventListBlock>();
         }
 
         public AgentAnimationPacket(byte[] bytes, ref int i) : this()
@@ -76762,7 +76762,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 8;
             Header.Reliable = true;
             AgentData = new AgentDataBlock();
-            RequestImage = null;
+            RequestImage = Array.Empty<RequestImageBlock>();
         }
 
         public RequestImagePacket(byte[] bytes, ref int i) : this()
@@ -77884,7 +77884,7 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             RegionData = new RegionDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectUpdatePacket(byte[] bytes, ref int i) : this()
@@ -78218,7 +78218,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 13;
             Header.Reliable = true;
             RegionData = new RegionDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectUpdateCompressedPacket(byte[] bytes, ref int i) : this()
@@ -78548,7 +78548,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 14;
             Header.Reliable = true;
             RegionData = new RegionDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ObjectUpdateCachedPacket(byte[] bytes, ref int i) : this()
@@ -78886,7 +78886,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 15;
             Header.Reliable = true;
             RegionData = new RegionDataBlock();
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public ImprovedTerseObjectUpdatePacket(byte[] bytes, ref int i) : this()
@@ -79166,7 +79166,7 @@ namespace OpenMetaverse.Packets
             Header.Frequency = PacketFrequency.High;
             Header.ID = 16;
             Header.Reliable = true;
-            ObjectData = null;
+            ObjectData = Array.Empty<ObjectDataBlock>();
         }
 
         public KillObjectPacket(byte[] bytes, ref int i) : this()
@@ -80066,9 +80066,9 @@ namespace OpenMetaverse.Packets
             Header.ID = 20;
             Header.Reliable = true;
             Sender = new SenderBlock();
-            AnimationList = null;
-            AnimationSourceList = null;
-            PhysicalAvatarEventList = null;
+            AnimationList = Array.Empty<AnimationListBlock>();
+            AnimationSourceList = Array.Empty<AnimationSourceListBlock>();
+            PhysicalAvatarEventList = Array.Empty<PhysicalAvatarEventListBlock>();
         }
 
         public AvatarAnimationPacket(byte[] bytes, ref int i) : this()
@@ -82916,7 +82916,7 @@ namespace OpenMetaverse.Packets
             Header.ID = 30;
             Header.Reliable = true;
             Sender = new SenderBlock();
-            AnimationList = null;
+            AnimationList = Array.Empty<AnimationListBlock>();
         }
 
         public ObjectAnimationPacket(byte[] bytes, ref int i) : this()
@@ -83361,8 +83361,8 @@ namespace OpenMetaverse.Packets
             Header.Reliable = true;
             Header.Zerocoded = true;
             AgentData = new AgentDataBlock();
-            AxisData = null;
-            ButtonData = null;
+            AxisData = Array.Empty<AxisDataBlock>();
+            ButtonData = Array.Empty<ButtonDataBlock>();
         }
 
         public GameControlInputPacket(byte[] bytes, ref int i) : this()
