@@ -41,13 +41,6 @@ of the appropriate test application (e.g. `TestClient` for the interactive testi
 -  Unlike OpenSimulator and LibOpenMetaverse, you don't need to launch the binaries with Mono, they're _directly_ executable; 
 the `dotnet` chain already embeds the small runtime that allows .NET apps to run natively on whatever operating system you've got.
 
-### GUI support under Linux/macOS
-
-LibreMetaverse.GUI is not available on Linux/macOS due to Microsoft's lack of support for GDI/WinForms on non-Windows platforms. 
-They may work using Mono's implemention and can always be emulated using a product like Wine.
-
-The GUI library is being phased out and eventually being replaced by a more cross-platform framework like Avalonia or MAUI.
-
 
 [![LibreMetaverse NuGet-Release](https://img.shields.io/nuget/v/libremetaverse.svg?label=LibreMetaverse)](https://www.nuget.org/packages/LibreMetaverse/)  
 [![BSD Licensed](https://img.shields.io/github/license/cinderblocks/libremetaverse)](https://github.com/cinderblocks/libremetaverse/blob/master/LICENSE.txt)  
