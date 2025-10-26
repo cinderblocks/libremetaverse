@@ -518,7 +518,7 @@ namespace MapGenerator
                 else if (block.Count == -1)
                 {
                     // Variable count block
-                    writer.WriteLine("            " + sanitizedName + " = null;");
+                    writer.WriteLine("            " + sanitizedName + " = Array.Empty<" + block.Name + "Block>();");
                 }
                 else
                 {
