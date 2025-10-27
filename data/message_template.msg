@@ -8866,6 +8866,11 @@ version 2.0
         {   Agents      U8          }
         {   MapImageID  LLUUID      }
     }
+    {
+		Size			Variable
+		{	SizeX		U16				}
+		{	SizeY		U16				}
+	}
 }
 
 // viewer -> sim
