@@ -252,10 +252,10 @@ namespace LibreMetaverse.Voice.WebRTC
             pc.OnRtpPacketReceived += (IPEndPoint remoteEndPoint, SDPMediaTypesEnum mediaType, RTPPacket rtpPacket) =>
             {
                // Logger.Log($"OnRtpPacketReceived fired for mediaType: {mediaType}", Helpers.LogLevel.Info, Client);
-               // Logger.Log($"📦 RTP: {rtpPacket.Payload.Length} bytes, PT={rtpPacket.Header.PayloadType}, Seq={rtpPacket.Header.SequenceNumber}, TS={rtpPacket.Header.Timestamp}", Helpers.LogLevel.Debug, Client);
+               // Logger.Log($"RTP: {rtpPacket.Payload.Length} bytes, PT={rtpPacket.Header.PayloadType}, Seq={rtpPacket.Header.SequenceNumber}, TS={rtpPacket.Header.Timestamp}", Helpers.LogLevel.Debug, Client);
                 if (mediaType == SDPMediaTypesEnum.audio)
                 {
-                  //  Logger.Log($"📦 RTP Audio: {rtpPacket.Payload.Length} bytes, " +
+                  //  Logger.Log($"RTP Audio: {rtpPacket.Payload.Length} bytes, " +
                         //      $"PT={rtpPacket.Header.PayloadType}, " +
  // $"Seq={rtpPacket.Header.SequenceNumber}, " +
                     //          $"TS={rtpPacket.Header.Timestamp}",
@@ -269,7 +269,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     }
                     else
                     {
-                        Logger.Log("❌ Cannot play audio: EndPoint is null (SDL2 not initialized)",
+                        Logger.Log("Cannot play audio: EndPoint is null (SDL3 not initialized)",
                             Helpers.LogLevel.Warning, Client);
                     }
                 }
@@ -277,13 +277,13 @@ namespace LibreMetaverse.Voice.WebRTC
 
             pc.oniceconnectionstatechange += (state) =>
             {
-                Logger.Log($"🧊 ICE connection state: {state}",
+                Logger.Log($"ICE connection state: {state}",
                     Helpers.LogLevel.Debug, Client);
 
                 // If ICE fails, the connection will fail
                 if (state == RTCIceConnectionState.failed)
                 {
-                    Logger.Log("❌ ICE connection failed - possible NAT/firewall issue",
+                    Logger.Log("ICE connection failed - possible NAT/firewall issue",
                         Helpers.LogLevel.Warning, Client);
                 }
             };
@@ -293,7 +293,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
             dc.onopen += () =>
             {
-                Logger.Log("✅ Data channel opened", Helpers.LogLevel.Info, Client);
+                Logger.Log("Data channel opened", Helpers.LogLevel.Info, Client);
 
                 // Only send join message per spec
                 TrySendDataChannelString("{\"j\":{\"p\":true}}");
@@ -316,7 +316,7 @@ namespace LibreMetaverse.Voice.WebRTC
             dc.onmessage += (channel, type, data) =>
             {
                 var msg = data != null ? Encoding.UTF8.GetString(data) : string.Empty;
-                Logger.Log($"📨 Data channel message received: {msg}",
+                Logger.Log($"Data channel message received: {msg}",
                     Helpers.LogLevel.Debug, Client);
                 Task.Run(() => HandleDataChannelMessage(msg));
             };
@@ -357,7 +357,7 @@ namespace LibreMetaverse.Voice.WebRTC
             // This causes the region to return a remote SDP answer so audio can flow.
             // Note: Provisioning is now handled externally by calling RequestProvision()
 
-            //  Logger.Log($"📨 Final local SDP offer:\n{pc.localDescription.sdp}", Helpers.LogLevel.Debug, Client);
+            //  Logger.Log($"Final local SDP offer:\n{pc.localDescription.sdp}", Helpers.LogLevel.Debug, Client);
             pc.localDescription.sdp.SessionName = "LibreMetaVoice";
 
             // ICE and connection state handlers
@@ -396,12 +396,12 @@ namespace LibreMetaverse.Voice.WebRTC
             };
             pc.ondatachannel += (channel) =>
             {
-                Logger.Log($"📥 Server created data channel: {channel.label} (id: {channel.id})",
+                Logger.Log($"Server created data channel: {channel.label} (id: {channel.id})",
                     Helpers.LogLevel.Info, Client);
 
                 channel.onopen += () =>
                 {
-                    Logger.Log($"✅ Inbound channel '{channel.label}' opened", Helpers.LogLevel.Info, Client);
+                    Logger.Log($"Inbound channel '{channel.label}' opened", Helpers.LogLevel.Info, Client);
                 };
 
                 channel.onmessage += (ch, type, data) =>
@@ -413,12 +413,12 @@ namespace LibreMetaverse.Voice.WebRTC
 
                 channel.onclose += () =>
                 {
-                    Logger.Log($"⚠️ Inbound channel '{channel.label}' closed", Helpers.LogLevel.Warning, Client);
+                    Logger.Log($"Inbound channel '{channel.label}' closed", Helpers.LogLevel.Warning, Client);
                 };
 
                 channel.onerror += (error) =>
                 {
-                    Logger.Log($"❌ Inbound channel '{channel.label}' error: {error}",
+                    Logger.Log($"Inbound channel '{channel.label}' error: {error}",
                         Helpers.LogLevel.Error, Client);
                 };
             };
@@ -430,7 +430,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     if (AudioDevice?.EndPoint != null)
                     {
                         await AudioDevice.EndPoint.StartAudioSink();
-                        Logger.Log("✅ Audio sink started", Helpers.LogLevel.Info, Client);
+                        Logger.Log("Audio sink started", Helpers.LogLevel.Info, Client);
                     }
                     else
                     {
@@ -441,7 +441,7 @@ namespace LibreMetaverse.Voice.WebRTC
                             try
                             {
                                 await AudioDevice.EndPoint.StartAudioSink();
-                                Logger.Log("✅ Audio sink started after EnsureEndpoint", Helpers.LogLevel.Info, Client);
+                                Logger.Log("Audio sink started after EnsureEndpoint", Helpers.LogLevel.Info, Client);
                             }
                             catch (Exception ex)
                             {
@@ -450,7 +450,7 @@ namespace LibreMetaverse.Voice.WebRTC
                         }
                         else
                         {
-                            Logger.Log("⚠️ Audio sink not started: SDL2 EndPoint is null (SDL2 not initialized or no devices found)", Helpers.LogLevel.Warning, Client);
+                            Logger.Log("Audio sink not started: SDL3 EndPoint is null (SDL3 not initialized or no devices found)", Helpers.LogLevel.Warning, Client);
                         }
                     }
                     OnPeerConnectionReady?.Invoke();
@@ -502,11 +502,11 @@ namespace LibreMetaverse.Voice.WebRTC
             try
             {
                 await PostCapsWithRetries(cap, payload);
-                Logger.Log($"✅ Sent {candidatesArray.Count} ICE candidates", Helpers.LogLevel.Info, Client);
+                Logger.Log($"Sent {candidatesArray.Count} ICE candidates", Helpers.LogLevel.Info, Client);
             }
             catch (Exception ex)
             {
-                Logger.Log($"❌ Failed to send ICE candidates: {ex.Message}", Helpers.LogLevel.Warning, Client);
+                Logger.Log($"Failed to send ICE candidates: {ex.Message}", Helpers.LogLevel.Warning, Client);
             }
         }
 
@@ -560,7 +560,7 @@ namespace LibreMetaverse.Voice.WebRTC
             try
             {
                 var resp = await PostCapsWithRetries(cap, payload);
-                Logger.Log($"✅ Sent {canArray.Count} ICE candidates successfully",
+                Logger.Log($"Sent {canArray.Count} ICE candidates successfully",
                     Helpers.LogLevel.Info, Client);
             }
             catch (Exception ex)
@@ -1175,7 +1175,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
             if (pos == Vector3.Zero)
             {
-                Logger.Log("⚠️ Global position unavailable — returning zeroed map", Helpers.LogLevel.Warning, Client);
+                Logger.Log("Global position unavailable — returning zeroed map", Helpers.LogLevel.Warning, Client);
                 var zero = new OSDMap
                 {
                     ["x"] = 0,
@@ -1324,7 +1324,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"❌ Position/Timer error: {ex.Message}", Helpers.LogLevel.Error, Client);
+                    Logger.Log($"Position/Timer error: {ex.Message}", Helpers.LogLevel.Error, Client);
                 }
             };
             positionTimer.Start();
@@ -1375,7 +1375,7 @@ namespace LibreMetaverse.Voice.WebRTC
             }
             catch (Exception ex)
             {
-                Logger.Log($"❌ Position send error: {ex.Message}", Helpers.LogLevel.Error, Client);
+                Logger.Log($"Position send error: {ex.Message}", Helpers.LogLevel.Error, Client);
             }
         }
 
@@ -1413,7 +1413,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"❌ Data channel keepalive error: {ex.Message}", Helpers.LogLevel.Error, Client);
+                    Logger.Log($"Data channel keepalive error: {ex.Message}", Helpers.LogLevel.Error, Client);
                 }
             };
             dataChannelKeepAliveTimer.Start();
