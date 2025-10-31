@@ -55,7 +55,7 @@ namespace LibreMetaverse.Voice.WebRTC
         }
 
         private readonly GridClient Client;
-        private readonly Sdl2Audio AudioDevice;
+        private readonly Sdl3Audio AudioDevice;
         private RTCPeerConnection PeerConnection;
 
         public event Action OnPeerConnectionClosed;
@@ -136,7 +136,7 @@ namespace LibreMetaverse.Voice.WebRTC
         private long lastRtcpReceivedTicks = 0;
         private long lastRtcpSentTicks = 0;
         private MediaStreamTrack _remoteAudioTrack;
-        internal VoiceSession(Sdl2Audio audioDevice, ESessionType type, GridClient client)
+        internal VoiceSession(Sdl3Audio audioDevice, ESessionType type, GridClient client)
         {
             Client = client;
             AudioDevice = audioDevice;

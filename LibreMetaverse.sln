@@ -53,6 +53,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibreMetaverse.Voice.WebRTC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebRtcTest", "Programs\WebRtcTest\WebRtcTest.csproj", "{04BB39B5-3B21-4271-AEFB-F51AAE58EE32}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SIPSorceryMedia.SDL3", "SIPSorceryMedia.SDL3\src\SIPSorceryMedia.SDL3.csproj", "{903E3495-B022-663A-4F33-983373D13A77}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -137,6 +139,10 @@ Global
 		{04BB39B5-3B21-4271-AEFB-F51AAE58EE32}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{04BB39B5-3B21-4271-AEFB-F51AAE58EE32}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{04BB39B5-3B21-4271-AEFB-F51AAE58EE32}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{903E3495-B022-663A-4F33-983373D13A77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{903E3495-B022-663A-4F33-983373D13A77}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{903E3495-B022-663A-4F33-983373D13A77}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{903E3495-B022-663A-4F33-983373D13A77}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

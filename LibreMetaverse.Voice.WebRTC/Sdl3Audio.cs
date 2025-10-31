@@ -27,22 +27,20 @@
 using LibreMetaverse.Voice.WebRTC;
 using OpenMetaverse;
 using SIPSorceryMedia.Abstractions;
-using SIPSorceryMedia.SDL2;
+using SIPSorceryMedia.SDL3;
 using System;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace LibreMetaverse
 {
-    public class Sdl2Audio : IDisposable
+    public class Sdl3Audio : IDisposable
     {
-        public SDL2AudioEndPoint EndPoint { get; private set; } // For Playback (Sink)
-        public SDL2AudioSource Source { get; private set; }     // For Microphone (Source)
+        public SDL3AudioEndPoint EndPoint { get; private set; } // For Playback (Sink)
+        public SDL3AudioSource Source { get; private set; }     // For Microphone (Source)
         private readonly OpusAudioEncoder _audioEncoder = new OpusAudioEncoder();
-        public bool IsAvailable { get; private set; } = false;
+        public bool IsAvailable { get; } = false;
         // Exposed state and events for consumers
         public event Action<bool> OnPlaybackActiveChanged;
         public event Action<bool> OnRecordingActiveChanged;
@@ -51,8 +49,8 @@ namespace LibreMetaverse
         public bool PlaybackActive { get; private set; } = false;
         public bool RecordingActive { get; private set; } = false;
 
-        public string PlaybackDeviceName { get; private set; } = string.Empty;
-        public string RecordingDeviceName { get; private set; } = string.Empty;
+        public (uint id, string name) PlaybackDevice { get; private set; }
+        public (uint id, string name) RecordingDevice { get; private set; }
 
         // Convenience properties expected by some consumers
         private float _spkrLevel = 1.0f; // 0.0 - 1.0
@@ -85,98 +83,40 @@ namespace LibreMetaverse
         }
 
         // Returns playback device names from SDL helper
-        public IEnumerable<string> GetPlaybackDeviceNames()
+        public Dictionary<uint, string> GetPlaybackDevices()
         {
-            try { return SDL2Helper.GetAudioPlaybackDevices(); }
-            catch { return Enumerable.Empty<string>(); }
+            return SDL3Helper.GetAudioPlaybackDevices();
         }
 
         // Returns recording device names from SDL helper
-        public IEnumerable<string> GetRecordingDeviceNames()
+        public Dictionary<uint, string> GetRecordingDevices()
         {
-            try { return SDL2Helper.GetAudioRecordingDevices(); }
-            catch { return Enumerable.Empty<string>(); }
+            return SDL3Helper.GetAudioRecordingDevices();
         }
 
-        public Sdl2Audio()
+        public Sdl3Audio()
         {
-#if NET8_0_OR_GREATER
-            // Try to map DllImport requests for "SDL2" to the SDL3 native library if available.
             try
             {
-                string[] candidates = new[] { "SDL3", "SDL3.dll", "libSDL3.so", "libSDL3.dylib" };
-                IntPtr sdl3Handle = IntPtr.Zero;
-                foreach (var name in candidates)
-                {
-                    if (NativeLibrary.TryLoad(name, out sdl3Handle))
-                    {
-                        // Resolver that maps requests for "SDL2" to the found native handle
-                        DllImportResolver resolver = (libraryName, assembly, searchPath) =>
-                        {
-                            if (string.Equals(libraryName, "SDL2", StringComparison.OrdinalIgnoreCase))
-                            {
-                                return sdl3Handle;
-                            }
-                            return IntPtr.Zero;
-                        };
-
-                        // Apply resolver to this assembly and all currently loaded assemblies
-                        void ApplyResolverToAssembly(Assembly asm)
-                        {
-                            try
-                            {
-                                NativeLibrary.SetDllImportResolver(asm, resolver);
-                            }
-                            catch { }
-                        }
-
-                        var thisAssembly = Assembly.GetExecutingAssembly();
-                        ApplyResolverToAssembly(thisAssembly);
-
-                        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-                        {
-                            ApplyResolverToAssembly(asm);
-                        }
-
-                        // Also apply resolver to any assemblies that load after this point
-                        AppDomain.CurrentDomain.AssemblyLoad += (sender, args) =>
-                        {
-                            try { ApplyResolverToAssembly(args.LoadedAssembly); } catch { }
-                        };
-
-                        Logger.Log($"Mapped SDL2 DllImport to native library '{name}'", Helpers.LogLevel.Info);
-                        break;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // Ignore mapping failures; we'll fall back to trying SDL2 normally.
-                Logger.Log($"SDL3 mapping attempt failed: {ex.Message}", Helpers.LogLevel.Info);
-            }
-#endif
-
-            try
-            {
-                SDL2Helper.InitSDL();
-                Logger.Log("✅ SDL2 initialized successfully", Helpers.LogLevel.Info);
+                SDL3Helper.InitSDL();
+                Logger.Log("✅ SDL3 initialized successfully", Helpers.LogLevel.Info);
 
                 var playbackDeviceIndex = DeviceSelection(false);
                 var recordingDeviceIndex = DeviceSelection(true);
-                var playbackDeviceName = GetDeviceName(playbackDeviceIndex, false);
-                var recordingDeviceName = GetDeviceName(recordingDeviceIndex, true);
+                var playbackDevice = GetDevice(playbackDeviceIndex, false);
+                var recordingDevice = GetDevice(recordingDeviceIndex, true);
 
-                PlaybackDeviceName = playbackDeviceName ?? string.Empty;
-                RecordingDeviceName = recordingDeviceName ?? string.Empty;
+                PlaybackDevice = playbackDevice ?? (id:0, name:string.Empty);
+                RecordingDevice = recordingDevice ?? (id: 0, name: string.Empty);
 
-                Logger.Log($"🔊 Playback device: '{playbackDeviceName}'", Helpers.LogLevel.Info);
-                Logger.Log($"🎤 Recording device: '{recordingDeviceName}'", Helpers.LogLevel.Info);
+                Logger.Log($"🔊 Playback device: '{playbackDevice}'", Helpers.LogLevel.Info);
+                Logger.Log($"🎤 Recording device: '{recordingDevice}'", Helpers.LogLevel.Info);
 
-                EndPoint = new SDL2AudioEndPoint(playbackDeviceName, _audioEncoder);
-                Logger.Log("✅ SDL2AudioEndPoint created", Helpers.LogLevel.Info);
+                EndPoint = new SDL3AudioEndPoint(PlaybackDevice.name, _audioEncoder);
+                Logger.Log("✅ SDL3AudioEndPoint created", Helpers.LogLevel.Info);
 
                 // Use stereo sink to match incoming Opus stereo (opus/48000/2)
-                var fmt = new SIPSorceryMedia.Abstractions.AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
+                var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
                 EndPoint.SetAudioSinkFormat(fmt);
                 Logger.Log($"✅ Audio sink format set: {fmt.Codec}, {fmt.ClockRate} Hz, {fmt.ChannelCount} ch",
                     Helpers.LogLevel.Info);
@@ -187,8 +127,8 @@ namespace LibreMetaverse
                 // Initialize recording source
                 try
                 {
-                    Source = new SDL2AudioSource(recordingDeviceName, _audioEncoder);
-                    Logger.Log("✅ SDL2AudioSource created", Helpers.LogLevel.Info);
+                    Source = new SDL3AudioSource(RecordingDevice.name, _audioEncoder);
+                    Logger.Log("✅ SDL3AudioSource created", Helpers.LogLevel.Info);
                 }
                 catch (Exception ex)
                 {
@@ -198,42 +138,41 @@ namespace LibreMetaverse
 
                 // Mark as available AFTER successful initialization
                 IsAvailable = true;
-                Logger.Log("✅ SDL2 audio system ready", Helpers.LogLevel.Info);
+                Logger.Log("✅ SDL3 audio system ready", Helpers.LogLevel.Info);
 
                 // Automatically start playback to hear audio
                 _ = StartPlaybackAsync();
             }
             catch (DllNotFoundException dllEx)
             {
-                Logger.Log($"❌ SDL2 DLL not found: {dllEx.Message}", Helpers.LogLevel.Error);
+                Logger.Log($"❌ SDL3 DLL not found: {dllEx.Message}", Helpers.LogLevel.Error);
                 IsAvailable = false;
                 EndPoint = null;
             }
             catch (EntryPointNotFoundException epnEx)
             {
-                Logger.Log($"❌ SDL2 entry point missing: {epnEx.Message}", Helpers.LogLevel.Error);
+                Logger.Log($"❌ SDL3 entry point missing: {epnEx.Message}", Helpers.LogLevel.Error);
                 IsAvailable = false;
                 EndPoint = null;
             }
             catch (BadImageFormatException bife)
             {
-                // Common on architecture mismatch between native SDL2 and running process
-                Logger.Log($"❌ SDL2 initialization failed (bad image / incorrect native format): {bife.Message}", Helpers.LogLevel.Error);
-                Logger.Log("Possible causes: mixing x86/x64 native SDL2 binaries with a process of the opposite bitness.", Helpers.LogLevel.Error);
+                // Common on architecture mismatch between native SDL3 and running process
+                Logger.Log($"❌ SDL3 initialization failed (bad image / incorrect native format): {bife.Message}", Helpers.LogLevel.Error);
+                Logger.Log("Possible causes: mixing x86/x64 native SDL3 binaries with a process of the opposite bitness.", Helpers.LogLevel.Error);
                 Logger.Log("Fixes:", Helpers.LogLevel.Error);
-                Logger.Log(" - Ensure your application process matches the SDL2 native DLL architecture (x64 vs x86).", Helpers.LogLevel.Error);
-                Logger.Log(" - Place the correct SDL2 native binary in runtimes/<rid>/native or next to the executable.", Helpers.LogLevel.Error);
+                Logger.Log(" - Ensure your application process matches the SDL3 native DLL architecture (x64 vs x86).", Helpers.LogLevel.Error);
+                Logger.Log(" - Place the correct SDL3 native binary in runtimes/<rid>/native or next to the executable.", Helpers.LogLevel.Error);
                 Logger.Log(" - Or change your project PlatformTarget to match the native DLL (e.g. x64).", Helpers.LogLevel.Error);
                 IsAvailable = false;
                 EndPoint = null;
             }
             catch (Exception ex)
             {
-                Logger.Log($"❌ SDL2 initialization failed: {ex.Message}\n{ex.StackTrace}", Helpers.LogLevel.Error);
+                Logger.Log($"❌ SDL3 initialization failed: {ex.Message}\n{ex.StackTrace}", Helpers.LogLevel.Error);
                 IsAvailable = false;
                 EndPoint = null;
             }
-
         }
 
         public void Dispose()
@@ -249,12 +188,9 @@ namespace LibreMetaverse
                     StopRecording();
                 }
 
-                try { (Source as IDisposable)?.Dispose(); } catch { }
-                try { (EndPoint as IDisposable)?.Dispose(); } catch { }
-
                 if (IsAvailable)
                 {
-                    SDL2Helper.QuitSDL();
+                    SDL3Helper.QuitSDL();
                 }
             }
             catch { }
@@ -262,30 +198,29 @@ namespace LibreMetaverse
 
         private static int DeviceSelection(bool recordingDevice)
         {
+            var deviceTypeStr = recordingDevice ? "recording" : "playback";
             var sdlDevices = recordingDevice
-                ? SDL2Helper.GetAudioRecordingDevices()
-                : SDL2Helper.GetAudioPlaybackDevices();
+                ? SDL3Helper.GetAudioRecordingDevices()
+                : SDL3Helper.GetAudioPlaybackDevices();
 
             // Quit if no Audio devices found
             if (sdlDevices.Count < 1)
             {
-                Logger.Log("SDL Audio - Could not find an audio device.", Helpers.LogLevel.Warning);
+                Logger.Log($"SDL Audio - Could not find an audio {deviceTypeStr} device.", Helpers.LogLevel.Warning);
                 return -1;
             }
 
             // Prefer using the system default device. SDL typically accepts a null/empty device name to mean the default
             // Return -1 to indicate "use default" and let GetDeviceName translate that to null.
-            Logger.Log($"SDL Audio - Found {sdlDevices.Count} devices, using system default device.", Helpers.LogLevel.Info);
+            Logger.Log($"SDL Audio - Found {sdlDevices.Count} {deviceTypeStr} devices, using system default device.", Helpers.LogLevel.Info);
             return -1;
         }
 
-        private static string GetDeviceName(int index, bool recordingDevice)
+        private static (uint id, string name)? GetDevice(int index, bool recordingDevice)
         {
-            if (index < 0) return null; // signal to SDL2AudioEndPoint to use the system default device
-
             return recordingDevice
-                ? SDL2Helper.GetAudioRecordingDevice(index)
-                : SDL2Helper.GetAudioPlaybackDevice(index);
+                ? SDL3Helper.GetAudioRecordingDevice(index)
+                : SDL3Helper.GetAudioPlaybackDevice(index);
         }
 
         public void AudioSource_OnAudioSourceEncodedSample(uint durationRtpUnits, byte[] sample)
@@ -304,13 +239,13 @@ namespace LibreMetaverse
 
             if (!IsAvailable)
             {
-                Logger.Log("❌ SDL2 audio not available", Helpers.LogLevel.Warning);
+                Logger.Log("❌ SDL3 audio not available", Helpers.LogLevel.Warning);
                 return;
             }
 
             if (EndPoint == null)
             {
-                Logger.Log("❌ Audio sink EndPoint is null — SDL2 not initialized or unavailable.",
+                Logger.Log("❌ Audio sink EndPoint is null — SDL3 not initialized or unavailable.",
                     Helpers.LogLevel.Warning);
                 return;
             }
@@ -361,7 +296,7 @@ namespace LibreMetaverse
                     Logger.Log($"🔊 Sending {pcmBytes.Length} bytes to sink (sample #{_samplesReceivedCount})", Helpers.LogLevel.Info);
                 }
 
-                EndPoint.GotAudioSample(pcmBytes);
+                EndPoint.PutAudioSample(pcmBytes);
 
                 if (_samplesReceivedCount <= 3)
                 {
@@ -383,7 +318,7 @@ namespace LibreMetaverse
         public void AudioSource_OnAudioSourceRawSample(AudioSamplingRatesEnum samplingRate, uint durationMilliseconds, short[] sample)
         {
             byte[] pcmBytes = sample.SelectMany(BitConverter.GetBytes).ToArray();
-            EndPoint.GotAudioSample(pcmBytes);
+            EndPoint.PutAudioSample(pcmBytes);
         }
 
         // Playback control helpers for DLL consumers
@@ -470,10 +405,9 @@ namespace LibreMetaverse
                 }
                 // Dispose existing endpoint if present
                 try { EndPoint?.CloseAudioSink().Wait(2000); } catch { }
-                EndPoint = new SDL2AudioEndPoint(deviceName, _audioEncoder);
-                PlaybackDeviceName = deviceName ?? string.Empty;
+                EndPoint = new SDL3AudioEndPoint(deviceName, _audioEncoder);
                 // Set the audio sink format as done in the constructor
-                var fmt = new SIPSorceryMedia.Abstractions.AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
+                var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
                 EndPoint.SetAudioSinkFormat(fmt);
                 TrySetEndpointVolume(_spkrLevel);
                 // Restart sink if it was active
@@ -490,16 +424,8 @@ namespace LibreMetaverse
             if (!IsAvailable) return;
             try
             {
-                // Handle default device names
-                if (deviceName == "Default Speakers" || deviceName == "Default Microphone")
-                {
-                    deviceName = null;
-                }
                 try { StopSourceSafely(Source); } catch { }
-                // Dispose old source if it implements IDisposable
-                try { (Source as IDisposable)?.Dispose(); } catch { }
-                Source = new SDL2AudioSource(deviceName, _audioEncoder);
-                RecordingDeviceName = deviceName ?? string.Empty;
+                Source = new SDL3AudioSource(deviceName, _audioEncoder);
                 // Restart recording if it was active
                 if (_recordingStarted) StartRecording();
             }
@@ -526,19 +452,18 @@ namespace LibreMetaverse
 
             try
             {
-                var deviceName = string.IsNullOrEmpty(PlaybackDeviceName) ? null : PlaybackDeviceName;
-                EndPoint = new SDL2AudioEndPoint(deviceName, _audioEncoder);
+                EndPoint = new SDL3AudioEndPoint(PlaybackDevice.name, _audioEncoder);
                 // Use stereo sink so decoded opus stereo audio is rendered correctly
-                var fmt = new SIPSorceryMedia.Abstractions.AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
+                var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
                 EndPoint.SetAudioSinkFormat(fmt);
                 // Set volume
                 TrySetEndpointVolume(_spkrLevel);
-                Logger.Log("✅ SDL2AudioEndPoint created by EnsureEndpoint", Helpers.LogLevel.Info);
+                Logger.Log("✅ SDL3AudioEndPoint created by EnsureEndpoint", Helpers.LogLevel.Info);
                 return true;
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed to create SDL2AudioEndPoint in EnsureEndpoint: {ex.Message}", Helpers.LogLevel.Warning);
+                Logger.Log($"Failed to create SDL3AudioEndPoint in EnsureEndpoint: {ex.Message}", Helpers.LogLevel.Warning);
                 EndPoint = null;
                 return false;
             }

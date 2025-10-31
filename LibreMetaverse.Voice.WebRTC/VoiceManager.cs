@@ -39,7 +39,7 @@ namespace LibreMetaverse.Voice.WebRTC
     public class VoiceManager
     {
         private readonly GridClient Client;
-        public readonly Sdl2Audio AudioDevice;
+        public readonly Sdl3Audio AudioDevice;
         private VoiceSession CurrentSession;
         private bool _enabled = true;
 
@@ -73,7 +73,7 @@ namespace LibreMetaverse.Voice.WebRTC
         public VoiceManager(GridClient client)
         {
             Client = client;
-            AudioDevice = new Sdl2Audio();
+            AudioDevice = new Sdl3Audio();
             Client.Network.RegisterEventCallback("RequiredVoiceVersion", RequiredVoiceVersionEventHandler);
         }
 

@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
     <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
+    <ProjectReference Include="..\SIPSorceryMedia.SDL3\src\SIPSorceryMedia.SDL3.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
@@ -31,7 +32,6 @@
     <None Include="..\data\logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="SIPSorcery" Version="8.0.7" />
-    <PackageReference Include="SIPSorceryMedia.SDL2" Version="8.0.7" />
+    <PackageReference Include="SIPSorcery" Version="8.0.12" />
   </ItemGroup>
 </Project>

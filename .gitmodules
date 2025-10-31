@@ -1,0 +1,3 @@
+[submodule "SIPSorceryMedia.SDL3"]
+	path = SIPSorceryMedia.SDL3
+	url = ../SIPSorceryMedia.SDL3
