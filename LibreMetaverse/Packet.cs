@@ -1,5 +1,6 @@
-/*
+﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -25,14 +26,9 @@
  */
 
 using System;
-using System.Text;
-using OpenMetaverse;
 
 namespace OpenMetaverse
 {
-    /// <summary>
-    /// 
-    /// </summary>
     public enum PacketFrequency : byte
     {
         /// <summary></summary>
@@ -43,7 +39,7 @@ namespace OpenMetaverse
         High
     }
 }
-    
+
 namespace OpenMetaverse.Packets
 {
     /// <summary>
@@ -66,7 +62,7 @@ namespace OpenMetaverse.Packets
             this.Source = "Packet decoding";
         }
     }
-    
+
     /// <summary>
     /// The header of a message template packet. Holds packet flags, sequence
     /// number, packet ID, and any ACKs that will be appended at the end of
@@ -93,7 +89,7 @@ namespace OpenMetaverse.Packets
 
             // Flags
             bytes[i++] = flags;
-            
+
             // Sequence number
             Utils.UIntToBytesBig(Sequence, bytes, i);
             i += 4;
@@ -172,7 +168,7 @@ namespace OpenMetaverse.Packets
                         header.ID = bytes[pos + 10];
                     else
                         header.ID = (ushort)((bytes[pos + 8] << 8) + bytes[pos + 9]);
-                    
+
                     pos += 10;
                 }
                 else
@@ -196,7 +192,7 @@ namespace OpenMetaverse.Packets
 
             return header;
         }
-        
+
         /// <summary>
         /// 
         /// </summary>
@@ -209,14 +205,14 @@ namespace OpenMetaverse.Packets
             {
                 int count = bytes[packetEnd--];
                 header.AckList = new uint[count];
-                
+
                 for (int i = 0; i < count; i++)
                 {
                     header.AckList[i] = (uint)(
                         (bytes[(packetEnd - i * 4) - 3] << 24) |
                         (bytes[(packetEnd - i * 4) - 2] << 16) |
-                        (bytes[(packetEnd - i * 4) - 1] <<  8) |
-                        (bytes[(packetEnd - i * 4)    ]));
+                        (bytes[(packetEnd - i * 4) - 1] << 8) |
+                        (bytes[(packetEnd - i * 4)]));
                 }
 
                 packetEnd -= (count * 4);
@@ -251,3 +247,4 @@ namespace OpenMetaverse.Packets
         /// serialized block when the call returns</param>
         public abstract void ToBytes(byte[] bytes, ref int i);
     }
+}

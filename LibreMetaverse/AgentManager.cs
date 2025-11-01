@@ -4658,9 +4658,7 @@ namespace OpenMetaverse
                     SimAccess = (byte) msg.SimAccess,
                     SimIP = Utils.IPToUInt(msg.IP),
                     SimPort = (ushort) msg.Port,
-                    TeleportFlags = (uint) msg.Flags,
-                    RegionSizeX = msg.RegionSizeX,
-                    RegionSizeY = msg.RegionSizeY
+                    TeleportFlags = (uint) msg.Flags
                 }
             };
 
@@ -4730,8 +4728,7 @@ namespace OpenMetaverse
                 // Connect to the new sim
                 Client.Network.CurrentSim.AgentMovementComplete = false; // we're not there anymore
                 Simulator newSimulator = Client.Network.Connect(new IPAddress(finish.Info.SimIP),
-                    finish.Info.SimPort, finish.Info.RegionHandle, true, seedcaps,
-                    finish.Info.RegionSizeX, finish.Info.RegionSizeY);
+                    finish.Info.SimPort, finish.Info.RegionHandle, true, seedcaps);
 
                 if (newSimulator != null)
                 {

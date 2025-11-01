@@ -31,8 +31,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VivoxTest", "Programs\Vivox
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse.PrimMesher", "PrimMesher\LibreMetaverse.PrimMesher.csproj", "{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MapGenerator", "Programs\MapGenerator\MapGenerator.csproj", "{2867B4B3-0000-0000-0000-000000000000}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F8CE4DE6-82E5-49D1-BCDF-BB3E63A52867}"
 	ProjectSection(SolutionItems) = preProject
 		.appveyor.yml = .appveyor.yml
@@ -48,6 +46,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibreMetaverse.RLV", "LibreMetaverse.RLV\LibreMetaverse.RLV.csproj", "{A1A5515E-5C0B-86BD-CAD7-9A6FBA18EBC8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibreMetaverse.RLV.Tests", "LibreMetaverse.RLV.Tests\LibreMetaverse.RLV.Tests.csproj", "{180C7F12-3D94-F406-4F52-3EAC47C5A3D4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PacketSourceGenerator", "SourceGenerators\PacketSourceGenerator\PacketSourceGenerator.csproj", "{1F6D9A36-281C-4684-82BE-06ECA705D8A6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibreMetaverse.Voice.WebRTC", "LibreMetaverse.Voice.WebRTC\LibreMetaverse.Voice.WebRTC.csproj", "{40B22CB8-0597-49BF-B25C-01F3E8ACB791}"
 EndProject
@@ -112,10 +112,6 @@ Global
 		{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2E2B643F-F18B-4791-BA4B-6E82D0E794B6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2867B4B3-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2867B4B3-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2867B4B3-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2867B4B3-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
 		{989E5E15-D99B-4CF1-AF64-90C568FC979A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{989E5E15-D99B-4CF1-AF64-90C568FC979A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{989E5E15-D99B-4CF1-AF64-90C568FC979A}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -132,6 +128,10 @@ Global
 		{180C7F12-3D94-F406-4F52-3EAC47C5A3D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{180C7F12-3D94-F406-4F52-3EAC47C5A3D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{180C7F12-3D94-F406-4F52-3EAC47C5A3D4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F6D9A36-281C-4684-82BE-06ECA705D8A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F6D9A36-281C-4684-82BE-06ECA705D8A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F6D9A36-281C-4684-82BE-06ECA705D8A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F6D9A36-281C-4684-82BE-06ECA705D8A6}.Release|Any CPU.Build.0 = Release|Any CPU
 		{40B22CB8-0597-49BF-B25C-01F3E8ACB791}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{40B22CB8-0597-49BF-B25C-01F3E8ACB791}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{40B22CB8-0597-49BF-B25C-01F3E8ACB791}.Release|Any CPU.ActiveCfg = Release|Any CPU
