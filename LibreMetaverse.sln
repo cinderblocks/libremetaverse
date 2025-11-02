@@ -7,6 +7,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IRCGateway", "Programs\examples\IRCGateway\IRCGateway.csproj", "{89049BBC-0000-0000-0000-000000000000}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse", "LibreMetaverse\LibreMetaverse.csproj", "{27C70F3A-0000-0000-0000-000000000000}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3577716B-6891-41CA-BF57-7DDE4E83745C} = {3577716B-6891-41CA-BF57-7DDE4E83745C}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse.Rendering.Meshmerizer", "LibreMetaverse.Rendering.Meshmerizer\LibreMetaverse.Rendering.Meshmerizer.csproj", "{95479B1D-0000-0000-0000-000000000000}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -48,6 +51,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibreMetaverse.RLV.Tests", "LibreMetaverse.RLV.Tests\LibreMetaverse.RLV.Tests.csproj", "{180C7F12-3D94-F406-4F52-3EAC47C5A3D4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PacketSourceGenerator", "SourceGenerators\PacketSourceGenerator\PacketSourceGenerator.csproj", "{1F6D9A36-281C-4684-82BE-06ECA705D8A6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VisualParamGenerator", "SourceGenerators\VisualParamGenerator\VisualParamGenerator.csproj", "{3577716B-6891-41CA-BF57-7DDE4E83745C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Generators", "Generators", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -127,9 +134,17 @@ Global
 		{1F6D9A36-281C-4684-82BE-06ECA705D8A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1F6D9A36-281C-4684-82BE-06ECA705D8A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1F6D9A36-281C-4684-82BE-06ECA705D8A6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3577716B-6891-41CA-BF57-7DDE4E83745C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3577716B-6891-41CA-BF57-7DDE4E83745C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3577716B-6891-41CA-BF57-7DDE4E83745C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3577716B-6891-41CA-BF57-7DDE4E83745C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1F6D9A36-281C-4684-82BE-06ECA705D8A6} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{3577716B-6891-41CA-BF57-7DDE4E83745C} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {39A7E333-AFC1-4BA8-9EBC-9298791FDC78}
