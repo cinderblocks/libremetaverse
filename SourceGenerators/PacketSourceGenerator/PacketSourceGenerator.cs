@@ -151,7 +151,7 @@ namespace PacketSourceGenerator
                     };
 
                     if (freqToken == "Fixed" || freqToken == "Low") { packet.Frequency = PacketFrequency.Low; protocol.LowMaps.Add(packet); }
-                    else if (freqToken == "Medium") { packet.Frequency = PacketFrequency.Medium; protocol.MediumMaps.Add(packet); }
+                    else if (freqToken == "Medium" || freqToken == "Mid") { packet.Frequency = PacketFrequency.Medium; protocol.MediumMaps.Add(packet); }
                     else if (freqToken == "High") { packet.Frequency = PacketFrequency.High; protocol.HighMaps.Add(packet); }
                     else { packet.Frequency = PacketFrequency.Low; protocol.LowMaps.Add(packet); }
 
@@ -540,7 +540,178 @@ namespace PacketSourceGenerator
             Append(sb, 2, "}");
             Append(sb, 2, "");
 
-            Append(sb, 2, "public override byte[][] ToBytesMultiple() => new byte[][] { ToBytes() };");
+            // ToBytesMultiple (may split packets if variable-count blocks present and safe to split)
+            {
+                // Decide at generation time whether packet has variable blocks and whether splitting is possible
+                bool hasVariable = packet.Blocks.Any(b => b.Count == -1);
+                bool cannotSplit = false;
+                if (hasVariable)
+                {
+                    bool seenVariable = false;
+                    foreach (var b in packet.Blocks)
+                    {
+                        if (b.Count == -1) seenVariable = true;
+                        else if (seenVariable)
+                        {
+                            // fixed or single block appears after a variable block => cannot split
+                            cannotSplit = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (hasVariable && !cannotSplit)
+                {
+                    Append(sb, 2, "public override byte[][] ToBytesMultiple()");
+                    Append(sb, 2, "{");
+                    Append(sb, 3, "System.Collections.Generic.List<byte[]> packets = new System.Collections.Generic.List<byte[]>();");
+                    Append(sb, 3, "int i = 0;");
+                    Append(sb, 3, $"int fixedLength = {(packet.Frequency == PacketFrequency.Low ? 10 : packet.Frequency == PacketFrequency.Medium ? 8 : 7)};");
+                    Append(sb, 3, "");
+                    Append(sb, 3, "// ACK serialization");
+                    Append(sb, 3, "byte[] ackBytes = null;");
+                    Append(sb, 3, "int acksLength = 0;");
+                    Append(sb, 3, "if (Header.AckList != null && Header.AckList.Length > 0) {");
+                    Append(sb, 4, "Header.AppendedAcks = true;");
+                    Append(sb, 4, "ackBytes = new byte[Header.AckList.Length * 4 + 1];");
+                    Append(sb, 4, "Header.AcksToBytes(ackBytes, ref acksLength);");
+                    Append(sb, 3, "}");
+                    Append(sb, 3, "");
+
+                    // Count fixed blocks into fixedLength
+                    foreach (var block in packet.Blocks)
+                    {
+                        var sanitizedName = block.Name == "Header" ? "_" + block.Name : block.Name;
+                        if (block.Count == 1)
+                        {
+                            Append(sb, 3, $"fixedLength += {sanitizedName}.Length;");
+                        }
+                        else if (block.Count > 0)
+                        {
+                            Append(sb, 3, $"for (int j = 0; j < {block.Count}; j++) {{ fixedLength += {sanitizedName}[j].Length; }}");
+                        }
+                    }
+
+                    // Serialize fixed blocks into fixedBytes
+                    Append(sb, 3, "byte[] fixedBytes = new byte[fixedLength];");
+                    Append(sb, 3, "Header.ToBytes(fixedBytes, ref i);");
+                    foreach (var block in packet.Blocks)
+                    {
+                        var sanitizedName = block.Name == "Header" ? "_" + block.Name : block.Name;
+                        if (block.Count == 1)
+                        {
+                            Append(sb, 3, $"{sanitizedName}.ToBytes(fixedBytes, ref i);");
+                        }
+                        else if (block.Count > 0)
+                        {
+                            Append(sb, 3, $"for (int j = 0; j < {block.Count}; j++) {{ {sanitizedName}[j].ToBytes(fixedBytes, ref i); }}");
+                        }
+                    }
+
+                    // Account for variable-count block count bytes (one byte per variable-count block)
+                    var variableCountBlock = packet.Blocks.Count(b => b.Count == -1);
+                    Append(sb, 3, $"fixedLength += {variableCountBlock};");
+                    Append(sb, 3, "");
+
+                    // Initialize starts for variable blocks
+                    foreach (var block in packet.Blocks)
+                    {
+                        if (block.Count == -1)
+                        {
+                            var sanitizedName = block.Name == "Header" ? "_" + block.Name : block.Name;
+                            Append(sb, 3, $"int {sanitizedName}Start = 0;");
+                        }
+                    }
+
+                    Append(sb, 3, "do");
+                    Append(sb, 3, "{");
+                    Append(sb, 4, "int variableLength = 0;");
+
+                    foreach (var block in packet.Blocks)
+                    {
+                        if (block.Count == -1)
+                        {
+                            var sanitizedName = block.Name == "Header" ? "_" + block.Name : block.Name;
+                            Append(sb, 4, $"int {sanitizedName}Count = 0;");
+                        }
+                    }
+                    Append(sb, 4, "");
+
+                    foreach (var block in packet.Blocks)
+                    {
+                        if (block.Count == -1)
+                        {
+                            var sanitizedName = block.Name == "Header" ? "_" + block.Name : block.Name;
+                            Append(sb, 4, $"i = {sanitizedName}Start;");
+                            Append(sb, 4, $"while (fixedLength + variableLength + acksLength < Packet.MTU && i < {sanitizedName}.Length) {{");
+                            Append(sb, 5, "int blockLength = " + sanitizedName + "[i].Length;");
+                            Append(sb, 5, $"if (fixedLength + variableLength + blockLength + acksLength <= MTU || i == {sanitizedName}Start) {{");
+                            Append(sb, 6, "variableLength += blockLength;");
+                            Append(sb, 6, $"++{sanitizedName}Count;");
+                            Append(sb, 5, "}");
+                            Append(sb, 5, "else { break; }");
+                            Append(sb, 5, "++i;");
+                            Append(sb, 4, "}");
+                            Append(sb, 4, "");
+                        }
+                    }
+
+                    Append(sb, 4, "byte[] packet = new byte[fixedLength + variableLength + acksLength];");
+                    Append(sb, 4, "int length = fixedBytes.Length;");
+                    Append(sb, 4, "Buffer.BlockCopy(fixedBytes, 0, packet, 0, length);");
+                    Append(sb, 4, "// Remove the appended ACKs flag from subsequent packets");
+                    Append(sb, 4, "if (packets.Count > 0) { packet[0] = (byte)(packet[0] & ~0x10); }");
+                    Append(sb, 4, "");
+
+                    foreach (var block in packet.Blocks)
+                    {
+                        if (block.Count == -1)
+                        {
+                            var sanitizedName = block.Name == "Header" ? "_" + block.Name : block.Name;
+                            Append(sb, 4, $"packet[length++] = (byte){sanitizedName}Count;");
+                            Append(sb, 4, $"for (i = {sanitizedName}Start; i < {sanitizedName}Start + {sanitizedName}Count; i++) {{ {sanitizedName}[i].ToBytes(packet, ref length); }}");
+                            Append(sb, 4, $"{sanitizedName}Start += {sanitizedName}Count;");
+                            Append(sb, 4, "");
+                        }
+                    }
+
+                    // ACK appending
+                    Append(sb, 4, "if (acksLength > 0) {");
+                    Append(sb, 5, "Buffer.BlockCopy(ackBytes, 0, packet, length, acksLength);");
+                    Append(sb, 5, "acksLength = 0;");
+                    Append(sb, 4, "}");
+                    Append(sb, 4, "");
+
+                    Append(sb, 4, "packets.Add(packet);");
+
+                    Append(sb, 3, "}");
+                    // build loop condition: any variableStart < length
+                    {
+                        var first = true;
+                        Append(sb, 3, "while (");
+                        foreach (var block in packet.Blocks)
+                        {
+                            if (block.Count == -1)
+                            {
+                                var sanitizedName = block.Name == "Header" ? "_" + block.Name : block.Name;
+                                if (!first) Append(sb, 3, " ||");
+                                Append(sb, 3, $"    {sanitizedName}Start < {sanitizedName}.Length");
+                                first = false;
+                            }
+                        }
+                        Append(sb, 3, ");");
+                    }
+
+                    Append(sb, 3, "");
+                    Append(sb, 3, "return packets.ToArray();");
+                    Append(sb, 2, "}");
+                }
+                else
+                {
+                    Append(sb, 2, "public override byte[][] ToBytesMultiple() => new byte[][] { ToBytes() };");
+                }
+            }
+
             Append(sb, 2, "public override bool UsesBufferPooling => false;");
             Append(sb, 2, "public override byte[] ToBytes(IByteBufferPool pool, ref int size) => ToBytes();");
             Append(sb, 2, "public override byte[][] ToBytesMultiple(IByteBufferPool pool, out int[] sizes)");
