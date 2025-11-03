@@ -62,7 +62,7 @@ namespace PacketSourceGenerator
                 }
 
                 var content = files[0];
-                var protocol = ProtocolParser.Parse(content);
+                var protocol = ProtocolParser.Parse(content!);
                 var source = GeneratedSourceBuilder.Build(protocol);
                 spc.AddSource("Packets.g.cs", SourceText.From(source, Encoding.UTF8));
             });

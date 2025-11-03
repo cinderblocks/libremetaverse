@@ -251,7 +251,7 @@ namespace OpenMetaverse
 
                 try
                 {
-                    var generated = GenerateFromTemplateAndXml(templateText, xmlText, spc);
+                    var generated = GenerateFromTemplateAndXml(templateText!, xmlText!, spc);
                     spc.AddSource("VisualParams.g.cs", SourceText.From(generated, Encoding.UTF8));
                 }
                 catch (Exception ex)
@@ -299,7 +299,7 @@ namespace OpenMetaverse
                     var bumpAttrib = "false";
                     var skipColor = false;
 
-                    if (node.ParentNode is XmlNode parent && parent.Name == "layer")
+                    if (node.ParentNode is { Name: "layer" } parent)
                     {
                         if (parent.Attributes?["render_pass"]?.Value == "bump")
                             bumpAttrib = "true";
