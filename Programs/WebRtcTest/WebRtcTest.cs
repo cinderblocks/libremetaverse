@@ -105,7 +105,7 @@ namespace WebRtcTest
                 Console.WriteLine("Logged in: " + client.Network.LoginMessage);
 
                 Console.WriteLine("Waiting for OnEventQueueRunning");
-                if (!EventQueueRunningEvent.WaitOne(45 * 1000, false))
+                if (!EventQueueRunningEvent.WaitOne(TimeSpan.FromSeconds(45), false))
                     throw new VoiceTestException("EventQueueRunning event did not occur", true);
                 Console.WriteLine("EventQueue running");
 
@@ -113,7 +113,7 @@ namespace WebRtcTest
 
                 if (cap == null)
                 {
-                    throw new VoiceTestException($"No ProvisionVoiceAccountRequest capability available", true);
+                    throw new VoiceTestException("No ProvisionVoiceAccountRequest capability available", true);
                 }
 
 

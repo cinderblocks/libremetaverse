@@ -136,6 +136,9 @@ namespace LibreMetaverse.Voice.WebRTC
         private long lastRtcpReceivedTicks = 0;
         private long lastRtcpSentTicks = 0;
         private MediaStreamTrack _remoteAudioTrack;
+
+        private System.Timers.Timer dataChannelKeepAliveTimer;
+
         internal VoiceSession(Sdl3Audio audioDevice, ESessionType type, GridClient client)
         {
             Client = client;
@@ -169,7 +172,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 var tcs = new TaskCompletionSource<(byte[] data, Exception err)>();
                 try
                 {
-                    Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, Cts.Token, (response, data, error) =>
+                    _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, Cts.Token, (response, data, error) =>
                     {
                         tcs.TrySetResult((data, error));
                     });
@@ -472,12 +475,12 @@ namespace LibreMetaverse.Voice.WebRTC
             return pc;
         }
 
-        private async void FlushPendingIceCandidates()
+        private async Task FlushPendingIceCandidates()
         {
-            if (!answerReceived || PendingCandidates.Count == 0) return;
+            if (!answerReceived || PendingCandidates.Count == 0) { return; }
 
             var cap = Client.Network.CurrentSim.Caps?.CapabilityURI(VOICE_SIGNALING_CAP);
-            if (cap == null) return;
+            if (cap == null) { return; }
 
             var candidatesArray = new OSDArray();
             while (PendingCandidates.Count > 0)
@@ -1099,8 +1102,6 @@ namespace LibreMetaverse.Voice.WebRTC
             return string.Join("\r\n", output);
         }
 
-
-
         private async Task AttemptReprovisionAsync()
         {
             // Ensure only one reprovision runs at a time
@@ -1394,8 +1395,6 @@ namespace LibreMetaverse.Voice.WebRTC
             }
         }
 
-        private System.Timers.Timer dataChannelKeepAliveTimer;
-
         private void StartDataChannelKeepAliveTimer()
         {
             if (dataChannelKeepAliveTimer != null) return;
@@ -1544,7 +1543,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 var desc = SDP.ParseSDPDescription(sdpString);
                 var set = PeerConnection.SetRemoteDescription(SdpType.answer, desc);
                 answerReceived = true;
-                FlushPendingIceCandidates();
+                _ = FlushPendingIceCandidates();
                 if (set != SetDescriptionResultEnum.OK)
                 {
                     PeerConnection.Close("Failed to set remote description (multiagent).");
@@ -1588,43 +1587,15 @@ namespace LibreMetaverse.Voice.WebRTC
         }
 
         // Close and cleanup session resources
-        public void CloseSession()
+        public async Task CloseSession()
         {
-            try
-            {
-                Cts.Cancel();
-            }
-            catch { }
+            StopPositionTimer();
+            StopDataChannelKeepAliveTimer();
+            PeerConnection?.Close("ClientClose");
 
-            try
-            {
-                StopPositionTimer();
-                StopDataChannelKeepAliveTimer();
-            }
-            catch { }
-
-            try
-            {
-                if (PeerConnection != null)
-                {
-                    try { PeerConnection.Close("ClientClose"); } catch { }
-                }
-            }
-            catch { }
-
-            // Best-effort notify server — send complete/close in background
-            try
-            {
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await SendVoiceSignalingCompleteRequest();
-                    }
-                    catch { }
-                });
-            }
-            catch { }
+            await SendCloseSessionRequest();
+            await SendVoiceSignalingCompleteRequest();
+            //Cts.Cancel();
         }
     }
 }

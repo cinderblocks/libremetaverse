@@ -133,13 +133,13 @@ namespace LibreMetaverse.Voice.WebRTC
 
         public void Disconnect()
         {
-            if (CurrentSession == null) return;
+            if (CurrentSession == null) { return; }
 
             // detach handlers
             CurrentSession.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady;
             // Note: events forwarded via lambda can't be individually removed; rely on session disposal.
 
-            CurrentSession.CloseSession();
+            _ = CurrentSession.CloseSession();
             CurrentSession = null;
             _channelId = null;
             _channelCredentials = null;
@@ -246,7 +246,7 @@ namespace LibreMetaverse.Voice.WebRTC
             }
 
             var tcs = new TaskCompletionSource<OSD>();
-            Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), CancellationToken.None, (response, data, error) =>
+            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), CancellationToken.None, (response, data, error) =>
             {
                 if (error != null)
                 {
