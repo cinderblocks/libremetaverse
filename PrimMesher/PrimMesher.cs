@@ -28,6 +28,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 namespace LibreMetaverse.PrimMesher
 {
@@ -58,8 +59,8 @@ namespace LibreMetaverse.PrimMesher
             axis = axis.Normalize();
 
             angle *= 0.5f;
-            var c = (float) Math.Cos(angle);
-            var s = (float) Math.Sin(angle);
+            var c = (float)Math.Cos(angle);
+            var s = (float)Math.Sin(angle);
 
             X = axis.X * s;
             Y = axis.Y * s;
@@ -71,7 +72,7 @@ namespace LibreMetaverse.PrimMesher
 
         public float Length()
         {
-            return (float) Math.Sqrt(X * X + Y * Y + Z * Z + W * W);
+            return (float)Math.Sqrt(X * X + Y * Y + Z * Z + W * W);
         }
 
         public Quat Normalize()
@@ -129,7 +130,7 @@ namespace LibreMetaverse.PrimMesher
 
         public float Length()
         {
-            return (float) Math.Sqrt(X * X + Y * Y + Z * Z);
+            return (float)Math.Sqrt(X * X + Y * Y + Z * Z);
         }
 
         public Coord Invert()
@@ -501,8 +502,8 @@ namespace LibreMetaverse.PrimMesher
             if (denom != 0.0)
             {
                 var ua = uaNumerator / denom;
-                iX = (float) (x1 + ua * (x2 - x1));
-                iY = (float) (y1 + ua * (y2 - y1));
+                iX = (float)(x1 + ua * (x2 - x1));
+                iY = (float)(y1 + ua * (y2 - y1));
             }
         }
 
@@ -512,7 +513,7 @@ namespace LibreMetaverse.PrimMesher
             normals = new List<Coord>();
 
             var twoPi = Math.PI * 2.0;
-            var twoPiInv = 1.0f / (float) twoPi;
+            var twoPiInv = 1.0f / (float)twoPi;
 
             if (sides < 1)
                 throw new Exception("number of sides not greater than zero");
@@ -531,10 +532,10 @@ namespace LibreMetaverse.PrimMesher
                     sourceAngles = angles4;
                 else sourceAngles = angles24;
 
-                var startAngleIndex = (int) (startAngle * sides);
+                var startAngleIndex = (int)(startAngle * sides);
                 var endAngleIndex = sourceAngles.Length - 1;
                 if (stopAngle < 1.0f)
-                    endAngleIndex = (int) (stopAngle * sides) + 1;
+                    endAngleIndex = (int)(stopAngle * sides) + 1;
                 if (endAngleIndex == startAngleIndex)
                     endAngleIndex++;
 
@@ -561,13 +562,13 @@ namespace LibreMetaverse.PrimMesher
             {
                 var stepSize = twoPi / sides;
 
-                var startStep = (int) (startAngle / stepSize);
+                var startStep = (int)(startAngle / stepSize);
                 var angle = stepSize * startStep;
                 var step = startStep;
                 double stopAngleTest = stopAngle;
                 if (stopAngle < twoPi)
                 {
-                    stopAngleTest = stepSize * ((int) (stopAngle / stepSize) + 1);
+                    stopAngleTest = stepSize * ((int)(stopAngle / stepSize) + 1);
                     if (stopAngleTest < stopAngle)
                         stopAngleTest += stepSize;
                     if (stopAngleTest > twoPi)
@@ -577,9 +578,9 @@ namespace LibreMetaverse.PrimMesher
                 while (angle <= stopAngleTest)
                 {
                     Angle newAngle;
-                    newAngle.angle = (float) angle;
-                    newAngle.X = (float) Math.Cos(angle);
-                    newAngle.Y = (float) Math.Sin(angle);
+                    newAngle.angle = (float)angle;
+                    newAngle.X = (float)Math.Cos(angle);
+                    newAngle.Y = (float)Math.Sin(angle);
                     angles.Add(newAngle);
                     step += 1;
                     angle = stepSize * step;
@@ -589,7 +590,7 @@ namespace LibreMetaverse.PrimMesher
                 {
                     Angle newAngle;
                     intersection(angles[0].X, angles[0].Y, angles[1].X, angles[1].Y, 0.0f, 0.0f,
-                        (float) Math.Cos(startAngle), (float) Math.Sin(startAngle));
+                        (float)Math.Cos(startAngle), (float)Math.Sin(startAngle));
                     newAngle.angle = startAngle;
                     newAngle.X = iX;
                     newAngle.Y = iY;
@@ -601,7 +602,7 @@ namespace LibreMetaverse.PrimMesher
                 {
                     Angle newAngle;
                     intersection(angles[index - 1].X, angles[index - 1].Y, angles[index].X, angles[index].Y, 0.0f, 0.0f,
-                        (float) Math.Cos(stopAngle), (float) Math.Sin(stopAngle));
+                        (float)Math.Cos(stopAngle), (float)Math.Sin(stopAngle));
                     newAngle.angle = stopAngle;
                     newAngle.X = iX;
                     newAngle.Y = iY;
@@ -616,7 +617,7 @@ namespace LibreMetaverse.PrimMesher
     /// </summary>
     public class Profile
     {
-        private const float twoPi = 2.0f * (float) Math.PI;
+        private const float twoPi = 2.0f * (float)Math.PI;
         public int bottomFaceNumber;
 
         public bool calcVertexNormals;
@@ -649,18 +650,19 @@ namespace LibreMetaverse.PrimMesher
 
         public Profile()
         {
-            coords = new List<Coord>();
-            faces = new List<Face>();
-            vertexNormals = new List<Coord>();
-            us = new List<float>();
-            faceUVs = new List<UVCoord>();
-            faceNumbers = new List<int>();
+            coords = new List<Coord>(8);
+            faces = new List<Face>(8);
+            vertexNormals = new List<Coord>(8);
+            us = new List<float>(8);
+            faceUVs = new List<UVCoord>(8);
+            faceNumbers = new List<int>(8);
         }
 
         public Profile(int sides, float profileStart, float profileEnd, float hollow, int hollowSides, bool createFaces,
             bool calcVertexNormals)
         {
             this.calcVertexNormals = calcVertexNormals;
+
             coords = new List<Coord>();
             faces = new List<Face>();
             vertexNormals = new List<Coord>();
@@ -748,6 +750,17 @@ namespace LibreMetaverse.PrimMesher
 
             Angle angle;
             var newVert = new Coord();
+
+            // Pre-size lists for performance
+            var estimatedTotalVerts = numOuterVerts + (hasHollow ? numHollowVerts : 0) + 2;
+            if (estimatedTotalVerts < 8) estimatedTotalVerts = 8;
+            coords.Capacity = Math.Max(coords.Capacity, estimatedTotalVerts);
+            vertexNormals.Capacity = Math.Max(vertexNormals.Capacity, estimatedTotalVerts);
+            faceUVs.Capacity = Math.Max(faceUVs.Capacity, estimatedTotalVerts);
+            us.Capacity = Math.Max(us.Capacity, estimatedTotalVerts);
+            if (createFaces)
+                faces.Capacity = Math.Max(faces.Capacity, numOuterVerts * 2 + 8);
+
             if (hasHollow && hollowSides != sides)
             {
                 var numHollowAngles = hollowAngles.angles.Count;
@@ -920,11 +933,14 @@ namespace LibreMetaverse.PrimMesher
                 }
 
                 if (calcVertexNormals)
-                    foreach (var hc in hollowCoords)
+                {
+                    // Add hollow coords with reserved capacity to avoid reallocation
+                    for (var hcIndex = 0; hcIndex < hollowCoords.Count; hcIndex++)
                     {
-                        coords.Add(hc);
+                        coords.Add(hollowCoords[hcIndex]);
                         hollowCoordIndices.Add(coords.Count - 1);
                     }
+                }
                 else
                     coords.AddRange(hollowCoords);
 
@@ -1032,9 +1048,13 @@ namespace LibreMetaverse.PrimMesher
 
         public void MakeFaceUVs()
         {
-            faceUVs = new List<UVCoord>();
-            foreach (var c in coords)
+            // preallocate to avoid repeated growth
+            faceUVs = new List<UVCoord>(coords.Count);
+            for (var i = 0; i < coords.Count; i++)
+            {
+                var c = coords[i];
                 faceUVs.Add(new UVCoord(1.0f - (0.5f + c.X), 1.0f - (0.5f - c.Y)));
+            }
         }
 
         public Profile Copy()
@@ -1046,26 +1066,36 @@ namespace LibreMetaverse.PrimMesher
         {
             var copy = new Profile();
 
+            // Reserve capacity for copying to reduce reallocations
+            copy.coords = new List<Coord>(coords.Count);
             copy.coords.AddRange(coords);
+
+            copy.faceUVs = new List<UVCoord>(faceUVs.Count);
             copy.faceUVs.AddRange(faceUVs);
 
             if (needFaces)
+            {
+                copy.faces = new List<Face>(faces.Count);
                 copy.faces.AddRange(faces);
+            }
 
             copy.calcVertexNormals = calcVertexNormals;
             if (calcVertexNormals)
             {
+                copy.vertexNormals = new List<Coord>(vertexNormals.Count);
                 copy.vertexNormals.AddRange(vertexNormals);
                 copy.faceNormal = faceNormal;
                 copy.cutNormal1 = cutNormal1;
                 copy.cutNormal2 = cutNormal2;
+                copy.us = new List<float>(us.Count);
                 copy.us.AddRange(us);
+                copy.faceNumbers = new List<int>(faceNumbers.Count);
                 copy.faceNumbers.AddRange(faceNumbers);
 
-                copy.cut1CoordIndices = new List<int>(cut1CoordIndices);
-                copy.cut2CoordIndices = new List<int>(cut2CoordIndices);
-                copy.hollowCoordIndices = new List<int>(hollowCoordIndices);
-                copy.outerCoordIndices = new List<int>(outerCoordIndices);
+                copy.cut1CoordIndices = cut1CoordIndices != null ? new List<int>(cut1CoordIndices) : null;
+                copy.cut2CoordIndices = cut2CoordIndices != null ? new List<int>(cut2CoordIndices) : null;
+                copy.hollowCoordIndices = hollowCoordIndices != null ? new List<int>(hollowCoordIndices) : null;
+                copy.outerCoordIndices = outerCoordIndices != null ? new List<int>(outerCoordIndices) : null;
             }
             copy.numOuterVerts = numOuterVerts;
             copy.numHollowVerts = numHollowVerts;
@@ -1080,10 +1110,9 @@ namespace LibreMetaverse.PrimMesher
 
         public void AddPos(float x, float y, float z)
         {
-            int i;
             var numVerts = coords.Count;
 
-            for (i = 0; i < numVerts; i++)
+            for (var i = 0; i < numVerts; i++)
             {
                 var vert = coords[i];
                 vert.X += x;
@@ -1095,16 +1124,15 @@ namespace LibreMetaverse.PrimMesher
 
         public void AddRot(Quat q)
         {
-            int i;
             var numVerts = coords.Count;
 
-            for (i = 0; i < numVerts; i++)
+            for (var i = 0; i < numVerts; i++)
                 coords[i] *= q;
 
             if (calcVertexNormals)
             {
                 var numNormals = vertexNormals.Count;
-                for (i = 0; i < numNormals; i++)
+                for (var i = 0; i < numNormals; i++)
                     vertexNormals[i] *= q;
 
                 faceNormal *= q;
@@ -1115,10 +1143,9 @@ namespace LibreMetaverse.PrimMesher
 
         public void Scale(float x, float y)
         {
-            int i;
             var numVerts = coords.Count;
 
-            for (i = 0; i < numVerts; i++)
+            for (var i = 0; i < numVerts; i++)
             {
                 var vert = coords[i];
                 vert.X *= x;
@@ -1134,7 +1161,7 @@ namespace LibreMetaverse.PrimMesher
         public void FlipNormals()
         {
             var numFaces = faces.Count;
-            for (int i = 0; i < numFaces; i++)
+            for (var i = 0; i < numFaces; i++)
             {
                 Face tmpFace = faces[i];
                 (tmpFace.v3, tmpFace.v1) = (tmpFace.v1, tmpFace.v3);
@@ -1157,7 +1184,7 @@ namespace LibreMetaverse.PrimMesher
             faceNormal.Z = -faceNormal.Z;
 
             var numfaceUVs = faceUVs.Count;
-            for (int i = 0; i < numfaceUVs; i++)
+            for (var i = 0; i < numfaceUVs; i++)
             {
                 var uv = faceUVs[i];
                 uv.V = 1.0f - uv.V;
@@ -1202,18 +1229,17 @@ namespace LibreMetaverse.PrimMesher
                 return;
             var fileName = name + "_" + title + ".raw";
             var completePath = System.IO.Path.Combine(path, fileName);
-            var sw = new StreamWriter(completePath);
-
-            for (var i = 0; i < faces.Count; i++)
+            using (var sw = new StreamWriter(completePath))
             {
-                var s = coords[faces[i].v1].ToString();
-                s += " " + coords[faces[i].v2];
-                s += " " + coords[faces[i].v3];
+                for (var i = 0; i < faces.Count; i++)
+                {
+                    var s = coords[faces[i].v1].ToString();
+                    s += " " + coords[faces[i].v2];
+                    s += " " + coords[faces[i].v3];
 
-                sw.WriteLine(s);
+                    sw.WriteLine(s);
+                }
             }
-
-            sw.Close();
         }
     }
 
@@ -1235,7 +1261,7 @@ namespace LibreMetaverse.PrimMesher
 
     public class Path
     {
-        private const float twoPi = 2.0f * (float) Math.PI;
+        private const float twoPi = 2.0f * (float)Math.PI;
         public float dimpleBegin;
         public float dimpleEnd = 1.0f;
         public float holeSizeX = 1.0f; // called pathScaleX in pbs
@@ -1274,7 +1300,7 @@ namespace LibreMetaverse.PrimMesher
                 var twistTotal = twistEnd - twistBegin;
                 var twistTotalAbs = Math.Abs(twistTotal);
                 if (twistTotalAbs > 0.01f)
-                    steps += (int) (twistTotalAbs * 3.66); //  dahlia's magic number
+                    steps += (int)(twistTotalAbs * 3.66); //  dahlia's magic number
 
                 var start = -0.5f;
                 var stepSize = length / steps;
@@ -1294,7 +1320,7 @@ namespace LibreMetaverse.PrimMesher
 
                 while (!done)
                 {
-                    var newNode = new PathNode {xScale = 1.0f};
+                    var newNode = new PathNode { xScale = 1.0f };
 
                     if (taperX == 0.0f)
                         newNode.xScale = 1.0f;
@@ -1369,7 +1395,7 @@ namespace LibreMetaverse.PrimMesher
                 var endAngle = twoPi * pathCutEnd * revolutions - topShearY * 0.9f;
                 var stepSize = twoPi / stepsPerRevolution;
 
-                var step = (int) (startAngle / stepSize);
+                var step = (int)(startAngle / stepSize);
                 var angle = startAngle;
 
                 var done = false;
@@ -1405,11 +1431,11 @@ namespace LibreMetaverse.PrimMesher
                     var twist = twistBegin + twistTotal * percentOfPath;
 
                     var xOffset = 0.5f * (skewStart + totalSkew * percentOfAngles);
-                    xOffset += (float) Math.Sin(angle) * xOffsetTopShearXFactor;
+                    xOffset += (float)Math.Sin(angle) * xOffsetTopShearXFactor;
 
-                    var yOffset = yShearCompensation * (float) Math.Cos(angle) * (0.5f - yPathScale) * radiusScale;
+                    var yOffset = yShearCompensation * (float)Math.Cos(angle) * (0.5f - yPathScale) * radiusScale;
 
-                    var zOffset = (float) Math.Sin(angle + topShearY) * (0.5f - yPathScale) * radiusScale;
+                    var zOffset = (float)Math.Sin(angle + topShearY) * (0.5f - yPathScale) * radiusScale;
 
                     newNode.position = new Coord(xOffset, yOffset, zOffset);
 
@@ -1447,7 +1473,7 @@ namespace LibreMetaverse.PrimMesher
 
     public class PrimMesh
     {
-        private const float twoPi = 2.0f * (float) Math.PI;
+        private const float twoPi = 2.0f * (float)Math.PI;
         public bool calcVertexNormals;
 
         public List<Coord> coords;
@@ -1538,34 +1564,58 @@ namespace LibreMetaverse.PrimMesher
         /// <returns></returns>
         public string ParamsToDisplayString()
         {
-            var s = "";
-            s += "sides..................: " + sides;
-            s += "\nhollowSides..........: " + hollowSides;
-            s += "\nprofileStart.........: " + profileStart;
-            s += "\nprofileEnd...........: " + profileEnd;
-            s += "\nhollow...............: " + hollow;
-            s += "\ntwistBegin...........: " + twistBegin;
-            s += "\ntwistEnd.............: " + twistEnd;
-            s += "\ntopShearX............: " + topShearX;
-            s += "\ntopShearY............: " + topShearY;
-            s += "\npathCutBegin.........: " + pathCutBegin;
-            s += "\npathCutEnd...........: " + pathCutEnd;
-            s += "\ndimpleBegin..........: " + dimpleBegin;
-            s += "\ndimpleEnd............: " + dimpleEnd;
-            s += "\nskew.................: " + skew;
-            s += "\nholeSizeX............: " + holeSizeX;
-            s += "\nholeSizeY............: " + holeSizeY;
-            s += "\ntaperX...............: " + taperX;
-            s += "\ntaperY...............: " + taperY;
-            s += "\nradius...............: " + radius;
-            s += "\nrevolutions..........: " + revolutions;
-            s += "\nstepsPerRevolution...: " + stepsPerRevolution;
-            s += "\nsphereMode...........: " + sphereMode;
-            s += "\nhasProfileCut........: " + HasProfileCut;
-            s += "\nhasHollow............: " + HasHollow;
-            s += "\nviewerMode...........: " + viewerMode;
+            var sb = new StringBuilder(512);
+            sb.AppendFormat("sides..................: {0}", sides);
+            sb.AppendLine();
+            sb.AppendFormat("hollowSides..........: {0}", hollowSides);
+            sb.AppendLine();
+            sb.AppendFormat("profileStart.........: {0}", profileStart);
+            sb.AppendLine();
+            sb.AppendFormat("profileEnd...........: {0}", profileEnd);
+            sb.AppendLine();
+            sb.AppendFormat("hollow...............: {0}", hollow);
+            sb.AppendLine();
+            sb.AppendFormat("twistBegin...........: {0}", twistBegin);
+            sb.AppendLine();
+            sb.AppendFormat("twistEnd.............: {0}", twistEnd);
+            sb.AppendLine();
+            sb.AppendFormat("topShearX............: {0}", topShearX);
+            sb.AppendLine();
+            sb.AppendFormat("topShearY............: {0}", topShearY);
+            sb.AppendLine();
+            sb.AppendFormat("pathCutBegin.........: {0}", pathCutBegin);
+            sb.AppendLine();
+            sb.AppendFormat("pathCutEnd...........: {0}", pathCutEnd);
+            sb.AppendLine();
+            sb.AppendFormat("dimpleBegin..........: {0}", dimpleBegin);
+            sb.AppendLine();
+            sb.AppendFormat("dimpleEnd............: {0}", dimpleEnd);
+            sb.AppendLine();
+            sb.AppendFormat("skew.................: {0}", skew);
+            sb.AppendLine();
+            sb.AppendFormat("holeSizeX............: {0}", holeSizeX);
+            sb.AppendLine();
+            sb.AppendFormat("holeSizeY............: {0}", holeSizeY);
+            sb.AppendLine();
+            sb.AppendFormat("taperX...............: {0}", taperX);
+            sb.AppendLine();
+            sb.AppendFormat("taperY...............: {0}", taperY);
+            sb.AppendLine();
+            sb.AppendFormat("radius...............: {0}", radius);
+            sb.AppendLine();
+            sb.AppendFormat("revolutions..........: {0}", revolutions);
+            sb.AppendLine();
+            sb.AppendFormat("stepsPerRevolution...: {0}", stepsPerRevolution);
+            sb.AppendLine();
+            sb.AppendFormat("sphereMode...........: {0}", sphereMode);
+            sb.AppendLine();
+            sb.AppendFormat("hasProfileCut........: {0}", HasProfileCut);
+            sb.AppendLine();
+            sb.AppendFormat("hasHollow............: {0}", HasHollow);
+            sb.AppendLine();
+            sb.AppendFormat("viewerMode...........: {0}", viewerMode);
 
-            return s;
+            return sb.ToString();
         }
 
         /// <summary>
@@ -1594,7 +1644,7 @@ namespace LibreMetaverse.PrimMesher
 
             if (viewerMode && sides == 3)
                 if (Math.Abs(taperX) > 0.01 || Math.Abs(taperY) > 0.01)
-                    steps = (int) (steps * 4.5 * length);
+                    steps = (int)(steps * 4.5 * length);
 
             if (sphereMode)
                 HasProfileCut = profileEnd - profileStart < 0.4999f;
@@ -1607,7 +1657,7 @@ namespace LibreMetaverse.PrimMesher
             var twistTotal = twistEnd - twistBegin;
             var twistTotalAbs = Math.Abs(twistTotal);
             if (twistTotalAbs > 0.01f)
-                steps += (int) (twistTotalAbs * 3.66); //  dahlia's magic number
+                steps += (int)(twistTotalAbs * 3.66); //  dahlia's magic number
 
             var hollow = this.hollow;
 
@@ -1637,7 +1687,7 @@ namespace LibreMetaverse.PrimMesher
                 switch (sides)
                 {
                     case 3:
-                        initialProfileRot = (float) Math.PI;
+                        initialProfileRot = (float)Math.PI;
                         if (hollowSides == 4)
                         {
                             if (hollow > 0.7f)
@@ -1650,14 +1700,14 @@ namespace LibreMetaverse.PrimMesher
                         }
                         break;
                     case 4:
-                        initialProfileRot = 0.25f * (float) Math.PI;
+                        initialProfileRot = 0.25f * (float)Math.PI;
                         if (hollowSides != 4)
                             hollow *= 0.707f;
                         break;
                     default:
                         if (sides > 4)
                         {
-                            initialProfileRot = (float) Math.PI;
+                            initialProfileRot = (float)Math.PI;
                             if (hollowSides == 4)
                             {
                                 if (hollow > 0.7f)
@@ -1685,7 +1735,7 @@ namespace LibreMetaverse.PrimMesher
                         }
                         break;
                     case 4:
-                        initialProfileRot = 1.25f * (float) Math.PI;
+                        initialProfileRot = 1.25f * (float)Math.PI;
                         if (hollowSides != 4)
                             hollow *= 0.707f;
                         break;
@@ -1903,8 +1953,8 @@ namespace LibreMetaverse.PrimMesher
                                     // to reflect the entire texture width
                                     u1 *= sides;
                                     u2 *= sides;
-                                    u2 -= (int) u1;
-                                    u1 -= (int) u1;
+                                    u2 -= (int)u1;
+                                    u1 -= (int)u1;
                                     if (u2 < 0.1f)
                                         u2 = 1.0f;
                                 }
@@ -2052,9 +2102,9 @@ namespace LibreMetaverse.PrimMesher
 
 
         /// <summary>
-        ///     DEPRICATED - use Extrude(PathType.Linear) instead
         ///     Extrudes a profile along a straight line path. Used for prim types box, cylinder, and prism.
         /// </summary>
+        [Obsolete("Use Extrude(PathType.Linear")]
         public void ExtrudeLinear()
         {
             Extrude(PathType.Linear);
@@ -2062,9 +2112,9 @@ namespace LibreMetaverse.PrimMesher
 
 
         /// <summary>
-        ///     DEPRICATED - use Extrude(PathType.Circular) instead
         ///     Extrude a profile into a circular path prim mesh. Used for prim types torus, tube, and ring.
         /// </summary>
+        [Obsolete("Use Extrude(PathType.Circular")]
         public void ExtrudeCircular()
         {
             Extrude(PathType.Circular);
@@ -2131,10 +2181,10 @@ namespace LibreMetaverse.PrimMesher
                 viewerMode = viewerMode,
                 numPrimFaces = numPrimFaces,
                 errorMessage = errorMessage,
-                coords = new List<Coord>(coords),
-                faces = new List<Face>(faces),
-                viewerFaces = new List<ViewerFace>(viewerFaces),
-                normals = new List<Coord>(normals)
+                coords = coords != null ? new List<Coord>(coords) : null,
+                faces = faces != null ? new List<Face>(faces) : null,
+                viewerFaces = viewerFaces != null ? new List<ViewerFace>(viewerFaces) : null,
+                normals = normals != null ? new List<Coord>(normals) : null
             };
 
 
@@ -2154,7 +2204,7 @@ namespace LibreMetaverse.PrimMesher
             var numFaces = faces.Count;
 
             if (!calcVertexNormals)
-                normals = new List<Coord>();
+                normals = new List<Coord>(numFaces);
 
             for (var i = 0; i < numFaces; i++)
             {
@@ -2257,17 +2307,16 @@ namespace LibreMetaverse.PrimMesher
         /// <param name="z"></param>
         public void Scale(float x, float y, float z)
         {
-            int i;
             var numVerts = coords.Count;
 
             var m = new Coord(x, y, z);
-            for (i = 0; i < numVerts; i++)
+            for (var i = 0; i < numVerts; i++)
                 coords[i] *= m;
 
             if (viewerFaces != null)
             {
                 var numViewerFaces = viewerFaces.Count;
-                for (i = 0; i < numViewerFaces; i++)
+                for (var i = 0; i < numViewerFaces; i++)
                 {
                     var v = viewerFaces[i];
                     v.v1 *= m;
@@ -2290,18 +2339,17 @@ namespace LibreMetaverse.PrimMesher
                 return;
             var fileName = name + "_" + title + ".raw";
             var completePath = System.IO.Path.Combine(path, fileName);
-            var sw = new StreamWriter(completePath);
-
-            for (var i = 0; i < faces.Count; i++)
+            using (var sw = new StreamWriter(completePath))
             {
-                var s = coords[faces[i].v1].ToString();
-                s += " " + coords[faces[i].v2];
-                s += " " + coords[faces[i].v3];
+                for (var i = 0; i < faces.Count; i++)
+                {
+                    var s = coords[faces[i].v1].ToString();
+                    s += " " + coords[faces[i].v2];
+                    s += " " + coords[faces[i].v3];
 
-                sw.WriteLine(s);
+                    sw.WriteLine(s);
+                }
             }
-
-            sw.Close();
         }
     }
 }

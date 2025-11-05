@@ -53,13 +53,15 @@ namespace LibreMetaverse.PrimMesher
 
         public SculptMesh(string fileName, int sculptType, int lod, int viewerMode, int mirror, int invert)
         {
-            var img = SKImage.FromEncodedData(fileName);
-            var bitmap = SKBitmap.FromImage(img);
-            _SculptMesh(bitmap, (SculptType)sculptType, lod, viewerMode != 0, mirror != 0, invert != 0);
+            using (var bitmap = SKBitmap.Decode(fileName))
+            {
+                if (bitmap == null) throw new FileNotFoundException("Unable to decode sculpt image", fileName);
+                _SculptMesh(bitmap, (SculptType)sculptType, lod, viewerMode != 0, mirror != 0, invert != 0);
+            }
         }
 
         /// <summary>
-        ///     ** Experimental ** May disappear from future versions ** not recommeneded for use in applications
+        ///     ** Experimental ** May disappear from future versions ** not recommended for use in applications
         ///     Construct a sculpt mesh from a 2D array of floats
         /// </summary>
         /// <param name="zMap"></param>

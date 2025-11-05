@@ -45,18 +45,21 @@ namespace LibreMetaverse.PrimMesher
 
         public SculptMap(SKBitmap bm, int lod)
         {
+            if (bm == null) throw new ArgumentNullException(nameof(bm));
+
             var bmW = bm.Width;
             var bmH = bm.Height;
 
             if (bmW == 0 || bmH == 0)
                 throw new Exception("SculptMap: bitmap has no data");
 
-            var numLodPixels = lod * 2 * lod * 2; // (32 * 2)^2  = 64^2 pixels for default sculpt map image
+            // desired pixel budget for LOD
+            var numLodPixels = (lod * 2) * (lod * 2);
 
             var needsScaling = false;
-
             var smallMap = bmW * bmH <= lod * lod;
 
+            // compute target width/height by repeatedly halving until under budget
             width = bmW;
             height = bmH;
             while (width * height > numLodPixels)
@@ -66,77 +69,84 @@ namespace LibreMetaverse.PrimMesher
                 needsScaling = true;
             }
 
+            SKBitmap scaledBitmap = null;
+            SKBitmap srcBitmap = bm;
 
             try
-            {
-                if (needsScaling)
-                    bm = ScaleImage(bm, width, height);
-            }
-
-            catch (Exception e)
-            {
-                throw new Exception("Exception in ScaleImage(): e: " + e);
-            }
-
-            if (width * height > lod * lod)
-            {
-                width >>= 1;
-                height >>= 1;
-            }
-
-            var numBytes = smallMap ? width * height : (width + 1) * (height + 1);
-            redBytes = new byte[numBytes];
-            greenBytes = new byte[numBytes];
-            blueBytes = new byte[numBytes];
-
-            var byteNdx = 0;
-
-            try
-            {
-                if (smallMap)
-                    for (var y = 0; y < height; y++)
-                    for (var x = 0; x < width; x++)
-                    {
-                        var c = bm.GetPixel(x, y);
-
-                        redBytes[byteNdx] = c.Red;
-                        greenBytes[byteNdx] = c.Green;
-                        blueBytes[byteNdx] = c.Blue;
-
-                        ++byteNdx;
-                    }
-                else
-                    for (var y = 0; y <= height; y++)
-                    for (var x = 0; x <= width; x++)
-                    {
-                        var c = bm.GetPixel(x < width ? x * 2 : x * 2 - 1,
-                            y < height ? y * 2 : y * 2 - 1);
-
-                        redBytes[byteNdx] = c.Red;
-                        greenBytes[byteNdx] = c.Green;
-                        blueBytes[byteNdx] = c.Blue;
-
-                        ++byteNdx;
-                    }
-            }
-            catch (Exception e)
             {
                 if (needsScaling)
                 {
-                    bm.Dispose();
+                    scaledBitmap = ScaleImage(bm, width, height);
+                    // use scaled bitmap for pixel reads, keep original alive for caller
+                    srcBitmap = scaledBitmap;
                 }
+
+                // final shrink if still larger than lod*lod
+                if (width * height > lod * lod)
+                {
+                    width >>= 1;
+                    height >>= 1;
+                }
+
+                // allocate arrays: smallMap uses exact size, otherwise allocate (width+1)*(height+1)
+                var numBytes = smallMap ? width * height : (width + 1) * (height + 1);
+                redBytes = new byte[numBytes];
+                greenBytes = new byte[numBytes];
+                blueBytes = new byte[numBytes];
+
+                var pix = srcBitmap.PeekPixels(); // low-overhead access to pixel data
+                var byteNdx = 0;
+
+                if (smallMap)
+                {
+                    // tight loop: avoid bounds checks and repeated property access
+                    for (var y = 0; y < height; y++)
+                    {
+                        for (var x = 0; x < width; x++)
+                        {
+                            var c = pix.GetPixelColor(x, y);
+                            redBytes[byteNdx] = c.Red;
+                            greenBytes[byteNdx] = c.Green;
+                            blueBytes[byteNdx] = c.Blue;
+                            ++byteNdx;
+                        }
+                    }
+                }
+                else
+                {
+                    // we sample a 2x grid into a (width+1)x(height+1) buffer as original logic
+                    for (var y = 0; y <= height; y++)
+                    {
+                        // compute sample Y (clamped to source)
+                        var sy = (y < height) ? (y * 2) : (y * 2 - 1);
+                        for (var x = 0; x <= width; x++)
+                        {
+                            var sx = (x < width) ? (x * 2) : (x * 2 - 1);
+                            var c = pix.GetPixelColor(sx, sy);
+                            redBytes[byteNdx] = c.Red;
+                            greenBytes[byteNdx] = c.Green;
+                            blueBytes[byteNdx] = c.Blue;
+                            ++byteNdx;
+                        }
+                    }
+                }
+
+                // when not smallMap the consumer expects width/height to be incremented
+                if (!smallMap)
+                {
+                    width++;
+                    height++;
+                }
+            }
+            catch (Exception e)
+            {
                 throw new Exception("Caught exception processing byte arrays in SculptMap(): e: " + e);
             }
-
-            if (!smallMap)
+            finally
             {
-                width++;
-                height++;
-            }
-
-            if (needsScaling)
-            {
-                bm.Dispose();
+                // dispose only the scaled bitmap we created locally
+                if (scaledBitmap != null)
+                    scaledBitmap.Dispose();
             }
         }
 
@@ -147,23 +157,19 @@ namespace LibreMetaverse.PrimMesher
 
             var rows = new List<List<Coord>>(numRows);
 
-            var pixScale = 1.0f / 255;
+            const float pixScale = 1.0f / 255.0f;
 
-            int rowNdx;
             var smNdx = 0;
-
-            for (rowNdx = 0; rowNdx < numRows; rowNdx++)
+            for (var rowNdx = 0; rowNdx < numRows; rowNdx++)
             {
                 var row = new List<Coord>(numCols);
                 for (var colNdx = 0; colNdx < numCols; colNdx++)
                 {
-                    if (mirror)
-                        row.Add(new Coord(-(redBytes[smNdx] * pixScale - 0.5f), greenBytes[smNdx] * pixScale - 0.5f,
-                            blueBytes[smNdx] * pixScale - 0.5f));
-                    else
-                        row.Add(new Coord(redBytes[smNdx] * pixScale - 0.5f, greenBytes[smNdx] * pixScale - 0.5f,
-                            blueBytes[smNdx] * pixScale - 0.5f));
+                    var r = redBytes[smNdx] * pixScale - 0.5f;
+                    var g = greenBytes[smNdx] * pixScale - 0.5f;
+                    var b = blueBytes[smNdx] * pixScale - 0.5f;
 
+                    row.Add(mirror ? new Coord(-r, g, b) : new Coord(r, g, b));
                     ++smNdx;
                 }
                 rows.Add(row);
