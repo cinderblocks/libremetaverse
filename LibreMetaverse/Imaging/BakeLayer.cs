@@ -28,7 +28,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using SkiaSharp;
+using System.Linq;
 using OpenMetaverse.Assets;
 
 namespace OpenMetaverse.Imaging
@@ -129,11 +129,8 @@ namespace OpenMetaverse.Imaging
             }
 
             // Sort out the special layers we need for head baking and alpha
-            foreach (AppearanceManager.TextureData tex in textures)
+            foreach (var tex in textures.Where(tex => tex.Texture != null))
             {
-                if (tex.Texture == null)
-                    continue;
-
                 switch (tex.TextureIndex)
                 {
                     case AvatarTextureIndex.HeadBodypaint:
@@ -277,16 +274,12 @@ namespace OpenMetaverse.Imaging
                         if (addedMasks == 0) for (int l = 0; l < combinedMask.Alpha.Length; l++) combinedMask.Alpha[l] = 255;
 
                         // Add masks in multiply blend mode
-                        foreach (KeyValuePair<VisualAlphaParam, float> kvp in textures[i].AlphaMasks)
+                        foreach (var kvp in textures[i].AlphaMasks.Where(kvp => MaskBelongsToBake(kvp.Key.TGAFile))
+                                     .Where(kvp => kvp.Key.MultiplyBlend && (kvp.Value > 0f || !kvp.Key.SkipIfZero)))
                         {
-                            if (!MaskBelongsToBake(kvp.Key.TGAFile)) continue;
-
-                            if (kvp.Key.MultiplyBlend && (kvp.Value > 0f || !kvp.Key.SkipIfZero))
-                            {
-                                ApplyAlpha(combinedMask, kvp.Key, kvp.Value);
-                                //File.WriteAllBytes(bakeType + "-layer-" + i + "-mask-" + addedMasks + ".tga", combinedMask.ExportTGA());
-                                addedMasks++;
-                            }
+                            ApplyAlpha(combinedMask, kvp.Key, kvp.Value);
+                            //File.WriteAllBytes(bakeType + "-layer-" + i + "-mask-" + addedMasks + ".tga", combinedMask.ExportTGA());
+                            addedMasks++;
                         }
 
                         if (addedMasks > 0)
@@ -325,19 +318,14 @@ namespace OpenMetaverse.Imaging
                     DrawLayer(texture, false);
                 }
 
-                foreach (AppearanceManager.TextureData tex in tattooTextures)
+                foreach (var texture in from tex in tattooTextures where tex.Texture != null select tex.Texture.Image.Clone())
                 {
-                    // Add head tattoo here (if available, order-dependant)
-                    if (tex.Texture != null)
+                    if (texture.Width != bakeWidth || texture.Height != bakeHeight)
                     {
-                        ManagedImage texture = tex.Texture.Image.Clone();
-                        if (texture.Width != bakeWidth || texture.Height != bakeHeight)
-                        {
-                            try { texture.ResizeNearestNeighbor(bakeWidth, bakeHeight); }
-                            catch (Exception) { }
-                        }
-                        DrawLayer(texture, false);
+                        try { texture.ResizeNearestNeighbor(bakeWidth, bakeHeight); }
+                        catch (Exception) { }
                     }
+                    DrawLayer(texture, false);
                 }
             }
 
@@ -351,32 +339,37 @@ namespace OpenMetaverse.Imaging
             //File.WriteAllBytes(bakeType + ".tga", bakedTexture.Image.ExportTGA());
         }
 
-        private static object ResourceSync = new object();
+        private static readonly object ResourceSync = new object();
 
         public static ManagedImage LoadResourceLayer(string fileName)
         {
             try
             {
-                SKBitmap bitmap = null;
                 lock (ResourceSync)
                 {
                     using (Stream stream = Helpers.GetResourceStream(fileName, Path.Combine(Settings.RESOURCE_DIR, "static_assets")))
                     {
                         if (stream != null)
                         {
-                            bitmap = Targa.Decode(stream);
+                            using (var bitmap = Targa.Decode(stream))
+                            {
+                                if (bitmap != null)
+                                {
+                                    return new ManagedImage(bitmap);
+                                }
+                                else
+                                {
+                                    Logger.Log($"Failed loading resource file: {fileName}", Helpers.LogLevel.Error);
+                                    return null;
+                                }
+
+                            }
                         }
                     }
                 }
-                if (bitmap == null)
-                {
-                    Logger.Log($"Failed loading resource file: {fileName}", Helpers.LogLevel.Error);
-                    return null;
-                }
-                else
-                {
-                    return new ManagedImage(bitmap);
-                }
+
+                Logger.Log($"Failed loading resource file: {fileName}", Helpers.LogLevel.Error);
+                return null;
             }
             catch (Exception e)
             {

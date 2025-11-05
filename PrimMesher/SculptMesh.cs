@@ -194,11 +194,12 @@ namespace LibreMetaverse.PrimMesher
 
         public SculptMesh SculptMeshFromFile(string fileName, SculptType sculptType, int lod, bool viewerMode)
         {
-            var img = SKImage.FromEncodedData(fileName);
-            var bitmap = SKBitmap.FromImage(img);
-            var sculptMesh = new SculptMesh(bitmap, sculptType, lod, viewerMode);
-            bitmap.Dispose();
-            return sculptMesh;
+            using (var img = SKImage.FromEncodedData(fileName))
+            using (var bitmap = SKBitmap.FromImage(img))
+            {
+                var sculptMesh = new SculptMesh(bitmap, sculptType, lod, viewerMode);
+                return sculptMesh;
+            }
         }
 
         /// <summary>
