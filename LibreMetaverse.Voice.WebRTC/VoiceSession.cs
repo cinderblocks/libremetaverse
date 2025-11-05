@@ -31,6 +31,7 @@ using SIPSorcery.Net;
 using SIPSorcery.SIP.App;
 using SIPSorcery.Sys;
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -132,10 +133,10 @@ namespace LibreMetaverse.Voice.WebRTC
         private const double HEADING_CHANGE_THRESHOLD = 0.0005; // small quaternion delta
 
         // RTP/RTCP diagnostic fields
-        private long lastRtpReceivedTicks = 0;
-        private long lastRtcpReceivedTicks = 0;
-        private long lastRtcpSentTicks = 0;
-        private MediaStreamTrack _remoteAudioTrack;
+        private readonly long lastRtpReceivedTicks = 0;
+        private readonly long lastRtcpReceivedTicks = 0;
+        private readonly long lastRtcpSentTicks = 0;
+        private readonly MediaStreamTrack _remoteAudioTrack;
 
         private System.Timers.Timer dataChannelKeepAliveTimer;
 
@@ -650,20 +651,19 @@ namespace LibreMetaverse.Voice.WebRTC
                 if (root != null && root.IsObject)
                 {
                     var jd = root;
-                    var jdDict = jd as System.Collections.IDictionary;
+                    IDictionary jdDict = jd;
 
                     // Helper functions (available to entire Json path)
                     int? ToInt(JsonData d)
                     {
-                        try
-                        {
-                            if (d == null) return null;
-                            if (d.IsInt) return (int)d;
-                            if (d.IsLong) return (int)(long)d;
-                            if (d.IsDouble) return (int)(double)d;
-                            var s = d.ToString(); if (int.TryParse(s, out var v)) return v;
-                        }
-                        catch { }
+                        try {
+                            if (d == null) { return null; }
+                            if (d.IsInt) { return (int)d; }
+                            if (d.IsLong) { return (int)(long)d; }
+                            if (d.IsDouble) { return (int)(double)d; }
+                            var s = d.ToString(); 
+                            if (int.TryParse(s, out var v)) { return v; }
+                        } catch { }
                         return null;
                     }
 
@@ -671,28 +671,20 @@ namespace LibreMetaverse.Voice.WebRTC
                     {
                         try
                         {
-                            if (d == null) return null;
-                            if (d.IsBoolean) return (bool)d;
+                            if (d == null) { return null; }
+                            if (d.IsBoolean) { return (bool)d; }
                             var s = d.ToString().Trim('"');
-                            if (bool.TryParse(s, out var b)) return b;
-                            if (int.TryParse(s, out var i)) return i != 0;
-                        }
-                        catch { }
+                            if (bool.TryParse(s, out var b)) { return b; }
+                            if (int.TryParse(s, out var i)) { return i != 0; }
+                        } catch { }
                         return null;
                     }
 
                     // Determine if this is a mixer->client per-peer update: keys are UUIDs
-                    bool allKeysAreUuid = true;
-                    if (jdDict != null)
-                    {
-                        foreach (var kObj in jdDict.Keys)
-                        {
-                            var k = kObj as string;
-                            if (string.IsNullOrEmpty(k) || !UUID.TryParse(k, out _)) { allKeysAreUuid = false; break; }
-                        }
-                    }
+                    bool allKeysAreUuid = (from object kObj in jdDict.Keys select kObj as string)
+                        .All(k => !string.IsNullOrEmpty(k) && UUID.TryParse(k, out _));
 
-                    if (allKeysAreUuid && jdDict != null)
+                    if (allKeysAreUuid)
                     {
                         foreach (var kObj in jdDict.Keys)
                         {
@@ -700,8 +692,8 @@ namespace LibreMetaverse.Voice.WebRTC
                             if (!UUID.TryParse(key, out var peerId)) continue;
                             var val = jd[key];
                             if (val == null || !val.IsObject) continue;
-                            var peerMap = val as JsonData;
-                            var peerDict = peerMap as System.Collections.IDictionary;
+                            var peerMap = val;
+                            IDictionary peerDict = peerMap;
 
                             var state = new PeerAudioState();
 
@@ -711,9 +703,8 @@ namespace LibreMetaverse.Voice.WebRTC
 
                             if (peerDict != null && peerDict.Contains("j") && peerMap["j"].IsObject)
                             {
-                                var jmap = peerMap["j"] as JsonData;
-                                var jdict = jmap as System.Collections.IDictionary;
-                                if (jdict != null && jdict.Contains("p")) state.JoinedPrimary = ToBool(jmap["p"]);
+                                var jmap = peerMap["j"];
+                                if (jmap is IDictionary jdict && jdict.Contains("p")) state.JoinedPrimary = ToBool(jmap["p"]);
                                 OnPeerJoined?.Invoke(peerId);
                             }
 
@@ -735,7 +726,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     bool? JBool(JsonData d) => ToBool(d);
                     string JStr(JsonData d) { try { return d?.ToString().Trim('"'); } catch { return null; } }
 
-                    var contains = new Func<System.Collections.IDictionary, string, bool>((dict, key) => dict != null && dict.Contains(key));
+                    var contains = new Func<IDictionary, string, bool>((dict, key) => dict != null && dict.Contains(key));
 
                     var jdContains = jdDict;
 
@@ -743,8 +734,8 @@ namespace LibreMetaverse.Voice.WebRTC
                     if (contains(jdContains, "j") && jd["j"].IsObject)
                     {
                         UUID peerId = SessionId;
-                        var joinMap = jd["j"] as JsonData;
-                        var joinDict = joinMap as System.Collections.IDictionary;
+                        var joinMap = jd["j"];
+                        IDictionary joinDict = joinMap;
                         var idStr = JStr(joinDict != null && joinDict.Contains("id") ? joinMap["id"] : null);
                         if (!string.IsNullOrEmpty(idStr)) UUID.TryParse(idStr, out peerId);
                         Peers.TryAdd(peerId, new OSDMap());
@@ -767,8 +758,8 @@ namespace LibreMetaverse.Voice.WebRTC
 
                     if (contains(jdContains, "sp") && jd["sp"].IsObject)
                     {
-                        var sp = jd["sp"] as JsonData;
-                        var spDict = sp as System.Collections.IDictionary;
+                        var sp = jd["sp"];
+                        IDictionary spDict = sp;
                         var x = JInt(spDict != null && spDict.Contains("x") ? sp["x"] : null);
                         var y = JInt(spDict != null && spDict.Contains("y") ? sp["y"] : null);
                         var z = JInt(spDict != null && spDict.Contains("z") ? sp["z"] : null);
@@ -777,8 +768,8 @@ namespace LibreMetaverse.Voice.WebRTC
 
                     if (jdContains != null && contains(jdContains, "sh") && jd["sh"].IsObject)
                     {
-                        var sh = jd["sh"] as JsonData;
-                        var shDict = sh as System.Collections.IDictionary;
+                        var sh = jd["sh"];
+                        IDictionary shDict = sh;
                         var x = JInt(shDict != null && shDict.Contains("x") ? sh["x"] : null);
                         var y = JInt(shDict != null && shDict.Contains("y") ? sh["y"] : null);
                         var z = JInt(shDict != null && shDict.Contains("z") ? sh["z"] : null);
@@ -788,8 +779,8 @@ namespace LibreMetaverse.Voice.WebRTC
 
                     if (jdContains != null && contains(jdContains, "lp") && jd["lp"].IsObject)
                     {
-                        var lp = jd["lp"] as JsonData;
-                        var lpDict = lp as System.Collections.IDictionary;
+                        var lp = jd["lp"];
+                        IDictionary lpDict = lp;
                         var x = JInt(lpDict != null && lpDict.Contains("x") ? lp["x"] : null);
                         var y = JInt(lpDict != null && lpDict.Contains("y") ? lp["y"] : null);
                         var z = JInt(lpDict != null && lpDict.Contains("z") ? lp["z"] : null);
@@ -798,8 +789,8 @@ namespace LibreMetaverse.Voice.WebRTC
 
                     if (jdContains != null && contains(jdContains, "lh") && jd["lh"].IsObject)
                     {
-                        var lh = jd["lh"] as JsonData;
-                        var lhDict = lh as System.Collections.IDictionary;
+                        var lh = jd["lh"];
+                        IDictionary lhDict = lh;
                         var x = JInt(lhDict != null && lhDict.Contains("x") ? lh["x"] : null);
                         var y = JInt(lhDict != null && lhDict.Contains("y") ? lh["y"] : null);
                         var z = JInt(lhDict != null && lhDict.Contains("z") ? lh["z"] : null);
@@ -844,8 +835,8 @@ namespace LibreMetaverse.Voice.WebRTC
                     // Mute map 'm'
                     if (jdContains != null && contains(jdContains, "m") && jd["m"].IsObject)
                     {
-                        var muteMap = jd["m"] as JsonData;
-                        var muteDict = muteMap as System.Collections.IDictionary;
+                        var muteMap = jd["m"];
+                        IDictionary muteDict = muteMap;
                         var dict = new Dictionary<UUID, bool>();
                         if (muteDict != null)
                         {
@@ -865,8 +856,8 @@ namespace LibreMetaverse.Voice.WebRTC
                     // Gain map 'ug'
                     if (jdContains != null && contains(jdContains, "ug") && jd["ug"].IsObject)
                     {
-                        var gainMap = jd["ug"] as JsonData;
-                        var gainDict = gainMap as System.Collections.IDictionary;
+                        var gainMap = jd["ug"];
+                        IDictionary gainDict = gainMap;
                         var dict = new Dictionary<UUID, int>();
                         if (gainDict != null)
                         {
@@ -886,7 +877,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     // Avatar list handling
                     if (jdContains != null && contains(jdContains, "av") && jd["av"].IsArray)
                     {
-                        var arr = jd["av"] as JsonData;
+                        var arr = jd["av"];
                         var list = new List<UUID>();
                         for (int i = 0; i < arr.Count; i++)
                         {
@@ -898,8 +889,8 @@ namespace LibreMetaverse.Voice.WebRTC
                     }
                     else if (jdContains != null && contains(jdContains, "a") && jd["a"].IsObject)
                     {
-                        var amap = jd["a"] as JsonData;
-                        var amapDict = amap as System.Collections.IDictionary;
+                        var amap = jd["a"];
+                        IDictionary amapDict = amap;
                         var list = new List<UUID>();
                         if (amapDict != null)
                         {
@@ -926,7 +917,7 @@ namespace LibreMetaverse.Voice.WebRTC
             try
             {
                 var dc = DataChannel;
-                if (dc == null) return false;
+                if (dc == null) { return false; }
                 // RTCDataChannel in sipsorcery supports sending string payloads directly
                 dc.send(str);
                 return true;
@@ -1034,7 +1025,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
         private string SanitizeRemoteSdp(string sdp)
         {
-            if (string.IsNullOrEmpty(sdp)) return sdp;
+            if (string.IsNullOrEmpty(sdp)) { return sdp; }
             var sb = new StringBuilder();
             var lines = sdp.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var line in lines)
@@ -1287,7 +1278,7 @@ namespace LibreMetaverse.Voice.WebRTC
         // In VoiceSession.cs
         private void StartPositionTimer()
         {
-            if (positionTimer != null) return;
+            if (positionTimer != null) { return; }
 
             // Run every 100ms to match viewer behavior: detect changes and decide whether to send
             positionTimer = new System.Timers.Timer(100);
@@ -1296,12 +1287,12 @@ namespace LibreMetaverse.Voice.WebRTC
                 try
                 {
                     var dc = DataChannel;
-                    if (dc == null || dc.readyState != RTCDataChannelState.open) return;
+                    if (dc == null || dc.readyState != RTCDataChannelState.open) { return; }
 
                     var globalPos = Client?.Self?.GlobalPosition ?? Vector3.Zero;
                     var heading = Client?.Self?.RelativeRotation ?? Quaternion.Identity;
 
-                    if (globalPos == Vector3.Zero) return;
+                    if (globalPos == Vector3.Zero) { return; }
 
                     // Detect changes since last observed values
                     bool posChanged = (Math.Abs(globalPos.X - lastObservedGlobalPos.X) > POSITION_CHANGE_THRESHOLD_METERS)
@@ -1334,7 +1325,7 @@ namespace LibreMetaverse.Voice.WebRTC
         private void SendPositionUpdate(RTCDataChannel dc, Vector3d globalPos, Quaternion heading)
         {
             // Only send when flagged dirty
-            if (!mSpatialCoordsDirty) return;
+            if (!mSpatialCoordsDirty) { return; }
 
             // Avoid resending identical payloads
             if (globalPos == lastSentGlobalPos && heading == lastSentHeading)
@@ -1397,7 +1388,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
         private void StartDataChannelKeepAliveTimer()
         {
-            if (dataChannelKeepAliveTimer != null) return;
+            if (dataChannelKeepAliveTimer != null) { return; }
 
             dataChannelKeepAliveTimer = new System.Timers.Timer(5000); // Send keepalive every 5 seconds
             dataChannelKeepAliveTimer.Elapsed += (s, e) =>
@@ -1405,7 +1396,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 try
                 {
                     var dc = DataChannel;
-                    if (dc == null || dc.readyState != RTCDataChannelState.open) return;
+                    if (dc == null || dc.readyState != RTCDataChannelState.open) { return; }
 
                     // Send a simple keepalive message
                     TrySendDataChannelString("{\"ping\":true}");
@@ -1464,7 +1455,8 @@ namespace LibreMetaverse.Voice.WebRTC
             var payload = new LocalVoiceProvisionRequest(SdpLocal, parcelId).Serialize();
             Logger.Log("==> Attempting to POST for voice provision...", Helpers.LogLevel.Debug, Client);
             var osd = await PostCapsWithRetries(cap, payload);
-            Logger.Log($"<== Received provisioning response: {OSDParser.SerializeJsonString(osd)}", Helpers.LogLevel.Debug, Client);
+            //Logger.Log($"<== Received provisioning response: {OSDParser.SerializeJsonString(osd)}", Helpers.LogLevel.Debug, Client);
+            Logger.Log("Received provisioning response", Helpers.LogLevel.Debug, Client);
             if (osd is OSDMap osdMap)
             {
                 if (!osdMap.ContainsKey("jsep"))
@@ -1479,7 +1471,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 }
 
                 var sdpString = jsep["sdp"].AsString();
-                Logger.Log($"<<<< INCOMING REMOTE SDP <<<<\n{sdpString}", Helpers.LogLevel.Debug, Client);
+                //Logger.Log($"<<<< INCOMING REMOTE SDP <<<<\n{sdpString}", Helpers.LogLevel.Debug, Client);
                 sdpString = SanitizeRemoteSdp(sdpString);
                 var sessionId = osdMap.ContainsKey("viewer_session")
                     ? osdMap["viewer_session"].AsUUID()

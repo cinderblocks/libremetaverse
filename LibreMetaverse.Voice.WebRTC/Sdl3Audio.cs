@@ -444,7 +444,7 @@ namespace LibreMetaverse
         {
             if (!IsAvailable)
             {
-                Logger.Log("Cannot ensure endpoint: SDL not available", Helpers.LogLevel.Warning);
+                Logger.Log("Cannot ensure endpoint: SDL3 not available", Helpers.LogLevel.Warning);
                 return false;
             }
 
