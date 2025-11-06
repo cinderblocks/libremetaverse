@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -26,7 +27,6 @@
 
 using System;
 using System.Runtime.InteropServices;
-using System.Globalization;
 
 namespace OpenMetaverse
 {
@@ -142,55 +142,60 @@ namespace OpenMetaverse
         {
             if (!normalized)
             {
+                var src = new Span<byte>(byteArray, pos, 16);
                 if (!BitConverter.IsLittleEndian)
                 {
-                    // Big endian architecture
-                    byte[] conversionBuffer = new byte[16];
-
-                    Buffer.BlockCopy(byteArray, pos, conversionBuffer, 0, 16);
-
-                    Array.Reverse(conversionBuffer, 0, 4);
-                    Array.Reverse(conversionBuffer, 4, 4);
-                    Array.Reverse(conversionBuffer, 8, 4);
-                    Array.Reverse(conversionBuffer, 12, 4);
-
-                    X = BitConverter.ToSingle(conversionBuffer, 0);
-                    Y = BitConverter.ToSingle(conversionBuffer, 4);
-                    Z = BitConverter.ToSingle(conversionBuffer, 8);
-                    W = BitConverter.ToSingle(conversionBuffer, 12);
+                    // Big endian architecture: reverse each 4-byte segment into tmp
+                    Span<byte> tmp = stackalloc byte[16];
+                    for (int i = 0; i < 4; i++)
+                    {
+                        tmp[i * 4 + 0] = src[i * 4 + 3];
+                        tmp[i * 4 + 1] = src[i * 4 + 2];
+                        tmp[i * 4 + 2] = src[i * 4 + 1];
+                        tmp[i * 4 + 3] = src[i * 4 + 0];
+                    }
+                    var fspan = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, float>(tmp);
+                    X = fspan[0];
+                    Y = fspan[1];
+                    Z = fspan[2];
+                    W = fspan[3];
                 }
                 else
                 {
                     // Little endian architecture
-                    X = BitConverter.ToSingle(byteArray, pos);
-                    Y = BitConverter.ToSingle(byteArray, pos + 4);
-                    Z = BitConverter.ToSingle(byteArray, pos + 8);
-                    W = BitConverter.ToSingle(byteArray, pos + 12);
+                    var fspan = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, float>(src);
+                    X = fspan[0];
+                    Y = fspan[1];
+                    Z = fspan[2];
+                    W = fspan[3];
                 }
             }
             else
             {
+                var src = new Span<byte>(byteArray, pos, 12);
                 if (!BitConverter.IsLittleEndian)
                 {
-                    // Big endian architecture
-                    byte[] conversionBuffer = new byte[16];
-
-                    Buffer.BlockCopy(byteArray, pos, conversionBuffer, 0, 12);
-
-                    Array.Reverse(conversionBuffer, 0, 4);
-                    Array.Reverse(conversionBuffer, 4, 4);
-                    Array.Reverse(conversionBuffer, 8, 4);
-
-                    X = BitConverter.ToSingle(conversionBuffer, 0);
-                    Y = BitConverter.ToSingle(conversionBuffer, 4);
-                    Z = BitConverter.ToSingle(conversionBuffer, 8);
+                    // Big endian architecture: reverse each 4-byte segment into tmp
+                    Span<byte> tmp = stackalloc byte[12];
+                    for (int i = 0; i < 3; i++)
+                    {
+                        tmp[i * 4 + 0] = src[i * 4 + 3];
+                        tmp[i * 4 + 1] = src[i * 4 + 2];
+                        tmp[i * 4 + 2] = src[i * 4 + 1];
+                        tmp[i * 4 + 3] = src[i * 4 + 0];
+                    }
+                    var fspan = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, float>(tmp);
+                    X = fspan[0];
+                    Y = fspan[1];
+                    Z = fspan[2];
                 }
                 else
                 {
                     // Little endian architecture
-                    X = BitConverter.ToSingle(byteArray, pos);
-                    Y = BitConverter.ToSingle(byteArray, pos + 4);
-                    Z = BitConverter.ToSingle(byteArray, pos + 8);
+                    var fspan = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, float>(src);
+                    X = fspan[0];
+                    Y = fspan[1];
+                    Z = fspan[2];
                 }
 
                 float xyzsum = 1f - X * X - Y * Y - Z * Z;
@@ -234,15 +239,26 @@ namespace OpenMetaverse
                     x = -X; y = -Y; z = -Z;
                 }
 
-                Buffer.BlockCopy(BitConverter.GetBytes(norm * x), 0, dest, pos + 0, 4);
-                Buffer.BlockCopy(BitConverter.GetBytes(norm * y), 0, dest, pos + 4, 4);
-                Buffer.BlockCopy(BitConverter.GetBytes(norm * z), 0, dest, pos + 8, 4);
+                Span<float> vals = stackalloc float[3];
+                vals[0] = norm * x;
+                vals[1] = norm * y;
+                vals[2] = norm * z;
+
+                var bytes = System.Runtime.InteropServices.MemoryMarshal.Cast<float, byte>(vals);
 
                 if (!BitConverter.IsLittleEndian)
                 {
-                    Array.Reverse(dest, pos + 0, 4);
-                    Array.Reverse(dest, pos + 4, 4);
-                    Array.Reverse(dest, pos + 8, 4);
+                    for (int i = 0; i < 3; i++)
+                    {
+                        dest[pos + i * 4 + 0] = bytes[i * 4 + 3];
+                        dest[pos + i * 4 + 1] = bytes[i * 4 + 2];
+                        dest[pos + i * 4 + 2] = bytes[i * 4 + 1];
+                        dest[pos + i * 4 + 3] = bytes[i * 4 + 0];
+                    }
+                }
+                else
+                {
+                    bytes.CopyTo(new Span<byte>(dest, pos, 12));
                 }
             }
             else
@@ -644,8 +660,14 @@ namespace OpenMetaverse
 
         public static Quaternion Parse(string val)
         {
-            char[] splitChar = { ',' };
-            string[] split = val.Replace("<", string.Empty).Replace(">", string.Empty).Split(splitChar);
+            if (val == null) throw new ArgumentNullException(nameof(val));
+            string trimmed = val.Trim();
+            if (trimmed.Length >= 2 && trimmed[0] == '<' && trimmed[trimmed.Length - 1] == '>')
+                trimmed = trimmed.Substring(1, trimmed.Length - 2);
+
+            string[] split = trimmed.Split(',');
+            if (split.Length != 3 && split.Length != 4) throw new FormatException("Input string was not in a correct format.");
+
             if (split.Length == 3)
             {
                 return new Quaternion(
@@ -711,10 +733,7 @@ namespace OpenMetaverse
         /// <returns>Raw string representation of the quaternion</returns>
         public string ToRawString()
         {
-            CultureInfo enUs = new CultureInfo("en-us");
-            enUs.NumberFormat.NumberDecimalDigits = 3;
-
-            return string.Format(enUs, "{0} {1} {2} {3}", X, Y, Z, W);
+            return string.Format(Utils.EnUsCulture, "{0:F3} {1:F3} {2:F3} {3:F3}", X, Y, Z, W);
         }
 
         #endregion Overrides
@@ -764,6 +783,6 @@ namespace OpenMetaverse
         #endregion Operators
 
         /// <summary>A quaternion with a value of 0,0,0,1</summary>
-        public readonly static Quaternion Identity = new Quaternion(0f, 0f, 0f, 1f);
+        public static readonly Quaternion Identity = new Quaternion(0f, 0f, 0f, 1f);
     }
 }

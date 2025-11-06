@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -26,7 +27,6 @@
 
 using System;
 using System.Runtime.InteropServices;
-using System.Globalization;
 
 namespace OpenMetaverse
 {
@@ -153,30 +153,31 @@ namespace OpenMetaverse
         /// <param name="pos">Beginning position in the byte array</param>
         public void FromBytes(byte[] byteArray, int pos)
         {
+            var src = new Span<byte>(byteArray, pos, 16);
+
             if (!BitConverter.IsLittleEndian)
             {
-                // Big endian architecture
-                byte[] conversionBuffer = new byte[16];
-
-                Buffer.BlockCopy(byteArray, pos, conversionBuffer, 0, 16);
-
-                Array.Reverse(conversionBuffer, 0, 4);
-                Array.Reverse(conversionBuffer, 4, 4);
-                Array.Reverse(conversionBuffer, 8, 4);
-                Array.Reverse(conversionBuffer, 12, 4);
-
-                X = BitConverter.ToSingle(conversionBuffer, 0);
-                Y = BitConverter.ToSingle(conversionBuffer, 4);
-                Z = BitConverter.ToSingle(conversionBuffer, 8);
-                W = BitConverter.ToSingle(conversionBuffer, 12);
+                Span<byte> tmp = stackalloc byte[16];
+                for (int i = 0; i < 4; i++)
+                {
+                    tmp[i * 4 + 0] = src[i * 4 + 3];
+                    tmp[i * 4 + 1] = src[i * 4 + 2];
+                    tmp[i * 4 + 2] = src[i * 4 + 1];
+                    tmp[i * 4 + 3] = src[i * 4 + 0];
+                }
+                var fspan = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, float>(tmp);
+                X = fspan[0];
+                Y = fspan[1];
+                Z = fspan[2];
+                W = fspan[3];
             }
             else
             {
-                // Little endian architecture
-                X = BitConverter.ToSingle(byteArray, pos);
-                Y = BitConverter.ToSingle(byteArray, pos + 4);
-                Z = BitConverter.ToSingle(byteArray, pos + 8);
-                W = BitConverter.ToSingle(byteArray, pos + 12);
+                var fspan = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, float>(src);
+                X = fspan[0];
+                Y = fspan[1];
+                Z = fspan[2];
+                W = fspan[3];
             }
         }
 
@@ -199,17 +200,27 @@ namespace OpenMetaverse
         /// writing. Must be at least 16 bytes before the end of the array</param>
         public void ToBytes(byte[] dest, int pos)
         {
-            Buffer.BlockCopy(BitConverter.GetBytes(X), 0, dest, pos + 0, 4);
-            Buffer.BlockCopy(BitConverter.GetBytes(Y), 0, dest, pos + 4, 4);
-            Buffer.BlockCopy(BitConverter.GetBytes(Z), 0, dest, pos + 8, 4);
-            Buffer.BlockCopy(BitConverter.GetBytes(W), 0, dest, pos + 12, 4);
+            Span<float> vals = stackalloc float[4];
+            vals[0] = X;
+            vals[1] = Y;
+            vals[2] = Z;
+            vals[3] = W;
+
+            var bytes = System.Runtime.InteropServices.MemoryMarshal.Cast<float, byte>(vals);
 
             if (!BitConverter.IsLittleEndian)
             {
-                Array.Reverse(dest, pos + 0, 4);
-                Array.Reverse(dest, pos + 4, 4);
-                Array.Reverse(dest, pos + 8, 4);
-                Array.Reverse(dest, pos + 12, 4);
+                for (int i = 0; i < 4; i++)
+                {
+                    dest[pos + i * 4 + 0] = bytes[i * 4 + 3];
+                    dest[pos + i * 4 + 1] = bytes[i * 4 + 2];
+                    dest[pos + i * 4 + 2] = bytes[i * 4 + 1];
+                    dest[pos + i * 4 + 3] = bytes[i * 4 + 0];
+                }
+            }
+            else
+            {
+                bytes.CopyTo(new Span<byte>(dest, pos, 16));
             }
         }
 
@@ -396,8 +407,14 @@ namespace OpenMetaverse
 
         public static Vector4 Parse(string val)
         {
-            char[] splitChar = { ',' };
-            string[] split = val.Replace("<", string.Empty).Replace(">", string.Empty).Split(splitChar);
+            if (val == null) throw new ArgumentNullException(nameof(val));
+            string trimmed = val.Trim();
+            if (trimmed.Length >= 2 && trimmed[0] == '<' && trimmed[trimmed.Length - 1] == '>')
+                trimmed = trimmed.Substring(1, trimmed.Length - 2);
+
+            string[] split = trimmed.Split(',');
+            if (split.Length != 4) throw new FormatException("Input string was not in a correct format.");
+
             return new Vector4(
                 float.Parse(split[0].Trim(), Utils.EnUsCulture),
                 float.Parse(split[1].Trim(), Utils.EnUsCulture),
@@ -453,10 +470,7 @@ namespace OpenMetaverse
         /// <returns>Raw string representation of the vector</returns>
         public string ToRawString()
         {
-            CultureInfo enUs = new CultureInfo("en-us");
-            enUs.NumberFormat.NumberDecimalDigits = 3;
-
-            return string.Format(enUs, "{0} {1} {2} {3}", X, Y, Z, W);
+            return string.Format(Utils.EnUsCulture, "{0:F3} {1:F3} {2:F3} {3:F3}", X, Y, Z, W);
         }
 
         #endregion Overrides
@@ -539,16 +553,16 @@ namespace OpenMetaverse
         #endregion Operators
 
         /// <summary>A vector with a value of 0,0,0,0</summary>
-        public readonly static Vector4 Zero = new Vector4();
+        public static readonly Vector4 Zero = new Vector4();
         /// <summary>A vector with a value of 1,1,1,1</summary>
-        public readonly static Vector4 One = new Vector4(1f, 1f, 1f, 1f);
+        public static readonly Vector4 One = new Vector4(1f, 1f, 1f, 1f);
         /// <summary>A vector with a value of 1,0,0,0</summary>
-        public readonly static Vector4 UnitX = new Vector4(1f, 0f, 0f, 0f);
+        public static readonly Vector4 UnitX = new Vector4(1f, 0f, 0f, 0f);
         /// <summary>A vector with a value of 0,1,0,0</summary>
-        public readonly static Vector4 UnitY = new Vector4(0f, 1f, 0f, 0f);
+        public static readonly Vector4 UnitY = new Vector4(0f, 1f, 0f, 0f);
         /// <summary>A vector with a value of 0,0,1,0</summary>
-        public readonly static Vector4 UnitZ = new Vector4(0f, 0f, 1f, 0f);
+        public static readonly Vector4 UnitZ = new Vector4(0f, 0f, 1f, 0f);
         /// <summary>A vector with a value of 0,0,0,1</summary>
-        public readonly static Vector4 UnitW = new Vector4(0f, 0f, 0f, 1f);
+        public static readonly Vector4 UnitW = new Vector4(0f, 0f, 0f, 1f);
     }
 }
