@@ -861,7 +861,7 @@ namespace OpenMetaverse.Rendering
                 newPrim.taperY = 1.0f - primData.PathScaleY;
                 newPrim.twistBegin = (int)(180 * primData.PathTwistBegin);
                 newPrim.twistEnd = (int)(180 * primData.PathTwist);
-                newPrim.ExtrudeLinear();
+                newPrim.Extrude(PathType.Linear);
             }
             else
             {
@@ -869,7 +869,7 @@ namespace OpenMetaverse.Rendering
                 newPrim.taperY = primData.PathTaperY;
                 newPrim.twistBegin = (int)(360 * primData.PathTwistBegin);
                 newPrim.twistEnd = (int)(360 * primData.PathTwist);
-                newPrim.ExtrudeCircular();
+                newPrim.Extrude(PathType.Circular);
             }
 
             return newPrim;
