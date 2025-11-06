@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2024, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -27,7 +27,6 @@
 
 using System;
 using System.Threading;
-using CoreJ2K;
 using OpenMetaverse;
 using SkiaSharp;
 
@@ -98,16 +97,13 @@ namespace TestClient.Commands.Inventory
         {
             byte[] uploadData;
             string lowfilename = fileName.ToLower();
-
+            SKBitmap bitmap = null;
             try
             {
-                SKBitmap bitmap;
                 if (lowfilename.EndsWith(".jp2") || lowfilename.EndsWith(".j2c"))
                 {
                     // Upload JPEG2000 images untouched
                     uploadData = global::System.IO.File.ReadAllBytes(fileName);
-
-                    bitmap = J2kImage.FromBytes(uploadData).As<SKBitmap>();
                 }
                 else
                 {
@@ -120,7 +116,7 @@ namespace TestClient.Commands.Inventory
                         var img = SKImage.FromEncodedData(fileName);
                         bitmap = SKBitmap.FromImage(img);
                     }
-                    
+
                     int oldwidth = bitmap.Width;
                     int oldheight = bitmap.Height;
 
@@ -150,14 +146,17 @@ namespace TestClient.Commands.Inventory
                         bitmap.Dispose();
                         bitmap = scaledImage;
                     }
+                    uploadData = OpenMetaverse.Imaging.J2K.ToBytes(bitmap);
                 }
-                
-                uploadData = OpenMetaverse.Imaging.J2K.ToBytes(bitmap);
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex + " SL Image Upload ");
                 return null;
+            }
+            finally
+            {
+                bitmap?.Dispose();
             }
             return uploadData;
         }
