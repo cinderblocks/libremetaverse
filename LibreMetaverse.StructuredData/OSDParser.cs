@@ -38,44 +38,48 @@ namespace OpenMetaverse.StructuredData
         private const string LLSD_XML_ALT_HEADER = "<?xml";
         private const string LLSD_XML_ALT2_HEADER = "<? llsd/xml ?>";
 
+        private const int HEADER_PROBE_LENGTH = 17;
+
         public static OSD Deserialize(byte[] data)
         {
-            string header = Encoding.ASCII.GetString(data, 0, data.Length >= 17 ? 17 : data.Length);
+            int probeLen = Math.Min(data.Length, HEADER_PROBE_LENGTH);
+            string headerAscii = Encoding.ASCII.GetString(data, 0, probeLen);
 
-            try
-            {
-                string uHeader = Encoding.UTF8.GetString(data, 0, data.Length >= 17 ? 17 : data.Length).TrimStart();
-                if (uHeader.StartsWith(LLSD_XML_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                    uHeader.StartsWith(LLSD_XML_ALT_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                    uHeader.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    return DeserializeLLSDXml(data);
-                }
-            }
-            catch { }
-
-            if (header.StartsWith(LLSD_BINARY_HEADER, StringComparison.InvariantCultureIgnoreCase))
-            {
-                return DeserializeLLSDBinary(data);
-            }
-            if (header.StartsWith(LLSD_XML_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                header.StartsWith(LLSD_XML_ALT_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                header.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.InvariantCultureIgnoreCase))
+            // Probe for XML-ish headers using UTF8 to handle BOMs and whitespace
+            string headerUtf8 = Encoding.UTF8.GetString(data, 0, probeLen).TrimStart();
+            if (headerUtf8.StartsWith(LLSD_XML_HEADER, StringComparison.OrdinalIgnoreCase) ||
+                headerUtf8.StartsWith(LLSD_XML_ALT_HEADER, StringComparison.OrdinalIgnoreCase) ||
+                headerUtf8.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.OrdinalIgnoreCase))
             {
                 return DeserializeLLSDXml(data);
             }
+
+            if (headerAscii.StartsWith(LLSD_BINARY_HEADER, StringComparison.OrdinalIgnoreCase))
+            {
+                return DeserializeLLSDBinary(data);
+            }
+
+            if (headerAscii.StartsWith(LLSD_XML_HEADER, StringComparison.OrdinalIgnoreCase) ||
+                headerAscii.StartsWith(LLSD_XML_ALT_HEADER, StringComparison.OrdinalIgnoreCase) ||
+                headerAscii.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.OrdinalIgnoreCase))
+            {
+                return DeserializeLLSDXml(data);
+            }
+
             return DeserializeJson(Encoding.UTF8.GetString(data));
         }
 
         public static OSD Deserialize(string data)
         {
-            if (data.StartsWith(LLSD_BINARY_HEADER, StringComparison.InvariantCultureIgnoreCase))
+            if (data == null) throw new ArgumentNullException(nameof(data));
+
+            if (data.StartsWith(LLSD_BINARY_HEADER, StringComparison.OrdinalIgnoreCase))
             {
                 return DeserializeLLSDBinary(Encoding.UTF8.GetBytes(data));
             }
-            if (data.StartsWith(LLSD_XML_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                data.StartsWith(LLSD_XML_ALT_HEADER, StringComparison.InvariantCultureIgnoreCase) ||
-                data.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.InvariantCultureIgnoreCase))
+            if (data.StartsWith(LLSD_XML_HEADER, StringComparison.OrdinalIgnoreCase) ||
+                data.StartsWith(LLSD_XML_ALT_HEADER, StringComparison.OrdinalIgnoreCase) ||
+                data.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.OrdinalIgnoreCase))
             {
                 return DeserializeLLSDXml(data);
             }
@@ -84,18 +88,28 @@ namespace OpenMetaverse.StructuredData
 
         public static OSD Deserialize(Stream stream)
         {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanSeek) { throw new OSDException("Cannot deserialize structured data from unseekable streams"); }
 
-            byte[] headerData = new byte[14];
-            int read = stream.Read(headerData, 0, 14);
-            if (read == 0) { throw new System.IO.EndOfStreamException(); }
+            byte[] headerData = new byte[HEADER_PROBE_LENGTH];
+            int read = stream.Read(headerData, 0, HEADER_PROBE_LENGTH);
+            if (read == 0) { throw new EndOfStreamException(); }
 
             stream.Seek(0, SeekOrigin.Begin);
-            string header = Encoding.ASCII.GetString(headerData);
 
-            if (header.StartsWith(LLSD_BINARY_HEADER))
+            string headerAscii = Encoding.ASCII.GetString(headerData, 0, read);
+            string headerUtf8 = Encoding.UTF8.GetString(headerData, 0, read).TrimStart();
+
+            if (headerUtf8.StartsWith(LLSD_XML_HEADER, StringComparison.OrdinalIgnoreCase) ||
+                headerUtf8.StartsWith(LLSD_XML_ALT_HEADER, StringComparison.OrdinalIgnoreCase) ||
+                headerUtf8.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.OrdinalIgnoreCase))
+            {
+                return DeserializeLLSDXml(stream);
+            }
+
+            if (headerAscii.StartsWith(LLSD_BINARY_HEADER, StringComparison.OrdinalIgnoreCase))
                 return DeserializeLLSDBinary(stream);
-            if (header.StartsWith(LLSD_XML_HEADER) || header.StartsWith(LLSD_XML_ALT_HEADER) || header.StartsWith(LLSD_XML_ALT2_HEADER))
+            if (headerAscii.StartsWith(LLSD_XML_HEADER, StringComparison.OrdinalIgnoreCase) || headerAscii.StartsWith(LLSD_XML_ALT_HEADER, StringComparison.OrdinalIgnoreCase) || headerAscii.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.OrdinalIgnoreCase))
                 return DeserializeLLSDXml(stream);
             return DeserializeJson(stream);
         }
