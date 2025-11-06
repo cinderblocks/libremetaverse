@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -230,7 +231,7 @@ namespace OpenMetaverse.Utilities
 
         private static void LoginWait(int minutes)
         {
-            Thread.Sleep(1000 * 60 * minutes);
+            Thread.Sleep(TimeSpan.FromMinutes(minutes));
         }
 
         private void CheckTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
