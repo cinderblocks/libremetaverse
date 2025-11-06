@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -44,12 +45,12 @@ namespace OpenMetaverse
         /// <summary>
         /// Constructor that takes a string UUID representation
         /// </summary>
-        /// <param name="val">A string representation of a UUID, case 
-        /// insensitive and can either be hyphenated or non-hyphenated</param>
+        /// <param name="val">A string representation of a UUID, case-insensitive
+        /// and can either be hyphenated or non-hyphenated</param>
         /// <example>UUID("11f8aa9c-b071-4242-836b-13b7abe0d489")</example>
         public UUID(string val)
         {
-            Guid = string.IsNullOrEmpty(val) ? new Guid() : new Guid(val);
+            Guid = string.IsNullOrEmpty(val) ? Guid.Empty : new Guid(val);
         }
 
         /// <summary>
@@ -124,12 +125,12 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Returns a copy of the raw bytes for this UUID
+        /// Returns a copy of the raw bytes for this UUID (network byte order)
         /// </summary>
         /// <returns>A 16 byte array containing this UUID</returns>
         public byte[] GetBytes()
         {
-            byte[] output = new byte[16];
+            var output = new byte[16];
             ToBytes(output, 0);
             return output;
         }
@@ -142,16 +143,7 @@ namespace OpenMetaverse
         /// writing. Must be at least 16 bytes before the end of the array</param>
         public void ToBytes(byte[] dest, int pos)
         {
-            byte[] bytes = Guid.ToByteArray();
-            dest[pos + 0] = bytes[3];
-            dest[pos + 1] = bytes[2];
-            dest[pos + 2] = bytes[1];
-            dest[pos + 3] = bytes[0];
-            dest[pos + 4] = bytes[5];
-            dest[pos + 5] = bytes[4];
-            dest[pos + 6] = bytes[7];
-            dest[pos + 7] = bytes[6];
-            Buffer.BlockCopy(bytes, 8, dest, pos + 8, 8);
+            GuidToNetworkBytes(Guid, dest, pos);
         }
 
         /// <summary>
@@ -160,15 +152,16 @@ namespace OpenMetaverse
         /// <returns>The CRC checksum for this UUID</returns>
         public uint CRC()
         {
-            uint retval = 0;
-            byte[] bytes = GetBytes();
+            // Use Guid.ToByteArray directly and compute without extra allocations
+            byte[] b = Guid.ToByteArray();
 
-            retval += (uint)((bytes[3] << 24) + (bytes[2] << 16) + (bytes[1] << 8) + bytes[0]);
-            retval += (uint)((bytes[7] << 24) + (bytes[6] << 16) + (bytes[5] << 8) + bytes[4]);
-            retval += (uint)((bytes[11] << 24) + (bytes[10] << 16) + (bytes[9] << 8) + bytes[8]);
-            retval += (uint)((bytes[15] << 24) + (bytes[14] << 16) + (bytes[13] << 8) + bytes[12]);
+            // Convert to network order as ToBytes would and accumulate big-endian words
+            uint w0 = (uint)((b[3] << 24) | (b[2] << 16) | (b[1] << 8) | b[0]);
+            uint w1 = (uint)((b[7] << 24) | (b[6] << 16) | (b[5] << 8) | b[4]);
+            uint w2 = (uint)((b[11] << 24) | (b[10] << 16) | (b[9] << 8) | b[8]);
+            uint w3 = (uint)((b[15] << 24) | (b[14] << 16) | (b[13] << 8) | b[12]);
 
-            return retval;
+            return w0 + w1 + w2 + w3;
         }
 
         /// <summary>
@@ -177,16 +170,18 @@ namespace OpenMetaverse
         /// <returns>An integer created from the last eight bytes of this UUID</returns>
         public ulong GetULong()
         {
-            byte[] bytes = Guid.ToByteArray();
+            // Extract the last 8 bytes from the Guid's raw bytes (consistent with ToBytes mapping)
+            byte[] b = Guid.ToByteArray();
 
-            return (ulong)bytes[8] +
-                   ((ulong)bytes[9] << 8) +
-                   ((ulong)bytes[10] << 16) +
-                   ((ulong)bytes[12] << 24) +
-                   ((ulong)bytes[13] << 32) +
-                   ((ulong)bytes[13] << 40) +
-                   ((ulong)bytes[14] << 48) +
-                   ((ulong)bytes[15] << 56);
+            // Network-order mapping puts raw[8]..raw[15] in the last 8 bytes
+            return ((ulong)b[8]) |
+                   ((ulong)b[9] << 8) |
+                   ((ulong)b[10] << 16) |
+                   ((ulong)b[11] << 24) |
+                   ((ulong)b[12] << 32) |
+                   ((ulong)b[13] << 40) |
+                   ((ulong)b[14] << 48) |
+                   ((ulong)b[15] << 56);
         }
 
         #endregion Public Methods
@@ -215,24 +210,21 @@ namespace OpenMetaverse
         /// <example>UUID.TryParse("11f8aa9c-b071-4242-836b-13b7abe0d489", result)</example>
         public static bool TryParse(string val, out UUID result)
         {
-            if (string.IsNullOrEmpty(val) ||
-                (val[0] == '{' && val.Length != 38) ||
-                (val.Length != 36 && val.Length != 32))
+            if (string.IsNullOrEmpty(val))
             {
                 result = UUID.Zero;
                 return false;
             }
 
-            try
+            // Use Guid.TryParse to avoid exceptions and improve perf
+            if (Guid.TryParse(val, out var g))
             {
-                result = Parse(val);
+                result = new UUID(g);
                 return true;
             }
-            catch (Exception)
-            {
-                result = UUID.Zero;
-                return false;
-            }
+
+            result = UUID.Zero;
+            return false;
         }
 
         /// <summary>
@@ -244,10 +236,10 @@ namespace OpenMetaverse
         /// <returns>The UUID product of the combination</returns>
         public static UUID Combine(UUID first, UUID second)
         {
-            // Construct the buffer that MD5ed
+            // Construct the buffer that will be MD5 hashed. Keep network order.
             byte[] input = new byte[32];
-            Buffer.BlockCopy(first.GetBytes(), 0, input, 0, 16);
-            Buffer.BlockCopy(second.GetBytes(), 0, input, 16, 16);
+            GuidToNetworkBytes(first.Guid, input, 0);
+            GuidToNetworkBytes(second.Guid, input, 16);
 
             return new UUID(Utils.MD5(input), 0);
         }
@@ -262,18 +254,19 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Slower than Random(), but generates a cryptographically secure UUID
+        /// Slower than Random(), but generates a cryptographically secure UUID (v4)
         /// </summary>
         /// <returns>UUID</returns>
         public static UUID SecureRandom()
         {
-	        var rng = RandomNumberGenerator.Create();
-			byte[] data = new byte[16];
-            rng.GetBytes(data);
+            byte[] data = new byte[16];
+            using (var rng = RandomNumberGenerator.Create()) { rng.GetBytes(data); }
 
-            // Mark as UUIDv4
-            data[7] = (byte)((data[7] | 0x40) & 0x4f);
-            data[8] = (byte)((data[8] | 0x80) & 0xbf);
+            // Set RFC4122 version (4) and variant (10)
+            // Version in the 7th byte of the RFC layout, for Guid raw bytes this is index 6
+            data[6] = (byte)((data[6] & 0x0F) | 0x40); // version 4
+            data[8] = (byte)((data[8] & 0x3F) | 0x80); // variant 10xxxxxx
+
             return new UUID(new Guid(data));
         }
 
@@ -357,16 +350,29 @@ namespace OpenMetaverse
         /// <returns>A UUID that is a XOR combination of the two input UUIDs</returns>
         public static UUID operator ^(UUID lhs, UUID rhs)
         {
-            byte[] lhsbytes = lhs.GetBytes();
-            byte[] rhsbytes = rhs.GetBytes();
-            byte[] output = new byte[16];
+            // Avoid extra GetBytes allocations by converting Guid raw bytes
+            byte[] outBytes = new byte[16];
+            byte[] a = lhs.Guid.ToByteArray();
+            byte[] b = rhs.Guid.ToByteArray();
 
-            for (var i = 0; i < 16; i++)
+            // Convert raw little-endian Guid layout to network layout while xoring
+            outBytes[0] = (byte)(a[3] ^ b[3]);
+            outBytes[1] = (byte)(a[2] ^ b[2]);
+            outBytes[2] = (byte)(a[1] ^ b[1]);
+            outBytes[3] = (byte)(a[0] ^ b[0]);
+
+            outBytes[4] = (byte)(a[5] ^ b[5]);
+            outBytes[5] = (byte)(a[4] ^ b[4]);
+
+            outBytes[6] = (byte)(a[7] ^ b[7]);
+            outBytes[7] = (byte)(a[6] ^ b[6]);
+
+            for (int i = 8; i < 16; i++)
             {
-                output[i] = (byte)(lhsbytes[i] ^ rhsbytes[i]);
+                outBytes[i] = (byte)(a[i] ^ b[i]);
             }
 
-            return new UUID(output, 0);
+            return new UUID(outBytes, 0);
         }
 
         /// <summary>
@@ -382,10 +388,32 @@ namespace OpenMetaverse
 
         #endregion Operators
 
-        /// <summary>An UUID with a value of all zeroes</summary>
-        public static readonly UUID Zero = new UUID();
+        /// <summary>A UUID with a value of all zeroes</summary>
+        public static readonly UUID Zero = new UUID(Guid.Empty);
 
         /// <summary>A cache of UUID.Zero as a string to optimize a common path</summary>
         private static readonly string ZeroString = Guid.Empty.ToString();
+
+        #region Helpers
+
+        /// <summary>
+        /// Convert a Guid to network-order (big-endian) bytes like original ToBytes did.
+        /// </summary>
+        private static void GuidToNetworkBytes(Guid g, byte[] dest, int pos)
+        {
+            byte[] raw = g.ToByteArray();
+
+            dest[pos + 0] = raw[3];
+            dest[pos + 1] = raw[2];
+            dest[pos + 2] = raw[1];
+            dest[pos + 3] = raw[0];
+            dest[pos + 4] = raw[5];
+            dest[pos + 5] = raw[4];
+            dest[pos + 6] = raw[7];
+            dest[pos + 7] = raw[6];
+            Buffer.BlockCopy(raw, 8, dest, pos + 8, 8);
+        }
+
+        #endregion Helpers
     }
 }

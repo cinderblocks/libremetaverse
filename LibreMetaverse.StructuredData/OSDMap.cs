@@ -127,10 +127,13 @@ namespace OpenMetaverse.StructuredData
             if (array.Rank != 1) { throw new ArgumentException("Multi-dimensional arrays not supported"); }
             if (index < 0) { throw new ArgumentOutOfRangeException(nameof(index), "Index cannot be a negative number"); }
 
-            for (var i = index; i < array.Length; i++)
+            if (array.Length - index < _mMap.Count)
+                throw new ArgumentException("Destination array is not large enough to hold the items.");
+
+            int i = index;
+            foreach (var kvp in _mMap)
             {
-                var entry = array[i];
-                _mMap.Add(entry.Key, entry.Value);
+                array[i++] = kvp;
             }
         }
 

@@ -27,7 +27,6 @@
 
 
 using System.Collections.Generic;
-using System.Linq;
 
 namespace LibreMetaverse.PrimMesher
 {
@@ -72,79 +71,75 @@ namespace LibreMetaverse.PrimMesher
 
         public VertexIndexer(PrimMesh primMesh)
         {
-            var maxPrimFaceNumber = primMesh.viewerFaces.Select(vf => vf.primFaceNumber).Prepend(0).Max();
+            // compute maximum prim face number without LINQ to avoid allocations
+            var maxPrimFaceNumber = 0;
+            if (primMesh.viewerFaces != null)
+            {
+                foreach (var vf in primMesh.viewerFaces)
+                {
+                    if (vf.primFaceNumber > maxPrimFaceNumber) maxPrimFaceNumber = vf.primFaceNumber;
+                }
+            }
 
             numPrimFaces = maxPrimFaceNumber + 1;
 
-            var numViewerVerts = new int[numPrimFaces];
+            // number of verts expected per prim face (for capacity hints)
             var numVertsPerPrimFace = new int[numPrimFaces];
 
-            for (var i = 0; i < numPrimFaces; i++)
+            if (primMesh.viewerFaces != null)
             {
-                numViewerVerts[i] = 0;
-                numVertsPerPrimFace[i] = 0;
+                foreach (var vf in primMesh.viewerFaces)
+                    numVertsPerPrimFace[vf.primFaceNumber] += 3;
             }
-
-            foreach (var vf in primMesh.viewerFaces)
-                numVertsPerPrimFace[vf.primFaceNumber] += 3;
 
             viewerVertices = new List<List<ViewerVertex>>(numPrimFaces);
             viewerPolygons = new List<List<ViewerPolygon>>(numPrimFaces);
-            var viewerVertIndices = new int[numPrimFaces][];
 
-            // create index lists
+            // Use dictionaries to map coord index -> viewer vertex index.
+            // This avoids allocating an int[] of size coords.Count for every prim face,
+            // which can be large and wasteful when coords.Count is big and many prim faces are empty.
+            var viewerVertIndices = new Dictionary<int, int>[numPrimFaces];
+
+            // create per-face containers
             for (var primFaceNumber = 0; primFaceNumber < numPrimFaces; primFaceNumber++)
             {
-                //set all indices to -1 to indicate an invalid index
-                var vertIndices = new int[primMesh.coords.Count];
-                for (var i = 0; i < primMesh.coords.Count; i++)
-                    vertIndices[i] = -1;
-                viewerVertIndices[primFaceNumber] = vertIndices;
-
+                viewerVertIndices[primFaceNumber] = new Dictionary<int, int>(numVertsPerPrimFace[primFaceNumber] > 0
+                    ? numVertsPerPrimFace[primFaceNumber]
+                    : 4);
                 viewerVertices.Add(new List<ViewerVertex>(numVertsPerPrimFace[primFaceNumber]));
                 viewerPolygons.Add(new List<ViewerPolygon>());
             }
 
             // populate the index lists
+            if (primMesh.viewerFaces == null) return;
+
             foreach (var vf in primMesh.viewerFaces)
             {
                 int v1, v2, v3;
 
-                var vertIndices = viewerVertIndices[vf.primFaceNumber];
+                var vertDict = viewerVertIndices[vf.primFaceNumber];
                 var viewerVerts = viewerVertices[vf.primFaceNumber];
 
-                // add the vertices
-                if (vertIndices[vf.coordIndex1] < 0)
+                // add or reuse the vertices using the dictionary
+                if (!vertDict.TryGetValue(vf.coordIndex1, out v1))
                 {
                     viewerVerts.Add(new ViewerVertex(vf.v1, vf.n1, vf.uv1));
                     v1 = viewerVerts.Count - 1;
-                    vertIndices[vf.coordIndex1] = v1;
-                }
-                else
-                {
-                    v1 = vertIndices[vf.coordIndex1];
+                    vertDict[vf.coordIndex1] = v1;
                 }
 
-                if (vertIndices[vf.coordIndex2] < 0)
+                if (!vertDict.TryGetValue(vf.coordIndex2, out v2))
                 {
                     viewerVerts.Add(new ViewerVertex(vf.v2, vf.n2, vf.uv2));
                     v2 = viewerVerts.Count - 1;
-                    vertIndices[vf.coordIndex2] = v2;
-                }
-                else
-                {
-                    v2 = vertIndices[vf.coordIndex2];
+                    vertDict[vf.coordIndex2] = v2;
                 }
 
-                if (vertIndices[vf.coordIndex3] < 0)
+                if (!vertDict.TryGetValue(vf.coordIndex3, out v3))
                 {
                     viewerVerts.Add(new ViewerVertex(vf.v3, vf.n3, vf.uv3));
                     v3 = viewerVerts.Count - 1;
-                    vertIndices[vf.coordIndex3] = v3;
-                }
-                else
-                {
-                    v3 = vertIndices[vf.coordIndex3];
+                    vertDict[vf.coordIndex3] = v3;
                 }
 
                 viewerPolygons[vf.primFaceNumber].Add(new ViewerPolygon(v1, v2, v3));

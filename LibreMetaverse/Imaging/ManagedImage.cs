@@ -447,9 +447,11 @@ namespace OpenMetaverse.Imaging
                     raw[pos * 4 + 3] = byte.MaxValue;
                 }
             }
-
-            var img = SKImage.FromEncodedData(raw);
-            return SKBitmap.FromImage(img);
+            using (var img = SKImage.FromEncodedData(raw))
+            {
+                var bmp = SKBitmap.FromImage(img);
+                return bmp;
+            }
         }
 
         [Obsolete("ExportTGA() is deprecated, please use Targa.Encode() instead.")]
