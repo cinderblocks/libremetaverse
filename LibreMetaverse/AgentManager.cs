@@ -3234,7 +3234,6 @@ namespace OpenMetaverse
                 Client.Network.CurrentSim.Caps == null ||
                 !Client.Network.CurrentSim.Caps.IsEventQueueRunning)
             {
-                Logger.Log("Event queue is down, reconnecting before attempting a teleport.", Helpers.LogLevel.Info, Client);
                 // Wait a bit to see if the event queue comes online
                 AutoResetEvent queueEvent = new AutoResetEvent(false);
 
@@ -3247,7 +3246,6 @@ namespace OpenMetaverse
 
                 if (Client.Network.CurrentSim != null && Client.Network.CurrentSim.Caps != null)
                 {
-                    Logger.Log("Event queue restart requested.", Helpers.LogLevel.Info, Client);
                     Client.Network.CurrentSim.Caps.EventQueue.Start();
                 }
 

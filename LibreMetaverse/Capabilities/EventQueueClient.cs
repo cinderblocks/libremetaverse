@@ -38,7 +38,7 @@ using OpenMetaverse.StructuredData;
 namespace OpenMetaverse.Http
 {
     /// <summary>EventQueueClient manages the polling-based EventQueueGet capability</summary>
-    public class EventQueueClient
+    public class EventQueueClient : IDisposable
     {
         private const string PROXY_TIMEOUT_RESPONSE = "502 Proxy Error";
         private const string MALFORMED_EMPTY_RESPONSE = "<llsd><undef /></llsd>";
@@ -49,11 +49,8 @@ namespace OpenMetaverse.Http
         public ConnectedCallback OnConnected;
         public EventCallback OnEvent;
 
-        public bool Running => _eqTask != null 
-                               && !_eqTask.IsCompleted 
-                               && (_eqTask.Status.Equals(TaskStatus.Running) 
-                                   || _eqTask.Status.Equals(TaskStatus.WaitingToRun)
-                                   || _eqTask.Status.Equals(TaskStatus.WaitingForActivation));
+        public bool Running => _queueCts != null && !_queueCts.IsCancellationRequested
+                               && _eqTask != null && !_eqTask.IsCompleted;
 
         protected readonly Uri Address;
         protected readonly Simulator Simulator;
@@ -68,11 +65,22 @@ namespace OpenMetaverse.Http
             _queueCts = new CancellationTokenSource();
         }
 
-        ~EventQueueClient()
+        /// <summary>
+        /// Dispose resources deterministically
+        /// </summary>
+        public void Dispose()
         {
+            try
+            {
+                Stop(true);
+            }
+            catch { /* noop */ }
+
             _queueCts?.Dispose();
+            _queueCts = null;
+            GC.SuppressFinalize(this);
         }
-        
+
         /// <summary>
         /// Starts event queue polling if it isn't already running.
         /// </summary>
@@ -90,13 +98,28 @@ namespace OpenMetaverse.Http
             var eqAck = new EventQueueAck { Done = false };
             _reqPayload = eqAck.Serialize();
 
+            _queueCts?.Dispose();
             _queueCts = new CancellationTokenSource();
 
-            _eqTask = Repeat.Interval(TimeSpan.FromSeconds(1), ack, _queueCts.Token, true);
+            _eqTask = Repeat.IntervalAsync(TimeSpan.FromSeconds(1), ack, _queueCts.Token, true);
             return;
 
-            async void ack() => await Simulator.Client.HttpCapsClient.PostRequestAsync(
-                Address, OSDFormat.Xml, _reqPayload, _queueCts.Token, RequestCompletedHandler, null, ConnectedResponseHandler);
+            async Task ack()
+            {
+                try
+                {
+                    await Simulator.Client.HttpCapsClient.PostRequestAsync(
+                        Address, OSDFormat.Xml, _reqPayload, _queueCts.Token, RequestCompletedHandler, null, ConnectedResponseHandler).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // noop, cancellation is expected when stopping
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log($"Exception sending EventQueue POST to {Simulator}: {ex.Message}", Helpers.LogLevel.Error, ex);
+                }
+            }
         }
 
         /// <summary>
@@ -159,10 +182,11 @@ namespace OpenMetaverse.Http
                             Logger.Log($"Unable to parse response from {Simulator} event queue: " +
                                        error.Message, Helpers.LogLevel.Error);
                         }
-                        
+
                         return;
                     }
-                    else switch (response.StatusCode)
+
+                    switch (response.StatusCode)
                     {
                         case HttpStatusCode.NotFound:
                         case HttpStatusCode.Gone:
@@ -180,38 +204,40 @@ namespace OpenMetaverse.Http
 
                         case HttpStatusCode.InternalServerError:
                         {
-#if NET5_0_OR_GREATER
-                            var responseString = response.Content.ReadAsStringAsync(_queueCts.Token).Result;
-#else
-                            var responseString = response.Content.ReadAsStringAsync().Result;
-#endif
-                            if (!responseString.Contains(PROXY_TIMEOUT_RESPONSE))
+                            // Read response content in background to avoid blocking this callback
+                            Task.Run(async () =>
                             {
-                                Logger.Log($"Grid sent a {response.StatusCode} : {response.ReasonPhrase} at {Simulator}", Helpers.LogLevel.Debug, Simulator.Client);
-
-                                if (!string.IsNullOrEmpty(responseString))
+                                try
                                 {
-                                    Logger.Log($"Full response was: {responseString}", Helpers.LogLevel.Debug, Simulator.Client);
-                                }
-
-                                if (error.InnerException != null)
-                                {
-                                    if (!error.InnerException.Message.Contains(PROXY_TIMEOUT_RESPONSE))
+                                    var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                                    if (!string.IsNullOrEmpty(responseString))
                                     {
-                                        _queueCts.Cancel();
+                                        if (responseString.IndexOf(PROXY_TIMEOUT_RESPONSE, StringComparison.Ordinal) < 0)
+                                        {
+                                            Logger.Log($"Full response was: {responseString}", Helpers.LogLevel.Debug, Simulator.Client);
+                                        }
                                     }
                                 }
-                                else
-                                {
-                                    const bool WILLFULLY_IGNORE_LL_SPECS_ON_EVENT_QUEUE = true;
+                                catch { /* ignore read failures */ }
+                            });
 
-                                    if (!WILLFULLY_IGNORE_LL_SPECS_ON_EVENT_QUEUE || !Simulator.Connected)
-                                    {
-                                        _queueCts.Cancel();
-                                    }
+                            if (error.InnerException != null)
+                            {
+                                if (error.InnerException.Message.IndexOf(PROXY_TIMEOUT_RESPONSE, StringComparison.Ordinal) < 0)
+                                {
+                                    _queueCts.Cancel();
                                 }
                             }
-                        } 
+                            else
+                            {
+                                const bool WILLFULLY_IGNORE_LL_SPECS_ON_EVENT_QUEUE = true;
+
+                                if (!WILLFULLY_IGNORE_LL_SPECS_ON_EVENT_QUEUE || !Simulator.Connected)
+                                {
+                                    _queueCts.Cancel();
+                                }
+                            }
+                        }
                             break;
 
                         case HttpStatusCode.BadGateway:
@@ -276,8 +302,8 @@ namespace OpenMetaverse.Http
                         // We might get a ghost Gateway 502 in the message body, or we may get a 
                         // badly-formed Undefined LLSD response. It's just par for the course for
                         // EventQueueGet and we take it in stride
-                        if (!responseString.Contains(PROXY_TIMEOUT_RESPONSE)
-                            && !responseString.Contains(MALFORMED_EMPTY_RESPONSE))
+                        if (responseString.IndexOf(PROXY_TIMEOUT_RESPONSE, StringComparison.Ordinal) < 0
+                            && responseString.IndexOf(MALFORMED_EMPTY_RESPONSE, StringComparison.Ordinal) < 0)
                         {
                             Logger.Log($"Could not parse response (1) from {Simulator} event queue: \"" +
                                        responseString + "\"", Helpers.LogLevel.Warning);
@@ -320,7 +346,8 @@ namespace OpenMetaverse.Http
 
                     try
                     {
-                        OnEvent(msg, body);
+                        // Run handlers on the thread pool to avoid blocking the event loop
+                        Task.Run(() => OnEvent(msg, body));
                     }
                     catch (Exception ex)
                     {
