@@ -56,7 +56,10 @@ namespace OpenMetaverse.Http
         protected readonly Simulator Simulator;
         private CancellationTokenSource _queueCts;
         private Task _eqTask;
-        private OSD _reqPayload;
+
+        private readonly object _payloadLock = new object();
+        private OSDMap _reqPayloadMap;
+        private byte[] _reqPayloadBytes;
 
         public EventQueueClient(Uri eventQueueLocation, Simulator sim)
         {
@@ -96,20 +99,43 @@ namespace OpenMetaverse.Http
         {
             // Create an EventQueueGet request
             var eqAck = new EventQueueAck { Done = false };
-            _reqPayload = eqAck.Serialize();
+            var initial = eqAck.Serialize() as OSDMap ?? new OSDMap { ["done"] = OSD.FromBoolean(false) };
+
+            lock (_payloadLock)
+            {
+                _reqPayloadMap = initial;
+                _reqPayloadBytes = OSDParser.SerializeLLSDXmlBytes(_reqPayloadMap);
+            }
 
             _queueCts?.Dispose();
             _queueCts = new CancellationTokenSource();
 
             _eqTask = Repeat.IntervalAsync(TimeSpan.FromSeconds(1), ack, _queueCts.Token, true);
-            return;
 
             async Task ack()
             {
                 try
                 {
+                    byte[] payloadSnapshot;
+                    lock (_payloadLock)
+                    {
+                        payloadSnapshot = _reqPayloadBytes;
+                    }
+
+                    // Fallback if for some reason payload is null
+                    if (payloadSnapshot == null)
+                    {
+                        // serialize under lock
+                        lock (_payloadLock)
+                        {
+                            _reqPayloadBytes = OSDParser.SerializeLLSDXmlBytes(_reqPayloadMap ?? new OSDMap());
+                            payloadSnapshot = _reqPayloadBytes;
+                        }
+                    }
+
                     await Simulator.Client.HttpCapsClient.PostRequestAsync(
-                        Address, OSDFormat.Xml, _reqPayload, _queueCts.Token, RequestCompletedHandler, null, ConnectedResponseHandler).ConfigureAwait(false);
+                        Address, OSDFormat.Xml, payloadSnapshot, _queueCts.Token, RequestCompletedHandler, null, ConnectedResponseHandler)
+                        .ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -313,23 +339,32 @@ namespace OpenMetaverse.Http
 
                 #region Prepare the next ping
 
-                if (_queueCts.Token.IsCancellationRequested)
+                lock (_payloadLock)
                 {
-                    // We will fire off one more POST to tell the simulator, that's it we're done.
-                    // Not sure if this even necessary. Only our dark lords know what 'done' does.
-                    _reqPayload = new OSDMap
+                    if (_reqPayloadMap == null) _reqPayloadMap = new OSDMap();
+                    _reqPayloadMap["ack"] = ack;
+
+                    if (_queueCts.Token.IsCancellationRequested)
                     {
-                        ["ack"] = ack,
-                        ["done"] = OSD.FromBoolean(true)
-                    };
-                }
-                else
-                {
-                    _reqPayload = new OSDMap
+                        // We will fire off one more POST to tell the simulator, that's it we're done.
+                        // Not sure if this even necessary. Only our dark lords know what 'done' does.
+                        _reqPayloadMap["done"] = OSD.FromBoolean(true);
+                    }
+                    else
                     {
-                        ["ack"] = ack,
-                        ["done"] = OSD.FromBoolean(!Simulator.Connected)
-                    };
+                        _reqPayloadMap["done"] = OSD.FromBoolean(!Simulator.Connected);
+                    }
+
+                    // reserialize for next request
+                    try
+                    {
+                        _reqPayloadBytes = OSDParser.SerializeLLSDXmlBytes(_reqPayloadMap);
+                    }
+                    catch
+                    {
+                        // If serialization fails for any reason, clear bytes so caller will fallback
+                        _reqPayloadBytes = null;
+                    }
                 }
 
                 #endregion Prepare the next ping
