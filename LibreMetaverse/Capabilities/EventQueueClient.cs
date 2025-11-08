@@ -32,6 +32,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse;
+using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.Http
@@ -86,7 +87,8 @@ namespace OpenMetaverse.Http
         private void Create()
         {
             // Create an EventQueueGet request
-            _reqPayload = new OSDMap { ["ack"] = new OSD(), ["done"] = OSD.FromBoolean(false) };
+            var eqAck = new EventQueueAck { Done = false };
+            _reqPayload = eqAck.Serialize();
 
             _queueCts = new CancellationTokenSource();
 

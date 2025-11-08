@@ -36,6 +36,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using LibreMetaverse;
 
 namespace OpenMetaverse
 {
@@ -654,7 +655,7 @@ namespace OpenMetaverse
                     ["block_parcel_search"] = blockParcelSearch
                 };
                 using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(req), Encoding.UTF8,
-                           "application/llsd+xml"))
+                           HttpCapsClient.LLSD_XML))
                 {
                     using (var reply = await Client.HttpCapsClient.PostAsync(uri, content))
                     {
@@ -964,7 +965,7 @@ namespace OpenMetaverse
                 ["override_public_access"] = flags.HasFlag(RegionFlags.AllowAccessOverride),
                 ["invoice"] = UUID.Random() // FIXME:
             };
-            using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(payload), Encoding.UTF8, "application/llsd+xml")) 
+            using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(payload), Encoding.UTF8, HttpCapsClient.LLSD_XML)) 
             {
                 using (var reply = await Client.HttpCapsClient.PostAsync(uri, content, cancellationToken))
                 {
