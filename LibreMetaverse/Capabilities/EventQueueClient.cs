@@ -260,7 +260,7 @@ namespace OpenMetaverse.Http
                             break;
                     } // end switch
                 }
-#endregion Error handling
+                #endregion Error handling
                 else if (responseData != null)
                 {
                     // Got a response
