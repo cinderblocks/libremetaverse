@@ -42,11 +42,27 @@ namespace OpenMetaverse
         {
             public readonly EventHandler<PacketReceivedEventArgs> Callback;
             public readonly bool IsAsync;
+            public readonly EventHandler<PacketReceivedEventArgs>[] InvocationList;
 
             public PacketCallback(EventHandler<PacketReceivedEventArgs> callback, bool isAsync)
             {
                 Callback = callback;
                 IsAsync = isAsync;
+
+                if (callback == null)
+                {
+                    InvocationList = new EventHandler<PacketReceivedEventArgs>[0];
+                }
+                else
+                {
+                    var dels = callback.GetInvocationList();
+                    var list = new EventHandler<PacketReceivedEventArgs>[dels.Length];
+                    for (int i = 0; i < dels.Length; i++)
+                    {
+                        list[i] = (EventHandler<PacketReceivedEventArgs>)dels[i];
+                    }
+                    InvocationList = list;
+                }
             }
 
             public PacketCallback WithAdded(EventHandler<PacketReceivedEventArgs> add, bool isAsync)
@@ -124,25 +140,24 @@ namespace OpenMetaverse
         /// <param name="simulator">Simulator this packet was received from</param>
         internal void RaiseEvent(PacketType packetType, Packet packet, Simulator simulator)
         {
+            // Create a single PacketReceivedEventArgs to avoid allocating one per handler
+            var eventArgs = new PacketReceivedEventArgs(packet, simulator);
+
+            // Use cached invocation arrays to avoid temporary list allocations
+            EventHandler<PacketReceivedEventArgs>[] defaultAsync = null;
+            EventHandler<PacketReceivedEventArgs>[] specificAsync = null;
+
             // Default handler first, if one exists
             if (_EventTable.TryGetValue(PacketType.Default, out var callback) && callback.Callback != null)
             {
                 if (callback.IsAsync)
                 {
-                    var cb = callback.Callback;
-                    Task.Run(() =>
-                    {
-                        try { cb(this, new PacketReceivedEventArgs(packet, simulator)); }
-                        catch (Exception ex) { Logger.Log("Async Default packet event handler: " + ex, Helpers.LogLevel.Error, Client); }
-                    });
+                    defaultAsync = callback.InvocationList;
                 }
                 else
                 {
-                    try { callback.Callback(this, new PacketReceivedEventArgs(packet, simulator)); }
-                    catch (Exception ex)
-                    {
-                        Logger.Log("Default packet event handler: " + ex, Helpers.LogLevel.Error, Client);
-                    }
+                    try { callback.Callback(this, eventArgs); }
+                    catch (Exception ex) { Logger.Log("Default packet event handler: " + ex, Helpers.LogLevel.Error, Client); }
                 }
             }
 
@@ -151,29 +166,62 @@ namespace OpenMetaverse
             {
                 if (callback.IsAsync)
                 {
-                    var cb = callback.Callback;
-                    Task.Run(() =>
-                    {
-                        try { cb(this, new PacketReceivedEventArgs(packet, simulator)); }
-                        catch (Exception ex) { Logger.Log("Async Packet Event Handler: " + ex, Helpers.LogLevel.Error, Client); }
-                    });
+                    specificAsync = callback.InvocationList;
                 }
                 else
                 {
-                    try { callback.Callback(this, new PacketReceivedEventArgs(packet, simulator)); }
-                    catch (Exception ex)
-                    {
-                        Logger.Log("Packet event handler: " + ex, Helpers.LogLevel.Error, Client);
-                    }
+                    try { callback.Callback(this, eventArgs); }
+                    catch (Exception ex) { Logger.Log("Packet event handler: " + ex, Helpers.LogLevel.Error, Client); }
                 }
 
-                return;
+                // If specific handlers exist and are synchronous, we return after firing them
+                if (specificAsync == null)
+                    return; // all synchronous and already invoked
+                // else fall through to queue async handlers
             }
 
-            if (packetType != PacketType.Default && packetType != PacketType.PacketAck)
+            if (packetType != PacketType.Default && packetType != PacketType.PacketAck && (defaultAsync == null && specificAsync == null))
             {
                 Logger.DebugLog("No handler registered for packet event " + packetType, Client);
             }
+
+            // If there are async handlers, schedule a single work item to invoke them all without extra allocations
+            if ((defaultAsync != null && defaultAsync.Length > 0) || (specificAsync != null && specificAsync.Length > 0))
+            {
+                var da = defaultAsync;
+                var sa = specificAsync;
+
+                System.Threading.ThreadPool.QueueUserWorkItem(state =>
+                {
+                    if (da != null)
+                    {
+                        for (int i = 0; i < da.Length; i++)
+                        {
+                            var h = da[i];
+                            try { h(this, eventArgs); }
+                            catch (Exception ex) { Logger.Log("Async Packet Event Handler: " + ex, Helpers.LogLevel.Error, Client); }
+                        }
+                    }
+
+                    if (sa != null)
+                    {
+                        for (int i = 0; i < sa.Length; i++)
+                        {
+                            var h = sa[i];
+                            try { h(this, eventArgs); }
+                            catch (Exception ex) { Logger.Log("Async Packet Event Handler: " + ex, Helpers.LogLevel.Error, Client); }
+                        }
+                    }
+                });
+            }
+        }
+
+        /// <summary>
+        /// Public wrapper to invoke internal RaiseEvent for benchmarking and testing.
+        /// </summary>
+        public void InvokeRaiseEvent(PacketType packetType, Packet packet, Simulator simulator)
+        {
+            RaiseEvent(packetType, packet, simulator);
         }
     }
 
@@ -304,4 +352,5 @@ namespace OpenMetaverse
                 Logger.Log("Unhandled CAPS event " + capsEvent, Helpers.LogLevel.Warning, Client);
         }
     }
+
 }
