@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
@@ -51,7 +52,7 @@ namespace OpenMetaverse
 
                 if (callback == null)
                 {
-                    InvocationList = new EventHandler<PacketReceivedEventArgs>[0];
+                    InvocationList = Array.Empty<EventHandler<PacketReceivedEventArgs>>();
                 }
                 else
                 {
@@ -100,8 +101,7 @@ namespace OpenMetaverse
         /// incoming packet</remarks>
         /// <param name="packetType">Packet type to register the handler for</param>
         /// <param name="eventHandler">Callback to be fired</param>
-        /// <param name="isAsync">True if this callback should be ran 
-        /// asynchronously, false to run it synchronous</param>
+        /// <param name="isAsync">True if this callback should be run asynchronously, false to run it synchronous</param>
         public void RegisterEvent(PacketType packetType, EventHandler<PacketReceivedEventArgs> eventHandler, bool isAsync)
         {
             _EventTable.AddOrUpdate(packetType,
@@ -191,30 +191,61 @@ namespace OpenMetaverse
                 var da = defaultAsync;
                 var sa = specificAsync;
 
-                System.Threading.ThreadPool.QueueUserWorkItem(state =>
-                {
-                    if (da != null)
-                    {
-                        for (int i = 0; i < da.Length; i++)
-                        {
-                            var h = da[i];
-                            try { h(this, eventArgs); }
-                            catch (Exception ex) { Logger.Log("Async Packet Event Handler: " + ex, Helpers.LogLevel.Error, Client); }
-                        }
-                    }
-
-                    if (sa != null)
-                    {
-                        for (int i = 0; i < sa.Length; i++)
-                        {
-                            var h = sa[i];
-                            try { h(this, eventArgs); }
-                            catch (Exception ex) { Logger.Log("Async Packet Event Handler: " + ex, Helpers.LogLevel.Error, Client); }
-                        }
-                    }
-                });
+                // Use a small state object and a cached WaitCallback to avoid allocating a closure per call
+                var state = new AsyncInvokeState(this, da, sa, eventArgs);
+                ThreadPool.QueueUserWorkItem(s_asyncInvoker, state);
             }
         }
+
+        // Small state object used to pass data to the shared static invoker
+        private sealed class AsyncInvokeState
+        {
+            public readonly PacketEventDictionary Owner;
+            public readonly EventHandler<PacketReceivedEventArgs>[] DefaultHandlers;
+            public readonly EventHandler<PacketReceivedEventArgs>[] SpecificHandlers;
+            public readonly PacketReceivedEventArgs EventArgs;
+
+            public AsyncInvokeState(PacketEventDictionary owner,
+                                    EventHandler<PacketReceivedEventArgs>[] defaultHandlers,
+                                    EventHandler<PacketReceivedEventArgs>[] specificHandlers,
+                                    PacketReceivedEventArgs eventArgs)
+            {
+                Owner = owner;
+                DefaultHandlers = defaultHandlers;
+                SpecificHandlers = specificHandlers;
+                EventArgs = eventArgs;
+            }
+        }
+
+        // Cached WaitCallback to avoid per-call delegate allocations
+        private static readonly WaitCallback s_asyncInvoker = stateObj =>
+        {
+            var s = (AsyncInvokeState)stateObj;
+            var owner = s.Owner;
+            var da = s.DefaultHandlers;
+            var sa = s.SpecificHandlers;
+            var eventArgs = s.EventArgs;
+
+            if (da != null)
+            {
+                for (int i = 0; i < da.Length; i++)
+                {
+                    var h = da[i];
+                    try { h(owner, eventArgs); }
+                    catch (Exception ex) { Logger.Log("Async Packet Event Handler: " + ex, Helpers.LogLevel.Error, owner.Client); }
+                }
+            }
+
+            if (sa != null)
+            {
+                for (int i = 0; i < sa.Length; i++)
+                {
+                    var h = sa[i];
+                    try { h(owner, eventArgs); }
+                    catch (Exception ex) { Logger.Log("Async Packet Event Handler: " + ex, Helpers.LogLevel.Error, owner.Client); }
+                }
+            }
+        };
 
         /// <summary>
         /// Public wrapper to invoke internal RaiseEvent for benchmarking and testing.
