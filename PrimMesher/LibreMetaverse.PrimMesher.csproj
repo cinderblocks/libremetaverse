@@ -32,4 +32,8 @@
   <ItemGroup>
     <PackageReference Include="SkiaSharp" Version="3.119.1" />
   </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Buffers" Version="4.6.1" />
+    <PackageReference Include="System.Memory" Version="4.6.3" />
+  </ItemGroup>
 </Project>
