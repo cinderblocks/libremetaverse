@@ -2101,14 +2101,14 @@ namespace OpenMetaverse
                                    }
                                    else
                                    {
-                                       Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJson(entry, true).ToJson(), 
+                                       Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(entry, true), 
                                            Helpers.LogLevel.Info, Client);
                                    }
                                }
                            }
                            else
                            {
-                               Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJson(result, true).ToJson(), 
+                               Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(result, true), 
                                    Helpers.LogLevel.Info, Client);
                            }
 
@@ -2201,14 +2201,14 @@ namespace OpenMetaverse
                                        }
                                        else
                                        {
-                                           Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJson(entry, true).ToJson(), 
+                                           Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(entry, true), 
                                                Helpers.LogLevel.Info, Client);
                                        }
                                    }
                                }
                                else
                                {
-                                   Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJson(result, true).ToJson(), 
+                                   Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(result, true), 
                                        Helpers.LogLevel.Info, Client);
                                }
 
