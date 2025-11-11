@@ -95,7 +95,16 @@ namespace LibreMetaverse
             this CancellationToken token,
             TimeSpan timeout)
         {
-            return token.WaitHandle.WaitOne(timeout);
+            try
+            {
+                return token.WaitHandle.WaitOne(timeout);
+            }
+            catch (ObjectDisposedException)
+            {
+                // The CancellationTokenSource has been disposed. Treat this as a cancellation request
+                // so that any waiting loops will exit cleanly instead of throwing.
+                return true;
+            }
         }
     }
 }
