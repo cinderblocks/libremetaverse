@@ -235,12 +235,18 @@ namespace OpenMetaverse.Http
                             {
                                 try
                                 {
+#if NET5_0_OR_GREATER
+                                    var responseString = await response.Content.ReadAsStringAsync(_queueCts.Token).ConfigureAwait(false);
+#else
+                                    if (_queueCts.IsCancellationRequested) { return; }
                                     var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+#endif
                                     if (!string.IsNullOrEmpty(responseString))
                                     {
                                         if (responseString.IndexOf(PROXY_TIMEOUT_RESPONSE, StringComparison.Ordinal) < 0)
                                         {
-                                            Logger.Log($"Full response was: {responseString}", Helpers.LogLevel.Debug, Simulator.Client);
+                                            Logger.Log($"Full response was: {responseString}", Helpers.LogLevel.Debug,
+                                                Simulator.Client);
                                         }
                                     }
                                 }
