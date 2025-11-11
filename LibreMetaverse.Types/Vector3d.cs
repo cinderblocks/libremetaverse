@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -142,27 +143,33 @@ namespace OpenMetaverse
         /// <param name="pos">Beginning position in the byte array</param>
         public void FromBytes(byte[] byteArray, int pos)
         {
+            var src = new Span<byte>(byteArray, pos, 24);
+
             if (!BitConverter.IsLittleEndian)
             {
-                // Big endian architecture
-                byte[] conversionBuffer = new byte[24];
-
-                Buffer.BlockCopy(byteArray, pos, conversionBuffer, 0, 24);
-
-                Array.Reverse(conversionBuffer, 0, 8);
-                Array.Reverse(conversionBuffer, 8, 8);
-                Array.Reverse(conversionBuffer, 16, 8);
-
-                X = BitConverter.ToDouble(conversionBuffer, 0);
-                Y = BitConverter.ToDouble(conversionBuffer, 8);
-                Z = BitConverter.ToDouble(conversionBuffer, 16);
+                Span<byte> tmp = stackalloc byte[24];
+                for (int i = 0; i < 3; i++)
+                {
+                    tmp[i * 8 + 0] = src[i * 8 + 7];
+                    tmp[i * 8 + 1] = src[i * 8 + 6];
+                    tmp[i * 8 + 2] = src[i * 8 + 5];
+                    tmp[i * 8 + 3] = src[i * 8 + 4];
+                    tmp[i * 8 + 4] = src[i * 8 + 3];
+                    tmp[i * 8 + 5] = src[i * 8 + 2];
+                    tmp[i * 8 + 6] = src[i * 8 + 1];
+                    tmp[i * 8 + 7] = src[i * 8 + 0];
+                }
+                var dspan = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, double>(tmp);
+                X = dspan[0];
+                Y = dspan[1];
+                Z = dspan[2];
             }
             else
             {
-                // Little endian architecture
-                X = BitConverter.ToDouble(byteArray, pos);
-                Y = BitConverter.ToDouble(byteArray, pos + 8);
-                Z = BitConverter.ToDouble(byteArray, pos + 16);
+                var dspan = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, double>(src);
+                X = dspan[0];
+                Y = dspan[1];
+                Z = dspan[2];
             }
         }
 
@@ -185,15 +192,26 @@ namespace OpenMetaverse
         /// writing. Must be at least 24 bytes before the end of the array</param>
         public void ToBytes(byte[] dest, int pos)
         {
-            Buffer.BlockCopy(BitConverter.GetBytes(X), 0, dest, pos + 0, 8);
-            Buffer.BlockCopy(BitConverter.GetBytes(Y), 0, dest, pos + 8, 8);
-            Buffer.BlockCopy(BitConverter.GetBytes(Z), 0, dest, pos + 16, 8);
+            Span<double> vals = stackalloc double[3];
+            vals[0] = X;
+            vals[1] = Y;
+            vals[2] = Z;
+
+            var bytes = System.Runtime.InteropServices.MemoryMarshal.Cast<double, byte>(vals);
 
             if (!BitConverter.IsLittleEndian)
             {
-                Array.Reverse(dest, pos + 0, 8);
-                Array.Reverse(dest, pos + 8, 8);
-                Array.Reverse(dest, pos + 16, 8);
+                for (int i = 0; i < 3; i++)
+                {
+                    for (int j = 0; j < 8; j++)
+                    {
+                        dest[pos + i * 8 + j] = bytes[i * 8 + (7 - j)];
+                    }
+                }
+            }
+            else
+            {
+                bytes.CopyTo(new Span<byte>(dest, pos, 24));
             }
         }
 
@@ -510,14 +528,14 @@ namespace OpenMetaverse
         #endregion Operators
 
         /// <summary>A vector with a value of 0,0,0</summary>
-        public readonly static Vector3d Zero = new Vector3d();
+        public static readonly Vector3d Zero = new Vector3d();
         /// <summary>A vector with a value of 1,1,1</summary>
-        public readonly static Vector3d One = new Vector3d();
+        public static readonly Vector3d One = new Vector3d();
         /// <summary>A unit vector facing forward (X axis), value of 1,0,0</summary>
-        public readonly static Vector3d UnitX = new Vector3d(1d, 0d, 0d);
+        public static readonly Vector3d UnitX = new Vector3d(1d, 0d, 0d);
         /// <summary>A unit vector facing left (Y axis), value of 0,1,0</summary>
-        public readonly static Vector3d UnitY = new Vector3d(0d, 1d, 0d);
+        public static readonly Vector3d UnitY = new Vector3d(0d, 1d, 0d);
         /// <summary>A unit vector facing up (Z axis), value of 0,0,1</summary>
-        public readonly static Vector3d UnitZ = new Vector3d(0d, 0d, 1d);
+        public static readonly Vector3d UnitZ = new Vector3d(0d, 0d, 1d);
     }
 }

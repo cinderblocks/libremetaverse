@@ -41,8 +41,8 @@ using LibreMetaverse;
 namespace OpenMetaverse
 {
     /// <summary>
-    /// Capabilities is the name of the bi-directional HTTP REST protocol
-    /// used to communicate non real-time transactions such as teleporting or
+    /// Capabilities is the name of the bidirectional HTTP REST protocol
+    /// used to communicate non-real-time transactions such as teleporting or
     /// group messaging
     /// </summary>
     public partial class Caps
@@ -64,7 +64,7 @@ namespace OpenMetaverse
         internal Uri _SeedCapsURI;
         internal Dictionary<string, Uri> _Caps = new Dictionary<string, Uri>();
 
-        private CancellationTokenSource _HttpCts = new CancellationTokenSource();
+        private readonly CancellationTokenSource _HttpCts = new CancellationTokenSource();
         private EventQueueClient _EventQueueClient = null;
 
         /// <summary>Capabilities URI this system was initialized with</summary>
@@ -96,7 +96,7 @@ namespace OpenMetaverse
 
             _HttpCts.Cancel();
 
-            _EventQueueClient?.Stop(immediate);
+            _EventQueueClient?.Dispose();
         }
 
         /// <summary>

@@ -2101,14 +2101,14 @@ namespace OpenMetaverse
                                    }
                                    else
                                    {
-                                       Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJson(entry, true).ToJson(), 
+                                       Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(entry, true), 
                                            Helpers.LogLevel.Info, Client);
                                    }
                                }
                            }
                            else
                            {
-                               Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJson(result, true).ToJson(), 
+                               Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(result, true), 
                                    Helpers.LogLevel.Info, Client);
                            }
 
@@ -2201,14 +2201,14 @@ namespace OpenMetaverse
                                        }
                                        else
                                        {
-                                           Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJson(entry, true).ToJson(), 
+                                           Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(entry, true), 
                                                Helpers.LogLevel.Info, Client);
                                        }
                                    }
                                }
                                else
                                {
-                                   Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJson(result, true).ToJson(), 
+                                   Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(result, true), 
                                        Helpers.LogLevel.Info, Client);
                                }
 
@@ -3134,10 +3134,10 @@ namespace OpenMetaverse
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void KillObjectHandler(object sender, PacketReceivedEventArgs e)
         {
-            Packet packet = e.Packet;
-            Simulator simulator = e.Simulator;
+            var packet = e.Packet;
+            var simulator = e.Simulator;
 
-            KillObjectPacket kill = (KillObjectPacket)packet;
+            var kill = (KillObjectPacket)packet;
 
             // Notify first, so that handler has a chance to get a
             // reference from the ObjectTracker to the object being killed
@@ -3156,59 +3156,72 @@ namespace OpenMetaverse
 
             OnKillObjects(new KillObjectsEventArgs(e.Simulator, localIdsToKill.ToArray()));
 
-            List<uint> removeAvatars = new List<uint>();
-            List<uint> removePrims = new List<uint>();
-
-            if (Client.Settings.OBJECT_TRACKING)
+            var primEntries = simulator.ObjectsPrimitives.ToArray();
+            var parentIndex = new Dictionary<uint, List<uint>>(capacity: primEntries.Length);
+            foreach (var kv in primEntries)
             {
-                foreach (var localID in localIdsToKill)
+                var primId = kv.Key;
+                var parentId = kv.Value.ParentID;
+                if (parentId == 0) { continue; }
+
+                if (!parentIndex.TryGetValue(parentId, out var list))
                 {
-                    if (simulator.ObjectsPrimitives.ContainsKey(localID))
+                    list = new List<uint>(4);
+                    parentIndex[parentId] = list;
+                }
+                list.Add(primId);
+            }
+
+            // For each localID to kill, find direct children quickly and traverse descendants
+            var removePrims = new List<uint>();
+            var visited = new HashSet<uint>(); // reused per batch
+            foreach (var localID in localIdsToKill)
+            {
+                // If the object itself exists as a prim, remove it
+                if (simulator.ObjectsPrimitives.ContainsKey(localID))
+                {
+                    removePrims.Add(localID);
+                    visited.Add(localID);
+                }
+
+                // If there are direct children, traverse the tree of descendents
+                if (parentIndex.TryGetValue(localID, out var directChildren))
+                {
+                    var stack = new Stack<uint>(directChildren.Count);
+                    foreach (var child in directChildren)
                     {
-                        removePrims.Add(localID);
+                        if (visited.Add(child))
+                        {
+                            stack.Push(child);
+                            removePrims.Add(child);
+                        }
                     }
 
-                    foreach (var prim in simulator.ObjectsPrimitives)
+                    while (stack.Count > 0)
                     {
-                        if (prim.Value.ParentID == localID)
+                        var cur = stack.Pop();
+                        if (parentIndex.TryGetValue(cur, out var children))
                         {
-                            OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
-                            removePrims.Add(prim.Key);
+                            foreach (var c in children)
+                            {
+                                if (visited.Add(c))
+                                {
+                                    stack.Push(c);
+                                    removePrims.Add(c);
+                                }
+                            }
                         }
                     }
                 }
-            }
 
-            if (Client.Settings.AVATAR_TRACKING)
-            {
-                foreach (var localID in localIdsToKill)
-                {
-                    var rootPrims = new List<uint>();
-
-                    foreach (var prim in simulator.ObjectsPrimitives
-                                 .Where(prim => prim.Value.ParentID == localID))
-                    {
-                        OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
-                        removePrims.Add(prim.Key);
-                        rootPrims.Add(prim.Key);
-                    }
-
-                    foreach (var prim in simulator.ObjectsPrimitives
-                                 .Where(prim => rootPrims.Contains(prim.Value.ParentID)))
-                    {
-                        OnKillObject(new KillObjectEventArgs(simulator, prim.Key));
-                        removePrims.Add(prim.Key);
-                    }
-                    _ = simulator.ObjectsAvatars.TryRemove(localID, out _);
-                }
+                _ = simulator.ObjectsAvatars.TryRemove(localID, out _);
             }
 
             if (Client.Settings.CACHE_PRIMITIVES)
             {
                 simulator.DataPool.ReleasePrims(removePrims);
             }
-
-            foreach (uint removeID in removePrims)
+            foreach (var removeID in removePrims)
             {
                 simulator.ObjectsPrimitives.TryRemove(removeID, out _);
             }
@@ -3955,7 +3968,7 @@ namespace OpenMetaverse
 
     /// <summary>Provides additional primitive data for the <see cref="ObjectManager.ObjectProperties"/> event</summary>
     /// <remarks><para>The <see cref="ObjectManager.ObjectProperties"/> event occurs when the simulator sends
-    /// <see cref="ObjectPropertiesPacket"/> containing additional details for a Primitive, Foliage data or Attachment data</para>
+    /// <see cref="ObjectPropertiesPacket"/> containing additional details for a Primitive, Foliage or Attachment data</para>
     /// <para>The <see cref="ObjectManager.ObjectProperties"/> event is also raised when a <see cref="ObjectManager.SelectObject"/> request is
     /// made.</para>
     /// </remarks>
@@ -3975,6 +3988,10 @@ namespace OpenMetaverse
     ///     }   
     /// </code>
     /// </example>
+    /// <seealso cref="ObjectManager.ObjectUpdate"/>
+    /// <seealso cref="ObjectManager.AvatarUpdate"/>
+    /// <seealso cref="AvatarUpdateEventArgs"/>
+    /// <seealso cref="PrimEventArgs"/>
     public class ObjectPropertiesEventArgs : EventArgs
     {
         protected readonly Simulator m_Simulator;

@@ -1205,7 +1205,7 @@ namespace GridProxy
                         remoteComplete.Set();
                     }
                     );
-                loginRequest.PostRequestAsync(content, "application/llsd+xml", 1000 * 100);
+                loginRequest.PostRequestAsync(content, LibreMetaverse.HttpCapsClient.LLSD_XML, 1000 * 100);
                 remoteComplete.WaitOne(TimeSpan.FromSeconds(100), false);
 
                 if (response == null)

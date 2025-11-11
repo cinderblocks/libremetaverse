@@ -72,7 +72,7 @@ namespace LibreMetaverse
                 }
                 
                 using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(newInventory), 
-                           Encoding.UTF8, "application/llsd+xml"))
+                           Encoding.UTF8, HttpCapsClient.LLSD_XML))
                 {
                     using (var reply = await Client.HttpCapsClient.PostAsync(uri, content, cancellationToken))
                     {
@@ -124,7 +124,7 @@ namespace LibreMetaverse
                 }
 
                 using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(newInventory), 
-                           Encoding.UTF8, "application/llsd+xml"))
+                           Encoding.UTF8, HttpCapsClient.LLSD_XML))
                 {
                     using (var reply = await Client.HttpCapsClient.PutAsync(uri, content, cancellationToken))
                     {
@@ -310,7 +310,7 @@ namespace LibreMetaverse
 #endif
                 {
                     using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(updates), 
-                               Encoding.UTF8, "application/llsd+xml"))
+                               Encoding.UTF8, HttpCapsClient.LLSD_XML))
                     {
                         request.Content = content;
 
@@ -357,7 +357,7 @@ namespace LibreMetaverse
 #endif
                 {
                     using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(updates),
-                               Encoding.UTF8, "application/llsd+xml"))
+                               Encoding.UTF8, HttpCapsClient.LLSD_XML))
                     {
                         request.Content = content;
 
@@ -707,7 +707,7 @@ namespace LibreMetaverse
                 {
 
                     var payload = OSDParser.SerializeLLSDXmlString(new OSDMap { { "depth", 0 } });
-                    using (var content = new StringContent(payload, Encoding.UTF8, "application/llsd+xml"))
+                    using (var content = new StringContent(payload, Encoding.UTF8, HttpCapsClient.LLSD_XML))
                     {
                         using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken))
                         {
