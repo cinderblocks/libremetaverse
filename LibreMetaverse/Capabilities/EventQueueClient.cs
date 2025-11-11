@@ -106,7 +106,7 @@ namespace OpenMetaverse.Http
                 _reqPayloadMap = initial;
                 _reqPayloadBytes = OSDParser.SerializeLLSDXmlBytes(_reqPayloadMap);
             }
-
+            _queueCts?.Cancel();
             _queueCts?.Dispose();
             _queueCts = new CancellationTokenSource();
 
