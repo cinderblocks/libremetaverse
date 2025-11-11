@@ -1911,18 +1911,45 @@ namespace LibreMetaverse.PrimMesher
 
                             if (!viewerMode) continue;
 
-                            var primFaceNum = profile.faceNumbers[whichVert]; if (!needEndFaces) primFaceNum--;
+                            int primFaceNum = 0;
+                            if (profile.faceNumbers != null && whichVert >= 0 && whichVert < profile.faceNumbers.Count)
+                                primFaceNum = profile.faceNumbers[whichVert];
+                            else if (profile.faceNumbers != null && profile.faceNumbers.Count > 0)
+                                primFaceNum = profile.faceNumbers[0];
+                            if (!needEndFaces) primFaceNum = Math.Max(0, primFaceNum - 1);
                             var vf1 = new ViewerFace(primFaceNum); var vf2 = new ViewerFace(primFaceNum);
 
-                            var uIndex = whichVert; if (!HasHollow && sides > 4 && uIndex < profile.us.Count - 1) uIndex++;
-                            var u1 = profile.us[uIndex]; var u2 = uIndex < profile.us.Count - 1 ? profile.us[uIndex + 1] : 1.0f;
-                            if (whichVert == cut1Vert || whichVert == cut2Vert) { u1 = 0f; u2 = 1f; }
-                            else if (sides < 5 && whichVert < profile.numOuterVerts) { u1 *= sides; u2 *= sides; u2 -= (int)u1; u1 -= (int)u1; if (u2 < 0.1f) u2 = 1f; }
-                            if (sphereMode && whichVert != cut1Vert && whichVert != cut2Vert) { u1 = u1 * 2f - 1f; u2 = u2 * 2f - 1f; if (whichVert >= profile.numOuterVerts) { u1 -= hollow; u2 -= hollow; } }
+                            var uIndex = whichVert;
+                            if (!HasHollow && sides > 4 && profile.us != null && uIndex < profile.us.Count - 1) uIndex++;
+                            // clamp uIndex
+                            if (profile.us == null || profile.us.Count == 0)
+                            {
+                                // no uv data available
+                                vf1.uv1.U = vf1.uv2.U = vf1.uv3.U = 0f;
+                                vf2.uv1.U = vf2.uv2.U = vf2.uv3.U = 0f;
+                            }
+                            else
+                            {
+                                if (uIndex < 0) uIndex = 0;
+                                if (uIndex >= profile.us.Count) uIndex = profile.us.Count - 1;
+                                var u1 = profile.us[uIndex];
+                                var u2 = (uIndex < profile.us.Count - 1) ? profile.us[uIndex + 1] : 1.0f;
+                                if (whichVert == cut1Vert || whichVert == cut2Vert) { u1 = 0f; u2 = 1f; }
+                                else if (sides < 5 && whichVert < profile.numOuterVerts)
+                                {
+                                    u1 *= sides; u2 *= sides;
+                                    u2 -= (int)u1; u1 -= (int)u1; if (u2 < 0.1f) u2 = 1f;
+                                }
+                                if (sphereMode && whichVert != cut1Vert && whichVert != cut2Vert)
+                                {
+                                    u1 = u1 * 2f - 1f; u2 = u2 * 2f - 1f; if (whichVert >= profile.numOuterVerts) { u1 -= hollow; u2 -= hollow; }
+                                }
 
-                            vf1.uv1.U = u1; vf1.uv2.U = u1; vf1.uv3.U = u2; vf1.uv1.V = thisV; vf1.uv2.V = lastV; vf1.uv3.V = thisV;
-                            vf2.uv1.U = u2; vf2.uv2.U = u1; vf2.uv3.U = u2; vf2.uv1.V = thisV; vf2.uv2.V = lastV; vf2.uv3.V = lastV;
+                                vf1.uv1.U = u1; vf1.uv2.U = u1; vf1.uv3.U = u2; vf1.uv1.V = thisV; vf1.uv2.V = lastV; vf1.uv3.V = thisV;
+                                vf2.uv1.U = u2; vf2.uv2.U = u1; vf2.uv3.U = u2; vf2.uv1.V = thisV; vf2.uv2.V = lastV; vf2.uv3.V = lastV;
+                            }
 
+                            // assign coords
                             vf1.v1 = coords[newFace1.v1]; vf1.v2 = coords[newFace1.v2]; vf1.v3 = coords[newFace1.v3];
                             vf2.v1 = coords[newFace2.v1]; vf2.v2 = coords[newFace2.v2]; vf2.v3 = coords[newFace2.v3];
                             vf1.coordIndex1 = newFace1.v1; vf1.coordIndex2 = newFace1.v2; vf1.coordIndex3 = newFace1.v3;
@@ -1943,14 +1970,39 @@ namespace LibreMetaverse.PrimMesher
                             }
                             else
                             {
-                                if (sides < 5 && whichVert < profile.numOuterVerts || hollowSides < 5 && whichVert >= profile.numOuterVerts)
+                                // prefer per-vertex normals when available, otherwise compute face normals
+                                bool usePerVertexNormals = (sides < 5 && whichVert < profile.numOuterVerts) || (hollowSides < 5 && whichVert >= profile.numOuterVerts);
+                                if (usePerVertexNormals)
                                 {
                                     vf1.CalcSurfaceNormal(); vf2.CalcSurfaceNormal();
                                 }
                                 else
                                 {
-                                    vf1.n1 = normals[newFace1.n1]; vf1.n2 = normals[newFace1.n2]; vf1.n3 = normals[newFace1.n3];
-                                    vf2.n1 = normals[newFace2.n1]; vf2.n2 = normals[newFace2.n2]; vf2.n3 = normals[newFace2.n3];
+                                    // safe access to normals list
+                                    int nIndex1 = newFace1.n1;
+                                    int nIndex2 = newFace1.n2;
+                                    int nIndex3 = newFace1.n3;
+
+                                    if (normals != null && normals.Count > 0)
+                                    {
+                                        if (nIndex1 < 0 || nIndex1 >= normals.Count) nIndex1 = 0;
+                                        if (nIndex2 < 0 || nIndex2 >= normals.Count) nIndex2 = 0;
+                                        if (nIndex3 < 0 || nIndex3 >= normals.Count) nIndex3 = 0;
+
+                                        vf1.n1 = normals[nIndex1]; vf1.n2 = normals[nIndex2]; vf1.n3 = normals[nIndex3];
+
+                                        nIndex1 = newFace2.n1; nIndex2 = newFace2.n2; nIndex3 = newFace2.n3;
+                                        if (nIndex1 < 0 || nIndex1 >= normals.Count) nIndex1 = 0;
+                                        if (nIndex2 < 0 || nIndex2 >= normals.Count) nIndex2 = 0;
+                                        if (nIndex3 < 0 || nIndex3 >= normals.Count) nIndex3 = 0;
+
+                                        vf2.n1 = normals[nIndex1]; vf2.n2 = normals[nIndex2]; vf2.n3 = normals[nIndex3];
+                                    }
+                                    else
+                                    {
+                                        // fallback: compute normals from coords
+                                        vf1.CalcSurfaceNormal(); vf2.CalcSurfaceNormal();
+                                    }
                                 }
                             }
 
@@ -1966,12 +2018,35 @@ namespace LibreMetaverse.PrimMesher
                         for (var fi = 0; fi < profile.faces.Count; fi++)
                         {
                             var f = profile.faces[fi];
+
+                            // profile.faces use indices relative to profile.coords (0..profileCount-1).
+                            // tmp[] contains the transformed profile.coords in the same order, so index tmp by f.v* directly.
                             var nv = new ViewerFace(0);
-                            nv.v1 = tmp[f.v1 - coordsLen]; nv.v2 = tmp[f.v2 - coordsLen]; nv.v3 = tmp[f.v3 - coordsLen];
-                            nv.coordIndex1 = f.v1 - coordsLen; nv.coordIndex2 = f.v2 - coordsLen; nv.coordIndex3 = f.v3 - coordsLen;
-                            nv.n1 = faceNormal; nv.n2 = faceNormal; nv.n3 = faceNormal;
-                            nv.uv1 = profile.faceUVs[f.v1 - coordsLen]; nv.uv2 = profile.faceUVs[f.v2 - coordsLen]; nv.uv3 = profile.faceUVs[f.v3 - coordsLen];
-                            if (pathType == PathType.Linear) { nv.uv1.Flip(); nv.uv2.Flip(); nv.uv3.Flip(); }
+                            nv.v1 = tmp[f.v1];
+                            nv.v2 = tmp[f.v2];
+                            nv.v3 = tmp[f.v3];
+
+                            // coordIndex should be the absolute index in the global coords list (coordsLen + profile-local index)
+                            nv.coordIndex1 = f.v1 + coordsLen;
+                            nv.coordIndex2 = f.v2 + coordsLen;
+                            nv.coordIndex3 = f.v3 + coordsLen;
+
+                            nv.n1 = faceNormal;
+                            nv.n2 = faceNormal;
+                            nv.n3 = faceNormal;
+
+                            // faceUVs are parallel to profile.coords, so index by the profile-local indices
+                            nv.uv1 = profile.faceUVs[f.v1];
+                            nv.uv2 = profile.faceUVs[f.v2];
+                            nv.uv3 = profile.faceUVs[f.v3];
+
+                            if (pathType == PathType.Linear)
+                            {
+                                nv.uv1.Flip();
+                                nv.uv2.Flip();
+                                nv.uv3.Flip();
+                            }
+
                             viewerFaces.Add(nv);
                         }
                     }
@@ -2167,14 +2242,12 @@ namespace LibreMetaverse.PrimMesher
             }
         }
 
-#if VERTEX_INDEXER
         public VertexIndexer GetVertexIndexer()
         {
-            if (viewerMode && viewerFaces.Count > 0)
+            if (viewerMode && viewerFaces != null && viewerFaces.Count > 0)
                 return new VertexIndexer(this);
             return null;
         }
-#endif
 
         /// <summary>
         ///     Scales the mesh
