@@ -3156,9 +3156,8 @@ namespace OpenMetaverse
 
             OnKillObjects(new KillObjectsEventArgs(e.Simulator, localIdsToKill.ToArray()));
 
-            var primEntries = simulator.ObjectsPrimitives.ToArray();
-            var parentIndex = new Dictionary<uint, List<uint>>(capacity: primEntries.Length);
-            foreach (var kv in primEntries)
+            var parentIndex = new Dictionary<uint, List<uint>>();
+            foreach (var kv in simulator.ObjectsPrimitives)
             {
                 var primId = kv.Key;
                 var parentId = kv.Value.ParentID;
@@ -4029,7 +4028,7 @@ namespace OpenMetaverse
 
         /// <summary>
         /// Construct a new instance of the ObjectPropertiesUpdatedEventArgs class
-        /// </summary>                
+        /// </summary>
         /// <param name="simulator">The simulator the object is located</param>
         /// <param name="prim">The Primitive</param>
         /// <param name="props">The primitive Properties</param>
