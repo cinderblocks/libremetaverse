@@ -205,17 +205,20 @@ namespace LibreMetaverse
             {
                 using (var response = await SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
                 {
+                    Exception statusError = null;
                     if (!response.IsSuccessStatusCode)
                     {
-                        completeHandler?.Invoke(response, null,
-                                                new HttpRequestException(response.StatusCode + ": " +
-                                                                         response.ReasonPhrase));
-                        return;
+                        statusError = new HttpRequestException(response.StatusCode + ": " + response.ReasonPhrase);
                     }
 
                     connectedHandler?.Invoke(response);
 
-                    await ProcessResponseAsync(response, cancellationToken, completeHandler, progressHandler);
+                    await ProcessResponseAsync(response, cancellationToken, (r, data, processError) =>
+                    {
+                        // Prefer pipeline error, otherwise status error
+                        var finalError = processError ?? statusError;
+                        completeHandler?.Invoke(r, data, finalError);
+                    }, progressHandler).ConfigureAwait(false);
                 }
             }
             catch (TaskCanceledException)

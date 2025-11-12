@@ -230,28 +230,20 @@ namespace OpenMetaverse.Http
 
                         case HttpStatusCode.InternalServerError:
                         {
-                            // Read response content in background to avoid blocking this callback
-                            Task.Run(async () =>
+                            // If responseData already buffered, log it directly
+                            if (responseData != null)
                             {
                                 try
                                 {
-#if NET5_0_OR_GREATER
-                                    var responseString = await response.Content.ReadAsStringAsync(_queueCts.Token).ConfigureAwait(false);
-#else
-                                    if (_queueCts.IsCancellationRequested) { return; }
-                                    var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-#endif
-                                    if (!string.IsNullOrEmpty(responseString))
+                                    var responseString = System.Text.Encoding.UTF8.GetString(responseData);
+                                    if (!string.IsNullOrEmpty(responseString) &&
+                                        responseString.IndexOf(PROXY_TIMEOUT_RESPONSE, StringComparison.Ordinal) < 0)
                                     {
-                                        if (responseString.IndexOf(PROXY_TIMEOUT_RESPONSE, StringComparison.Ordinal) < 0)
-                                        {
-                                            Logger.Log($"Full response was: {responseString}", Helpers.LogLevel.Debug,
-                                                Simulator.Client);
-                                        }
+                                        Logger.Log($"Full response was: {responseString}", Helpers.LogLevel.Debug, Simulator.Client);
                                     }
                                 }
-                                catch { /* ignore read failures */ }
-                            });
+                                catch { /* ignore decode failures */ }
+                            }
 
                             if (error.InnerException != null)
                             {
