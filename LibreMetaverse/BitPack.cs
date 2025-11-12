@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -25,6 +26,8 @@
  */
 
 using System;
+using System.Buffers.Binary;
+using System.Runtime.InteropServices;
 
 namespace OpenMetaverse
 {
@@ -188,10 +191,10 @@ namespace OpenMetaverse
         /// <returns>Unpacked floating point value</returns>
         public float UnpackFloat()
         {
-            byte[] output = UnpackBitsArray(32);
-
-            if (!BitConverter.IsLittleEndian) Array.Reverse(output);
-            return BitConverter.ToSingle(output, 0);
+            uint val = UnpackBitsToUInt(32);
+            Span<byte> span = stackalloc byte[4];
+            BinaryPrimitives.WriteUInt32LittleEndian(span, val);
+            return MemoryMarshal.Read<float>(span);
         }
 
         /// <summary>
@@ -202,10 +205,8 @@ namespace OpenMetaverse
         /// <remarks>This function is only useful up to 32 bits</remarks>
         public int UnpackBits(int totalCount)
         {
-            byte[] output = UnpackBitsArray(totalCount);
-
-            if (!BitConverter.IsLittleEndian) Array.Reverse(output);
-            return BitConverter.ToInt32(output, 0);
+            uint val = UnpackBitsToUInt(totalCount);
+            return (int)val;
         }
 
         /// <summary>
@@ -217,10 +218,7 @@ namespace OpenMetaverse
         /// <remarks>This function is only useful up to 32 bits</remarks>
         public uint UnpackUBits(int totalCount)
         {
-            byte[] output = UnpackBitsArray(totalCount);
-
-            if (!BitConverter.IsLittleEndian) Array.Reverse(output);
-            return BitConverter.ToUInt32(output, 0);
+            return UnpackBitsToUInt(totalCount);
         }
 
         /// <summary>
@@ -261,8 +259,7 @@ namespace OpenMetaverse
 
         public byte UnpackByte()
         {
-            byte[] output = UnpackBitsArray(8);
-            return output[0];
+            return (byte)UnpackBitsToUInt(8);
         }
 
         public float UnpackFixed(bool signed, int intBits, int fracBits)
@@ -361,10 +358,11 @@ namespace OpenMetaverse
             }
         }
 
-        private byte[] UnpackBitsArray(int totalCount)
+        private uint UnpackBitsToUInt(int totalCount)
         {
             int count = 0;
-            byte[] output = new byte[4];
+            Span<byte> output = stackalloc byte[4];
+            output[0] = 0; output[1] = 0; output[2] = 0; output[3] = 0;
             int curBytePos = 0;
             int curBitPos = 0;
 
@@ -406,7 +404,13 @@ namespace OpenMetaverse
                 }
             }
 
-            return output;
+            uint result = MemoryMarshal.Read<uint>(output);
+            if (!BitConverter.IsLittleEndian)
+            {
+                result = BinaryPrimitives.ReverseEndianness(result);
+            }
+
+            return result;
         }
     }
 }
