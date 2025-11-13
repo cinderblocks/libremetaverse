@@ -663,16 +663,12 @@ namespace OpenMetaverse
             TerminateFriendshipPacket itsOver = (TerminateFriendshipPacket)packet;
             string name = string.Empty;
 
-            if (FriendList.TryGetValue(itsOver.ExBlock.OtherID, out var friend))
+            if (FriendList.TryRemove(itsOver.ExBlock.OtherID, out var friend))
             {
                 name = friend.Name;
-                FriendList.TryRemove(itsOver.ExBlock.OtherID, out _);
             }
 
-            if (m_FriendshipTerminated != null)
-            {
-                OnFriendshipTerminated(new FriendshipTerminatedEventArgs(itsOver.ExBlock.OtherID, name));
-            }
+            OnFriendshipTerminated(new FriendshipTerminatedEventArgs(itsOver.ExBlock.OtherID, name));
         }
 
         /// <summary>
@@ -816,15 +812,14 @@ namespace OpenMetaverse
                 {
                     if (friend.Name == null)
                     {
-                        newNames.Add(kvp.Key, e.Names[kvp.Key]);
+                        newNames.Add(kvp.Key, kvp.Value);
                     }
 
-                    friend.Name = e.Names[kvp.Key];
-                    FriendList[kvp.Key] = friend;
+                    friend.Name = kvp.Value;
                 }
             }
 
-            if (newNames.Count > 0 && m_FriendNames != null)
+            if (newNames.Count > 0)
             {
                 OnFriendNames(new FriendNamesEventArgs(newNames));
             }
@@ -839,31 +834,21 @@ namespace OpenMetaverse
         protected void OnlineNotificationHandler(object sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
-            if (packet.Type == PacketType.OnlineNotification)
+            if (packet.Type != PacketType.OnlineNotification) { return; }
+
+            OnlineNotificationPacket notification = (OnlineNotificationPacket)packet;
+
+            foreach (OnlineNotificationPacket.AgentBlockBlock block in notification.AgentBlock)
             {
-                OnlineNotificationPacket notification = ((OnlineNotificationPacket)packet);
+                var friend = FriendList.GetOrAdd(block.AgentID, id 
+                    => new FriendInfo(id, FriendRights.CanSeeOnline, FriendRights.CanSeeOnline));
 
-                foreach (OnlineNotificationPacket.AgentBlockBlock block in notification.AgentBlock)
+                bool doNotify = !friend.IsOnline;
+                friend.IsOnline = true;
+
+                if (doNotify)
                 {
-                    FriendInfo friend;
-                    if (!FriendList.ContainsKey(block.AgentID))
-                    {
-                        friend = new FriendInfo(block.AgentID, FriendRights.CanSeeOnline,
-                            FriendRights.CanSeeOnline);
-                        FriendList.TryAdd(block.AgentID, friend);
-                    }
-                    else
-                    {
-                        friend = FriendList[block.AgentID];
-                    }
-
-                    bool doNotify = !friend.IsOnline;
-                    friend.IsOnline = true;
-
-                    if (m_FriendOnline != null && doNotify)
-                    {
-                        OnFriendOnline(new FriendInfoEventArgs(friend));
-                    }
+                    OnFriendOnline(new FriendInfoEventArgs(friend));
                 }
             }
         }
@@ -874,25 +859,18 @@ namespace OpenMetaverse
         protected void OfflineNotificationHandler(object sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
-            if (packet.Type == PacketType.OfflineNotification)
+            if (packet.Type != PacketType.OfflineNotification) { return; }
+
+            OfflineNotificationPacket notification = (OfflineNotificationPacket)packet;
+
+            foreach (OfflineNotificationPacket.AgentBlockBlock block in notification.AgentBlock)
             {
-                OfflineNotificationPacket notification = (OfflineNotificationPacket)packet;
+                var friend = FriendList.GetOrAdd(block.AgentID, id 
+                    => new FriendInfo(id, FriendRights.CanSeeOnline, FriendRights.CanSeeOnline));
 
-                foreach (OfflineNotificationPacket.AgentBlockBlock block in notification.AgentBlock)
-                {
-                    FriendInfo friend = new FriendInfo(block.AgentID, FriendRights.CanSeeOnline, FriendRights.CanSeeOnline);
+                friend.IsOnline = false;
 
-                    FriendList.TryAdd(block.AgentID, friend);
-                    if (FriendList.TryGetValue(block.AgentID, out friend))
-                    {
-                        friend.IsOnline = false;
-
-                        if (m_FriendOffline != null)
-                        {
-                            OnFriendOffline(new FriendInfoEventArgs(friend));
-                        }
-                    }
-                }
+                OnFriendOffline(new FriendInfoEventArgs(friend));
             }
         }
 
@@ -903,31 +881,25 @@ namespace OpenMetaverse
         private void ChangeUserRightsHandler(object sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
-            if (packet.Type == PacketType.ChangeUserRights)
-            {
-                ChangeUserRightsPacket rights = (ChangeUserRightsPacket)packet;
+            if (packet.Type != PacketType.ChangeUserRights) { return; }
 
-                foreach (ChangeUserRightsPacket.RightsBlock block in rights.Rights)
+            ChangeUserRightsPacket rights = (ChangeUserRightsPacket)packet;
+
+            foreach (ChangeUserRightsPacket.RightsBlock block in rights.Rights)
+            {
+                FriendRights newRights = (FriendRights)block.RelatedRights;
+
+                if (FriendList.TryGetValue(block.AgentRelated, out var friend))
                 {
-                    FriendRights newRights = (FriendRights)block.RelatedRights;
-                    if (FriendList.TryGetValue(block.AgentRelated, out var friend))
+                    friend.TheirFriendRights = newRights;
+                    OnFriendRights(new FriendInfoEventArgs(friend));
+                }
+                else if (block.AgentRelated == Client.Self.AgentID)
+                {
+                    if (FriendList.TryGetValue(rights.AgentData.AgentID, out friend))
                     {
-                        friend.TheirFriendRights = newRights;
-                        if (m_FriendRights != null)
-                        {
-                            OnFriendRights(new FriendInfoEventArgs(friend));
-                        }
-                    }
-                    else if (block.AgentRelated == Client.Self.AgentID)
-                    {
-                        if (FriendList.TryGetValue(rights.AgentData.AgentID, out friend))
-                        {
-                            friend.MyFriendRights = newRights;
-                            if (m_FriendRights != null)
-                            {
-                                OnFriendRights(new FriendInfoEventArgs(friend));
-                            }
-                        }
+                        friend.MyFriendRights = newRights;
+                        OnFriendRights(new FriendInfoEventArgs(friend));
                     }
                 }
             }
@@ -967,25 +939,25 @@ namespace OpenMetaverse
             }
             else if (e.IM.Dialog == InstantMessageDialog.FriendshipAccepted)
             {
-                FriendInfo friend = new FriendInfo(e.IM.FromAgentID, FriendRights.CanSeeOnline,
-                    FriendRights.CanSeeOnline)
+                var friend = new FriendInfo(e.IM.FromAgentID, FriendRights.CanSeeOnline, FriendRights.CanSeeOnline)
                 {
                     Name = e.IM.FromAgentName
                 };
-                FriendList[friend.UUID] = friend;
 
-                if (m_FriendshipResponse != null)
-                {
-                    OnFriendshipResponse(new FriendshipResponseEventArgs(e.IM.FromAgentID, e.IM.FromAgentName, true));
-                }
+                FriendList.AddOrUpdate(friend.UUID, friend, (id, existing) => {
+                    existing.Name = friend.Name;
+                    existing.IsOnline = true;
+                    existing.TheirFriendRights = friend.TheirFriendRights;
+                    existing.MyFriendRights = friend.MyFriendRights;
+                    return existing;
+                });
+
+                OnFriendshipResponse(new FriendshipResponseEventArgs(e.IM.FromAgentID, e.IM.FromAgentName, true));
                 RequestOnlineNotification(e.IM.FromAgentID);
             }
             else if (e.IM.Dialog == InstantMessageDialog.FriendshipDeclined)
             {
-                if (m_FriendshipResponse != null)
-                {
-                    OnFriendshipResponse(new FriendshipResponseEventArgs(e.IM.FromAgentID, e.IM.FromAgentName, false));
-                }
+                OnFriendshipResponse(new FriendshipResponseEventArgs(e.IM.FromAgentID, e.IM.FromAgentName, false));
             }
         }
 
