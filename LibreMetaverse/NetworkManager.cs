@@ -167,8 +167,7 @@ namespace OpenMetaverse
         private EventHandler<SimConnectingEventArgs> m_SimConnecting;
 
         ///<summary>Raises the SimConnecting Event</summary>
-        /// <param name="e">A SimConnectingEventArgs object containing
-        /// the data sent from the simulator</param>
+        /// <param name="e">A SimConnectingEventArgs object containing the packet data</param>
         protected virtual void OnSimConnecting(SimConnectingEventArgs e)
         {
             EventHandler<SimConnectingEventArgs> handler = m_SimConnecting;
@@ -190,8 +189,7 @@ namespace OpenMetaverse
         private EventHandler<SimConnectedEventArgs> m_SimConnected;
 
         ///<summary>Raises the SimConnected Event</summary>
-        /// <param name="e">A SimConnectedEventArgs object containing
-        /// the data sent from the simulator</param>
+        /// <param name="e">A SimConnectedEventArgs object containing the data sent from the simulator</param>
         protected virtual void OnSimConnected(SimConnectedEventArgs e)
         {
             EventHandler<SimConnectedEventArgs> handler = m_SimConnected;
@@ -213,8 +211,7 @@ namespace OpenMetaverse
         private EventHandler<SimDisconnectedEventArgs> m_SimDisconnected;
 
         ///<summary>Raises the SimDisconnected Event</summary>
-        /// <param name="e">A SimDisconnectedEventArgs object containing
-        /// the data sent from the simulator</param>
+        /// <param name="e">A SimDisconnectedEventArgs object containing the packet data</param>
         protected virtual void OnSimDisconnected(SimDisconnectedEventArgs e)
         {
             EventHandler<SimDisconnectedEventArgs> handler = m_SimDisconnected;
@@ -236,8 +233,7 @@ namespace OpenMetaverse
         private EventHandler<DisconnectedEventArgs> m_Disconnected;
 
         ///<summary>Raises the Disconnected Event</summary>
-        /// <param name="e">A DisconnectedEventArgs object containing
-        /// the data sent from the simulator</param>
+        /// <param name="e">A DisconnectedEventArgs object containing the packet data</param>
         protected virtual void OnDisconnected(DisconnectedEventArgs e)
         {
             EventHandler<DisconnectedEventArgs> handler = m_Disconnected;
@@ -259,8 +255,7 @@ namespace OpenMetaverse
         private EventHandler<SimChangedEventArgs> m_SimChanged;
 
         ///<summary>Raises the SimChanged Event</summary>
-        /// <param name="e">A SimChangedEventArgs object containing
-        /// the data sent from the simulator</param>
+        /// <param name="e">A SimChangedEventArgs object</param>
         protected virtual void OnSimChanged(SimChangedEventArgs e)
         {
             EventHandler<SimChangedEventArgs> handler = m_SimChanged;
@@ -282,8 +277,7 @@ namespace OpenMetaverse
         private EventHandler<EventQueueRunningEventArgs> m_EventQueueRunning;
 
         ///<summary>Raises the EventQueueRunning Event</summary>
-        /// <param name="e">A EventQueueRunningEventArgs object containing
-        /// the data sent from the simulator</param>
+        /// <param name="e">A EventQueueRunningEventArgs object containing the simulator</param>
         protected virtual void OnEventQueueRunning(EventQueueRunningEventArgs e)
         {
             EventHandler<EventQueueRunningEventArgs> handler = m_EventQueueRunning;
@@ -677,7 +671,7 @@ namespace OpenMetaverse
                     lock (Simulators)
                     {
                         Simulators.Remove(simulator);
-                    }                 
+                    }
 
                     return null;
                 }
@@ -1365,6 +1359,7 @@ namespace OpenMetaverse
 
         #endregion Packet Callbacks
     }
+
     #region EventArgs
 
     public class PacketReceivedEventArgs : EventArgs
@@ -1430,18 +1425,18 @@ namespace OpenMetaverse
 
     public class SimDisconnectedEventArgs : EventArgs
     {
-        public Simulator Simulator { get; }
+            public Simulator Simulator { get; }
 
-        public NetworkManager.DisconnectType Reason { get; }
+            public NetworkManager.DisconnectType Reason { get; }
 
-        public bool WasConnected { get; }
+            public bool WasConnected { get; }
 
-        public SimDisconnectedEventArgs(Simulator simulator, NetworkManager.DisconnectType reason, bool wasConnected)
-        {
-            Simulator = simulator;
-            Reason = reason;
-            WasConnected = wasConnected;
-        }
+            public SimDisconnectedEventArgs(Simulator simulator, NetworkManager.DisconnectType reason, bool wasConnected)
+            {
+                Simulator = simulator;
+                Reason = reason;
+                WasConnected = wasConnected;
+            }
     }
 
     public class DisconnectedEventArgs : EventArgs
