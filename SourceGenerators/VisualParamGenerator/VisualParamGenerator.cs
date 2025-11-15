@@ -261,6 +261,12 @@ namespace OpenMetaverse
             });
         }
 
+        // Helper to format float literals using invariant/en-US culture with trailing 'f'
+        private static string FormatFloat(float value)
+        {
+            return value.ToString(EnUsCulture) + "f";
+        }
+
         private static string GenerateFromTemplateAndXml(string templateText, string xmlText, SourceProductionContext spc)
         {
             var doc = new XmlDocument();
@@ -325,10 +331,10 @@ namespace OpenMetaverse
                                 var tgaFile = "string.Empty";
                                 var skipIfZero = "false";
                                 var multiplyBlend = "false";
-                                var domain = "0";
+                                var domainVal = 0f;
 
                                 if (anode.Attributes?["domain"] != null)
-                                    domain = anode.Attributes["domain"].Value;
+                                    domainVal = float.Parse(anode.Attributes["domain"].Value, NumberStyles.Float, EnUsCulture.NumberFormat);
 
                                 if (anode.Attributes?["tga_file"] != null)
                                     tgaFile = $"\"{anode.Attributes["tga_file"].Value}\"";
@@ -339,7 +345,7 @@ namespace OpenMetaverse
                                 if (anode.Attributes?["multiply_blend"]?.Value?.ToLowerInvariant() == "true")
                                     multiplyBlend = "true";
 
-                                alphas[id] = $"new VisualAlphaParam({domain}f, {tgaFile}, {skipIfZero}, {multiplyBlend})";
+                                alphas[id] = $"new VisualAlphaParam({FormatFloat(domainVal)}, {tgaFile}, {skipIfZero}, {multiplyBlend})";
                             }
                             else if (child is { Name: "param_color", HasChildNodes: true })
                             {
@@ -418,8 +424,8 @@ namespace OpenMetaverse
                     }
 
                     ids.Add(id,
-                        string.Format("            Params[{0}] = new VisualParam({0}, \"{1}\", {2}, {3}, {4}, {5}, {6}, {7}f, {8}f, {9}f, {10}, {11}, ",
-                                      id, name, group, wearable, label, labelMin, labelMax, def, min, max, bumpAttrib, drivers));
+                        string.Format("            Params[{0}] = new VisualParam({0}, \"{1}\", {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, ",
+                                      id, name, group, wearable, label, labelMin, labelMax, FormatFloat(def), FormatFloat(min), FormatFloat(max), bumpAttrib, drivers));
 
                     if (group == 0)
                         ++count;
