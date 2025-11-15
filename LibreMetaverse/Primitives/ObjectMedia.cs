@@ -61,7 +61,7 @@ namespace OpenMetaverse
     public class MediaEntry
     {
         /// <summary>Is display of the alternative image enabled</summary>
-        public bool EnableAlterntiveImage;
+        public bool EnableAlternativeImage;
 
         /// <summary>Should media auto loop</summary>
         public bool AutoLoop;
@@ -115,7 +115,7 @@ namespace OpenMetaverse
         {
             OSDMap map = new OSDMap();
 
-            map["alt_image_enable"] = OSD.FromBoolean(EnableAlterntiveImage);
+            map["alt_image_enable"] = OSD.FromBoolean(EnableAlternativeImage);
             map["auto_loop"] = OSD.FromBoolean(AutoLoop);
             map["auto_play"] = OSD.FromBoolean(AutoPlay);
             map["auto_scale"] = OSD.FromBoolean(AutoScale);
@@ -151,7 +151,7 @@ namespace OpenMetaverse
             MediaEntry m = new MediaEntry();
             OSDMap map = (OSDMap)osd;
 
-            m.EnableAlterntiveImage = map["alt_image_enable"].AsBoolean();
+            m.EnableAlternativeImage = map["alt_image_enable"].AsBoolean();
             m.AutoLoop = map["auto_loop"].AsBoolean();
             m.AutoPlay = map["auto_play"].AsBoolean();
             m.AutoScale = map["auto_scale"].AsBoolean();
