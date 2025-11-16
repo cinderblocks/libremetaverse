@@ -296,7 +296,7 @@ namespace OpenMetaverse
                 ItemCreatedCallback createdCallback;
                 if (_ItemCreatedCallbacks.TryGetValue(dataBlock.CallbackID, out createdCallback))
                 {
-                    _ItemCreatedCallbacks.Remove(dataBlock.CallbackID);
+                    _ItemCreatedCallbacks.TryRemove(dataBlock.CallbackID, out _);
 
                     try
                     {
@@ -313,7 +313,7 @@ namespace OpenMetaverse
                 ItemCopiedCallback copyCallback;
                 if (_ItemCopiedCallbacks.TryGetValue(dataBlock.CallbackID, out copyCallback))
                 {
-                    _ItemCopiedCallbacks.Remove(dataBlock.CallbackID);
+                    _ItemCopiedCallbacks.TryRemove(dataBlock.CallbackID, out _);
 
                     try
                     {
@@ -389,7 +389,7 @@ namespace OpenMetaverse
                     InventoryType storedType = 0;
                     if (_ItemInventoryTypeRequest.TryGetValue(newItem.CallbackID, out storedType))
                     {
-                        _ItemInventoryTypeRequest.Remove(newItem.CallbackID);
+                        _ItemInventoryTypeRequest.TryRemove(newItem.CallbackID, out _);
                         invType = storedType;
                     }
                 }
@@ -421,7 +421,7 @@ namespace OpenMetaverse
                 ItemCreatedCallback callback;
                 if (_ItemCreatedCallbacks.TryGetValue(newItem.CallbackID, out callback))
                 {
-                    _ItemCreatedCallbacks.Remove(newItem.CallbackID);
+                    _ItemCreatedCallbacks.TryRemove(newItem.CallbackID, out _);
 
                     try
                     {
@@ -437,7 +437,7 @@ namespace OpenMetaverse
                 ItemCopiedCallback copyCallback;
                 if (_ItemCopiedCallbacks.TryGetValue(newItem.CallbackID, out copyCallback))
                 {
-                    _ItemCopiedCallbacks.Remove(newItem.CallbackID);
+                    _ItemCopiedCallbacks.TryRemove(newItem.CallbackID, out _);
 
                     try
                     {
@@ -518,7 +518,7 @@ namespace OpenMetaverse
                     ItemCreatedCallback callback;
                     if (_ItemCreatedCallbacks.TryGetValue(dataBlock.CallbackID, out callback))
                     {
-                        _ItemCreatedCallbacks.Remove(dataBlock.CallbackID);
+                        _ItemCreatedCallbacks.TryRemove(dataBlock.CallbackID, out _);
 
                         try
                         {
@@ -534,7 +534,7 @@ namespace OpenMetaverse
                     ItemCopiedCallback copyCallback;
                     if (_ItemCopiedCallbacks.TryGetValue(dataBlock.CallbackID, out copyCallback))
                     {
-                        _ItemCopiedCallbacks.Remove(dataBlock.CallbackID);
+                        _ItemCopiedCallbacks.TryRemove(dataBlock.CallbackID, out _);
 
                         try
                         {
