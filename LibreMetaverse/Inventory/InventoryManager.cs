@@ -190,35 +190,20 @@ namespace OpenMetaverse
         /// <param name="timeout">time to wait for results represented by <see cref="TimeSpan"/></param>
         /// <returns>An <see cref="InventoryItem"/> object on success, or null if no item was found</returns>
         /// <remarks>Items will also be sent to the <see cref="InventoryManager.OnItemReceived"/> event</remarks>
+        [Obsolete("Use FetchItemAsync or FetchItemHttpAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
         public InventoryItem FetchItem(UUID itemID, UUID ownerID, TimeSpan timeout)
         {
-            var tcs = new TaskCompletionSource<InventoryItem>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            void Callback(object sender, ItemReceivedEventArgs e)
+            using (var cts = new CancellationTokenSource())
             {
-                if (e.Item.UUID == itemID)
+                cts.CancelAfter(timeout);
+                try
                 {
-                    tcs.TrySetResult(e.Item);
+                    return FetchItemAsync(itemID, ownerID, cts.Token).GetAwaiter().GetResult();
                 }
-            }
-
-            ItemReceived += Callback;
-
-            try
-            {
-                RequestFetchInventory(itemID, ownerID);
-
-                // Wait for the task to complete or timeout
-                if (tcs.Task.Wait(timeout))
+                catch (OperationCanceledException)
                 {
-                    return tcs.Task.Result;
+                    return null;
                 }
-
-                return null;
-            }
-            finally
-            {
-                ItemReceived -= Callback;
             }
         }
 
@@ -371,6 +356,7 @@ namespace OpenMetaverse
         /// <see cref="RequestFolderContents(UUID,UUID,bool,bool,InventorySortOrder,CancellationToken)"/>
         /// <remarks>InventoryFolder.DescendentCount will only be accurate if both folders and items are
         /// requested</remarks>
+        [Obsolete("Use FolderContentsAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
         public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool fetchFolders, bool fetchItems,
             InventorySortOrder order, TimeSpan timeout, bool followLinks = false)
         {
@@ -381,30 +367,30 @@ namespace OpenMetaverse
                 return new List<InventoryBase>();
             }
 
-            CancellationTokenSource cts = new CancellationTokenSource();
-            cts.CancelAfter(timeout);
-            var inventory = RequestFolderContents(folder, owner, fetchFolders, fetchItems, order, cts.Token).Result;
-            if (inventory == null)
+            using (var cts = new CancellationTokenSource())
             {
-                inventory = _Store.GetContents(folder);
-            }
-
-            if (inventory != null && followLinks)
-            {
-                for (var i = 0; i < inventory.Count; ++i)
+                cts.CancelAfter(timeout);
+                List<InventoryBase> inventory = null;
+                try
                 {
-                    if (!(inventory[i] is InventoryItem item)) { continue; }
-
-                    if (item.IsLink())
-                    {
-                        if (!Store.Contains(item.AssetUUID))
-                        {
-                            inventory[i] = Client.Inventory.FetchItem(item.AssetUUID, owner, timeout);
-                        }
-                    }
+                    inventory = FolderContentsAsync(folder, owner, fetchFolders, fetchItems, order, cts.Token, followLinks).GetAwaiter().GetResult();
                 }
+                catch (OperationCanceledException)
+                {
+                    inventory = null;
+                }
+                catch
+                {
+                    inventory = null;
+                }
+
+                if (inventory == null)
+                {
+                    inventory = _Store.GetContents(folder);
+                }
+
+                return inventory;
             }
-            return inventory;
         }
 
         /// <summary>
@@ -647,26 +633,18 @@ namespace OpenMetaverse
         /// timeout occurs or item is not found</returns>
         public UUID FindObjectByPath(UUID baseFolder, UUID inventoryOwner, string path, TimeSpan timeout)
         {
-            var findEvent = new AutoResetEvent(false);
-            var foundItem = UUID.Zero;
-
-            void Callback(object sender, FindObjectByPathReplyEventArgs e)
+            using (var cts = new CancellationTokenSource())
             {
-                if (e.Path == path)
+                cts.CancelAfter(timeout);
+                try
                 {
-                    foundItem = e.InventoryObjectID;
-                    findEvent.Set();
+                    return FindObjectByPathAsync(baseFolder, inventoryOwner, path, cts.Token).GetAwaiter().GetResult();
+                }
+                catch (OperationCanceledException)
+                {
+                    return UUID.Zero;
                 }
             }
-
-            FindObjectByPathReply += Callback;
-
-            Task task = RequestFindObjectByPath(baseFolder, inventoryOwner, path);
-            findEvent.WaitOne(timeout, false);
-
-            FindObjectByPathReply -= Callback;
-
-            return foundItem;
         }
 
         /// <summary>
@@ -2253,24 +2231,16 @@ namespace OpenMetaverse
         private void GetInventoryRecursive(UUID folderID, UUID owner,
             ref List<InventoryFolder> cats, ref List<InventoryItem> items)
         {
-
-            var contents = Client.Inventory.FolderContents(
-                folderID, owner, true, true, InventorySortOrder.ByDate, TimeSpan.FromSeconds(15));
-
-            foreach (var entry in contents)
+            // Use the async implementation with a reasonable timeout to preserve original behavior
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
             {
-                switch (entry)
+                try
                 {
-                    case InventoryFolder folder:
-                        cats.Add(folder);
-                        GetInventoryRecursive(folder.UUID, owner, ref cats, ref items);
-                        break;
-                    case InventoryItem _:
-                        items.Add(Client.Inventory.FetchItem(entry.UUID, owner, TimeSpan.FromSeconds(10)));
-                        break;
-                    default: // shouldn't happen
-                        Logger.Log("Retrieved inventory contents of invalid type", Helpers.LogLevel.Error);
-                        break;
+                    GetInventoryRecursiveAsync(folderID, owner, cats, items, cts.Token).GetAwaiter().GetResult();
+                }
+                catch (OperationCanceledException)
+                {
+                    // preserve previous behavior: if timeout occurs, just return what we have
                 }
             }
         }
@@ -2284,72 +2254,13 @@ namespace OpenMetaverse
         /// <param name="doEffect">true to generate a beam-effect during transfer</param>
         public void GiveFolder(UUID folderID, string folderName, UUID recipient, bool doEffect)
         {
-            var folders = new List<InventoryFolder>();
-            var items = new List<InventoryItem>();
-
-            GetInventoryRecursive(folderID, Client.Self.AgentID, ref folders, ref items);
-
-            var total_contents = folders.Count + items.Count;
-
-            // check for too many items.
-            if (total_contents > MAX_GIVE_ITEMS)
+            try
             {
-                Logger.Log($"Cannot give more than {MAX_GIVE_ITEMS} items in a single inventory transfer.", 
-                    Helpers.LogLevel.Info);
-                return;
+                GiveFolderAsync(folderID, folderName, recipient, doEffect, CancellationToken.None).GetAwaiter().GetResult();
             }
-            if (items.Count == 0)
+            catch (Exception ex)
             {
-                Logger.Log("No items to transfer.", Helpers.LogLevel.Info);
-                return;
-            }
-
-            var bucket = new byte[17 * (total_contents + 1)];
-            var offset = 0; // account for first byte
-
-            //Add folders (parent folder first)
-            bucket[offset++] = (byte)AssetType.Folder;
-            Buffer.BlockCopy(folderID.GetBytes(), 0, bucket, offset, 16);
-            offset += 16;
-            foreach (var folder in folders)
-            {
-                bucket[offset++] = (byte)AssetType.Folder;
-                Buffer.BlockCopy(folder.UUID.GetBytes(), 0, bucket, offset, 16);
-                offset += 16;
-            }
-
-            //Add items to bucket after folders
-            foreach (var item in items)
-            {
-                bucket[offset++] = (byte)item.AssetType;
-                Buffer.BlockCopy(item.UUID.GetBytes(), 0, bucket, offset, 16);
-                offset += 16;
-            }
-
-            Client.Self.InstantMessage(
-                    Client.Self.Name,
-                    recipient,
-                    folderName,
-                    UUID.Random(),
-                    InstantMessageDialog.InventoryOffered,
-                    InstantMessageOnline.Online,
-                    Client.Self.SimPosition,
-                    Client.Network.CurrentSim.ID,
-                    bucket);
-
-            if (doEffect)
-            {
-                Client.Self.BeamEffect(Client.Self.AgentID, recipient, Vector3d.Zero,
-                    Client.Settings.DEFAULT_EFFECT_COLOR, 1f, UUID.Random());
-            }
-
-            // Remove from store if items were no copy
-            foreach (var invItem in from item in items 
-                     where Store.Contains(item.UUID) && Store[item.UUID] is InventoryItem 
-                     select (InventoryItem)Store[item.UUID] into invItem 
-                     where (invItem.Permissions.OwnerMask & PermissionMask.Copy) == PermissionMask.None select invItem)
-            {
-                Store.RemoveNodeFor(invItem);
+                Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
             }
         }
 
@@ -2423,6 +2334,7 @@ namespace OpenMetaverse
         /// if a timeout occurs</returns>
         /// <remarks>This request blocks until the response from the simulator arrives 
         /// before timeout is exceeded</remarks>
+        [Obsolete("Use GetTaskInventoryAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
         public List<InventoryBase> GetTaskInventory(UUID objectID, uint objectLocalID, TimeSpan timeout)
         {
             string filename = null;
