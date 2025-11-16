@@ -147,6 +147,18 @@ namespace OpenMetaverse
         /// </summary>
         public Inventory Store => _Store;
 
+        // Centralized capability lookup helper to reduce duplicated null checks
+        private Uri GetCapabilityURI(string capName, bool logOnMissing = true)
+        {
+            var sim = Client?.Network?.CurrentSim;
+            Uri uri = sim?.Caps?.CapabilityURI(capName);
+            if (uri == null && logOnMissing)
+            {
+                var simName = sim?.Name ?? "unknown";
+                Logger.Log($"Failed to obtain {capName} capability on {simName}", Helpers.LogLevel.Warning, Client);
+            }
+            return uri;
+        }
         #endregion Properties
 
         /// <summary>
@@ -250,7 +262,7 @@ namespace OpenMetaverse
         /// <see cref="InventoryManager.OnItemReceived"/>
         public void RequestFetchInventory(Dictionary<UUID, UUID> items)
         {
-            if (Client.Network.CurrentSim?.Caps?.CapabilityURI("FetchInventory2") != null)
+            if (GetCapabilityURI("FetchInventory2") != null)
             {
                 RequestFetchInventoryHttp(items);
                 return;
@@ -428,12 +440,9 @@ namespace OpenMetaverse
             bool fetchFolders, bool fetchItems, InventorySortOrder order, CancellationToken cancellationToken = default)
         {
             var cap = (ownerID == Client.Self.AgentID) ? "FetchInventoryDescendents2" : "FetchLibDescendents2";
-            Uri url = Client.Network.CurrentSim?.Caps?.CapabilityURI(cap);
+            Uri url = GetCapabilityURI(cap);
             if (url == null)
             {
-                var simName = Client.Network.CurrentSim?.Name ?? "unknown";
-                Logger.Log($"Failed to obtain {cap} capability on {simName}",
-                    Helpers.LogLevel.Warning, Client);
                 OnFolderUpdated(new FolderUpdatedEventArgs(folderID, false));
                 return await NoResults;
             }
@@ -1465,14 +1474,9 @@ namespace OpenMetaverse
         public void RequestCreateItemFromAsset(byte[] data, string name, string description, AssetType assetType,
             InventoryType invType, UUID folderID, Permissions permissions, ItemCreatedFromAssetCallback callback)
         {
-            if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
+            var cap = GetCapabilityURI("NewFileAgentInventory", false);
+            if (cap == null)
             {
-                throw new Exception("NewFileAgentInventory capability is not currently available");
-            }
-
-            var cap = Client.Network.CurrentSim.Caps.CapabilityURI("NewFileAgentInventory");
-
-            if (cap == null) { 
                 throw new Exception("NewFileAgentInventory capability is not currently available");
             }
 
@@ -1695,8 +1699,7 @@ namespace OpenMetaverse
         {
             _ItemCopiedCallbacks[0] = callback; //Notecards always use callback ID 0
 
-            var cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("CopyInventoryFromNotecard");
-
+            var cap = GetCapabilityURI("CopyInventoryFromNotecard");
             if (cap != null)
             {
                 var message = new CopyInventoryFromNotecardMessage
@@ -1851,29 +1854,23 @@ namespace OpenMetaverse
         /// <param name="callback"></param>
         public void RequestUploadNotecardAsset(byte[] data, UUID notecardID, InventoryUploadedAssetCallback callback)
         {
-            if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
+            var cap = GetCapabilityURI("UpdateNotecardAgentInventory", false);
+            if (cap == null)
+            {
                 throw new Exception("Capability system not initialized to send asset");
-
-            var cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateNotecardAgentInventory");
-
-            if (cap != null)
-            {
-                var query = new OSDMap { { "item_id", OSD.FromUUID(notecardID) } };
-
-                // Make the request
-                var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, CancellationToken.None,
-                    (response, responseData, error) =>
-                    {
-                        if (responseData == null) { throw error; }
-                        
-                        UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
-                            notecardID, OSDParser.Deserialize(responseData), error);
-                    });
             }
-            else
-            {
-                throw new Exception("UpdateNotecardAgentInventory capability is not currently available");
-            }
+
+            var query = new OSDMap { { "item_id", OSD.FromUUID(notecardID) } };
+
+            // Make the request
+            var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, CancellationToken.None,
+                (response, responseData, error) =>
+                {
+                    if (responseData == null) { throw error; }
+                    
+                    UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
+                        notecardID, OSDParser.Deserialize(responseData), error);
+                });
         }
 
         /// <summary>
@@ -1885,35 +1882,27 @@ namespace OpenMetaverse
         /// <param name="callback">Called upon finish of the upload with status information</param>
         public void RequestUpdateNotecardTask(byte[] data, UUID notecardID, UUID taskID, InventoryUploadedAssetCallback callback)
         {
-            if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
+            var cap = GetCapabilityURI("UpdateNotecardTaskInventory", false);
+            if (cap == null)
             {
                 throw new Exception("UpdateNotecardTaskInventory capability is not currently available");
             }
 
-            var cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateNotecardTaskInventory");
-
-            if (cap != null)
+            var query = new OSDMap
             {
-                var query = new OSDMap
+                {"item_id", OSD.FromUUID(notecardID)},
+                { "task_id", OSD.FromUUID(taskID)}
+            };
+
+            // Make the request
+            var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, CancellationToken.None,
+                (response, responseData, error) =>
                 {
-                    {"item_id", OSD.FromUUID(notecardID)},
-                    { "task_id", OSD.FromUUID(taskID)}
-                };
+                    if (responseData == null) { throw error; }
 
-                // Make the request
-                var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, CancellationToken.None,
-                    (response, responseData, error) =>
-                    {
-                        if (responseData == null) { throw error; }
-
-                        UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
-                            notecardID, OSDParser.Deserialize(responseData), error);
-                    });
-            }
-            else
-            {
-                throw new Exception("UpdateNotecardTaskInventory capability is not currently available");
-            }
+                    UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
+                        notecardID, OSDParser.Deserialize(responseData), error);
+                });
         }
 
         /// <summary>
@@ -1924,29 +1913,23 @@ namespace OpenMetaverse
         /// <param name="callback">Method to call upon completion of the upload</param>
         public void RequestUploadGestureAsset(byte[] data, UUID gestureID, InventoryUploadedAssetCallback callback)
         {
-            if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
-                throw new Exception("UpdateGestureAgentInventory capability is not currently available");
-
-            var cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateGestureAgentInventory");
-
-            if (cap != null)
-            {
-                var query = new OSDMap { { "item_id", OSD.FromUUID(gestureID) } };
-
-                // Make the request
-                var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, CancellationToken.None,
-                    (response, responseData, error) =>
-                    {
-                        if (responseData == null) { throw error; }
-
-                        UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
-                            gestureID, OSDParser.Deserialize(responseData), error);
-                    });
-            }
-            else
+            var cap = GetCapabilityURI("UpdateGestureAgentInventory", false);
+            if (cap == null)
             {
                 throw new Exception("UpdateGestureAgentInventory capability is not currently available");
             }
+
+            var query = new OSDMap { { "item_id", OSD.FromUUID(gestureID) } };
+
+            // Make the request
+            var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, CancellationToken.None,
+                (response, responseData, error) =>
+                {
+                    if (responseData == null) { throw error; }
+
+                    UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
+                        gestureID, OSDParser.Deserialize(responseData), error);
+                });
         }
 
         /// <summary>
@@ -1958,21 +1941,18 @@ namespace OpenMetaverse
         /// <param name="callback"></param>
         public void RequestUpdateScriptAgentInventory(byte[] data, UUID itemID, bool mono, ScriptUpdatedCallback callback)
         {
-            var cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("UpdateScriptAgent");
-
+            var cap = GetCapabilityURI("UpdateScriptAgent");
             if (cap != null)
             {
-                var msg = new UpdateScriptAgentRequestMessage
+                var request = new UpdateScriptAgentRequestMessage
                 {
                     ItemID = itemID,
                     Target = mono ? "mono" : "lsl2"
                 };
 
-                var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), CancellationToken.None,
+                Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, request.Serialize(), CancellationToken.None,
                     (response, responseData, error) =>
                     {
-                        if (responseData == null) { throw error; }
-
                         UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), 
                             itemID, OSDParser.Deserialize(responseData), error);
                     });
@@ -1994,8 +1974,7 @@ namespace OpenMetaverse
         /// <param name="callback"></param>
         public void RequestUpdateScriptTask(byte[] data, UUID itemID, UUID taskID, bool mono, bool running, ScriptUpdatedCallback callback)
         {
-            var cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("UpdateScriptTask");
-
+            var cap = GetCapabilityURI("UpdateScriptTask");
             if (cap != null)
             {
                 var msg = new UpdateScriptTaskUpdateMessage
@@ -2006,11 +1985,9 @@ namespace OpenMetaverse
                     Target = mono ? "mono" : "lsl2"
                 };
 
-                var req= Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), CancellationToken.None,
+                Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), CancellationToken.None,
                     (response, responseData, error) =>
                     {
-                        if (responseData == null) { throw error; }
-
                         UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), 
                             itemID, OSDParser.Deserialize(responseData), error);
                     });
@@ -3545,6 +3522,8 @@ namespace OpenMetaverse
             {
                 var uploadURL = contents["uploader"].AsString();
 
+                // This makes the assumption that all uploads go to CurrentSim, to avoid
+                // the problem of HttpRequestState not knowing anything about simulators
                 var req = Client.HttpCapsClient.PostRequestAsync(new Uri(uploadURL), "application/octet-stream",
                     itemData, CancellationToken.None, (response, responseData, exception) =>
                     {
