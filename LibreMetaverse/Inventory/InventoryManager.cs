@@ -250,7 +250,7 @@ namespace OpenMetaverse
         /// <see cref="InventoryManager.OnItemReceived"/>
         public void RequestFetchInventory(Dictionary<UUID, UUID> items)
         {
-            if (Client.Network.CurrentSim.Caps?.CapabilityURI("FetchInventory2") != null)
+            if (Client.Network.CurrentSim?.Caps?.CapabilityURI("FetchInventory2") != null)
             {
                 RequestFetchInventoryHttp(items);
                 return;
@@ -421,10 +421,11 @@ namespace OpenMetaverse
             bool fetchFolders, bool fetchItems, InventorySortOrder order, CancellationToken cancellationToken = default)
         {
             var cap = (ownerID == Client.Self.AgentID) ? "FetchInventoryDescendents2" : "FetchLibDescendents2";
-            Uri url = Client.Network.CurrentSim.Caps.CapabilityURI(cap);
+            Uri url = Client.Network.CurrentSim?.Caps?.CapabilityURI(cap);
             if (url == null)
             {
-                Logger.Log($"Failed to obtain {cap} capability on {Client.Network.CurrentSim.Name}",
+                var simName = Client.Network.CurrentSim?.Name ?? "unknown";
+                Logger.Log($"Failed to obtain {cap} capability on {simName}",
                     Helpers.LogLevel.Warning, Client);
                 OnFolderUpdated(new FolderUpdatedEventArgs(folderID, false));
                 return await NoResults;
@@ -1932,7 +1933,7 @@ namespace OpenMetaverse
         /// <param name="callback"></param>
         public void RequestUpdateScriptAgentInventory(byte[] data, UUID itemID, bool mono, ScriptUpdatedCallback callback)
         {
-            var cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateScriptAgent");
+            var cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("UpdateScriptAgent");
 
             if (cap != null)
             {
@@ -1958,17 +1959,17 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Update an existing script in an task Inventory
+        /// Update an existing script in a task Inventory
         /// </summary>
         /// <param name="data">A byte[] array containing the encoded scripts contents</param>
         /// <param name="itemID">the itemID of the script</param>
-        /// <param name="taskID">UUID of the prim containting the script</param>
+        /// <param name="taskID">UUID of the prim containing the script</param>
         /// <param name="mono">if true, sets the script content to run on the mono interpreter</param>
         /// <param name="running">if true, sets the script to running</param>
         /// <param name="callback"></param>
         public void RequestUpdateScriptTask(byte[] data, UUID itemID, UUID taskID, bool mono, bool running, ScriptUpdatedCallback callback)
         {
-            var cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateScriptTask");
+            var cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("UpdateScriptTask");
 
             if (cap != null)
             {
@@ -2224,7 +2225,7 @@ namespace OpenMetaverse
         /// <param name="itemName">The name of the item</param>
         /// <param name="assetType">The type of the item from the <see cref="AssetType"/> enum</param>
         /// <param name="recipient">The <see cref="UUID"/> of the recipient</param>
-        /// <param name="doEffect">true to generate a beameffect during transfer</param>
+        /// <param name="doEffect">true to generate a beam-effect during transfer</param>
         public void GiveItem(UUID itemID, string itemName, AssetType assetType, UUID recipient,
             bool doEffect)
         {
@@ -2297,7 +2298,7 @@ namespace OpenMetaverse
         /// <param name="folderID">The <see cref="UUID"/> of the Folder to give</param>
         /// <param name="folderName">The name of the folder</param>
         /// <param name="recipient">The <see cref="UUID"/> of the recipient</param>
-        /// <param name="doEffect">true to generate a beameffect during transfer</param>
+        /// <param name="doEffect">true to generate a beam-effect during transfer</param>
         public void GiveFolder(UUID folderID, string folderName, UUID recipient, bool doEffect)
         {
             var folders = new List<InventoryFolder>();
@@ -2378,10 +2379,9 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="objectLocalID">The target object</param>
         /// <param name="item">The item to copy or move from inventory</param>
-        /// <returns></returns>
+        /// <returns>Returns transaction id</returns>
         /// <remarks>For items with copy permissions a copy of the item is placed in the tasks inventory,
         /// for no-copy items the object is moved to the tasks inventory</remarks>
-        // DocTODO: what does the return UUID correlate to if anything?
         public UUID UpdateTaskInventory(uint objectLocalID, InventoryItem item)
         {
             var transactionID = UUID.Random();
@@ -2618,7 +2618,6 @@ namespace OpenMetaverse
         ///    Client.Inventory.RezScript(primID, (InventoryItem)Client.Inventory.Store[scriptID]);
         /// </code>
         /// </example>
-        // DocTODO: what does the return UUID correlate to if anything?
         public UUID CopyScriptToTask(uint objectLocalID, InventoryItem item, bool enableScript)
         {
             var transactionID = UUID.Random();
@@ -3377,7 +3376,10 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    try { callback(false, "Failed to parse asset and item UUIDs", UUID.Zero, UUID.Zero); }
+                    try
+                    {
+                        callback(false, "Failed to parse asset and item UUIDs", UUID.Zero, UUID.Zero);
+                    }
                     catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
                 }
             }
