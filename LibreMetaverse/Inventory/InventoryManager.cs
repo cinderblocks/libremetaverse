@@ -1441,7 +1441,7 @@ namespace OpenMetaverse
         /// <param name="callback">Delegate that will receive feedback on success or failure</param>
         [Obsolete("Use RequestCreateItemFromAssetAsync")]
         public void RequestCreateItemFromAsset(byte[] data, string name, string description, AssetType assetType,
-            InventoryType invType, UUID folderID, Permissions permissions, ItemCreatedFromAssetCallback callback)
+            InventoryType invType, UUID folderID, Permissions permissions, ItemCreatedFromAssetCallback callback, CancellationToken cancellationToken = default)
         {
             var cap = GetCapabilityURI("NewFileAgentInventory", false);
             if (cap == null)
@@ -1463,13 +1463,13 @@ namespace OpenMetaverse
             };
 
             // Make the request
-            var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, CancellationToken.None,
+            var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, cancellationToken,
                 (response, responseData, error) =>
                 {
                     if (responseData == null) { throw error; }
-                    
-                    CreateItemFromAssetResponse(callback, data, query, 
-                        OSDParser.Deserialize(responseData), error);
+
+                    CreateItemFromAssetResponse(callback, data, query,
+                        OSDParser.Deserialize(responseData), error, cancellationToken);
                 });
         }
 
@@ -1639,7 +1639,7 @@ namespace OpenMetaverse
         /// <param name="folderID">Target folder for asset to go to in your inventory</param>
         /// <param name="itemID">UUID of the embedded asset</param>
         /// <param name="callback">callback to run when item is copied to inventory</param>
-        public void RequestCopyItemFromNotecard(UUID objectID, UUID notecardID, UUID folderID, UUID itemID, ItemCopiedCallback callback)
+        public void RequestCopyItemFromNotecard(UUID objectID, UUID notecardID, UUID folderID, UUID itemID, ItemCopiedCallback callback, CancellationToken cancellationToken = default)
         {
             _ItemCopiedCallbacks[0] = callback; //Notecards always use callback ID 0
 
@@ -1655,8 +1655,7 @@ namespace OpenMetaverse
                     ObjectID = objectID
                 };
 
-                var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, message.Serialize(),
-                    CancellationToken.None, null);
+                var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, message.Serialize(), cancellationToken, null);
             }
             else
             {
@@ -1796,7 +1795,7 @@ namespace OpenMetaverse
         /// <param name="data"></param>
         /// <param name="notecardID"></param>
         /// <param name="callback"></param>
-        public void RequestUploadNotecardAsset(byte[] data, UUID notecardID, InventoryUploadedAssetCallback callback)
+        public void RequestUploadNotecardAsset(byte[] data, UUID notecardID, InventoryUploadedAssetCallback callback, CancellationToken cancellationToken = default)
         {
             var cap = GetCapabilityURI("UpdateNotecardAgentInventory", false);
             if (cap == null)
@@ -1807,13 +1806,13 @@ namespace OpenMetaverse
             var query = new OSDMap { { "item_id", OSD.FromUUID(notecardID) } };
 
             // Make the request
-            var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, CancellationToken.None,
+            var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, cancellationToken,
                 (response, responseData, error) =>
                 {
                     if (responseData == null) { throw error; }
-                    
-                    UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
-                        notecardID, OSDParser.Deserialize(responseData), error);
+
+                    UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data),
+                        notecardID, OSDParser.Deserialize(responseData), error, cancellationToken);
                 });
         }
 
@@ -1824,7 +1823,7 @@ namespace OpenMetaverse
         /// <param name="notecardID">Notecard UUID</param>
         /// <param name="taskID">Object's UUID</param>
         /// <param name="callback">Called upon finish of the upload with status information</param>
-        public void RequestUpdateNotecardTask(byte[] data, UUID notecardID, UUID taskID, InventoryUploadedAssetCallback callback)
+        public void RequestUpdateNotecardTask(byte[] data, UUID notecardID, UUID taskID, InventoryUploadedAssetCallback callback, CancellationToken cancellationToken = default)
         {
             var cap = GetCapabilityURI("UpdateNotecardTaskInventory", false);
             if (cap == null)
@@ -1839,13 +1838,13 @@ namespace OpenMetaverse
             };
 
             // Make the request
-            var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, CancellationToken.None,
+            var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, cancellationToken,
                 (response, responseData, error) =>
                 {
                     if (responseData == null) { throw error; }
 
-                    UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
-                        notecardID, OSDParser.Deserialize(responseData), error);
+                    UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data),
+                        notecardID, OSDParser.Deserialize(responseData), error, cancellationToken);
                 });
         }
 
@@ -1855,7 +1854,7 @@ namespace OpenMetaverse
         /// <param name="data">Encoded gesture asset</param>
         /// <param name="gestureID">Gesture inventory UUID</param>
         /// <param name="callback">Method to call upon completion of the upload</param>
-        public void RequestUploadGestureAsset(byte[] data, UUID gestureID, InventoryUploadedAssetCallback callback)
+        public void RequestUploadGestureAsset(byte[] data, UUID gestureID, InventoryUploadedAssetCallback callback, CancellationToken cancellationToken = default)
         {
             var cap = GetCapabilityURI("UpdateGestureAgentInventory", false);
             if (cap == null)
@@ -1866,13 +1865,13 @@ namespace OpenMetaverse
             var query = new OSDMap { { "item_id", OSD.FromUUID(gestureID) } };
 
             // Make the request
-            var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, CancellationToken.None,
+            var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, cancellationToken,
                 (response, responseData, error) =>
                 {
                     if (responseData == null) { throw error; }
 
-                    UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
-                        gestureID, OSDParser.Deserialize(responseData), error);
+                    UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data),
+                        gestureID, OSDParser.Deserialize(responseData), error, cancellationToken);
                 });
         }
 
@@ -1883,7 +1882,7 @@ namespace OpenMetaverse
         /// <param name="itemID">the itemID of the script</param>
         /// <param name="mono">if true, sets the script content to run on the mono interpreter</param>
         /// <param name="callback"></param>
-        public void RequestUpdateScriptAgentInventory(byte[] data, UUID itemID, bool mono, ScriptUpdatedCallback callback)
+        public void RequestUpdateScriptAgentInventory(byte[] data, UUID itemID, bool mono, ScriptUpdatedCallback callback, CancellationToken cancellationToken = default)
         {
             var cap = GetCapabilityURI("UpdateScriptAgent");
             if (cap != null)
@@ -1894,11 +1893,11 @@ namespace OpenMetaverse
                     Target = mono ? "mono" : "lsl2"
                 };
 
-                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, request.Serialize(), CancellationToken.None,
+                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, request.Serialize(), cancellationToken,
                     (response, responseData, error) =>
                     {
-                        UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), 
-                            itemID, OSDParser.Deserialize(responseData), error);
+                        UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data),
+                            itemID, OSDParser.Deserialize(responseData), error, cancellationToken);
                     });
             }
             else
@@ -1916,7 +1915,7 @@ namespace OpenMetaverse
         /// <param name="mono">if true, sets the script content to run on the mono interpreter</param>
         /// <param name="running">if true, sets the script to running</param>
         /// <param name="callback"></param>
-        public void RequestUpdateScriptTask(byte[] data, UUID itemID, UUID taskID, bool mono, bool running, ScriptUpdatedCallback callback)
+        public void RequestUpdateScriptTask(byte[] data, UUID itemID, UUID taskID, bool mono, bool running, ScriptUpdatedCallback callback, CancellationToken cancellationToken = default)
         {
             var cap = GetCapabilityURI("UpdateScriptTask");
             if (cap != null)
@@ -1929,11 +1928,11 @@ namespace OpenMetaverse
                     Target = mono ? "mono" : "lsl2"
                 };
 
-                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), CancellationToken.None,
+                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken,
                     (response, responseData, error) =>
                     {
-                        UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), 
-                            itemID, OSDParser.Deserialize(responseData), error);
+                        UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data),
+                            itemID, OSDParser.Deserialize(responseData), error, cancellationToken);
                     });
             }
             else
@@ -2144,7 +2143,9 @@ namespace OpenMetaverse
                     }
                 }
 
+#pragma warning disable CS0612 // Type or member is obsolete
                 Remove(remItems, remFolders);
+#pragma warning restore CS0612 // Type or member is obsolete
             }
         }
 
@@ -3316,11 +3317,11 @@ namespace OpenMetaverse
         }
 
         private void CreateItemFromAssetResponse(ItemCreatedFromAssetCallback callback, byte[] itemData, OSDMap request, 
-            OSD result, Exception error)
+            OSD result, Exception error, CancellationToken cancellationToken = default)
         {
             if (result == null)
             {
-                try { callback(false, error.Message, UUID.Zero, UUID.Zero); }
+                try { callback(false, error?.Message ?? "Unknown error", UUID.Zero, UUID.Zero); }
                 catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
                 return;
             }
@@ -3353,14 +3354,14 @@ namespace OpenMetaverse
                 {
                     try
                     {
-                        var res = await PostBytesAsync(uploadUri, "application/octet-stream", itemData, CancellationToken.None).ConfigureAwait(false);
-                        CreateItemFromAssetResponse(callback, itemData, request, res, null);
+                        var res = await PostBytesAsync(uploadUri, "application/octet-stream", itemData, cancellationToken).ConfigureAwait(false);
+                        CreateItemFromAssetResponse(callback, itemData, request, res, null, cancellationToken);
                     }
                     catch (Exception ex)
                     {
-                        CreateItemFromAssetResponse(callback, itemData, request, null, ex);
+                        CreateItemFromAssetResponse(callback, itemData, request, null, ex, cancellationToken);
                     }
-                });
+                }, cancellationToken);
             }
             else if (status == "complete")
             {
@@ -3392,7 +3393,7 @@ namespace OpenMetaverse
         }
 
         private void UploadInventoryAssetResponse(KeyValuePair<InventoryUploadedAssetCallback, byte[]> kvp,
-            UUID itemId, OSD result, Exception error)
+            UUID itemId, OSD result, Exception error, CancellationToken cancellationToken = default)
         {
             var callback = kvp.Key;
             var itemData = (byte[])kvp.Value;
@@ -3407,19 +3408,18 @@ namespace OpenMetaverse
 
                     if (uploadURL != null)
                     {
-                        // Use centralized async uploader helper
                         Task.Run(async () =>
                         {
                             try
                             {
-                                var res = await PostBytesAsync(uploadURL, "application/octet-stream", itemData, CancellationToken.None).ConfigureAwait(false);
-                                UploadInventoryAssetResponse(kvp, itemId, res, null);
+                                var res = await PostBytesAsync(uploadURL, "application/octet-stream", itemData, cancellationToken).ConfigureAwait(false);
+                                UploadInventoryAssetResponse(kvp, itemId, res, null, cancellationToken);
                             }
                             catch (Exception ex)
                             {
-                                UploadInventoryAssetResponse(kvp, itemId, null, ex);
+                                UploadInventoryAssetResponse(kvp, itemId, null, ex, cancellationToken);
                             }
-                        });
+                        }, cancellationToken);
                     }
                     else
                     {
@@ -3471,7 +3471,7 @@ namespace OpenMetaverse
         }
 
         private void UpdateScriptAgentInventoryResponse(KeyValuePair<ScriptUpdatedCallback, byte[]> kvpCb,
-            UUID itemId, OSD result, Exception error)
+            UUID itemId, OSD result, Exception error, CancellationToken cancellationToken = default)
         {
             var callback = kvpCb.Key;
             var itemData = kvpCb.Value;
@@ -3480,7 +3480,7 @@ namespace OpenMetaverse
             {
                 try
                 {
-                    callback(false, error.Message, false,
+                    callback(false, error?.Message ?? "Unknown error", false,
                     null, UUID.Zero, UUID.Zero);
                 }
                 catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
@@ -3502,14 +3502,14 @@ namespace OpenMetaverse
                 {
                     try
                     {
-                        var res = await PostBytesAsync(uploadUri, "application/octet-stream", itemData, CancellationToken.None).ConfigureAwait(false);
-                        UpdateScriptAgentInventoryResponse(kvpCb, itemId, res, null);
+                        var res = await PostBytesAsync(uploadUri, "application/octet-stream", itemData, cancellationToken).ConfigureAwait(false);
+                        UpdateScriptAgentInventoryResponse(kvpCb, itemId, res, null, cancellationToken);
                     }
                     catch (Exception ex)
                     {
-                        UpdateScriptAgentInventoryResponse(kvpCb, itemId, null, ex);
+                        UpdateScriptAgentInventoryResponse(kvpCb, itemId, null, ex, cancellationToken);
                     }
-                });
+                }, cancellationToken);
             }
             else if (status == "complete" && callback != null)
             {
