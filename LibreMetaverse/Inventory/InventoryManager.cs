@@ -34,6 +34,7 @@ using System.Threading.Tasks;
 using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Packets;
+using System.Collections.Concurrent;
 
 namespace OpenMetaverse
 {
@@ -133,11 +134,11 @@ namespace OpenMetaverse
         private readonly GridClient Client;
         [NonSerialized]
         private Inventory _Store;
-        private object _CallbacksLock = new object();
-        private uint _CallbackPos;
-        private readonly Dictionary<uint, ItemCreatedCallback> _ItemCreatedCallbacks = new Dictionary<uint, ItemCreatedCallback>();
-        private readonly Dictionary<uint, ItemCopiedCallback> _ItemCopiedCallbacks = new Dictionary<uint, ItemCopiedCallback>();
-        private readonly Dictionary<uint, InventoryType> _ItemInventoryTypeRequest = new Dictionary<uint, InventoryType>();
+
+        private long _CallbackPos;
+        private readonly ConcurrentDictionary<uint, ItemCreatedCallback> _ItemCreatedCallbacks = new ConcurrentDictionary<uint, ItemCreatedCallback>();
+        private readonly ConcurrentDictionary<uint, ItemCopiedCallback> _ItemCopiedCallbacks = new ConcurrentDictionary<uint, ItemCopiedCallback>();
+        private readonly ConcurrentDictionary<uint, InventoryType> _ItemInventoryTypeRequest = new ConcurrentDictionary<uint, InventoryType>();
         private readonly List<InventorySearch> _Searches = new List<InventorySearch>();
 
         #region Properties
@@ -1561,10 +1562,7 @@ namespace OpenMetaverse
                     InventoryBlock = { CallbackID = RegisterItemCreatedCallback(callback) }
                 };
 
-                lock (_ItemInventoryTypeRequest)
-                {
-                    _ItemInventoryTypeRequest[create.InventoryBlock.CallbackID] = invType;
-                }
+                _ItemInventoryTypeRequest[create.InventoryBlock.CallbackID] = invType;
                 create.InventoryBlock.FolderID = folderID;
                 create.InventoryBlock.TransactionID = transactionID;
                 create.InventoryBlock.OldItemID = itemID;
@@ -3037,38 +3035,38 @@ namespace OpenMetaverse
 
         private uint RegisterItemCreatedCallback(ItemCreatedCallback callback)
         {
-            lock (_CallbacksLock)
+            uint id;
+            do
             {
-                do
-                {
-                    _CallbackPos = (_CallbackPos == uint.MaxValue) ? 1u : _CallbackPos + 1u;
-                } while (_CallbackPos == 0);
+                var v = Interlocked.Increment(ref _CallbackPos);
+                id = (uint)v;
+            } while (id == 0);
 
-                if (_ItemCreatedCallbacks.ContainsKey(_CallbackPos))
-                    Logger.Log("Overwriting an existing ItemCreatedCallback", Helpers.LogLevel.Warning, Client);
-
-                _ItemCreatedCallbacks[_CallbackPos] = callback;
-
-                return _CallbackPos;
+            if (!_ItemCreatedCallbacks.TryAdd(id, callback))
+            {
+                _ItemCreatedCallbacks[id] = callback;
+                Logger.Log("Overwriting an existing ItemCreatedCallback", Helpers.LogLevel.Warning, Client);
             }
+
+            return id;
         }
 
         private uint RegisterItemsCopiedCallback(ItemCopiedCallback callback)
         {
-            lock (_CallbacksLock)
+            uint id;
+            do
             {
-                do
-                {
-                    _CallbackPos = (_CallbackPos == uint.MaxValue) ? 1u : _CallbackPos + 1u;
-                } while (_CallbackPos == 0);
+                var v = Interlocked.Increment(ref _CallbackPos);
+                id = (uint)v;
+            } while (id == 0);
 
-                if (_ItemCopiedCallbacks.ContainsKey(_CallbackPos))
-                    Logger.Log("Overwriting an existing ItemsCopiedCallback", Helpers.LogLevel.Warning, Client);
-
-                _ItemCopiedCallbacks[_CallbackPos] = callback;
-
-                return _CallbackPos;
+            if (!_ItemCopiedCallbacks.TryAdd(id, callback))
+            {
+                _ItemCopiedCallbacks[id] = callback;
+                Logger.Log("Overwriting an existing ItemsCopiedCallback", Helpers.LogLevel.Warning, Client);
             }
+
+            return id;
         }
 
         private static bool ParseLine(string line, out string key, out string value)
