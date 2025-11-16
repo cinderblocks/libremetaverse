@@ -60,6 +60,17 @@ namespace OpenMetaverse
     /// </summary>
     public class MediaEntry
     {
+
+        /// <summary>
+        /// Is display of the alternative image enabled
+        /// </summary>
+        /// <remarks>This property is deprecated. Use <see cref="EnableAlternativeImage"/> instead.</remarks>
+        [Obsolete("Use EnableAlternativeImage instead. This property will be removed in a future version.", error: true)]
+        public bool EnableAlterntiveImage
+        {
+            get => EnableAlternativeImage;
+            set => EnableAlternativeImage = value;
+        }
         /// <summary>Is display of the alternative image enabled</summary>
         public bool EnableAlternativeImage;
 
