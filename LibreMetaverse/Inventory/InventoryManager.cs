@@ -42,7 +42,7 @@ namespace OpenMetaverse
     /// Tools for dealing with agents inventory
     /// </summary>
     [Serializable]
-    public partial class InventoryManager
+    public partial class InventoryManager : IDisposable
     {
         /// <summary>Used for converting shadow_id to asset_id</summary>
         public static readonly UUID MAGIC_ID = new UUID("3c115e51-04f4-523c-9fa6-98aff1034730");
@@ -134,7 +134,8 @@ namespace OpenMetaverse
         private readonly GridClient Client;
         [NonSerialized]
         private Inventory _Store;
-        
+        [NonSerialized]
+        private bool _disposed;
 
         private readonly ReaderWriterLockSlim _storeLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
 
@@ -185,6 +186,62 @@ namespace OpenMetaverse
                 new string[] {
                     "inventory-root", "inventory-skeleton", "inventory-lib-root",
                     "inventory-lib-owner", "inventory-skel-lib"});
+        }
+
+        /// <summary>
+        /// Deterministically release resources and unregister callbacks.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                try
+                {
+                    if (Client?.Network != null)
+                    {
+                        try { Client.Network.UnregisterCallback(PacketType.UpdateCreateInventoryItem, UpdateCreateInventoryItemHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.SaveAssetIntoInventory, SaveAssetIntoInventoryHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.BulkUpdateInventory, BulkUpdateInventoryHandler); } catch { }
+                        try { Client.Network.UnregisterEventCallback("BulkUpdateInventory", BulkUpdateInventoryCapHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.MoveInventoryItem, MoveInventoryItemHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.ReplyTaskInventory, ReplyTaskInventoryHandler); } catch { }
+                        try { Client.Network.UnregisterEventCallback("ScriptRunningReply", ScriptRunningReplyMessageHandler); } catch { }
+
+                        // Deprecated callbacks
+                        try { Client.Network.UnregisterCallback(PacketType.InventoryDescendents, InventoryDescendentsHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.FetchInventoryReply, FetchInventoryReplyHandler); } catch { }
+
+                        try { Client.Network.UnregisterLoginResponseCallback(Network_OnLoginResponse); } catch { }
+                    }
+
+                    try { if (Client?.Self != null) Client.Self.IM -= Self_IM; } catch { }
+
+                    try { _ItemCreatedCallbacks.Clear(); } catch { }
+                    try { _ItemCopiedCallbacks.Clear(); } catch { }
+                    try { _ItemInventoryTypeRequest.Clear(); } catch { }
+                    try { _Searches.Clear(); } catch { }
+
+                    try { _storeLock?.Dispose(); } catch { }
+
+                    try { _Store = null; } catch { }
+                }
+                catch { /* swallow exceptions in Dispose */ }
+            }
+
+            _disposed = true;
+        }
+
+        ~InventoryManager()
+        {
+            Dispose(false);
         }
 
         #region Fetch
@@ -3751,7 +3808,6 @@ namespace OpenMetaverse
             foreach (var folder in replyData.LibrarySkeleton)
                 _Store.UpdateNodeFor(folder);
         }
-
 
         #endregion Internal Handlers
     }
