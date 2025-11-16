@@ -3190,6 +3190,14 @@ namespace OpenMetaverse
             return await tcs.Task.ConfigureAwait(false);
         }
 
+        // Convenience overload for consistency
+        private async Task<OSD> PostBytesAsync(string capName, string contentType, byte[] data, CancellationToken cancellationToken = default)
+        {
+            var uri = GetCapabilityURI(capName);
+            if (uri == null) throw new InvalidOperationException($"Capability {capName} is not available");
+            return await PostBytesAsync(uri, contentType, data, cancellationToken).ConfigureAwait(false);
+        }
+
         void Self_IM(object sender, InstantMessageEventArgs e)
         {
             // TODO: MainAvatar.InstantMessageDialog.GroupNotice can also be an inventory offer, should we
@@ -3340,13 +3348,21 @@ namespace OpenMetaverse
 
                 // This makes the assumption that all uploads go to CurrentSim, to avoid
                 // the problem of HttpRequestState not knowing anything about simulators
-                var req = Client.HttpCapsClient.PostRequestAsync(new Uri(uploadURL),
-                    "application/octet-stream", itemData, CancellationToken.None,
-                    (response, responseData, err) =>
+                var uploadUri = new Uri(uploadURL);
+
+                // Fire-and-forget async upload using centralized helper
+                Task.Run(async () =>
+                {
+                    try
                     {
-                        CreateItemFromAssetResponse(callback, itemData, request, 
-                            OSDParser.Deserialize(responseData), err);
-                    });
+                        var res = await PostBytesAsync(uploadUri, "application/octet-stream", itemData, CancellationToken.None).ConfigureAwait(false);
+                        CreateItemFromAssetResponse(callback, itemData, request, res, null);
+                    }
+                    catch (Exception ex)
+                    {
+                        CreateItemFromAssetResponse(callback, itemData, request, null, ex);
+                    }
+                });
             }
             else if (status == "complete")
             {
@@ -3393,13 +3409,19 @@ namespace OpenMetaverse
 
                     if (uploadURL != null)
                     {
-                        // This makes the assumption that all uploads go to CurrentSim, to avoid
-                        // the problem of HttpRequestState not knowing anything about simulators
-                        var req = Client.HttpCapsClient.PostRequestAsync(uploadURL, "application/octet-stream",
-                            itemData, CancellationToken.None, (response, responseData, exception) =>
+                        // Use centralized async uploader helper
+                        Task.Run(async () =>
+                        {
+                            try
                             {
-                                UploadInventoryAssetResponse(kvp, itemId, OSDParser.Deserialize(responseData), exception);
-                            });
+                                var res = await PostBytesAsync(uploadURL, "application/octet-stream", itemData, CancellationToken.None).ConfigureAwait(false);
+                                UploadInventoryAssetResponse(kvp, itemId, res, null);
+                            }
+                            catch (Exception ex)
+                            {
+                                UploadInventoryAssetResponse(kvp, itemId, null, ex);
+                            }
+                        });
                     }
                     else
                     {
@@ -3476,12 +3498,20 @@ namespace OpenMetaverse
 
                 // This makes the assumption that all uploads go to CurrentSim, to avoid
                 // the problem of HttpRequestState not knowing anything about simulators
-                var req = Client.HttpCapsClient.PostRequestAsync(new Uri(uploadURL), "application/octet-stream",
-                    itemData, CancellationToken.None, (response, responseData, exception) =>
+                var uploadUri = new Uri(uploadURL);
+
+                Task.Run(async () =>
+                {
+                    try
                     {
-                        UpdateScriptAgentInventoryResponse(kvpCb, itemId,
-                            OSDParser.Deserialize(responseData), exception);
-                    });
+                        var res = await PostBytesAsync(uploadUri, "application/octet-stream", itemData, CancellationToken.None).ConfigureAwait(false);
+                        UpdateScriptAgentInventoryResponse(kvpCb, itemId, res, null);
+                    }
+                    catch (Exception ex)
+                    {
+                        UpdateScriptAgentInventoryResponse(kvpCb, itemId, null, ex);
+                    }
+                });
             }
             else if (status == "complete" && callback != null)
             {
