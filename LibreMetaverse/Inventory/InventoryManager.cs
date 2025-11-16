@@ -147,18 +147,6 @@ namespace OpenMetaverse
         /// </summary>
         public Inventory Store => _Store;
 
-        // Centralized capability lookup helper to reduce duplicated null checks
-        private Uri GetCapabilityURI(string capName, bool logOnMissing = true)
-        {
-            var sim = Client?.Network?.CurrentSim;
-            Uri uri = sim?.Caps?.CapabilityURI(capName);
-            if (uri == null && logOnMissing)
-            {
-                var simName = sim?.Name ?? "unknown";
-                Logger.Log($"Failed to obtain {capName} capability on {simName}", Helpers.LogLevel.Warning, Client);
-            }
-            return uri;
-        }
         #endregion Properties
 
         /// <summary>
@@ -324,7 +312,7 @@ namespace OpenMetaverse
             CancellationToken cancellationToken, Action<List<InventoryItem> > callback = null)
         {
 
-            var cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("FetchInventory2");
+            var cap = GetCapabilityURI("FetchInventory2");
             if (cap == null)
             {
                 Logger.Log($"Failed to obtain FetchInventory2 capability on {Client.Network.CurrentSim?.Name}",
@@ -346,19 +334,13 @@ namespace OpenMetaverse
 
             payload["items"] = itemArray;
 
-            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, 
-                cancellationToken, (response, data, error) =>
+            try
             {
-                if (error != null) { return; }
-
-                try
+                var result = await PostCapAsync(cap, payload, cancellationToken).ConfigureAwait(false);
+                if (result is OSDMap res && res.TryGetValue("items", out var itemsOsd) && itemsOsd is OSDArray itemsArray)
                 {
-                    var result = OSDParser.Deserialize(data);
-                    var res = (OSDMap)result;
-                    var itemsOSD = (OSDArray)res["items"];
-
-                    var retrievedItems = new List<InventoryItem>(itemsOSD.Count);
-                    foreach (var it in itemsOSD)
+                    var retrievedItems = new List<InventoryItem>(itemsArray.Count);
+                    foreach (var it in itemsArray)
                     {
                         var item = InventoryItem.FromOSD(it);
                         _Store[item.UUID] = item;
@@ -368,12 +350,11 @@ namespace OpenMetaverse
 
                     callback?.Invoke(retrievedItems);
                 }
-                catch (Exception ex)
-                {
-                    Logger.Log("Failed getting data from FetchInventory2 capability.",
-                        Helpers.LogLevel.Error, Client, ex);
-                }
-            });
+            }
+            catch (Exception ex)
+            {
+                Logger.Log("Failed getting data from FetchInventory2 capability.", Helpers.LogLevel.Error, Client, ex);
+            }
         }
 
         /// <summary>
@@ -2460,55 +2441,41 @@ namespace OpenMetaverse
 
             RequestTaskInventory(objectLocalID);
 
-            if (taskReplyEvent.WaitOne(timeout, false))
+            taskReplyEvent.WaitOne(timeout, false);
+
+            TaskInventoryReply -= Callback;
+
+            if (!string.IsNullOrEmpty(filename))
             {
-                TaskInventoryReply -= Callback;
+                byte[] assetData = null;
+                ulong xferID = 0;
+                var taskDownloadEvent = new AutoResetEvent(false);
 
-                if (!string.IsNullOrEmpty(filename))
+                void XferCallback(object sender, XferReceivedEventArgs e)
                 {
-                    byte[] assetData = null;
-                    ulong xferID = 0;
-                    var taskDownloadEvent = new AutoResetEvent(false);
-
-                    void XferCallback(object sender, XferReceivedEventArgs e)
+                    if (e.Xfer.XferID == xferID)
                     {
-                        if (e.Xfer.XferID == xferID)
-                        {
-                            assetData = e.Xfer.AssetData;
-                            taskDownloadEvent.Set();
-                        }
-                    }
-
-                    Client.Assets.XferReceived += XferCallback;
-
-                    // Start the actual asset xfer
-                    xferID = Client.Assets.RequestAssetXfer(filename, true, false, UUID.Zero, AssetType.Unknown, true);
-
-                    if (taskDownloadEvent.WaitOne(timeout, false))
-                    {
-                        Client.Assets.XferReceived -= XferCallback;
-
-                        var taskList = Utils.BytesToString(assetData);
-                        return ParseTaskInventory(taskList);
-                    }
-                    else
-                    {
-                        Logger.Log("Timed out waiting for task inventory download for " + filename, Helpers.LogLevel.Warning, Client);
-                        Client.Assets.XferReceived -= XferCallback;
-                        return null;
+                        assetData = e.Xfer.AssetData;
+                        taskDownloadEvent.Set();
                     }
                 }
-                else
-                {
-                    Logger.DebugLog("Task is empty for " + objectLocalID, Client);
-                    return new List<InventoryBase>(0);
-                }
+
+                Client.Assets.XferReceived += XferCallback;
+
+                // Start the actual asset xfer
+                xferID = Client.Assets.RequestAssetXfer(filename, true, false, UUID.Zero, AssetType.Unknown, true);
+
+                taskDownloadEvent.WaitOne(timeout, false);
+
+                Client.Assets.XferReceived -= XferCallback;
+
+                var taskList = Utils.BytesToString(assetData);
+                return ParseTaskInventory(taskList);
             }
             else
             {
-                Logger.Log("Timed out waiting for task inventory reply for " + objectLocalID, Helpers.LogLevel.Warning, Client);
-                TaskInventoryReply -= Callback;
-                return null;
+                Logger.DebugLog("Task is empty for " + objectLocalID, Client);
+                return new List<InventoryBase>(0);
             }
         }
 
@@ -3209,6 +3176,88 @@ namespace OpenMetaverse
         #endregion Helper Functions
 
         #region Internal Callbacks
+
+        // Centralized capability lookup helper to reduce duplicated null checks
+        private Uri GetCapabilityURI(string capName, bool logOnMissing = true)
+        {
+            var sim = Client?.Network?.CurrentSim;
+            Uri uri = sim?.Caps?.CapabilityURI(capName);
+            if (uri == null && logOnMissing)
+            {
+                var simName = sim?.Name ?? "unknown";
+                Logger.Log($"Failed to obtain {capName} capability on {simName}", Helpers.LogLevel.Warning, Client);
+            }
+            return uri;
+        }
+
+        // POST JSON/XML OSD payload to a capability URI and return deserialized OSD result.
+        private async Task<OSD> PostCapAsync(Uri uri, OSD payload, CancellationToken cancellationToken = default)
+        {
+            if (uri == null) throw new ArgumentNullException(nameof(uri));
+
+            var tcs = new TaskCompletionSource<OSD>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            // Kick off the HTTP POST and wire up the callback to the TaskCompletionSource
+            await Client.HttpCapsClient.PostRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
+                (response, responseData, error) =>
+                {
+                    if (error != null)
+                    {
+                        tcs.TrySetException(error);
+                        return;
+                    }
+
+                    try
+                    {
+                        var osd = OSDParser.Deserialize(responseData);
+                        tcs.TrySetResult(osd);
+                    }
+                    catch (Exception ex)
+                    {
+                        tcs.TrySetException(ex);
+                    }
+                });
+
+            return await tcs.Task.ConfigureAwait(false);
+        }
+
+        // Convenience overload that looks up the capability by name first
+        private async Task<OSD> PostCapAsync(string capName, OSD payload, CancellationToken cancellationToken = default)
+        {
+            var uri = GetCapabilityURI(capName);
+            if (uri == null) throw new InvalidOperationException($"Capability {capName} is not available");
+            return await PostCapAsync(uri, payload, cancellationToken).ConfigureAwait(false);
+        }
+
+        // POST raw bytes to a capability URI (e.g., uploader endpoints) and return deserialized OSD result
+        private async Task<OSD> PostBytesAsync(Uri uri, string contentType, byte[] data, CancellationToken cancellationToken = default)
+        {
+            if (uri == null) throw new ArgumentNullException(nameof(uri));
+
+            var tcs = new TaskCompletionSource<OSD>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            await Client.HttpCapsClient.PostRequestAsync(uri, contentType, data, cancellationToken,
+                (response, responseData, error) =>
+                {
+                    if (error != null)
+                    {
+                        tcs.TrySetException(error);
+                        return;
+                    }
+
+                    try
+                    {
+                        var osd = OSDParser.Deserialize(responseData);
+                        tcs.TrySetResult(osd);
+                    }
+                    catch (Exception ex)
+                    {
+                        tcs.TrySetException(ex);
+                    }
+                });
+
+            return await tcs.Task.ConfigureAwait(false);
+        }
 
         void Self_IM(object sender, InstantMessageEventArgs e)
         {
