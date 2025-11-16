@@ -3132,10 +3132,10 @@ namespace OpenMetaverse
         {
             lock (_CallbacksLock)
             {
-                if (_CallbackPos == uint.MaxValue)
-                    _CallbackPos = 0;
-
-                _CallbackPos++;
+                do
+                {
+                    _CallbackPos = (_CallbackPos == uint.MaxValue) ? 1u : _CallbackPos + 1u;
+                } while (_CallbackPos == 0);
 
                 if (_ItemCreatedCallbacks.ContainsKey(_CallbackPos))
                     Logger.Log("Overwriting an existing ItemCreatedCallback", Helpers.LogLevel.Warning, Client);
@@ -3150,10 +3150,10 @@ namespace OpenMetaverse
         {
             lock (_CallbacksLock)
             {
-                if (_CallbackPos == uint.MaxValue)
-                    _CallbackPos = 0;
-
-                _CallbackPos++;
+                do
+                {
+                    _CallbackPos = (_CallbackPos == uint.MaxValue) ? 1u : _CallbackPos + 1u;
+                } while (_CallbackPos == 0);
 
                 if (_ItemCopiedCallbacks.ContainsKey(_CallbackPos))
                     Logger.Log("Overwriting an existing ItemsCopiedCallback", Helpers.LogLevel.Warning, Client);
