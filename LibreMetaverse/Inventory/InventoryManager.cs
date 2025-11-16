@@ -1415,7 +1415,15 @@ namespace OpenMetaverse
                 NextOwnerMask = PermissionMask.All
             };
 
-            RequestCreateItemFromAsset(data, name, description, assetType, invType, folderID, permissions, callback);
+            try
+            {
+                // Forward to async-first implementation
+                RequestCreateItemFromAssetAsync(data, name, description, assetType, invType, folderID, permissions, callback, CancellationToken.None).GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"RequestCreateItemFromAsset failed: {ex.Message}", Helpers.LogLevel.Warning, Client, ex);
+            }
         }
 
         /// <summary>
@@ -1430,6 +1438,7 @@ namespace OpenMetaverse
         /// <param name="permissions">Permission of the newly created item 
         /// (EveryoneMask, GroupMask, and NextOwnerMask of Permissions struct are supported)</param>
         /// <param name="callback">Delegate that will receive feedback on success or failure</param>
+        [Obsolete("Use RequestCreateItemFromAssetAsync")]
         public void RequestCreateItemFromAsset(byte[] data, string name, string description, AssetType assetType,
             InventoryType invType, UUID folderID, Permissions permissions, ItemCreatedFromAssetCallback callback)
         {
@@ -1613,37 +1622,15 @@ namespace OpenMetaverse
         public void RequestCopyItems(List<UUID> items, List<UUID> targetFolders, List<string> newNames,
             UUID oldOwnerID, ItemCopiedCallback callback)
         {
-            if (items.Count != targetFolders.Count || (newNames != null && items.Count != newNames.Count))
-                throw new ArgumentException("All list arguments must have an equal number of entries");
-
-            var callbackID = RegisterItemsCopiedCallback(callback);
-
-            var copy = new CopyInventoryItemPacket
+            // Forward to async-first implementation for consistency. Execute synchronously to preserve original API semantics.
+            try
             {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                InventoryData = new CopyInventoryItemPacket.InventoryDataBlock[items.Count]
-            };
-
-            for (var i = 0; i < items.Count; ++i)
-            {
-                copy.InventoryData[i] = new CopyInventoryItemPacket.InventoryDataBlock
-                {
-                    CallbackID = callbackID,
-                    NewFolderID = targetFolders[i],
-                    OldAgentID = oldOwnerID,
-                    OldItemID = items[i],
-                    NewName = !string.IsNullOrEmpty(newNames?[i])
-                        ? Utils.StringToBytes(newNames[i])
-                        : Utils.EmptyBytes
-                };
-
+                RequestCopyItemsAsync(items, targetFolders, newNames, oldOwnerID, callback).GetAwaiter().GetResult();
             }
-
-            Client.Network.SendPacket(copy);
+            catch (Exception ex)
+            {
+                Logger.Log($"RequestCopyItems failed: {ex.Message}", Helpers.LogLevel.Warning, Client, ex);
+            }
         }
 
         /// <summary>
@@ -1909,7 +1896,7 @@ namespace OpenMetaverse
                     Target = mono ? "mono" : "lsl2"
                 };
 
-                Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, request.Serialize(), CancellationToken.None,
+                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, request.Serialize(), CancellationToken.None,
                     (response, responseData, error) =>
                     {
                         UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), 
@@ -1944,7 +1931,7 @@ namespace OpenMetaverse
                     Target = mono ? "mono" : "lsl2"
                 };
 
-                Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), CancellationToken.None,
+                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), CancellationToken.None,
                     (response, responseData, error) =>
                     {
                         UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), 
@@ -2129,6 +2116,38 @@ namespace OpenMetaverse
             take.ObjectData[0] = new DeRezObjectPacket.ObjectDataBlock { ObjectLocalID = objectLocalID };
 
             Client.Network.SendPacket(take);
+        }
+
+        /// <summary>
+        /// Empty a folder by removing all of its contents (including sub-folders)
+        /// </summary>
+        /// <param name="folderID">The folder to empty</param>
+        /// <remarks>This does not remove the folder itself, only its contents</remarks>
+        public void EmptyFolder(UUID folderID)
+        {
+            if (Client.AisClient.IsAvailable)
+            {
+                Client.AisClient.PurgeDescendents(folderID, RemoveLocalUi).ConfigureAwait(false);
+            }
+            else
+            {
+                var items = _Store.GetContents(folderID);
+                var remItems = new List<UUID>();
+                var remFolders = new List<UUID>();
+                foreach (var item in items)
+                {
+                    if (item is InventoryFolder)
+                    {
+                        remFolders.Add(item.UUID);
+                    }
+                    else
+                    {
+                        remItems.Add(item.UUID);
+                    }
+                }
+
+                Remove(remItems, remFolders);
+            }
         }
 
         /// <summary>
@@ -3306,10 +3325,7 @@ namespace OpenMetaverse
                 {
                     callback(false, "Failed to parse asset and item UUIDs", UUID.Zero, UUID.Zero);
                 }
-                catch (Exception e)
-                {
-                    Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
-                }
+                catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
             }
 
             var contents = (OSDMap)result;
@@ -3403,7 +3419,11 @@ namespace OpenMetaverse
                     }
                     else
                     {
-                        try { callback(false, "Failed to parse asset and item UUIDs", UUID.Zero, UUID.Zero); }
+                        try
+                        {
+                            callback(false, "Failed to parse asset and item UUIDs",
+                            UUID.Zero, UUID.Zero);
+                        }
                         catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
                     }
                 }
