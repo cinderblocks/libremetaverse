@@ -647,10 +647,9 @@ namespace OpenMetaverse
                 return false;
             }
 
-            if (Regions.ContainsKey(name.ToLowerInvariant()))
+            string key = name.ToLowerInvariant();
+            if (Regions.TryGetValue(key, out region))
             {
-                // We already have this GridRegion structure
-                region = Regions[name.ToLowerInvariant()];
                 return true;
             }
 
@@ -671,10 +670,8 @@ namespace OpenMetaverse
 
             GridRegion -= Callback;
 
-            if (Regions.ContainsKey(name.ToLowerInvariant()))
+            if (Regions.TryGetValue(key, out region))
             {
-                // The region was found after our request
-                region = Regions[name.ToLowerInvariant()];
                 return true;
             }
             else
@@ -888,10 +885,10 @@ namespace OpenMetaverse
             CoarseLocationUpdatePacket coarse = (CoarseLocationUpdatePacket)e.Packet;
 
             // populate a dictionary from the packet, for local use
-            var coarseEntries = new Dictionary<UUID, Vector3>();
+            var coarseEntries = new Dictionary<UUID, Vector3>(coarse.AgentData.Length);
             for (int i = 0; i < coarse.AgentData.Length; i++)
             {
-                if(coarse.Location.Length > 0)
+                if (i < coarse.Location.Length)
                     coarseEntries[coarse.AgentData[i].AgentID] = new Vector3(coarse.Location[i].X, coarse.Location[i].Y, coarse.Location[i].Z * 4);
 
                 // the friend we are tracking on radar
@@ -900,31 +897,28 @@ namespace OpenMetaverse
             }
 
             // find stale entries (people who left the sim)
-            var removedEntries = e.Simulator.avatarPositions.Keys.Where(
-                avatarId => !coarseEntries.ContainsKey(avatarId))
+            var coarseKeys = new HashSet<UUID>(coarseEntries.Keys);
+            var removedEntries = e.Simulator.avatarPositions.Keys
+                .Where(avatarId => !coarseKeys.Contains(avatarId))
                 .ToList();
 
             // entry not listed in the previous update
-            var newEntries = new List<UUID>();
-
-            lock (e.Simulator.avatarPositions)
+            var newEntries = new List<UUID>(coarse.AgentData.Length);
+            
+            // remove stale entries
+            foreach (var trackedID in removedEntries)
             {
-                // remove stale entries
-                foreach (var trackedID in removedEntries)
-                {
-                    e.Simulator.avatarPositions.TryRemove(trackedID, out var removed);
-                }
+                e.Simulator.avatarPositions.TryRemove(trackedID, out var removed);
+            }
 
-                // add or update tracked info, and record who is new
-                foreach (var entry in coarseEntries)
+            // add or update tracked info, and record who is new
+            foreach (var entry in coarseEntries)
+            {
+                if (!e.Simulator.avatarPositions.TryGetValue(entry.Key, out _))
                 {
-                    if (!e.Simulator.avatarPositions.ContainsKey(entry.Key))
-                    {
-                        newEntries.Add(entry.Key);
-                    }
-                    e.Simulator.avatarPositions.AddOrUpdate(entry.Key, entry.Value, 
-                        (uuid, vector3) => entry.Value);
+                    newEntries.Add(entry.Key);
                 }
+                e.Simulator.avatarPositions[entry.Key] = entry.Value;
             }
 
             if (m_CoarseLocationUpdate != null)
