@@ -803,15 +803,17 @@ namespace OpenMetaverse
                                 _Store.UpdateNodeFor(inv);
                             }
                         }
-                    }
-                        ).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
                 }
             }
             else
             {
-                lock (_Store)
+                if (inv != null)
                 {
-                    _Store.UpdateNodeFor(inv);
+                    lock (_Store)
+                    {
+                        _Store.UpdateNodeFor(inv);
+                    }
                 }
 
                 var invFolder = new UpdateInventoryFolderPacket
