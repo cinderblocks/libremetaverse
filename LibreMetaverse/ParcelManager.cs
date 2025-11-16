@@ -1158,49 +1158,11 @@ namespace OpenMetaverse
                 return;
             }
 
-            simulator.DownloadingParcelMap = true;
-            
-            WaitForSimParcel?.Dispose();
-            WaitForSimParcel = new AutoResetEvent(false);
-            
-            if (refresh)
-                Array.Clear(simulator.ParcelMap, 0, simulator.ParcelMap.Length);
+            _PrepareRequestParcelProperties(simulator, refresh);
             
             ThreadPool.QueueUserWorkItem(_ =>
             {
-                int count = 0, timeouts = 0;
-
-                for (var y = 0; y < PARCEL_MAP_SIZE; y++)
-                {
-                    for (var x = 0; x < PARCEL_MAP_SIZE; x++)
-                    {
-                        if (!Client.Network.Connected)
-                            return;
-
-                        if (simulator.ParcelMap[y, x] != 0) 
-                            continue;
-                        
-                        Client.Parcels.RequestParcelProperties(simulator,
-                            (y + 1) * PARCEL_GRID_STEP, 
-                            (x + 1) * PARCEL_GRID_STEP,
-                            y * PARCEL_GRID_STEP, 
-                            x * PARCEL_GRID_STEP, 
-                            int.MaxValue, 
-                            false);
-
-                        // Wait the given amount of time for a reply before sending the next request
-                        if (!WaitForSimParcel.WaitOne(delay))
-                            ++timeouts;
-
-                        ++count;
-                    }
-                }
-
-                Logger.Log($"Full simulator parcel information retrieved. Sent {count} parcel requests. " +
-                           $"Current outgoing queue: {Client.Network.OutboxCount}, Retry Count {timeouts}",
-                    Helpers.LogLevel.Info, Client);
-
-                simulator.DownloadingParcelMap = false;
+                _RequestParcelProperties(simulator, delay);
             });
         }
         
@@ -1229,6 +1191,18 @@ namespace OpenMetaverse
                 return;
             }
 
+            _PrepareRequestParcelProperties(simulator, refresh);
+            
+            await Task.Run(() =>
+            {
+                _RequestParcelProperties(simulator, delay);
+            });
+        }
+
+        #region RequestAllSimParcels/RequestAllSimParcelsAsync helpers
+        
+        private void _PrepareRequestParcelProperties(Simulator simulator, bool refresh)
+        {
             simulator.DownloadingParcelMap = true;
     
             WaitForSimParcel?.Dispose();
@@ -1236,43 +1210,45 @@ namespace OpenMetaverse
 
             if (refresh)
                 Array.Clear(simulator.ParcelMap, 0, simulator.ParcelMap.Length);
-            
-            await Task.Run(() =>
-            {
-                int count = 0, timeouts = 0;
-
-                for (var y = 0; y < PARCEL_MAP_SIZE; y++)
-                {
-                    for (var x = 0; x < PARCEL_MAP_SIZE; x++)
-                    {
-                        if (!Client.Network.Connected)
-                            return;
-
-                        if (simulator.ParcelMap[y, x] != 0) 
-                            continue;
-                        
-                        Client.Parcels.RequestParcelProperties(simulator,
-                            (y + 1) * PARCEL_GRID_STEP, 
-                            (x + 1) * PARCEL_GRID_STEP,
-                            y * PARCEL_GRID_STEP, 
-                            x * PARCEL_GRID_STEP, 
-                            int.MaxValue, 
-                            false);
-
-                        if (!WaitForSimParcel.WaitOne(delay))
-                            ++timeouts;
-
-                        ++count;
-                    }
-                }
-
-                Logger.Log($"Full simulator parcel information retrieved. Sent {count} parcel requests. " +
-                           $"Current outgoing queue: {Client.Network.OutboxCount}, Retry Count {timeouts}",
-                    Helpers.LogLevel.Info, Client);
-
-                simulator.DownloadingParcelMap = false;
-            });
         }
+        
+        private void _RequestParcelProperties(Simulator simulator, TimeSpan delay)
+        {
+            int count = 0, timeouts = 0;
+
+            for (var y = 0; y < PARCEL_MAP_SIZE; y++)
+            {
+                for (var x = 0; x < PARCEL_MAP_SIZE; x++)
+                {
+                    if (!Client.Network.Connected)
+                        return;
+
+                    if (simulator.ParcelMap[y, x] != 0) 
+                        continue;
+                        
+                    Client.Parcels.RequestParcelProperties(simulator,
+                        (y + 1) * PARCEL_GRID_STEP, 
+                        (x + 1) * PARCEL_GRID_STEP,
+                        y * PARCEL_GRID_STEP, 
+                        x * PARCEL_GRID_STEP, 
+                        int.MaxValue, 
+                        false);
+
+                    if (!WaitForSimParcel.WaitOne(delay))
+                        ++timeouts;
+
+                    ++count;
+                }
+            }
+
+            Logger.Log($"Full simulator parcel information retrieved. Sent {count} parcel requests. " +
+                       $"Current outgoing queue: {Client.Network.OutboxCount}, Retry Count {timeouts}",
+                Helpers.LogLevel.Info, Client);
+
+            simulator.DownloadingParcelMap = false;
+        }
+        
+        #endregion
 
         /// <summary>
         /// Request the dwell value for a parcel
