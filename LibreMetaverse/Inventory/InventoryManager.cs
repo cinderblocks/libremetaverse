@@ -134,6 +134,9 @@ namespace OpenMetaverse
         private readonly GridClient Client;
         [NonSerialized]
         private Inventory _Store;
+        
+
+        private readonly ReaderWriterLockSlim _storeLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
 
         private long _CallbackPos, _SearchPos;
         private readonly ConcurrentDictionary<uint, ItemCreatedCallback> _ItemCreatedCallbacks = new ConcurrentDictionary<uint, ItemCreatedCallback>();
@@ -767,15 +770,33 @@ namespace OpenMetaverse
         public void UpdateFolderProperties(UUID folderID, UUID parentID, string name, FolderType type)
         {
             InventoryFolder inv = null;
-            lock (_Store)
+
+            _storeLock.EnterUpgradeableReadLock();
+            try
             {
-                if (_Store.Contains(folderID))
+                if (_Store != null && _Store.Contains(folderID))
                 {
+                    // Retrieve node under read lock
                     inv = (InventoryFolder)Store[folderID];
-                    inv.Name = name;
-                    inv.ParentUUID = parentID;
-                    inv.PreferredType = type;
+
+                    // Update the folder metadata under write lock
+                    _storeLock.EnterWriteLock();
+                    try
+                    {
+                        inv.Name = name;
+                        inv.ParentUUID = parentID;
+                        inv.PreferredType = type;
+                        _Store.UpdateNodeFor(inv);
+                    }
+                    finally
+                    {
+                        _storeLock.ExitWriteLock();
+                    }
                 }
+            }
+            finally
+            {
+                _storeLock.ExitUpgradeableReadLock();
             }
 
             if (Client.AisClient.IsAvailable)
@@ -786,9 +807,15 @@ namespace OpenMetaverse
                     {
                         if (success)
                         {
-                            lock (_Store)
+                            // Ensure local store is updated (already updated above) but keep parity
+                            _storeLock.EnterWriteLock();
+                            try
                             {
                                 _Store.UpdateNodeFor(inv);
+                            }
+                            finally
+                            {
+                                _storeLock.ExitWriteLock();
                             }
                         }
                     }).ConfigureAwait(false);
@@ -796,14 +823,6 @@ namespace OpenMetaverse
             }
             else
             {
-                if (inv != null)
-                {
-                    lock (_Store)
-                    {
-                        _Store.UpdateNodeFor(inv);
-                    }
-                }
-
                 var invFolder = new UpdateInventoryFolderPacket
                 {
                     AgentData =
@@ -832,14 +851,19 @@ namespace OpenMetaverse
         /// <param name="newParentID">The destination folders <see cref="UUID"/></param>
         public void MoveFolder(UUID folderID, UUID newParentID)
         {
-            lock (Store)
+            _storeLock.EnterWriteLock();
+            try
             {
-                if (_Store.Contains(folderID))
+                if (_Store != null && _Store.Contains(folderID))
                 {
                     var inv = Store[folderID];
                     inv.ParentUUID = newParentID;
                     _Store.UpdateNodeFor(inv);
                 }
+            }
+            finally
+            {
+                _storeLock.ExitWriteLock();
             }
 
             var move = new MoveInventoryFolderPacket
@@ -870,19 +894,23 @@ namespace OpenMetaverse
         /// <see cref="UUID"/> of the destination as the value</param>
         public void MoveFolders(Dictionary<UUID, UUID> foldersNewParents)
         {
-            // FIXME: Use two List<UUID> to stay consistent
-
-            lock (Store)
+            // Update local store under a write lock
+            _storeLock.EnterWriteLock();
+            try
             {
                 foreach (var entry in foldersNewParents)
                 {
-                    if (_Store.Contains(entry.Key))
+                    if (_Store != null && _Store.Contains(entry.Key))
                     {
                         var inv = _Store[entry.Key];
                         inv.ParentUUID = entry.Value;
                         _Store.UpdateNodeFor(inv);
                     }
                 }
+            }
+            finally
+            {
+                _storeLock.ExitWriteLock();
             }
 
             //TODO: Test if this truly supports multiple-folder move
@@ -929,7 +957,8 @@ namespace OpenMetaverse
         /// <param name="newName">The name to change the folder to</param>
         public void MoveItem(UUID itemID, UUID folderID, string newName)
         {
-            lock (_Store)
+            _storeLock.EnterWriteLock();
+            try
             {
                 if (_Store.Contains(itemID))
                 {
@@ -941,6 +970,10 @@ namespace OpenMetaverse
                     inv.ParentUUID = folderID;
                     _Store.UpdateNodeFor(inv);
                 }
+            }
+            finally
+            {
+                _storeLock.ExitWriteLock();
             }
 
             var move = new MoveInventoryItemPacket
@@ -971,17 +1004,22 @@ namespace OpenMetaverse
         /// <see cref="UUID"/> of the destination folder as the value</param>
         public void MoveItems(Dictionary<UUID, UUID> itemsNewParents)
         {
-            lock (_Store)
+            _storeLock.EnterWriteLock();
+            try
             {
                 foreach (var entry in itemsNewParents)
                 {
-                    if (_Store.Contains(entry.Key))
+                    if (_Store != null && _Store.Contains(entry.Key))
                     {
                         var inv = _Store[entry.Key];
                         inv.ParentUUID = entry.Value;
                         _Store.UpdateNodeFor(inv);
                     }
                 }
+            }
+            finally
+            {
+                _storeLock.ExitWriteLock();
             }
 
             var move = new MoveInventoryItemPacket
@@ -1021,17 +1059,60 @@ namespace OpenMetaverse
                 return;
             }
 
-            if (!_Store.TryGetNodeFor(itemId, out var item))
+            // Collect all descendants and the root node to remove without recursion
+            var toRemove = new List<InventoryBase>();
+
+            _storeLock.EnterReadLock();
+            try
             {
-                return;
+                if (!_Store.TryGetNodeFor(itemId, out var rootNode))
+                {
+                    return;
+                }
+
+                // Traverse descendants iteratively to avoid recursive write-lock reentrancy
+                var stack = new Stack<UUID>();
+                stack.Push(itemId);
+
+                while (stack.Count > 0)
+                {
+                    var id = stack.Pop();
+
+                    // GetContents is a read operation
+                    var children = _Store.GetContents(id);
+                    foreach (var child in children)
+                    {
+                        toRemove.Add(child);
+
+                        // If folder, traverse its children too
+                        if (child is InventoryFolder)
+                        {
+                            stack.Push(child.UUID);
+                        }
+                    }
+                }
+
+                // Finally remove the root node itself
+                toRemove.Add(rootNode.Data);
+            }
+            finally
+            {
+                _storeLock.ExitReadLock();
             }
 
-            foreach (var obj in _Store.GetContents(itemId))
+            // Perform removals under write lock
+            _storeLock.EnterWriteLock();
+            try
             {
-                RemoveLocalUi(true, obj.UUID);
+                foreach (var b in toRemove)
+                {
+                    try { _Store.RemoveNodeFor(b); } catch { /* swallow individual remove failures */ }
+                }
             }
-
-            _Store.RemoveNodeFor(item.Data);
+            finally
+            {
+                _storeLock.ExitWriteLock();
+            }
         }
 
         /// <summary>
@@ -1147,7 +1228,8 @@ namespace OpenMetaverse
             }
             else
             {
-                lock (_Store)
+                _storeLock.EnterWriteLock();
+                try
                 {
                     rem.ItemData = new RemoveInventoryObjectsPacket.ItemDataBlock[items.Count];
                     for (var i = 0; i < items.Count; i++)
@@ -1155,9 +1237,13 @@ namespace OpenMetaverse
                         rem.ItemData[i] = new RemoveInventoryObjectsPacket.ItemDataBlock { ItemID = items[i] };
 
                         // Update local copy
-                        if (_Store.Contains(items[i]))
+                        if (_Store != null && _Store.Contains(items[i]))
                             _Store.RemoveNodeFor(Store[items[i]]);
                     }
+                }
+                finally
+                {
+                    _storeLock.ExitWriteLock();
                 }
             }
 
@@ -1169,7 +1255,8 @@ namespace OpenMetaverse
             }
             else
             {
-                lock (_Store)
+                _storeLock.EnterWriteLock();
+                try
                 {
                     rem.FolderData = new RemoveInventoryObjectsPacket.FolderDataBlock[folders.Count];
                     for (var i = 0; i < folders.Count; i++)
@@ -1177,9 +1264,13 @@ namespace OpenMetaverse
                         rem.FolderData[i] = new RemoveInventoryObjectsPacket.FolderDataBlock { FolderID = folders[i] };
 
                         // Update local copy
-                        if (_Store.Contains(folders[i]))
+                        if (_Store != null && _Store.Contains(folders[i]))
                             _Store.RemoveNodeFor(Store[folders[i]]);
                     }
+                }
+                finally
+                {
+                    _storeLock.ExitWriteLock();
                 }
             }
             Client.Network.SendPacket(rem);
@@ -1450,6 +1541,7 @@ namespace OpenMetaverse
         /// <param name="permissions">Permission of the newly created item 
         /// (EveryoneMask, GroupMask, and NextOwnerMask of Permissions struct are supported)</param>
         /// <param name="callback">Delegate that will receive feedback on success or failure</param>
+        /// <param name="cancellationToken"></param>
         [Obsolete("Use RequestCreateItemFromAssetAsync")]
         public void RequestCreateItemFromAsset(byte[] data, string name, string description, AssetType assetType,
             InventoryType invType, UUID folderID, Permissions permissions, ItemCreatedFromAssetCallback callback, CancellationToken cancellationToken = default)
@@ -1650,6 +1742,7 @@ namespace OpenMetaverse
         /// <param name="folderID">Target folder for asset to go to in your inventory</param>
         /// <param name="itemID">UUID of the embedded asset</param>
         /// <param name="callback">callback to run when item is copied to inventory</param>
+        /// <param name="cancellationToken"></param>
         public void RequestCopyItemFromNotecard(UUID objectID, UUID notecardID, UUID folderID, UUID itemID, ItemCopiedCallback callback, CancellationToken cancellationToken = default)
         {
             _ItemCopiedCallbacks[0] = callback; //Notecards always use callback ID 0
@@ -1806,6 +1899,7 @@ namespace OpenMetaverse
         /// <param name="data"></param>
         /// <param name="notecardID"></param>
         /// <param name="callback"></param>
+        /// <param name="cancellationToken"></param>
         public void RequestUploadNotecardAsset(byte[] data, UUID notecardID, InventoryUploadedAssetCallback callback, CancellationToken cancellationToken = default)
         {
             var cap = GetCapabilityURI("UpdateNotecardAgentInventory", false);
@@ -1834,6 +1928,7 @@ namespace OpenMetaverse
         /// <param name="notecardID">Notecard UUID</param>
         /// <param name="taskID">Object's UUID</param>
         /// <param name="callback">Called upon finish of the upload with status information</param>
+        /// <param name="cancellationToken"></param>
         public void RequestUpdateNotecardTask(byte[] data, UUID notecardID, UUID taskID, InventoryUploadedAssetCallback callback, CancellationToken cancellationToken = default)
         {
             var cap = GetCapabilityURI("UpdateNotecardTaskInventory", false);
@@ -1865,6 +1960,7 @@ namespace OpenMetaverse
         /// <param name="data">Encoded gesture asset</param>
         /// <param name="gestureID">Gesture inventory UUID</param>
         /// <param name="callback">Method to call upon completion of the upload</param>
+        /// <param name="cancellationToken"></param>
         public void RequestUploadGestureAsset(byte[] data, UUID gestureID, InventoryUploadedAssetCallback callback, CancellationToken cancellationToken = default)
         {
             var cap = GetCapabilityURI("UpdateGestureAgentInventory", false);
@@ -1893,6 +1989,7 @@ namespace OpenMetaverse
         /// <param name="itemID">the itemID of the script</param>
         /// <param name="mono">if true, sets the script content to run on the mono interpreter</param>
         /// <param name="callback"></param>
+        /// <param name="cancellationToken"></param>
         public void RequestUpdateScriptAgentInventory(byte[] data, UUID itemID, bool mono, ScriptUpdatedCallback callback, CancellationToken cancellationToken = default)
         {
             var cap = GetCapabilityURI("UpdateScriptAgent");
@@ -1926,6 +2023,7 @@ namespace OpenMetaverse
         /// <param name="mono">if true, sets the script content to run on the mono interpreter</param>
         /// <param name="running">if true, sets the script to running</param>
         /// <param name="callback"></param>
+        /// <param name="cancellationToken"></param>
         public void RequestUpdateScriptTask(byte[] data, UUID itemID, UUID taskID, bool mono, bool running, ScriptUpdatedCallback callback, CancellationToken cancellationToken = default)
         {
             var cap = GetCapabilityURI("UpdateScriptTask");
@@ -3507,7 +3605,7 @@ namespace OpenMetaverse
                     {
                         try
                         {
-                            callback(false, "Failed to parse asset and item UUIDs",
+                            callback(false, "Failed to parse asset UUID",
                             UUID.Zero, UUID.Zero);
                         }
                         catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
