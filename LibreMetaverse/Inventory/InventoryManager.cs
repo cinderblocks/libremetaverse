@@ -381,6 +381,13 @@ namespace OpenMetaverse
         public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool fetchFolders, bool fetchItems,
             InventorySortOrder order, TimeSpan timeout, bool followLinks = false)
         {
+            if (_Store == null)
+            {
+                var msg = "Inventory store not initialized, cannot get folder contents.";
+                Logger.Log(msg, Helpers.LogLevel.Warning, Client);
+                return new List<InventoryBase>();
+            }
+
             CancellationTokenSource cts = new CancellationTokenSource();
             cts.CancelAfter(timeout);
             var inventory = RequestFolderContents(folder, owner, fetchFolders, fetchItems, order, cts.Token).Result;
@@ -1029,7 +1036,7 @@ namespace OpenMetaverse
 
         private void RemoveLocalUi(bool success, UUID itemId)
         {
-            if(!success)
+            if (!success || _Store == null)
             {
                 return;
             }
@@ -1216,6 +1223,13 @@ namespace OpenMetaverse
 
         private void EmptySystemFolder(FolderType folderType)
         {
+            if (_Store == null)
+            {
+                Logger.Log("Inventory store not initialized, cannot empty system folder",
+                    Helpers.LogLevel.Warning, Client);
+                return;
+            }
+
             var folderKey = UUID.Zero;
 
             var items = _Store.GetContents(_Store.RootFolder);
@@ -1376,8 +1390,19 @@ namespace OpenMetaverse
                 OwnerID = Client.Self.AgentID
             };
 
-            // Update the local store
-            try { _Store[newFolder.UUID] = newFolder; }
+            // Update the local store if available
+            try
+            {
+                if (_Store != null)
+                {
+                    _Store[newFolder.UUID] = newFolder;
+                }
+                else
+                {
+                    Logger.Log("Inventory store is not initialized, created folder will not be cached locally",
+                        Helpers.LogLevel.Debug, Client);
+                }
+            }
             catch (InventoryException ie) { Logger.Log(ie.Message, Helpers.LogLevel.Warning, Client, ie); }
 
             // Create the CreateInventoryFolder packet and send it
@@ -1670,7 +1695,7 @@ namespace OpenMetaverse
         {
             _ItemCopiedCallbacks[0] = callback; //Notecards always use callback ID 0
 
-            var cap = Client.Network.CurrentSim.Caps.CapabilityURI("CopyInventoryFromNotecard");
+            var cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("CopyInventoryFromNotecard");
 
             if (cap != null)
             {
@@ -2759,6 +2784,13 @@ namespace OpenMetaverse
         public InventoryItem CreateOrRetrieveInventoryItem(InventoryType InvType, UUID ItemID)
         {
             InventoryItem ret = null;
+
+            if (_Store == null)
+            {
+                Logger.Log("Inventory store not initialized, cannot create or retrieve inventory item",
+                    Helpers.LogLevel.Warning, Client);
+                return null;
+            }
 
             if (_Store.Contains(ItemID))
                 ret = _Store[ItemID] as InventoryItem;
