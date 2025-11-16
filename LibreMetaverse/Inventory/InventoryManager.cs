@@ -3361,35 +3361,6 @@ namespace OpenMetaverse
             }
         }
 
-        private void Network_OnLoginResponse(bool loginSuccess, bool redirect, string message, string reason, LoginResponseData replyData)
-        {
-            if (!loginSuccess) { return; }
-            if (replyData.InventorySkeleton == null || replyData.LibrarySkeleton == null) { return; }
-
-            // Initialize the store here to link it with the owner
-            _Store = new Inventory(Client, Client.Self.AgentID);
-            Logger.DebugLog($"Setting InventoryRoot to {replyData.InventoryRoot}", Client);
-            var rootFolder = new InventoryFolder(replyData.InventoryRoot)
-            {
-                Name = string.Empty,
-                ParentUUID = UUID.Zero
-            };
-            _Store.RootFolder = rootFolder;
-
-            foreach (var folder in replyData.InventorySkeleton)
-                _Store.UpdateNodeFor(folder);
-
-            var libraryRootFolder = new InventoryFolder(replyData.LibraryRoot)
-            {
-                Name = string.Empty,
-                ParentUUID = UUID.Zero
-            };
-            _Store.LibraryFolder = libraryRootFolder;
-
-            foreach (var folder in replyData.LibrarySkeleton)
-                _Store.UpdateNodeFor(folder);
-        }
-
         private void UploadInventoryAssetResponse(KeyValuePair<InventoryUploadedAssetCallback, byte[]> kvp,
             UUID itemId, OSD result, Exception error)
         {
@@ -3539,6 +3510,36 @@ namespace OpenMetaverse
                 catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
             }
         }
+
+        private void Network_OnLoginResponse(bool loginSuccess, bool redirect, string message, string reason, LoginResponseData replyData)
+        {
+            if (!loginSuccess) { return; }
+            if (replyData.InventorySkeleton == null || replyData.LibrarySkeleton == null) { return; }
+
+            // Initialize the store here to link it with the owner
+            _Store = new Inventory(Client, Client.Self.AgentID);
+            Logger.DebugLog($"Setting InventoryRoot to {replyData.InventoryRoot}", Client);
+            var rootFolder = new InventoryFolder(replyData.InventoryRoot)
+            {
+                Name = string.Empty,
+                ParentUUID = UUID.Zero
+            };
+            _Store.RootFolder = rootFolder;
+
+            foreach (var folder in replyData.InventorySkeleton)
+                _Store.UpdateNodeFor(folder);
+
+            var libraryRootFolder = new InventoryFolder(replyData.LibraryRoot)
+            {
+                Name = string.Empty,
+                ParentUUID = UUID.Zero
+            };
+            _Store.LibraryFolder = libraryRootFolder;
+
+            foreach (var folder in replyData.LibrarySkeleton)
+                _Store.UpdateNodeFor(folder);
+        }
+
 
         #endregion Internal Handlers
     }
