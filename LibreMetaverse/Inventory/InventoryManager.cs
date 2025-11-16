@@ -2310,7 +2310,8 @@ namespace OpenMetaverse
             // check for too many items.
             if (total_contents > MAX_GIVE_ITEMS)
             {
-                Logger.Log("Cannot give more than 42 items in a single inventory transfer.", Helpers.LogLevel.Info);
+                Logger.Log($"Cannot give more than {MAX_GIVE_ITEMS} items in a single inventory transfer.", 
+                    Helpers.LogLevel.Info);
                 return;
             }
             if (items.Count == 0)
