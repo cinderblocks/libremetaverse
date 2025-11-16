@@ -72,7 +72,7 @@ namespace OpenMetaverse
             set => EnableAlternativeImage = value;
         }
         /// <summary>Is display of the alternative image enabled</summary>
-        public bool EnableAlternativeImage;
+        public bool EnableAlternativeImage { get; set; }
 
         /// <summary>Should media auto loop</summary>
         public bool AutoLoop;
