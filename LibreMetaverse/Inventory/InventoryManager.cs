@@ -135,13 +135,14 @@ namespace OpenMetaverse
         [NonSerialized]
         private Inventory _Store;
 
-        private long _CallbackPos;
+        private long _CallbackPos, _SearchPos;
         private readonly ConcurrentDictionary<uint, ItemCreatedCallback> _ItemCreatedCallbacks = new ConcurrentDictionary<uint, ItemCreatedCallback>();
         private readonly ConcurrentDictionary<uint, ItemCopiedCallback> _ItemCopiedCallbacks = new ConcurrentDictionary<uint, ItemCopiedCallback>();
         private readonly ConcurrentDictionary<uint, InventoryType> _ItemInventoryTypeRequest = new ConcurrentDictionary<uint, InventoryType>();
-        // Default timeout for waiting on a callback before cleaning it up (milliseconds)
+        private readonly ConcurrentDictionary<uint, InventorySearch> _Searches = new ConcurrentDictionary<uint, InventorySearch>();
+
+        /// <summary>Default timeout for waiting on a callback before cleaning it up (milliseconds)</summary>
         private const int CALLBACK_TIMEOUT_MS = 60000;
-        private readonly List<InventorySearch> _Searches = new List<InventorySearch>();
 
         #region Properties
 
@@ -662,13 +663,21 @@ namespace OpenMetaverse
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentException("Empty path is not supported");
 
-            // Store this search
+            // Store this search using a generated id
             InventorySearch search;
             search.Folder = baseFolder;
             search.Owner = inventoryOwner;
             search.Path = path.Split('/');
             search.Level = 0;
-            lock (_Searches) _Searches.Add(search);
+
+            uint id;
+            do
+            {
+                var v = Interlocked.Increment(ref _SearchPos);
+                id = (uint)v;
+            } while (id == 0);
+
+            _Searches[id] = search;
 
             // Start the search
             await RequestFolderContents(baseFolder, inventoryOwner, true, true, InventorySortOrder.ByName);

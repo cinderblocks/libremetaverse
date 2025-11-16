@@ -170,51 +170,47 @@ namespace OpenMetaverse
 
             #region FindObjectsByPath Handling
 
-            lock (_Searches)
+            if (_Searches.Count > 0)
             {
-                if (_Searches.Count > 0)
+                var searchesSnapshot = _Searches.ToArray();
+
+                foreach (var kv in searchesSnapshot)
                 {
-                    StartSearch:
-                    // Iterate over all outstanding searches
-                    for (var i = 0; i < _Searches.Count; ++i)
+                    var key = kv.Key;
+                    var search = kv.Value;
+
+                    if (!_Searches.ContainsKey(key)) continue;
+
+                    var folderContents = _Store.GetContents(search.Folder);
+
+                    foreach (var content in folderContents.Where(content => content.Name == search.Path[search.Level]))
                     {
-                        var search = _Searches[i];
-                        var folderContents = _Store.GetContents(search.Folder);
-
-                        // Iterate over all inventory objects in the base search folder
-                        foreach (var content in folderContents.Where(content =>
-                                     content.Name == search.Path[search.Level]))
+                        if (search.Level == search.Path.Length - 1)
                         {
-                            if (search.Level == search.Path.Length - 1)
+                            Logger.DebugLog("Finished path search of " + string.Join("/", search.Path), Client);
+
+                            if (m_FindObjectByPathReply != null)
                             {
-                                Logger.DebugLog("Finished path search of " + string.Join("/", search.Path), Client);
-
-                                // This is the last node in the path, fire the callback and clean up
-                                if (m_FindObjectByPathReply != null)
-                                {
-                                    OnFindObjectByPathReply(new FindObjectByPathReplyEventArgs(
-                                        string.Join("/", search.Path),
-                                        content.UUID));
-                                }
-
-                                // Remove this entry and restart the loop since we are changing the collection size
-                                _Searches.RemoveAt(i);
-                                goto StartSearch;
+                                OnFindObjectByPathReply(new FindObjectByPathReplyEventArgs(
+                                    string.Join("/", search.Path), content.UUID));
                             }
-                            else
-                            {
-                                // We found a match, but it is not the end of the path; request the next level
-                                Logger.DebugLog(
-                                    $"Matched level {search.Level}/{search.Path.Length - 1} " +
-                                    $"in a path search of {string.Join("/", search.Path)}", Client);
 
-                                search.Folder = content.UUID;
-                                search.Level++;
-                                _Searches[i] = search;
+                            // Remove the completed search
+                            _Searches.TryRemove(key, out _);
+                            break; // stop iterating matches for this search
+                        }
+                        else
+                        {
+                            Logger.DebugLog($"Matched level {search.Level}/{search.Path.Length - 1} in a path search of {string.Join("/", search.Path)}", Client);
 
-                                Task task = RequestFolderContents(search.Folder, search.Owner, true, true,
-                                    InventorySortOrder.ByName);
-                            }
+                            var updated = search;
+                            updated.Folder = content.UUID;
+                            updated.Level = search.Level + 1;
+                            _Searches[key] = updated;
+
+                            // Request the next level contents asynchronously
+                            _ = RequestFolderContents(updated.Folder, updated.Owner, true, true, InventorySortOrder.ByName);
+                            break; // only handle the first match at this level for this search
                         }
                     }
                 }
