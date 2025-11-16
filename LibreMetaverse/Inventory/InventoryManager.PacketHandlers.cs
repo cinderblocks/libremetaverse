@@ -384,14 +384,10 @@ namespace OpenMetaverse
                 if (newItem.ItemID == UUID.Zero) continue;
                 var invType = newItem.InvType;
 
-                lock (_ItemInventoryTypeRequest)
+                // Try to grab and remove any previously requested InventoryType for this callback id
+                if (_ItemInventoryTypeRequest.TryRemove(newItem.CallbackID, out var storedType))
                 {
-                    InventoryType storedType = 0;
-                    if (_ItemInventoryTypeRequest.TryGetValue(newItem.CallbackID, out storedType))
-                    {
-                        _ItemInventoryTypeRequest.TryRemove(newItem.CallbackID, out _);
-                        invType = storedType;
-                    }
+                    invType = storedType;
                 }
 
                 var item = CreateOrRetrieveInventoryItem(invType, newItem.ItemID);

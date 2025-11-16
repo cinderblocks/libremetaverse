@@ -139,6 +139,8 @@ namespace OpenMetaverse
         private readonly ConcurrentDictionary<uint, ItemCreatedCallback> _ItemCreatedCallbacks = new ConcurrentDictionary<uint, ItemCreatedCallback>();
         private readonly ConcurrentDictionary<uint, ItemCopiedCallback> _ItemCopiedCallbacks = new ConcurrentDictionary<uint, ItemCopiedCallback>();
         private readonly ConcurrentDictionary<uint, InventoryType> _ItemInventoryTypeRequest = new ConcurrentDictionary<uint, InventoryType>();
+        // Default timeout for waiting on a callback before cleaning it up (milliseconds)
+        private const int CALLBACK_TIMEOUT_MS = 60000;
         private readonly List<InventorySearch> _Searches = new List<InventorySearch>();
 
         #region Properties
@@ -3049,6 +3051,33 @@ namespace OpenMetaverse
                 Logger.Log("Overwriting an existing ItemCreatedCallback", Helpers.LogLevel.Warning, Client);
             }
 
+            // Schedule cleanup in case the server never responds. If the callback is
+            // already removed by a successful response the TryRemove here will fail
+            // and we won't invoke the callback twice.
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(CALLBACK_TIMEOUT_MS).ConfigureAwait(false);
+                    if (_ItemCreatedCallbacks.TryRemove(id, out var cb))
+                    {
+                        try
+                        {
+                            // Signal failure/timeout to the caller
+                            cb(false, null);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(ex.Message, Helpers.LogLevel.Debug, Client, ex);
+                }
+            }).ConfigureAwait(false);
+
             return id;
         }
 
@@ -3066,6 +3095,31 @@ namespace OpenMetaverse
                 _ItemCopiedCallbacks[id] = callback;
                 Logger.Log("Overwriting an existing ItemsCopiedCallback", Helpers.LogLevel.Warning, Client);
             }
+
+            // Schedule cleanup for copied-item callbacks as well to avoid leaks
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(CALLBACK_TIMEOUT_MS).ConfigureAwait(false);
+                    if (_ItemCopiedCallbacks.TryRemove(id, out var cb))
+                    {
+                        try
+                        {
+                            // Indicate failure by passing null
+                            cb(null);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(ex.Message, Helpers.LogLevel.Debug, Client, ex);
+                }
+            }).ConfigureAwait(false);
 
             return id;
         }
@@ -3321,7 +3375,10 @@ namespace OpenMetaverse
         {
             if (result == null)
             {
-                try { callback(false, error?.Message ?? "Unknown error", UUID.Zero, UUID.Zero); }
+                try
+                {
+                    callback(false, error?.Message ?? "Unknown error", UUID.Zero, UUID.Zero);
+                }
                 catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
                 return;
             }
