@@ -3417,7 +3417,7 @@ namespace OpenMetaverse
                 _Store.UpdateNodeFor(folder);
         }
 
-        private void UploadInventoryAssetResponse(KeyValuePair<InventoryUploadedAssetCallback, byte[]> kvp, 
+        private void UploadInventoryAssetResponse(KeyValuePair<InventoryUploadedAssetCallback, byte[]> kvp,
             UUID itemId, OSD result, Exception error)
         {
             var callback = kvp.Key;
@@ -3452,7 +3452,7 @@ namespace OpenMetaverse
                     if (contents.ContainsKey("new_asset"))
                     {
                         // Request full item update so we keep store in sync
-                        RequestFetchInventory(itemId, contents["new_asset"].AsUUID());
+                        RequestFetchInventory(itemId, Client.Self.AgentID);
 
                         try { callback(true, string.Empty, itemId, contents["new_asset"].AsUUID()); }
                         catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
@@ -3475,10 +3475,9 @@ namespace OpenMetaverse
 
                 if (error != null)
                 {
-                    if (error is WebException exception)
-                        message = ((HttpWebResponse)exception.Response).StatusDescription;
-
-                    if (message == null || message == "None")
+                    if (error is WebException webEx && webEx.Response is HttpWebResponse http)
+                        message = http.StatusDescription ?? webEx.Message;
+                    else
                         message = error.Message;
                 }
 
@@ -3487,16 +3486,19 @@ namespace OpenMetaverse
             }
         }
 
-        private void UpdateScriptAgentInventoryResponse(KeyValuePair<ScriptUpdatedCallback, byte[]> kvpCb, 
+        private void UpdateScriptAgentInventoryResponse(KeyValuePair<ScriptUpdatedCallback, byte[]> kvpCb,
             UUID itemId, OSD result, Exception error)
         {
             var callback = kvpCb.Key;
-            var itemData = (byte[])kvpCb.Value;
+            var itemData = kvpCb.Value;
 
             if (result == null)
             {
-                try { callback(false, error.Message, false, 
-                    null, UUID.Zero, UUID.Zero); }
+                try
+                {
+                    callback(false, error.Message, false,
+                    null, UUID.Zero, UUID.Zero);
+                }
                 catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
                 return;
             }
@@ -3511,7 +3513,7 @@ namespace OpenMetaverse
                 var req = Client.HttpCapsClient.PostRequestAsync(new Uri(uploadURL), "application/octet-stream",
                     itemData, CancellationToken.None, (response, responseData, exception) =>
                     {
-                        UpdateScriptAgentInventoryResponse(kvpCb, itemId, 
+                        UpdateScriptAgentInventoryResponse(kvpCb, itemId,
                             OSDParser.Deserialize(responseData), exception);
                     });
             }
@@ -3520,7 +3522,7 @@ namespace OpenMetaverse
                 if (contents.ContainsKey("new_asset"))
                 {
                     // Request full item update so we keep store in sync
-                    RequestFetchInventory(itemId, contents["new_asset"].AsUUID());
+                    RequestFetchInventory(itemId, Client.Self.AgentID);
 
                     try
                     {
@@ -3544,18 +3546,25 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    try { callback(false, "Failed to parse asset UUID", 
-                        false, null, UUID.Zero, UUID.Zero); }
+                    try
+                    {
+                        callback(false, "Failed to parse asset UUID",
+                        false, null, UUID.Zero, UUID.Zero);
+                    }
                     catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
                 }
             }
             else if (callback != null)
             {
-                try { callback(false, status, false, 
-                    null, UUID.Zero, UUID.Zero); }
+                try
+                {
+                    callback(false, status, false,
+                    null, UUID.Zero, UUID.Zero);
+                }
                 catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
             }
         }
+
         #endregion Internal Handlers
     }
 }
