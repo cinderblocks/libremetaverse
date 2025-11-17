@@ -454,146 +454,9 @@ namespace OpenMetaverse
 
             AppearanceCts = new CancellationTokenSource();
 
-            // This is the first time setting appearance, run through the entire sequence
-            AppearanceThread = new Thread(
-                () =>
-                {
-                    var cancellationToken = AppearanceCts.Token;
-                    var success = true;
-                    try
-                    {
-                        if (forceRebake)
-                        {
-                            // Set all the baked textures to UUID.Zero to force rebaking
-                            for (var bakedIndex = 0; bakedIndex < BAKED_TEXTURE_COUNT; bakedIndex++)
-                                Textures[(int)BakeTypeToAgentTextureIndex((BakeType)bakedIndex)].TextureID = UUID.Zero;
-                        }
-
-                        // FIXME: we really need to make this better...
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                        // Retrieve the worn attachments.
-                        if (!GatherAgentAttachments())
-                        {
-                            Logger.Log(
-                                "Failed to retrieve a list of current agent attachments, appearance cannot be set",
-                                Helpers.LogLevel.Warning,
-                                Client);
-
-                            throw new AppearanceManagerException(
-                                "Failed to retrieve a list of current agent attachments, appearance cannot be set");
-                        }
-
-                        // Is this server side baking enabled sim
-                        if (ServerBakingRegion())
-                        {
-                            if (!Wearables.Any())
-                            {
-                                // Fetch a list of the current agent wearables
-                                GatherAgentWearables();
-                            }
-
-                            cancellationToken.ThrowIfCancellationRequested();
-
-                            if (!ServerBakingDone || forceRebake)
-                            {
-                                if (UpdateAvatarAppearanceAsync(cancellationToken).Result)
-                                {
-                                    ServerBakingDone = true;
-                                }
-                                else
-                                {
-                                    success = false;
-                                }
-                            }
-                        }
-                        else // Classic client side baking
-                        {
-                            if (!Wearables.Any())
-                            {
-                                // Fetch a list of the current agent wearables
-                                if (!GatherAgentWearables())
-                                {
-                                    Logger.Log("Failed to retrieve a list of current agent wearables, appearance cannot be set",
-                                        Helpers.LogLevel.Error, Client);
-                                    throw new AppearanceManagerException(
-                                        "Failed to retrieve a list of current agent wearables, appearance cannot be set");
-                                }
-                            }
-
-                            cancellationToken.ThrowIfCancellationRequested();
-
-                            // If we get back to server side baking region re-request server bake
-                            ServerBakingDone = false;
-
-                            // Download and parse all agent wearables
-                            if (!DownloadWearables())
-                            {
-                                success = false;
-                                Logger.Log(
-                                    "One or more agent wearables failed to download, appearance will be incomplete",
-                                    Helpers.LogLevel.Warning, Client);
-                            }
-
-                            cancellationToken.ThrowIfCancellationRequested();
-
-                            // If this is the first time setting appearance, and we're not forcing a rebake, check the server
-                            // for cached bakes
-                            if (SetAppearanceSerialNum == 0 && !forceRebake)
-                            {
-                                // Compute hashes for each bake layer and compare against what the simulator currently has
-                                if (!GetCachedBakes())
-                                {
-                                    Logger.Log(
-                                        "Failed to get a list of cached bakes from the simulator, appearance will be rebaked",
-                                        Helpers.LogLevel.Warning, Client);
-                                }
-                            }
-
-                            cancellationToken.ThrowIfCancellationRequested();
-
-                            // Download textures, compute bakes, and upload for any cache misses
-                            if (!CreateBakes())
-                            {
-                                success = false;
-                                Logger.Log(
-                                    "Failed to create or upload one or more bakes, appearance will be incomplete",
-                                    Helpers.LogLevel.Warning, Client);
-                            }
-
-                            cancellationToken.ThrowIfCancellationRequested();
-
-                            // Send the appearance packet
-                            RequestAgentSetAppearance();
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        if (e is OperationCanceledException)
-                        {
-                            Logger.Log("Setting appearance cancelled.", Helpers.LogLevel.Debug, Client);
-                        }
-                        else
-                        {
-                            Logger.Log($"Failed to set appearance with exception {e}", Helpers.LogLevel.Warning, Client);
-                        }
-
-                        success = false;
-                    }
-                    finally
-                    {
-                        AppearanceThreadRunning = 0;
-
-                        OnAppearanceSet(new AppearanceSetEventArgs(success));
-                    }
-                }
-            )
-            {
-                Name = "Appearance",
-                IsBackground = true
-            };
-
-            AppearanceThread.Start();
+            // Start the async appearance workflow on the thread pool so the caller is not blocked.
+            var ct = AppearanceCts.Token;
+            _ = Task.Run(() => RequestSetAppearanceAsync(forceRebake, ct), ct);
         }
 
         /// <summary>
@@ -1588,18 +1451,32 @@ namespace OpenMetaverse
         /// <returns>True on success, otherwise false</returns>
         private bool GatherAgentWearables()
         {
-            var wearablesEvent = new AutoResetEvent(false);
-            EventHandler<AgentWearablesReplyEventArgs> WearablesCallback = ((s, e) => wearablesEvent.Set());
+            try
+            {
+                return GatherAgentWearablesAsync(CancellationToken.None).GetAwaiter().GetResult();
+            }
+            catch (OperationCanceledException)
+            {
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"GatherAgentWearables failed: {ex}", Helpers.LogLevel.Warning, Client);
+                return false;
+            }
+        }
 
-            AgentWearablesReply += WearablesCallback;
-
-            RequestAgentWorn();
-
-            var success = wearablesEvent.WaitOne(WEARABLE_TIMEOUT, false);
-
-            AgentWearablesReply -= WearablesCallback;
-
-            return success;
+        /// <summary>
+        /// Async-first method to populate the Wearables dictionary
+        /// </summary>
+        private async Task<bool> GatherAgentWearablesAsync(CancellationToken cancellationToken = default)
+        {
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+            {
+                cts.CancelAfter(WEARABLE_TIMEOUT);
+                var contents = await RequestAgentWornAsync(cts.Token).ConfigureAwait(false);
+                return contents != null;
+            }
         }
 
         /// <summary>
@@ -2458,11 +2335,15 @@ namespace OpenMetaverse
             return set;
         }
 
-        public void SendOutfitToCurrentSimulator()
+        /// <summary>
+        /// Async-first implementation to send the Current Outfit folder to the current simulator.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+        public async Task SendOutfitToCurrentSimulatorAsync(CancellationToken cancellationToken = default)
         {
             var blocks = new List<RezMultipleAttachmentsFromInvPacket.ObjectDataBlock>();
 
-            var worn = RequestAgentWorn();
+            var worn = await RequestAgentWornAsync(cancellationToken).ConfigureAwait(false);
             if (worn == null)
             {
                 Logger.Log("Could not retrieve 'Current Outfit' folder to send to simulator", Helpers.LogLevel.Warning, Client);
@@ -2540,6 +2421,15 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// OBSOLETE. Synchronous wrapper around SendOutfitToCurrentSimulatorAsync. This will block the calling thread.
+        /// </summary>
+        [Obsolete("Use SendOutfitToCurrentSimulatorAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
+        public void SendOutfitToCurrentSimulator()
+        {
+            SendOutfitToCurrentSimulatorAsync(CancellationToken.None).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
         /// Create an AgentSetAppearance packet from Wearables data and the 
         /// Textures array and send it
         /// </summary>
@@ -2602,25 +2492,12 @@ namespace OpenMetaverse
                 }
             }
         }
+
         #endregion Appearance Helpers
 
         #region Inventory Helpers
 
-        private bool GetFolderWearables(string[] folderPath, out List<InventoryWearable> wearables, out List<InventoryItem> attachments)
-        {
-            var folder = Client.Inventory.FindObjectByPath(
-                Client.Inventory.Store.RootFolder.UUID, Client.Self.AgentID, string.Join("/", folderPath), INVENTORY_TIMEOUT);
-
-            if (folder != UUID.Zero)
-            {
-                return GetFolderWearables(folder, out wearables, out attachments);
-            }
-            Logger.Log($"Failed to resolve outfit folder path {folderPath}", Helpers.LogLevel.Error, Client);
-            wearables = null;
-            attachments = null;
-            return false;
-        }
-
+        [Obsolete("Use GetFolderWeablesAsync instead (async-first). This method will block the calling thread.")]
         private bool GetFolderWearables(UUID folder, out List<InventoryWearable> wearables, out List<InventoryItem> attachments)
         {
             wearables = new List<InventoryWearable>();
@@ -2661,6 +2538,65 @@ namespace OpenMetaverse
             return true;
         }
 
+        /// <summary>
+        /// Async variant of GetFolderWearables that returns the results and a success flag.
+        /// </summary>
+        /// <param name="folder">Folder UUID to enumerate</param>
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+        /// <returns>Tuple (success, wearables, attachments)</returns>
+        public async Task<(bool Success, List<InventoryWearable> Wearables, List<InventoryItem> Attachments)> GetFolderWearablesAsync(UUID folder, CancellationToken cancellationToken = default)
+        {
+            var wearables = new List<InventoryWearable>();
+            var attachments = new List<InventoryItem>();
+
+            List<InventoryBase> objects = null;
+            try
+            {
+                objects = await Client.Inventory.FolderContentsAsync(folder, Client.Self.AgentID, false, true,
+                    InventorySortOrder.ByName, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                Logger.Log($"GetFolderWearablesAsync cancelled while fetching folder {folder}", Helpers.LogLevel.Debug, Client);
+                return (false, null, null);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Failed to download folder contents of {folder}: {ex}", Helpers.LogLevel.Error, Client);
+                return (false, null, null);
+            }
+
+            if (objects != null)
+            {
+                foreach (var ib in objects)
+                {
+                    switch (ib)
+                    {
+                        case InventoryWearable wearable:
+                            Logger.DebugLog($"Adding wearable {wearable.Name}", Client);
+                            wearables.Add(wearable);
+                            break;
+                        case InventoryAttachment attachment:
+                            Logger.DebugLog($"Adding attachment (attachment) {attachment.Name}", Client);
+                            attachments.Add(attachment);
+                            break;
+                        case InventoryObject inventoryObject:
+                            Logger.DebugLog($"Adding attachment (object) {inventoryObject.Name}", Client);
+                            attachments.Add(inventoryObject);
+                            break;
+                        default:
+                            Logger.DebugLog($"Ignoring inventory item {ib.Name}", Client);
+                            break;
+                    }
+                }
+
+                return (true, wearables, attachments);
+            }
+
+            Logger.Log($"Failed to download folder contents of {folder}", Helpers.LogLevel.Error, Client);
+            return (false, null, null);
+        }
+
         #endregion Inventory Helpers
 
         #region Callbacks
@@ -2672,7 +2608,7 @@ namespace OpenMetaverse
             Logger.DebugLog("Received AgentWearablesUpdate");
 
             // At one point this was necessary, but Second Life now sends dummy items back...
-            // So let's just ignore the dumdum, k?
+            // So let's just ignore the dumdum, k? 
 
             // Fire the callback
             OnAgentWearables(new AgentWearablesReplyEventArgs());
@@ -2779,17 +2715,28 @@ namespace OpenMetaverse
             }
         }
 
-        private void Simulator_OnCapabilitiesReceived(object sender, CapabilitiesReceivedEventArgs e)
+        private async void Simulator_OnCapabilitiesReceived(object sender, CapabilitiesReceivedEventArgs e)
         {
-            e.Simulator.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived;
-
-            if (e.Simulator == Client.Network.CurrentSim && Client.Settings.SEND_AGENT_APPEARANCE)
+            try
             {
-                bool updateSucceeded = UpdateAvatarAppearanceAsync(CancellationToken.None).Result;
-                if (updateSucceeded)
+                e.Simulator.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived;
+
+                if (e.Simulator == Client.Network.CurrentSim && Client.Settings.SEND_AGENT_APPEARANCE)
                 {
-                    ThreadPool.QueueUserWorkItem((o) => { SendOutfitToCurrentSimulator(); });
+                    var updateSucceeded = await UpdateAvatarAppearanceAsync(CancellationToken.None).ConfigureAwait(false);
+                    if (updateSucceeded)
+                    {
+                        await SendOutfitToCurrentSimulatorAsync(CancellationToken.None).ConfigureAwait(false);
+                    }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                Logger.Log("Simulator_OnCapabilitiesReceived cancelled.", Helpers.LogLevel.Debug, Client);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Simulator_OnCapabilitiesReceived failed: {ex}", Helpers.LogLevel.Warning, Client);
             }
         }
 
@@ -2959,6 +2906,126 @@ namespace OpenMetaverse
         }
 
         #endregion Static Helpers
+
+        /// <summary>
+        /// Async implementation of the appearance setting workflow.
+        /// </summary>
+        private async Task RequestSetAppearanceAsync(bool forceRebake, CancellationToken cancellationToken)
+        {
+            var success = true;
+            try
+            {
+                if (forceRebake)
+                {
+                    for (var bakedIndex = 0; bakedIndex < BAKED_TEXTURE_COUNT; bakedIndex++)
+                        Textures[(int)BakeTypeToAgentTextureIndex((BakeType)bakedIndex)].TextureID = UUID.Zero;
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (!GatherAgentAttachments())
+                {
+                    Logger.Log(
+                        "Failed to retrieve a list of current agent attachments, appearance cannot be set",
+                        Helpers.LogLevel.Warning,
+                        Client);
+
+                    throw new AppearanceManagerException(
+                        "Failed to retrieve a list of current agent attachments, appearance cannot be set");
+                }
+
+                if (ServerBakingRegion())
+                {
+                    if (!Wearables.Any())
+                    {
+                        await GatherAgentWearablesAsync(cancellationToken).ConfigureAwait(false);
+                    }
+
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    if (!ServerBakingDone || forceRebake)
+                    {
+                        if (await UpdateAvatarAppearanceAsync(cancellationToken).ConfigureAwait(false))
+                        {
+                            ServerBakingDone = true;
+                        }
+                        else
+                        {
+                            success = false;
+                        }
+                    }
+                }
+                else
+                {
+                    if (!Wearables.Any())
+                    {
+                        if (!GatherAgentWearables())
+                        {
+                            Logger.Log("Failed to retrieve a list of current agent wearables, appearance cannot be set",
+                                Helpers.LogLevel.Error, Client);
+                            throw new AppearanceManagerException(
+                                "Failed to retrieve a list of current agent wearables, appearance cannot be set");
+                        }
+                    }
+
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    ServerBakingDone = false;
+
+                    if (!DownloadWearables())
+                    {
+                        success = false;
+                        Logger.Log(
+                            "One or more agent wearables failed to download, appearance will be incomplete",
+                            Helpers.LogLevel.Warning, Client);
+                    }
+
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    if (SetAppearanceSerialNum == 0 && !forceRebake)
+                    {
+                        if (!GetCachedBakes())
+                        {
+                            Logger.Log(
+                                "Failed to get a list of cached bakes from the simulator, appearance will be rebaked",
+                                Helpers.LogLevel.Warning, Client);
+                        }
+                    }
+
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    if (!CreateBakes())
+                    {
+                        success = false;
+                        Logger.Log(
+                            "Failed to create or upload one or more bakes, appearance will be incomplete",
+                            Helpers.LogLevel.Warning, Client);
+                    }
+
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    RequestAgentSetAppearance();
+                }
+            }
+            catch (Exception e)
+            {
+                if (e is OperationCanceledException)
+                {
+                    Logger.Log("Setting appearance cancelled.", Helpers.LogLevel.Debug, Client);
+                }
+                else
+                {
+                    Logger.Log($"Failed to set appearance with exception {e}", Helpers.LogLevel.Warning, Client);
+                }
+
+                success = false;
+            }
+            finally
+            {
+                Interlocked.Exchange(ref AppearanceThreadRunning, 0);
+                OnAppearanceSet(new AppearanceSetEventArgs(success));
+            }
+        }
     }
 
     #region AppearanceManager EventArgs Classes
@@ -2996,7 +3063,7 @@ namespace OpenMetaverse
         public UUID TextureID { get; }
 
         /// <summary>
-        /// Triggered when the simulator sends a request for this agent to rebake
+        /// Triggered when the simulator requests the agent rebake
         /// its appearance
         /// </summary>
         /// <param name="textureID">The ID of the Texture Layer to bake</param>
