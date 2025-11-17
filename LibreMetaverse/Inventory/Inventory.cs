@@ -131,9 +131,10 @@ namespace OpenMetaverse
         /// </summary>
         public InventoryFolder RootFolder
         {
-            get => RootNode.Data as InventoryFolder;
+            get => RootNode?.Data as InventoryFolder;
             set
             {
+                if (value == null) throw new ArgumentNullException(nameof(value));
                 UpdateNodeFor(value);
                 if (!Items.TryGetValue(value.UUID, out var rootNode))
                     throw new InventoryException($"Failed to set RootFolder; unknown node: {value.UUID}");
@@ -146,9 +147,10 @@ namespace OpenMetaverse
         /// </summary>
         public InventoryFolder LibraryFolder
         {
-            get => LibraryRootNode.Data as InventoryFolder;
+            get => LibraryRootNode?.Data as InventoryFolder;
             set
             {
+                if (value == null) throw new ArgumentNullException(nameof(value));
                 UpdateNodeFor(value);
                 if (!Items.TryGetValue(value.UUID, out var libNode))
                     throw new InventoryException($"Failed to set LibraryFolder; unknown node: {value.UUID}");
@@ -202,12 +204,12 @@ namespace OpenMetaverse
         /// <returns></returns>
         public List<InventoryNode> FindAllLinks(UUID assertId)
         {
-            List<InventoryNode> links = new List<InventoryNode>();
-            lock (RootNode.Nodes.SyncRoot)
-            {
-                links = Items.Values.Where(node => IsLinkOf(node, assertId)).ToList();
-            }
+            // If we have no root, there are no links to find
+            if (RootNode == null) return new List<InventoryNode>();
 
+            // Snapshot the values to avoid enumerating a changing collection
+            var snapshot = Items.Values.ToList();
+            var links = snapshot.Where(node => IsLinkOf(node, assertId)).ToList();
             return links;
         }
 
@@ -223,6 +225,7 @@ namespace OpenMetaverse
 
         public List<InventoryBase> GetContents(InventoryFolder folder)
         {
+            if (folder == null) throw new ArgumentNullException(nameof(folder));
             return GetContents(folder.UUID);
         }
 
@@ -256,6 +259,8 @@ namespace OpenMetaverse
         /// <param name="item">The InventoryObject to store</param>
         public void UpdateNodeFor(InventoryBase item)
         {
+            if (item == null) throw new ArgumentNullException(nameof(item));
+
             InventoryObjectUpdatedEventArgs itemUpdatedEventArgs = null;
             InventoryObjectAddedEventArgs itemAddedEventArgs = null;
 
@@ -350,6 +355,8 @@ namespace OpenMetaverse
         /// <param name="item">The InventoryObject to remove.</param>
         public void RemoveNodeFor(InventoryBase item)
         {
+            if (item == null) throw new ArgumentNullException(nameof(item));
+
             InventoryObjectRemovedEventArgs itemRemovedEventArgs = null;
 
             lock (itemsLock)
@@ -447,7 +454,7 @@ namespace OpenMetaverse
         /// <returns>true if inventory contains object, false otherwise</returns>
         public bool Contains(InventoryBase obj)
         {
-            return Contains(obj.UUID);
+            return obj != null && Contains(obj.UUID);
         }
 
         /// <summary>
