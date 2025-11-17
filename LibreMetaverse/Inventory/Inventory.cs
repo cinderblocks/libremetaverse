@@ -135,7 +135,9 @@ namespace OpenMetaverse
             set
             {
                 UpdateNodeFor(value);
-                RootNode = Items[value.UUID];
+                if (!Items.TryGetValue(value.UUID, out var rootNode))
+                    throw new InventoryException($"Failed to set RootFolder; unknown node: {value.UUID}");
+                RootNode = rootNode;
             }
         }
 
@@ -148,7 +150,9 @@ namespace OpenMetaverse
             set
             {
                 UpdateNodeFor(value);
-                LibraryRootNode = Items[value.UUID];
+                if (!Items.TryGetValue(value.UUID, out var libNode))
+                    throw new InventoryException($"Failed to set LibraryFolder; unknown node: {value.UUID}");
+                LibraryRootNode = libNode;
             }
         }
 
@@ -175,8 +179,9 @@ namespace OpenMetaverse
         #endregion Properties
 
         private readonly GridClient Client;
-        //private InventoryManager Manager;
+
         private ConcurrentDictionary<UUID, InventoryNode> Items;
+        private readonly object itemsLock = new object();
 
         public Inventory(GridClient client)
             : this(client, client.Self.AgentID) { }
@@ -254,31 +259,31 @@ namespace OpenMetaverse
             InventoryObjectUpdatedEventArgs itemUpdatedEventArgs = null;
             InventoryObjectAddedEventArgs itemAddedEventArgs = null;
 
-            lock (Items)
-            {
-                InventoryNode itemParent = null;
-                if (item.ParentUUID != UUID.Zero && !Items.TryGetValue(item.ParentUUID, out itemParent))
-                {
-                    // OK, we have no data on the parent, let's create a fake one.
-                    var fakeParent = new InventoryFolder(item.ParentUUID)
-                    {
-                        DescendentCount = 1 // Dear god, please forgive me.
-                    };
-                    var fakeItemParent = new InventoryNode(fakeParent);
-                    if (Items.TryAdd(item.ParentUUID, fakeItemParent))
-                    {
-                        itemParent = fakeItemParent;
-                    }
-                    else
-                    {
-                        Items.TryGetValue(item.ParentUUID, out itemParent);
-                    }
-                    // Unfortunately, this breaks the nice unified tree
-                    // while we're waiting for the parent's data to come in.
-                    // As soon as we get the parent, the tree repairs itself.
-                    //Logger.DebugLog("Attempting to update inventory child of " +
-                    //    item.ParentUUID.ToString() + " when we have no local reference to that folder", Client);
-                }
+            lock (itemsLock)
+             {
+                 InventoryNode itemParent = null;
+                 if (item.ParentUUID != UUID.Zero && !Items.TryGetValue(item.ParentUUID, out itemParent))
+                 {
+                     // OK, we have no data on the parent, let's create a fake one.
+                     var fakeParent = new InventoryFolder(item.ParentUUID)
+                     {
+                         DescendentCount = 1 // Dear god, please forgive me.
+                     };
+                     var fakeItemParent = new InventoryNode(fakeParent);
+                     if (Items.TryAdd(item.ParentUUID, fakeItemParent))
+                     {
+                         itemParent = fakeItemParent;
+                     }
+                     else
+                     {
+                         Items.TryGetValue(item.ParentUUID, out itemParent);
+                     }
+                     // Unfortunately, this breaks the nice unified tree
+                     // while we're waiting for the parent's data to come in.
+                     // As soon as we get the parent, the tree repairs itself.
+                     //Logger.DebugLog("Attempting to update inventory child of " +
+                     //    item.ParentUUID.ToString() + " when we have no local reference to that folder", Client);
+                 }
 
                 if (Items.TryGetValue(item.UUID, out var itemNode)) // We're updating.
                 {
@@ -329,7 +334,9 @@ namespace OpenMetaverse
 
         public InventoryNode GetNodeFor(UUID uuid)
         {
-            return Items[uuid];
+            if (!Items.TryGetValue(uuid, out var node))
+                throw new InventoryException($"Unknown inventory node: {uuid}");
+            return node;
         }
 
         public bool TryGetNodeFor(UUID uuid, out InventoryNode node)
@@ -345,8 +352,8 @@ namespace OpenMetaverse
         {
             InventoryObjectRemovedEventArgs itemRemovedEventArgs = null;
 
-            lock (Items)
-            {
+            lock (itemsLock)
+             {
                 if (Items.TryGetValue(item.UUID, out var node))
                 {
                     if (node.Parent != null)
@@ -368,7 +375,7 @@ namespace OpenMetaverse
                     lock (newParent.Nodes.SyncRoot)
                         newParent.Nodes.Remove(item.UUID);
                 }
-            }
+             }
 
             if(itemRemovedEventArgs != null)
             {
@@ -487,7 +494,8 @@ namespace OpenMetaverse
         {
             get
             {
-                var node = Items[uuid];
+                if (!Items.TryGetValue(uuid, out var node))
+                    throw new InventoryException($"Unknown inventory item: {uuid}");
                 return node.Data;
             }
             set
