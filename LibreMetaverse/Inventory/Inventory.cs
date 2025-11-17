@@ -254,12 +254,12 @@ namespace OpenMetaverse
             InventoryObjectUpdatedEventArgs itemUpdatedEventArgs = null;
             InventoryObjectAddedEventArgs itemAddedEventArgs = null;
 
-            lock (itemsLock)
+            // Resolve or create parent node
+            InventoryNode itemParent = null;
+            if (item.ParentUUID != UUID.Zero)
             {
-                InventoryNode itemParent = null;
-                if (item.ParentUUID != UUID.Zero && !Items.TryGetValue(item.ParentUUID, out itemParent))
+                if (!Items.TryGetValue(item.ParentUUID, out itemParent))
                 {
-                    // OK, we have no data on the parent, let's create a fake one.
                     var fakeParent = new InventoryFolder(item.ParentUUID);
                     var fakeItemParent = new InventoryNode(fakeParent);
                     if (Items.TryAdd(item.ParentUUID, fakeItemParent))
@@ -276,108 +276,100 @@ namespace OpenMetaverse
                     //Logger.DebugLog("Attempting to update inventory child of " +
                     //    item.ParentUUID.ToString() + " when we have no local reference to that folder", Client);
                 }
+            }
 
-                if (Items.TryGetValue(item.UUID, out var itemNode)) // We're updating.
+
+            if (Items.TryGetValue(item.UUID, out var itemNode)) // We're updating.
+            {
+                var oldParent = itemNode.Parent;
+                // Handle parent change
+                if (oldParent == null || itemParent == null || itemParent.Data.UUID != oldParent.Data.UUID)
                 {
-                    var oldParent = itemNode.Parent;
-                    // Handle parent change
-                    if (oldParent == null || itemParent == null || itemParent.Data.UUID != oldParent.Data.UUID)
+                    if (oldParent != null)
                     {
-                        if (oldParent != null)
+                        lock (oldParent.Nodes.SyncRoot)
                         {
-                            lock (oldParent.Nodes.SyncRoot)
-                                oldParent.Nodes.Remove(item.UUID);
-                        }
-                        if (itemParent != null)
-                        {
-                            lock (itemParent.Nodes.SyncRoot)
-                                itemParent.Nodes[item.UUID] = itemNode;
+                            oldParent.Nodes.Remove(item.UUID);
                         }
                     }
 
-                    itemNode.Parent = itemParent;
-                    // If node moved between parents, update ancestor DescendentCount values based on number of item descendants
-                    if (itemNode.Parent != oldParent)
+                    if (itemParent != null)
                     {
-                        int itemSubtreeCount = CountItemDescendants(itemNode);
-                        // decrement old ancestors
-                        var p = oldParent;
-                        while (p != null && p.Data is InventoryFolder oldFolder)
+                        lock (itemParent.Nodes.SyncRoot)
                         {
-                            oldFolder.DescendentCount = Math.Max(0, oldFolder.DescendentCount - itemSubtreeCount);
-                            p = p.Parent;
+                            itemParent.Nodes[item.UUID] = itemNode;
                         }
-                        // increment new ancestors
-                        p = itemParent;
-                        while (p != null && p.Data is InventoryFolder newFolder)
-                        {
-                            newFolder.DescendentCount += itemSubtreeCount;
-                            p = p.Parent;
-                        }
-                    }
-                    // Recompute exact counts for old and new ancestors
-                    var anc = oldParent;
-                    while (anc != null && anc.Data is InventoryFolder)
-                    {
-                        ((InventoryFolder)anc.Data).DescendentCount = CountItemDescendants(anc);
-                        anc = anc.Parent;
-                    }
-                    anc = itemParent;
-                    while (anc != null && anc.Data is InventoryFolder)
-                    {
-                        ((InventoryFolder)anc.Data).DescendentCount = CountItemDescendants(anc);
-                        anc = anc.Parent;
                     }
                 }
-                else // We're adding.
+
+                itemNode.Parent = itemParent;
+
+                // Update data and prepare event
+                if (m_InventoryObjectUpdated != null)
                 {
-                    itemNode = new InventoryNode(item, itemParent);
-                    bool added = Items.TryAdd(item.UUID, itemNode);
-                    if (added)
+                    itemUpdatedEventArgs = new InventoryObjectUpdatedEventArgs(itemNode.Data, item);
+                }
+
+                itemNode.Data = item;
+
+                // Recompute ancestor folder counts for accuracy
+                var anc = oldParent;
+                while (anc != null && anc.Data is InventoryFolder)
+                {
+                    lock (anc.Nodes.SyncRoot)
                     {
-                        // If we added a folder, initialize its DescendentCount based on any existing children
-                        if (item is InventoryFolder addedFolder)
-                        {
-                            // Count immediate children that reference this folder as parent
-                            int existingChildren = Items.Values.Count(n => n.Data.ParentUUID == item.UUID && n.Data.UUID != item.UUID);
-                            addedFolder.DescendentCount = existingChildren;
-                        }
+                        ((InventoryFolder)anc.Data).DescendentCount = CountItemDescendants(anc);
+                    }
+                    anc = anc.Parent;
+                }
+                anc = itemParent;
+                while (anc != null && anc.Data is InventoryFolder)
+                {
+                    lock (anc.Nodes.SyncRoot)
+                    {
+                        ((InventoryFolder)anc.Data).DescendentCount = CountItemDescendants(anc);
+                    }
+                    anc = anc.Parent;
+                }
+            }
+            else // We're adding.
+            {
+                itemNode = new InventoryNode(item, itemParent);
+                bool added = Items.TryAdd(item.UUID, itemNode);
+                if (added)
+                {
+                    if (item is InventoryFolder addedFolder)
+                    {
+                        // initialize descendant count based on existing children
+                        int existingChildren = Items.Values.Count(n => n.Data.ParentUUID == item.UUID && n.Data.UUID != item.UUID);
+                        addedFolder.DescendentCount = existingChildren;
+                    }
 
-                        if (itemParent != null)
+                    // Recompute ancestor counts
+                    if (itemParent != null)
+                    {
+                        var p = itemParent;
+                        while (p != null && p.Data is InventoryFolder)
                         {
-                            // Increment descendant counts on ancestor folders based on item descendants
-                            int itemSubtreeCount = CountItemDescendants(itemNode);
-                            var p = itemParent;
-                            while (p != null && p.Data is InventoryFolder folder)
-                            {
-                                folder.DescendentCount += itemSubtreeCount;
-                                p = p.Parent;
-                            }
-
-                            // Recompute exact counts for ancestors to avoid off-by-one errors
-                            p = itemParent;
-                            while (p != null && p.Data is InventoryFolder)
+                            lock (p.Nodes.SyncRoot)
                             {
                                 ((InventoryFolder)p.Data).DescendentCount = CountItemDescendants(p);
-                                p = p.Parent;
                             }
+                            p = p.Parent;
                         }
                     }
-                    if (added && m_InventoryObjectAdded != null)
+
+                    if (m_InventoryObjectAdded != null)
                     {
                         itemAddedEventArgs = new InventoryObjectAddedEventArgs(item);
                     }
                 }
             }
 
-            if(itemUpdatedEventArgs != null)
-            {
+            if (itemUpdatedEventArgs != null)
                 OnInventoryObjectUpdated(itemUpdatedEventArgs);
-            }
-            if(itemAddedEventArgs != null)
-            {
+            if (itemAddedEventArgs != null)
                 OnInventoryObjectAdded(itemAddedEventArgs);
-            }
         }
 
         /// <summary>
@@ -421,62 +413,53 @@ namespace OpenMetaverse
 
             InventoryObjectRemovedEventArgs itemRemovedEventArgs = null;
 
-            lock (itemsLock)
+            if (!Items.TryGetValue(item.UUID, out var node))
             {
-                if (Items.TryGetValue(item.UUID, out var node))
+                return;
+            }
+
+            var toRemove = new List<InventoryNode>();
+            CollectSubtree(node, toRemove);
+
+            // Remove from parents and Items dictionary
+            foreach (var n in toRemove)
+            {
+                if (n.Parent != null)
                 {
-                    // Compute subtree of nodes to remove
-                    var toRemove = new List<InventoryNode>();
-                    CollectSubtree(node, toRemove);
-
-                    // Update ancestor DescendentCount by subtree size
-                    // Compute number of inventory items (not folders) removed in subtree excluding root
-                    int removedItemCount = toRemove.Count(n => n.Data is InventoryItem) - (node.Data is InventoryItem ? 1 : 0);
-                    var p = node.Parent;
-                    while (p != null && p.Data is InventoryFolder folder)
+                    lock (n.Parent.Nodes.SyncRoot)
                     {
-                        folder.DescendentCount = Math.Max(0, folder.DescendentCount - removedItemCount);
-                        p = p.Parent;
-                    }
-
-                    // Remove from parents and Items dictionary
-                    foreach (var n in toRemove)
-                    {
-                        if (n.Parent != null)
-                        {
-                            lock (n.Parent.Nodes.SyncRoot)
-                                n.Parent.Nodes.Remove(n.Data.UUID);
-                        }
-                        Items.TryRemove(n.Data.UUID, out _);
-                    }
-
-                    if (m_InventoryObjectRemoved != null)
-                    {
-                        // Raise a single event for the top-level removed item
-                        itemRemovedEventArgs = new InventoryObjectRemovedEventArgs(item);
-                    }
-
-                    // Recompute ancestor folder item counts to ensure accuracy
-                    var ancestor = node.Parent;
-                    while (ancestor != null && ancestor.Data is InventoryFolder)
-                    {
-                        ((InventoryFolder)ancestor.Data).DescendentCount = CountItemDescendants(ancestor);
-                        ancestor = ancestor.Parent;
+                        n.Parent.Nodes.Remove(n.Data.UUID);
                     }
                 }
+                Items.TryRemove(n.Data.UUID, out _);
+            }
 
-                // In case there's a new parent (moved elsewhere), ensure it's cleaned up
-                if (Items.TryGetValue(item.ParentUUID, out var newParent))
+            if (m_InventoryObjectRemoved != null)
+            {
+                itemRemovedEventArgs = new InventoryObjectRemovedEventArgs(item);
+            }
+
+            // In case there's a new parent (moved elsewhere), ensure it's cleaned up
+            if (Items.TryGetValue(item.ParentUUID, out var newParent))
+            {
+                lock (newParent.Nodes.SyncRoot)
                 {
-                    lock (newParent.Nodes.SyncRoot)
-                        newParent.Nodes.Remove(item.UUID);
+                    newParent.Nodes.Remove(item.UUID);
                 }
             }
 
-            if(itemRemovedEventArgs != null)
+            var ancestor = node.Parent;
+            while (ancestor != null && ancestor.Data is InventoryFolder)
             {
+                lock (ancestor.Nodes.SyncRoot)
+                {
+                    ((InventoryFolder)ancestor.Data).DescendentCount = CountItemDescendants(ancestor);
+                }
+                ancestor = ancestor.Parent;
+            }
+
+            if (itemRemovedEventArgs != null)
                 OnInventoryObjectRemoved(itemRemovedEventArgs);
-            }
         }
 
         /// <summary>
