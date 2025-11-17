@@ -296,31 +296,38 @@ namespace OpenMetaverse
                     }
 
                     itemNode.Parent = itemParent;
-                    // If node moved between parents, update ancestor DescendentCount values
+                    // If node moved between parents, update ancestor DescendentCount values based on number of item descendants
                     if (itemNode.Parent != oldParent)
                     {
-                        int subtreeSize = CountSubtree(itemNode);
+                        int itemSubtreeCount = CountItemDescendants(itemNode);
                         // decrement old ancestors
                         var p = oldParent;
                         while (p != null && p.Data is InventoryFolder oldFolder)
                         {
-                            oldFolder.DescendentCount = Math.Max(0, oldFolder.DescendentCount - subtreeSize);
+                            oldFolder.DescendentCount = Math.Max(0, oldFolder.DescendentCount - itemSubtreeCount);
                             p = p.Parent;
                         }
                         // increment new ancestors
                         p = itemParent;
                         while (p != null && p.Data is InventoryFolder newFolder)
                         {
-                            newFolder.DescendentCount += subtreeSize;
+                            newFolder.DescendentCount += itemSubtreeCount;
                             p = p.Parent;
                         }
                     }
-                    if (m_InventoryObjectUpdated != null)
+                    // Recompute exact counts for old and new ancestors
+                    var anc = oldParent;
+                    while (anc != null && anc.Data is InventoryFolder)
                     {
-                        itemUpdatedEventArgs = new InventoryObjectUpdatedEventArgs(itemNode.Data, item);
+                        ((InventoryFolder)anc.Data).DescendentCount = CountItemDescendants(anc);
+                        anc = anc.Parent;
                     }
-
-                    itemNode.Data = item;
+                    anc = itemParent;
+                    while (anc != null && anc.Data is InventoryFolder)
+                    {
+                        ((InventoryFolder)anc.Data).DescendentCount = CountItemDescendants(anc);
+                        anc = anc.Parent;
+                    }
                 }
                 else // We're adding.
                 {
@@ -338,12 +345,20 @@ namespace OpenMetaverse
 
                         if (itemParent != null)
                         {
-                            // Increment descendant counts on ancestor folders
-                            int subtreeSize = CountSubtree(itemNode);
+                            // Increment descendant counts on ancestor folders based on item descendants
+                            int itemSubtreeCount = CountItemDescendants(itemNode);
                             var p = itemParent;
                             while (p != null && p.Data is InventoryFolder folder)
                             {
-                                folder.DescendentCount += subtreeSize;
+                                folder.DescendentCount += itemSubtreeCount;
+                                p = p.Parent;
+                            }
+
+                            // Recompute exact counts for ancestors to avoid off-by-one errors
+                            p = itemParent;
+                            while (p != null && p.Data is InventoryFolder)
+                            {
+                                ((InventoryFolder)p.Data).DescendentCount = CountItemDescendants(p);
                                 p = p.Parent;
                             }
                         }
@@ -415,11 +430,12 @@ namespace OpenMetaverse
                     CollectSubtree(node, toRemove);
 
                     // Update ancestor DescendentCount by subtree size
-                    int subtreeSize = toRemove.Count - 1; // exclude the root itself from descendents
+                    // Compute number of inventory items (not folders) removed in subtree excluding root
+                    int removedItemCount = toRemove.Count(n => n.Data is InventoryItem) - (node.Data is InventoryItem ? 1 : 0);
                     var p = node.Parent;
                     while (p != null && p.Data is InventoryFolder folder)
                     {
-                        folder.DescendentCount = Math.Max(0, folder.DescendentCount - subtreeSize);
+                        folder.DescendentCount = Math.Max(0, folder.DescendentCount - removedItemCount);
                         p = p.Parent;
                     }
 
@@ -438,6 +454,14 @@ namespace OpenMetaverse
                     {
                         // Raise a single event for the top-level removed item
                         itemRemovedEventArgs = new InventoryObjectRemovedEventArgs(item);
+                    }
+
+                    // Recompute ancestor folder item counts to ensure accuracy
+                    var ancestor = node.Parent;
+                    while (ancestor != null && ancestor.Data is InventoryFolder)
+                    {
+                        ((InventoryFolder)ancestor.Data).DescendentCount = CountItemDescendants(ancestor);
+                        ancestor = ancestor.Parent;
                     }
                 }
 
@@ -631,6 +655,21 @@ namespace OpenMetaverse
                 foreach (var child in node.Nodes.Values)
                 {
                     count += CountSubtree(child);
+                }
+            }
+            return count;
+        }
+
+        // Count only InventoryItem instances in the subtree rooted at node (includes root if item)
+        private int CountItemDescendants(InventoryNode node)
+        {
+            if (node == null) return 0;
+            int count = (node.Data is InventoryItem) ? 1 : 0;
+            lock (node.Nodes.SyncRoot)
+            {
+                foreach (var child in node.Nodes.Values)
+                {
+                    count += CountItemDescendants(child);
                 }
             }
             return count;
