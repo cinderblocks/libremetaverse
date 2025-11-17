@@ -3325,10 +3325,6 @@ namespace OpenMetaverse
             return false;
         }
 
-        #endregion Helper Functions
-
-        #region Internal Callbacks
-
         // Centralized capability lookup helper to reduce duplicated null checks
         private Uri GetCapabilityURI(string capName, bool logOnMissing = true)
         {
@@ -3341,6 +3337,10 @@ namespace OpenMetaverse
             }
             return uri;
         }
+
+        #endregion Helper Functions
+
+        #region Internal Handlers
 
         // POST JSON/XML OSD payload to a capability URI and return deserialized OSD result.
         private async Task<OSD> PostCapAsync(Uri uri, OSD payload, CancellationToken cancellationToken = default)
@@ -3804,6 +3804,6 @@ namespace OpenMetaverse
                 _Store.UpdateNodeFor(folder);
         }
 
-        #endregion Internal Callbacks
+        #endregion Internal Handlers
     }
 }
