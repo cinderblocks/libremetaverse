@@ -611,22 +611,40 @@ namespace OpenMetaverse
         /// and <see cref="Attachments"/> before firing <see cref="OnAgentWearables"/>
         /// </summary>
         /// <returns><see cref="List{T}"/> of <see cref="InventoryBase"/> in COF</returns>
+        [Obsolete("Use RequestAgentWornAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
         public List<InventoryBase> RequestAgentWorn()
         {
-            var cof = GetCurrentOutfitFolder(CancellationToken.None).Result;
+            // Preserve existing blocking behavior by calling the async variant and waiting
+            return RequestAgentWornAsync(CancellationToken.None).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Async-first variant returning the worn items in COF. Also populates <see cref="Wearables"/>
+        /// and <see cref="Attachments"/> before firing <see cref="OnAgentWearables"/>
+        /// </summary>
+        public async Task<List<InventoryBase>> RequestAgentWornAsync(CancellationToken cancellationToken = default)
+        {
+            var cof = await GetCurrentOutfitFolder(cancellationToken).ConfigureAwait(false);
             if (cof == null)
             {
                 Logger.Log("Could not retrieve 'Current Outfit' folder", Helpers.LogLevel.Warning, Client);
                 return null;
             }
 
-            var contents = Client.Inventory.FolderContents(cof.UUID, cof.OwnerID, true, true,
-                InventorySortOrder.ByDate, TimeSpan.FromMinutes(1), true);
+            List<InventoryBase> contents;
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+            {
+                cts.CancelAfter(TimeSpan.FromMinutes(1));
+                contents = await Client.Inventory.FolderContentsAsync(cof.UUID, cof.OwnerID, true, true,
+                    InventorySortOrder.ByDate, cts.Token, true).ConfigureAwait(false);
+            }
+
             if (contents == null)
             {
                 Logger.Log("Could not retrieve 'Current Outfit' folder contents", Helpers.LogLevel.Warning, Client);
                 return null;
             }
+
             var wearables = new MultiValueDictionary<WearableType, WearableData>();
             foreach (var item in contents)
             {
@@ -2039,8 +2057,7 @@ namespace OpenMetaverse
                     {
                         foreach (var data in wearableType.Value)
                         {
-                            float paramValue;
-                            if (data.Asset != null && data.Asset.Params.TryGetValue(vp.ParamID, out paramValue))
+                            if (data.Asset != null && data.Asset.Params.TryGetValue(vp.ParamID, out var paramValue))
                             {
                                 paramValues.Add(vp.ParamID, paramValue);
                                 found = true;
@@ -2300,7 +2317,6 @@ namespace OpenMetaverse
                     var paramValue = 0f;
 
                     var found = Wearables.Any(wearableList => wearableList.Value.Any(wearable => wearable.Asset != null && wearable.Asset.Params.TryGetValue(vp.ParamID, out paramValue)));
-
 
                     // Try and find this value in our collection of downloaded wearables
 
