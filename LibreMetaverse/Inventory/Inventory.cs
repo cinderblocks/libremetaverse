@@ -29,27 +29,15 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OpenMetaverse
 {
-    /// <inheritdoc />
     /// <summary>
-    /// Exception class to identify inventory exceptions
-    /// </summary>
-    public class InventoryException : Exception
-    {
-        public InventoryException() { }
-        public InventoryException(string message) : base(message) { }
-        public InventoryException(string message, Exception innerException) : base(message, innerException) { }
-    }
-
-    /// <summary>
-    /// Responsible for maintaining inventory structure. Inventory constructs nodes
-    /// and manages node children as is necessary to maintain a coherent hierarchy.
-    /// Other classes should not manipulate or create InventoryNodes explicitly. When
-    /// A node's parent changes (when a folder is moved, for example) simply pass
-    /// Inventory the updated InventoryFolder, and it will make the appropriate changes
-    /// to its internal representation.
+    /// Responsible for maintaining an avatar's inventory structure.
+    /// Inventory constructs nodes and manages node children to maintain a coherent hierarchy.
+    /// Other classes should not manipulate or create <see cref="InventoryNode"/> instances directly.
     /// </summary>
     public class Inventory
     {
@@ -127,7 +115,8 @@ namespace OpenMetaverse
         #region Properties
 
         /// <summary>
-        /// The root folder of this avatars inventory
+        /// The root folder of this avatar's inventory.
+        /// Setting this will create or update the underlying node.
         /// </summary>
         public InventoryFolder RootFolder
         {
@@ -143,7 +132,8 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// The default shared library folder
+        /// The default shared library folder.
+        /// Setting this will create or update the underlying node.
         /// </summary>
         public InventoryFolder LibraryFolder
         {
@@ -159,22 +149,22 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// The root node of the avatars inventory
+        /// The root node of the avatar's inventory.
         /// </summary>
         public InventoryNode RootNode { get; private set; }
 
         /// <summary>
-        /// The root node of the default shared library
+        /// The root node of the default shared library.
         /// </summary>
         public InventoryNode LibraryRootNode { get; private set; }
 
         /// <summary>
-        /// Returns owner of Inventory
+        /// Returns the owner of the inventory.
         /// </summary>
         public UUID Owner { get; }
 
         /// <summary>
-        /// Returns number of stored entries
+        /// Returns number of stored entries.
         /// </summary>
         public int Count => Items.Count;
 
@@ -198,10 +188,10 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Returns all links of that link the specific <paramref name="assertId"/>.
+        /// Returns all links that link to the specified <paramref name="assertId"/>.
         /// </summary>
-        /// <param name="assertId">An inventory items assert UUID.</param>
-        /// <returns></returns>
+        /// <param name="assertId">An inventory item's asset UUID.</param>
+        /// <returns>List of link nodes that reference <paramref name="assertId"/>.</returns>
         public List<InventoryNode> FindAllLinks(UUID assertId)
         {
             // If we have no root, there are no links to find
@@ -223,6 +213,11 @@ namespace OpenMetaverse
             return false;
         }
 
+        /// <summary>
+        /// Returns the contents of the given folder.
+        /// </summary>
+        /// <param name="folder">The folder to list.</param>
+        /// <returns>A list of <see cref="InventoryBase"/> entries contained in <paramref name="folder"/>.</returns>
         public List<InventoryBase> GetContents(InventoryFolder folder)
         {
             if (folder == null) throw new ArgumentNullException(nameof(folder));
@@ -230,11 +225,11 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Returns the contents of the specified folder
+        /// Returns the contents of the specified folder UUID.
         /// </summary>
-        /// <param name="folder">A folder's UUID</param>
-        /// <returns>The contents of the folder corresponding to <paramref name="folder"/></returns>
-        /// <exception cref="InventoryException">When <paramref name="folder"/> does not exist in the inventory</exception>
+        /// <param name="folder">A folder's UUID.</param>
+        /// <returns>The contents of the folder corresponding to <paramref name="folder"/>.</returns>
+        /// <exception cref="InventoryException">When <paramref name="folder"/> does not exist in the inventory.</exception>
         public List<InventoryBase> GetContents(UUID folder)
         {
             if (!Items.TryGetValue(folder, out var folderNode))
@@ -248,15 +243,10 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Updates the state of the InventoryNode and inventory data structure that
-        /// is responsible for the InventoryObject. If the item was previously not added to inventory,
-        /// it adds the item, and updates structure accordingly. If it was, it updates the
-        /// InventoryNode, changing the parent node if <see cref="item.parentUUID"/> does
-        /// not match <see cref="node.Parent.Data.UUID" />.
-        ///
-        /// You can not set the inventory root folder using this method
+        /// Updates or inserts the specified inventory item or folder.
         /// </summary>
-        /// <param name="item">The InventoryObject to store</param>
+        /// <param name="item">The inventory object to store.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="item"/> is null.</exception>
         public void UpdateNodeFor(InventoryBase item)
         {
             if (item == null) throw new ArgumentNullException(nameof(item));
@@ -265,30 +255,30 @@ namespace OpenMetaverse
             InventoryObjectAddedEventArgs itemAddedEventArgs = null;
 
             lock (itemsLock)
-             {
-                 InventoryNode itemParent = null;
-                 if (item.ParentUUID != UUID.Zero && !Items.TryGetValue(item.ParentUUID, out itemParent))
-                 {
-                     // OK, we have no data on the parent, let's create a fake one.
-                     var fakeParent = new InventoryFolder(item.ParentUUID)
-                     {
-                         DescendentCount = 1 // Dear god, please forgive me.
-                     };
-                     var fakeItemParent = new InventoryNode(fakeParent);
-                     if (Items.TryAdd(item.ParentUUID, fakeItemParent))
-                     {
-                         itemParent = fakeItemParent;
-                     }
-                     else
-                     {
-                         Items.TryGetValue(item.ParentUUID, out itemParent);
-                     }
-                     // Unfortunately, this breaks the nice unified tree
-                     // while we're waiting for the parent's data to come in.
-                     // As soon as we get the parent, the tree repairs itself.
-                     //Logger.DebugLog("Attempting to update inventory child of " +
-                     //    item.ParentUUID.ToString() + " when we have no local reference to that folder", Client);
-                 }
+            {
+                InventoryNode itemParent = null;
+                if (item.ParentUUID != UUID.Zero && !Items.TryGetValue(item.ParentUUID, out itemParent))
+                {
+                    // OK, we have no data on the parent, let's create a fake one.
+                    var fakeParent = new InventoryFolder(item.ParentUUID)
+                    {
+                        DescendentCount = 1 // Dear god, please forgive me.
+                    };
+                    var fakeItemParent = new InventoryNode(fakeParent);
+                    if (Items.TryAdd(item.ParentUUID, fakeItemParent))
+                    {
+                        itemParent = fakeItemParent;
+                    }
+                    else
+                    {
+                        Items.TryGetValue(item.ParentUUID, out itemParent);
+                    }
+                    // Unfortunately, this breaks the nice unified tree
+                    // while we're waiting for the parent's data to come in.
+                    // As soon as we get the parent, the tree repairs itself.
+                    //Logger.DebugLog("Attempting to update inventory child of " +
+                    //    item.ParentUUID.ToString() + " when we have no local reference to that folder", Client);
+                }
 
                 if (Items.TryGetValue(item.UUID, out var itemNode)) // We're updating.
                 {
@@ -337,10 +327,28 @@ namespace OpenMetaverse
             }
         }
 
+        /// <summary>
+        /// Returns the <see cref="InventoryNode"/> for the specified UUID, throwing when not found.
+        /// </summary>
+        /// <param name="uuid">The UUID of the node.</param>
+        /// <returns>The corresponding <see cref="InventoryNode"/>.</returns>
+        /// <exception cref="InventoryException">Thrown when the node does not exist.</exception>
         public InventoryNode GetNodeFor(UUID uuid)
         {
             if (!Items.TryGetValue(uuid, out var node))
                 throw new InventoryException($"Unknown inventory node: {uuid}");
+            return node;
+        }
+
+        /// <summary>
+        /// Returns the node for the specified UUID or null if not found.
+        /// This is a non-throwing convenience alternative to <see cref="GetNodeFor"/>.
+        /// </summary>
+        /// <param name="uuid">Node UUID</param>
+        /// <returns>InventoryNode or null</returns>
+        public InventoryNode GetNodeOrDefault(UUID uuid)
+        {
+            Items.TryGetValue(uuid, out var node);
             return node;
         }
 
@@ -353,6 +361,7 @@ namespace OpenMetaverse
         /// Removes the InventoryObject and all related node data from Inventory.
         /// </summary>
         /// <param name="item">The InventoryObject to remove.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="item"/> is null.</exception>
         public void RemoveNodeFor(InventoryBase item)
         {
             if (item == null) throw new ArgumentNullException(nameof(item));
@@ -360,7 +369,7 @@ namespace OpenMetaverse
             InventoryObjectRemovedEventArgs itemRemovedEventArgs = null;
 
             lock (itemsLock)
-             {
+            {
                 if (Items.TryGetValue(item.UUID, out var node))
                 {
                     if (node.Parent != null)
@@ -382,7 +391,7 @@ namespace OpenMetaverse
                     lock (newParent.Nodes.SyncRoot)
                         newParent.Nodes.Remove(item.UUID);
                 }
-             }
+            }
 
             if(itemRemovedEventArgs != null)
             {
@@ -402,15 +411,10 @@ namespace OpenMetaverse
 
         /// <summary>
         /// Attempts to retrieve an <see cref="InventoryBase"/> item associated with the specified UUID.
-        /// This method is a specialized overload for retrieving items of type <see cref="InventoryBase"/> or its derived types.
         /// </summary>
         /// <param name="uuid">The unique identifier of the item to retrieve.</param>
         /// <param name="item">When this method returns <c>true</c>, contains the <see cref="InventoryBase"/> item if found; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if an item with the specified UUID was found; otherwise, <c>false</c>.</returns>
-        /// <remarks>
-        /// Use this method when you specifically need an <see cref="InventoryBase"/> item without casting from a generic type.
-        /// For retrieving items of other types, use the generic <see cref="TryGetValue{T}(UUID, out T)"/> method.
-        /// </remarks>
         public bool TryGetValue(UUID uuid, out InventoryBase item)
         {
             item = null;
@@ -424,17 +428,16 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Attempts to retrieve an item of type <typeparamref name="T"/> associated with the specified UUID.
-        /// This method is generic and can be used for any type stored in the inventory.
+        /// Non-throwing convenience getter that returns the <see cref="InventoryBase"/> for the UUID or null if not found.
         /// </summary>
-        /// <typeparam name="T">The type of the item to retrieve.</typeparam>
-        /// <param name="uuid">The unique identifier of the item to retrieve.</param>
-        /// <param name="item">When this method returns true, contains the item of type <typeparamref name="T"/> if found and compatible with the requested type; otherwise, the default value of <typeparamref name="T"/>.</param>
-        /// <returns><c>true</c> if an item with the specified UUID was found and is of type <typeparamref name="T"/>; otherwise, <c>false</c>.</returns>
-        /// <remarks>
-        /// Use this method when you need to retrieve an item of a specific type other than <see cref="InventoryBase"/>.
-        /// If you are retrieving an <see cref="InventoryBase"/> item or its derived types, consider using the specialized <see cref="TryGetValue(UUID, out InventoryBase)"/> overload for convenience.
-        /// </remarks>
+        public InventoryBase GetValueOrDefault(UUID uuid)
+        {
+            return TryGetNodeFor(uuid, out var node) ? node.Data : null;
+        }
+
+        /// <summary>
+        /// Attempts to retrieve an item of type <typeparamref name="T"/> associated with the specified UUID.
+        /// </summary>
         public bool TryGetValue<T>(UUID uuid, out T item)
         {
             if (TryGetNodeFor(uuid, out var node) && node.Data is T requestedItem)
@@ -445,6 +448,16 @@ namespace OpenMetaverse
 
             item = default;
             return false;
+        }
+
+        /// <summary>
+        /// Non-throwing convenience getter that returns the item of type <typeparamref name="T"/> or default if not found or not compatible.
+        /// </summary>
+        public T GetValueOrDefault<T>(UUID uuid)
+        {
+            if (TryGetNodeFor(uuid, out var node) && node.Data is T requestedItem)
+                return requestedItem;
+            return default;
         }
 
         /// <summary>
@@ -459,7 +472,6 @@ namespace OpenMetaverse
 
         /// <summary>
         /// Clear all entries from Inventory <see cref="Items"/> store.
-        /// Useful for regenerating contents.
         /// </summary>
         public void Clear()
         {
@@ -468,7 +480,7 @@ namespace OpenMetaverse
 
 
         /// <summary>
-        /// Saves the current inventory structure to a cache file
+        /// Saves the current inventory structure to a cache file.
         /// </summary>
         /// <param name="filename">Name of the cache file to save to</param>
         public void SaveToDisk(string filename)
@@ -477,34 +489,48 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Loads in inventory cache file into the inventory structure. Note only valid to call after login has been successful.
+        /// Asynchronous save to disk. Exceptions from the underlying implementation will propagate to the caller.
+        /// </summary>
+        /// <param name="filename">Cache filename</param>
+        /// <param name="cancellationToken">Cancellation token (best-effort)</param>
+        public Task SaveToDiskAsync(string filename, CancellationToken cancellationToken = default)
+        {
+            return filename == null 
+                ? throw new ArgumentNullException(nameof(filename)) 
+                : InventoryCache.SaveToDiskAsync(filename, Items, cancellationToken);
+        }
+
+        /// <summary>
+        /// Restores inventory from a cache file. Returns the number of items restored or -1 on error.
         /// </summary>
         /// <param name="filename">Name of the cache file to load</param>
-        /// <returns>The number of inventory items successfully reconstructed into the inventory node tree, or -1 on error</returns>
         public int RestoreFromDisk(string filename)
         {
             return InventoryCache.RestoreFromDisk(filename, Items);
         }
 
+        /// <summary>
+        /// Asynchronous restore from disk. Exceptions from the underlying implementation will propagate to the caller.
+        /// </summary>
+        public Task<int> RestoreFromDiskAsync(string filename, CancellationToken cancellationToken = default)
+        {
+            return filename == null 
+                ? throw new ArgumentNullException(nameof(filename)) 
+                : InventoryCache.RestoreFromDiskAsync(filename, Items, cancellationToken);
+        }
+
         #region Operators
 
         /// <summary>
-        /// By using the bracket operator on this class, the program can get the
-        /// InventoryObject designated by the specified uuid. If the value for the corresponding
-        /// UUID is null, the call is equivalent to a call to <see cref="RemoveNodeFor(InventoryBase)" />.
-        /// If the value is non-null, it is equivalent to a call to <see cref="UpdateNodeFor(InventoryBase)" />,
-        /// the uuid parameter is ignored.
+        /// Get or set an inventory entry by UUID. Setting to null removes the item.
         /// </summary>
-        /// <param name="uuid">The UUID of the InventoryObject to get or set, ignored if set to non-null value.</param>
+        /// <param name="uuid">The UUID of the InventoryObject to get or set.</param>
         /// <returns>The InventoryObject corresponding to <see cref="UUID"/>.</returns>
         public InventoryBase this[UUID uuid]
         {
-            get
-            {
-                if (!Items.TryGetValue(uuid, out var node))
-                    throw new InventoryException($"Unknown inventory item: {uuid}");
-                return node.Data;
-            }
+            get => !Items.TryGetValue(uuid, out var node) 
+                ? throw new InventoryException($"Unknown inventory item: {uuid}") 
+                : node.Data;
             set
             {
                 if (value != null)
@@ -539,8 +565,8 @@ namespace OpenMetaverse
 
         public InventoryObjectUpdatedEventArgs(InventoryBase oldObject, InventoryBase newObject)
         {
-            this.OldObject = oldObject;
-            this.NewObject = newObject;
+            OldObject = oldObject;
+            NewObject = newObject;
         }
     }
 
@@ -550,7 +576,7 @@ namespace OpenMetaverse
 
         public InventoryObjectRemovedEventArgs(InventoryBase obj)
         {
-            this.Obj = obj;
+            Obj = obj;
         }
     }
 
@@ -560,7 +586,7 @@ namespace OpenMetaverse
 
         public InventoryObjectAddedEventArgs(InventoryBase obj)
         {
-            this.Obj = obj;
+            Obj = obj;
         }
     }
     #endregion EventArgs
