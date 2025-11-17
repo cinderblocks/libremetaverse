@@ -28,6 +28,7 @@ using NUnit.Framework;
 using OpenMetaverse;
 using System.IO;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace LibreMetaverse.Tests
 {
@@ -85,8 +86,8 @@ namespace LibreMetaverse.Tests
 
             var contents1 = inventory.GetContents(folder1);
             var contents2 = inventory.GetContents(folder2);
-            Assert.That(contents1.Exists(i => i.UUID == item.UUID), Is.False);
-            Assert.That(contents2.Exists(i => i.UUID == item.UUID), Is.True);
+            Assert.That(contents1, Has.None.Matches<InventoryBase>(i => i.UUID == item.UUID));
+            Assert.That(contents2, Has.Some.Matches<InventoryBase>(i => i.UUID == item.UUID));
         }
 
         [Test]
@@ -147,6 +148,79 @@ namespace LibreMetaverse.Tests
             Assert.That(inventory.TryGetValue<InventoryItem>(item.UUID, out var got), Is.True);
             Assert.That(got, Is.Not.Null);
             Assert.That(got.UUID, Is.EqualTo(item.UUID));
+        }
+
+        [Test]
+        public void RemoveFolderRemovesAllDescendants()
+        {
+            var parent = new InventoryFolder(UUID.Random()) { Name = "Parent", ParentUUID = UUID.Zero };
+            var childFolder = new InventoryFolder(UUID.Random()) { Name = "ChildFolder", ParentUUID = parent.UUID };
+            var item = new InventoryItem(UUID.Random()) { Name = "NestedItem", ParentUUID = childFolder.UUID };
+
+            inventory.UpdateNodeFor(parent);
+            inventory.UpdateNodeFor(childFolder);
+            inventory.UpdateNodeFor(item);
+
+            Assert.That(inventory.Contains(parent.UUID), Is.True);
+            Assert.That(inventory.Contains(childFolder.UUID), Is.True);
+            Assert.That(inventory.Contains(item.UUID), Is.True);
+
+            // Remove parent should remove child folder and item
+            inventory.RemoveNodeFor(parent);
+
+            Assert.That(inventory.Contains(parent.UUID), Is.False);
+            Assert.That(inventory.Contains(childFolder.UUID), Is.False);
+            Assert.That(inventory.Contains(item.UUID), Is.False);
+        }
+
+        [Test]
+        public void DescendentCountUpdatesOnAddAndRemove()
+        {
+            var folder = new InventoryFolder(UUID.Random()) { Name = "Folder" };
+            inventory.UpdateNodeFor(folder);
+
+            var folderNode = inventory.GetNodeFor(folder.UUID);
+            Assert.That(((InventoryFolder)folderNode.Data).DescendentCount, Is.Zero);
+
+            var item = new InventoryItem(UUID.Random()) { Name = "Item", ParentUUID = folder.UUID };
+            inventory.UpdateNodeFor(item);
+
+            folderNode = inventory.GetNodeFor(folder.UUID);
+            Assert.That(((InventoryFolder)folderNode.Data).DescendentCount, Is.GreaterThan(0));
+
+            inventory.RemoveNodeFor(item);
+
+            // After removal the folder's descendant count should be decreased
+            folderNode = inventory.GetNodeFor(folder.UUID);
+            Assert.That(((InventoryFolder)folderNode.Data).DescendentCount, Is.Zero);
+        }
+
+        [Test]
+        public void MovingItemUpdatesAncestorDescendentCounts()
+        {
+            var f1 = new InventoryFolder(UUID.Random()) { Name = "F1" };
+            var f2 = new InventoryFolder(UUID.Random()) { Name = "F2" };
+            inventory.UpdateNodeFor(f1);
+            inventory.UpdateNodeFor(f2);
+
+            var item = new InventoryItem(UUID.Random()) { Name = "Movable", ParentUUID = f1.UUID };
+            inventory.UpdateNodeFor(item);
+
+            var n1 = (InventoryFolder)inventory.GetNodeFor(f1.UUID).Data;
+            var n2 = (InventoryFolder)inventory.GetNodeFor(f2.UUID).Data;
+
+            Assert.That(n1.DescendentCount, Is.GreaterThan(0));
+            Assert.That(n2.DescendentCount, Is.Zero);
+
+            // Move item to f2
+            item.ParentUUID = f2.UUID;
+            inventory.UpdateNodeFor(item);
+
+            n1 = (InventoryFolder)inventory.GetNodeFor(f1.UUID).Data;
+            n2 = (InventoryFolder)inventory.GetNodeFor(f2.UUID).Data;
+
+            Assert.That(n1.DescendentCount, Is.Zero);
+            Assert.That(n2.DescendentCount, Is.GreaterThan(0));
         }
     }
 }

@@ -260,10 +260,7 @@ namespace OpenMetaverse
                 if (item.ParentUUID != UUID.Zero && !Items.TryGetValue(item.ParentUUID, out itemParent))
                 {
                     // OK, we have no data on the parent, let's create a fake one.
-                    var fakeParent = new InventoryFolder(item.ParentUUID)
-                    {
-                        DescendentCount = 1 // Dear god, please forgive me.
-                    };
+                    var fakeParent = new InventoryFolder(item.ParentUUID);
                     var fakeItemParent = new InventoryNode(fakeParent);
                     if (Items.TryAdd(item.ParentUUID, fakeItemParent))
                     {
@@ -299,6 +296,25 @@ namespace OpenMetaverse
                     }
 
                     itemNode.Parent = itemParent;
+                    // If node moved between parents, update ancestor DescendentCount values
+                    if (itemNode.Parent != oldParent)
+                    {
+                        int subtreeSize = CountSubtree(itemNode);
+                        // decrement old ancestors
+                        var p = oldParent;
+                        while (p != null && p.Data is InventoryFolder oldFolder)
+                        {
+                            oldFolder.DescendentCount = Math.Max(0, oldFolder.DescendentCount - subtreeSize);
+                            p = p.Parent;
+                        }
+                        // increment new ancestors
+                        p = itemParent;
+                        while (p != null && p.Data is InventoryFolder newFolder)
+                        {
+                            newFolder.DescendentCount += subtreeSize;
+                            p = p.Parent;
+                        }
+                    }
                     if (m_InventoryObjectUpdated != null)
                     {
                         itemUpdatedEventArgs = new InventoryObjectUpdatedEventArgs(itemNode.Data, item);
@@ -310,6 +326,28 @@ namespace OpenMetaverse
                 {
                     itemNode = new InventoryNode(item, itemParent);
                     bool added = Items.TryAdd(item.UUID, itemNode);
+                    if (added)
+                    {
+                        // If we added a folder, initialize its DescendentCount based on any existing children
+                        if (item is InventoryFolder addedFolder)
+                        {
+                            // Count immediate children that reference this folder as parent
+                            int existingChildren = Items.Values.Count(n => n.Data.ParentUUID == item.UUID && n.Data.UUID != item.UUID);
+                            addedFolder.DescendentCount = existingChildren;
+                        }
+
+                        if (itemParent != null)
+                        {
+                            // Increment descendant counts on ancestor folders
+                            int subtreeSize = CountSubtree(itemNode);
+                            var p = itemParent;
+                            while (p != null && p.Data is InventoryFolder folder)
+                            {
+                                folder.DescendentCount += subtreeSize;
+                                p = p.Parent;
+                            }
+                        }
+                    }
                     if (added && m_InventoryObjectAdded != null)
                     {
                         itemAddedEventArgs = new InventoryObjectAddedEventArgs(item);
@@ -372,20 +410,38 @@ namespace OpenMetaverse
             {
                 if (Items.TryGetValue(item.UUID, out var node))
                 {
-                    if (node.Parent != null)
+                    // Compute subtree of nodes to remove
+                    var toRemove = new List<InventoryNode>();
+                    CollectSubtree(node, toRemove);
+
+                    // Update ancestor DescendentCount by subtree size
+                    int subtreeSize = toRemove.Count - 1; // exclude the root itself from descendents
+                    var p = node.Parent;
+                    while (p != null && p.Data is InventoryFolder folder)
                     {
-                        lock (node.Parent.Nodes.SyncRoot)
-                            node.Parent.Nodes.Remove(item.UUID);
+                        folder.DescendentCount = Math.Max(0, folder.DescendentCount - subtreeSize);
+                        p = p.Parent;
                     }
 
-                    bool removed = Items.TryRemove(item.UUID, out node);
-                    if (removed && m_InventoryObjectRemoved != null)
+                    // Remove from parents and Items dictionary
+                    foreach (var n in toRemove)
                     {
+                        if (n.Parent != null)
+                        {
+                            lock (n.Parent.Nodes.SyncRoot)
+                                n.Parent.Nodes.Remove(n.Data.UUID);
+                        }
+                        Items.TryRemove(n.Data.UUID, out _);
+                    }
+
+                    if (m_InventoryObjectRemoved != null)
+                    {
+                        // Raise a single event for the top-level removed item
                         itemRemovedEventArgs = new InventoryObjectRemovedEventArgs(item);
                     }
                 }
 
-                // In case there's a new parent:
+                // In case there's a new parent (moved elsewhere), ensure it's cleaned up
                 if (Items.TryGetValue(item.ParentUUID, out var newParent))
                 {
                     lock (newParent.Nodes.SyncRoot)
@@ -555,6 +611,30 @@ namespace OpenMetaverse
 
         #endregion Operators
 
+        private void CollectSubtree(InventoryNode node, List<InventoryNode> list)
+        {
+            list.Add(node);
+            lock (node.Nodes.SyncRoot)
+            {
+                foreach (var child in node.Nodes.Values)
+                {
+                    CollectSubtree(child, list);
+                }
+            }
+        }
+
+        private int CountSubtree(InventoryNode node)
+        {
+            var count = 1; // count this node
+            lock (node.Nodes.SyncRoot)
+            {
+                foreach (var child in node.Nodes.Values)
+                {
+                    count += CountSubtree(child);
+                }
+            }
+            return count;
+        }
     }
     #region EventArgs classes
 
