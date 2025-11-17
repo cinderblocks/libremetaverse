@@ -1882,17 +1882,15 @@ namespace OpenMetaverse
                 foreach (var item in items)
                 {
                     var update = (OSDMap)item.GetOSD();
-                    if (update.ContainsKey("asset_id"))
+                    if (update.Remove("asset_id"))
                     {
-                        update.Remove("asset_id");
                         if (item.TransactionID != UUID.Zero)
                         {
                             update["hash_id"] = item.TransactionID;
                         }
                     }
-                    if (update.ContainsKey("shadow_id"))
+                    if (update.Remove("shadow_id"))
                     {
-                        update.Remove("shadow_id");
                         if (item.TransactionID != UUID.Zero)
                         {
                             update["hash_id"] = item.TransactionID;
@@ -2907,8 +2905,7 @@ namespace OpenMetaverse
 
             while (lineNum < lines.Length)
             {
-                string key, value;
-                if (ParseLine(lines[lineNum++], out key, out value))
+                if (ParseLine(lines[lineNum++], out var key, out var value))
                 {
                     if (key == "inv_object")
                     {
@@ -2928,25 +2925,28 @@ namespace OpenMetaverse
                                 {
                                     continue;
                                 }
-                                else if (key == "}")
+                                else
                                 {
-                                    break;
-                                }
-                                else if (key == "obj_id")
-                                {
-                                    UUID.TryParse(value, out itemID);
-                                }
-                                else if (key == "parent_id")
-                                {
-                                    UUID.TryParse(value, out parentID);
-                                }
-                                else if (key == "type")
-                                {
-                                    assetType = Utils.StringToAssetType(value);
-                                }
-                                else if (key == "name")
-                                {
-                                    name = value.Substring(0, value.IndexOf('|'));
+                                    if (key == "}")
+                                    {
+                                        break;
+                                    }
+
+                                    switch (key)
+                                    {
+                                        case "obj_id":
+                                            UUID.TryParse(value, out itemID);
+                                            break;
+                                        case "parent_id":
+                                            UUID.TryParse(value, out parentID);
+                                            break;
+                                        case "type":
+                                            assetType = Utils.StringToAssetType(value);
+                                            break;
+                                        case "name":
+                                            name = value.Substring(0, value.IndexOf('|'));
+                                            break;
+                                    }
                                 }
                             }
                         }
@@ -3006,164 +3006,168 @@ namespace OpenMetaverse
                                 {
                                     continue;
                                 }
-                                else if (key == "}")
+
+                                if (key == "}")
                                 {
                                     break;
                                 }
-                                else if (key == "item_id")
+                                switch (key)
                                 {
-                                    UUID.TryParse(value, out itemID);
-                                }
-                                else if (key == "parent_id")
-                                {
-                                    UUID.TryParse(value, out parentID);
-                                }
-                                else if (key == "permissions")
-                                {
-                                    #region permissions
-
-                                    while (lineNum < lines.Length)
+                                    case "item_id":
+                                        UUID.TryParse(value, out itemID);
+                                        break;
+                                    case "parent_id":
+                                        UUID.TryParse(value, out parentID);
+                                        break;
+                                    case "permissions":
                                     {
-                                        if (ParseLine(lines[lineNum++], out key, out value))
+                                        #region permissions
+
+                                        while (lineNum < lines.Length)
                                         {
-                                            if (key == "{")
+                                            if (ParseLine(lines[lineNum++], out key, out value))
                                             {
-                                                continue;
-                                            }
-                                            else if (key == "}")
-                                            {
-                                                break;
-                                            }
-                                            else if (key == "creator_mask")
-                                            {
-                                                // Deprecated
-                                                uint val;
-                                                if (Utils.TryParseHex(value, out val))
-                                                    perms.BaseMask = (PermissionMask)val;
-                                            }
-                                            else if (key == "base_mask")
-                                            {
-                                                uint val;
-                                                if (Utils.TryParseHex(value, out val))
-                                                    perms.BaseMask = (PermissionMask)val;
-                                            }
-                                            else if (key == "owner_mask")
-                                            {
-                                                uint val;
-                                                if (Utils.TryParseHex(value, out val))
-                                                    perms.OwnerMask = (PermissionMask)val;
-                                            }
-                                            else if (key == "group_mask")
-                                            {
-                                                uint val;
-                                                if (Utils.TryParseHex(value, out val))
-                                                    perms.GroupMask = (PermissionMask)val;
-                                            }
-                                            else if (key == "everyone_mask")
-                                            {
-                                                uint val;
-                                                if (Utils.TryParseHex(value, out val))
-                                                    perms.EveryoneMask = (PermissionMask)val;
-                                            }
-                                            else if (key == "next_owner_mask")
-                                            {
-                                                uint val;
-                                                if (Utils.TryParseHex(value, out val))
-                                                    perms.NextOwnerMask = (PermissionMask)val;
-                                            }
-                                            else if (key == "creator_id")
-                                            {
-                                                UUID.TryParse(value, out creatorID);
-                                            }
-                                            else if (key == "owner_id")
-                                            {
-                                                UUID.TryParse(value, out ownerID);
-                                            }
-                                            else if (key == "last_owner_id")
-                                            {
-                                                UUID.TryParse(value, out lastOwnerID);
-                                            }
-                                            else if (key == "group_id")
-                                            {
-                                                UUID.TryParse(value, out groupID);
-                                            }
-                                            else if (key == "group_owned")
-                                            {
-                                                uint val;
-                                                if (uint.TryParse(value, out val))
-                                                    groupOwned = (val != 0);
+                                                if (key == "{")
+                                                {
+                                                    continue;
+                                                }
+
+                                                if (key == "}")
+                                                {
+                                                    break;
+                                                }
+
+                                                switch (key)
+                                                {
+                                                    case "creator_mask":
+                                                    {
+                                                        // Deprecated
+                                                        if (Utils.TryParseHex(value, out var val))
+                                                            perms.BaseMask = (PermissionMask)val;
+                                                        break;
+                                                    }
+                                                    case "base_mask":
+                                                    {
+                                                        if (Utils.TryParseHex(value, out var val))
+                                                            perms.BaseMask = (PermissionMask)val;
+                                                        break;
+                                                    }
+                                                    case "owner_mask":
+                                                    {
+                                                        if (Utils.TryParseHex(value, out var val))
+                                                            perms.OwnerMask = (PermissionMask)val;
+                                                        break;
+                                                    }
+                                                    case "group_mask":
+                                                    {
+                                                        if (Utils.TryParseHex(value, out var val))
+                                                            perms.GroupMask = (PermissionMask)val;
+                                                        break;
+                                                    }
+                                                    case "everyone_mask":
+                                                    {
+                                                        if (Utils.TryParseHex(value, out var val))
+                                                            perms.EveryoneMask = (PermissionMask)val;
+                                                        break;
+                                                    }
+                                                    case "next_owner_mask":
+                                                    {
+                                                        if (Utils.TryParseHex(value, out var val))
+                                                            perms.NextOwnerMask = (PermissionMask)val;
+                                                        break;
+                                                    }
+                                                    case "creator_id":
+                                                        UUID.TryParse(value, out creatorID);
+                                                        break;
+                                                    case "owner_id":
+                                                        UUID.TryParse(value, out ownerID);
+                                                        break;
+                                                    case "last_owner_id":
+                                                        UUID.TryParse(value, out lastOwnerID);
+                                                        break;
+                                                    case "group_id":
+                                                        UUID.TryParse(value, out groupID);
+                                                        break;
+                                                    case "group_owned":
+                                                    {
+                                                        if (uint.TryParse(value, out var val))
+                                                            groupOwned = (val != 0);
+                                                        break;
+                                                    }
+                                                }
                                             }
                                         }
+
+                                        #endregion permissions
+
+                                        break;
                                     }
-
-                                    #endregion permissions
-                                }
-                                else if (key == "sale_info")
-                                {
-                                    #region sale_info
-
-                                    while (lineNum < lines.Length)
+                                    case "sale_info":
                                     {
-                                        if (ParseLine(lines[lineNum++], out key, out value))
+                                        #region sale_info
+
+                                        while (lineNum < lines.Length)
                                         {
-                                            if (key == "{")
+                                            if (ParseLine(lines[lineNum++], out key, out value))
                                             {
-                                                continue;
-                                            }
-                                            else if (key == "}")
-                                            {
-                                                break;
-                                            }
-                                            else if (key == "sale_type")
-                                            {
-                                                saleType = Utils.StringToSaleType(value);
-                                            }
-                                            else if (key == "sale_price")
-                                            {
-                                                int.TryParse(value, out salePrice);
+                                                if (key == "{")
+                                                {
+                                                    continue;
+                                                }
+
+                                                if (key == "}")
+                                                {
+                                                    break;
+                                                }
+
+                                                switch (key)
+                                                {
+                                                    case "sale_type":
+                                                        saleType = Utils.StringToSaleType(value);
+                                                        break;
+                                                    case "sale_price":
+                                                        int.TryParse(value, out salePrice);
+                                                        break;
+                                                }
                                             }
                                         }
-                                    }
 
-                                    #endregion sale_info
-                                }
-                                else if (key == "shadow_id")
-                                {
-                                    UUID shadowID;
-                                    if (UUID.TryParse(value, out shadowID))
-                                        assetID = DecryptShadowID(shadowID);
-                                }
-                                else if (key == "asset_id")
-                                {
-                                    UUID.TryParse(value, out assetID);
-                                }
-                                else if (key == "type")
-                                {
-                                    assetType = Utils.StringToAssetType(value);
-                                }
-                                else if (key == "inv_type")
-                                {
-                                    inventoryType = Utils.StringToInventoryType(value);
-                                }
-                                else if (key == "flags")
-                                {
-                                    uint.TryParse(value, out flags);
-                                }
-                                else if (key == "name")
-                                {
-                                    name = value.Substring(0, value.IndexOf('|'));
-                                }
-                                else if (key == "desc")
-                                {
-                                    desc = value.Substring(0, value.IndexOf('|'));
-                                }
-                                else if (key == "creation_date")
-                                {
-                                    uint timestamp;
-                                    if (uint.TryParse(value, out timestamp))
-                                        creationDate = Utils.UnixTimeToDateTime(timestamp);
-                                    else
-                                        Logger.Log($"Failed to parse creation_date: {value}", Helpers.LogLevel.Warning);
+                                        #endregion sale_info
+
+                                        break;
+                                    }
+                                    case "shadow_id":
+                                    {
+                                        if (UUID.TryParse(value, out var shadowID))
+                                            assetID = DecryptShadowID(shadowID);
+                                        break;
+                                    }
+                                    case "asset_id":
+                                        UUID.TryParse(value, out assetID);
+                                        break;
+                                    case "type":
+                                        assetType = Utils.StringToAssetType(value);
+                                        break;
+                                    case "inv_type":
+                                        inventoryType = Utils.StringToInventoryType(value);
+                                        break;
+                                    case "flags":
+                                        uint.TryParse(value, out flags);
+                                        break;
+                                    case "name":
+                                        name = value.Substring(0, value.IndexOf('|'));
+                                        break;
+                                    case "desc":
+                                        desc = value.Substring(0, value.IndexOf('|'));
+                                        break;
+                                    case "creation_date":
+                                    {
+                                        if (uint.TryParse(value, out var timestamp))
+                                            creationDate = Utils.UnixTimeToDateTime(timestamp);
+                                        else
+                                            Logger.Log($"Failed to parse creation_date: {value}", Helpers.LogLevel.Warning);
+                                        break;
+                                    }
                                 }
                             }
                         }
@@ -3428,32 +3432,23 @@ namespace OpenMetaverse
                 var objectID = UUID.Zero;
                 var fromTask = false;
 
-                if (e.IM.Dialog == InstantMessageDialog.InventoryOffered)
+                switch (e.IM.Dialog)
                 {
-                    if (e.IM.BinaryBucket.Length == 17)
-                    {
+                    case InstantMessageDialog.InventoryOffered when e.IM.BinaryBucket.Length == 17:
                         type = (AssetType)e.IM.BinaryBucket[0];
                         objectID = new UUID(e.IM.BinaryBucket, 1);
                         fromTask = false;
-                    }
-                    else
-                    {
+                        break;
+                    case InstantMessageDialog.InventoryOffered:
                         Logger.Log("Malformed inventory offer from agent", Helpers.LogLevel.Warning, Client);
                         return;
-                    }
-                }
-                else if (e.IM.Dialog == InstantMessageDialog.TaskInventoryOffered)
-                {
-                    if (e.IM.BinaryBucket.Length == 1)
-                    {
+                    case InstantMessageDialog.TaskInventoryOffered when e.IM.BinaryBucket.Length == 1:
                         type = (AssetType)e.IM.BinaryBucket[0];
                         fromTask = true;
-                    }
-                    else
-                    {
+                        break;
+                    case InstantMessageDialog.TaskInventoryOffered:
                         Logger.Log("Malformed inventory offer from object", Helpers.LogLevel.Warning, Client);
                         return;
-                    }
                 }
 
                 // Find the folder where this is going to go
@@ -3809,6 +3804,6 @@ namespace OpenMetaverse
                 _Store.UpdateNodeFor(folder);
         }
 
-        #endregion Internal Handlers
+        #endregion Internal Callbacks
     }
 }

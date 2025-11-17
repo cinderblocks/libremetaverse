@@ -63,11 +63,11 @@ namespace OpenMetaverse
             try
             {
                 var result = await PostCapAsync(cap, query, cancellationToken).ConfigureAwait(false);
-                CreateItemFromAssetResponse(callback, data, query, result, null);
+                CreateItemFromAssetResponse(callback, data, query, result, null, cancellationToken);
             }
             catch (Exception ex)
             {
-                CreateItemFromAssetResponse(callback, data, query, null, ex);
+                CreateItemFromAssetResponse(callback, data, query, null, ex, cancellationToken);
             }
         }
 
@@ -158,11 +158,11 @@ namespace OpenMetaverse
             try
             {
                 var result = await PostCapAsync(cap, query, cancellationToken).ConfigureAwait(false);
-                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), notecardID, result, null);
+                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), notecardID, result, null, cancellationToken);
             }
             catch (Exception ex)
             {
-                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), notecardID, null, ex);
+                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), notecardID, null, ex, cancellationToken);
             }
         }
 
@@ -183,11 +183,11 @@ namespace OpenMetaverse
             try
             {
                 var result = await PostCapAsync(cap, query, cancellationToken).ConfigureAwait(false);
-                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), notecardID, result, null);
+                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), notecardID, result, null, cancellationToken);
             }
             catch (Exception ex)
             {
-                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), notecardID, null, ex);
+                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), notecardID, null, ex, cancellationToken);
             }
         }
 
@@ -204,11 +204,11 @@ namespace OpenMetaverse
             try
             {
                 var result = await PostCapAsync(cap, query, cancellationToken).ConfigureAwait(false);
-                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), gestureID, result, null);
+                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), gestureID, result, null, cancellationToken);
             }
             catch (Exception ex)
             {
-                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), gestureID, null, ex);
+                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), gestureID, null, ex, cancellationToken);
             }
         }
 
@@ -227,11 +227,11 @@ namespace OpenMetaverse
             try
             {
                 var result = await PostStringAsync(cap, request.Serialize(), cancellationToken).ConfigureAwait(false);
-                UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), itemID, result, null);
+                UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), itemID, result, null, cancellationToken);
             }
             catch (Exception ex)
             {
-                UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), itemID, null, ex);
+                UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), itemID, null, ex, cancellationToken);
             }
         }
 
@@ -252,11 +252,11 @@ namespace OpenMetaverse
             try
             {
                 var result = await PostStringAsync(cap, msg.Serialize(), cancellationToken).ConfigureAwait(false);
-                UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), itemID, result, null);
+                UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), itemID, result, null, cancellationToken);
             }
             catch (Exception ex)
             {
-                UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), itemID, null, ex);
+                UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), itemID, null, ex, cancellationToken);
             }
         }
 
@@ -399,7 +399,7 @@ namespace OpenMetaverse
             {
                 try
                 {
-                    RequestFetchInventory(itemID, ownerID);
+                    await RequestFetchInventoryAsync(itemID, ownerID, cancellationToken);
                     return await tcs.Task.ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
