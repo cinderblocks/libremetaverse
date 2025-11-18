@@ -172,8 +172,12 @@ namespace OpenMetaverse
 
         private readonly GridClient Client;
 
-        private ConcurrentDictionary<UUID, InventoryNode> Items;
-        private readonly object itemsLock = new object();
+        /// <summary>Collection of all InventoryNodes</summary>
+        private readonly ConcurrentDictionary<UUID, InventoryNode> Items;
+        /// <summary>Index of direct children by parent UUID to avoid full Items scans</summary>
+        private readonly ConcurrentDictionary<UUID, ConcurrentDictionary<UUID, InventoryNode>> ChildrenIndex;
+        /// <summary>Index of links by the linked asset UUID for O(1) FindAllLinks</summary>
+        private readonly ConcurrentDictionary<UUID, ConcurrentDictionary<UUID, InventoryNode>> LinksByAssetId;
 
         public Inventory(GridClient client)
             : this(client, client.Self.AgentID) { }
@@ -185,6 +189,8 @@ namespace OpenMetaverse
             if (owner == UUID.Zero)
                 Logger.Log("Inventory owned by nobody!", Helpers.LogLevel.Warning, Client);
             Items = new ConcurrentDictionary<UUID, InventoryNode>();
+            ChildrenIndex = new ConcurrentDictionary<UUID, ConcurrentDictionary<UUID, InventoryNode>>();
+            LinksByAssetId = new ConcurrentDictionary<UUID, ConcurrentDictionary<UUID, InventoryNode>>();
         }
 
         /// <summary>
@@ -197,10 +203,11 @@ namespace OpenMetaverse
             // If we have no root, there are no links to find
             if (RootNode == null) return new List<InventoryNode>();
 
-            // Snapshot the values to avoid enumerating a changing collection
-            var snapshot = Items.Values.ToList();
-            var links = snapshot.Where(node => IsLinkOf(node, assertId)).ToList();
-            return links;
+            if (LinksByAssetId.TryGetValue(assertId, out var dict))
+            {
+                return dict.Values.ToList();
+            }
+            return new List<InventoryNode>();
         }
 
         private static bool IsLinkOf(InventoryNode node, UUID assertId)
@@ -237,7 +244,10 @@ namespace OpenMetaverse
             lock (folderNode.Nodes.SyncRoot)
             {
                 var contents = new List<InventoryBase>(folderNode.Nodes.Count);
-                contents.AddRange(folderNode.Nodes.Values.Select(node => node.Data));
+                foreach (var node in folderNode.Nodes.Values)
+                {
+                    contents.Add(node.Data);
+                }
                 return contents;
             }
         }
@@ -281,6 +291,15 @@ namespace OpenMetaverse
 
             if (Items.TryGetValue(item.UUID, out var itemNode)) // We're updating.
             {
+                // Update link index: remove old mapping if necessary, add new mapping after update
+                try { RemoveNodeFromAllLinks(item.UUID); } catch { }
+
+                var newItem = item as InventoryItem;
+                if (newItem != null && newItem.AssetType == AssetType.Link)
+                {
+                    try { AddToLinksIndex(newItem.ActualUUID, itemNode); } catch { }
+                }
+
                 var oldParent = itemNode.Parent;
 
                 int oldCount = (itemNode.Data is InventoryItem) ? 1 : (itemNode.Data is InventoryFolder oldFolder ? oldFolder.DescendentCount : 0);
@@ -297,13 +316,18 @@ namespace OpenMetaverse
                             oldParent.Nodes.Remove(item.UUID);
                         }
 
+                        // Remove from children index of old parent
+                        try
+                        {
+                            RemoveFromChildrenIndex(oldParent.Data.UUID, item.UUID);
+                        }
+                        catch { }
+
                         var ancDec = oldParent;
                         while (ancDec?.Data is InventoryFolder folder)
                         {
-                            lock (ancDec.Nodes.SyncRoot)
-                            {
-                                folder.DescendentCount = Math.Max(0, folder.DescendentCount - oldCount);
-                            }
+                            // Atomically decrement descendant count and clamp to zero
+                            AtomicallyAdjustDescendentCount(folder, -oldCount);
                             ancDec = ancDec.Parent;
                         }
                     }
@@ -315,13 +339,18 @@ namespace OpenMetaverse
                             itemParent.Nodes[item.UUID] = itemNode;
                         }
 
+                        // Add to children index of new parent
+                        try
+                        {
+                            AddToChildrenIndex(itemParent.Data.UUID, itemNode);
+                        }
+                        catch { }
+
                         var ancInc = itemParent;
                         while (ancInc?.Data is InventoryFolder folder)
                         {
-                            lock (ancInc.Nodes.SyncRoot)
-                            {
-                                folder.DescendentCount += newCount;
-                            }
+                            // Atomically increment descendant count
+                            AtomicallyAdjustDescendentCount(folder, newCount);
                             ancInc = ancInc.Parent;
                         }
                     }
@@ -333,10 +362,7 @@ namespace OpenMetaverse
                         var anc = oldParent;
                         while (anc?.Data is InventoryFolder folder)
                         {
-                            lock (anc.Nodes.SyncRoot)
-                            {
-                                folder.DescendentCount = Math.Max(0, folder.DescendentCount + delta);
-                            }
+                            AtomicallyAdjustDescendentCount(folder, delta);
                             anc = anc.Parent;
                         }
                     }
@@ -351,6 +377,12 @@ namespace OpenMetaverse
                 }
 
                 itemNode.Data = item;
+
+                // Add to link index for new item if it's a link
+                if (newItem != null && newItem.AssetType == AssetType.Link)
+                {
+                    try { AddToLinksIndex(newItem.ActualUUID, itemNode); } catch { }
+                }
             }
             else // We're adding.
             {
@@ -365,11 +397,16 @@ namespace OpenMetaverse
                         // initialize descendant count based on existing children (items already referencing this folder)
                         int existingChildrenCount = 0;
                         // sum item counts of existing child nodes whose ParentUUID == this folder
-                        foreach (var n in Items.Values)
+                        // sum item counts of existing direct child nodes using the children index
+                        if (ChildrenIndex.TryGetValue(item.UUID, out var directChildren))
                         {
-                            if (n.Data.ParentUUID == item.UUID && n.Data.UUID != item.UUID)
+                            foreach (var kvp in directChildren)
                             {
-                                existingChildrenCount += GetItemCountInSubtree(n);
+                                var n = kvp.Value;
+                                if (n != null && n.Data.UUID != item.UUID)
+                                {
+                                    existingChildrenCount += GetItemCountInSubtree(n);
+                                }
                             }
                         }
                         addedFolder.DescendentCount = existingChildrenCount;
@@ -387,12 +424,25 @@ namespace OpenMetaverse
                         var p = itemParent;
                         while (p?.Data is InventoryFolder folder)
                         {
-                            lock (p.Nodes.SyncRoot)
-                            {
-                                folder.DescendentCount += addedCount;
-                            }
+                            AtomicallyAdjustDescendentCount(folder, addedCount);
                             p = p.Parent;
                         }
+                    }
+
+                    // Maintain children index for the new node
+                    try
+                    {
+                        if (itemParent != null)
+                        {
+                            AddToChildrenIndex(itemParent.Data.UUID, itemNode);
+                        }
+                    }
+                    catch { }
+
+                    // Maintain links index for the new node if it's a link
+                    if (item is InventoryItem newIt && newIt.AssetType == AssetType.Link)
+                    {
+                        try { AddToLinksIndex(newIt.ActualUUID, itemNode); } catch { }
                     }
 
                     if (m_InventoryObjectAdded != null)
@@ -482,16 +532,14 @@ namespace OpenMetaverse
                 {
                     newParent.Nodes.Remove(item.UUID);
                 }
+                try { RemoveFromChildrenIndex(newParent.Data.UUID, item.UUID); } catch { }
             }
 
             var ancestor = node.Parent;
             while (ancestor?.Data is InventoryFolder)
             {
-                lock (ancestor.Nodes.SyncRoot)
-                {
-                    var folder = (InventoryFolder)ancestor.Data;
-                    folder.DescendentCount = Math.Max(0, folder.DescendentCount - removedItemCount);
-                }
+                var folder = (InventoryFolder)ancestor.Data;
+                AtomicallyAdjustDescendentCount(folder, -removedItemCount);
                 ancestor = ancestor.Parent;
             }
 
@@ -727,6 +775,18 @@ namespace OpenMetaverse
             {
                 var n = stack.Pop();
                 list.Add(n);
+                // Remove from children index as we're collecting for deletion
+                try { RemoveFromChildrenIndex(n.Parent?.Data.UUID ?? UUID.Zero, n.Data.UUID); } catch { }
+                // Remove from links index if this node is a link
+                try
+                {
+                    if (n.Data is InventoryItem li && li.AssetType == AssetType.Link)
+                    {
+                        RemoveFromLinksIndex(li.ActualUUID, n.Data.UUID);
+                    }
+                }
+                catch { }
+                try { RemoveNodeFromAllLinks(n.Data.UUID); } catch { }
                 if (n.Data is InventoryItem) count++;
                 lock (n.Nodes.SyncRoot)
                 {
@@ -737,6 +797,98 @@ namespace OpenMetaverse
                 }
             }
             return count;
+        }
+
+        // Add a child mapping to the children index
+        private void AddToChildrenIndex(UUID parentUuid, InventoryNode child)
+        {
+            if (parentUuid == UUID.Zero || child == null) return;
+            var dict = ChildrenIndex.GetOrAdd(parentUuid, _ => new ConcurrentDictionary<UUID, InventoryNode>());
+            dict[child.Data.UUID] = child;
+        }
+
+        // Remove a child mapping from the children index
+        private void RemoveFromChildrenIndex(UUID parentUuid, UUID childUuid)
+        {
+            if (parentUuid == UUID.Zero) return;
+            if (ChildrenIndex.TryGetValue(parentUuid, out var dict))
+            {
+                dict.TryRemove(childUuid, out _);
+                if (dict.IsEmpty)
+                {
+                    ChildrenIndex.TryRemove(parentUuid, out _);
+                }
+            }
+        }
+        
+        // Add a mapping to the links index: assetId -> node
+        private void AddToLinksIndex(UUID assetId, InventoryNode node)
+        {
+            if (assetId == UUID.Zero || node == null) return;
+            var dict = LinksByAssetId.GetOrAdd(assetId, _ => new ConcurrentDictionary<UUID, InventoryNode>());
+            dict[node.Data.UUID] = node;
+        }
+
+        // Remove a mapping from the links index
+        private void RemoveFromLinksIndex(UUID assetId, UUID nodeUuid)
+        {
+            if (assetId == UUID.Zero) return;
+            if (LinksByAssetId.TryGetValue(assetId, out var dict))
+            {
+                // Try direct remove by key first
+                dict.TryRemove(nodeUuid, out _);
+
+                try
+                {
+                    foreach (var kvp in dict.Keys)
+                    {
+                        if (dict.TryGetValue(kvp, out var existing) && existing?.Data?.UUID == nodeUuid)
+                        {
+                            dict.TryRemove(kvp, out _);
+                        }
+                    }
+                }
+                catch { }
+
+                if (dict.IsEmpty)
+                {
+                    LinksByAssetId.TryRemove(assetId, out _);
+                }
+            }
+        }
+
+        // Remove a node UUID from all link mappings across all asset keys
+        private void RemoveNodeFromAllLinks(UUID nodeUuid)
+        {
+            if (nodeUuid == UUID.Zero) return;
+            foreach (var kv in LinksByAssetId)
+            {
+                var dict = kv.Value;
+                try
+                {
+                    dict.TryRemove(nodeUuid, out _);
+                }
+                catch { }
+                if (dict.IsEmpty)
+                {
+                    LinksByAssetId.TryRemove(kv.Key, out _);
+                }
+            }
+        }
+
+        // Atomically adjust a folder's DescendentCount by delta and clamp to >= 0
+        private static void AtomicallyAdjustDescendentCount(InventoryFolder folder, int delta)
+        {
+            if (folder == null || delta == 0) return;
+
+            int initial, newVal;
+            do
+            {
+                initial = folder.DescendentCount;
+                newVal = initial + delta;
+                if (newVal < 0) newVal = 0;
+            }
+            while (Interlocked.CompareExchange(ref folder.DescendentCount, newVal, initial) != initial);
         }
     }
     #region EventArgs classes

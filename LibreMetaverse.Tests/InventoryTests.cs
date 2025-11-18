@@ -222,5 +222,180 @@ namespace LibreMetaverse.Tests
             Assert.That(n1.DescendentCount, Is.Zero);
             Assert.That(n2.DescendentCount, Is.GreaterThan(0));
         }
+
+        [Test]
+        public async Task ConcurrentAddMoveRemoveStress()
+        {
+            // Create three folders
+            var f1 = new InventoryFolder(UUID.Random()) { Name = "Folder1", ParentUUID = UUID.Zero };
+            var f2 = new InventoryFolder(UUID.Random()) { Name = "Folder2", ParentUUID = UUID.Zero };
+            var f3 = new InventoryFolder(UUID.Random()) { Name = "Folder3", ParentUUID = UUID.Zero };
+
+            inventory.UpdateNodeFor(f1);
+            inventory.UpdateNodeFor(f2);
+            inventory.UpdateNodeFor(f3);
+
+            const int itemCount = 500;
+            var items = new List<InventoryItem>(itemCount);
+            for (int i = 0; i < itemCount; i++)
+            {
+                items.Add(new InventoryItem(UUID.Random()) { Name = $"Item{i}", ParentUUID = f1.UUID });
+            }
+
+            // Concurrently add all items
+            var addTasks = new List<Task>(itemCount);
+            foreach (var it in items)
+            {
+                addTasks.Add(Task.Run(() => inventory.UpdateNodeFor(it)));
+            }
+            await Task.WhenAll(addTasks);
+
+            // Ensure all items exist
+            foreach (var it in items)
+            {
+                Assert.That(inventory.Contains(it.UUID), Is.True, $"Missing item {it.UUID}");
+            }
+
+            // Concurrently move items: even to f2, odd to f3
+            var moveTasks = new List<Task>(itemCount);
+            for (int i = 0; i < items.Count; i++)
+            {
+                var it = items[i];
+                moveTasks.Add(Task.Run(() =>
+                {
+                    it.ParentUUID = (i % 2 == 0) ? f2.UUID : f3.UUID;
+                    inventory.UpdateNodeFor(it);
+                }));
+            }
+            await Task.WhenAll(moveTasks);
+
+            // Check descendant counts: f1 should be zero, f2 + f3 should equal itemCount
+            var n1 = (InventoryFolder)inventory.GetNodeFor(f1.UUID).Data;
+            var n2 = (InventoryFolder)inventory.GetNodeFor(f2.UUID).Data;
+            var n3 = (InventoryFolder)inventory.GetNodeFor(f3.UUID).Data;
+
+            Assert.That(n1.DescendentCount, Is.EqualTo(0));
+            Assert.That(n2.DescendentCount + n3.DescendentCount, Is.EqualTo(itemCount));
+
+            // Concurrently remove all items
+            var removeTasks = new List<Task>(itemCount);
+            foreach (var it in items)
+            {
+                removeTasks.Add(Task.Run(() => inventory.RemoveNodeFor(it)));
+            }
+            await Task.WhenAll(removeTasks);
+
+            // Ensure none of the items exist
+            foreach (var it in items)
+            {
+                Assert.That(inventory.Contains(it.UUID), Is.False, $"Item still present after removal: {it.UUID}");
+            }
+
+            // Descendant counts should be zero after removals
+            n1 = (InventoryFolder)inventory.GetNodeFor(f1.UUID).Data;
+            n2 = (InventoryFolder)inventory.GetNodeFor(f2.UUID).Data;
+            n3 = (InventoryFolder)inventory.GetNodeFor(f3.UUID).Data;
+
+            Assert.That(n1.DescendentCount, Is.EqualTo(0));
+            Assert.That(n2.DescendentCount, Is.EqualTo(0));
+            Assert.That(n3.DescendentCount, Is.EqualTo(0));
+        }
+
+        [Test]
+        public async Task ConcurrentLinkAddRemoveStress()
+        {
+            var folder = new InventoryFolder(UUID.Random()) { Name = "LinkFolder", ParentUUID = UUID.Zero };
+            var folder2 = new InventoryFolder(UUID.Random()) { Name = "LinkFolder2", ParentUUID = UUID.Zero };
+            inventory.UpdateNodeFor(folder);
+            inventory.UpdateNodeFor(folder2);
+
+            var assetId = UUID.Random();
+            const int itemCount = 200;
+            var items = new List<InventoryItem>(itemCount);
+            for (int i = 0; i < itemCount; i++)
+            {
+                var it = new InventoryItem(UUID.Random()) { Name = $"L{i}", ParentUUID = folder.UUID };
+                it.AssetType = AssetType.Link;
+                it.AssetUUID = assetId;
+                items.Add(it);
+            }
+
+            // Concurrently add all link items
+            var addTasks = new List<Task>(itemCount);
+            foreach (var it in items)
+            {
+                addTasks.Add(Task.Run(() => inventory.UpdateNodeFor(it)));
+            }
+            await Task.WhenAll(addTasks);
+
+            var found = inventory.FindAllLinks(assetId);
+            Assert.That(found.Count, Is.EqualTo(itemCount));
+
+            // Concurrently move half to folder2
+            var moveTasks = new List<Task>(itemCount);
+            for (int i = 0; i < items.Count; i++)
+            {
+                var it = items[i];
+                moveTasks.Add(Task.Run(() =>
+                {
+                    it.ParentUUID = (i % 2 == 0) ? folder2.UUID : folder.UUID;
+                    inventory.UpdateNodeFor(it);
+                }));
+            }
+            await Task.WhenAll(moveTasks);
+
+            // Verify link index still returns all
+            found = inventory.FindAllLinks(assetId);
+            Assert.That(found.Count, Is.EqualTo(itemCount));
+
+            // Concurrently remove all
+            var removeTasks = new List<Task>(itemCount);
+            foreach (var it in items)
+            {
+                removeTasks.Add(Task.Run(() => inventory.RemoveNodeFor(it)));
+            }
+            await Task.WhenAll(removeTasks);
+
+            // Ensure no links remain
+            found = inventory.FindAllLinks(assetId);
+            Assert.That(found.Count, Is.EqualTo(0));
+
+            // Ensure items removed from inventory
+            foreach (var it in items)
+            {
+                Assert.That(inventory.Contains(it.UUID), Is.False);
+            }
+        }
+
+        [Test]
+        public void LinkIndexUpdateOnAssetChange()
+        {
+            var folder = new InventoryFolder(UUID.Random()) { Name = "LUpdate", ParentUUID = UUID.Zero };
+            inventory.UpdateNodeFor(folder);
+
+            var asset1 = UUID.Random();
+            var asset2 = UUID.Random();
+
+            var item = new InventoryItem(UUID.Random()) { Name = "LinkItem", ParentUUID = folder.UUID };
+            item.AssetType = AssetType.Link;
+            item.AssetUUID = asset1;
+
+            inventory.UpdateNodeFor(item);
+
+            var found1 = inventory.FindAllLinks(asset1);
+            Assert.That(found1.Count, Is.EqualTo(1));
+            Assert.That(found1[0].Data.UUID, Is.EqualTo(item.UUID));
+
+            // Change the underlying asset the link points to
+            item.AssetUUID = asset2;
+            inventory.UpdateNodeFor(item);
+
+            found1 = inventory.FindAllLinks(asset1);
+            var found2 = inventory.FindAllLinks(asset2);
+
+            Assert.That(found1.Count, Is.EqualTo(0));
+            Assert.That(found2.Count, Is.EqualTo(1));
+            Assert.That(found2[0].Data.UUID, Is.EqualTo(item.UUID));
+        }
     }
 }
