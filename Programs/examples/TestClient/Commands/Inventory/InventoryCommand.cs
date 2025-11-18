@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using OpenMetaverse;
 
@@ -23,15 +24,20 @@ namespace TestClient.Commands.Inventory
             Inventory = Manager.Store;
 
             StringBuilder result = new StringBuilder();
+            var watch = Stopwatch.StartNew();
 
             InventoryFolder rootFolder = Inventory.RootFolder;
-            PrintFolder(rootFolder, result, 0);
+            var itemCount = PrintFolder(rootFolder, result, 0);
+            watch.Stop();
 
+            result.AppendLine();
+            result.AppendLine($"Returned {itemCount} items in {watch.Elapsed.TotalSeconds} seconds.");
             return result.ToString();
         }
 
-        void PrintFolder(InventoryFolder f, StringBuilder result, int indent)
+        int PrintFolder(InventoryFolder f, StringBuilder result, int indent)
         {
+            var numItems = 0;
             List<InventoryBase> contents = Manager.FolderContents(f.UUID, Client.Self.AgentID,
                 true, true, InventorySortOrder.ByName, TimeSpan.FromSeconds(3));
 
@@ -40,12 +46,15 @@ namespace TestClient.Commands.Inventory
                 foreach (InventoryBase i in contents)
                 {
                     result.AppendFormat("{0}{1} ({2})\n", new string(' ', indent * 2), i.Name, i.UUID);
+                    numItems++;
                     if (i is InventoryFolder folder)
                     {
-                        PrintFolder(folder, result, indent + 1);
+                        numItems += PrintFolder(folder, result, indent + 1);
                     }
                 }
             }
+
+            return numItems;
         }
     }
 }
