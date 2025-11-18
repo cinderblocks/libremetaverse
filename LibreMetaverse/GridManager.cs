@@ -406,12 +406,12 @@ namespace OpenMetaverse
         public void RequestMapLayer(GridLayerType layer)
         {
             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("MapLayer");
-            if (cap != null)
-            {
-                OSDMap payload = new OSDMap {["Flags"] = OSD.FromInteger((int) layer)};
-                Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, 
-                    CancellationToken.None, MapLayerResponseHandler);
-            }
+            if (cap == null) 
+                return;
+            
+            OSDMap payload = new OSDMap {["Flags"] = OSD.FromInteger((int) layer)};
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, 
+                CancellationToken.None, MapLayerResponseHandler);
         }
 
         /// <summary>
@@ -489,11 +489,11 @@ namespace OpenMetaverse
 
             void Callback(object sender, GridItemsEventArgs e)
             {
-                if (e.Type == GridItemType.AgentLocations)
-                {
-                    itemList = e.Items;
-                    itemsEvent.Set();
-                }
+                if (e.Type != GridItemType.AgentLocations) 
+                    return;
+                
+                itemList = e.Items;
+                itemsEvent.Set();
             }
 
             GridItems += Callback;
@@ -549,7 +549,7 @@ namespace OpenMetaverse
         public void RequestRegionHandle(UUID regionID)
         {
             ulong handle = 0;
-            bool found = false;
+            var found = false;
             lock (RegionsByUUID)
             {
                 found = RegionsByUUID.TryGetValue(regionID, out handle);
@@ -605,13 +605,14 @@ namespace OpenMetaverse
             bool found = false;
 
             void RegionCallback(object sender, GridRegionEventArgs e)
-            {   // See note in HandleCallback, above.
-                if (e.Region.RegionHandle == handle)
-                {
-                    found = true;
-                    foundRegion = e.Region;
-                    regionEvent.Set();
-                }
+            {
+                // See note in HandleCallback, above.
+                if (e.Region.RegionHandle != handle) 
+                    return;
+                
+                found = true;
+                foundRegion = e.Region;
+                regionEvent.Set();
             }
 
             GridRegion += RegionCallback;
@@ -647,10 +648,9 @@ namespace OpenMetaverse
                 return false;
             }
 
-            if (Regions.ContainsKey(name.ToLowerInvariant()))
+            var key = name.ToLowerInvariant();
+            if (Regions.TryGetValue(key, out region))
             {
-                // We already have this GridRegion structure
-                region = Regions[name.ToLowerInvariant()];
                 return true;
             }
 
@@ -671,18 +671,13 @@ namespace OpenMetaverse
 
             GridRegion -= Callback;
 
-            if (Regions.ContainsKey(name.ToLowerInvariant()))
-            {
-                // The region was found after our request
-                region = Regions[name.ToLowerInvariant()];
+            if (Regions.TryGetValue(key, out region))
                 return true;
-            }
-            else
-            {
-                Logger.Log($"Could not find region named {name}", Helpers.LogLevel.Warning, Client);
-                region = new GridRegion();
-                return false;
-            }
+            
+            Logger.Log($"Could not find region named {name}", Helpers.LogLevel.Warning, Client);
+            region = new GridRegion();
+            return false;
+            
         }
         
         protected void MapLayerResponseHandler(HttpResponseMessage response, byte[] responseData, Exception error)
@@ -730,31 +725,31 @@ namespace OpenMetaverse
 
             foreach (MapBlockReplyPacket.DataBlock block in map.Data)
             {
-                if (block.X != 0 || block.Y != 0)
+                if (block.X == 0 && block.Y == 0) 
+                    continue;
+                
+                GridRegion region;
+
+                region.X = block.X;
+                region.Y = block.Y;
+                region.Name = Utils.BytesToString(block.Name);
+                // RegionFlags seems to always be zero here?
+                region.RegionFlags = (RegionFlags)block.RegionFlags;
+                region.WaterHeight = block.WaterHeight;
+                region.Agents = block.Agents;
+                region.Access = (SimAccess)block.Access;
+                region.MapImageID = block.MapImageID;
+                region.RegionHandle = Utils.UIntsToLong((uint)(region.X * 256), (uint)(region.Y * 256));
+
+                lock (Regions)
                 {
-                    GridRegion region;
+                    Regions[region.Name.ToLowerInvariant()] = region;
+                    RegionsByHandle[region.RegionHandle] = region;
+                }
 
-                    region.X = block.X;
-                    region.Y = block.Y;
-                    region.Name = Utils.BytesToString(block.Name);
-                    // RegionFlags seems to always be zero here?
-                    region.RegionFlags = (RegionFlags)block.RegionFlags;
-                    region.WaterHeight = block.WaterHeight;
-                    region.Agents = block.Agents;
-                    region.Access = (SimAccess)block.Access;
-                    region.MapImageID = block.MapImageID;
-                    region.RegionHandle = Utils.UIntsToLong((uint)(region.X * 256), (uint)(region.Y * 256));
-
-                    lock (Regions)
-                    {
-                        Regions[region.Name.ToLowerInvariant()] = region;
-                        RegionsByHandle[region.RegionHandle] = region;
-                    }
-
-                    if (m_GridRegion != null)
-                    {
-                        OnGridRegion(new GridRegionEventArgs(region));
-                    }
+                if (m_GridRegion != null)
+                {
+                    OnGridRegion(new GridRegionEventArgs(region));
                 }
             }
         }
@@ -764,106 +759,106 @@ namespace OpenMetaverse
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void MapItemReplyHandler(object sender, PacketReceivedEventArgs e)
         {
-            if (m_GridItems != null)
+            if (m_GridItems == null) 
+                return;
+            
+            MapItemReplyPacket reply = (MapItemReplyPacket)e.Packet;
+            GridItemType type = (GridItemType)reply.RequestData.ItemType;
+            List<MapItem> items = new List<MapItem>();
+
+            foreach (var data in reply.Data)
             {
-                MapItemReplyPacket reply = (MapItemReplyPacket)e.Packet;
-                GridItemType type = (GridItemType)reply.RequestData.ItemType;
-                List<MapItem> items = new List<MapItem>();
+                var name = Utils.BytesToString(data.Name);
 
-                foreach (var data in reply.Data)
+                switch (type)
                 {
-                    string name = Utils.BytesToString(data.Name);
-
-                    switch (type)
-                    {
-                        case GridItemType.AgentLocations:
-                            MapAgentLocation location = new MapAgentLocation
-                            {
-                                GlobalX = data.X,
-                                GlobalY = data.Y,
-                                Identifier = name,
-                                AvatarCount = data.Extra
-                            };
-                            items.Add(location);
-                            break;
-                        case GridItemType.Classified:
-                            //FIXME:
-                            Logger.Log("FIXME", Helpers.LogLevel.Error, Client);
-                            break;
-                        case GridItemType.LandForSale:
-                            MapLandForSale landsale = new MapLandForSale
-                            {
-                                GlobalX = data.X,
-                                GlobalY = data.Y,
-                                ID = data.ID,
-                                Name = name,
-                                Size = data.Extra,
-                                Price = data.Extra2
-                            };
-                            items.Add(landsale);
-                            break;
-                        case GridItemType.MatureEvent:
-                            MapMatureEvent matureEvent = new MapMatureEvent
-                            {
-                                GlobalX = data.X,
-                                GlobalY = data.Y,
-                                Description = name,
-                                Flags = (DirectoryManager.EventFlags)data.Extra2
-                            };
-                            items.Add(matureEvent);
-                            break;
-                        case GridItemType.PgEvent:
-                            MapPGEvent PGEvent = new MapPGEvent
-                            {
-                                GlobalX = data.X,
-                                GlobalY = data.Y,
-                                Description = name,
-                                Flags = (DirectoryManager.EventFlags)data.Extra2
-                            };
-                            items.Add(PGEvent);
-                            break;
-                        case GridItemType.Popular:
-                            //FIXME:
-                            Logger.Log("FIXME", Helpers.LogLevel.Error, Client);
-                            break;
-                        case GridItemType.Telehub:
-                            MapTelehub teleHubItem = new MapTelehub
-                            {
-                                GlobalX = data.X,
-                                GlobalY = data.Y
-                            };
-                            items.Add(teleHubItem);
-                            break;
-                        case GridItemType.AdultLandForSale:
-                            MapAdultLandForSale adultLandsale = new MapAdultLandForSale
-                            {
-                                GlobalX = data.X,
-                                GlobalY = data.Y,
-                                ID = data.ID,
-                                Name = name,
-                                Size = data.Extra,
-                                Price = data.Extra2
-                            };
-                            items.Add(adultLandsale);
-                            break;
-                        case GridItemType.AdultEvent:
-                            MapAdultEvent adultEvent = new MapAdultEvent
-                            {
-                                GlobalX = data.X,
-                                GlobalY = data.Y,
-                                Description = Utils.BytesToString(data.Name),
-                                Flags = (DirectoryManager.EventFlags)data.Extra2
-                            };
-                            items.Add(adultEvent);
-                            break;
-                        default:
-                            Logger.Log($"Unknown map item type: {type}", Helpers.LogLevel.Warning, Client);
-                            break;
-                    }
+                    case GridItemType.AgentLocations:
+                        MapAgentLocation location = new MapAgentLocation
+                        {
+                            GlobalX = data.X,
+                            GlobalY = data.Y,
+                            Identifier = name,
+                            AvatarCount = data.Extra
+                        };
+                        items.Add(location);
+                        break;
+                    case GridItemType.Classified:
+                        //FIXME:
+                        Logger.Log("FIXME", Helpers.LogLevel.Error, Client);
+                        break;
+                    case GridItemType.LandForSale:
+                        MapLandForSale landsale = new MapLandForSale
+                        {
+                            GlobalX = data.X,
+                            GlobalY = data.Y,
+                            ID = data.ID,
+                            Name = name,
+                            Size = data.Extra,
+                            Price = data.Extra2
+                        };
+                        items.Add(landsale);
+                        break;
+                    case GridItemType.MatureEvent:
+                        MapMatureEvent matureEvent = new MapMatureEvent
+                        {
+                            GlobalX = data.X,
+                            GlobalY = data.Y,
+                            Description = name,
+                            Flags = (DirectoryManager.EventFlags)data.Extra2
+                        };
+                        items.Add(matureEvent);
+                        break;
+                    case GridItemType.PgEvent:
+                        MapPGEvent PGEvent = new MapPGEvent
+                        {
+                            GlobalX = data.X,
+                            GlobalY = data.Y,
+                            Description = name,
+                            Flags = (DirectoryManager.EventFlags)data.Extra2
+                        };
+                        items.Add(PGEvent);
+                        break;
+                    case GridItemType.Popular:
+                        //FIXME:
+                        Logger.Log("FIXME", Helpers.LogLevel.Error, Client);
+                        break;
+                    case GridItemType.Telehub:
+                        MapTelehub teleHubItem = new MapTelehub
+                        {
+                            GlobalX = data.X,
+                            GlobalY = data.Y
+                        };
+                        items.Add(teleHubItem);
+                        break;
+                    case GridItemType.AdultLandForSale:
+                        MapAdultLandForSale adultLandsale = new MapAdultLandForSale
+                        {
+                            GlobalX = data.X,
+                            GlobalY = data.Y,
+                            ID = data.ID,
+                            Name = name,
+                            Size = data.Extra,
+                            Price = data.Extra2
+                        };
+                        items.Add(adultLandsale);
+                        break;
+                    case GridItemType.AdultEvent:
+                        MapAdultEvent adultEvent = new MapAdultEvent
+                        {
+                            GlobalX = data.X,
+                            GlobalY = data.Y,
+                            Description = Utils.BytesToString(data.Name),
+                            Flags = (DirectoryManager.EventFlags)data.Extra2
+                        };
+                        items.Add(adultEvent);
+                        break;
+                    default:
+                        Logger.Log($"Unknown map item type: {type}", Helpers.LogLevel.Warning, Client);
+                        break;
                 }
-
-                OnGridItems(new GridItemsEventArgs(type, items));
             }
+
+            OnGridItems(new GridItemsEventArgs(type, items));
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
@@ -888,10 +883,10 @@ namespace OpenMetaverse
             CoarseLocationUpdatePacket coarse = (CoarseLocationUpdatePacket)e.Packet;
 
             // populate a dictionary from the packet, for local use
-            var coarseEntries = new Dictionary<UUID, Vector3>();
-            for (int i = 0; i < coarse.AgentData.Length; i++)
+            var coarseEntries = new Dictionary<UUID, Vector3>(coarse.AgentData.Length);
+            for (var i = 0; i < coarse.AgentData.Length; i++)
             {
-                if(coarse.Location.Length > 0)
+                if (i < coarse.Location.Length)
                     coarseEntries[coarse.AgentData[i].AgentID] = new Vector3(coarse.Location[i].X, coarse.Location[i].Y, coarse.Location[i].Z * 4);
 
                 // the friend we are tracking on radar
@@ -900,31 +895,28 @@ namespace OpenMetaverse
             }
 
             // find stale entries (people who left the sim)
-            var removedEntries = e.Simulator.avatarPositions.Keys.Where(
-                avatarId => !coarseEntries.ContainsKey(avatarId))
+            var coarseKeys = new HashSet<UUID>(coarseEntries.Keys);
+            var removedEntries = e.Simulator.avatarPositions.Keys
+                .Where(avatarId => !coarseKeys.Contains(avatarId))
                 .ToList();
 
             // entry not listed in the previous update
-            var newEntries = new List<UUID>();
-
-            lock (e.Simulator.avatarPositions)
+            var newEntries = new List<UUID>(coarse.AgentData.Length);
+            
+            // remove stale entries
+            foreach (var trackedID in removedEntries)
             {
-                // remove stale entries
-                foreach (var trackedID in removedEntries)
-                {
-                    e.Simulator.avatarPositions.TryRemove(trackedID, out var removed);
-                }
+                e.Simulator.avatarPositions.TryRemove(trackedID, out var removed);
+            }
 
-                // add or update tracked info, and record who is new
-                foreach (var entry in coarseEntries)
+            // add or update tracked info, and record who is new
+            foreach (var entry in coarseEntries)
+            {
+                if (!e.Simulator.avatarPositions.TryGetValue(entry.Key, out _))
                 {
-                    if (!e.Simulator.avatarPositions.ContainsKey(entry.Key))
-                    {
-                        newEntries.Add(entry.Key);
-                    }
-                    e.Simulator.avatarPositions.AddOrUpdate(entry.Key, entry.Value, 
-                        (uuid, vector3) => entry.Value);
+                    newEntries.Add(entry.Key);
                 }
+                e.Simulator.avatarPositions[entry.Key] = entry.Value;
             }
 
             if (m_CoarseLocationUpdate != null)
@@ -963,9 +955,9 @@ namespace OpenMetaverse
 
         public CoarseLocationUpdateEventArgs(Simulator simulator, ICollection<UUID> newEntries, ICollection<UUID> removedEntries)
         {
-            this.Simulator = simulator;
-            this.NewEntries = newEntries;
-            this.RemovedEntries = removedEntries;
+            Simulator = simulator;
+            NewEntries = newEntries;
+            RemovedEntries = removedEntries;
         }
     }
 
@@ -975,7 +967,7 @@ namespace OpenMetaverse
 
         public GridRegionEventArgs(GridRegion region)
         {
-            this.Region = region;
+            Region = region;
         }
     }
 
@@ -985,7 +977,7 @@ namespace OpenMetaverse
 
         public GridLayerEventArgs(GridLayer layer)
         {
-            this.Layer = layer;
+            Layer = layer;
         }
     }
 
@@ -996,8 +988,8 @@ namespace OpenMetaverse
 
         public GridItemsEventArgs(GridItemType type, List<MapItem> items)
         {
-            this.Type = type;
-            this.Items = items;
+            Type = type;
+            Items = items;
         }
     }
 
@@ -1008,8 +1000,8 @@ namespace OpenMetaverse
 
         public RegionHandleReplyEventArgs(UUID regionID, ulong regionHandle)
         {
-            this.RegionID = regionID;
-            this.RegionHandle = regionHandle;
+            RegionID = regionID;
+            RegionHandle = regionHandle;
         }
     }
 

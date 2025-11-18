@@ -1028,7 +1028,7 @@ namespace OpenMetaverse
 
             Client.Network.SendPacket(degrab, simulator);
         }
-
+        
         /// <summary>
         /// Create (rez) a new prim object in a simulator
         /// </summary>
@@ -1533,7 +1533,7 @@ namespace OpenMetaverse
                 ObjectData = new ObjectDescriptionPacket.ObjectDataBlock[localIDs.Length]
             };
 
-            for (int i = 0; i < localIDs.Length; ++i)
+            for (var i = 0; i < localIDs.Length; ++i)
             {
                 descPacket.ObjectData[i] = new ObjectDescriptionPacket.ObjectDataBlock
                 {
@@ -1621,7 +1621,7 @@ namespace OpenMetaverse
                 ObjectData = new ObjectDetachPacket.ObjectDataBlock[localIDs.Count]
             };
 
-            for (int i = 0; i < localIDs.Count; i++)
+            for (var i = 0; i < localIDs.Count; i++)
             {
                 detach.ObjectData[i] = new ObjectDetachPacket.ObjectDataBlock
                 {
@@ -1804,7 +1804,7 @@ namespace OpenMetaverse
                 ObjectData = new ObjectOwnerPacket.ObjectDataBlock[localIDs.Count]
             };
 
-            for (int i = 0; i < localIDs.Count; i++)
+            for (var i = 0; i < localIDs.Count; i++)
             {
                 packet.ObjectData[i] = new ObjectOwnerPacket.ObjectDataBlock
                 {
@@ -1840,7 +1840,7 @@ namespace OpenMetaverse
                 ObjectData = new ObjectPermissionsPacket.ObjectDataBlock[localIDs.Count]
             };
 
-            for (int i = 0; i < localIDs.Count; i++)
+            for (var i = 0; i < localIDs.Count; i++)
             {
                 packet.ObjectData[i] = new ObjectPermissionsPacket.ObjectDataBlock
                 {
@@ -1912,7 +1912,7 @@ namespace OpenMetaverse
                 ObjectData = new ObjectGroupPacket.ObjectDataBlock[localIds.Count]
             };
 
-            for (int i = 0; i < localIds.Count; i++)
+            for (var i = 0; i < localIds.Count; i++)
             {
                 packet.ObjectData[i] = new ObjectGroupPacket.ObjectDataBlock
                 {
@@ -2320,14 +2320,14 @@ namespace OpenMetaverse
                     string[] lines = nameValue.Split('\n');
                     nameValues = new NameValue[lines.Length];
 
-                    for (int i = 0; i < lines.Length; i++)
+                    for (var i = 0; i < lines.Length; i++)
                     {
-                        if (!string.IsNullOrEmpty(lines[i]))
-                        {
-                            NameValue nv = new NameValue(lines[i]);
-                            if (nv.Name == "AttachItemID") attachment = true;
-                            nameValues[i] = nv;
-                        }
+                        if (string.IsNullOrEmpty(lines[i])) 
+                            continue;
+                        
+                        NameValue nv = new NameValue(lines[i]);
+                        if (nv.Name == "AttachItemID") attachment = true;
+                        nameValues[i] = nv;
                     }
                 }
                 else
@@ -2366,7 +2366,7 @@ namespace OpenMetaverse
                 #endregion
 
                 #region Decode Additional packed parameters in ObjectData
-                int pos = 0;
+                var pos = 0;
                 switch (block.ObjectData.Length)
                 {
                     case 76:
@@ -3027,13 +3027,13 @@ namespace OpenMetaverse
                             string[] lines = text.Split('\n');
                             prim.NameValues = new NameValue[lines.Length];
 
-                            for (int j = 0; j < lines.Length; j++)
+                            for (var j = 0; j < lines.Length; j++)
                             {
-                                if (!string.IsNullOrEmpty(lines[j]))
-                                {
-                                    NameValue nv = new NameValue(lines[j]);
-                                    prim.NameValues[j] = nv;
-                                }
+                                if (string.IsNullOrEmpty(lines[j])) 
+                                    continue;
+                                
+                                NameValue nv = new NameValue(lines[j]);
+                                prim.NameValues[j] = nv;
                             }
                         }
                     }
@@ -3268,7 +3268,7 @@ namespace OpenMetaverse
 
                 int numTextures = objectData.TextureID.Length / 16;
                 props.TextureIDs = new UUID[numTextures];
-                for (int j = 0; j < numTextures; ++j)
+                for (var j = 0; j < numTextures; ++j)
                     props.TextureIDs[j] = new UUID(objectData.TextureID, j * 16);
 
                 if (Client.Settings.OBJECT_TRACKING)
@@ -3363,7 +3363,7 @@ namespace OpenMetaverse
                 int defaultPrice = p.ObjectData.DefaultPayPrice;
                 int[] buttonPrices = new int[p.ButtonData.Length];
 
-                for (int i = 0; i < p.ButtonData.Length; i++)
+                for (var i = 0; i < p.ButtonData.Length; i++)
                 {
                     buttonPrices[i] = p.ButtonData[i].PayButton;
                 }
@@ -3694,11 +3694,11 @@ namespace OpenMetaverse
             {
                 int start = Environment.TickCount;
 
-                int interval = Environment.TickCount - Client.Self.lastInterpolation;
+                int interval = unchecked(Environment.TickCount - Client.Self.lastInterpolation);
                 float seconds = interval / 1000f;
 
                 // Iterate through all simulators
-                var sims = Client.Network.Simulators.ToImmutableArray();
+                var sims = Client.Network.Simulators.ToArray();
                 foreach (var sim in sims)
                 {
                     float adjSeconds = seconds * sim.Stats.Dilation;
@@ -3709,66 +3709,97 @@ namespace OpenMetaverse
                         #region Linear Motion
 
                         var av = avatar.Value;
+                        
+                        Vector3 velocity, acceleration, position;
                         lock (av)
                         {
-                            if (av.Acceleration != Vector3.Zero)
-                            {
-                                av.Velocity += av.Acceleration * adjSeconds;
-                            }
+                            velocity = av.Velocity;
+                            acceleration = av.Acceleration;
+                            position = av.Position;
+                        }
 
-                            if (av.Velocity != Vector3.Zero)
-                            {
-                                av.Position += (av.Velocity) * adjSeconds;
-                            }
+                        if (acceleration != Vector3.Zero)
+                        {
+                            velocity += acceleration * adjSeconds;
+                        }
+
+                        if (velocity != Vector3.Zero)
+                        {
+                            position += velocity * adjSeconds;
+                        }
+
+                        lock (av)
+                        {
+                            av.Velocity = velocity;
+                            av.Position = position;
                         }
 
                         #endregion Linear Motion
                     }
 
                     // Iterate through all the simulator's primitives
-
                     foreach (var prim in sim.ObjectsPrimitives)
                     {
                         var pv = prim.Value;
+                        
+                        JointType joint;
+                        Vector3 angVel, velocity, acceleration, position;
+                        Quaternion rotation;
+                        
                         lock (pv)
                         {
-                            if (pv.Joint == JointType.Invalid)
-                            {
-                                Vector3 angVel = pv.AngularVelocity;
-                                float omega = angVel.LengthSquared();
+                            joint = pv.Joint;
+                            angVel = pv.AngularVelocity;
+                            velocity = pv.Velocity;
+                            acceleration = pv.Acceleration;
+                            position = pv.Position;
+                            rotation = pv.Rotation;
+                        }
 
-                                if (omega > 0.00001f)
+                        switch (joint)
+                        {
+                            case JointType.Invalid:
+                            {
+                                const float omegaThresholdSquared = 0.00001f;
+                                float omegaSquared = angVel.LengthSquared();
+
+                                if (omegaSquared > omegaThresholdSquared)
                                 {
-                                    omega = (float)Math.Sqrt(omega);
+                                    float omega = (float)Math.Sqrt(omegaSquared);
                                     float angle = omega * adjSeconds;
-                                    angVel *= 1.0f / omega;
-                                    Quaternion dQ = Quaternion.CreateFromAxisAngle(angVel, angle);
+                                    Vector3 normalizedAngVel = angVel * (1.0f / omega);
+                                    Quaternion dQ = Quaternion.CreateFromAxisAngle(normalizedAngVel, angle);
 
-                                    pv.Rotation *= dQ;
+                                    rotation *= dQ;
                                 }
 
-                                // Only do movement interpolation (extrapolation) when there is a non-zero velocity but 
-                                // no acceleration
-                                if (pv.Acceleration != Vector3.Zero && pv.Velocity == Vector3.Zero)
+                                // Only do movement interpolation (extrapolation) when there is non-zero velocity
+                                // but no acceleration
+                                if (velocity != Vector3.Zero && acceleration == Vector3.Zero)
                                 {
-                                    pv.Position += (pv.Velocity + pv.Acceleration *
+                                    position += (velocity + acceleration *
                                         (0.5f * (adjSeconds - HAVOK_TIMESTEP))) * adjSeconds;
-                                    pv.Velocity += pv.Acceleration * adjSeconds;
+                                    velocity += acceleration * adjSeconds;
                                 }
+
+                                lock (pv)
+                                {
+                                    pv.Position = position;
+                                    pv.Velocity = velocity;
+                                    pv.Rotation = rotation;
+                                }
+
+                                break;
                             }
-                            else if (pv.Joint == JointType.Hinge)
-                            {
+                            case JointType.Hinge:
                                 //FIXME: Hinge movement extrapolation
-                            }
-                            else if (pv.Joint == JointType.Point)
-                            {
+                                break;
+                            case JointType.Point:
                                 //FIXME: Point movement extrapolation
-                            }
-                            else
-                            {
-                                Logger.Log($"Unhandled joint type {pv.Joint}", Helpers.LogLevel.Warning,
-                                    Client);
-                            }
+                                break;
+                            default:
+                                Logger.Log($"Unhandled joint type {joint}", Helpers.LogLevel.Warning, Client);
+                                break;
                         }
                     }
                 }
@@ -3782,7 +3813,6 @@ namespace OpenMetaverse
             // Start the timer again. Use a minimum of a 50ms pause in between calculations
             int delay = Math.Max(50, Client.Settings.INTERPOLATION_INTERVAL - elapsed);
             InterpolationTimer?.Change(delay, Timeout.Infinite);
-
         }
     }
     #region EventArgs classes
