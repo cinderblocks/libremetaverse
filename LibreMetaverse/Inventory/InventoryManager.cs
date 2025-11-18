@@ -28,7 +28,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenMetaverse.Messages.Linden;
@@ -450,7 +449,21 @@ namespace OpenMetaverse
 
                 if (inventory == null)
                 {
-                    inventory = _Store.GetContents(folder);
+                    try
+                    {
+                        if (_Store != null)
+                        {
+                            inventory = _Store.GetContents(folder);
+                        }
+                        else
+                        {
+                            inventory = new List<InventoryBase>();
+                        }
+                    }
+                    catch (InventoryException)
+                    {
+                        inventory = new List<InventoryBase>();
+                    }
                 }
 
                 return inventory;
@@ -537,20 +550,22 @@ namespace OpenMetaverse
                                 var res = (OSDMap)fetchedFolderNr;
                                 InventoryFolder fetchedFolder;
 
-                                if (_Store.Contains(res["folder_id"])
-                                    && _Store[res["folder_id"]] is InventoryFolder invFolder)
+                                if (_Store.TryGetValue(res["folder_id"], out var invFolder) && invFolder is InventoryFolder folderCast)
                                 {
-                                    fetchedFolder = invFolder;
+                                    fetchedFolder = folderCast;
                                 }
                                 else
                                 {
                                     fetchedFolder = new InventoryFolder(res["folder_id"]);
-                                    _Store[res["folder_id"]] = fetchedFolder;
+                                    _Store[fetchedFolder.UUID] = fetchedFolder;
                                 }
                                 fetchedFolder.DescendentCount = res["descendents"];
                                 fetchedFolder.Version = res["version"];
                                 fetchedFolder.OwnerID = res["owner_id"];
-                                _Store.GetNodeFor(fetchedFolder.UUID).NeedsUpdate = false;
+                                if (_Store != null && _Store.TryGetNodeFor(fetchedFolder.UUID, out var fetchedNode))
+                                {
+                                    fetchedNode.NeedsUpdate = false;
+                                }
 
                                 // Do we have any descendants
                                 if (fetchedFolder.DescendentCount > 0)
@@ -564,7 +579,10 @@ namespace OpenMetaverse
                                             InventoryFolder folder;
                                             UUID folderID = descFolder.TryGetValue("category_id", out var category_id)
                                                 ? category_id : descFolder["folder_id"];
-                                            if (!_Store.Contains(folderID))
+
+                                            if (!(_Store != null 
+                                                  && _Store.TryGetValue(folderID, out var existing) 
+                                                  && existing is InventoryFolder existingFolder))
                                             {
                                                 folder = new InventoryFolder(folderID)
                                                 {
@@ -574,8 +592,9 @@ namespace OpenMetaverse
                                             }
                                             else
                                             {
-                                                folder = (InventoryFolder)_Store[folderID];
+                                                folder = existingFolder;
                                             }
+
                                             folder.OwnerID = descFolder["agent_id"];
                                             folder.Name = descFolder["name"];
                                             folder.Version = descFolder["version"];
@@ -643,6 +662,13 @@ namespace OpenMetaverse
             if (_Store == null)
             {
                 Logger.Log("Inventory is null, FindFolderForType() lookup cannot continue",
+                    Helpers.LogLevel.Error, Client);
+                return UUID.Zero;
+            }
+
+            if (_Store.RootFolder == null)
+            {
+                Logger.Log("Inventory RootFolder not initialized, FindFolderForType() lookup cannot continue",
                     Helpers.LogLevel.Error, Client);
                 return UUID.Zero;
             }
@@ -831,10 +857,12 @@ namespace OpenMetaverse
             _storeLock.EnterUpgradeableReadLock();
             try
             {
-                if (_Store != null && _Store.Contains(folderID))
+                if (_Store != null 
+                    && _Store.TryGetValue(folderID, out var storeItem) 
+                    && storeItem is InventoryFolder item)
                 {
                     // Retrieve node under read lock
-                    inv = (InventoryFolder)Store[folderID];
+                    inv = item;
 
                     // Update the folder metadata under write lock
                     _storeLock.EnterWriteLock();
@@ -911,9 +939,10 @@ namespace OpenMetaverse
             _storeLock.EnterWriteLock();
             try
             {
-                if (_Store != null && _Store.Contains(folderID))
+                if (_Store != null 
+                    && _Store.TryGetValue(folderID, out var storeItem) 
+                    && storeItem is InventoryFolder inv)
                 {
-                    var inv = Store[folderID];
                     inv.ParentUUID = newParentID;
                     _Store.UpdateNodeFor(inv);
                 }
@@ -957,9 +986,10 @@ namespace OpenMetaverse
             {
                 foreach (var entry in foldersNewParents)
                 {
-                    if (_Store != null && _Store.Contains(entry.Key))
+                    if (_Store != null 
+                        && _Store.TryGetValue(entry.Key, out var storeItem)
+                        && storeItem is InventoryFolder inv)
                     {
-                        var inv = _Store[entry.Key];
                         inv.ParentUUID = entry.Value;
                         _Store.UpdateNodeFor(inv);
                     }
@@ -1017,9 +1047,8 @@ namespace OpenMetaverse
             _storeLock.EnterWriteLock();
             try
             {
-                if (_Store.Contains(itemID))
+                if (_Store.TryGetValue(itemID, out var storeItem) && storeItem is InventoryItem inv)
                 {
-                    var inv = _Store[itemID];
                     if (!string.IsNullOrEmpty(newName))
                     {
                         inv.Name = newName;
@@ -1066,9 +1095,10 @@ namespace OpenMetaverse
             {
                 foreach (var entry in itemsNewParents)
                 {
-                    if (_Store != null && _Store.Contains(entry.Key))
+                    if (_Store != null 
+                        && _Store.TryGetValue(entry.Key, out var storeItem)
+                        && storeItem is InventoryItem inv)
                     {
-                        var inv = _Store[entry.Key];
                         inv.ParentUUID = entry.Value;
                         _Store.UpdateNodeFor(inv);
                     }
@@ -1294,8 +1324,8 @@ namespace OpenMetaverse
                         rem.ItemData[i] = new RemoveInventoryObjectsPacket.ItemDataBlock { ItemID = items[i] };
 
                         // Update local copy
-                        if (_Store != null && _Store.Contains(items[i]))
-                            _Store.RemoveNodeFor(Store[items[i]]);
+                        if (_Store != null && _Store.TryGetValue(items[i], out var storeItem))
+                            _Store.RemoveNodeFor(storeItem);
                     }
                 }
                 finally
@@ -1321,8 +1351,8 @@ namespace OpenMetaverse
                         rem.FolderData[i] = new RemoveInventoryObjectsPacket.FolderDataBlock { FolderID = folders[i] };
 
                         // Update local copy
-                        if (_Store != null && _Store.Contains(folders[i]))
-                            _Store.RemoveNodeFor(Store[folders[i]]);
+                        if (_Store != null && _Store.TryGetValue(folders[i], out var storeItem))
+                            _Store.RemoveNodeFor(storeItem);
                     }
                 }
                 finally
@@ -2220,7 +2250,7 @@ namespace OpenMetaverse
             Client.Network.SendPacket(add, simulator);
 
             // Remove from store if the item is no copy
-            if (Store.Contains(item.UUID) && Store[item.UUID] is InventoryItem invItem)
+            if (Store.TryGetValue(item.UUID, out var storeItem) && storeItem is InventoryItem invItem)
             {
                 if ((invItem.Permissions.OwnerMask & PermissionMask.Copy) == PermissionMask.None)
                 {
@@ -2286,6 +2316,11 @@ namespace OpenMetaverse
         /// <remarks>This does not remove the folder itself, only its contents</remarks>
         public void EmptyFolder(UUID folderID)
         {
+            if (_Store == null)
+            {
+                Logger.Log("Inventory store not initialized, cannot empty folder", Helpers.LogLevel.Warning, Client);
+                return;
+            }
             if (Client.AisClient.IsAvailable)
             {
                 Client.AisClient.PurgeDescendents(folderID, RemoveLocalUi).ConfigureAwait(false);
@@ -2355,7 +2390,6 @@ namespace OpenMetaverse
             };
 
 
-
             Client.Network.SendPacket(add, simulator);
 
             return queryID;
@@ -2394,11 +2428,11 @@ namespace OpenMetaverse
             }
 
             // Remove from store if the item is no copy
-            if (Store.Contains(itemID) && Store[itemID] is InventoryItem item)
+            if (Store.TryGetValue(itemID, out var storeItem) && storeItem is InventoryItem invItem)
             {
-                if ((item.Permissions.OwnerMask & PermissionMask.Copy) == PermissionMask.None)
+                if ((invItem.Permissions.OwnerMask & PermissionMask.Copy) == PermissionMask.None)
                 {
-                    Store.RemoveNodeFor(item);
+                    Store.RemoveNodeFor(invItem);
                 }
             }
         }
@@ -2781,8 +2815,6 @@ namespace OpenMetaverse
 
         #endregion Task
 
-        #region Helper Functions
-
         /// <summary>
         /// Wrapper for creating a new <see cref="InventoryItem"/> object
         /// </summary>
@@ -2830,8 +2862,8 @@ namespace OpenMetaverse
                 return null;
             }
 
-            if (_Store.Contains(ItemID))
-                ret = _Store[ItemID] as InventoryItem;
+            if (_Store.TryGetValue(ItemID, out var storeItem) && storeItem is InventoryItem inventoryItem)
+                ret = inventoryItem;
 
             return ret ?? (ret = CreateInventoryItem(InvType, ItemID));
         }
@@ -3337,7 +3369,5 @@ namespace OpenMetaverse
             }
             return uri;
         }
-
-        #endregion Helper Functions
     }
 }
