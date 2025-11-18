@@ -371,11 +371,11 @@ namespace OpenMetaverse
 
         private void GenericMessageHandler(object sender, PacketReceivedEventArgs e)
         {
-            if (e.Packet is GenericMessagePacket message)
-            {
-                string method = Utils.BytesToString(message.MethodData.Method);
-                Logger.Log("Received Unhandled Generic Message: " + method, Helpers.LogLevel.Info, Client);
-            }
+            if (!(e.Packet is GenericMessagePacket message)) 
+                return;
+            
+            var method = Utils.BytesToString(message.MethodData.Method);
+            Logger.Log("Received Unhandled Generic Message: " + method, Helpers.LogLevel.Info, Client);
         }
 
         /// <summary>
@@ -505,12 +505,12 @@ namespace OpenMetaverse
         {
             long now = DateTimeOffset.Now.ToUnixTimeSeconds();
             long dif = lastpacketwarning - now;
-            if (dif > 10)
-            {
-                lastpacketwarning = now;
-                Logger.Log(source+" is null (Are we disconnected?) - from: " + function,
-                    Helpers.LogLevel.Debug);
-            }
+            if (dif <= 10) 
+                return;
+            
+            lastpacketwarning = now;
+            Logger.Log(source+" is null (Are we disconnected?) - from: " + function,
+                Helpers.LogLevel.Debug);
         }
         
         /// <summary>
@@ -519,15 +519,17 @@ namespace OpenMetaverse
         /// <param name="packet">Incoming packet to process</param>
         public void EnqueueOutgoing(OutgoingPacket packet)
         {
-            if (_packetOutbox != null)
-            {
-                if (_packetOutbox.Writer.TryWrite(packet))
-                    Interlocked.Increment(ref _packetOutboxCount);
-            }
-            else
+            if (_packetOutbox == null)
             {
                 NetworkInvalidWarning("_packetOutbox", "EnqueueOutgoing");
+                return;
             }
+            
+            if (_packetOutbox.Writer.TryWrite(packet))
+            {
+                Interlocked.Increment(ref _packetOutboxCount);
+            }
+
         }
 
         /// <summary>
@@ -665,18 +667,17 @@ namespace OpenMetaverse
 
                     return simulator;
                 }
-                else
-                {
-                    // Connection failed, remove this simulator from our list and destroy it
-                    lock (Simulators)
-                    {
-                        Simulators.Remove(simulator);
-                    }
 
-                    return null;
-                }
+                // Connection failed, remove this simulator from our list and destroy it
+                lock (Simulators)
+                {
+                    Simulators.Remove(simulator);
+                }                 
+
+                return null;
             }
-            else if (setDefault)
+            
+            if (setDefault)
             {
                 Logger.Log($"Moving to another simulator; sending CompleteAgentMovement to {simulator.Name}",
                     Helpers.LogLevel.Info, Client);
@@ -696,12 +697,11 @@ namespace OpenMetaverse
 
                 return simulator;
             }
-            else
-            {
-                // Already connected to this simulator and wasn't asked to set it as the default,
-                // just return a reference to the existing object
-                return simulator;
-            }
+
+            // Already connected to this simulator and wasn't asked to set it as the default,
+            // just return a reference to the existing object
+            return simulator;
+            
         }
 
         /// <summary>
@@ -965,79 +965,75 @@ namespace OpenMetaverse
 
         private async Task OutgoingPacketHandler()
         {
-            if (_packetOutbox != null)
-            {
-                var reader = _packetOutbox.Reader;
-
-                // FIXME: This is kind of ridiculous. Port the HTB code from Simian over ASAP!	
-                var stopwatch = new System.Diagnostics.Stopwatch();
-
-                while (await reader.WaitToReadAsync() && Connected)
-                {
-                    while (reader.TryRead(out var outgoingPacket))
-                    {
-                        Interlocked.Decrement(ref _packetOutboxCount);
-
-                        var simulator = outgoingPacket.Simulator;
-
-                        stopwatch.Stop();
-                        if (stopwatch.ElapsedMilliseconds < 10)
-                        {
-                            //Logger.DebugLog(String.Format("Rate limiting, last packet was {0}ms ago", ms));	
-                            Thread.Sleep(10 - (int)stopwatch.ElapsedMilliseconds);
-                        }
-
-                        simulator.SendPacketFinal(outgoingPacket);
-                        stopwatch.Start();
-                    }
-                }
-            }
-            else
+            if (_packetOutbox == null)
             {
                 NetworkInvalidWarning("_packetOutbox", "OutgoingPacketHandler");
+                return;
             }
 
+            // FIXME: This is kind of ridiculous. Port the HTB code from Simian over ASAP!
+            var reader = _packetOutbox.Reader;
+            var stopwatch = new System.Diagnostics.Stopwatch();
+            stopwatch.Start();
+            
+            while (await reader.WaitToReadAsync() && Connected)
+            {
+                while (reader.TryRead(out var outgoingPacket))
+                {
+                    Interlocked.Decrement(ref _packetOutboxCount);
+
+                    var simulator = outgoingPacket.Simulator;
+
+                    var elapsed = stopwatch.ElapsedMilliseconds;
+                    if (elapsed < 10)
+                    {
+                        await Task.Delay(10 - (int)elapsed);
+                    }
+                    simulator.SendPacketFinal(outgoingPacket);
+                    stopwatch.Restart();
+                }
+            }
         }
 
         private async Task IncomingPacketHandler()
         {
-            if (_packetInbox != null)
-            {
-                var reader = _packetInbox.Reader;
-
-                while (await reader.WaitToReadAsync() && Connected)
-                {
-                    while (reader.TryRead(out var incomingPacket))
-                    {
-                        Interlocked.Decrement(ref _packetInboxCount);
-
-                        var packet = incomingPacket.Packet;
-                        var simulator = incomingPacket.Simulator;
-
-                        if (packet == null) continue;
-
-                        // Skip blacklisted packets
-                        if (UDPBlacklist.Contains(packet.Type))
-                        {
-                            Logger.Log($"Discarding Blacklisted packet {packet.Type} from {simulator.IPEndPoint}",
-                                Helpers.LogLevel.Warning);
-                            return;
-                        }
-
-                        // Fire the callback(s), if any
-                        PacketEvents.RaiseEvent(packet.Type, packet, simulator);
-                    }
-                }
-            }
-            else
+            if (_packetInbox == null)
             {
                 NetworkInvalidWarning("_packetInbox", "IncomingPacketHandler");
+                return;
+            }
+
+            var reader = _packetInbox.Reader;
+
+            while (await reader.WaitToReadAsync() && Connected)
+            {
+                while (reader.TryRead(out var incomingPacket))
+                {
+                    Interlocked.Decrement(ref _packetInboxCount);
+
+                    var packet = incomingPacket.Packet;
+                    var simulator = incomingPacket.Simulator;
+
+                    if (packet == null) continue;
+
+                    // Skip blacklisted packets
+                    if (UDPBlacklist.Contains(packet.Type))
+                    {
+                        Logger.Log($"Discarding Blacklisted packet {packet.Type} from {simulator.IPEndPoint}",
+                            Helpers.LogLevel.Warning);
+                        return;
+                    }
+
+                    // Fire the callback(s), if any
+                    PacketEvents.RaiseEvent(packet.Type, packet, simulator);
+                }
             }
         }
 
         private void SetCurrentSim(Simulator simulator, Uri seedcaps)
         {
-            if (simulator == CurrentSim) return;
+            if (simulator == CurrentSim) 
+                return;
 
             Simulator oldSim = CurrentSim;
             lock (Simulators) CurrentSim = simulator; // CurrentSim is synchronized against Simulators
@@ -1425,18 +1421,18 @@ namespace OpenMetaverse
 
     public class SimDisconnectedEventArgs : EventArgs
     {
-            public Simulator Simulator { get; }
+        public Simulator Simulator { get; }
 
-            public NetworkManager.DisconnectType Reason { get; }
+        public NetworkManager.DisconnectType Reason { get; }
 
-            public bool WasConnected { get; }
+        public bool WasConnected { get; }
 
-            public SimDisconnectedEventArgs(Simulator simulator, NetworkManager.DisconnectType reason, bool wasConnected)
-            {
-                Simulator = simulator;
-                Reason = reason;
-                WasConnected = wasConnected;
-            }
+        public SimDisconnectedEventArgs(Simulator simulator, NetworkManager.DisconnectType reason, bool wasConnected)
+        {
+            Simulator = simulator;
+            Reason = reason;
+            WasConnected = wasConnected;
+        }
     }
 
     public class DisconnectedEventArgs : EventArgs
