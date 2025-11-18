@@ -1322,9 +1322,6 @@ namespace OpenMetaverse
     {
         #region Delegates
 
-
-        //////LoginProgress
-        //// LoginProgress
         /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<LoginProgressEventArgs> m_LoginProgress;
 
@@ -1340,8 +1337,7 @@ namespace OpenMetaverse
         /// <summary>Thread sync lock object</summary>
         private readonly object m_LoginProgressLock = new object();
 
-        /// <summary>Raised when the simulator sends us data containing
-        /// ...</summary>
+        /// <summary>Raised when the simulator sends us data containing</summary>
         public event EventHandler<LoginProgressEventArgs> LoginProgress
         {
             add { lock (m_LoginProgressLock) { m_LoginProgress += value; } }
@@ -1393,6 +1389,7 @@ namespace OpenMetaverse
         #endregion Events
 
         #region Public Members
+
         /// <summary>Seed CAPS URI returned from the login server</summary>
         public Uri LoginSeedCapability { get; private set; } = null;
         /// <summary>Current state of logging in</summary>
@@ -1418,7 +1415,8 @@ namespace OpenMetaverse
         public string AgentAppearanceServiceURL;
         /// <summary>Parsed login response data</summary>
         public LoginResponseData LoginResponseData;
-        #endregion
+
+        #endregion Public Members
 
         #region Private Members
 
@@ -1435,7 +1433,15 @@ namespace OpenMetaverse
         /// <summary>A list of packets obtained during the login process which 
         /// NetworkManager will log but not process</summary>
         private readonly List<PacketType> UDPBlacklist = new List<PacketType>();
-        #endregion
+
+        // MAC Caching
+        private static readonly object s_macLock = new object();
+        private static string s_cachedMac = null;
+        private static DateTime s_cachedMacTimestamp = DateTime.MinValue;
+        /// <summary>Cache TTL in seconds</summary>
+        private const int MAC_CACHE_TTL_SECONDS = 300;
+
+        #endregion Private Members
 
         #region Public Methods
 
@@ -2235,38 +2241,72 @@ namespace OpenMetaverse
         /// <returns>A string containing the first found Mac Address</returns>
         public static string GetMAC()
         {
-            var mac = string.Empty;
-
-            try
+            var now = DateTime.UtcNow;
+            if (s_cachedMac != null && (now - s_cachedMacTimestamp).TotalSeconds < MAC_CACHE_TTL_SECONDS)
             {
-                var nics =
-                    System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces();
+                return s_cachedMac;
+            }
 
-                if (nics.Length > 0)
+            lock (s_macLock)
+            {
+                now = DateTime.UtcNow;
+                if (s_cachedMac != null && (now - s_cachedMacTimestamp).TotalSeconds < MAC_CACHE_TTL_SECONDS)
                 {
-                    foreach (var t in nics)
+                    return s_cachedMac;
+                }
+
+                var mac = string.Empty;
+
+                try
+                {
+                    var nics = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces();
+
+                    if (nics.Length > 0)
                     {
-                        var adapterMac = t.GetPhysicalAddress().ToString().ToUpper();
-                        if (adapterMac.Length == 12 && adapterMac != "000000000000")
+                        foreach (var t in nics)
                         {
-                            mac = adapterMac;
-                            break;
+                            var adapterMac = t.GetPhysicalAddress().ToString().ToUpper();
+                            if (adapterMac.Length == 12 && adapterMac != "000000000000")
+                            {
+                                mac = adapterMac;
+                                break;
+                            }
                         }
                     }
                 }
+                catch { }
+
+                if (mac.Length < 12)
+                    mac = UUID.Random().ToString().Substring(24, 12);
+
+                var formatted =
+                    $"{mac.Substring(0, 2)}:{mac.Substring(2, 2)}:{mac.Substring(4, 2)}:{mac.Substring(6, 2)}:{mac.Substring(8, 2)}:{mac.Substring(10, 2)}";
+
+                s_cachedMac = formatted;
+                s_cachedMacTimestamp = DateTime.UtcNow;
+                return s_cachedMac;
             }
-            catch { }
+        }
 
-            if (mac.Length < 12)
-                mac = UUID.Random().ToString().Substring(24, 12);
+        /// <summary>
+        /// Force a refresh of the cached MAC address.
+        /// </summary>
+        /// <remarks>
+        /// This method is thread-safe. It clears the cached value and then triggers
+        /// an immediate synchronous re-evaluation of the system network interfaces
+        /// so that subsequent calls to <see cref="GetMAC"/> will return the up-to-date value.
+        /// Call this after network interface changes if you require the MAC to be refreshed immediately.
+        /// </remarks>
+        public static void RefreshMac()
+        {
+            // Clear the cached value under lock
+            lock (s_macLock)
+            {
+                s_cachedMac = null;
+                s_cachedMacTimestamp = DateTime.MinValue;
+            }
 
-            return string.Format("{0}:{1}:{2}:{3}:{4}:{5}",
-                mac.Substring(0, 2),
-                mac.Substring(2, 2),
-                mac.Substring(4, 2),
-                mac.Substring(6, 2),
-                mac.Substring(8, 2),
-                mac.Substring(10, 2));
+            try { GetMAC(); } catch { /*Swallow any exceptions; GetMAC already handles errors internally*/ }
         }
 
         /// <summary>
