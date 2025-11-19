@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2019-2024, Sjofn LLC.
+ * Copyright (c) 2019-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -283,6 +283,86 @@ namespace OpenMetaverse
     /// </summary>
     public class AssetManager
     {
+        private bool _disposed;
+
+        /// <summary>
+        /// Dispose resources, unregister callbacks and cancel outstanding transfers
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                try
+                {
+                    if (Client?.Network != null)
+                    {
+                        try { Client.Network.UnregisterCallback(PacketType.TransferInfo, TransferInfoHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.TransferPacket, TransferPacketHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.RequestXfer, RequestXferHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.ConfirmXferPacket, ConfirmXferPacketHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.AssetUploadComplete, AssetUploadCompleteHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.SendXferPacket, SendXferPacketHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.AbortXfer, AbortXferHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.InitiateDownload, InitiateDownloadPacketHandler); } catch { }
+                    }
+                }
+                catch { }
+
+                // Dispose download manager
+                try { HttpDownloads?.Dispose(); } catch { }
+
+                // Dispose cache if disposable
+                try { (Cache as IDisposable)?.Dispose(); } catch { }
+
+                // Cancel any pending upload
+                try
+                {
+                    lock (PendingUploadLock)
+                    {
+                        PendingUpload = null;
+                        WaitingForUploadConfirm = false;
+                    }
+                }
+                catch { }
+
+                // Cancel outstanding transfers and dispose header events
+                try
+                {
+                    lock (Transfers)
+                    {
+                        foreach (var kv in Transfers)
+                        {
+                            var t = kv.Value;
+                            if (t is AssetDownload ad)
+                            {
+                                try { ad.HeaderReceivedEvent?.Set(); } catch { }
+                                try { ad.HeaderReceivedEvent?.Dispose(); } catch { }
+                                try { ad.Callback?.Invoke(ad, null); } catch { }
+                            }
+                            else if (t is ImageDownload id)
+                            {
+                                try { id.HeaderReceivedEvent?.Set(); } catch { }
+                                try { id.HeaderReceivedEvent?.Dispose(); } catch { }
+                            }
+                        }
+
+                        Transfers.Clear();
+                    }
+                }
+                catch { }
+            }
+
+            _disposed = true;
+        }
+
         /// <summary>Number of milliseconds to wait for a transfer header packet if out of order data was received</summary>
         private const int TRANSFER_HEADER_TIMEOUT = 1000 * 15;
 
