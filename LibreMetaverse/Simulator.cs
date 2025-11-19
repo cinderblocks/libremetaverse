@@ -549,7 +549,7 @@ namespace OpenMetaverse
         internal bool DisconnectCandidate = false;
         /// <summary>Event that is triggered when the simulator successfully
         /// establishes a connection</summary>
-        internal ManualResetEvent ConnectedEvent = new ManualResetEvent(false);
+        internal ManualResetEventSlim ConnectedEvent = new ManualResetEventSlim(false);
         /// <summary>Whether this sim is currently connected or not. Hooked up
         /// to the property Connected</summary>
         internal bool connected;
@@ -625,7 +625,7 @@ namespace OpenMetaverse
         internal bool _DownloadingParcelMap = false;
 
 
-        private readonly ManualResetEvent GotUseCircuitCodeAck = new ManualResetEvent(false);
+        private readonly ManualResetEventSlim GotUseCircuitCodeAck = new ManualResetEventSlim(false);
         
         #endregion Internal/Private Members
 
@@ -785,7 +785,7 @@ namespace OpenMetaverse
             if (!disposing) return;
 
             StopTimerTasks();
-            ConnectedEvent?.Close();
+            ConnectedEvent?.Dispose();
 
             // Force all the CAPS connections closed for this simulator
             Caps?.Disconnect(true);
@@ -834,7 +834,7 @@ namespace OpenMetaverse
                     Client.Self.CompleteAgentMovement(this);
                 }
 
-                if (!ConnectedEvent.WaitOne(Client.Settings.LOGIN_TIMEOUT, false))
+                if (!ConnectedEvent.Wait(Client.Settings.LOGIN_TIMEOUT))
                 {
                     Logger.Log($"Giving up waiting for RegionHandshake for {this}",
                         Helpers.LogLevel.Warning, Client);
@@ -890,7 +890,7 @@ namespace OpenMetaverse
             
             if (waitForAck)
             {
-                if (!GotUseCircuitCodeAck.WaitOne(Client.Settings.LOGIN_TIMEOUT, false))
+                if (!GotUseCircuitCodeAck.Wait(Client.Settings.LOGIN_TIMEOUT))
                 {
                     Logger.Log("Failed to get ACK for UseCircuitCode packet", Helpers.LogLevel.Error, Client);
                 }
