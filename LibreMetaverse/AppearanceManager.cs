@@ -133,7 +133,7 @@ namespace OpenMetaverse
         : base(message) { }
     }
 
-    public class AppearanceManager
+    public class AppearanceManager : IDisposable
     {
         #region Constants
         /// <summary>Mask for multiple attachments</summary>
@@ -407,11 +407,80 @@ namespace OpenMetaverse
         /// </summary>
         private bool ServerBakingDone = false;
 
+        private bool _disposed = false;
+
         private static readonly ParallelOptions _parallelOptions = new ParallelOptions()
         {
             MaxDegreeOfParallelism = MAX_CONCURRENT_DOWNLOADS
         };
 
+        /// <summary>
+        /// Dispose resources, unregister callbacks and event handlers
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) { return; }
+            _disposed = true;
+
+            if (!disposing) { return; }
+
+            try
+            {
+                // Unregister packet callbacks
+                try { Client?.Network?.UnregisterCallback(PacketType.AgentWearablesUpdate, AgentWearablesUpdateHandler); } catch { }
+                try { Client?.Network?.UnregisterCallback(PacketType.AgentCachedTextureResponse, AgentCachedTextureResponseHandler); } catch { }
+                try { Client?.Network?.UnregisterCallback(PacketType.RebakeAvatarTextures, RebakeAvatarTexturesHandler); } catch { }
+
+                // Unsubscribe from events
+                try { if (Client?.Objects != null) Client.Objects.ObjectUpdate -= Objects_AttachmentUpdate; } catch { }
+
+                if (Client?.Network != null)
+                {
+                    try { Client.Network.Disconnected -= Network_OnDisconnected; } catch { }
+                    try { Client.Network.SimChanged -= Network_OnSimChanged; } catch { }
+
+                    if (Client.Network.CurrentSim?.Caps != null)
+                    {
+                        try { Client.Network.CurrentSim.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived; } catch { }
+                    }
+                }
+            }
+            catch { }
+
+            // Cancel and dispose cancellation token source
+            try
+            {
+                if (AppearanceCts != null)
+                {
+                    try { AppearanceCts.Cancel(); } catch { }
+                    try { AppearanceCts.Dispose(); } catch { }
+                    AppearanceCts = null;
+                }
+            }
+            catch { }
+
+            // Dispose timer
+            try
+            {
+                RebakeScheduleTimer?.Dispose();
+                RebakeScheduleTimer = null;
+            }
+            catch { }
+
+            // Clear thread references/state
+            try
+            {
+                AppearanceThread = null;
+                Interlocked.Exchange(ref AppearanceThreadRunning, 0);
+            }
+            catch { }
+        }
         #endregion Private Members
 
         /// <summary>
