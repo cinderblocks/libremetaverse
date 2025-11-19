@@ -968,7 +968,8 @@ namespace OpenMetaverse
         #endregion Delegates
 
         private GridClient Client;
-        private AutoResetEvent WaitForSimParcel;
+        private TaskCompletionSource<bool> WaitForSimParcelTcs;
+        private readonly object WaitForSimParcelLock = new object();
 
         #region Public Methods
 
@@ -1033,8 +1034,11 @@ namespace OpenMetaverse
 
                 try
                 {
-                    WaitForSimParcel?.Dispose();
-                    WaitForSimParcel = null;
+                    lock (WaitForSimParcelLock)
+                    {
+                        try { WaitForSimParcelTcs?.TrySetCanceled(); } catch { }
+                        WaitForSimParcelTcs = null;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -1217,12 +1221,10 @@ namespace OpenMetaverse
                 return;
             }
 
-            _PrepareRequestParcelProperties(simulator, refresh);
+            PrepareRequestParcelProperties(simulator, refresh);
             
-            ThreadPool.QueueUserWorkItem(_ =>
-            {
-                _RequestParcelProperties(simulator, delay);
-            });
+            // Fire-and-forget the async parcel download to avoid blocking callers
+            _ = RequestParcelPropertiesAsync(simulator, delay, CancellationToken.None);
         }
         
         /// <summary>
@@ -1242,7 +1244,7 @@ namespace OpenMetaverse
         /// <param name="simulator">Simulator to request parcels from (must be connected)</param>
         /// <param name="refresh">If TRUE, will force a full refresh</param>
         /// <param name="delay">Pause time in between each request</param>
-        public async Task RequestAllSimParcelsAsync(Simulator simulator, bool refresh, TimeSpan delay)
+        public async Task RequestAllSimParcelsAsync(Simulator simulator, bool refresh, TimeSpan delay, CancellationToken cancellationToken = default)
         {
             if (simulator.DownloadingParcelMap)
             {
@@ -1250,65 +1252,11 @@ namespace OpenMetaverse
                 return;
             }
 
-            _PrepareRequestParcelProperties(simulator, refresh);
+            PrepareRequestParcelProperties(simulator, refresh);
             
-            await Task.Run(() =>
-            {
-                _RequestParcelProperties(simulator, delay);
-            });
+            await RequestParcelPropertiesAsync(simulator, delay, cancellationToken).ConfigureAwait(false);
         }
-
-        #region RequestAllSimParcels/RequestAllSimParcelsAsync helpers
-        
-        private void _PrepareRequestParcelProperties(Simulator simulator, bool refresh)
-        {
-            simulator.DownloadingParcelMap = true;
-    
-            WaitForSimParcel?.Dispose();
-            WaitForSimParcel = new AutoResetEvent(false);
-
-            if (refresh)
-                Array.Clear(simulator.ParcelMap, 0, simulator.ParcelMap.Length);
-        }
-        
-        private void _RequestParcelProperties(Simulator simulator, TimeSpan delay)
-        {
-            int count = 0, timeouts = 0;
-
-            for (var y = 0; y < PARCEL_MAP_SIZE; y++)
-            {
-                for (var x = 0; x < PARCEL_MAP_SIZE; x++)
-                {
-                    if (!Client.Network.Connected)
-                        return;
-
-                    if (simulator.ParcelMap[y, x] != 0) 
-                        continue;
-                        
-                    Client.Parcels.RequestParcelProperties(simulator,
-                        (y + 1) * PARCEL_GRID_STEP, 
-                        (x + 1) * PARCEL_GRID_STEP,
-                        y * PARCEL_GRID_STEP, 
-                        x * PARCEL_GRID_STEP, 
-                        int.MaxValue, 
-                        false);
-
-                    if (!WaitForSimParcel.WaitOne(delay))
-                        ++timeouts;
-
-                    ++count;
-                }
-            }
-
-            Logger.Log($"Full simulator parcel information retrieved. Sent {count} parcel requests. " +
-                       $"Current outgoing queue: {Client.Network.OutboxCount}, Retry Count {timeouts}",
-                Helpers.LogLevel.Info, Client);
-
-            simulator.DownloadingParcelMap = false;
-        }
-        
-        #endregion
-
+ 
         /// <summary>
         /// Request the dwell value for a parcel
         /// </summary>
@@ -2069,7 +2017,12 @@ namespace OpenMetaverse
             }
 
             if (sequenceID.Equals(int.MaxValue))
-                WaitForSimParcel?.Set();
+            {
+                lock (WaitForSimParcelLock)
+                {
+                    try { WaitForSimParcelTcs?.TrySetResult(true); } catch { }
+                }
+            }
 
             // auto request acl, will be stored in parcel tracking dictionary if enabled
             if (Client.Settings.ALWAYS_REQUEST_PARCEL_ACL)
@@ -2185,7 +2138,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        /// <remarks>Raises the <see cref="ParcelMediaUpdateReply"/> event</remarks>
+        /// <remarks>Raises the <see cref="ParcelMediaUpdate"/> event</remarks>
         protected void ParcelMediaUpdateHandler(object sender, PacketReceivedEventArgs e)
         {
             if (m_ParcelMediaUpdateReply == null) 
@@ -2264,6 +2217,77 @@ namespace OpenMetaverse
         }
 
         #endregion Packet Handlers
+
+        // Initialize structures used when requesting parcel properties
+        private void PrepareRequestParcelProperties(Simulator simulator, bool refresh)
+        {
+            simulator.DownloadingParcelMap = true;
+
+            lock (WaitForSimParcelLock)
+            {
+                WaitForSimParcelTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+
+            if (refresh)
+                Array.Clear(simulator.ParcelMap, 0, simulator.ParcelMap.Length);
+        }
+
+        private async Task RequestParcelPropertiesAsync(Simulator simulator, TimeSpan delay, CancellationToken cancellationToken)
+        {
+            int count = 0, timeouts = 0;
+
+            try
+            {
+                for (var y = 0; y < PARCEL_MAP_SIZE; y++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    for (var x = 0; x < PARCEL_MAP_SIZE; x++)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        if (!Client.Network.Connected)
+                            return;
+
+                        if (simulator.ParcelMap[y, x] != 0)
+                            continue;
+
+                        // create new TCS for this request
+                        lock (WaitForSimParcelLock)
+                        {
+                            WaitForSimParcelTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        }
+
+                        Client.Parcels.RequestParcelProperties(simulator,
+                            (y + 1) * PARCEL_GRID_STEP,
+                            (x + 1) * PARCEL_GRID_STEP,
+                            y * PARCEL_GRID_STEP,
+                            x * PARCEL_GRID_STEP,
+                            int.MaxValue,
+                            false);
+
+                        var tcs = WaitForSimParcelTcs;
+                        var delayTask = Task.Delay(delay, cancellationToken);
+                        var completed = await Task.WhenAny(tcs.Task, delayTask).ConfigureAwait(false);
+
+                        if (completed == delayTask)
+                        {
+                            ++timeouts;
+                        }
+
+                        ++count;
+                    }
+                }
+
+                Logger.Log($"Full simulator parcel information retrieved. Sent {count} parcel requests. " +
+                           $"Current outgoing queue: {Client.Network.OutboxCount}, Retry Count {timeouts}",
+                    Helpers.LogLevel.Info, Client);
+            }
+            finally
+            {
+                simulator.DownloadingParcelMap = false;
+            }
+        }
     }
     
     #region EventArgs classes
@@ -2324,7 +2348,7 @@ namespace OpenMetaverse
         /// <summary>Get the result of the request</summary>
         public ParcelResult Result { get; }
 
-        /// <summary>Get the number of primitieves your agent is 
+        /// <summary>Get the number of primitives your agent is 
         /// currently selecting and or sitting on in this parcel</summary>
         public int SelectedPrims { get; }
 
@@ -2341,7 +2365,7 @@ namespace OpenMetaverse
         /// <param name="simulator">The <see cref="Parcel"/> object containing the details</param>
         /// <param name="parcel">The <see cref="Parcel"/> object containing the details</param>
         /// <param name="result">The result of the request</param>
-        /// <param name="selectedPrims">The number of primitieves your agent is 
+        /// <param name="selectedPrims">The number of primitives your agent is 
         /// currently selecting and or sitting on in this parcel</param>
         /// <param name="sequenceID">The user assigned ID used to correlate a request with
         /// these results</param>
@@ -2386,7 +2410,8 @@ namespace OpenMetaverse
         /// <param name="localID">The simulator specific ID of the parcel</param>
         /// <param name="flags">TODO:</param>
         /// <param name="accessEntries">The list containing the white/blacklisted agents for the parcel</param>
-        public ParcelAccessListReplyEventArgs(Simulator simulator, int sequenceID, int localID, uint flags, List<ParcelManager.ParcelAccessEntry> accessEntries)
+        public ParcelAccessListReplyEventArgs(Simulator simulator, int sequenceID, int localID, uint flags, 
+            List<ParcelManager.ParcelAccessEntry> accessEntries)
         {
             Simulator = simulator;
             SequenceID = sequenceID;
@@ -2427,7 +2452,7 @@ namespace OpenMetaverse
         /// <summary>A dictionary containing the parcel data where the key correlates to the ParcelMap entry</summary>
         public LockingDictionary<int, Parcel> Parcels { get; }
 
-        /// <summary>Get the multidimensional array containing a x,y grid mapped
+        /// <summary>Get the multidimensional array containing an x,y grid mapped
         /// to each 64x64 parcel's LocalID.</summary>
         public int[,] ParcelMap { get; }
 
