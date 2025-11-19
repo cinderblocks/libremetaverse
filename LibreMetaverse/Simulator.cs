@@ -404,6 +404,10 @@ namespace OpenMetaverse
 
         public readonly Vector2[] WindSpeeds;
 
+        // Number of terrain patches in X and Y directions (patch size = 16m)
+        private readonly int _patchesX;
+        private readonly int _patchesY;
+
         /// <summary>
         /// Provides access to an internal thread-safe dictionary containing parcel
         /// information found in this simulator
@@ -594,8 +598,17 @@ namespace OpenMetaverse
 
             if (client.Settings.STORE_LAND_PATCHES)
             {
-                Terrain = new TerrainPatch[sizeX/16 * sizeY/16];
-                WindSpeeds = new Vector2[sizeX/16 * sizeY/16];
+                // Calculate the number of 16m patches in each direction and allocate
+                _patchesX = Math.Max(1, (int)(sizeX / 16));
+                _patchesY = Math.Max(1, (int)(sizeY / 16));
+                Terrain = new TerrainPatch[_patchesX * _patchesY];
+                WindSpeeds = new Vector2[_patchesX * _patchesY];
+            }
+            else
+            {
+                // Ensure readonly fields are initialized even when not storing patches
+                _patchesX = Math.Max(1, (int)(sizeX / 16));
+                _patchesY = Math.Max(1, (int)(sizeY / 16));
             }
         }
 
@@ -862,17 +875,18 @@ namespace OpenMetaverse
                 x %= 16;
                 y %= 16;
 
-                TerrainPatch patch = Terrain[patchY * 16 + patchX];
-                if (patch != null)
-                {
-                    height = patch.Data[y * 16 + x];
-                    return true;
-                }
-            }
+                // Use the actual number of patches per row for indexing instead of hard-coded 16
+                TerrainPatch patch = Terrain[patchY * _patchesX + patchX];
+                 if (patch != null)
+                 {
+                     height = patch.Data[y * 16 + x];
+                     return true;
+                 }
+             }
 
-            height = 0.0f;
-            return false;
-        }
+             height = 0.0f;
+             return false;
+         }
 
         #region Packet Sending
 
