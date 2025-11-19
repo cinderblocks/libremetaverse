@@ -32,7 +32,7 @@ namespace OpenMetaverse
     /// <summary>
     /// 
     /// </summary>
-    public class SoundManager
+    public class SoundManager : IDisposable
     {
         #region Private Members
         private readonly GridClient _client;
@@ -309,6 +309,50 @@ namespace OpenMetaverse
                 trigger.SoundData.Position));
         }
         
+        #endregion
+
+        #region IDisposable
+        private bool _disposed;
+
+        /// <summary>
+        /// Dispose the SoundManager and unregister packet callbacks
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                try
+                {
+                    if (_client?.Network != null)
+                    {
+                        _client.Network.UnregisterCallback(PacketType.AttachedSound, AttachedSoundHandler);
+                        _client.Network.UnregisterCallback(PacketType.AttachedSoundGainChange, AttachedSoundGainChangeHandler);
+                        _client.Network.UnregisterCallback(PacketType.PreloadSound, PreloadSoundHandler);
+                        _client.Network.UnregisterCallback(PacketType.SoundTrigger, SoundTriggerHandler);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Exception while disposing SoundManager: " + ex.Message, Helpers.LogLevel.Warning, _client, ex);
+                }
+            }
+
+            _disposed = true;
+        }
+
+        ~SoundManager()
+        {
+            Dispose(false);
+        }
+
         #endregion
     }
     #region EventArgs
