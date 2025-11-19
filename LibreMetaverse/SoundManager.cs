@@ -166,7 +166,7 @@ namespace OpenMetaverse
         /// <param name="position">position for the sound to be played at. Normally the avatar.</param>
         public void SendSoundTrigger(UUID soundID, Vector3 position)
         {
-            SendSoundTrigger(soundID, _client.Self.SimPosition, 1.0f);
+            SendSoundTrigger(soundID, position, 1.0f);
         }
 
         /// <summary>
