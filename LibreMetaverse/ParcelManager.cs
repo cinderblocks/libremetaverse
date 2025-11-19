@@ -724,7 +724,7 @@ namespace OpenMetaverse
     /// <summary>
     /// Parcel (subdivided simulator lots) subsystem
     /// </summary>
-    public class ParcelManager
+    public class ParcelManager : IDisposable
     {
         #region Structs
 
@@ -992,6 +992,65 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.ParcelOverlay, ParcelOverlayHandler);
             Client.Network.RegisterCallback(PacketType.ParcelMediaCommandMessage, ParcelMediaCommandMessagePacketHandler);
         }
+        
+        #region IDisposable
+        private bool _disposed;
+
+        /// <summary>
+        /// Dispose resources, unregister callbacks and event handlers
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                try
+                {
+                    if (Client?.Network != null)
+                    {
+                        try { Client.Network.UnregisterCallback(PacketType.ParcelInfoReply, ParcelInfoReplyHandler); } catch { }
+                        try { Client.Network.UnregisterEventCallback("ParcelObjectOwnersReply", ParcelObjectOwnersReplyHandler); } catch { }
+                        try { Client.Network.UnregisterEventCallback("ParcelProperties", ParcelPropertiesReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.ParcelDwellReply, ParcelDwellReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.ParcelAccessListReply, ParcelAccessListReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.ForceObjectSelect, SelectParcelObjectsReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.ParcelMediaUpdate, ParcelMediaUpdateHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.ParcelOverlay, ParcelOverlayHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.ParcelMediaCommandMessage, ParcelMediaCommandMessagePacketHandler); } catch { }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Exception while disposing ParcelManager: " + ex.Message, Helpers.LogLevel.Warning, Client, ex);
+                }
+
+                try
+                {
+                    WaitForSimParcel?.Dispose();
+                    WaitForSimParcel = null;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Exception disposing WaitForSimParcel: " + ex.Message, Helpers.LogLevel.Warning, Client, ex);
+                }
+            }
+
+            _disposed = true;
+        }
+
+        ~ParcelManager()
+        {
+            Dispose(false);
+        }
+
+        #endregion
 
         /// <summary>
         /// Request basic information for a single parcel
@@ -2155,6 +2214,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
+        /// <remarks>Raises the <see cref="ParcelOverlay"/> event</remarks>
         protected void ParcelOverlayHandler(object sender, PacketReceivedEventArgs e)
         {
             const int OVERLAY_COUNT = 4;
@@ -2414,7 +2474,7 @@ namespace OpenMetaverse
         }
     }
    
-    /// <summary>Contains data when the media data for a parcel the avatar is on changes</summary>
+    /// <summary>Contains the data returned when the media data for a parcel the avatar is on changes</summary>
     public class ParcelMediaUpdateReplyEventArgs : EventArgs
     {
         /// <summary>Get the simulator the parcel media data was updated in</summary>
