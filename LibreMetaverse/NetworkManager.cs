@@ -340,7 +340,7 @@ namespace OpenMetaverse
         private readonly GridClient Client;
         private Timer DisconnectTimer;
 
-        private long lastpacketwarning = 0;
+        private long lastPacketWarning = 0;
 
         private System.Timers.Timer logoutReplyTimeout;
 
@@ -504,11 +504,10 @@ namespace OpenMetaverse
         protected void NetworkInvalidWarning(string source,string function)
         {
             long now = DateTimeOffset.Now.ToUnixTimeSeconds();
-            long dif = lastpacketwarning - now;
-            if (dif <= 10) 
-                return;
-            
-            lastpacketwarning = now;
+            long dif = now - lastPacketWarning;
+            if (dif <= 10) { return; }
+
+            lastPacketWarning = now;
             Logger.Log(source+" is null (Are we disconnected?) - from: " + function,
                 Helpers.LogLevel.Debug);
         }
@@ -746,7 +745,7 @@ namespace OpenMetaverse
             RequestLogout();
 
             // Wait for a logout response. If the response is received, shutdown
-            // will be fired in the callback. Otherwise we fire it manually with
+            // will be fired in the callback. Otherwise, we fire it manually with
             // a NetworkTimeout type
             if (!logoutEvent.WaitOne(Client.Settings.LOGOUT_TIMEOUT, false))
             {
@@ -1021,7 +1020,7 @@ namespace OpenMetaverse
                     {
                         Logger.Log($"Discarding Blacklisted packet {packet.Type} from {simulator.IPEndPoint}",
                             Helpers.LogLevel.Warning);
-                        return;
+                        continue;
                     }
 
                     // Fire the callback(s), if any
