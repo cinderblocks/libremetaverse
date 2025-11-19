@@ -1229,9 +1229,8 @@ namespace OpenMetaverse
             //if ((pong.PingID.PingID - e.Simulator.Stats.LastPingID + 1) != 0)
             //    retval += " (gap of " + (pong.PingID.PingID - e.Simulator.Stats.LastPingID + 1) + ")";
 
-            e.Simulator.Stats.LastLag = Environment.TickCount - e.Simulator.Stats.LastPingSent;
-            e.Simulator.Stats.ReceivedPongs++;
-            //			Client.Log(retval, Helpers.LogLevel.Info);
+            e.Simulator.Stats.LastLag = Environment.TickCount - e.Simulator.Stats.GetLastPingSent();
+            e.Simulator.Stats.IncrementReceivedPongs();
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>

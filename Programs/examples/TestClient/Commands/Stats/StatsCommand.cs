@@ -21,7 +21,7 @@ namespace TestClient.Commands.Stats
                 foreach (var sim in Client.Network.Simulators)
                 {
                     output.AppendLine(
-                        $"[{sim}] Dilation: {sim.Stats.Dilation} InBPS: {sim.Stats.IncomingBPS} OutBPS: {sim.Stats.OutgoingBPS} ResentOut: {sim.Stats.ResentPackets}  ResentIn: {sim.Stats.ReceivedResends}");
+                        $"[{sim}] Dilation: {sim.Stats.Dilation} InBPS: {sim.Stats.GetIncomingBPS()} OutBPS: {sim.Stats.GetOutgoingBPS()} ResentOut: {sim.Stats.GetResentPackets()}  ResentIn: {sim.Stats.GetReceivedResends()}");
                 }
             }
 
