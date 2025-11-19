@@ -30,6 +30,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Net;
 using LibreMetaverse;
 using OpenMetaverse.Packets;
@@ -399,7 +400,6 @@ namespace OpenMetaverse
         /// </summary>
         public ConcurrentDictionary<UUID, uint> GlobalToLocalID = new ConcurrentDictionary<UUID, uint>();
 
-
         public readonly TerrainPatch[] Terrain;
 
         public readonly Vector2[] WindSpeeds;
@@ -518,12 +518,15 @@ namespace OpenMetaverse
 
         // ACKs that are queued up to be sent to the simulator
         private readonly ConcurrentQueue<uint> PendingAcks = new ConcurrentQueue<uint>();
-        private Timer AckTimer;
-        private Timer PingTimer;
-        private Timer StatsTimer;
-        // simulator <> parcel LocalID Map
-        private int[,] _parcelMap;
-        public readonly SimulatorDataPool DataPool;
+        
+        private CancellationTokenSource _timerCts;
+        private Task _ackLoopTask;
+        private Task _statsLoopTask;
+        private Task _pingLoopTask;
+
+         // simulator <> parcel LocalID Map
+         private int[,] _parcelMap;
+         public readonly SimulatorDataPool DataPool;
         internal bool DownloadingParcelMap
         {
             get => Client.Settings.POOL_PARCEL_DATA ? DataPool.DownloadingParcelMap : _DownloadingParcelMap;
@@ -568,7 +571,109 @@ namespace OpenMetaverse
 
 
         private readonly ManualResetEvent GotUseCircuitCodeAck = new ManualResetEvent(false);
+        
         #endregion Internal/Private Members
+
+        // Start periodic background timer tasks (ack, stats, ping)
+        private void StartTimerTasks()
+        {
+            if (_timerCts != null) return;
+
+            _timerCts = new CancellationTokenSource();
+            var token = _timerCts.Token;
+
+            // ACK handling loop
+            _ackLoopTask = Task.Run(async () =>
+            {
+                try
+                {
+                    while (!token.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            SendAcks();
+                            ResendUnacked();
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Log("Error in Ack loop: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                        }
+
+                        await Task.Delay(Settings.NETWORK_TICK_INTERVAL, token).ConfigureAwait(false);
+                    }
+                }
+                catch (TaskCanceledException) { }
+            }, token);
+
+            // Stats loop
+            _statsLoopTask = Task.Run(async () =>
+            {
+                try
+                {
+                    while (!token.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            StatsTimer_Elapsed(null);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Log("Error in Stats loop: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                        }
+
+                        await Task.Delay(1000, token).ConfigureAwait(false);
+                    }
+                }
+                catch (TaskCanceledException) { }
+            }, token);
+
+            // Ping loop (only if SEND_PINGS enabled)
+            if (Client?.Settings?.SEND_PINGS ?? false)
+            {
+                _pingLoopTask = Task.Run(async () =>
+                {
+                    try
+                    {
+                        while (!token.IsCancellationRequested)
+                        {
+                            try
+                            {
+                                PingTimer_Elapsed(null);
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Log("Error in Ping loop: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                            }
+
+                            await Task.Delay(Settings.PING_INTERVAL, token).ConfigureAwait(false);
+                        }
+                    }
+                    catch (TaskCanceledException) { }
+                }, token);
+            }
+        }
+
+        private void StopTimerTasks()
+        {
+            if (_timerCts == null) return;
+
+            try
+            {
+                _timerCts.Cancel();
+            }
+            catch (Exception) { }
+
+            try { _ackLoopTask?.Wait(1000); } catch { }
+            try { _statsLoopTask?.Wait(1000); } catch { }
+            try { _pingLoopTask?.Wait(1000); } catch { }
+
+            _ackLoopTask = null;
+            _statsLoopTask = null;
+            _pingLoopTask = null;
+
+            _timerCts.Dispose();
+            _timerCts = null;
+        }
 
         /// <summary>
         /// Constructor
@@ -598,7 +703,6 @@ namespace OpenMetaverse
 
             if (client.Settings.STORE_LAND_PATCHES)
             {
-                // Calculate the number of 16m patches in each direction and allocate
                 _patchesX = Math.Max(1, (int)(sizeX / 16));
                 _patchesY = Math.Max(1, (int)(sizeY / 16));
                 Terrain = new TerrainPatch[_patchesX * _patchesY];
@@ -606,7 +710,6 @@ namespace OpenMetaverse
             }
             else
             {
-                // Ensure readonly fields are initialized even when not storing patches
                 _patchesX = Math.Max(1, (int)(sizeX / 16));
                 _patchesY = Math.Max(1, (int)(sizeY / 16));
             }
@@ -625,9 +728,7 @@ namespace OpenMetaverse
         {
             if (!disposing) return;
 
-            AckTimer?.Dispose();
-            PingTimer?.Dispose();
-            StatsTimer?.Dispose();
+            StopTimerTasks();
             ConnectedEvent?.Close();
 
             // Force all the CAPS connections closed for this simulator
@@ -654,22 +755,6 @@ namespace OpenMetaverse
                 }
                 return true;
             }
-
-            #region Start Timers
-
-            // Timer for sending out queued packet acknowledgements
-            if (AckTimer == null)
-                AckTimer = new Timer(AckTimer_Elapsed, null, Settings.NETWORK_TICK_INTERVAL, Timeout.Infinite);
-
-            // Timer for recording simulator connection statistics
-            if (StatsTimer == null)
-                StatsTimer = new Timer(StatsTimer_Elapsed, null, 1000, 1000);
-
-            // Timer for periodically pinging the simulator
-            if (PingTimer == null && Client.Settings.SEND_PINGS)
-                PingTimer = new Timer(PingTimer_Elapsed, null, Settings.PING_INTERVAL, Settings.PING_INTERVAL);
-
-            #endregion Start Timers
 
             Logger.Log($"Connecting to {this}", Helpers.LogLevel.Info, Client);
 
@@ -702,6 +787,9 @@ namespace OpenMetaverse
                         Client.Network.Simulators.Remove(this);
                     }
                 }
+
+                // Start periodic background tasks for ACKs, stats and pings
+                StartTimerTasks();
 
                 if (Client.Settings.SEND_AGENT_THROTTLE)
                     Client.Throttle.Set(this);
@@ -785,14 +873,8 @@ namespace OpenMetaverse
             if (!connected) return;
 
             connected = false;
-            // Destroy the timers
-            AckTimer?.Dispose();
-            StatsTimer?.Dispose();
-            PingTimer?.Dispose();
-
-            AckTimer = null;
-            StatsTimer = null;
-            PingTimer = null;
+            // Stop background timer tasks
+            StopTimerTasks();
 
             // Kill the current CAPS system
             if (Caps != null)
@@ -875,7 +957,6 @@ namespace OpenMetaverse
                 x %= 16;
                 y %= 16;
 
-                // Use the actual number of patches per row for indexing instead of hard-coded 16
                 TerrainPatch patch = Terrain[patchY * _patchesX + patchX];
                  if (patch != null)
                  {
@@ -1363,17 +1444,9 @@ namespace OpenMetaverse
 
         private void AckTimer_Elapsed(object obj)
         {
+            // This method is retained for compatibility with existing code paths.
             SendAcks();
             ResendUnacked();
-
-            // Start the ACK handling functions again after NETWORK_TICK_INTERVAL milliseconds
-            if (null == AckTimer) return;
-            try
-            {
-                AckTimer.Change(Settings.NETWORK_TICK_INTERVAL, Timeout.Infinite);
-            }
-            catch (Exception)
-            { } // *TODO: Review catch all code smell
         }
 
         private void StatsTimer_Elapsed(object obj)
