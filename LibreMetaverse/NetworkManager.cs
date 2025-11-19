@@ -334,8 +334,13 @@ namespace OpenMetaverse
 
         /// <summary>Outgoing packets that are awaiting handling</summary>
         private Channel<OutgoingPacket> _packetOutbox;
-
+        
         private int _packetOutboxCount = 0;
+
+        // Cancellation and background task tracking for inbox/outbox processors
+        private CancellationTokenSource _cts;
+        private Task _incomingProcessorTask;
+        private Task _outgoingProcessorTask;
 
         private readonly GridClient Client;
         private Timer DisconnectTimer;
@@ -609,8 +614,10 @@ namespace OpenMetaverse
                 _packetInbox = Channel.CreateUnbounded<IncomingPacket>(options);
                 _packetOutbox = Channel.CreateUnbounded<OutgoingPacket>(options);
 
-                Task.Run(IncomingPacketHandler);
-                Task.Run(OutgoingPacketHandler);
+                // Create a CancellationTokenSource for background processors and track tasks
+                _cts = new CancellationTokenSource();
+                _incomingProcessorTask = Task.Run(() => IncomingPacketHandler(_cts.Token));
+                _outgoingProcessorTask = Task.Run(() => OutgoingPacketHandler(_cts.Token));
             }
 
             if (!simulator.Connected)
@@ -671,7 +678,7 @@ namespace OpenMetaverse
                 lock (Simulators)
                 {
                     Simulators.Remove(simulator);
-                }                 
+                }
 
                 return null;
             }
@@ -855,6 +862,15 @@ namespace OpenMetaverse
         /// <param name="message">Shutdown message</param>
         public void Shutdown(DisconnectType type, string message)
         {
+            // Use the async implementation and block to preserve the synchronous API
+            ShutdownAsync(type, message).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Async version of Shutdown that awaits background processors to finish.
+        /// </summary>
+        public async Task ShutdownAsync(DisconnectType type, string message)
+        {
             Logger.Log($"NetworkManager shutdown initiated for {message} due to {type}", Helpers.LogLevel.Info, Client);
 
             // Send a CloseCircuit packet to simulators if we are initiating the disconnect
@@ -892,14 +908,43 @@ namespace OpenMetaverse
                 }
             }
             
+            // Cancel background processors first to speed up shutdown
+            try
+            {
+                _cts?.Cancel();
+            }
+            catch { }
+
             _packetInbox?.Writer.Complete();
             _packetOutbox?.Writer.Complete();
 
+            // Await processor tasks with a timeout to avoid hangs
+            var tasks = new List<Task>();
+            if (_incomingProcessorTask != null) tasks.Add(_incomingProcessorTask);
+            if (_outgoingProcessorTask != null) tasks.Add(_outgoingProcessorTask);
+
+            if (tasks.Count > 0)
+            {
+                var all = Task.WhenAll(tasks);
+                var completed = await Task.WhenAny(all, Task.Delay(2000)).ConfigureAwait(false);
+                if (completed != all)
+                {
+                    Logger.Log("Background processors did not exit within timeout during Shutdown", Helpers.LogLevel.Warning, Client);
+                }
+                else
+                {
+                    // Observe exceptions if any
+                    try { await all.ConfigureAwait(false); } catch { }
+                }
+            }
+
             _packetInbox = null;
             _packetOutbox = null;
-            
-            Interlocked.Exchange(ref _packetInboxCount, 0);
-            Interlocked.Exchange(ref _packetOutboxCount, 0);
+
+            _cts?.Dispose();
+            _cts = null;
+            _incomingProcessorTask = null;
+            _outgoingProcessorTask = null;
 
             Connected = false;
 
@@ -962,7 +1007,7 @@ namespace OpenMetaverse
             }
         }
 
-        private async Task OutgoingPacketHandler()
+        private async Task OutgoingPacketHandler(CancellationToken ct)
         {
             if (_packetOutbox == null)
             {
@@ -975,26 +1020,45 @@ namespace OpenMetaverse
             var stopwatch = new System.Diagnostics.Stopwatch();
             stopwatch.Start();
             
-            while (await reader.WaitToReadAsync() && Connected)
+            try
             {
-                while (reader.TryRead(out var outgoingPacket))
+                while (await reader.WaitToReadAsync(ct).ConfigureAwait(false) && Connected && !ct.IsCancellationRequested)
                 {
-                    Interlocked.Decrement(ref _packetOutboxCount);
-
-                    var simulator = outgoingPacket.Simulator;
-
-                    var elapsed = stopwatch.ElapsedMilliseconds;
-                    if (elapsed < 10)
+                    while (reader.TryRead(out var outgoingPacket))
                     {
-                        await Task.Delay(10 - (int)elapsed);
+                        Interlocked.Decrement(ref _packetOutboxCount);
+
+                        var simulator = outgoingPacket.Simulator;
+
+                        var elapsed = stopwatch.ElapsedMilliseconds;
+                        if (elapsed < 10)
+                        {
+                            await Task.Delay(10 - (int)elapsed, ct).ConfigureAwait(false);
+                        }
+                        try
+                        {
+                            simulator.SendPacketFinal(outgoingPacket);
+                        }
+                        catch (OperationCanceledException) { throw; }
+                        catch (Exception ex)
+                        {
+                            Logger.Log("OutgoingPacketHandler exception: " + ex, Helpers.LogLevel.Error, Client, ex);
+                        }
+                        stopwatch.Restart();
                     }
-                    simulator.SendPacketFinal(outgoingPacket);
-                    stopwatch.Restart();
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancellation requested, exit gracefully
+            }
+            catch (Exception ex)
+            {
+                Logger.Log("OutgoingPacketHandler fatal exception: " + ex, Helpers.LogLevel.Error, Client, ex);
             }
         }
 
-        private async Task IncomingPacketHandler()
+        private async Task IncomingPacketHandler(CancellationToken ct)
         {
             if (_packetInbox == null)
             {
@@ -1004,28 +1068,47 @@ namespace OpenMetaverse
 
             var reader = _packetInbox.Reader;
 
-            while (await reader.WaitToReadAsync() && Connected)
+            try
             {
-                while (reader.TryRead(out var incomingPacket))
+                while (await reader.WaitToReadAsync(ct).ConfigureAwait(false) && Connected && !ct.IsCancellationRequested)
                 {
-                    Interlocked.Decrement(ref _packetInboxCount);
-
-                    var packet = incomingPacket.Packet;
-                    var simulator = incomingPacket.Simulator;
-
-                    if (packet == null) continue;
-
-                    // Skip blacklisted packets
-                    if (UDPBlacklist.Contains(packet.Type))
+                    while (reader.TryRead(out var incomingPacket))
                     {
-                        Logger.Log($"Discarding Blacklisted packet {packet.Type} from {simulator.IPEndPoint}",
-                            Helpers.LogLevel.Warning);
-                        continue;
-                    }
+                        Interlocked.Decrement(ref _packetInboxCount);
 
-                    // Fire the callback(s), if any
-                    PacketEvents.RaiseEvent(packet.Type, packet, simulator);
+                        var packet = incomingPacket.Packet;
+                        var simulator = incomingPacket.Simulator;
+
+                        if (packet == null) continue;
+
+                        // Skip blacklisted packets
+                        if (UDPBlacklist.Contains(packet.Type))
+                        {
+                            Logger.Log($"Discarding Blacklisted packet {packet.Type} from {simulator.IPEndPoint}",
+                                Helpers.LogLevel.Warning);
+                            continue;
+                        }
+
+                        // Fire the callback(s), if any — protect against handler exceptions
+                        try
+                        {
+                            PacketEvents.RaiseEvent(packet.Type, packet, simulator);
+                        }
+                        catch (OperationCanceledException) { throw; }
+                        catch (Exception ex)
+                        {
+                            Logger.Log("Packet event handler exception: " + ex, Helpers.LogLevel.Error, Client, ex);
+                        }
+                    }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancellation requested, exit gracefully
+            }
+            catch (Exception ex)
+            {
+                Logger.Log("IncomingPacketHandler fatal exception: " + ex, Helpers.LogLevel.Error, Client, ex);
             }
         }
 
