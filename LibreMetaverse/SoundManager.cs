@@ -177,7 +177,14 @@ namespace OpenMetaverse
         /// <param name="gain">volume of the sound, from 0.0 to 1.0</param>
         public void SendSoundTrigger(UUID soundID, Vector3 position, float gain)
         {
-            SendSoundTrigger(soundID, _client.Network.CurrentSim.Handle, position, gain);
+            var sim = _client?.Network?.CurrentSim;
+            if (sim == null)
+            {
+                Logger.Log("Cannot send sound trigger: no current simulator.", Helpers.LogLevel.Warning, _client);
+                return;
+            }
+
+            SendSoundTrigger(soundID, sim.Handle, position, gain);
         }
         /// <summary>
         /// Plays a sound in the specified sim
@@ -200,6 +207,24 @@ namespace OpenMetaverse
         /// <param name="gain">volume of the sound, from 0.0 to 1.0</param>
         public void SendSoundTrigger(UUID soundID, ulong handle, Vector3 position, float gain)
         {
+            // Validate client/network
+            if (_client == null || _client.Network == null)
+            {
+                Logger.Log("Cannot send sound trigger: network is not available.", Helpers.LogLevel.Warning, _client);
+                return;
+            }
+
+            // Validate sound id
+            if (soundID == UUID.Zero)
+            {
+                Logger.Log("Cannot send sound trigger: invalid SoundID (UUID.Zero).", Helpers.LogLevel.Warning, _client);
+                return;
+            }
+
+            // Clamp gain to [0.0, 1.0]
+            if (gain < 0.0f) gain = 0.0f;
+            else if (gain > 1.0f) gain = 1.0f;
+
             SoundTriggerPacket soundtrigger = new SoundTriggerPacket
             {
                 SoundData = new SoundTriggerPacket.SoundDataBlock
@@ -214,7 +239,14 @@ namespace OpenMetaverse
                 }
             };
 
-            _client.Network.SendPacket(soundtrigger);
+            try
+            {
+                _client.Network.SendPacket(soundtrigger);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log("Failed to send SoundTrigger packet: " + ex.Message, Helpers.LogLevel.Error, _client, ex);
+            }
         }
 
         #endregion
