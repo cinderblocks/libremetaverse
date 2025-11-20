@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -37,7 +38,7 @@ namespace OpenMetaverse
     /// <summary>
     /// Access to the data server which allows searching for land, events, people, etc
     /// </summary>
-    public class DirectoryManager
+    public class DirectoryManager : IDisposable
     {
         #region Enums
         /// <summary>Classified Ad categories</summary>
@@ -686,6 +687,8 @@ namespace OpenMetaverse
 
         #region Private Members
         private GridClient Client;
+        // Dispose pattern
+        private bool _disposed;
         #endregion
 
         #region Constructors
@@ -711,6 +714,65 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.DirPlacesReply, DirPlacesReplyHandler);
         }
 
+        /// <summary>
+        /// Dispose resources, unregister callbacks and event handlers
+        /// Safe to call multiple times.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Protected dispose implementation
+        /// </summary>
+        /// <param name="disposing">True when called from Dispose(), false from finalizer</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                try
+                {
+                    if (Client?.Network != null)
+                    {
+                        try { Client.Network.UnregisterCallback(PacketType.DirClassifiedReply, DirClassifiedReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.DirLandReply, DirLandReplyHandler); } catch { }
+                        try { Client.Network.UnregisterEventCallback("DirLandReply", DirLandReplyEventHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.DirPeopleReply, DirPeopleReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.DirGroupsReply, DirGroupsReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.PlacesReply, PlacesReplyHandler); } catch { }
+                        try { Client.Network.UnregisterEventCallback("PlacesReply", PlacesReplyEventHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.DirEventsReply, EventsReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.EventInfoReply, EventInfoReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.DirPlacesReply, DirPlacesReplyHandler); } catch { }
+                    }
+
+                    // Clear event delegates
+                    try { m_EventInfoReply = null; } catch { }
+                    try { m_DirEvents = null; } catch { }
+                    try { m_Places = null; } catch { }
+                    try { m_DirPlaces = null; } catch { }
+                    try { m_DirClassifieds = null; } catch { }
+                    try { m_DirGroups = null; } catch { }
+                    try { m_DirPeople = null; } catch { }
+                    try { m_DirLandReply = null; } catch { }
+
+                    // Release client reference
+                    try { Client = null; } catch { }
+                }
+                catch { /* swallow exceptions in Dispose */ }
+            }
+
+            _disposed = true;
+        }
+
+        ~DirectoryManager()
+        {
+            Dispose(false);
+        }
         #endregion
 
         #region Public Methods
