@@ -194,27 +194,27 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Returns all links that link to the specified <paramref name="assertId"/>.
+        /// Returns all links that link to the specified <paramref name="assetId"/>.
         /// </summary>
-        /// <param name="assertId">An inventory item's asset UUID.</param>
-        /// <returns>List of link nodes that reference <paramref name="assertId"/>.</returns>
-        public List<InventoryNode> FindAllLinks(UUID assertId)
+        /// <param name="assetId">An inventory item's asset UUID.</param>
+        /// <returns>List of link nodes that reference <paramref name="assetId"/>.</returns>
+        public List<InventoryNode> FindAllLinks(UUID assetId)
         {
-            // If we have no root, there are no links to find
-            if (RootNode == null) return new List<InventoryNode>();
+            // If the asserted asset id is empty, there are no links to find
+            if (assetId == UUID.Zero) return new List<InventoryNode>();
 
-            if (LinksByAssetId.TryGetValue(assertId, out var dict))
+            if (LinksByAssetId.TryGetValue(assetId, out var dict))
             {
                 return dict.Values.ToList();
             }
             return new List<InventoryNode>();
         }
 
-        private static bool IsLinkOf(InventoryNode node, UUID assertId)
+        private static bool IsLinkOf(InventoryNode node, UUID assetId)
         {
             if (node.Data is InventoryItem item && item.AssetType == AssetType.Link)
             {
-                return item.ActualUUID == assertId;
+                return item.ActualUUID == assetId;
             }
 
             return false;
