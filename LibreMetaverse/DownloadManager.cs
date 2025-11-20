@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2019-2024, Sjofn LLC.
+ * Copyright (c) 2019-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -51,6 +51,8 @@ namespace OpenMetaverse.Http
         public int Retries = 5;
         /// <summary>Current fetch attempt</summary>
         public int Attempt = 0;
+        /// <summary>Optional cancellation token for this request</summary>
+        public CancellationToken CancellationToken = CancellationToken.None;
 
         /// <summary>Constructor</summary>
         public DownloadRequest(Uri address, string contentType,
@@ -124,6 +126,12 @@ namespace OpenMetaverse.Http
                     {
                         activeDownloads[addr].ProgressHandlers.Add(item.DownloadProgressCallback);
                     }
+
+                    // If this request provided a cancellation token, register it to cancel the active download
+                    if (item.CancellationToken.CanBeCanceled)
+                    {
+                        try { item.CancellationToken.Register(() => activeDownloads[addr].CancellationToken.Cancel()); } catch { }
+                    }
                 }
                 else
                 {
@@ -136,6 +144,18 @@ namespace OpenMetaverse.Http
 
                     Logger.DebugLog($"Requesting {item.Address}");
                     
+                    // If the request provided a cancellation token, link it with the active download token
+                    if (item.CancellationToken.CanBeCanceled)
+                    {
+                        try
+                        {
+                            var linked = CancellationTokenSource.CreateLinkedTokenSource(activeDownload.CancellationToken.Token, item.CancellationToken);
+                            try { activeDownload.CancellationToken.Dispose(); } catch { }
+                            activeDownload.CancellationToken = linked;
+                        }
+                        catch { }
+                    }
+
                     Task req = Client.HttpCapsClient.GetRequestAsync(item.Address, activeDownload.CancellationToken.Token,
                             (response, responseData, error)  =>
                             {
@@ -178,11 +198,24 @@ namespace OpenMetaverse.Http
                 {
                     activeDownloads[addr].ProgressHandlers.Add(req.DownloadProgressCallback);
                 }
+                if (req.CancellationToken.CanBeCanceled)
+                {
+                    try { req.CancellationToken.Register(() => activeDownloads[addr].CancellationToken.Cancel()); } catch { }
+                }
                 return;
             }
 
             queue.Enqueue(req);
             EnqueuePending();
+        }
+
+        /// <summary>Enqueue a new HTTP download with a cancellation token</summary>
+        public void QueueDownload(DownloadRequest req, CancellationToken cancellationToken)
+        {
+            if (cancellationToken.CanBeCanceled)
+                req.CancellationToken = cancellationToken;
+
+            QueueDownload(req);
         }
     }
 }

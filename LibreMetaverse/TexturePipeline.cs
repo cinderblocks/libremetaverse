@@ -641,21 +641,34 @@ namespace OpenMetaverse
             {
                 if (task.Transfer.Size == 0)
                 {
-                    // We haven't received the header yet, block until it's received or times out
-                    task.Transfer.HeaderReceivedEvent.WaitOne(TimeSpan.FromSeconds(5), false);
-
-                    if (task.Transfer.Size == 0)
+                    // We haven't received the header yet, wait on the async-friendly TaskCompletionSource
+                    try
                     {
-                        Logger.Log("Timed out while waiting for the image header to download for " +
-                                   task.Transfer.ID, Helpers.LogLevel.Warning, _Client);
+                        var headerTask = task.Transfer.HeaderReceivedTcs.Task;
+                        bool signaled = headerTask.Wait(TimeSpan.FromSeconds(5));
 
+                        if (!signaled || task.Transfer.Size == 0)
+                        {
+                            Logger.Log("Timed out while waiting for the image header to download for " +
+                                       task.Transfer.ID, Helpers.LogLevel.Warning, _Client);
+
+                            task.TokenSource.Cancel();
+
+                            RemoveTransfer(task.Transfer.ID);
+
+                            foreach (TextureDownloadCallback callback in task.Callbacks)
+                                callback(TextureRequestState.Timeout, new AssetTexture(task.RequestID, task.Transfer.AssetData));
+
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log("Exception while waiting for image header: " + ex.Message, Helpers.LogLevel.Error, _Client, ex);
                         task.TokenSource.Cancel();
-
                         RemoveTransfer(task.Transfer.ID);
-
                         foreach (TextureDownloadCallback callback in task.Callbacks)
                             callback(TextureRequestState.Timeout, new AssetTexture(task.RequestID, task.Transfer.AssetData));
-
                         return;
                     }
                 }
@@ -752,7 +765,8 @@ namespace OpenMetaverse
                     }
                 }
 
-                task.Transfer.HeaderReceivedEvent.Set();
+                // Signal header received via TaskCompletionSource for async consumers
+                try { task.Transfer.HeaderReceivedTcs.TrySetResult(true); } catch { }
 
                 if (task.Transfer.Transferred >= task.Transfer.Size)
                 {
