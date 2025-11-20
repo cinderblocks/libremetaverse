@@ -166,7 +166,7 @@ namespace OpenMetaverse
     /// Handles all network traffic related to prims and avatar positions and 
     /// movement.
     /// </summary>
-    public class ObjectManager
+    public class ObjectManager : IDisposable
     {
         public const float HAVOK_TIMESTEP = 1.0f / 45.0f;
 
@@ -535,6 +535,59 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.PayPriceReply, PayPriceReplyHandler);
             Client.Network.RegisterCallback(PacketType.ObjectAnimation, ObjectAnimationHandler);
             Client.Network.RegisterEventCallback("ObjectPhysicsProperties", ObjectPhysicsPropertiesHandler);
+        }
+
+        // IDisposable support
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed) return;
+
+            if (disposing)
+            {
+                // Dispose managed resources and unregister callbacks
+                try
+                {
+                    if (Client != null && Client.Network != null)
+                    {
+                        try { Client.Network.UnregisterCallback(PacketType.ObjectUpdate, ObjectUpdateHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.ImprovedTerseObjectUpdate, ImprovedTerseObjectUpdateHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.ObjectUpdateCompressed, ObjectUpdateCompressedHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.ObjectUpdateCached, ObjectUpdateCachedHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.KillObject, KillObjectHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.ObjectPropertiesFamily, ObjectPropertiesFamilyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.ObjectProperties, ObjectPropertiesHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.PayPriceReply, PayPriceReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.ObjectAnimation, ObjectAnimationHandler); } catch { }
+                        try { Client.Network.UnregisterEventCallback("ObjectPhysicsProperties", ObjectPhysicsPropertiesHandler); } catch { }
+                    }
+
+                    if (InterpolationTimer != null)
+                    {
+                        try { InterpolationTimer.Dispose(); } catch { }
+                        InterpolationTimer = null;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Exception while disposing ObjectManager: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                }
+            }
+
+            disposed = true;
+        }
+
+        /// <summary>
+        /// Public dispose
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~ObjectManager()
+        {
+            Dispose(false);
         }
 
         #region Internal event handlers
@@ -2795,8 +2848,8 @@ namespace OpenMetaverse
 
                     #endregion Decode update data
 
-                    Primitive obj = !Client.Settings.OBJECT_TRACKING ? null : (update.Avatar) ?
-                        GetAvatar(simulator, update.LocalID, UUID.Zero) :
+                    Primitive obj = !Client.Settings.OBJECT_TRACKING ? null : (update.Avatar) ? 
+                        GetAvatar(simulator, update.LocalID, UUID.Zero) : 
                         GetPrimitive(simulator, update.LocalID, UUID.Zero);
 
                     // Fire the pre-emptive notice (before we stomp the object)
