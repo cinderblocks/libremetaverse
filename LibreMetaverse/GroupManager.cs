@@ -570,7 +570,7 @@ namespace OpenMetaverse
     /// Handles all network traffic related to reading and writing group
     /// information
     /// </summary>
-    public class GroupManager
+    public class GroupManager : IDisposable
     {
         #region Delegates
 
@@ -990,6 +990,70 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.GroupNoticesListReply, GroupNoticesListReplyHandler);
 
             Client.Network.RegisterEventCallback("AgentDropGroup", AgentDropGroupMessageHandler);
+        }
+        
+        // IDisposable support
+        private bool disposed = false;
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed) return;
+
+            if (disposing)
+            {
+                try
+                {
+                    // Unsubscribe IM handler
+                    try { if (Client?.Self != null) Client.Self.IM -= Self_IM; } catch { }
+
+                    if (Client?.Network != null)
+                    {
+                        try { Client.Network.UnregisterEventCallback("AgentGroupDataUpdate", AgentGroupDataUpdateMessageHandler); } catch { }
+                        try { Client.Network.UnregisterEventCallback("AgentDropGroup", AgentDropGroupMessageHandler); } catch { }
+
+                        try { Client.Network.UnregisterCallback(PacketType.AgentDropGroup, AgentDropGroupHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.GroupTitlesReply, GroupTitlesReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.GroupProfileReply, GroupProfileReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.GroupMembersReply, GroupMembersHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.GroupRoleDataReply, GroupRoleDataReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.GroupRoleMembersReply, GroupRoleMembersReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.GroupActiveProposalItemReply, GroupActiveProposalItemHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.GroupVoteHistoryItemReply, GroupVoteHistoryItemHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.GroupAccountSummaryReply, GroupAccountSummaryReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.CreateGroupReply, CreateGroupReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.JoinGroupReply, JoinGroupReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.LeaveGroupReply, LeaveGroupReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.UUIDGroupNameReply, UUIDGroupNameReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.EjectGroupMemberReply, EjectGroupMemberReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.GroupNoticesListReply, GroupNoticesListReplyHandler); } catch { }
+                    }
+
+                    // Clear temporary caches
+                    try { TempGroupMembers?.Clear(); } catch { }
+                    try { TempGroupRoles?.Clear(); } catch { }
+                    try { TempGroupRolesMembers?.Clear(); } catch { }
+                    try { GroupName2KeyCache?.Clear(); } catch { }
+                    try { GroupMembersRequests?.Clear(); } catch { }
+                    try { GroupRolesRequests?.Clear(); } catch { }
+                    try { GroupRolesMembersRequests?.Clear(); } catch { }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Exception while disposing GroupManager: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                }
+            }
+
+            disposed = true;
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~GroupManager()
+        {
+            Dispose(false);
         }
 
         private void Self_IM(object sender, InstantMessageEventArgs e)
