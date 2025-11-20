@@ -538,6 +538,7 @@ namespace OpenMetaverse
         }
 
         // IDisposable support
+        private bool disposed = false;
         protected virtual void Dispose(bool disposing)
         {
             if (disposed) return;
