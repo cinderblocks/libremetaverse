@@ -67,7 +67,7 @@ namespace LibreMetaverse
         {
             using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
             {
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
             }
         }
 
@@ -82,7 +82,7 @@ namespace LibreMetaverse
             {
                 request.Content = new ByteArrayContent(payload);
                 request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
             }
         }
 
@@ -96,7 +96,7 @@ namespace LibreMetaverse
                 {
                     request.Content = new ByteArrayContent(serialized);
                     request.Content.Headers.ContentType = contentType;
-                    await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+                    await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
@@ -116,7 +116,7 @@ namespace LibreMetaverse
             {
                 request.Content = new ByteArrayContent(payload);
                 request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
             }
         }
 
@@ -128,7 +128,7 @@ namespace LibreMetaverse
             {
                 request.Content = new ByteArrayContent(serialized);
                 request.Content.Headers.ContentType = contentType;
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
             }
         }
 
@@ -147,7 +147,7 @@ namespace LibreMetaverse
             {
                 request.Content = new ByteArrayContent(payload);
                 request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
             }
         }
 
@@ -163,7 +163,7 @@ namespace LibreMetaverse
             {
                 request.Content = new ByteArrayContent(serialized);
                 request.Content.Headers.ContentType = contentType;
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
             }
         }
 
@@ -178,7 +178,7 @@ namespace LibreMetaverse
             {
                 request.Content = new ByteArrayContent(payload);
                 request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
             }
         }
 
@@ -190,7 +190,7 @@ namespace LibreMetaverse
             {
                 request.Content = new ByteArrayContent(serialized);
                 request.Content.Headers.ContentType = contentType;
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler);
+                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
             }
         }
 
@@ -203,7 +203,7 @@ namespace LibreMetaverse
         {
             try
             {
-                using (var response = await SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
+                using (var response = await SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false))
                 {
                     Exception statusError = null;
                     if (!response.IsSuccessStatusCode)
@@ -240,9 +240,9 @@ namespace LibreMetaverse
         {
             var totalBytes = response.Content.Headers.ContentLength;
 #if NET5_0_OR_GREATER
-            Stream contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            Stream contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
 #else
-            Stream contentStream = await response.Content.ReadAsStreamAsync();
+            Stream contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 #endif
             var length = (int)(totalBytes ?? 8192);
             var totalSize = totalBytes ?? 0;
@@ -257,7 +257,7 @@ namespace LibreMetaverse
             try
             {
                 while (contentStream != null /* (╯°□°)╯︵ ┻━┻ */
-                       && (bytesRead = await contentStream.ReadAsync(buffer, offset, length, cancellationToken)) != 0)
+                       && (bytesRead = await contentStream.ReadAsync(buffer, offset, length, cancellationToken).ConfigureAwait(false)) != 0)
                 {
                     totalBytesRead += bytesRead;
 
