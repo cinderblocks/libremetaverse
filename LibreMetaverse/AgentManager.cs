@@ -1494,6 +1494,7 @@ namespace OpenMetaverse
         private readonly ManualResetEvent teleportEvent = new ManualResetEvent(false);
         private uint heightWidthGenCounter;
         private readonly Dictionary<UUID, AssetGesture> gestureCache = new Dictionary<UUID, AssetGesture>();
+        private bool disposed = false;
 
         #endregion Private Members
 
@@ -1516,8 +1517,8 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.TeleportCancel, TeleportHandler);
             Client.Network.RegisterCallback(PacketType.TeleportLocal, TeleportHandler);
             // these come in via the EventQueue
-            Client.Network.RegisterEventCallback("TeleportFailed", new Caps.EventQueueCallback(TeleportFailedEventHandler));
-            Client.Network.RegisterEventCallback("TeleportFinish", new Caps.EventQueueCallback(TeleportFinishEventHandler));
+            Client.Network.RegisterEventCallback("TeleportFailed", TeleportFailedEventHandler);
+            Client.Network.RegisterEventCallback("TeleportFinish", TeleportFinishEventHandler);
 
             // Instant message callback
             Client.Network.RegisterCallback(PacketType.ImprovedInstantMessage, InstantMessageHandler);
@@ -1545,7 +1546,7 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.CrossedRegion, CrossedRegionHandler);
             Client.Network.RegisterEventCallback("CrossedRegion", CrossedRegionEventHandler);
             // CAPS callbacks
-            Client.Network.RegisterEventCallback("EstablishAgentCommunication", EstablishAgentCommunicationEventHandler);
+            Client.Network.RegisterEventCallback("EstablishAgentCommunication", TeleportFailedEventHandler);
             Client.Network.RegisterEventCallback("SetDisplayNameReply", SetDisplayNameReplyEventHandler);
             Client.Network.RegisterEventCallback("AgentStateUpdate", AgentStateUpdateEventHandler);
             // Incoming Group Chat
@@ -1581,10 +1582,10 @@ namespace OpenMetaverse
         public const int MaxScriptDialogLabelSize = 254;
 
         /// <summary>
-        /// Splits a multi-byte string into parts of at most <paramref name="splitSizeInBytes"/> bytes. Attempts to avoid
-        /// splitting multi-byte characters (like UTF-8) to preserve integrity. Useful for chunked string processing.
+        /// Splits a multibyte string into parts of at most <paramref name="splitSizeInBytes"/> bytes. Attempts to avoid
+        /// splitting multibyte characters (like UTF-8) to preserve integrity. Useful for chunked string processing.
         /// </summary>
-        /// <param name="message">The input string to split. May contain multi-byte characters (e.g., UTF-8 text).</param>
+        /// <param name="message">The input string to split. May contain multibyte characters (e.g., UTF-8 text).</param>
         /// <param name="splitSizeInBytes">Maximum byte size per part of the split string. Must be greater than 0.</param>
         /// <param name="maxParts">Maximum number of parts to create. Defaults to <see cref="int.MaxValue"/> if unspecified.</param>
         /// <returns>
@@ -1626,7 +1627,7 @@ namespace OpenMetaverse
                         var currentByte = messageBytes[partEndOffset];
                         if(currentByte < 0x80 || currentByte > 0xBF)
                         {
-                            // The current byte of the message is not a continuation byte and we can split the message here.
+                            // The current byte of the message is not a continuation byte, and we can split the message here.
                             break;
                         }
 
@@ -1636,7 +1637,7 @@ namespace OpenMetaverse
 
                 if (partEndOffset == messageBytesOffset)
                 {
-                    // Edge case where we're forced to split the multi-byte character, such as when splitSizeInBytes is 1
+                    // Edge case where we're forced to split the multibyte character, such as when splitSizeInBytes is 1
                     partEndOffset++;
                 }
 
@@ -1926,9 +1927,9 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Send a request to join a group chat session
+        /// Request to join a group chat session
         /// </summary>
-        /// <param name="groupID"><see cref="UUID"/> of Group to leave</param>
+        /// <param name="groupID"><see cref="UUID"/> of Group to join</param>
         public void RequestJoinGroupChat(UUID groupID)
         {
             ImprovedInstantMessagePacket im = new ImprovedInstantMessagePacket
@@ -2003,7 +2004,7 @@ namespace OpenMetaverse
         /// <param name="channel">Channel initial request came on</param>
         /// <param name="buttonIndex">Index of button you're "clicking"</param>
         /// <param name="buttonLabel">Label of button you're "clicking"</param>
-        /// <param name="objectID"><see cref="UUID"/> of Object that sent the dialog request</param>
+        /// <param name="objectID"><see cref="UUID"/> of the object that sent the dialog request</param>
         /// <seealso cref="OnScriptDialog"/>
         public void ReplyToScriptDialog(int channel, int buttonIndex, string buttonLabel, UUID objectID)
         {
@@ -2031,7 +2032,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Accept invite for to a chatterbox session
         /// </summary>
-        /// <param name="session_id"><see cref="UUID"/> of session to accept invite to</param>
+        /// <param name="session_id"><see cref="UUID"/> of the session to accept invite to</param>
         /// <param name="cancellationToken"></param>
         public async Task ChatterBoxAcceptInvite(UUID session_id, CancellationToken cancellationToken = default)
         {
@@ -3381,7 +3382,7 @@ namespace OpenMetaverse
         /// the teleport, or denying it
         /// </summary>
         /// <param name="requesterID"><see cref="UUID"/> of the avatar sending the lure</param>
-        /// <param name="sessionID">IM session <see cref="UUID"/> of the incoming lure request</param>
+        /// <param name="sessionID">IM session ID from the group invitation message</param>
         /// <param name="accept">true to accept the lure, false to decline it</param>
         public void TeleportLureRespond(UUID requesterID, UUID sessionID, bool accept)
         {
@@ -3411,7 +3412,7 @@ namespace OpenMetaverse
         /// Request a teleport lure from another agent
         /// </summary>
         /// <param name="targetID"><see cref="UUID"/> of the avatar lure is being requested from</param>
-        /// <param name="sessionID">IM session <see cref="UUID"/></param>
+        /// <param name="sessionID">IM session <see cref="UUID"/> of the incoming lure request</param>
         /// <param name="message">message to send with request</param>
         public void SendTeleportLureRequest(UUID targetID, UUID sessionID, string message)
         {
@@ -3835,7 +3836,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="groupID">UUID of the group (sent in the AgentID field of the invite message)</param>
         /// <param name="imSessionID">IM Session ID from the group invitation message</param>
-        /// <param name="accept">Accept the group invitation or deny it</param>
+        /// <param name="accept">true to accept the group invitation, false to deny it</param>
         public void GroupInviteRespond(UUID groupID, UUID imSessionID, bool accept)
         {
             InstantMessage(Name, groupID, string.Empty, imSessionID,
@@ -4023,6 +4024,7 @@ namespace OpenMetaverse
                     if (error != null)
                     {
                         callback(false, null);
+                        return;
                     }
                     try
                     {
@@ -4573,7 +4575,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="capsKey">The message key</param>
         /// <param name="message">the IMessage object containing the deserialized data sent from the simulator</param>
-        /// <param name="simulator">The <see cref="Simulator"/> which originated the packet</param>
+        /// <param name="simulator">The simulator originating the event message</param>
         protected void SetDisplayNameReplyEventHandler(string capsKey, IMessage message, Simulator simulator)
         {
             if (m_SetDisplayNameReply == null) return;
@@ -4616,7 +4618,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Process TeleportFailed message sent via EventQueue, informs agent its last teleport has failed and why.
         /// </summary>
-        /// <param name="messageKey">The Message Key</param>
+        /// <param name="messageKey">The message key</param>
         /// <param name="message">An IMessage object Deserialized from the received message event</param>
         /// <param name="simulator">The simulator originating the event message</param>
         public void TeleportFailedEventHandler(string messageKey, IMessage message, Simulator simulator)
@@ -4894,7 +4896,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="capsKey">The message key</param>
         /// <param name="message">the IMessage object containing the deserialized data sent from the simulator</param>
-        /// <param name="simulator">The <see cref="Simulator"/> which originated the packet</param>
+        /// <param name="simulator">The simulator originating the event message</param>
         private void CrossedRegionEventHandler(string capsKey, IMessage message, Simulator simulator)
         {
             CrossedRegionMessage crossed = (CrossedRegionMessage)message;
@@ -5320,6 +5322,119 @@ namespace OpenMetaverse
         }
 
         #endregion Packet Handlers
+
+        /// <summary>
+        /// Dispose AgentManager and unregister all network callbacks/events.
+        /// Safe to call multiple times.
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed) return;
+
+            if (disposing)
+            {
+                try
+                {
+                    if (Client?.Network == null)
+                    {
+                        disposed = true;
+                        return;
+                    }
+
+                    // Unsubscribe simple events
+                    try { Client.Network.Disconnected -= Network_OnDisconnected; } catch { }
+
+                    // Unregister packet callbacks
+                    try { Client.Network.UnregisterCallback(PacketType.TeleportStart, TeleportHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.TeleportProgress, TeleportHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.TeleportFailed, TeleportHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.TeleportCancel, TeleportHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.TeleportLocal, TeleportHandler); } catch { }
+
+                    // Unregister event queue callbacks
+                    try { Client.Network.UnregisterEventCallback("TeleportFailed", TeleportFailedEventHandler); } catch { }
+                    try { Client.Network.UnregisterEventCallback("TeleportFinish", TeleportFinishEventHandler); } catch { }
+
+                    // Instant message callback
+                    try { Client.Network.UnregisterCallback(PacketType.ImprovedInstantMessage, InstantMessageHandler); } catch { }
+                    // Chat callback
+                    try { Client.Network.UnregisterCallback(PacketType.ChatFromSimulator, ChatHandler); } catch { }
+                    // Script dialog callback
+                    try { Client.Network.UnregisterCallback(PacketType.ScriptDialog, ScriptDialogHandler); } catch { }
+                    // Script question callback
+                    try { Client.Network.UnregisterCallback(PacketType.ScriptQuestion, ScriptQuestionHandler); } catch { }
+                    // Script URL callback
+                    try { Client.Network.UnregisterCallback(PacketType.LoadURL, LoadURLHandler); } catch { }
+                    // Movement complete callback
+                    try { Client.Network.UnregisterCallback(PacketType.AgentMovementComplete, MovementCompleteHandler); } catch { }
+                    // Health callback
+                    try { Client.Network.UnregisterCallback(PacketType.HealthMessage, MoneyBalanceReplyHandler); } catch { }
+                    // Money callback
+                    try { Client.Network.UnregisterCallback(PacketType.MoneyBalanceReply, MoneyBalanceReplyHandler); } catch { }
+                    //Agent update callback
+                    try { Client.Network.UnregisterCallback(PacketType.AgentDataUpdate, AgentDataUpdateHandler); } catch { }
+                    // Animation callback
+                    try { Client.Network.UnregisterCallback(PacketType.AvatarAnimation, AvatarAnimationHandler); } catch { }
+                    // Object colliding into our agent callback
+                    try { Client.Network.UnregisterCallback(PacketType.MeanCollisionAlert, MeanCollisionAlertHandler); } catch { }
+                    // Region Crossing
+                    try { Client.Network.UnregisterCallback(PacketType.CrossedRegion, CrossedRegionHandler); } catch { }
+                    try { Client.Network.UnregisterEventCallback("CrossedRegion", CrossedRegionEventHandler); } catch { }
+                    // CAPS event callbacks
+                    try { Client.Network.UnregisterEventCallback("EstablishAgentCommunication", EstablishAgentCommunicationEventHandler); } catch { }
+                    try { Client.Network.UnregisterEventCallback("SetDisplayNameReply", SetDisplayNameReplyEventHandler); } catch { }
+                    try { Client.Network.UnregisterEventCallback("AgentStateUpdate", AgentStateUpdateEventHandler); } catch { }
+                    // Incoming Group Chat
+                    try { Client.Network.UnregisterEventCallback("ChatterBoxInvitation", ChatterBoxInvitationEventHandler); } catch { }
+                    // Outgoing Group Chat Reply
+                    try { Client.Network.UnregisterEventCallback("ChatterBoxSessionEventReply", ChatterBoxSessionEventReplyEventHandler); } catch { }
+                    try { Client.Network.UnregisterEventCallback("ChatterBoxSessionStartReply", ChatterBoxSessionStartReplyEventHandler); } catch { }
+                    try { Client.Network.UnregisterEventCallback("ChatterBoxSessionAgentListUpdates", ChatterBoxSessionAgentListUpdatesEventHandler); } catch { }
+                    // Login
+                    try { Client.Network.UnregisterLoginResponseCallback(Network_OnLoginResponse); } catch { }
+                    // Alert Messages
+                    try { Client.Network.UnregisterCallback(PacketType.AlertMessage, AlertMessageHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.AgentAlertMessage, AgentAlertMessageHandler); } catch { }
+                    // script control change messages, ie: when an in-world LSL script wants to take control of your agent.
+                    try { Client.Network.UnregisterCallback(PacketType.ScriptControlChange, ScriptControlChangeHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.CameraConstraint, CameraConstraintHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.ScriptSensorReply, ScriptSensorReplyHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.AvatarSitResponse, AvatarSitResponseHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.MuteListUpdate, MuteListUpdateHandler); } catch { }
+
+                    // Clear local collections
+                    try { GroupChatSessions.Dictionary.Clear(); } catch { }
+                    try { MuteList.Dictionary.Clear(); } catch { }
+                    try { ActiveGestures.Dictionary.Clear(); } catch { }
+                    try { SignaledAnimations.Dictionary.Clear(); } catch { }
+                    try { gestureCache.Clear(); } catch { }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Exception while disposing AgentManager: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                }
+            }
+
+            disposed = true;
+        }
+
+        /// <summary>
+        /// Dispose AgentManager and unregister all network callbacks/events.
+        /// Safe to call multiple times.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Finalizer to ensure resources are released if Dispose is not called.
+        /// </summary>
+        ~AgentManager()
+        {
+            Dispose(false);
+        }
     }
 
     #region Event Argument Classes
@@ -5660,7 +5775,7 @@ namespace OpenMetaverse
         }
     }
 
-    /// <summary>Data sent from the simulator containing information about your agent and active group information</summary>
+    /// <summary>Data sent from the simulator in response to a request for agent data</summary>
     public class AgentDataReplyEventArgs : EventArgs
     {
         /// <summary>Get the agents first name</summary>
@@ -5780,7 +5895,7 @@ namespace OpenMetaverse
         }
     }
 
-    /// <summary>Data sent from the simulator when your agent joins a group chat session</summary>
+    /// <summary>Data sent when an agent joins a group chat session</summary>
     public class GroupChatJoinedEventArgs : EventArgs
     {
         /// <summary>Get the ID of the group chat session</summary>
