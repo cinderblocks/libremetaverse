@@ -183,11 +183,13 @@ namespace OpenMetaverse
     /// Retrieve friend status notifications, and retrieve avatar names and
     /// profiles
     /// </summary>
-    public class AvatarManager
-    {
-        const int MAX_UUIDS_PER_PACKET = 100;
-
-        #region Events
+    public class AvatarManager : IDisposable
+     {
+         const int MAX_UUIDS_PER_PACKET = 100;
+        // IDisposable flag
+        private bool disposed = false;
+ 
+         #region Events
         /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<AvatarAnimationEventArgs> m_AvatarAnimation;
 
@@ -637,7 +639,7 @@ namespace OpenMetaverse
                     AgentID = Client.Self.AgentID,
                     SessionID = Client.Self.SessionID
                 },
-                TargetData = {PreyID = preyID}
+                TargetData = { PreyID = preyID }
             };
             Client.Network.SendPacket(p);
         }
@@ -1057,72 +1059,51 @@ namespace OpenMetaverse
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void AvatarAppearanceHandler(object sender, PacketReceivedEventArgs e)
         {
-            if (m_AvatarAppearance != null || Client.Settings.AVATAR_TRACKING)
+            if (!(m_AvatarAppearance != null || Client.Settings.AVATAR_TRACKING)) return;
+
+            Packet packet = e.Packet;
+            Simulator simulator = e.Simulator;
+
+            AvatarAppearancePacket appearance = packet as AvatarAppearancePacket;
+            if (appearance == null) return;
+
+            // Guard against malformed packets
+            if (appearance.ObjectData == null || appearance.ObjectData.TextureEntry == null || appearance.ObjectData.TextureEntry.Length == 0)
             {
-                Packet packet = e.Packet;
-                Simulator simulator = e.Simulator;
+                Logger.Log("Malformed AvatarAppearance packet - missing texture entry", Helpers.LogLevel.Warning, Client);
+                return;
+            }
 
-                AvatarAppearancePacket appearance = (AvatarAppearancePacket)packet;
+            var hoverHeight = Vector3.Zero;
+            if (appearance.AppearanceHover != null && appearance.AppearanceHover.Length > 0)
+            {
+                hoverHeight = appearance.AppearanceHover[0].HoverHeight;
+            }
 
-                var hoverHeight = Vector3.Zero;
+            var visualParams = (appearance.VisualParam != null)
+                ? appearance.VisualParam.Select(block => block.ParamValue).ToList()
+                : new List<byte>();
 
-                if (appearance.AppearanceHover != null && appearance.AppearanceHover.Length > 0)
-                {
-                    hoverHeight = appearance.AppearanceHover[0].HoverHeight;
-                }
+            var textureEntry = new Primitive.TextureEntry(appearance.ObjectData.TextureEntry, 0,
+                    appearance.ObjectData.TextureEntry.Length);
 
-                var visualParams = appearance.VisualParam.Select(block => block.ParamValue).ToList();
-                
-                var textureEntry = new Primitive.TextureEntry(appearance.ObjectData.TextureEntry, 0,
-                        appearance.ObjectData.TextureEntry.Length);
+            var defaultTexture = textureEntry.DefaultTexture;
+            var faceTextures = textureEntry.FaceTextures;
 
-                var defaultTexture = textureEntry.DefaultTexture;
-                var faceTextures = textureEntry.FaceTextures;
+            byte appearanceVersion = 0;
+            int COFVersion = 0;
+            int childCount = -1;
+            AppearanceFlags appearanceFlags = 0;
 
-                byte appearanceVersion = 0;
-                int COFVersion = 0;
-                int childCount = -1;
-                AppearanceFlags appearanceFlags = 0;
+            if (appearance.AppearanceData != null && appearance.AppearanceData.Length > 0)
+            {
+                appearanceVersion = appearance.AppearanceData[0].AppearanceVersion;
+                COFVersion = appearance.AppearanceData[0].CofVersion;
+                appearanceFlags = (AppearanceFlags)appearance.AppearanceData[0].Flags;
+            }
 
-                if (appearance.AppearanceData != null && appearance.AppearanceData.Length > 0)
-                {
-                    appearanceVersion = appearance.AppearanceData[0].AppearanceVersion;
-                    COFVersion = appearance.AppearanceData[0].CofVersion;
-                    appearanceFlags = (AppearanceFlags)appearance.AppearanceData[0].Flags;
-                }
-
-                if (appearance.AttachmentBlock != null && appearance.AttachmentBlock.Length > 0)
-                {
-                    if (appearance.AttachmentBlock != null && appearance.AttachmentBlock.Length > 0)
-                    {
-                        foreach (var a in e.Simulator.ObjectsAvatars)
-                        {
-                            if (a.Value == null || a.Value.ID != appearance.Sender.ID) { continue; }
-
-                            var av = a.Value;
-                            lock (av)
-                            {
-                                av.Attachments = new List<Avatar.Attachment>();
-                                foreach (var block in appearance.AttachmentBlock)
-                                {
-                                    av.Attachments.Add(new Avatar.Attachment
-                                    {
-                                        AttachmentID = block.ID,
-                                        AttachmentPoint = block.AttachmentPoint
-                                    });
-                                }
-
-                                childCount = av.ChildCount = av.Attachments.Count;
-                            }
-                        }
-                    }
-                }
-
-                // We need to ignore this for avatar self-appearance.
-                // The data in this packet is incorrect, and only the 
-                // mesh bake CAP response can be treated as fully reliable.
-                if (appearance.Sender.ID == Client.Self.AgentID) { return; }
-
+            if (appearance.AttachmentBlock != null && appearance.AttachmentBlock.Length > 0)
+            {
                 foreach (var a in e.Simulator.ObjectsAvatars)
                 {
                     if (a.Value == null || a.Value.ID != appearance.Sender.ID) { continue; }
@@ -1130,112 +1111,126 @@ namespace OpenMetaverse
                     var av = a.Value;
                     lock (av)
                     {
-                        av.Textures = textureEntry;
-                        av.VisualParameters = visualParams.ToArray();
-                        av.AppearanceVersion = appearanceVersion;
-                        av.COFVersion = COFVersion;
-                        av.AppearanceFlags = appearanceFlags;
-                        av.HoverHeight = hoverHeight;
+                        av.Attachments = new List<Avatar.Attachment>();
+                        foreach (var block in appearance.AttachmentBlock)
+                        {
+                            av.Attachments.Add(new Avatar.Attachment
+                            {
+                                AttachmentID = block.ID,
+                                AttachmentPoint = block.AttachmentPoint
+                            });
+                        }
+
+                        childCount = av.ChildCount = av.Attachments.Count;
                     }
                 }
-
-                OnAvatarAppearance(new AvatarAppearanceEventArgs(simulator,
-                    appearance.Sender.ID,
-                    appearance.Sender.IsTrial,
-                    defaultTexture,
-                    faceTextures,
-                    visualParams,
-                    appearanceVersion,
-                    COFVersion,
-                    appearanceFlags,
-                    childCount));
             }
-        }
+
+            // We need to ignore this for avatar self-appearance. The data in this packet is incorrect for self
+            if (appearance.Sender.ID == Client.Self.AgentID) return;
+
+            foreach (var a in e.Simulator.ObjectsAvatars)
+            {
+                if (a.Value == null || a.Value.ID != appearance.Sender.ID) { continue; }
+
+                var av = a.Value;
+                lock (av)
+                {
+                    av.Textures = textureEntry;
+                    av.VisualParameters = visualParams.ToArray();
+                    av.AppearanceVersion = appearanceVersion;
+                    av.COFVersion = COFVersion;
+                    av.AppearanceFlags = appearanceFlags;
+                    av.HoverHeight = hoverHeight;
+                }
+            }
+
+            OnAvatarAppearance(new AvatarAppearanceEventArgs(simulator,
+                appearance.Sender.ID,
+                appearance.Sender.IsTrial,
+                defaultTexture,
+                faceTextures,
+                visualParams,
+                appearanceVersion,
+                COFVersion,
+                appearanceFlags,
+                childCount));
+         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void AvatarPropertiesHandler(object sender, PacketReceivedEventArgs e)
         {
-            if (m_AvatarPropertiesReply != null)
+            if (m_AvatarPropertiesReply == null) return;
+
+            Packet packet = e.Packet;
+            AvatarPropertiesReplyPacket reply = packet as AvatarPropertiesReplyPacket;
+            if (reply?.PropertiesData == null) return;
+
+            Avatar.AvatarProperties properties = new Avatar.AvatarProperties
             {
-                Packet packet = e.Packet;
-                AvatarPropertiesReplyPacket reply = (AvatarPropertiesReplyPacket)packet;
-                Avatar.AvatarProperties properties =
-                    new Avatar.AvatarProperties
-                    {
-                        ProfileImage = reply.PropertiesData.ImageID,
-                        FirstLifeImage = reply.PropertiesData.FLImageID,
-                        Partner = reply.PropertiesData.PartnerID,
-                        AboutText = Utils.BytesToString(reply.PropertiesData.AboutText),
-                        FirstLifeText = Utils.BytesToString(reply.PropertiesData.FLAboutText),
-                        BornOn = Utils.BytesToString(reply.PropertiesData.BornOn)
-                    };
+                ProfileImage = reply.PropertiesData.ImageID,
+                FirstLifeImage = reply.PropertiesData.FLImageID,
+                Partner = reply.PropertiesData.PartnerID,
+                AboutText = Utils.BytesToString(reply.PropertiesData.AboutText),
+                FirstLifeText = Utils.BytesToString(reply.PropertiesData.FLAboutText),
+                BornOn = Utils.BytesToString(reply.PropertiesData.BornOn)
+            };
 
-                if (reply.PropertiesData.CharterMember.Length == 1)
-                {
-                    uint charter = Utils.BytesToUInt(reply.PropertiesData.CharterMember);
-                    if (charter == 0)
-                    {
-                        properties.CharterMember = "Resident";
-                    }
-                    else if (charter == 1)
-                    {
-                        properties.CharterMember = "Trial";
-                    }
-                    else if (charter == 2)
-                    {
-                        properties.CharterMember = "Charter";
-                    }
-                    else if (charter == 3)
-                    {
-                        properties.CharterMember = "Employee";
-                    }
-                }
-                else if (reply.PropertiesData.CharterMember.Length > 1)
-                {
-                    properties.CharterMember = Utils.BytesToString(reply.PropertiesData.CharterMember);
-                }
-                properties.Flags = (ProfileFlags)reply.PropertiesData.Flags;
-                properties.ProfileURL = Utils.BytesToString(reply.PropertiesData.ProfileURL);
-
-                OnAvatarPropertiesReply(new AvatarPropertiesReplyEventArgs(reply.AgentData.AvatarID, properties));
+            if (reply.PropertiesData.CharterMember != null && reply.PropertiesData.CharterMember.Length == 1)
+            {
+                uint charter = Utils.BytesToUInt(reply.PropertiesData.CharterMember);
+                if (charter == 0) properties.CharterMember = "Resident";
+                else if (charter == 1) properties.CharterMember = "Trial";
+                else if (charter == 2) properties.CharterMember = "Charter";
+                else if (charter == 3) properties.CharterMember = "Employee";
             }
-        }
+            else if (reply.PropertiesData.CharterMember != null && reply.PropertiesData.CharterMember.Length > 1)
+            {
+                properties.CharterMember = Utils.BytesToString(reply.PropertiesData.CharterMember);
+            }
+
+            properties.Flags = (ProfileFlags)reply.PropertiesData.Flags;
+            properties.ProfileURL = Utils.BytesToString(reply.PropertiesData.ProfileURL);
+
+            OnAvatarPropertiesReply(new AvatarPropertiesReplyEventArgs(reply.AgentData.AvatarID, properties));
+         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void AvatarInterestsHandler(object sender, PacketReceivedEventArgs e)
         {
-            if (m_AvatarInterestsReply != null)
-            {
-                Packet packet = e.Packet;
+            if (m_AvatarInterestsReply == null) return;
 
-                AvatarInterestsReplyPacket airp = (AvatarInterestsReplyPacket)packet;
-                Avatar.Interests interests = new Avatar.Interests
-                {
-                    WantToMask = airp.PropertiesData.WantToMask,
-                    WantToText = Utils.BytesToString(airp.PropertiesData.WantToText),
-                    SkillsMask = airp.PropertiesData.SkillsMask,
-                    SkillsText = Utils.BytesToString(airp.PropertiesData.SkillsText),
-                    LanguagesText = Utils.BytesToString(airp.PropertiesData.LanguagesText)
-                };
-                OnAvatarInterestsReply(new AvatarInterestsReplyEventArgs(airp.AgentData.AvatarID, interests));
-            }
-        }
+            Packet packet = e.Packet;
+            AvatarInterestsReplyPacket airp = packet as AvatarInterestsReplyPacket;
+            if (airp?.PropertiesData == null) return;
+
+            Avatar.Interests interests = new Avatar.Interests
+            {
+                WantToMask = airp.PropertiesData.WantToMask,
+                WantToText = Utils.BytesToString(airp.PropertiesData.WantToText),
+                SkillsMask = airp.PropertiesData.SkillsMask,
+                SkillsText = Utils.BytesToString(airp.PropertiesData.SkillsText),
+                LanguagesText = Utils.BytesToString(airp.PropertiesData.LanguagesText)
+            };
+
+            OnAvatarInterestsReply(new AvatarInterestsReplyEventArgs(airp.AgentData.AvatarID, interests));
+         }
 
         protected void AvatarNotesHandler(object sender, PacketReceivedEventArgs e)
         {
-            if (m_AvatarNotesReply != null)
-            {
-                Packet packet = e.Packet;
-                AvatarNotesReplyPacket anrp = (AvatarNotesReplyPacket)packet;
-                string notes = Utils.BytesToString(anrp.Data.Notes);
+            if (m_AvatarNotesReply == null) return;
 
-                OnAvatarNotesReply(new AvatarNotesReplyEventArgs(anrp.Data.TargetID, notes));
-            }
-        }
+            Packet packet = e.Packet;
+            AvatarNotesReplyPacket anrp = packet as AvatarNotesReplyPacket;
+            if (anrp?.Data == null) return;
+
+            string notes = Utils.BytesToString(anrp.Data.Notes);
+            OnAvatarNotesReply(new AvatarNotesReplyEventArgs(anrp.Data.TargetID, notes));
+         }
 
         /// <summary>
         /// EQ Message fired when someone nearby changes their display name
@@ -1261,7 +1256,10 @@ namespace OpenMetaverse
         /// <param name="simulator">The <see cref="Simulator"/> which originated the packet</param>
         protected void AvatarGroupsReplyMessageHandler(string capsKey, IMessage message, Simulator simulator)
         {
-            AgentGroupDataUpdateMessage msg = (AgentGroupDataUpdateMessage)message;
+            AgentGroupDataUpdateMessage msg = message as AgentGroupDataUpdateMessage;
+            if (msg == null || msg.GroupDataBlock == null)
+                return;
+
             List<AvatarGroup> avatarGroups = new List<AvatarGroup>(msg.GroupDataBlock.Length);
             for (int i = 0; i < msg.GroupDataBlock.Length; i++)
             {
@@ -1287,30 +1285,30 @@ namespace OpenMetaverse
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void AvatarGroupsReplyHandler(object sender, PacketReceivedEventArgs e)
         {
-            if (m_AvatarGroupsReply != null)
+            if (m_AvatarGroupsReply == null) return;
+
+            Packet packet = e.Packet;
+            AvatarGroupsReplyPacket groups = packet as AvatarGroupsReplyPacket;
+            if (groups?.GroupData == null) return;
+
+            List<AvatarGroup> avatarGroups = new List<AvatarGroup>(groups.GroupData.Length);
+            foreach (AvatarGroupsReplyPacket.GroupDataBlock groupData in groups.GroupData)
             {
-                Packet packet = e.Packet;
-                AvatarGroupsReplyPacket groups = (AvatarGroupsReplyPacket)packet;
-                List<AvatarGroup> avatarGroups = new List<AvatarGroup>(groups.GroupData.Length);
-
-                foreach (AvatarGroupsReplyPacket.GroupDataBlock groupData in groups.GroupData)
+                AvatarGroup avatarGroup = new AvatarGroup
                 {
-                    AvatarGroup avatarGroup = new AvatarGroup
-                    {
-                        AcceptNotices = groupData.AcceptNotices,
-                        GroupID = groupData.GroupID,
-                        GroupInsigniaID = groupData.GroupInsigniaID,
-                        GroupName = Utils.BytesToString(groupData.GroupName),
-                        GroupPowers = (GroupPowers) groupData.GroupPowers,
-                        GroupTitle = Utils.BytesToString(groupData.GroupTitle),
-                        ListInProfile = groups.NewGroupData.ListInProfile
-                    };
-                    avatarGroups.Add(avatarGroup);
-                }
-
-                OnAvatarGroupsReply(new AvatarGroupsReplyEventArgs(groups.AgentData.AvatarID, avatarGroups));
+                    AcceptNotices = groupData.AcceptNotices,
+                    GroupID = groupData.GroupID,
+                    GroupInsigniaID = groupData.GroupInsigniaID,
+                    GroupName = Utils.BytesToString(groupData.GroupName),
+                    GroupPowers = (GroupPowers)groupData.GroupPowers,
+                    GroupTitle = Utils.BytesToString(groupData.GroupTitle),
+                    ListInProfile = groups.NewGroupData.ListInProfile
+                };
+                avatarGroups.Add(avatarGroup);
             }
-        }
+
+            OnAvatarGroupsReply(new AvatarGroupsReplyEventArgs(groups.AgentData.AvatarID, avatarGroups));
+         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
@@ -1454,91 +1452,150 @@ namespace OpenMetaverse
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void AvatarPicksReplyHandler(object sender, PacketReceivedEventArgs e)
         {
-            if (m_AvatarPicksReply == null)
-            {
-                return;
-            }
+            if (m_AvatarPicksReply == null) return;
+
             Packet packet = e.Packet;
+            AvatarPicksReplyPacket p = packet as AvatarPicksReplyPacket;
+            if (p?.Data == null) return;
 
-            AvatarPicksReplyPacket p = (AvatarPicksReplyPacket)packet;
             var picks = p.Data.ToDictionary(b => b.PickID, b => Utils.BytesToString(b.PickName));
-
             OnAvatarPicksReply(new AvatarPicksReplyEventArgs(p.AgentData.TargetID, picks));
-        }
+         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void PickInfoReplyHandler(object sender, PacketReceivedEventArgs e)
         {
-            if (m_PickInfoReply != null)
-            {
-                Packet packet = e.Packet;
-                PickInfoReplyPacket p = (PickInfoReplyPacket)packet;
-                ProfilePick ret = new ProfilePick
-                {
-                    CreatorID = p.Data.CreatorID,
-                    Desc = Utils.BytesToString(p.Data.Desc),
-                    Enabled = p.Data.Enabled,
-                    Name = Utils.BytesToString(p.Data.Name),
-                    OriginalName = Utils.BytesToString(p.Data.OriginalName),
-                    ParcelID = p.Data.ParcelID,
-                    PickID = p.Data.PickID,
-                    PosGlobal = p.Data.PosGlobal,
-                    SimName = Utils.BytesToString(p.Data.SimName),
-                    SnapshotID = p.Data.SnapshotID,
-                    SortOrder = p.Data.SortOrder,
-                    TopPick = p.Data.TopPick,
-                    User = Utils.BytesToString(p.Data.User)
-                };
+            if (m_PickInfoReply == null) return;
 
-                OnPickInfoReply(new PickInfoReplyEventArgs(ret.PickID, ret));
-            }
-        }
+            Packet packet = e.Packet;
+            PickInfoReplyPacket p = packet as PickInfoReplyPacket;
+            if (p?.Data == null) return;
+
+            ProfilePick ret = new ProfilePick
+            {
+                CreatorID = p.Data.CreatorID,
+                Desc = Utils.BytesToString(p.Data.Desc),
+                Enabled = p.Data.Enabled,
+                Name = Utils.BytesToString(p.Data.Name),
+                OriginalName = Utils.BytesToString(p.Data.OriginalName),
+                ParcelID = p.Data.ParcelID,
+                PickID = p.Data.PickID,
+                PosGlobal = p.Data.PosGlobal,
+                SimName = Utils.BytesToString(p.Data.SimName),
+                SnapshotID = p.Data.SnapshotID,
+                SortOrder = p.Data.SortOrder,
+                TopPick = p.Data.TopPick,
+                User = Utils.BytesToString(p.Data.User)
+            };
+
+            OnPickInfoReply(new PickInfoReplyEventArgs(ret.PickID, ret));
+         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void AvatarClassifiedReplyHandler(object sender, PacketReceivedEventArgs e)
         {
-            if (m_AvatarClassifiedReply != null)
-            {
-                Packet packet = e.Packet;
-                AvatarClassifiedReplyPacket p = (AvatarClassifiedReplyPacket)packet;
-                var classifieds = p.Data.ToDictionary(b => b.ClassifiedID, b => Utils.BytesToString(b.Name));
+            if (m_AvatarClassifiedReply == null) return;
 
-                OnAvatarClassifiedReply(new AvatarClassifiedReplyEventArgs(p.AgentData.TargetID, classifieds));
-            }
-        }
+            Packet packet = e.Packet;
+            AvatarClassifiedReplyPacket p = packet as AvatarClassifiedReplyPacket;
+            if (p?.Data == null) return;
+
+            var classifieds = p.Data.ToDictionary(b => b.ClassifiedID, b => Utils.BytesToString(b.Name));
+            OnAvatarClassifiedReply(new AvatarClassifiedReplyEventArgs(p.AgentData.TargetID, classifieds));
+         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void ClassifiedInfoReplyHandler(object sender, PacketReceivedEventArgs e)
         {
-            if (m_AvatarClassifiedReply != null)
-            {
-                Packet packet = e.Packet;
-                ClassifiedInfoReplyPacket p = (ClassifiedInfoReplyPacket)packet;
-                ClassifiedAd ret = new ClassifiedAd
-                {
-                    Desc = Utils.BytesToString(p.Data.Desc),
-                    Name = Utils.BytesToString(p.Data.Name),
-                    ParcelID = p.Data.ParcelID,
-                    ClassifiedID = p.Data.ClassifiedID,
-                    Position = p.Data.PosGlobal,
-                    SnapShotID = p.Data.SnapshotID,
-                    Price = p.Data.PriceForListing,
-                    ParentEstate = p.Data.ParentEstate,
-                    ClassifiedFlags = p.Data.ClassifiedFlags,
-                    Category = p.Data.Category
-                };
+            // This handler raises ClassifiedInfoReply; ensure data present
+            Packet packet = e.Packet;
+            ClassifiedInfoReplyPacket p = packet as ClassifiedInfoReplyPacket;
+            if (p?.Data == null) return;
 
-                OnClassifiedInfoReply(new ClassifiedInfoReplyEventArgs(ret.ClassifiedID, ret));
-            }
-        }
+            ClassifiedAd ret = new ClassifiedAd
+            {
+                Desc = Utils.BytesToString(p.Data.Desc),
+                Name = Utils.BytesToString(p.Data.Name),
+                ParcelID = p.Data.ParcelID,
+                ClassifiedID = p.Data.ClassifiedID,
+                Position = p.Data.PosGlobal,
+                SnapShotID = p.Data.SnapshotID,
+                Price = p.Data.PriceForListing,
+                ParentEstate = p.Data.ParentEstate,
+                ClassifiedFlags = p.Data.ClassifiedFlags,
+                Category = p.Data.Category
+            };
+
+            OnClassifiedInfoReply(new ClassifiedInfoReplyEventArgs(ret.ClassifiedID, ret));
+         }
 
         #endregion Packet Handlers
+
+        /// <summary>
+        /// Dispose pattern. Unregister network callbacks and release managed resources.
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed) return;
+
+            if (disposing)
+            {
+                try
+                {
+                    if (Client == null || Client.Network == null)
+                    {
+                        disposed = true;
+                        return;
+                    }
+
+                    try { Client.Network.UnregisterCallback(PacketType.AvatarAppearance, AvatarAppearanceHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.AvatarPropertiesReply, AvatarPropertiesHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.AvatarInterestsReply, AvatarInterestsHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.AvatarNotesReply, AvatarNotesHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.AvatarGroupsReply, AvatarGroupsReplyHandler); } catch { }
+                    try { Client.Network.UnregisterEventCallback("AgentGroupDataUpdate", AvatarGroupsReplyMessageHandler); } catch { }
+                    try { Client.Network.UnregisterEventCallback("AvatarGroupsReply", AvatarGroupsReplyMessageHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.ViewerEffect, ViewerEffectHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.UUIDNameReply, UUIDNameReplyHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.AvatarPickerReply, AvatarPickerReplyHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.AvatarAnimation, AvatarAnimationHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.AvatarPicksReply, AvatarPicksReplyHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.PickInfoReply, PickInfoReplyHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.AvatarClassifiedReply, AvatarClassifiedReplyHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.ClassifiedInfoReply, ClassifiedInfoReplyHandler); } catch { }
+                    try { Client.Network.UnregisterEventCallback("DisplayNameUpdate", DisplayNameUpdateMessageHandler); } catch { }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Exception while disposing AvatarManager: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                }
+            }
+
+            disposed = true;
+        }
+
+        /// <summary>
+        /// Public Dispose
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Finalizer to ensure cleanup
+        /// </summary>
+        ~AvatarManager()
+        {
+            Dispose(false);
+        }
     }
 
     #region EventArgs
