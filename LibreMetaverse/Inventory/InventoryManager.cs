@@ -343,7 +343,9 @@ namespace OpenMetaverse
         /// <see cref="OnItemReceived"/>
         private void RequestFetchInventoryHttp(Dictionary<UUID, UUID> items)
         {
-            RequestFetchInventoryHttpAsync(items, CancellationToken.None).ConfigureAwait(false);
+-            RequestFetchInventoryHttpAsync(items, CancellationToken.None).ConfigureAwait(false);
++            // Fire-and-forget the async request. Use discard to explicitly start the task
++            _ = RequestFetchInventoryHttpAsync(items, CancellationToken.None);
         }
 
         /// <summary>
@@ -401,7 +403,24 @@ namespace OpenMetaverse
                     foreach (var it in itemsArray)
                     {
                         var item = InventoryItem.FromOSD(it);
-                        _Store[item.UUID] = item;
+-                        _Store[item.UUID] = item;
++                        // Update store under write lock to avoid races
++                        if (_Store != null)
++                        {
++                            _storeLock.EnterWriteLock();
++                            try
++                            {
++                                _Store[item.UUID] = item;
++                            }
++                            finally
++                            {
++                                _storeLock.ExitWriteLock();
++                            }
++                        }
++                        else
++                        {
++                            Logger.Log("Inventory store is not initialized, fetched item will not be cached locally", Helpers.LogLevel.Debug, Client);
++                        }
                         retrievedItems.Add(item);
                         OnItemReceived(new ItemReceivedEventArgs(item));
                     }
@@ -567,7 +586,24 @@ namespace OpenMetaverse
                                 else
                                 {
                                     fetchedFolder = new InventoryFolder(res["folder_id"]);
-                                    _Store[fetchedFolder.UUID] = fetchedFolder;
+-                                    _Store[fetchedFolder.UUID] = fetchedFolder;
++                                    // Update store under write lock to avoid races
++                                    if (_Store != null)
++                                    {
++                                        _storeLock.EnterWriteLock();
++                                        try
++                                        {
++                                            _Store[fetchedFolder.UUID] = fetchedFolder;
++                                        }
++                                        finally
++                                        {
++                                            _storeLock.ExitWriteLock();
++                                        }
++                                    }
++                                    else
++                                    {
++                                        Logger.Log("Inventory store is not initialized, fetched folder will not be cached locally", Helpers.LogLevel.Debug, Client);
++                                    }
                                 }
                                 fetchedFolder.DescendentCount = res["descendents"];
                                 fetchedFolder.Version = res["version"];
@@ -598,7 +634,23 @@ namespace OpenMetaverse
                                                 {
                                                     ParentUUID = descFolder["parent_id"],
                                                 };
-                                                _Store[folderID] = folder;
+-                                                _Store[folderID] = folder;
++                                                if (_Store != null)
++                                                {
++                                                    _storeLock.EnterWriteLock();
++                                                    try
++                                                    {
++                                                        _Store[folderID] = folder;
++                                                    }
++                                                    finally
++                                                    {
++                                                        _storeLock.ExitWriteLock();
++                                                    }
++                                                }
++                                                else
++                                                {
++                                                    Logger.Log("Inventory store is not initialized, descendent folder will not be cached locally", Helpers.LogLevel.Debug, Client);
++                                                }
                                             }
                                             else
                                             {
@@ -619,7 +671,23 @@ namespace OpenMetaverse
                                             foreach (var it in arr)
                                             {
                                                 var item = InventoryItem.FromOSD(it);
-                                                _Store[item.UUID] = item;
+-                                                _Store[item.UUID] = item;
++                                                if (_Store != null)
++                                                {
++                                                    _storeLock.EnterWriteLock();
++                                                    try
++                                                    {
++                                                        _Store[item.UUID] = item;
++                                                    }
++                                                    finally
++                                                    {
++                                                        _storeLock.ExitWriteLock();
++                                                    }
++                                                }
++                                                else
++                                                {
++                                                    Logger.Log("Inventory store is not initialized, descendent item will not be cached locally", Helpers.LogLevel.Debug, Client);
++                                                }
                                                 ret.Add(item);
                                             }
                                         }
@@ -898,7 +966,7 @@ namespace OpenMetaverse
             {
                 if (inv != null)
                 {
-                    Client.AisClient.UpdateCategory(folderID, inv.GetOSD(), success =>
+                    _ = Client.AisClient.UpdateCategory(folderID, inv.GetOSD(), success =>
                     {
                         if (success)
                         {
@@ -997,7 +1065,7 @@ namespace OpenMetaverse
                 foreach (var entry in foldersNewParents)
                 {
                     if (_Store != null 
-                        && _Store.TryGetValue(entry.Key, out var storeItem)
+                        && _Store.TryGetValue(entry.Key, out var storeItem) 
                         && storeItem is InventoryFolder inv)
                     {
                         inv.ParentUUID = entry.Value;
@@ -1220,7 +1288,8 @@ namespace OpenMetaverse
         {
             if (Client.AisClient.IsAvailable)
             {
-                Client.AisClient.PurgeDescendents(folder, RemoveLocalUi).ConfigureAwait(false);
+                // Fire-and-forget AIS call
+                _ = Client.AisClient.PurgeDescendents(folder, RemoveLocalUi);
             }
             else
             {
@@ -1246,7 +1315,8 @@ namespace OpenMetaverse
         {
             if (Client.AisClient.IsAvailable)
             {
-                Client.AisClient.RemoveItem(item, RemoveLocalUi).ConfigureAwait(false);
+                // Fire-and-forget AIS call
+                _ = Client.AisClient.RemoveItem(item, RemoveLocalUi);
             }
             else
             {
@@ -1285,7 +1355,8 @@ namespace OpenMetaverse
         {
             if (Client.AisClient.IsAvailable)
             {
-                Client.AisClient.RemoveCategory(folder, RemoveLocalUi).ConfigureAwait(false);
+                // Fire-and-forget AIS call
+                _ = Client.AisClient.RemoveCategory(folder, RemoveLocalUi);
             } 
             else
             {
@@ -1415,7 +1486,8 @@ namespace OpenMetaverse
             {
                 if (folderKey != UUID.Zero)
                 {
-                    Client.AisClient.PurgeDescendents(folderKey, RemoveLocalUi).ConfigureAwait(false);
+                    // Fire-and-forget AIS call
+                    _ = Client.AisClient.PurgeDescendents(folderKey, RemoveLocalUi);
                 }
             }
             else
@@ -1563,7 +1635,15 @@ namespace OpenMetaverse
             {
                 if (_Store != null)
                 {
-                    _Store[newFolder.UUID] = newFolder;
+                    _storeLock.EnterWriteLock();
+                    try
+                    {
+                        _Store[newFolder.UUID] = newFolder;
+                    }
+                    finally
+                    {
+                        _storeLock.ExitWriteLock();
+                    }
                 }
                 else
                 {
@@ -1747,8 +1827,8 @@ namespace OpenMetaverse
                 links.Add(link);
 
                 var newInventory = new OSDMap { { "links", links } };
-                Client.AisClient.CreateInventory(folderID, newInventory, true, callback, cancellationToken)
-                    .ConfigureAwait(false);
+                // Fire-and-forget AIS call
+                _ = Client.AisClient.CreateInventory(folderID, newInventory, true, callback, cancellationToken);
             }
             else
             {
@@ -1936,7 +2016,8 @@ namespace OpenMetaverse
                             update["hash_id"] = item.TransactionID;
                         }
                     }
-                    Client.AisClient.UpdateItem(item.UUID, update, null).ConfigureAwait(false);
+                    // Fire-and-forget AIS update
+                    _ = Client.AisClient.UpdateItem(item.UUID, update, null);
                 }
             }
             else
@@ -2323,7 +2404,7 @@ namespace OpenMetaverse
         /// Empty a folder by removing all of its contents (including sub-folders)
         /// </summary>
         /// <param name="folderID">The folder to empty</param>
-        /// <remarks>This does not remove the folder itself, only its contents</remarks>
+        /// <remarks> This will only remove the contents of the folder from the inventory. The folder itself will remain.</remarks>
         public void EmptyFolder(UUID folderID)
         {
             if (_Store == null)
@@ -2331,9 +2412,10 @@ namespace OpenMetaverse
                 Logger.Log("Inventory store not initialized, cannot empty folder", Helpers.LogLevel.Warning, Client);
                 return;
             }
+
             if (Client.AisClient.IsAvailable)
             {
-                Client.AisClient.PurgeDescendents(folderID, RemoveLocalUi).ConfigureAwait(false);
+                _ = Client.AisClient.PurgeDescendents(folderID, RemoveLocalUi).ConfigureAwait(false);
             }
             else
             {
