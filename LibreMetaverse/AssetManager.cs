@@ -450,7 +450,6 @@ namespace OpenMetaverse
 
         private AssetUpload PendingUpload;
         private readonly object PendingUploadLock = new object();
-        private volatile bool WaitingForUploadConfirm = false;
 
         /// <summary>
         /// Default constructor
@@ -1134,10 +1133,6 @@ namespace OpenMetaverse
 
             lock (PendingUploadLock)
             {
-                if (isMultiPacketUpload)
-                {
-                    WaitingForUploadConfirm = true;
-                }
                 PendingUpload = upload;
                 Client.Network.SendPacket(request);
             }
@@ -1158,7 +1153,6 @@ namespace OpenMetaverse
             // cleanup
             lock (PendingUploadLock)
             {
-                WaitingForUploadConfirm = false;
                 if (PendingUpload == upload) PendingUpload = null;
             }
 
@@ -1997,7 +1991,6 @@ namespace OpenMetaverse
             {
                 AssetUpload upload = PendingUpload;
                 PendingUpload = null;
-                WaitingForUploadConfirm = false;
                 try { upload.ConfirmTcs?.TrySetResult(true); } catch { }
                 RequestXferPacket request = (RequestXferPacket)e.Packet;
 
@@ -2049,7 +2042,6 @@ namespace OpenMetaverse
 
             // If we uploaded an asset in a single packet, RequestXferHandler()
             // will never be called so we need to set this here as well and signal waiting task
-            WaitingForUploadConfirm = false;
             try {
                 // Try to find the pending upload and signal its TCS if present
                 AssetUpload pending = null;
