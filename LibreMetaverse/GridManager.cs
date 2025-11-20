@@ -33,6 +33,8 @@ using OpenMetaverse.StructuredData;
 using OpenMetaverse.Packets;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 
 namespace OpenMetaverse
 {
@@ -242,7 +244,7 @@ namespace OpenMetaverse
     /// <summary>
 	/// Manages grid-wide tasks such as the world map
 	/// </summary>
-	public class GridManager
+	public class GridManager : IDisposable
     {
         #region Delegates
 
@@ -375,11 +377,25 @@ namespace OpenMetaverse
         public ulong TimeOfDay { get; private set; }
 
         /// <summary>A dictionary of all the regions, indexed by region name</summary>
-        internal Dictionary<string, GridRegion> Regions = new Dictionary<string, GridRegion>();
+        internal readonly ConcurrentDictionary<string, GridRegion> Regions = new ConcurrentDictionary<string, GridRegion>(StringComparer.OrdinalIgnoreCase);
         /// <summary>A dictionary of all the regions, indexed by region handle</summary>
-        internal Dictionary<ulong, GridRegion> RegionsByHandle = new Dictionary<ulong, GridRegion>();
+        internal readonly ConcurrentDictionary<ulong, GridRegion> RegionsByHandle = new ConcurrentDictionary<ulong, GridRegion>();
         /// <summary>A dictionary of regions by region handle</summary>
-        internal Dictionary<UUID, ulong> RegionsByUUID = new Dictionary<UUID, ulong>();
+        internal readonly ConcurrentDictionary<UUID, ulong> RegionsByUUID = new ConcurrentDictionary<UUID, ulong>();
+
+        // Read-only wrappers exposed to callers
+        private readonly ReadOnlyDictionary<string, GridRegion> m_ReadOnlyRegions;
+        private readonly ReadOnlyDictionary<ulong, GridRegion> m_ReadOnlyRegionsByHandle;
+        private readonly ReadOnlyDictionary<UUID, ulong> m_ReadOnlyRegionsByUUID;
+
+        /// <summary>Read-only view of regions indexed by name (case-insensitive)</summary>
+        public IReadOnlyDictionary<string, GridRegion> RegionsReadOnly => m_ReadOnlyRegions;
+
+        /// <summary>Read-only view of regions indexed by handle</summary>
+        public IReadOnlyDictionary<ulong, GridRegion> RegionsByHandleReadOnly => m_ReadOnlyRegionsByHandle;
+
+        /// <summary>Read-only view of region ID to handle mapping</summary>
+        public IReadOnlyDictionary<UUID, ulong> RegionsByUUIDReadOnly => m_ReadOnlyRegionsByUUID;
 
         private readonly GridClient Client;
 
@@ -390,6 +406,12 @@ namespace OpenMetaverse
 		public GridManager(GridClient client)
 		{
 			Client = client;
+
+            // Initialize read-only wrappers around the concurrent dictionaries so external callers
+            // can observe the current contents without being able to replace the collections.
+            m_ReadOnlyRegions = new ReadOnlyDictionary<string, GridRegion>(Regions);
+            m_ReadOnlyRegionsByHandle = new ReadOnlyDictionary<ulong, GridRegion>(RegionsByHandle);
+            m_ReadOnlyRegionsByUUID = new ReadOnlyDictionary<UUID, ulong>(RegionsByUUID);
 
             //Client.Network.RegisterCallback(PacketType.MapLayerReply, MapLayerReplyHandler);
             Client.Network.RegisterCallback(PacketType.MapBlockReply, MapBlockReplyHandler);
@@ -550,10 +572,7 @@ namespace OpenMetaverse
         {
             ulong handle = 0;
             var found = false;
-            lock (RegionsByUUID)
-            {
-                found = RegionsByUUID.TryGetValue(regionID, out handle);
-            }
+            found = RegionsByUUID.TryGetValue(regionID, out handle);
 
             if (found)
             {
@@ -741,11 +760,10 @@ namespace OpenMetaverse
                 region.MapImageID = block.MapImageID;
                 region.RegionHandle = Utils.UIntsToLong((uint)(region.X * 256), (uint)(region.Y * 256));
 
-                lock (Regions)
-                {
-                    Regions[region.Name.ToLowerInvariant()] = region;
-                    RegionsByHandle[region.RegionHandle] = region;
-                }
+                // Keep inserts/upserts atomic per-collection. Use lowercase key for consistent lookup.
+                var nameKey = region.Name.ToLowerInvariant();
+                Regions.AddOrUpdate(nameKey, region, (k, v) => region);
+                RegionsByHandle.AddOrUpdate(region.RegionHandle, region, (k, v) => region);
 
                 if (m_GridRegion != null)
                 {
@@ -933,17 +951,57 @@ namespace OpenMetaverse
         {
             RegionIDAndHandleReplyPacket reply = (RegionIDAndHandleReplyPacket)e.Packet;
 
-            lock (RegionsByUUID)
-            {
-                RegionsByUUID[reply.ReplyBlock.RegionID] = reply.ReplyBlock.RegionHandle;
-            }
+            RegionsByUUID.AddOrUpdate(reply.ReplyBlock.RegionID, reply.ReplyBlock.RegionHandle, (k, v) => reply.ReplyBlock.RegionHandle);
 
             if (m_RegionHandleReply != null)
             {
                 OnRegionHandleReply(new RegionHandleReplyEventArgs(reply.ReplyBlock.RegionID, reply.ReplyBlock.RegionHandle));
             }
+         }
+        
+        // IDisposable support
+        private bool disposed = false;
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed) return;
+
+            if (disposing)
+            {
+                // Unregister network callbacks and managed resources
+                try
+                {
+                    if (Client != null && Client.Network != null)
+                    {
+                        try { Client.Network.UnregisterCallback(PacketType.MapBlockReply, MapBlockReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.MapItemReply, MapItemReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.SimulatorViewerTimeMessage, SimulatorViewerTimeMessageHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.CoarseLocationUpdate, CoarseLocationHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.RegionIDAndHandleReply, RegionHandleReplyHandler); } catch { }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Exception while disposing GridManager: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                }
+            }
+
+            disposed = true;
         }
 
+        /// <summary>
+        /// Public dispose
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~GridManager()
+        {
+            Dispose(false);
+        }
     }
     #region EventArgs classes
 
