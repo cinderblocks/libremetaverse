@@ -136,6 +136,9 @@ namespace OpenMetaverse
         [NonSerialized]
         private bool _disposed;
 
+        [NonSerialized]
+        private readonly CancellationTokenSource _callbackCleanupCts = new CancellationTokenSource();
+
         private readonly ReaderWriterLockSlim _storeLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
 
         private long _CallbackPos, _SearchPos;
@@ -227,6 +230,13 @@ namespace OpenMetaverse
                     try { _ItemCopiedCallbacks.Clear(); } catch { }
                     try { _ItemInventoryTypeRequest.Clear(); } catch { }
                     try { _Searches.Clear(); } catch { }
+
+                    try
+                    {
+                        _callbackCleanupCts.Cancel();
+                        _callbackCleanupCts.Dispose();
+                    }
+                    catch { }
 
                     try { _storeLock?.Dispose(); } catch { }
 
@@ -3258,7 +3268,7 @@ namespace OpenMetaverse
             {
                 try
                 {
-                    await Task.Delay(CALLBACK_TIMEOUT_MS).ConfigureAwait(false);
+                    await Task.Delay(CALLBACK_TIMEOUT_MS, _callbackCleanupCts.Token).ConfigureAwait(false);
                     if (_ItemCreatedCallbacks.TryRemove(id, out var cb))
                     {
                         try
@@ -3272,11 +3282,15 @@ namespace OpenMetaverse
                         }
                     }
                 }
+                catch (OperationCanceledException)
+                {
+                    // Cancellation expected during Dispose, swallow
+                }
                 catch (Exception ex)
                 {
                     Logger.Log(ex.Message, Helpers.LogLevel.Debug, Client, ex);
                 }
-            }).ConfigureAwait(false);
+            }, _callbackCleanupCts.Token);
 
             return id;
         }
@@ -3301,7 +3315,7 @@ namespace OpenMetaverse
             {
                 try
                 {
-                    await Task.Delay(CALLBACK_TIMEOUT_MS).ConfigureAwait(false);
+                    await Task.Delay(CALLBACK_TIMEOUT_MS, _callbackCleanupCts.Token).ConfigureAwait(false);
                     if (_ItemCopiedCallbacks.TryRemove(id, out var cb))
                     {
                         try
@@ -3315,11 +3329,15 @@ namespace OpenMetaverse
                         }
                     }
                 }
+                catch (OperationCanceledException)
+                {
+                    // Cancellation expected during Dispose, swallow
+                }
                 catch (Exception ex)
                 {
                     Logger.Log(ex.Message, Helpers.LogLevel.Debug, Client, ex);
                 }
-            }).ConfigureAwait(false);
+            }, _callbackCleanupCts.Token);
 
             return id;
         }
