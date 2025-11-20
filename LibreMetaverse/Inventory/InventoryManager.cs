@@ -343,9 +343,8 @@ namespace OpenMetaverse
         /// <see cref="OnItemReceived"/>
         private void RequestFetchInventoryHttp(Dictionary<UUID, UUID> items)
         {
--            RequestFetchInventoryHttpAsync(items, CancellationToken.None).ConfigureAwait(false);
-+            // Fire-and-forget the async request. Use discard to explicitly start the task
-+            _ = RequestFetchInventoryHttpAsync(items, CancellationToken.None);
+            // Fire-and-forget the async request. Use discard to explicitly start the task
+            _ = RequestFetchInventoryHttpAsync(items, CancellationToken.None);
         }
 
         /// <summary>
@@ -403,24 +402,23 @@ namespace OpenMetaverse
                     foreach (var it in itemsArray)
                     {
                         var item = InventoryItem.FromOSD(it);
--                        _Store[item.UUID] = item;
-+                        // Update store under write lock to avoid races
-+                        if (_Store != null)
-+                        {
-+                            _storeLock.EnterWriteLock();
-+                            try
-+                            {
-+                                _Store[item.UUID] = item;
-+                            }
-+                            finally
-+                            {
-+                                _storeLock.ExitWriteLock();
-+                            }
-+                        }
-+                        else
-+                        {
-+                            Logger.Log("Inventory store is not initialized, fetched item will not be cached locally", Helpers.LogLevel.Debug, Client);
-+                        }
+                        // Update store under write lock to avoid races
+                        if (_Store != null)
+                        {
+                            _storeLock.EnterWriteLock();
+                            try
+                            {
+                                _Store[item.UUID] = item;
+                            }
+                            finally
+                            {
+                                _storeLock.ExitWriteLock();
+                            }
+                        }
+                        else
+                        {
+                            Logger.Log("Inventory store is not initialized, fetched item will not be cached locally", Helpers.LogLevel.Debug, Client);
+                        }
                         retrievedItems.Add(item);
                         OnItemReceived(new ItemReceivedEventArgs(item));
                     }
@@ -586,24 +584,23 @@ namespace OpenMetaverse
                                 else
                                 {
                                     fetchedFolder = new InventoryFolder(res["folder_id"]);
--                                    _Store[fetchedFolder.UUID] = fetchedFolder;
-+                                    // Update store under write lock to avoid races
-+                                    if (_Store != null)
-+                                    {
-+                                        _storeLock.EnterWriteLock();
-+                                        try
-+                                        {
-+                                            _Store[fetchedFolder.UUID] = fetchedFolder;
-+                                        }
-+                                        finally
-+                                        {
-+                                            _storeLock.ExitWriteLock();
-+                                        }
-+                                    }
-+                                    else
-+                                    {
-+                                        Logger.Log("Inventory store is not initialized, fetched folder will not be cached locally", Helpers.LogLevel.Debug, Client);
-+                                    }
+                                    // Update store under write lock to avoid races
+                                    if (_Store != null)
+                                    {
+                                        _storeLock.EnterWriteLock();
+                                        try
+                                        {
+                                            _Store[fetchedFolder.UUID] = fetchedFolder;
+                                        }
+                                        finally
+                                        {
+                                            _storeLock.ExitWriteLock();
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Logger.Log("Inventory store is not initialized, fetched folder will not be cached locally", Helpers.LogLevel.Debug, Client);
+                                    }
                                 }
                                 fetchedFolder.DescendentCount = res["descendents"];
                                 fetchedFolder.Version = res["version"];
@@ -634,23 +631,23 @@ namespace OpenMetaverse
                                                 {
                                                     ParentUUID = descFolder["parent_id"],
                                                 };
--                                                _Store[folderID] = folder;
-+                                                if (_Store != null)
-+                                                {
-+                                                    _storeLock.EnterWriteLock();
-+                                                    try
-+                                                    {
-+                                                        _Store[folderID] = folder;
-+                                                    }
-+                                                    finally
-+                                                    {
-+                                                        _storeLock.ExitWriteLock();
-+                                                    }
-+                                                }
-+                                                else
-+                                                {
-+                                                    Logger.Log("Inventory store is not initialized, descendent folder will not be cached locally", Helpers.LogLevel.Debug, Client);
-+                                                }
+                                                // Update store under write lock to avoid races
+                                                if (_Store != null)
+                                                {
+                                                    _storeLock.EnterWriteLock();
+                                                    try
+                                                    {
+                                                        _Store[folderID] = folder;
+                                                    }
+                                                    finally
+                                                    {
+                                                        _storeLock.ExitWriteLock();
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    Logger.Log("Inventory store is not initialized, descendent folder will not be cached locally", Helpers.LogLevel.Debug, Client);
+                                                }
                                             }
                                             else
                                             {
@@ -671,23 +668,22 @@ namespace OpenMetaverse
                                             foreach (var it in arr)
                                             {
                                                 var item = InventoryItem.FromOSD(it);
--                                                _Store[item.UUID] = item;
-+                                                if (_Store != null)
-+                                                {
-+                                                    _storeLock.EnterWriteLock();
-+                                                    try
-+                                                    {
-+                                                        _Store[item.UUID] = item;
-+                                                    }
-+                                                    finally
-+                                                    {
-+                                                        _storeLock.ExitWriteLock();
-+                                                    }
-+                                                }
-+                                                else
-+                                                {
-+                                                    Logger.Log("Inventory store is not initialized, descendent item will not be cached locally", Helpers.LogLevel.Debug, Client);
-+                                                }
+                                                if (_Store != null)
+                                                {
+                                                    _storeLock.EnterWriteLock();
+                                                    try
+                                                    {
+                                                        _Store[item.UUID] = item;
+                                                    }
+                                                    finally
+                                                    {
+                                                        _storeLock.ExitWriteLock();
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    Logger.Log("Inventory store is not initialized, descendent item will not be cached locally", Helpers.LogLevel.Debug, Client);
+                                                }
                                                 ret.Add(item);
                                             }
                                         }
@@ -2239,7 +2235,8 @@ namespace OpenMetaverse
         public UUID RequestRezFromInventory(Simulator simulator, Quaternion rotation, Vector3 position,
             InventoryItem item)
         {
-            return RequestRezFromInventory(simulator, rotation, position, item, Client.Self.ActiveGroup,
+            // taskID not applicable here, pass UUID.Zero
+            return RequestRezFromInventory(simulator, UUID.Zero, rotation, position, item, Client.Self.ActiveGroup,
                 UUID.Random(), true);
         }
 
@@ -2254,32 +2251,14 @@ namespace OpenMetaverse
         public UUID RequestRezFromInventory(Simulator simulator, Quaternion rotation, Vector3 position,
             InventoryItem item, UUID groupOwner)
         {
-            return RequestRezFromInventory(simulator, rotation, position, item, groupOwner, UUID.Random(), true);
+            // taskID not applicable here, pass UUID.Zero
+            return RequestRezFromInventory(simulator, UUID.Zero, rotation, position, item, groupOwner, UUID.Random(), true);
         }
 
         /// <summary>
         /// Rez an object from inventory
         /// </summary>
         /// <param name="simulator">Simulator to place object in</param>
-        /// <param name="rotation">Rotation of the object when rezzed</param>
-        /// <param name="position">Vector of where to place object</param>
-        /// <param name="item">InventoryItem object containing item details</param>
-        /// <param name="groupOwner">UUID of group to own the object</param>        
-        /// <param name="queryID">User defined queryID to correlate replies</param>
-        /// <param name="rezSelected">If set to true, the CreateSelected flag
-        /// will be set on the rezzed object</param>        
-        public UUID RequestRezFromInventory(Simulator simulator, Quaternion rotation, Vector3 position,
-            InventoryItem item, UUID groupOwner, UUID queryID, bool rezSelected)
-        {
-            return RequestRezFromInventory(simulator, UUID.Zero, rotation, position, item, groupOwner, queryID,
-                                           rezSelected);
-        }
-
-        /// <summary>
-        /// Rez an object from inventory
-        /// </summary>
-        /// <param name="simulator">Simulator to place object in</param>
-        /// <param name="taskID">TaskID object when rezzed</param>
         /// <param name="rotation">Rotation of the object when rezzed</param>
         /// <param name="position">Vector of where to place object</param>
         /// <param name="item">InventoryItem object containing item details</param>
