@@ -211,13 +211,13 @@ namespace OpenMetaverse
     /// <summary>
     /// This class is used to add and remove avatars from your friends list and to manage their permission.  
     /// </summary>
-    public class FriendsManager
+    public class FriendsManager : IDisposable
     {
         #region Delegates
 
         private EventHandler<FriendsReadyEventArgs> m_FriendsListReadyResponse;
 
-        protected virtual void OnfriendsListReady(FriendsReadyEventArgs e)
+        protected virtual void OnFriendsListReady(FriendsReadyEventArgs e)
         {
             EventHandler<FriendsReadyEventArgs> handler = m_FriendsListReadyResponse;
             handler?.Invoke(this, e);
@@ -413,13 +413,17 @@ namespace OpenMetaverse
         #endregion Delegates
 
         private readonly GridClient Client;
+
         /// <summary>
         /// A dictionary of key/value pairs containing known friends of this avatar. 
         /// 
         /// The Key is the <see cref="UUID"/> of the friend, the value is a <see cref="FriendInfo"/>
         /// object that contains detailed information including permissions you have and have given to the friend
         /// </summary>
-        public ConcurrentDictionary<UUID, FriendInfo> FriendList = new ConcurrentDictionary<UUID, FriendInfo>();
+        private readonly ConcurrentDictionary<UUID, FriendInfo> m_FriendList = new ConcurrentDictionary<UUID, FriendInfo>();
+
+        /// <summary>Read-only view of the friend list</summary>
+        public IReadOnlyDictionary<UUID, FriendInfo> FriendList => m_FriendList;
 
         /// <summary>
         /// A Dictionary of key/value pairs containing current pending friendship offers.
@@ -428,7 +432,10 @@ namespace OpenMetaverse
         /// the value is the <see cref="UUID"/> of the request which is used to accept
         /// or decline the friendship offer
         /// </summary>
-        public ConcurrentDictionary<UUID, UUID> FriendRequests = new ConcurrentDictionary<UUID, UUID>();
+        private readonly ConcurrentDictionary<UUID, UUID> m_FriendRequests = new ConcurrentDictionary<UUID, UUID>();
+
+        /// <summary>Read-only view of pending friend requests</summary>
+        public IReadOnlyDictionary<UUID, UUID> FriendRequests => m_FriendRequests;
 
         /// <summary>
         /// Internal constructor
@@ -485,8 +492,8 @@ namespace OpenMetaverse
             FriendInfo friend = new FriendInfo(fromAgentID, FriendRights.CanSeeOnline,
                 FriendRights.CanSeeOnline);
 
-            FriendList.TryAdd(friend.UUID, friend);
-            FriendRequests.TryRemove(fromAgentID, out _);
+            m_FriendList.TryAdd(friend.UUID, friend);
+            m_FriendRequests.TryRemove(fromAgentID, out _);
 
             Client.Avatars.RequestAvatarName(fromAgentID);
         }
@@ -529,8 +536,8 @@ namespace OpenMetaverse
                     {
                         FriendInfo friend = new FriendInfo(fromAgentID, FriendRights.CanSeeOnline, FriendRights.CanSeeOnline);
 
-                        FriendList.TryAdd(friend.UUID, friend);
-                        FriendRequests.TryRemove(fromAgentID, out _);
+                        m_FriendList.TryAdd(friend.UUID, friend);
+                        m_FriendRequests.TryRemove(fromAgentID, out _);
 
                         Client.Avatars.RequestAvatarName(fromAgentID);
                     }
@@ -558,7 +565,7 @@ namespace OpenMetaverse
             };
             Client.Network.SendPacket(request);
 
-            FriendRequests.TryRemove(fromAgentID, out _);
+            m_FriendRequests.TryRemove(fromAgentID, out _);
         }
 
         /// <summary>
@@ -595,7 +602,7 @@ namespace OpenMetaverse
                     OSD result = OSDParser.Deserialize(data);
                     if (result is OSDMap resMap && resMap.ContainsKey("success") && resMap["success"].AsBoolean())
                     {
-                        FriendRequests.TryRemove(fromAgentID, out _);
+                        m_FriendRequests.TryRemove(fromAgentID, out _);
                     }
                 });
         }
@@ -634,7 +641,7 @@ namespace OpenMetaverse
         /// <param name="agentID">System ID of the avatar you are terminating the friendship with</param>
         public void TerminateFriendship(UUID agentID)
         {
-            if (FriendList.ContainsKey(agentID))
+            if (m_FriendList.ContainsKey(agentID))
             {
                 TerminateFriendshipPacket request = new TerminateFriendshipPacket
                 {
@@ -651,24 +658,142 @@ namespace OpenMetaverse
 
                 Client.Network.SendPacket(request);
 
-                FriendList.TryRemove(agentID, out _);
+                m_FriendList.TryRemove(agentID, out _);
             }
         }
+
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         private void TerminateFriendshipHandler(object sender, PacketReceivedEventArgs e)
         {
-            Packet packet = e.Packet;
-            TerminateFriendshipPacket itsOver = (TerminateFriendshipPacket)packet;
-            string name = string.Empty;
-
-            if (FriendList.TryRemove(itsOver.ExBlock.OtherID, out var friend))
+            try
             {
-                name = friend.Name;
-            }
+                if (e?.Packet == null)
+                {
+                    Logger.Log("TerminateFriendshipHandler: received null packet", Helpers.LogLevel.Warning, Client);
+                    return;
+                }
 
-            OnFriendshipTerminated(new FriendshipTerminatedEventArgs(itsOver.ExBlock.OtherID, name));
+                if (e.Packet.Type != PacketType.TerminateFriendship)
+                {
+                    return;
+                }
+
+                var itsOver = e.Packet as TerminateFriendshipPacket;
+                if (itsOver == null || itsOver.ExBlock == null)
+                {
+                    Logger.Log("TerminateFriendshipHandler: malformed TerminateFriendshipPacket",
+                        Helpers.LogLevel.Warning, Client);
+                    return;
+                }
+
+                string name = string.Empty;
+
+                if (m_FriendList.TryRemove(itsOver.ExBlock.OtherID, out var friend))
+                {
+                    name = friend?.Name ?? string.Empty;
+                }
+
+                OnFriendshipTerminated(new FriendshipTerminatedEventArgs(itsOver.ExBlock.OtherID, name));
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Exception in TerminateFriendshipHandler: {ex.Message}", Helpers.LogLevel.Error, Client,
+                    ex);
+            }
+        }
+
+        private void ChangeUserRightsHandler(object sender, PacketReceivedEventArgs e)
+        {
+            try
+            {
+                if (e?.Packet == null)
+                {
+                    Logger.Log("ChangeUserRightsHandler: received null packet", Helpers.LogLevel.Warning, Client);
+                    return;
+                }
+
+                if (e.Packet.Type != PacketType.ChangeUserRights)
+                {
+                    return;
+                }
+
+                var rights = e.Packet as ChangeUserRightsPacket;
+                if (rights == null || rights.Rights == null)
+                {
+                    Logger.Log("ChangeUserRightsHandler: malformed ChangeUserRightsPacket", Helpers.LogLevel.Warning,
+                        Client);
+                    return;
+                }
+
+                foreach (ChangeUserRightsPacket.RightsBlock block in rights.Rights)
+                {
+                    if (block == null) continue;
+
+                    FriendRights newRights = (FriendRights)block.RelatedRights;
+
+                    if (m_FriendList.TryGetValue(block.AgentRelated, out var friend))
+                    {
+                        friend.TheirFriendRights = newRights;
+                        OnFriendRights(new FriendInfoEventArgs(friend));
+                    }
+                    else if (block.AgentRelated == Client.Self.AgentID)
+                    {
+                        // When the change applies to us, the packet encodes the other agent in AgentData.AgentID
+                        if (rights.AgentData != null && rights.AgentData.AgentID != UUID.Zero)
+                        {
+                            if (m_FriendList.TryGetValue(rights.AgentData.AgentID, out friend))
+                            {
+                                friend.MyFriendRights = newRights;
+                                OnFriendRights(new FriendInfoEventArgs(friend));
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Exception in ChangeUserRightsHandler: {ex.Message}", Helpers.LogLevel.Error, Client, ex);
+            }
+        }
+
+        public void OnFindAgentReplyHandler(object sender, PacketReceivedEventArgs e)
+        {
+            try
+            {
+                if (m_FriendFound == null) return;
+                if (e?.Packet == null)
+                {
+                    Logger.Log("OnFindAgentReplyHandler: received null packet", Helpers.LogLevel.Warning, Client);
+                    return;
+                }
+
+                if (e.Packet.Type != PacketType.FindAgent) return;
+
+                var reply = e.Packet as FindAgentPacket;
+                if (reply == null || reply.AgentBlock == null || reply.LocationBlock == null ||
+                    reply.LocationBlock.Length == 0)
+                {
+                    Logger.Log("OnFindAgentReplyHandler: malformed FindAgentPacket", Helpers.LogLevel.Warning, Client);
+                    return;
+                }
+
+                UUID prey = reply.AgentBlock.Prey;
+
+                var loc = reply.LocationBlock[0];
+                float gx = (float)loc.GlobalX;
+                float gy = (float)loc.GlobalY;
+
+                ulong regionHandle = Helpers.GlobalPosToRegionHandle(gx, gy, out var x, out var y);
+                Vector3 xyz = new Vector3(x, y, 0f);
+
+                OnFriendFoundReply(new FriendFoundReplyEventArgs(prey, regionHandle, xyz));
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Exception in OnFindAgentReplyHandler: {ex.Message}", Helpers.LogLevel.Error, Client, ex);
+            }
         }
 
         /// <summary>
@@ -786,8 +911,8 @@ namespace OpenMetaverse
                 return;
             }
 
-            var names = (from friend in FriendList 
-                where friend.Value != null && string.IsNullOrEmpty(friend.Value.Name) 
+            var names = (from friend in FriendList
+                where friend.Value != null && string.IsNullOrEmpty(friend.Value.Name)
                 select friend.Key).ToList();
 
             if (names.Any())
@@ -808,7 +933,7 @@ namespace OpenMetaverse
 
             foreach (var kvp in e.Names)
             {
-                if (FriendList.TryGetValue(kvp.Key, out var friend))
+                if (m_FriendList.TryGetValue(kvp.Key, out var friend))
                 {
                     if (friend.Name == null)
                     {
@@ -824,6 +949,7 @@ namespace OpenMetaverse
                 OnFriendNames(new FriendNamesEventArgs(newNames));
             }
         }
+
         #endregion
 
         #region Packet Handlers
@@ -840,7 +966,7 @@ namespace OpenMetaverse
 
             foreach (OnlineNotificationPacket.AgentBlockBlock block in notification.AgentBlock)
             {
-                var friend = FriendList.GetOrAdd(block.AgentID, id 
+                var friend = m_FriendList.GetOrAdd(block.AgentID, id
                     => new FriendInfo(id, FriendRights.CanSeeOnline, FriendRights.CanSeeOnline));
 
                 bool doNotify = !friend.IsOnline;
@@ -865,62 +991,12 @@ namespace OpenMetaverse
 
             foreach (OfflineNotificationPacket.AgentBlockBlock block in notification.AgentBlock)
             {
-                var friend = FriendList.GetOrAdd(block.AgentID, id 
+                var friend = m_FriendList.GetOrAdd(block.AgentID, id
                     => new FriendInfo(id, FriendRights.CanSeeOnline, FriendRights.CanSeeOnline));
 
                 friend.IsOnline = false;
 
                 OnFriendOffline(new FriendInfoEventArgs(friend));
-            }
-        }
-
-
-        /// <summary>Process an incoming packet and raise the appropriate events</summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
-        private void ChangeUserRightsHandler(object sender, PacketReceivedEventArgs e)
-        {
-            Packet packet = e.Packet;
-            if (packet.Type != PacketType.ChangeUserRights) { return; }
-
-            ChangeUserRightsPacket rights = (ChangeUserRightsPacket)packet;
-
-            foreach (ChangeUserRightsPacket.RightsBlock block in rights.Rights)
-            {
-                FriendRights newRights = (FriendRights)block.RelatedRights;
-
-                if (FriendList.TryGetValue(block.AgentRelated, out var friend))
-                {
-                    friend.TheirFriendRights = newRights;
-                    OnFriendRights(new FriendInfoEventArgs(friend));
-                }
-                else if (block.AgentRelated == Client.Self.AgentID)
-                {
-                    if (FriendList.TryGetValue(rights.AgentData.AgentID, out friend))
-                    {
-                        friend.MyFriendRights = newRights;
-                        OnFriendRights(new FriendInfoEventArgs(friend));
-                    }
-                }
-            }
-        }
-
-        /// <summary>Process an incoming packet and raise the appropriate events</summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
-        public void OnFindAgentReplyHandler(object sender, PacketReceivedEventArgs e)
-        {
-            if (m_FriendFound != null)
-            {
-                Packet packet = e.Packet;
-                FindAgentPacket reply = (FindAgentPacket)packet;
-
-                UUID prey = reply.AgentBlock.Prey;
-                ulong regionHandle = Helpers.GlobalPosToRegionHandle((float)reply.LocationBlock[0].GlobalX,
-                    (float)reply.LocationBlock[0].GlobalY, out var x, out var y);
-                Vector3 xyz = new Vector3(x, y, 0f);
-
-                OnFriendFoundReply(new FriendFoundReplyEventArgs(prey, regionHandle, xyz));
             }
         }
 
@@ -932,9 +1008,10 @@ namespace OpenMetaverse
             {
                 if (m_FriendshipOffered != null)
                 {
-                    FriendRequests.TryAdd(e.IM.FromAgentID, e.IM.IMSessionID);
+                    m_FriendRequests.TryAdd(e.IM.FromAgentID, e.IM.IMSessionID);
 
-                    OnFriendshipOffered(new FriendshipOfferedEventArgs(e.IM.FromAgentID, e.IM.FromAgentName, e.IM.IMSessionID));
+                    OnFriendshipOffered(new FriendshipOfferedEventArgs(e.IM.FromAgentID, e.IM.FromAgentName,
+                        e.IM.IMSessionID));
                 }
             }
             else if (e.IM.Dialog == InstantMessageDialog.FriendshipAccepted)
@@ -944,7 +1021,8 @@ namespace OpenMetaverse
                     Name = e.IM.FromAgentName
                 };
 
-                FriendList.AddOrUpdate(friend.UUID, friend, (id, existing) => {
+                m_FriendList.AddOrUpdate(friend.UUID, friend, (id, existing) =>
+                {
                     existing.Name = friend.Name;
                     existing.IsOnline = true;
                     existing.TheirFriendRights = friend.TheirFriendRights;
@@ -979,21 +1057,73 @@ namespace OpenMetaverse
             {
                 foreach (BuddyListEntry buddy in replyData.BuddyList)
                 {
-                    string id = buddy.BuddyId.Length > uuidLength ? buddy.BuddyId.Substring(0, uuidLength) : buddy.BuddyId;
-                    if (UUID.TryParse(id, out var bubid))
+                    string id = buddy.BuddyId.Length > uuidLength
+                        ? buddy.BuddyId.Substring(0, uuidLength)
+                        : buddy.BuddyId;
+                    if (UUID.TryParse(id, out var buddyId))
                     {
-                        _ = FriendList.TryAdd(bubid, new FriendInfo(bubid, 
+                        _ = m_FriendList.TryAdd(buddyId, new FriendInfo(buddyId,
                             (FriendRights)buddy.BuddyRightsGiven,
                             (FriendRights)buddy.BuddyRightsHas));
                     }
                 }
-                OnfriendsListReady(new FriendsReadyEventArgs(FriendList.Count));
+
+                OnFriendsListReady(new FriendsReadyEventArgs(m_FriendList.Count));
             }
+        }
+
+        // IDisposable implementation
+        private bool disposed = false;
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed) return;
+
+            if (disposing)
+            {
+                try
+                {
+                    if (Client != null)
+                    {
+                        try { Client.Network.LoginProgress -= Network_OnConnect; } catch { }
+                        try { Client.Avatars.UUIDNameReply -= Avatars_OnAvatarNames; } catch { }
+                        try { Client.Self.IM -= Self_IM; } catch { }
+
+                        try { Client.Network.UnregisterCallback(PacketType.OnlineNotification, OnlineNotificationHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.OfflineNotification, OfflineNotificationHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.ChangeUserRights, ChangeUserRightsHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.TerminateFriendship, TerminateFriendshipHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.FindAgent, OnFindAgentReplyHandler); } catch { }
+
+                        try { Client.Network.UnregisterLoginResponseCallback(Network_OnLoginResponse); } catch { }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Exception while disposing FriendsManager: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                }
+            }
+
+            disposed = true;
+        }
+
+        /// <summary>
+        /// Public dispose
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~FriendsManager()
+        {
+            Dispose(false);
         }
     }
     #region EventArgs
 
-   
+
     public class FriendsReadyEventArgs : EventArgs
     {
         /// <summary>Number of friends we have</summary>
