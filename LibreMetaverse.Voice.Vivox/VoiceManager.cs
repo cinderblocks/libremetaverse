@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2024, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -66,7 +66,7 @@ namespace LibreMetaverse.Voice.Vivox
         TypeC
     }
 
-    public partial class VoiceManager
+    public partial class VoiceManager : IDisposable
     {
         public const int VOICE_MAJOR_VERSION = 1;
         public const string DAEMON_ARGS = " -p tcp -h -c -ll ";
@@ -827,5 +827,71 @@ namespace LibreMetaverse.Voice.Vivox
         }
 
         #endregion Callbacks
+
+        #region IDisposable
+        private bool _disposed;
+
+        /// <summary>
+        /// Dispose VoiceManager and unregister callbacks and event handlers
+        /// Safe to call multiple times.
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                try
+                {
+                    // Unregister network event callback
+                    try { _client?.Network?.UnregisterEventCallback("RequiredVoiceVersion", RequiredVoiceVersionEventHandler); } catch { }
+
+                    // Unregister blocking callbacks
+                    try { OnCaptureDevices -= VoiceManager_OnCaptureDevices; } catch { }
+                    try { OnRenderDevices -= VoiceManager_OnRenderDevices; } catch { }
+                    try { OnConnectorCreated -= VoiceManager_OnConnectorCreated; } catch { }
+                    try { OnLogin -= VoiceManager_OnLogin; } catch { }
+
+                    // Detach daemon pipe handlers and dispose pipe if present
+                    try
+                    {
+                        if (_daemonPipe != null)
+                        {
+                            try { _daemonPipe.OnDisconnected -= _DaemonPipe_OnDisconnected; } catch { }
+                            try { _daemonPipe.OnReceiveLine -= _DaemonPipe_OnReceiveLine; } catch { }
+                            try { _daemonPipe.Disconnect(); } catch { }
+                            _daemonPipe = null;
+                        }
+                    }
+                    catch { }
+
+                    // Clear internal collections
+                    try { _channelMap.Clear(); } catch { }
+                    try { _captureDevices.Clear(); } catch { }
+                    try { _renderDevices.Clear(); } catch { }
+
+                    _enabled = false;
+                }
+                catch { /* swallow exceptions in Dispose */ }
+            }
+
+            _disposed = true;
+        }
+
+        /// <summary>
+        /// Public dispose
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~VoiceManager()
+        {
+            Dispose(false);
+        }
+
+        #endregion
     }
 }
