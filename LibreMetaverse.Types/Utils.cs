@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -27,6 +28,7 @@
 using System;
 using System.Security.Cryptography;
 using System.Text;
+using System.Runtime.InteropServices;
 
 namespace OpenMetaverse
 {
@@ -455,5 +457,85 @@ namespace OpenMetaverse
         }
 
         #endregion Platform
+
+        // Endianness helpers for little-endian data access
+        /// <summary>
+        /// Read a 32-bit float from a byte array encoded as little-endian
+        /// </summary>
+        public static float ReadSingleLittleEndian(byte[] src, int pos)
+        {
+            if (BitConverter.IsLittleEndian)
+            {
+                return BitConverter.ToSingle(src, pos);
+            }
+
+            Span<byte> tmp = stackalloc byte[4];
+            // Reverse into system endianness (big-endian) so MemoryMarshal.Read works
+            tmp[0] = src[pos + 3];
+            tmp[1] = src[pos + 2];
+            tmp[2] = src[pos + 1];
+            tmp[3] = src[pos + 0];
+            return MemoryMarshal.Read<float>(tmp);
+        }
+
+        /// <summary>
+        /// Write a 32-bit float into a byte array using little-endian encoding
+        /// </summary>
+        public static void WriteSingleLittleEndian(byte[] dest, int pos, float value)
+        {
+            Span<byte> outSpan = new Span<byte>(dest, pos, 4);
+            if (BitConverter.IsLittleEndian)
+            {
+                MemoryMarshal.Write(outSpan, ref value);
+                return;
+            }
+
+            // Big-endian system: write to tmp (system order) then reverse into dest
+            Span<byte> tmp = stackalloc byte[4];
+            MemoryMarshal.Write(tmp, ref value);
+            outSpan[0] = tmp[3];
+            outSpan[1] = tmp[2];
+            outSpan[2] = tmp[1];
+            outSpan[3] = tmp[0];
+        }
+
+        /// <summary>
+        /// Read a 64-bit double from a byte array encoded as little-endian
+        /// </summary>
+        public static double ReadDoubleLittleEndian(byte[] src, int pos)
+        {
+            if (BitConverter.IsLittleEndian)
+            {
+                return BitConverter.ToDouble(src, pos);
+            }
+
+            Span<byte> tmp = stackalloc byte[8];
+            tmp[0] = src[pos + 7];
+            tmp[1] = src[pos + 6];
+            tmp[2] = src[pos + 5];
+            tmp[3] = src[pos + 4];
+            tmp[4] = src[pos + 3];
+            tmp[5] = src[pos + 2];
+            tmp[6] = src[pos + 1];
+            tmp[7] = src[pos + 0];
+            return MemoryMarshal.Read<double>(tmp);
+        }
+
+        /// <summary>
+        /// Write a 64-bit double into a byte array using little-endian encoding
+        /// </summary>
+        public static void WriteDoubleLittleEndian(byte[] dest, int pos, double value)
+        {
+            Span<byte> outSpan = new Span<byte>(dest, pos, 8);
+            if (BitConverter.IsLittleEndian)
+            {
+                MemoryMarshal.Write(outSpan, ref value);
+                return;
+            }
+
+            Span<byte> tmp = stackalloc byte[8];
+            MemoryMarshal.Write(tmp, ref value);
+            for (int i = 0; i < 8; i++) { outSpan[i] = tmp[7 - i]; }
+        }
     }
 }
