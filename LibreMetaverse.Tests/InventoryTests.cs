@@ -45,6 +45,12 @@ namespace LibreMetaverse.Tests
             inventory = new Inventory(client, UUID.Random());
         }
 
+        [TearDown]
+        public void Teardown()
+        {
+            try { client.Dispose(); } catch { }
+        }
+
         [Test]
         public void AddAndGetItem()
         {

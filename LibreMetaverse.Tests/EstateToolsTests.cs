@@ -72,6 +72,7 @@ namespace LibreMetaverse.Tests
         {
             Console.Write("Logging out...");
             Client.Network.Logout();
+            try { Client.Dispose(); } catch { }
             Console.WriteLine("Done");
         }
 
