@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 // the Namespace used for all TestClient commands
@@ -8,7 +9,7 @@ namespace TestClient.Commands.Friends
     /// Shows a list of friends
     /// </summary>
     public class FriendsCommand : Command
-    {        
+    {
         /// <summary>
         /// Constructor for FriendsCommand class
         /// </summary>
@@ -26,10 +27,15 @@ namespace TestClient.Commands.Friends
         /// Get a list of current friends
         /// </summary>
         /// <param name="args">optional testClient command arguments</param>
-        /// <param name="fromAgentID">The <seealso cref="OpenMetaverse.UUID"/> 
+        /// <param name="fromAgentID">The <seealso cref="OpenMetaverse.UUID"/>
         /// of the agent making the request</param>
         /// <returns></returns>
         public override string Execute(string[] args, UUID fromAgentID)
+        {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
         {
             // initialize a StringBuilder object used to return the results
             StringBuilder sb = new StringBuilder();
@@ -49,11 +55,11 @@ namespace TestClient.Commands.Friends
             else
             {
                 // we have no friends :(
-                sb.AppendLine("No Friends");   
+                sb.AppendLine("No Friends");
             }
 
             // return the result
-            return sb.ToString();
+            return Task.FromResult(sb.ToString());
         }
     }
 }

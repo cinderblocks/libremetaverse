@@ -1,12 +1,11 @@
 using System;
-using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Voice
 {
     public class VoiceAccountCommand : Command
     {
-        private AutoResetEvent ProvisionEvent = new AutoResetEvent(false);
         private string VoiceAccount = null;
         private string VoicePassword = null;
 
@@ -35,6 +34,11 @@ namespace TestClient.Commands.Voice
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (!IsVoiceManagerRunning())
                 return $"VoiceManager not running for {Client.Self.Name}";
 
@@ -42,11 +46,31 @@ namespace TestClient.Commands.Voice
             {
                 return "RequestProvisionAccount failed. Not available for the current grid?";
             }
-            ProvisionEvent.WaitOne(TimeSpan.FromSeconds(30), false);
 
-            if (string.IsNullOrEmpty(VoiceAccount) && string.IsNullOrEmpty(VoicePassword))
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            LibreMetaverse.Voice.Vivox.VoiceManager.ProvisionAccountCallback handler = null;
+            handler = (username, password) =>
             {
-                return $"Voice account information lookup for {Client.Self.Name} failed.";
+                VoiceAccount = username;
+                VoicePassword = password;
+                tcs.TrySetResult(true);
+            };
+
+            try
+            {
+                Client.VoiceManager.OnProvisionAccount += handler;
+
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(30))).ConfigureAwait(false);
+                if (completed != tcs.Task)
+                {
+                    if (string.IsNullOrEmpty(VoiceAccount) && string.IsNullOrEmpty(VoicePassword))
+                        return $"Voice account information lookup for {Client.Self.Name} failed.";
+                }
+            }
+            finally
+            {
+                Client.VoiceManager.OnProvisionAccount -= handler;
             }
 
             return $"Voice Account for {Client.Self.Name}: user \"{VoiceAccount}\", password \"{VoicePassword}\"";
@@ -56,8 +80,6 @@ namespace TestClient.Commands.Voice
         {
             VoiceAccount = username;
             VoicePassword = password;
-
-            ProvisionEvent.Set();
         }
     }
 }

@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Text;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Inventory
@@ -15,62 +17,54 @@ namespace TestClient.Commands.Inventory
         }
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length > 1)
                 return "Usage: ls [-l]";
             bool longDisplay = args.Length > 0 && args[0] == "-l";
 
             Manager = Client.Inventory;
             Inventory = Manager.Store;
-            // WARNING: Uses local copy of inventory contents, need to download them first.
-            List<InventoryBase> contents = Inventory.GetContents(Client.CurrentDirectory);
-            string displayString = "";
+
+            // Use async folder contents
+            List<InventoryBase> contents = await Manager.FolderContentsAsync(Client.CurrentDirectory.UUID, Client.Self.AgentID, true, true, InventorySortOrder.ByName).ConfigureAwait(false);
+
+            StringBuilder display = new StringBuilder();
             // Pretty simple, just print out the contents.
             foreach (InventoryBase b in contents)
             {
                 if (longDisplay)
                 {
-                    // Generate a nicely formatted description of the item.
-                    // It kinda looks like the output of the unix ls.
-                    // starts with 'd' if the inventory is a folder, '-' if not.
-                    // 9 character permissions string
-                    // UUID of object
-                    // Name of object
                     if (b is InventoryFolder folder)
                     {
-                        displayString += "d--------- ";
-                        displayString += folder.UUID;
-                        displayString += " " + folder.Name;
+                        display.Append("d--------- ");
+                        display.Append(folder.UUID);
+                        display.Append(" " + folder.Name);
                     }
                     else if (b is InventoryItem item)
                     {
-                        displayString += "-";
-                        displayString += PermMaskString(item.Permissions.OwnerMask);
-                        displayString += PermMaskString(item.Permissions.GroupMask);
-                        displayString += PermMaskString(item.Permissions.EveryoneMask);
-                        displayString += " " + item.UUID;
-                        displayString += " " + item.Name;
-                        displayString += '\n';
-                        displayString += "  AssetID: " + item.AssetUUID;
+                        display.Append("-");
+                        display.Append(PermMaskString(item.Permissions.OwnerMask));
+                        display.Append(PermMaskString(item.Permissions.GroupMask));
+                        display.Append(PermMaskString(item.Permissions.EveryoneMask));
+                        display.Append(" " + item.UUID);
+                        display.Append(" " + item.Name);
+                        display.Append('\n');
+                        display.Append("  AssetID: " + item.AssetUUID);
                     }
                 }
                 else
                 {
-                    displayString += b.Name;
+                    display.Append(b.Name);
                 }
-                displayString += '\n';
+                display.Append('\n');
             }
-            return displayString;
+            return display.ToString();
         }
 
-        /// <summary>
-        /// Returns a 3-character summary of the PermissionMask
-        /// CMT if the mask allows copy, mod and transfer
-        /// -MT if it disallows copy
-        /// --T if it only allows transfer
-        /// --- if it disallows everything
-        /// </summary>
-        /// <param name="mask"></param>
-        /// <returns></returns>
         private static string PermMaskString(PermissionMask mask)
         {
             string str = "";

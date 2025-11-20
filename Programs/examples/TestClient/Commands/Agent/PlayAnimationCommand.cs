@@ -1,18 +1,19 @@
 ﻿using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Agent
 {
     public class PlayAnimationCommand : Command
-    {        
+    {
         private readonly ImmutableDictionary<UUID, string> m_BuiltInAnimations = Animations.ToDictionary();
         public PlayAnimationCommand(TestClient testClient)
         {
             Name = "play";
             Description = "Attempts to play an animation";
-            Category = CommandCategory.Appearance;                        
+            Category = CommandCategory.Appearance;
         }
 
         private string Usage()
@@ -26,10 +27,15 @@ namespace TestClient.Commands.Agent
         }
 
         public override string Execute(string[] args, UUID fromAgentID)
-        {            
+        {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             StringBuilder result = new StringBuilder();
             if (args.Length != 1)
-                return Usage();
+                return Task.FromResult(Usage());
 
             UUID animationID;
             string arg = args[0].Trim();
@@ -56,7 +62,7 @@ namespace TestClient.Commands.Agent
                     {
                         result.AppendFormat("The {0} Asset Animation is being played, sequence is {1}", kvp.Key, kvp.Value);
                     }
-                });                                
+                });
             }
             else if (m_BuiltInAnimations.ContainsValue(args[0].Trim().ToUpper()))
             {
@@ -71,10 +77,10 @@ namespace TestClient.Commands.Agent
             }
             else
             {
-                return Usage();
+                return Task.FromResult(Usage());
             }
 
-            return result.ToString();
+            return Task.FromResult(result.ToString());
         }
     }
 }

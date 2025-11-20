@@ -1,6 +1,7 @@
 using System;
+using System.Text;
+using System.Threading.Tasks;
 using OpenMetaverse;
-using OpenMetaverse.Assets;
 
 namespace TestClient.Commands.Inventory
 {
@@ -17,28 +18,24 @@ namespace TestClient.Commands.Inventory
             Category = CommandCategory.Inventory;
         }
 
-        /// <summary>
-        /// Execute the command
-        /// </summary>
-        /// <param name="args"></param>
-        /// <param name="fromAgentID"></param>
-        /// <returns></returns>
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
 
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length < 1)
             {
                 return "Usage: viewnote [notecard asset uuid]";
             }
-            UUID note;
-            if (!UUID.TryParse(args[0], out note))
+
+            if (!UUID.TryParse(args[0], out var note))
             {
                 return "First argument expected agent UUID.";
             }
 
-            global::System.Threading.AutoResetEvent waitEvent = new global::System.Threading.AutoResetEvent(false);
-
-            global::System.Text.StringBuilder result = new global::System.Text.StringBuilder();
+            var sb = new StringBuilder();
 
             // verify asset is loaded in store
             if (Client.Inventory.Store.Contains(note))
@@ -46,32 +43,35 @@ namespace TestClient.Commands.Inventory
                 // retrieve asset from store
                 InventoryItem ii = (InventoryItem)Client.Inventory.Store[note];
 
-                // make request for asset
+                var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
                 var transferID = UUID.Random();
                 Client.Assets.RequestInventoryAsset(ii, true, transferID,
-                    delegate(AssetDownload transfer, Asset asset)
+                    (transfer, asset) =>
                     {
                         if (transfer.Success)
                         {
-                            result.AppendFormat("Raw Notecard Data: " + global::System.Environment.NewLine + " {0}", Utils.BytesToString(asset.AssetData));
-                            waitEvent.Set();
+                            sb.AppendFormat("Raw Notecard Data: " + global::System.Environment.NewLine + " {0}", Utils.BytesToString(asset.AssetData));
+                            tcs.TrySetResult(sb.ToString());
+                        }
+                        else
+                        {
+                            tcs.TrySetResult("Failed to download notecard");
                         }
                     }
                 );
 
-                // wait for reply or timeout
-                if (!waitEvent.WaitOne(TimeSpan.FromSeconds(10), false))
-                {
-                    result.Append("Timeout waiting for notecard to download.");
-                }
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
+
+                if (completed != tcs.Task)
+                    return "Timeout waiting for notecard to download.";
+
+                return await tcs.Task.ConfigureAwait(false);
             }
             else
             {
-                result.Append("Cannot find asset in inventory store, use 'i' to populate store");
+                return "Cannot find asset in inventory store, use 'i' to populate store";
             }
-
-            // return results
-            return result.ToString();
         }
     }
 }

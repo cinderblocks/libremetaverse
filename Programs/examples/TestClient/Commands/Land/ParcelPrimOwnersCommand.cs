@@ -1,6 +1,6 @@
 using System;
 using System.Text;
-using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Land
@@ -16,43 +16,46 @@ namespace TestClient.Commands.Land
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length < 1)
                 return "Usage: primowners parcelID (use parcelinfo to get ID)";
 
-            int parcelID;
-            Parcel parcel;
-            StringBuilder result = new StringBuilder();
-            // test argument that is is a valid integer, then verify we have that parcel data stored in the dictionary
-            if (int.TryParse(args[0], out parcelID) && Client.Network.CurrentSim.Parcels.TryGetValue(parcelID, out parcel))
+            if (!int.TryParse(args[0], out var parcelID) || !Client.Network.CurrentSim.Parcels.TryGetValue(parcelID, out var parcel))
             {
-                AutoResetEvent wait = new AutoResetEvent(false);
+                return $"Unable to find Parcel {args[0]} in Parcels Dictionary, Did you run parcelinfo to populate the dictionary first?";
+            }
 
-                EventHandler<ParcelObjectOwnersReplyEventArgs> callback = delegate(object sender, ParcelObjectOwnersReplyEventArgs e)
-                {
-                    for (int i = 0; i < e.PrimOwners.Count; i++)
-                    {
-                        result.AppendFormat("Owner: {0} Count: {1}" + global::System.Environment.NewLine, e.PrimOwners[i].OwnerID, e.PrimOwners[i].Count);
-                        wait.Set();
-                    }
-                };
+            var tcs = new TaskCompletionSource<ParcelObjectOwnersReplyEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
 
+            EventHandler<ParcelObjectOwnersReplyEventArgs> callback = null;
+            callback = (sender, e) => tcs.TrySetResult(e);
 
+            try
+            {
                 Client.Parcels.ParcelObjectOwnersReply += callback;
-                
                 Client.Parcels.RequestObjectOwners(Client.Network.CurrentSim, parcelID);
-                if (!wait.WaitOne(TimeSpan.FromSeconds(10), false))
+
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
+                if (completed != tcs.Task)
+                    return "Timed out waiting for packet.";
+
+                var eargs = await tcs.Task.ConfigureAwait(false);
+                var result = new StringBuilder();
+                for (int i = 0; i < eargs.PrimOwners.Count; i++)
                 {
-                    result.AppendLine("Timed out waiting for packet.");
+                    result.AppendFormat("Owner: {0} Count: {1}" + global::System.Environment.NewLine, eargs.PrimOwners[i].OwnerID, eargs.PrimOwners[i].Count);
                 }
-                Client.Parcels.ParcelObjectOwnersReply -= callback;
-                
+
                 return result.ToString();
             }
-            else
+            finally
             {
-                return
-                    $"Unable to find Parcel {args[0]} in Parcels Dictionary, Did you run parcelinfo to populate the dictionary first?";
+                Client.Parcels.ParcelObjectOwnersReply -= callback;
             }
-        }        
+        }
     }
 }

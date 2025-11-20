@@ -24,6 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Movement
@@ -38,14 +39,18 @@ namespace TestClient.Commands.Movement
         }
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length != 3)
-                return "Usage: turnto x y z";
-            double x, y, z;
-            if (!double.TryParse(args[0], out x) ||
-                !double.TryParse(args[1], out y) ||
-                !double.TryParse(args[2], out z))
+                return Task.FromResult("Usage: turnto x y z");
+            if (!double.TryParse(args[0], out var x) ||
+                !double.TryParse(args[1], out var y) ||
+                !double.TryParse(args[2], out var z))
             {
-                return "Usage: turnto x y z";
+                return Task.FromResult("Usage: turnto x y z");
             }
 
             Vector3 newDirection;
@@ -54,7 +59,7 @@ namespace TestClient.Commands.Movement
             newDirection.Z = (float)z;
             Client.Self.Movement.TurnToward(newDirection);
             Client.Self.Movement.SendUpdate(false);
-            return "Turned to ";
+            return Task.FromResult("Turned to ");
         }
     }
 }

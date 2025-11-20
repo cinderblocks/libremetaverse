@@ -1,12 +1,11 @@
 using System;
-using System.Linq;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Directory
 {
     class SearchEventsCommand : Command
     {
-        global::System.Threading.AutoResetEvent waitQuery = new global::System.Threading.AutoResetEvent(false);
         int resultCount;
 
         public SearchEventsCommand(TestClient testClient)
@@ -18,49 +17,56 @@ namespace TestClient.Commands.Directory
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             // process command line arguments
             if (args.Length < 1)
                 return "Usage: searchevents [search text]";
 
-            string searchText = args.Aggregate(string.Empty, (current, t) => current + (t + " "));
-            searchText = searchText.TrimEnd();
+            string searchText = string.Join(" ", args).TrimEnd();
 
-            waitQuery.Reset();
-            
-            Client.Directory.DirEventsReply += Directory_DirEvents;
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            // send the request to the directory manager
-            Client.Directory.StartEventsSearch(searchText, 0);
-            string result;
-            if (waitQuery.WaitOne(TimeSpan.FromSeconds(20), false) && Client.Network.Connected)
+            EventHandler<DirEventsReplyEventArgs> handler = null;
+            handler = (sender, e) =>
             {
-                result =  "Your query '" + searchText + "' matched " + resultCount + " Events. ";
-            }
-            else
-            {
-                result =  "Timeout waiting for simulator to respond.";
-            }
-
-            Client.Directory.DirEventsReply -= Directory_DirEvents;
-            
-            return result;
-        }
-
-        void Directory_DirEvents(object sender, DirEventsReplyEventArgs e)
-        {
-            if (e.MatchedEvents[0].ID == 0 && e.MatchedEvents.Count == 1)
-            {
-                Console.WriteLine("No Results matched your search string");
-            }
-            else
-            {
-                foreach (DirectoryManager.EventsSearchData ev in e.MatchedEvents)
-                {                    
-                    Console.WriteLine("Event ID: {0} Event Name: {1} Event Date: {2}", ev.ID, ev.Name, ev.Date);
+                if (e.MatchedEvents[0].ID == 0 && e.MatchedEvents.Count == 1)
+                {
+                    Console.WriteLine("No Results matched your search string");
                 }
+                else
+                {
+                    foreach (DirectoryManager.EventsSearchData ev in e.MatchedEvents)
+                    {
+                        Console.WriteLine("Event ID: {0} Event Name: {1} Event Date: {2}", ev.ID, ev.Name, ev.Date);
+                    }
+                }
+                resultCount = e.MatchedEvents.Count;
+                tcs.TrySetResult(true);
+            };
+
+            try
+            {
+                Client.Directory.DirEventsReply += handler;
+
+                // send the request to the directory manager
+                Client.Directory.StartEventsSearch(searchText, 0);
+
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(20))).ConfigureAwait(false);
+                if (completed != tcs.Task && Client.Network.Connected)
+                {
+                    return "Timeout waiting for simulator to respond.";
+                }
+
+                return "Your query '" + searchText + "' matched " + resultCount + " Events. ";
             }
-            resultCount = e.MatchedEvents.Count;
-            waitQuery.Set();
+            finally
+            {
+                Client.Directory.DirEventsReply -= handler;
+            }
         }
     }
 }

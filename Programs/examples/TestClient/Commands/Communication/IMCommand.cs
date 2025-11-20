@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Communication
@@ -9,7 +9,6 @@ namespace TestClient.Commands.Communication
     public class ImCommand : Command
     {
         string ToAvatarName = string.Empty;
-        ManualResetEvent NameSearchEvent = new ManualResetEvent(false);
         Dictionary<string, UUID> Name2Key = new Dictionary<string, UUID>();
 
         public ImCommand(TestClient testClient)
@@ -20,8 +19,13 @@ namespace TestClient.Commands.Communication
             Description = "Instant message someone. Usage: im [firstname] [lastname] [message]";
             Category = CommandCategory.Communication;
         }
-        
+
         public override string Execute(string[] args, UUID fromAgentID)
+        {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
         {
             if (args.Length < 3)
                 return "Usage: im [firstname] [lastname] [message]";
@@ -37,10 +41,32 @@ namespace TestClient.Commands.Communication
 
             if (!Name2Key.ContainsKey(ToAvatarName.ToLower()))
             {
-                // Send the Query
-                Client.Avatars.RequestAvatarNameSearch(ToAvatarName, UUID.Random());
+                var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-                NameSearchEvent.WaitOne(TimeSpan.FromMinutes(1), false);
+                void localHandler(object s, AvatarPickerReplyEventArgs e)
+                {
+                    foreach (var kvp in e.Avatars.Where(kvp => string.Equals(kvp.Value, ToAvatarName, StringComparison.CurrentCultureIgnoreCase)))
+                    {
+                        Name2Key[ToAvatarName.ToLower()] = kvp.Key;
+                        tcs.TrySetResult(true);
+                        return;
+                    }
+                }
+
+                try
+                {
+                    Client.Avatars.AvatarPickerReply += localHandler;
+                    // Send the Query
+                    Client.Avatars.RequestAvatarNameSearch(ToAvatarName, UUID.Random());
+
+                    var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromMinutes(1))).ConfigureAwait(false);
+                    if (completed != tcs.Task)
+                        return "Name lookup timed out";
+                }
+                finally
+                {
+                    Client.Avatars.AvatarPickerReply -= localHandler;
+                }
             }
 
             if (Name2Key.ContainsKey(ToAvatarName.ToLower()))
@@ -48,7 +74,7 @@ namespace TestClient.Commands.Communication
                 UUID id = Name2Key[ToAvatarName.ToLower()];
 
                 Client.Self.InstantMessage(id, message);
-                return "Instant Messaged " + id + " with message: " + message;
+                return $"Instant Messaged {id} with message: {message}";
             }
             else
             {
@@ -61,7 +87,6 @@ namespace TestClient.Commands.Communication
             foreach (var kvp in e.Avatars.Where(kvp => string.Equals(kvp.Value, ToAvatarName, StringComparison.CurrentCultureIgnoreCase)))
             {
                 Name2Key[ToAvatarName.ToLower()] = kvp.Key;
-                NameSearchEvent.Set();
                 return;
             }
         }

@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Movement
@@ -13,17 +14,22 @@ namespace TestClient.Commands.Movement
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             bool start = !(args.Length == 1 && args[0].ToLower() == "stop");
 
             if (start)
             {
                 Client.Self.Crouch(true);
-                return "Started crouching";
+                return Task.FromResult("Started crouching");
             }
             else
             {
                 Client.Self.Crouch(false);
-                return "Stopped crouching";
+                return Task.FromResult("Stopped crouching");
             }
         }
     }

@@ -1,7 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Inventory
@@ -20,6 +19,11 @@ namespace TestClient.Commands.Inventory
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             Manager = Client.Inventory;
             Inventory = Manager.Store;
 
@@ -27,7 +31,7 @@ namespace TestClient.Commands.Inventory
             var watch = Stopwatch.StartNew();
 
             InventoryFolder rootFolder = Inventory.RootFolder;
-            var itemCount = PrintFolder(rootFolder, result, 0);
+            var itemCount = await PrintFolderAsync(rootFolder, result, 0).ConfigureAwait(false);
             watch.Stop();
 
             result.AppendLine();
@@ -35,11 +39,11 @@ namespace TestClient.Commands.Inventory
             return result.ToString();
         }
 
-        int PrintFolder(InventoryFolder f, StringBuilder result, int indent)
+        private async Task<int> PrintFolderAsync(InventoryFolder f, StringBuilder result, int indent)
         {
             var numItems = 0;
-            List<InventoryBase> contents = Manager.FolderContents(f.UUID, Client.Self.AgentID,
-                true, true, InventorySortOrder.ByName, TimeSpan.FromSeconds(3));
+
+            var contents = await Manager.FolderContentsAsync(f.UUID, Client.Self.AgentID, true, true, InventorySortOrder.ByName).ConfigureAwait(false);
 
             if (contents != null)
             {
@@ -49,7 +53,7 @@ namespace TestClient.Commands.Inventory
                     numItems++;
                     if (i is InventoryFolder folder)
                     {
-                        numItems += PrintFolder(folder, result, indent + 1);
+                        numItems += await PrintFolderAsync(folder, result, indent + 1).ConfigureAwait(false);
                     }
                 }
             }

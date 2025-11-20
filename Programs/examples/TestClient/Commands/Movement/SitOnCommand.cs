@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Movement
@@ -14,8 +15,13 @@ namespace TestClient.Commands.Movement
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length != 1)
-                return "Usage: siton UUID";
+                return Task.FromResult("Usage: siton UUID");
 
             if (UUID.TryParse(args[0], out var target))
             {
@@ -26,12 +32,12 @@ namespace TestClient.Commands.Movement
                     var targetPrim = kvp.Value;
                     Client.Self.RequestSit(targetPrim.ID, Vector3.Zero);
                     Client.Self.Sit();
-                    return "Requested to sit on prim " + targetPrim.ID +
-                        " (" + targetPrim.LocalID + ")";
+                    return Task.FromResult("Requested to sit on prim " + targetPrim.ID +
+                        " (" + targetPrim.LocalID + ")");
                 }
             }
 
-            return "Couldn't find a prim to sit on with UUID " + args[0];
+            return Task.FromResult("Couldn't find a prim to sit on with UUID " + args[0]);
         }
     }
 }

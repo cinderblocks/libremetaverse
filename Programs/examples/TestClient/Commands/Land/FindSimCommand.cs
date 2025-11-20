@@ -1,4 +1,4 @@
-using System.Linq;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Land
@@ -13,24 +13,26 @@ namespace TestClient.Commands.Land
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length < 1)
                 return "Usage: findsim [Simulator Name]";
 
             // Build the simulator name from the args list
-            string simName = args.Aggregate(string.Empty, (current, t) => current + (t + " "));
-            simName = simName.TrimEnd().ToLower();
+            string simName = string.Join(" ", args).TrimEnd().ToLower();
 
-            //if (!GridDataCached[Client])
-            //{
-            //    Client.Grid.RequestAllSims(GridManager.MapLayerType.Objects);
-            //    System.Threading.Thread.Sleep(5000);
-            //    GridDataCached[Client] = true;
-            //}
+            var result = await Task.Run(() =>
+            {
+                GridRegion r;
+                bool g = Client.Grid.GetGridRegion(simName, GridLayerType.Objects, out r);
+                return (got: g, region: r);
+            }).ConfigureAwait(false);
 
-            GridRegion region;
-
-            if (Client.Grid.GetGridRegion(simName, GridLayerType.Objects, out region))
-                return $"{region.Name}: handle={region.RegionHandle} ({region.X},{region.Y})";
+            if (result.got)
+                return $"{result.region.Name}: handle={result.region.RegionHandle} ({result.region.X},{result.region.Y})";
             else
                 return "Lookup of " + simName + " failed";
         }

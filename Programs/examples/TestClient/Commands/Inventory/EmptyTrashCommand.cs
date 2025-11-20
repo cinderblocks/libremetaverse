@@ -1,4 +1,5 @@
-﻿using OpenMetaverse;
+﻿using System.Threading.Tasks;
+using OpenMetaverse;
 
 namespace TestClient.Commands.Inventory
 {
@@ -23,8 +24,21 @@ namespace TestClient.Commands.Inventory
         /// <returns></returns>
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            Client.Inventory.EmptyTrash();
-            return "Trash Emptied";
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
+            // Inventory.EmptyTrash is synchronous in this API
+            try
+            {
+                Client.Inventory.EmptyTrash();
+                return Task.FromResult("Trash Emptied");
+            }
+            catch
+            {
+                return Task.FromResult("Failed to empty trash");
+            }
         }
     }
 }

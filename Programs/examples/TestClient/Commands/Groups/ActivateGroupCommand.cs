@@ -1,6 +1,5 @@
 using System;
-using System.Linq;
-using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
 
@@ -11,7 +10,6 @@ namespace TestClient.Commands.Groups
     /// </summary>
     public class ActivateGroupCommand : Command
     {
-        private ManualResetEvent GroupsEvent = new ManualResetEvent(false);
         string activeGroup;
 
         public ActivateGroupCommand(TestClient testClient)
@@ -22,46 +20,56 @@ namespace TestClient.Commands.Groups
         }
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length < 1)
                 return Description;
 
             activeGroup = string.Empty;
 
-            string groupName = args.Aggregate(string.Empty, (current, t) => current + (t + " "));
-            groupName = groupName.Trim();
+            string groupName = string.Join(" ", args).Trim();
 
-            UUID groupUUID = Client.GroupName2UUID(groupName);
-            if (UUID.Zero != groupUUID) {
-                EventHandler<PacketReceivedEventArgs> pcallback = AgentDataUpdateHandler;
-                Client.Network.RegisterCallback(PacketType.AgentDataUpdate, pcallback);
+            UUID groupUUID = await Client.GroupName2UUIDAsync(groupName).ConfigureAwait(false);
+            if (UUID.Zero != groupUUID)
+            {
+                var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-                Console.WriteLine("setting " + groupName + " as active group");
-                Client.Groups.ActivateGroup(groupUUID);
-                GroupsEvent.WaitOne(TimeSpan.FromSeconds(30), false);
+                EventHandler<PacketReceivedEventArgs> pcallback = null;
+                pcallback = (sender, e) =>
+                {
+                    AgentDataUpdatePacket p = (AgentDataUpdatePacket)e.Packet;
+                    if (p.AgentData.AgentID == Client.Self.AgentID)
+                    {
+                        activeGroup = Utils.BytesToString(p.AgentData.GroupName) + " ( " + Utils.BytesToString(p.AgentData.GroupTitle) + " )";
+                        tcs.TrySetResult(true);
+                    }
+                };
 
-                Client.Network.UnregisterCallback(PacketType.AgentDataUpdate, pcallback);
-                GroupsEvent.Reset();
+                try
+                {
+                    Client.Network.RegisterCallback(PacketType.AgentDataUpdate, pcallback);
 
-                /* A.Biondi 
-                 * TODO: Handle titles choosing.
-                 */
+                    Console.WriteLine("setting " + groupName + " as active group");
+                    Client.Groups.ActivateGroup(groupUUID);
 
-                if (string.IsNullOrEmpty(activeGroup))
-                    return Client + " failed to activate the group " + groupName;
+                    var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(30))).ConfigureAwait(false);
 
-                return "Active group is now " + activeGroup;
+                    if (completed != tcs.Task)
+                    {
+                        return Client + " failed to activate the group " + groupName;
+                    }
+
+                    return "Active group is now " + activeGroup;
+                }
+                finally
+                {
+                    Client.Network.UnregisterCallback(PacketType.AgentDataUpdate, pcallback);
+                }
             }
             return Client + " doesn't seem to be member of the group " + groupName;
-        }
-
-        private void AgentDataUpdateHandler(object sender, PacketReceivedEventArgs e)
-        {
-            AgentDataUpdatePacket p = (AgentDataUpdatePacket)e.Packet;
-            if (p.AgentData.AgentID == Client.Self.AgentID)
-            {
-                activeGroup = Utils.BytesToString(p.AgentData.GroupName) + " ( " + Utils.BytesToString(p.AgentData.GroupTitle) + " )";
-                GroupsEvent.Set();
-            }
         }
     }
 }

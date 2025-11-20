@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Inventory
@@ -16,12 +17,16 @@ namespace TestClient.Commands.Inventory
         }
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length < 2)
             {
                 return "Usage: give <agent uuid> itemname";
             }
-            UUID dest;
-            if (!UUID.TryParse(args[0], out dest))
+            if (!UUID.TryParse(args[0], out var dest))
             {
                 return "First argument expected agent UUID.";
             }
@@ -29,12 +34,11 @@ namespace TestClient.Commands.Inventory
             Inventory = Manager.Store;
             string ret = "";
 
-            string target = args.Aggregate(string.Empty, (current, t) => current + t + " ");
-            target = target.TrimEnd();
+            string target = string.Join(" ", args.Skip(1)).Trim();
 
             string inventoryName = target;
             // WARNING: Uses local copy of inventory contents, need to download them first.
-            List<InventoryBase> contents = Inventory.GetContents(Client.CurrentDirectory);
+            List<InventoryBase> contents = await Manager.FolderContentsAsync(Client.CurrentDirectory.UUID, Client.Self.AgentID, true, true, InventorySortOrder.ByName).ConfigureAwait(false);
             bool found = false;
             foreach (var b in contents.Where(b => inventoryName == b.Name || inventoryName == b.UUID.ToString()))
             {

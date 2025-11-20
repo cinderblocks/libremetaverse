@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 using OpenMetaverse.Assets;
 
@@ -44,9 +44,10 @@ namespace TestClient.Commands.Inventory
         // items sent to the server here
         private List<QueuedDownloadInfo> CurrentDownloads = new List<QueuedDownloadInfo>(MAX_TRANSFERS);
 
-        // background workers
-        private BackgroundWorker BackupWorker;
-        private BackgroundWorker QueueWorker;
+        // background tasks
+        private CancellationTokenSource cts;
+        private Task BackupTask;
+        private Task QueueTask;
 
         // some stats
         private int TextItemsFound;
@@ -56,19 +57,19 @@ namespace TestClient.Commands.Inventory
         #region Properties
 
         /// <summary>
-        /// true if either of the background threads is running
+        /// true if either of the background tasks is running
         /// </summary>
         private bool BackgroundBackupRunning => InventoryWalkerRunning || QueueRunnerRunning;
 
         /// <summary>
-        /// true if the thread walking inventory is running
+        /// true if the task walking inventory is running
         /// </summary>
-        private bool InventoryWalkerRunning => BackupWorker != null;
+        private bool InventoryWalkerRunning => BackupTask != null && !BackupTask.IsCompleted;
 
         /// <summary>
-        /// true if the thread feeding the queue to the server is running
+        /// true if the task feeding the queue to the server is running
         /// </summary>
-        private bool QueueRunnerRunning => QueueWorker != null;
+        private bool QueueRunnerRunning => QueueTask != null && !QueueTask.IsCompleted;
 
         /// <summary>
         /// returns a string summarizing activity
@@ -103,7 +104,11 @@ namespace TestClient.Commands.Inventory
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
 
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length == 1 && args[0] == "status")
             {
                 return BackgroundBackupStatus;
@@ -113,12 +118,16 @@ namespace TestClient.Commands.Inventory
                 if (!BackgroundBackupRunning)
                     return BackgroundBackupStatus;
 
-                BackupWorker.CancelAsync();
-                QueueWorker.CancelAsync();
+                cts?.Cancel();
 
-                Thread.Sleep(500);
+                // give tasks a moment to stop
+                var allTasks = Task.WhenAll(new[] { BackupTask ?? Task.CompletedTask, QueueTask ?? Task.CompletedTask });
+                var completed = await Task.WhenAny(allTasks, Task.Delay(TimeSpan.FromSeconds(1))).ConfigureAwait(false);
+                if (completed == allTasks)
+                {
+                    try { await allTasks.ConfigureAwait(false); } catch { }
+                }
 
-                // check status
                 return BackgroundBackupStatus;
             }
             else if (args.Length != 2)
@@ -130,101 +139,95 @@ namespace TestClient.Commands.Inventory
                 return BackgroundBackupStatus;
             }
 
-            QueueWorker = new BackgroundWorker();
-            QueueWorker.WorkerSupportsCancellation = true;
-            QueueWorker.DoWork += bwQueueRunner_DoWork;
-            QueueWorker.RunWorkerCompleted += bwQueueRunner_RunWorkerCompleted;
+            // start background operations
+            cts = new CancellationTokenSource();
+            lock (CurrentDownloads) CurrentDownloads.Clear();
+            lock (PendingDownloads) PendingDownloads.Clear();
 
-            QueueWorker.RunWorkerAsync();
+            QueueTask = Task.Run(() => QueueRunnerAsync(cts.Token), cts.Token);
+            BackupTask = Task.Run(() => BackupWorkerAsync(args, cts.Token), cts.Token);
 
-            BackupWorker = new BackgroundWorker();
-            BackupWorker.WorkerSupportsCancellation = true;
-            BackupWorker.DoWork += bwBackup_DoWork;
-            BackupWorker.RunWorkerCompleted += bwBackup_RunWorkerCompleted;
-
-            BackupWorker.RunWorkerAsync(args);
             return "Started background operations.";
         }
 
-        void bwQueueRunner_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-            QueueWorker = null;
-            Console.WriteLine(BackgroundBackupStatus);
-        }
-
-        void bwQueueRunner_DoWork(object sender, DoWorkEventArgs e)
+        private async Task QueueRunnerAsync(CancellationToken token)
         {
             TextItemErrors = TextItemsTransferred = 0;
 
-            while (QueueWorker.CancellationPending == false)
+            try
             {
-                // have any timed out?
-                if (CurrentDownloads.Count > 0)
+                while (!token.IsCancellationRequested)
                 {
-                    foreach (QueuedDownloadInfo qdi in CurrentDownloads)
+                    // have any timed out?
+                    lock (CurrentDownloads)
                     {
-                        if ((qdi.WhenRequested + TimeSpan.FromSeconds(60)) < DateTime.Now)
+                        if (CurrentDownloads.Count > 0)
                         {
-                            Logger.DebugLog(Name + ": timeout on asset " + qdi.AssetID, Client);
-                            // submit request again
-                            var transferID = UUID.Random();
-                            Client.Assets.RequestInventoryAsset(
-                                qdi.AssetID, qdi.ItemID, qdi.TaskID, qdi.OwnerID, qdi.Type, true, transferID, Assets_OnAssetReceived);
-                            qdi.WhenRequested = DateTime.Now;
-                            qdi.IsRequested = true;
+                            foreach (QueuedDownloadInfo qdi in CurrentDownloads.ToArray())
+                            {
+                                if ((qdi.WhenRequested + TimeSpan.FromSeconds(60)) < DateTime.Now)
+                                {
+                                    Logger.DebugLog(Name + ": timeout on asset " + qdi.AssetID, Client);
+                                    // submit request again
+                                    var transferID = UUID.Random();
+                                    Client.Assets.RequestInventoryAsset(
+                                        qdi.AssetID, qdi.ItemID, qdi.TaskID, qdi.OwnerID, qdi.Type, true, transferID, Assets_OnAssetReceived);
+                                    qdi.WhenRequested = DateTime.Now;
+                                    qdi.IsRequested = true;
+                                }
+                            }
                         }
                     }
-                }
 
-                if (PendingDownloads.Count != 0)
-                {
-                    // room in the server queue?
-                    if (CurrentDownloads.Count < MAX_TRANSFERS)
+                    if (token.IsCancellationRequested) break;
+
+                    if (PendingDownloads.Count != 0)
                     {
-                        // yes
-                        QueuedDownloadInfo qdi = PendingDownloads.Dequeue();
-                        qdi.WhenRequested = DateTime.Now;
-                        qdi.IsRequested = true;
-                        var transferID = UUID.Random();
-                        Client.Assets.RequestInventoryAsset(
-                            qdi.AssetID, qdi.ItemID, qdi.TaskID, qdi.OwnerID, qdi.Type, true, transferID, Assets_OnAssetReceived);
+                        // room in the server queue?
+                        if (CurrentDownloads.Count < MAX_TRANSFERS)
+                        {
+                            QueuedDownloadInfo qdi = null;
+                            lock (PendingDownloads)
+                            {
+                                if (PendingDownloads.Count != 0)
+                                    qdi = PendingDownloads.Dequeue();
+                            }
 
-                        lock (CurrentDownloads) CurrentDownloads.Add(qdi);
+                            if (qdi != null)
+                            {
+                                qdi.WhenRequested = DateTime.Now;
+                                qdi.IsRequested = true;
+                                var transferID = UUID.Random();
+                                Client.Assets.RequestInventoryAsset(
+                                    qdi.AssetID, qdi.ItemID, qdi.TaskID, qdi.OwnerID, qdi.Type, true, transferID, Assets_OnAssetReceived);
+
+                                lock (CurrentDownloads) CurrentDownloads.Add(qdi);
+                            }
+                        }
                     }
-                }
 
-                if (CurrentDownloads.Count == 0 && PendingDownloads.Count == 0 && BackupWorker == null)
-                {
-                    Logger.DebugLog(Name + ": both transfer queues empty AND inventory walking thread is done", Client);
-                    return;
-                }
+                    if (CurrentDownloads.Count == 0 && PendingDownloads.Count == 0 && (BackupTask == null || BackupTask.IsCompleted))
+                    {
+                        Logger.DebugLog(Name + ": both transfer queues empty AND inventory walking task is done", Client);
+                        return;
+                    }
 
-                Thread.Sleep(100);
+                    await Task.Delay(100, token).ConfigureAwait(false);
+                }
             }
+            catch (OperationCanceledException) { }
         }
 
-        void bwBackup_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-            Console.WriteLine(Name + ": Inventory walking thread done.");
-            BackupWorker = null;
-        }
-
-        private void bwBackup_DoWork(object sender, DoWorkEventArgs e)
+        private async Task BackupWorkerAsync(string[] args, CancellationToken token)
         {
             TextItemsFound = 0;
 
-            var args = (string[])e.Argument;
-
             lock (CurrentDownloads) CurrentDownloads.Clear();
-
-            // FIXME:
-            //Client.Inventory.RequestFolderContents(Client.Inventory.Store.RootFolder.UUID, Client.Self.AgentID, 
-            //    true, true, false, InventorySortOrder.ByName);
 
             DirectoryInfo di = new DirectoryInfo(args[1]);
 
             // recurse on the root folder into the entire inventory
-            BackupFolder(Client.Inventory.Store.RootNode, di.FullName);
+            await Task.Run(() => BackupFolder(Client.Inventory.Store.RootNode, di.FullName, token), token).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -232,17 +235,12 @@ namespace TestClient.Commands.Inventory
         /// </summary>
         /// <param name="folder">The current leaf in the inventory tree</param>
         /// <param name="sPathSoFar">path so far, in the form @"c:\here" -- this needs to be "clean" for the current filesystem</param>
-        private void BackupFolder(InventoryNode folder, string sPathSoFar)
+        private void BackupFolder(InventoryNode folder, string sPathSoFar, CancellationToken token)
         {
-
-            // FIXME:
-            //Client.Inventory.RequestFolderContents(folder.Data.UUID, Client.Self.AgentID, true, true, false, 
-            //    InventorySortOrder.ByName);
-
             // first scan this folder for text
             foreach (InventoryNode iNode in folder.Nodes.Values)
             {
-                if (BackupWorker.CancellationPending) return;
+                if (token.IsCancellationRequested) return;
                 if (!(iNode.Data is InventoryItem ii)) continue;
                 if (ii.AssetType != AssetType.LSLText && ii.AssetType != AssetType.Notecard) continue;
                 // check permissions on scripts
@@ -257,7 +255,7 @@ namespace TestClient.Commands.Inventory
 
                 string sExtension = (ii.AssetType == AssetType.LSLText) ? ".lsl" : ".txt";
                 // make the output file
-                string sPath = sPathSoFar + @"\" + MakeValid(ii.Name.Trim()) + sExtension;
+                string sPath = sPathSoFar + "\\" + MakeValid(ii.Name.Trim()) + sExtension;
 
                 // create the new qdi
                 QueuedDownloadInfo qdi = new QueuedDownloadInfo(sPath, ii.AssetUUID, ii.UUID, UUID.Zero,
@@ -274,10 +272,9 @@ namespace TestClient.Commands.Inventory
             // now run any subfolders
             foreach (InventoryNode i in folder.Nodes.Values)
             {
-                if (BackupWorker.CancellationPending)
-                    return;
+                if (token.IsCancellationRequested) return;
                 else if (i.Data is OpenMetaverse.InventoryFolder)
-                    BackupFolder(i, sPathSoFar + @"\" + MakeValid(i.Data.Name.Trim()));
+                    BackupFolder(i, sPathSoFar + "\\" + MakeValid(i.Data.Name.Trim()), token);
             }
         }
 

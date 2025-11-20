@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Inventory
@@ -13,23 +14,39 @@ namespace TestClient.Commands.Inventory
 		}
 
         public override string Execute(string[] args, UUID fromAgentID)
-		{
-            global::System.Threading.AutoResetEvent waitBalance = new global::System.Threading.AutoResetEvent(false);
+        {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
 
-            void balance(object sender, BalanceEventArgs e)
-            {
-                waitBalance.Set();
-            }
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            Client.Self.MoneyBalance += balance;            
-            Client.Self.RequestBalance();
-            string result = "Timeout waiting for balance reply";
-            if (waitBalance.WaitOne(TimeSpan.FromSeconds(10), false))
+            EventHandler<BalanceEventArgs> handler = null;
+            handler = (sender, e) =>
             {
-                result = Client + " has L$: " + Client.Self.Balance;
+                tcs.TrySetResult(true);
+            };
+
+            try
+            {
+                Client.Self.MoneyBalance += handler;
+                Client.Self.RequestBalance();
+
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
+                if (completed == tcs.Task)
+                {
+                    return Client + " has L$: " + Client.Self.Balance;
+                }
+                else
+                {
+                    return "Timeout waiting for balance reply";
+                }
             }
-            Client.Self.MoneyBalance -= balance;
-            return result;            
-		}
+            finally
+            {
+                Client.Self.MoneyBalance -= handler;
+            }
+        }
     }
 }

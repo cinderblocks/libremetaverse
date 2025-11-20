@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Movement
@@ -13,17 +14,22 @@ namespace TestClient.Commands.Movement
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             bool start = !(args.Length == 1 && args[0].ToLower() == "stop");
 
             if (start)
             {
                 Client.Self.Fly(true);
-                return "Started flying";
+                return Task.FromResult("Started flying");
             }
             else
             {
                 Client.Self.Fly(false);
-                return "Stopped flying";
+                return Task.FromResult("Stopped flying");
             }
         }
     }

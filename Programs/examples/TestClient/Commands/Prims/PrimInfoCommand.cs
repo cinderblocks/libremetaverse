@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Prims
@@ -16,14 +16,17 @@ namespace TestClient.Commands.Prims
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            UUID primID;
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
 
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length != 1)
             {
                 return "Usage: priminfo [prim-uuid]";
             }
 
-            if (!UUID.TryParse(args[0], out primID))
+            if (!UUID.TryParse(args[0], out var primID))
             {
                 return $"{args[0]} is not a valid UUID";
             }
@@ -69,21 +72,35 @@ namespace TestClient.Commands.Prims
                 Logger.Log("null", Helpers.LogLevel.Info, Client);
             }
 
-            AutoResetEvent propsEvent = new AutoResetEvent(false);
-            EventHandler<ObjectPropertiesEventArgs> propsCallback =
-                delegate(object sender, ObjectPropertiesEventArgs e)
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            EventHandler<ObjectPropertiesEventArgs> propsCallback = null;
+            propsCallback = (sender, e) =>
+            {
+                try
                 {
                     Logger.Log(
                         $"Category: {e.Properties.Category}\nFolderID: {e.Properties.FolderID}\nFromTaskID: {e.Properties.FromTaskID}\nInventorySerial: {e.Properties.InventorySerial}\nItemID: {e.Properties.ItemID}\nCreationDate: {e.Properties.CreationDate}", Helpers.LogLevel.Info);
-                    propsEvent.Set();
-                };
+                }
+                finally
+                {
+                    tcs.TrySetResult(true);
+                }
+            };
 
-            Client.Objects.ObjectProperties += propsCallback;
+            try
+            {
+                Client.Objects.ObjectProperties += propsCallback;
 
-            Client.Objects.SelectObject(Client.Network.CurrentSim, target.LocalID, true);
+                Client.Objects.SelectObject(Client.Network.CurrentSim, target.LocalID, true);
 
-            propsEvent.WaitOne(TimeSpan.FromSeconds(10), false);
-            Client.Objects.ObjectProperties -= propsCallback;
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
+                // ignore timeout case, just proceed
+            }
+            finally
+            {
+                Client.Objects.ObjectProperties -= propsCallback;
+            }
 
             return "Done.";
         }

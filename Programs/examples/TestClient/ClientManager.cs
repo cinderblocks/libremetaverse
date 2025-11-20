@@ -265,13 +265,13 @@ namespace TestClient
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="cmd"></param>
+        /// <param name="commandLine"></param>
         /// <param name="fromAgentID"></param>
-        public void DoCommandAll(string cmd, UUID fromAgentID)
+        public void DoCommandAll(string commandLine, UUID fromAgentID)
         {
-            if (cmd == null)
+            if (commandLine == null)
                 return;
-            string[] tokens = cmd.Trim().Split(' ', '\t');
+            string[] tokens = commandLine.Trim().Split(' ', '\t');
             if (tokens.Length == 0)
                 return;
             
@@ -318,7 +318,8 @@ namespace TestClient
                 {
                     foreach (TestClient client in Clients.Values)
                     {
-                        Console.WriteLine(client.Commands["help"].Execute(args, UUID.Zero));
+                        // Use async API but keep synchronous behavior for the caller
+                        Console.WriteLine(client.Commands["help"].ExecuteAsync(args, UUID.Zero).GetAwaiter().GetResult());
                         break;
                     }
                 }
@@ -331,7 +332,7 @@ namespace TestClient
             {
                 // No reason to pass this to all bots, and we also want to allow it when there are no bots
                 ScriptCommand command = new ScriptCommand(null);
-                Logger.Log(command.Execute(args, UUID.Zero), Helpers.LogLevel.Info);
+                Logger.Log(command.ExecuteAsync(args, UUID.Zero).GetAwaiter().GetResult(), Helpers.LogLevel.Info);
             }
             else if (firstToken == "waitforlogin")
             {
@@ -339,7 +340,7 @@ namespace TestClient
                 if (ClientManager.Instance.PendingLogins > 0)
                 {
                     WaitForLoginCommand command = new WaitForLoginCommand(null);
-                    Logger.Log(command.Execute(args, UUID.Zero), Helpers.LogLevel.Info);
+                    Logger.Log(command.ExecuteAsync(args, UUID.Zero).GetAwaiter().GetResult(), Helpers.LogLevel.Info);
                 }
                 else
                 {
@@ -351,36 +352,42 @@ namespace TestClient
                 // Make an immutable copy of the Clients dictionary to safely iterate over
                 Dictionary<UUID, TestClient> clientsCopy = new Dictionary<UUID, TestClient>(Clients);
 
-                int completed = 0;
+                var tasks = new List<System.Threading.Tasks.Task>();
 
                 foreach (TestClient client in clientsCopy.Values)
                 {
-                    ThreadPool.QueueUserWorkItem(
-                        delegate(object state)
-                        {
-                            TestClient testClient = (TestClient)state;
-                            if ((string.Empty == onlyAvatar) || (testClient.ToString() == onlyAvatar)) {
-                                if (testClient.Commands.ContainsKey(firstToken)) {
-                                    string result;
-                                    try {
-                                        result = testClient.Commands[firstToken].Execute(args, fromAgentID);
-                                        Logger.Log(result, Helpers.LogLevel.Info, testClient);
-                                    } catch(Exception e) {
-                                        Logger.Log($"{firstToken} raised exception {e}",
-                                                   Helpers.LogLevel.Error,
-                                                   testClient);
-                                    }
-                                } else
-                                    Logger.Log($"Unknown command {firstToken}", Helpers.LogLevel.Warning);
-                            }
+                    TestClient testClient = client;
 
-                            ++completed;
-                        },
-                        client);
+                    if ((string.Empty == onlyAvatar) || (testClient.ToString() == onlyAvatar))
+                    {
+                        if (testClient.Commands.ContainsKey(firstToken))
+                        {
+                            var command = testClient.Commands[firstToken];
+                            var task = System.Threading.Tasks.Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    var result = await command.ExecuteAsync(args, fromAgentID).ConfigureAwait(false);
+                                    Logger.Log(result, Helpers.LogLevel.Info, testClient);
+                                }
+                                catch (Exception e)
+                                {
+                                    Logger.Log($"{firstToken} raised exception {e}", Helpers.LogLevel.Error, testClient);
+                                }
+                            });
+
+                            tasks.Add(task);
+                        }
+                        else
+                        {
+                            Logger.Log($"Unknown command {firstToken}", Helpers.LogLevel.Warning);
+                        }
+                    }
                 }
 
-                while (completed < clientsCopy.Count)
-                    Thread.Sleep(50);
+                // Wait for all command tasks to complete
+                if (tasks.Count > 0)
+                    System.Threading.Tasks.Task.WhenAll(tasks).GetAwaiter().GetResult();
             }
         }
 

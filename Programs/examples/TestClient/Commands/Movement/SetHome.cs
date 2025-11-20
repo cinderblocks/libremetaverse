@@ -1,10 +1,11 @@
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Movement
 {
     public class SetHomeCommand : Command
     {
-		public SetHomeCommand(TestClient testClient)
+        public SetHomeCommand(TestClient testClient)
         {
             Name = "sethome";
             Description = "Sets home to the current location.";
@@ -13,8 +14,13 @@ namespace TestClient.Commands.Movement
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-			Client.Self.SetHome();
-            return "Home Set";
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
+            Client.Self.SetHome();
+            return Task.FromResult("Home Set");
         }
     }
 }

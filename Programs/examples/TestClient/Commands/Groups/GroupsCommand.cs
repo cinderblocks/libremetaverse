@@ -1,10 +1,11 @@
 using System.Text;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Groups
 {
     public class GroupsCommand : Command
-    {        
+    {
         public GroupsCommand(TestClient testClient)
         {
             Name = "groups";
@@ -14,24 +15,29 @@ namespace TestClient.Commands.Groups
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            Client.ReloadGroupsCache();
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
+            await Client.ReloadGroupsCacheAsync().ConfigureAwait(false);
             return getGroupsString();
         }
 
         string getGroupsString()
         {
             if (null == Client.GroupsCache)
-                    return "Groups cache failed.";
+                return "Groups cache failed.";
             if (0 == Client.GroupsCache.Count)
-                    return "No groups";
+                return "No groups";
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine("got "+Client.GroupsCache.Count +" groups:");
+            sb.AppendLine("got " + Client.GroupsCache.Count + " groups:");
             foreach (Group group in Client.GroupsCache.Values)
             {
                 sb.AppendLine(group.ID + ", " + group.Name);
-                
+
             }
-            
+
             return sb.ToString();
         }
     }

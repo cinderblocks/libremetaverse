@@ -1,4 +1,5 @@
-﻿using OpenMetaverse;
+﻿using System.Threading.Tasks;
+using OpenMetaverse;
 
 namespace TestClient.Commands.Inventory
 {
@@ -15,16 +16,22 @@ namespace TestClient.Commands.Inventory
             Category = CommandCategory.Inventory;
         }
 
-        /// <summary>
-        /// Exectute the command
-        /// </summary>
-        /// <param name="args"></param>
-        /// <param name="fromAgentID"></param>
-        /// <returns></returns>
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            Client.Inventory.EmptyLostAndFound();
-            return "Lost And Found Emptied";
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
+            try
+            {
+                Client.Inventory.EmptyLostAndFound();
+                return Task.FromResult("Lost And Found Emptied");
+            }
+            catch
+            {
+                return Task.FromResult("Failed to empty Lost And Found");
+            }
         }
     }
 }

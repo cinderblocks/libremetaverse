@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Movement
@@ -13,18 +14,22 @@ namespace TestClient.Commands.Movement
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length != 3)
-                return "Usage: moveto x y z";
+                return Task.FromResult("Usage: moveto x y z");
 
             uint regionX, regionY;
             Utils.LongToUInts(Client.Network.CurrentSim.Handle, out regionX, out regionY);
 
-            double x, y, z;
-            if (!double.TryParse(args[0], out x) ||
-                !double.TryParse(args[1], out y) ||
-                !double.TryParse(args[2], out z))
+            if (!double.TryParse(args[0], out var x) ||
+                !double.TryParse(args[1], out var y) ||
+                !double.TryParse(args[2], out var z))
             {
-                return "Usage: moveto x y z";
+                return Task.FromResult("Usage: moveto x y z");
             }
 
             // Convert the local coordinates to global ones by adding the region handle parts to x and y
@@ -33,7 +38,7 @@ namespace TestClient.Commands.Movement
 
             Client.Self.AutoPilot(x, y, z);
 
-            return $"Attempting to move to <{x},{y},{z}>";
+            return Task.FromResult($"Attempting to move to <{x},{y},{z}>");
         }
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using LibreMetaverse.Voice.Vivox;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
@@ -24,7 +25,7 @@ namespace TestClient
         // Shell-like inventory commands need to be aware of the 'current' inventory folder.
         public InventoryFolder CurrentDirectory = null;
 
-        private System.Timers.Timer updateTimer;
+        private readonly System.Timers.Timer updateTimer;
         private UUID GroupMembersRequestID;
         public Dictionary<UUID, Group> GroupsCache = null;
         private readonly ManualResetEvent GroupsEvent = new ManualResetEvent(false);
@@ -174,41 +175,103 @@ namespace TestClient
 
         public void ReloadGroupsCache()
         {
-            Groups.CurrentGroups += Groups_CurrentGroups;            
-            Groups.RequestCurrentGroups();
-            GroupsEvent.WaitOne(TimeSpan.FromSeconds(10), false);
-            Groups.CurrentGroups -= Groups_CurrentGroups;
-            GroupsEvent.Reset();
+            // Keep synchronous wrapper for compatibility by calling the async implementation
+            ReloadGroupsCacheAsync().GetAwaiter().GetResult();
         }
 
-        void Groups_CurrentGroups(object sender, CurrentGroupsEventArgs e)
+        /// <summary>
+        /// Asynchronously reload the groups cache with a 10 second timeout.
+        /// Use this method when you can await instead of blocking the calling thread.
+        /// </summary>
+        public async Task ReloadGroupsCacheAsync()
         {
-            if (null == GroupsCache)
-                GroupsCache = e.Groups;
-            else
-                lock (GroupsCache) { GroupsCache = e.Groups; }
-            GroupsEvent.Set();
-        }
+            var tcs = new TaskCompletionSource<Dictionary<UUID, Group>>();
 
-        public UUID GroupName2UUID(string groupName)
-        {
-            UUID tryUUID;
-            if (UUID.TryParse(groupName,out tryUUID))
-                    return tryUUID;
-            if (null == GroupsCache) {
-                    ReloadGroupsCache();
-                if (null == GroupsCache)
-                    return UUID.Zero;
-            }
-            lock(GroupsCache) {
-                if (GroupsCache.Count > 0) {
-                    foreach (Group currentGroup in GroupsCache.Values)
-                        if (string.Equals(currentGroup.Name, groupName, StringComparison.CurrentCultureIgnoreCase))
-                            return currentGroup.ID;
+            EventHandler<CurrentGroupsEventArgs> handler = null;
+            handler = (sender, e) =>
+            {
+                // TrySetResult in case of multiple firings
+                tcs.TrySetResult(e.Groups);
+            };
+
+            try
+            {
+                Groups.CurrentGroups += handler;
+                Groups.RequestCurrentGroups();
+
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
+
+                Groups.CurrentGroups -= handler;
+
+                if (completed == tcs.Task)
+                {
+                    var groups = await tcs.Task.ConfigureAwait(false);
+
+                    if (GroupsCache == null)
+                    {
+                        GroupsCache = groups;
+                    }
+                    else
+                    {
+                        lock (GroupsCache)
+                        {
+                            GroupsCache = groups;
+                        }
+                    }
+                }
+                else
+                {
+                    // Timeout - leave existing cache as-is
                 }
             }
+            finally
+            {
+                // Ensure handler is removed in case of exceptions
+                Groups.CurrentGroups -= handler;
+            }
+        }
+
+        /// <summary>
+        /// Lookup a group's UUID by name. Prefer the async version when possible.
+        /// </summary>
+        public UUID GroupName2UUID(string groupName)
+        {
+            // Maintain existing synchronous API by blocking on the async implementation
+            return GroupName2UUIDAsync(groupName).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Asynchronously lookup a group's UUID by name. This will request the groups cache
+        /// if it is empty and wait up to 10 seconds for a reply.
+        /// </summary>
+        public async Task<UUID> GroupName2UUIDAsync(string groupName)
+        {
+            UUID tryUUID;
+            if (UUID.TryParse(groupName, out tryUUID))
+                return tryUUID;
+
+            if (GroupsCache == null)
+            {
+                await ReloadGroupsCacheAsync().ConfigureAwait(false);
+                if (GroupsCache == null)
+                    return UUID.Zero;
+            }
+
+            // Copy reference for thread-safety with minimal locking
+            Dictionary<UUID, Group> snapshot;
+            lock (GroupsCache)
+            {
+                snapshot = new Dictionary<UUID, Group>(GroupsCache);
+            }
+
+            foreach (Group currentGroup in snapshot.Values)
+            {
+                if (string.Equals(currentGroup.Name, groupName, StringComparison.CurrentCultureIgnoreCase))
+                    return currentGroup.ID;
+            }
+
             return UUID.Zero;
-        }      
+        }
 
         private void updateTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {

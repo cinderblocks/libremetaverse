@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Land
@@ -13,12 +14,13 @@ namespace TestClient.Commands.Land
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            //if (args.Length < 1)
-            //    return "";
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
 
+        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             Client.Grid.RequestMainlandSims(GridLayerType.Objects);
-            
-            return "Sent.";
+            return Task.FromResult("Sent.");
         }
     }
 }
