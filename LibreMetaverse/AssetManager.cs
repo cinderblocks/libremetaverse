@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse;
@@ -445,7 +446,7 @@ namespace OpenMetaverse
 
         private readonly GridClient Client;
 
-        private readonly Dictionary<UUID, Transfer> Transfers = new Dictionary<UUID, Transfer>();
+        private readonly ConcurrentDictionary<UUID, Transfer> Transfers = new ConcurrentDictionary<UUID, Transfer>();
 
         private AssetUpload PendingUpload;
         private readonly object PendingUploadLock = new object();
@@ -712,7 +713,7 @@ namespace OpenMetaverse
         {
 
             // Add this transfer to the dictionary
-            lock (Transfers) Transfers[transfer.ID] = transfer;
+            Transfers[transfer.ID] = transfer;
 
             // Register cancellation to abort and cleanup the UDP transfer
             if (cancellationToken.CanBeCanceled)
@@ -736,7 +737,8 @@ namespace OpenMetaverse
                         }
                         catch { }
 
-                        lock (Transfers) Transfers.Remove(transfer.ID);
+                        // Cleanup the transfer
+                        Transfers.TryRemove(transfer.ID, out _);
 
                         // Wake any waiters on the transfer header so they can abort promptly
                         try { transfer.HeaderReceivedTcs?.TrySetCanceled(); } catch { }
@@ -803,7 +805,7 @@ namespace OpenMetaverse
             // Our dictionary tracks transfers with UUIDs, so convert the ulong back
 
             // Add this transfer to the dictionary
-            lock (Transfers) Transfers[transfer.ID] = transfer;
+            Transfers[transfer.ID] = transfer;
 
             RequestXferPacket request = new RequestXferPacket
             {
@@ -931,7 +933,7 @@ namespace OpenMetaverse
         private void RequestInventoryAssetUDP(UUID assetID, UUID itemID, UUID taskID, UUID ownerID, AssetDownload transfer, AssetReceivedCallback callback)
         {
             // Add this transfer to the dictionary
-            lock (Transfers) Transfers[transfer.ID] = transfer;
+            Transfers[transfer.ID] = transfer;
 
             // Build the request packet and send it
             TransferRequestPacket request = new TransferRequestPacket
@@ -966,7 +968,7 @@ namespace OpenMetaverse
         public void RequestEstateAsset(AssetDownload transfer, EstateAssetType eat)
         {
             // Add this transfer to the dictionary
-            lock (Transfers) Transfers[transfer.ID] = transfer;
+            Transfers[transfer.ID] = transfer;
             
             // Build the request packet and send it
             var request = new TransferRequestPacket
@@ -1108,7 +1110,7 @@ namespace OpenMetaverse
                     String.Format("Beginning asset upload [Single Packet], ID: {0}, AssetID: {1}, Size: {2}",
                     upload.ID.ToString(), upload.AssetID.ToString(), upload.Size), Helpers.LogLevel.Info, Client);
 
-                lock (Transfers) Transfers[upload.ID] = upload;
+                Transfers[upload.ID] = upload;
 
                 // The whole asset will fit in this packet, makes things easy
                 request.AssetBlock.AssetData = data;
@@ -1715,8 +1717,8 @@ namespace OpenMetaverse
                 Buffer.BlockCopy(upload.AssetData, 0, send.DataPacket.Data, 4, 1000);
                 upload.Transferred += 1000;
 
-                lock (Transfers) Transfers.Remove(upload.AssetID);
-                lock (Transfers) Transfers[upload.ID] = upload;
+                Transfers.TryRemove(upload.AssetID, out _);
+                Transfers[upload.ID] = upload;
             }
             else if ((send.XferID.Packet + 1) * 1000 < upload.Size)
             {
@@ -1832,7 +1834,7 @@ namespace OpenMetaverse
                 {
                     Logger.Log("Transfer failed with status code " + download.Status, Helpers.LogLevel.Warning, Client);
 
-                    lock (Transfers) Transfers.Remove(download.ID);
+                    Transfers.TryRemove(download.ID, out _);
 
                     // No data could have been received before the TransferInfo packet
                     download.AssetData = null;
@@ -1929,7 +1931,7 @@ namespace OpenMetaverse
                             Client.Network.SendPacket(abort, download.Simulator);
 
                             download.Success = false;
-                            lock (Transfers) Transfers.Remove(download.ID);
+                            Transfers.TryRemove(download.ID, out _);
 
                             // Fire the event with our transfer that contains Success = false
                             if (download.Callback != null)
@@ -1954,7 +1956,7 @@ namespace OpenMetaverse
                     Logger.DebugLog($"Transfer for asset {download.AssetID} completed", Client);
 
                     download.Success = true;
-                    lock (Transfers) Transfers.Remove(download.ID);
+                    Transfers.TryRemove(download.ID, out _);
 
                     // Cache successful asset download
                     Cache.SaveAssetToCache(download.AssetID, download.AssetData);
@@ -1967,9 +1969,9 @@ namespace OpenMetaverse
                 }
             }).ConfigureAwait(false);
          }
-#endregion Transfer Callbacks
+        #endregion Transfer Callbacks
 
-#region Xfer Callbacks
+        #region Xfer Callbacks
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
@@ -1982,9 +1984,8 @@ namespace OpenMetaverse
                 OnInitiateDownload(new InitiateDownloadEventArgs(Utils.BytesToString(request.FileData.SimFilename),
                     Utils.BytesToString(request.FileData.ViewerFilename)));
             }
- catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+            catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
         }
-
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
@@ -2004,7 +2005,7 @@ namespace OpenMetaverse
                 upload.Type = (AssetType)request.XferID.VFileType;
 
                 UUID transferID = new UUID(upload.XferID);
-                lock (Transfers) Transfers[transferID] = upload;
+                Transfers[transferID] = upload;
 
                 // Send the first packet containing actual asset data
                 SendNextUploadPacket(upload);
@@ -2023,8 +2024,7 @@ namespace OpenMetaverse
             UUID transferID = new UUID(confirm.XferID.ID);
             Transfer transfer;
 
-            bool success;
-            lock (Transfers) success = Transfers.TryGetValue(transferID, out transfer);
+            bool success = Transfers.TryGetValue(transferID, out transfer);
 
             // skip if we couldn't find the transfer
             if (!success) return;
@@ -2066,29 +2066,26 @@ namespace OpenMetaverse
                 var foundTransfer = new KeyValuePair<UUID, Transfer>();
 
                 // Xfer system sucks really really bad. Where is the damn XferID?
-                lock (Transfers)
+                foreach (var transfer in Transfers)
                 {
-                    foreach (var transfer in Transfers)
+                    if (transfer.Value.GetType() == typeof(AssetUpload))
                     {
-                        if (transfer.Value.GetType() == typeof(AssetUpload))
-                        {
-                            AssetUpload upload = (AssetUpload)transfer.Value;
+                        AssetUpload upload = (AssetUpload)transfer.Value;
 
-                            if (upload.AssetID == complete.AssetBlock.UUID)
-                            {
-                                found = true;
-                                foundTransfer = transfer;
-                                upload.Success = complete.AssetBlock.Success;
-                                upload.Type = (AssetType)complete.AssetBlock.Type;
-                                break;
-                            }
+                        if (upload.AssetID == complete.AssetBlock.UUID)
+                        {
+                            found = true;
+                            foundTransfer = transfer;
+                            upload.Success = complete.AssetBlock.Success;
+                            upload.Type = (AssetType)complete.AssetBlock.Type;
+                            break;
                         }
                     }
                 }
 
                 if (found)
                 {
-                    lock (Transfers) Transfers.Remove(foundTransfer.Key);
+                    Transfers.TryRemove(foundTransfer.Key, out _);
 
                     try { OnAssetUploaded(new AssetUploadEventArgs((AssetUpload)foundTransfer.Value)); }
                     catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
@@ -2114,8 +2111,7 @@ namespace OpenMetaverse
             UUID transferID = new UUID(xfer.XferID.ID);
             Transfer transfer;
 
-            bool success;
-            lock (Transfers) success = Transfers.TryGetValue(transferID, out transfer);
+            bool success = Transfers.TryGetValue(transferID, out transfer);
 
             // skip if we couldn't find the transfer
             if (!success) return;
@@ -2177,7 +2173,7 @@ namespace OpenMetaverse
                                 Client);
 
                 download.Success = true;
-                lock (Transfers) Transfers.Remove(download.ID);
+                Transfers.TryRemove(download.ID, out _);
 
                 try { OnXferReceived(new XferReceivedEventArgs(download)); }
                 catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
@@ -2195,13 +2191,9 @@ namespace OpenMetaverse
             // Lame ulong to UUID conversion, please go away Xfer system
             UUID transferID = new UUID(abort.XferID.ID);
 
-            lock (Transfers)
+            if (Transfers.TryRemove(transferID, out var transferObj))
             {
-                if (Transfers.TryGetValue(transferID, out var transfer))
-                {
-                    download = (XferDownload)transfer;
-                    Transfers.Remove(transferID);
-                }
+                download = (XferDownload)transferObj;
             }
 
             if (download != null && m_XferReceivedEvent != null)
