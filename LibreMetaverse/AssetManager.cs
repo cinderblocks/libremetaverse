@@ -1101,10 +1101,8 @@ namespace OpenMetaverse
                 }
             };
 
-            bool isMultiPacketUpload;
             if (data.Length + 100 < Settings.MAX_PACKET_SIZE)
             {
-                isMultiPacketUpload = false;
                 Logger.Log(
                     String.Format("Beginning asset upload [Single Packet], ID: {0}, AssetID: {1}, Size: {2}",
                     upload.ID.ToString(), upload.AssetID.ToString(), upload.Size), Helpers.LogLevel.Info, Client);
@@ -1117,7 +1115,6 @@ namespace OpenMetaverse
             }
             else
             {
-                isMultiPacketUpload = true;
                 Logger.Log(
                     String.Format("Beginning asset upload [Multiple Packets], ID: {0}, AssetID: {1}, Size: {2}",
                     upload.ID.ToString(), upload.AssetID.ToString(), upload.Size), Helpers.LogLevel.Info, Client);
