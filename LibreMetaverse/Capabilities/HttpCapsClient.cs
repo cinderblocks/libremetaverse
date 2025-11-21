@@ -26,6 +26,7 @@
 
 using System;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
@@ -35,18 +36,6 @@ using OpenMetaverse.StructuredData;
 
 namespace LibreMetaverse
 {
-    public delegate void DownloadProgressHandler(long? totalBytes, long totalBytesRead, double? progressPercentage);
-    public delegate void DownloadCompleteHandler(HttpResponseMessage response, byte[] responseData, Exception error);
-    public delegate void ConnectedHandler(HttpResponseMessage response);
-
-    public static class AsyncHelper
-    {
-        public static void Sync(Func<Task> func) => Task.Run(func).ConfigureAwait(false);
-
-        public static T Sync<T>(Func<Task<T>> func) => Task.Run(func).Result;
-
-    }
-
     public class HttpCapsClient : HttpClient
     {
         public const string LLSD_XML = "application/llsd+xml";
@@ -63,12 +52,23 @@ namespace LibreMetaverse
         #region GET requests
 
         public async Task GetRequestAsync(Uri uri, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
+            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
             {
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
+                await SendRequestAsync(request, cancellationToken, progress, completeHandler, connectedHandler).ConfigureAwait(false);
             }
+        }
+
+        public async Task GetRequestAsync(Uri uri, CancellationToken cancellationToken,
+            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+        {
+            await GetRequestAsync(uri, cancellationToken, null, completeHandler, connectedHandler);
+        }
+
+        public async Task GetRequestAsync(Uri uri, CancellationToken cancellationToken)
+        {
+            await GetRequestAsync(uri, cancellationToken, null, null, null);
         }
 
         #endregion GET requests
@@ -76,27 +76,54 @@ namespace LibreMetaverse
         #region POST requests
 
         public async Task PostRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
+            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Post, uri))
             {
-                request.Content = new ByteArrayContent(payload);
-                request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
+                if (progress != null)
+                {
+                    request.Content = new ProgressableStreamContent(payload, contentType, progress);
+                }
+                else
+                {
+                    request.Content = new ByteArrayContent(payload);
+                    request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+                }
+
+                await SendRequestAsync(request, cancellationToken, progress, completeHandler, connectedHandler).ConfigureAwait(false);
             }
         }
 
+        public async Task PostRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
+            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+        {
+            await PostRequestAsync(uri, contentType, payload, cancellationToken, null, completeHandler, connectedHandler);
+        }
+
+        public async Task PostRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken)
+        {
+            await PostRequestAsync(uri, contentType, payload, cancellationToken, null, null, null);
+        }
+
         public async Task PostRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
+            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
             using (var request = new HttpRequestMessage(HttpMethod.Post, uri))
             {
                 try
                 {
-                    request.Content = new ByteArrayContent(serialized);
-                    request.Content.Headers.ContentType = contentType;
-                    await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
+                    if (progress != null)
+                    {
+                        request.Content = new ProgressableStreamContent(serialized, contentType.MediaType, progress);
+                    }
+                    else
+                    {
+                        request.Content = new ByteArrayContent(serialized);
+                        request.Content.Headers.ContentType = contentType;
+                    }
+
+                    await SendRequestAsync(request, cancellationToken, progress, completeHandler, connectedHandler).ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
@@ -105,31 +132,81 @@ namespace LibreMetaverse
             }
         }
 
+        public async Task PostRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
+            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+        {
+            await PostRequestAsync(uri, format, payload, cancellationToken, null, completeHandler, connectedHandler);
+        }
+
+        public async Task PostRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken)
+        {
+            await PostRequestAsync(uri, format, payload, cancellationToken, null, null, null);
+        }
+
         #endregion POST requests
 
         #region PUT requests
 
         public async Task PutRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
+            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Put, uri))
             {
-                request.Content = new ByteArrayContent(payload);
-                request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
+                if (progress != null)
+                {
+                    request.Content = new ProgressableStreamContent(payload, contentType, progress);
+                }
+                else
+                {
+                    request.Content = new ByteArrayContent(payload);
+                    request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+                }
+
+                await SendRequestAsync(request, cancellationToken, progress, completeHandler, connectedHandler).ConfigureAwait(false);
             }
         }
 
+        public async Task PutRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
+            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+        {
+            await PutRequestAsync(uri, contentType, payload, cancellationToken, null, completeHandler, connectedHandler);
+        }
+
+        public async Task PutRequestAsync(Uri uri, string contentType, byte[] payload,
+            CancellationToken cancellationToken)
+        {
+            await PutRequestAsync(uri, contentType, payload, cancellationToken, null, null, null);
+        }
+
         public async Task PutRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
+            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
             using (var request = new HttpRequestMessage(HttpMethod.Put, uri))
             {
-                request.Content = new ByteArrayContent(serialized);
-                request.Content.Headers.ContentType = contentType;
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
+                if (progress != null)
+                {
+                    request.Content = new ProgressableStreamContent(serialized, contentType.MediaType, progress);
+                }
+                else
+                {
+                    request.Content = new ByteArrayContent(serialized);
+                    request.Content.Headers.ContentType = contentType;
+                }
+
+                await SendRequestAsync(request, cancellationToken, progress, completeHandler, connectedHandler).ConfigureAwait(false);
             }
+        }
+
+        public async Task PutRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
+            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+        {
+            await PutRequestAsync(uri, format, payload, cancellationToken, null, completeHandler, connectedHandler);
+        }
+
+        public async Task PutRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken)
+        {
+            await PutRequestAsync(uri, format, payload, cancellationToken, null, null, null);
         }
 
         #endregion PUT requests
@@ -137,7 +214,7 @@ namespace LibreMetaverse
         #region PATCH requests
 
         public async Task PatchRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
+            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
         {
 #if (NETSTANDARD2_1_OR_GREATER || NET)
             using (var request = new HttpRequestMessage(HttpMethod.Patch, uri))
@@ -145,14 +222,34 @@ namespace LibreMetaverse
             using (var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri))
 #endif
             {
-                request.Content = new ByteArrayContent(payload);
-                request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
+                if (progress != null)
+                {
+                    request.Content = new ProgressableStreamContent(payload, contentType, progress);
+                }
+                else
+                {
+                    request.Content = new ByteArrayContent(payload);
+                    request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+                }
+
+                await SendRequestAsync(request, cancellationToken, progress, completeHandler, connectedHandler).ConfigureAwait(false);
             }
         }
 
+        public async Task PatchRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
+            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+        {
+            await PatchRequestAsync(uri, contentType, payload, cancellationToken, null, completeHandler, connectedHandler);
+        }
+
+        public async Task PatchRequestAsync(Uri uri, string contentType, byte[] payload,
+            CancellationToken cancellationToken)
+        {
+            await PatchRequestAsync(uri, contentType, payload, cancellationToken, null, null, null);
+        }
+
         public async Task PatchRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
+            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
 #if (NETSTANDARD2_1_OR_GREATER || NET)
@@ -161,10 +258,29 @@ namespace LibreMetaverse
             using (var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri))
 #endif
             {
-                request.Content = new ByteArrayContent(serialized);
-                request.Content.Headers.ContentType = contentType;
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
+                if (progress != null)
+                {
+                    request.Content = new ProgressableStreamContent(serialized, contentType.MediaType, progress);
+                }
+                else
+                {
+                    request.Content = new ByteArrayContent(serialized);
+                    request.Content.Headers.ContentType = contentType;
+                }
+
+                await SendRequestAsync(request, cancellationToken, progress, completeHandler, connectedHandler).ConfigureAwait(false);
             }
+        }
+
+        public async Task PatchRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
+            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+        {
+            await PatchRequestAsync(uri, format, payload, cancellationToken, null, completeHandler, connectedHandler);
+        }
+
+        public async Task PatchRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken)
+        {
+            await PatchRequestAsync(uri, format, payload, cancellationToken, null, null, null);
         }
 
 #endregion PATCH requests
@@ -172,26 +288,65 @@ namespace LibreMetaverse
         #region DELETE requests
 
         public async Task DeleteRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
+            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Delete, uri))
             {
-                request.Content = new ByteArrayContent(payload);
-                request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
+                if (progress != null)
+                {
+                    request.Content = new ProgressableStreamContent(payload, contentType, progress);
+                }
+                else
+                {
+                    request.Content = new ByteArrayContent(payload);
+                    request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+                }
+
+                await SendRequestAsync(request, cancellationToken, progress, completeHandler, connectedHandler).ConfigureAwait(false);
             }
         }
 
+        public async Task DeleteRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
+            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+        {
+            await DeleteRequestAsync(uri, contentType, payload, cancellationToken, null, completeHandler, connectedHandler);
+        }
+
+        public async Task DeleteRequestAsync(Uri uri, string contentType, byte[] payload,
+            CancellationToken cancellationToken)
+        {
+            await DeleteRequestAsync(uri, contentType, payload, cancellationToken, null, null, null);
+        }
+
         public async Task DeleteRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler = default, ConnectedHandler connectedHandler = default)
+            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
             using (var request = new HttpRequestMessage(HttpMethod.Delete, uri))
             {
-                request.Content = new ByteArrayContent(serialized);
-                request.Content.Headers.ContentType = contentType;
-                await SendRequestAsync(request, cancellationToken, completeHandler, progressHandler, connectedHandler).ConfigureAwait(false);
+                if (progress != null)
+                {
+                    request.Content = new ProgressableStreamContent(serialized, contentType.MediaType, progress);
+                }
+                else
+                {
+                    request.Content = new ByteArrayContent(serialized);
+                    request.Content.Headers.ContentType = contentType;
+                }
+
+                await SendRequestAsync(request, cancellationToken, progress, completeHandler, connectedHandler).ConfigureAwait(false);
             }
+        }
+
+        public async Task DeleteRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
+            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+        {
+            await DeleteRequestAsync(uri, format, payload, cancellationToken, null, completeHandler, connectedHandler);
+        }
+
+        public async Task DeleteRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken)
+        {
+            await DeleteRequestAsync(uri, format, payload, cancellationToken, null, null, null);
         }
 
         #endregion DELETE requests
@@ -199,7 +354,7 @@ namespace LibreMetaverse
         /// /// /// /// /// /// /// /// /// /// /// /// 
 
         private async Task SendRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler, ConnectedHandler connectedHandler)
+            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
         {
             try
             {
@@ -213,12 +368,12 @@ namespace LibreMetaverse
 
                     connectedHandler?.Invoke(response);
 
-                    await ProcessResponseAsync(response, cancellationToken, (r, data, processError) =>
+                    await ProcessResponseAsync(response, cancellationToken, progress, (r, data, processError) =>
                     {
                         // Prefer pipeline error, otherwise status error
                         var finalError = processError ?? statusError;
                         completeHandler?.Invoke(r, data, finalError);
-                    }, progressHandler).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
                 }
             }
             catch (TaskCanceledException)
@@ -236,7 +391,7 @@ namespace LibreMetaverse
         }
 
         private static async Task ProcessResponseAsync(HttpResponseMessage response, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler, DownloadProgressHandler progressHandler)
+            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null)
         {
             var totalBytes = response.Content.Headers.ContentLength;
 #if NET5_0_OR_GREATER
@@ -278,7 +433,8 @@ namespace LibreMetaverse
                         progressPercent = Math.Round((double)totalBytesRead / totalBytes.Value * 100, 2);
                     }
 
-                    progressHandler?.Invoke(totalBytes, totalBytesRead, progressPercent);
+                    // Report IProgress-style progress
+                    progress?.Report(new ProgressReport(totalBytes, totalBytesRead, progressPercent));
 
                 }
 
@@ -321,5 +477,83 @@ namespace LibreMetaverse
                     break;
             }
         }
+
+        // Typed progress report for upload/download progress
+        public struct ProgressReport
+        {
+            public long? TotalBytes { get; }
+            public long BytesTransferred { get; }
+            public double? Percent { get; }
+
+            public ProgressReport(long? totalBytes, long bytesTransferred, double? percent)
+            {
+                TotalBytes = totalBytes;
+                BytesTransferred = bytesTransferred;
+                Percent = percent;
+            }
+        }
+
+        // HttpContent wrapper that reports upload progress via IProgress<ProgressReport>
+        private sealed class ProgressableStreamContent : HttpContent
+        {
+            private readonly byte[] _content;
+            private readonly int _bufferSize = 81920;
+            private readonly IProgress<ProgressReport> _progress;
+
+            public ProgressableStreamContent(byte[] content, string contentType, IProgress<ProgressReport> progress)
+            {
+                _content = content ?? throw new ArgumentNullException(nameof(content));
+                _progress = progress;
+                if (!string.IsNullOrEmpty(contentType))
+                    Headers.ContentType = new MediaTypeHeaderValue(contentType);
+            }
+
+            protected override bool TryComputeLength(out long length)
+            {
+                length = _content.Length;
+                return true;
+            }
+
+#if NET5_0_OR_GREATER
+            protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
+#else
+            protected override async Task SerializeToStreamAsync(Stream stream, TransportContext context)
+#endif
+            {
+                using (var ms = new MemoryStream(_content))
+                {
+                    var buffer = new byte[_bufferSize];
+                    long total = _content.Length;
+                    long uploaded = 0;
+                    int read;
+                    while ((read = await ms.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0)
+                    {
+                        await stream.WriteAsync(buffer, 0, read).ConfigureAwait(false);
+                        uploaded += read;
+                        double? percent = total > 0 ? Math.Round((double)uploaded / total * 100, 2) : (double?)null;
+                        _progress?.Report(new ProgressReport(total, uploaded, percent));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Delegate for progress callbacks (legacy). Prefer using <see cref="IProgress{ProgressReport}"/> and the typed
+        /// <see cref="ProgressReport"/>.
+        /// </summary>
+        [Obsolete("Use IProgress<ProgressReport> and the typed ProgressReport instead.")]
+        public delegate void DownloadProgressHandler(long? totalBytes, long totalBytesRead, double? progressPercentage);
+
+        /// <summary>
+        /// Delegate invoked when an HTTP request completes (legacy). Consider using Task-based wrappers instead.
+        /// </summary>
+        [Obsolete("Use Task-based APIs and IProgress<ProgressReport> overloads instead.")]
+        public delegate void DownloadCompleteHandler(HttpResponseMessage response, byte[] responseData, Exception error);
+
+        /// <summary>
+        /// Delegate invoked when a connection is established (legacy). Prefer stronger typed async APIs.
+        /// </summary>
+        [Obsolete("Prefer Task-based APIs and IProgress<ProgressReport> overloads instead.")]
+        public delegate void ConnectedHandler(HttpResponseMessage response);
     }
 }

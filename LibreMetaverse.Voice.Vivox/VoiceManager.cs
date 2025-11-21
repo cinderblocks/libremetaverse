@@ -302,7 +302,7 @@ namespace LibreMetaverse.Voice.Vivox
             }
         }
 
-        private bool RequestVoiceInternal(string me, DownloadCompleteHandler callback, string capsName)
+        private bool RequestVoiceInternal(string me, HttpCapsClient.DownloadCompleteHandler callback, string capsName)
         {
             if (_enabled && _client.Network.Connected)
             {

@@ -2051,7 +2051,7 @@ namespace OpenMetaverse
                 // 2) session_id is included in GroupChatSessions when OnInstantMessage runs.
                 // (Since msg.GroupIM isn't used anymore, the handler can tell if it has a group message by testing whether Self.GroupChatSessions.ContainsKey(e.IM.IMSessionID).)
                 await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, acceptInvite.Serialize(), 
-                    cancellationToken, null);
+                    cancellationToken);
             }
             else
             {
@@ -2088,8 +2088,8 @@ namespace OpenMetaverse
 
                 startConference.SessionID = tmp_session_id;
 
-                Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, startConference.Serialize(), 
-                    cancellationToken, null);
+                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, startConference.Serialize(), 
+                    cancellationToken);
             }
             else
             {
@@ -4076,8 +4076,8 @@ namespace OpenMetaverse
                 NewDisplayName = newName
             };
 
-            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), 
-                cancellationToken, null);
+            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), 
+                cancellationToken);
         }
 
         /// <summary>
@@ -4102,8 +4102,8 @@ namespace OpenMetaverse
                     Logger.Log("Could not retrieve 'UpdateAgentLanguage' capability.", Helpers.LogLevel.Warning, Client);
                     return;
                 }
-                Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), 
-                    cancellationToken, null);
+                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), 
+                    cancellationToken);
             }
             catch (Exception ex)
             {
@@ -5155,7 +5155,7 @@ namespace OpenMetaverse
                 SessionID = sessionID,
                 AgentID = memberID
             };
-            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(), cancellationToken, null);
+            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(), cancellationToken);
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>

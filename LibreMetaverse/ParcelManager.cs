@@ -650,8 +650,8 @@ namespace OpenMetaverse
                     GroupAVSounds = GroupAVSounds
                 };
 
-                Task req = client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(),
-                    CancellationToken.None, null);
+                _ = client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(),
+                    CancellationToken.None);
             }
             else // lludp fallback
             {

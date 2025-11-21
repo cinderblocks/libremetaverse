@@ -134,7 +134,7 @@ namespace OpenMetaverse.Http
                     }
 
                     await Simulator.Client.HttpCapsClient.PostRequestAsync(
-                        Address, OSDFormat.Xml, payloadSnapshot, _queueCts.Token, RequestCompletedHandler, null, ConnectedResponseHandler)
+                        Address, OSDFormat.Xml, payloadSnapshot, _queueCts.Token, RequestCompletedHandler, ConnectedResponseHandler)
                         .ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)

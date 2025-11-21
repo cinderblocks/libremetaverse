@@ -26,12 +26,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.IO;
 using System.IO.Compression;
 using System.Reflection;
-using OpenMetaverse.StructuredData;
+using System.Text;
+using System.Threading.Tasks;
 using ComponentAce.Compression.Libs.zlib;
+using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse
 {
@@ -656,6 +657,12 @@ namespace OpenMetaverse
             }
             return decodedOsd;
         }
+    }
+    public static class AsyncHelper
+    {
+        public static void Sync(Func<Task> func) => Task.Run(func).ConfigureAwait(false);
+
+        public static T Sync<T>(Func<Task<T>> func) => Task.Run(func).Result;
 
     }
 }

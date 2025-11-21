@@ -38,7 +38,7 @@ namespace OpenMetaverse
 {
     public partial class InventoryManager
     {
-        private async Task<OSD> PostCapAsync(Uri uri, OSD payload, CancellationToken cancellationToken = default)
+        private async Task<OSD> PostCapAsync(Uri uri, OSD payload, CancellationToken cancellationToken = default, IProgress<LibreMetaverse.HttpCapsClient.ProgressReport> progress = null)
         {
             if (uri == null) throw new ArgumentNullException(nameof(uri));
 
@@ -46,7 +46,7 @@ namespace OpenMetaverse
 
             // Kick off the HTTP POST and wire up the callback to the TaskCompletionSource
             await Client.HttpCapsClient.PostRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
-                (response, responseData, error) =>
+                completeHandler: (response, responseData, error) =>
                 {
                     if (error != null)
                     {
@@ -63,27 +63,27 @@ namespace OpenMetaverse
                     {
                         tcs.TrySetException(ex);
                     }
-                });
+                }, connectedHandler: null, progress: progress).ConfigureAwait(false);
 
             return await tcs.Task.ConfigureAwait(false);
         }
 
-        private async Task<OSD> PostCapAsync(string capName, OSD payload, CancellationToken cancellationToken = default)
+        private async Task<OSD> PostCapAsync(string capName, OSD payload, CancellationToken cancellationToken = default, IProgress<LibreMetaverse.HttpCapsClient.ProgressReport> progress = null)
         {
             var uri = GetCapabilityURI(capName);
             if (uri == null) throw new InvalidOperationException($"Capability {capName} is not available");
-            return await PostCapAsync(uri, payload, cancellationToken).ConfigureAwait(false);
+            return await PostCapAsync(uri, payload, cancellationToken, progress).ConfigureAwait(false);
         }
 
         private async Task<OSD> PostBytesAsync(Uri uri, string contentType, byte[] data,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default, IProgress<LibreMetaverse.HttpCapsClient.ProgressReport> progress = null)
         {
             if (uri == null) throw new ArgumentNullException(nameof(uri));
-
-            var tcs = new TaskCompletionSource<OSD>(TaskCreationOptions.RunContinuationsAsynchronously);
-
+ 
+             var tcs = new TaskCompletionSource<OSD>(TaskCreationOptions.RunContinuationsAsynchronously);
+ 
             await Client.HttpCapsClient.PostRequestAsync(uri, contentType, data, cancellationToken,
-                (response, responseData, error) =>
+                completeHandler: (response, responseData, error) =>
                 {
                     if (error != null)
                     {
@@ -100,17 +100,47 @@ namespace OpenMetaverse
                     {
                         tcs.TrySetException(ex);
                     }
-                });
+                }, connectedHandler: null, progress: progress).ConfigureAwait(false);
 
             return await tcs.Task.ConfigureAwait(false);
         }
 
         private async Task<OSD> PostBytesAsync(string capName, string contentType, byte[] data,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default, IProgress<LibreMetaverse.HttpCapsClient.ProgressReport> progress = null)
         {
             var uri = GetCapabilityURI(capName);
             if (uri == null) throw new InvalidOperationException($"Capability {capName} is not available");
-            return await PostBytesAsync(uri, contentType, data, cancellationToken).ConfigureAwait(false);
+            return await PostBytesAsync(uri, contentType, data, cancellationToken, progress).ConfigureAwait(false);
+        }
+
+        // Helper to POST a serialized string payload to a capability and deserialize the OSD response
+        private async Task<OSD> PostStringAsync(Uri uri, string content, CancellationToken cancellationToken = default, IProgress<LibreMetaverse.HttpCapsClient.ProgressReport> progress = null)
+        {
+            if (uri == null) throw new ArgumentNullException(nameof(uri));
+ 
+             var tcs = new TaskCompletionSource<OSD>(TaskCreationOptions.RunContinuationsAsynchronously);
+ 
+            await Client.HttpCapsClient.PostRequestAsync(uri, OSDFormat.Xml, content, cancellationToken,
+                completeHandler: (response, responseData, error) =>
+                {
+                    if (error != null)
+                    {
+                        tcs.TrySetException(error);
+                        return;
+                    }
+
+                    try
+                    {
+                        var osd = OSDParser.Deserialize(responseData);
+                        tcs.TrySetResult(osd);
+                    }
+                    catch (Exception ex)
+                    {
+                        tcs.TrySetException(ex);
+                    }
+                }, connectedHandler: null, progress: progress).ConfigureAwait(false);
+
+            return await tcs.Task.ConfigureAwait(false);
         }
 
         private void Self_IM(object sender, InstantMessageEventArgs e)
@@ -225,7 +255,7 @@ namespace OpenMetaverse
         }
 
         private void CreateItemFromAssetResponse(ItemCreatedFromAssetCallback callback, byte[] itemData, OSDMap request,
-            OSD result, Exception error, CancellationToken cancellationToken = default)
+            OSD result, Exception error, CancellationToken cancellationToken = default, IProgress<LibreMetaverse.HttpCapsClient.ProgressReport> progress = null)
         {
             if (result == null)
             {
@@ -273,12 +303,12 @@ namespace OpenMetaverse
                     try
                     {
                         var res = await PostBytesAsync(uploadUri, "application/octet-stream", itemData,
-                            cancellationToken).ConfigureAwait(false);
-                        CreateItemFromAssetResponse(callback, itemData, request, res, null, cancellationToken);
+                            cancellationToken, progress).ConfigureAwait(false);
+                        CreateItemFromAssetResponse(callback, itemData, request, res, null, cancellationToken, progress);
                     }
                     catch (Exception ex)
                     {
-                        CreateItemFromAssetResponse(callback, itemData, request, null, ex, cancellationToken);
+                        CreateItemFromAssetResponse(callback, itemData, request, null, ex, cancellationToken, progress);
                     }
                 }), cancellationToken);
             }
@@ -328,7 +358,7 @@ namespace OpenMetaverse
         }
 
         private void UploadInventoryAssetResponse(KeyValuePair<InventoryUploadedAssetCallback, byte[]> kvp,
-            UUID itemId, OSD result, Exception error, CancellationToken cancellationToken = default)
+            UUID itemId, OSD result, Exception error, CancellationToken cancellationToken = default, IProgress<LibreMetaverse.HttpCapsClient.ProgressReport> progress = null)
         {
             var callback = kvp.Key;
             var itemData = (byte[])kvp.Value;
@@ -348,12 +378,12 @@ namespace OpenMetaverse
                             try
                             {
                                 var res = await PostBytesAsync(uploadURL, "application/octet-stream", itemData,
-                                    cancellationToken).ConfigureAwait(false);
-                                UploadInventoryAssetResponse(kvp, itemId, res, null, cancellationToken);
+                                    cancellationToken, progress).ConfigureAwait(false);
+                                UploadInventoryAssetResponse(kvp, itemId, res, null, cancellationToken, progress);
                             }
                             catch (Exception ex)
                             {
-                                UploadInventoryAssetResponse(kvp, itemId, null, ex, cancellationToken);
+                                UploadInventoryAssetResponse(kvp, itemId, null, ex, cancellationToken, progress);
                             }
                         }), cancellationToken);
                     }
@@ -434,7 +464,7 @@ namespace OpenMetaverse
         }
 
         private void UpdateScriptAgentInventoryResponse(KeyValuePair<ScriptUpdatedCallback, byte[]> kvpCb,
-            UUID itemId, OSD result, Exception error, CancellationToken cancellationToken = default)
+            UUID itemId, OSD result, Exception error, CancellationToken cancellationToken = default, IProgress<LibreMetaverse.HttpCapsClient.ProgressReport> progress = null)
         {
             var callback = kvpCb.Key;
             var itemData = kvpCb.Value;
@@ -470,12 +500,12 @@ namespace OpenMetaverse
                     try
                     {
                         var res = await PostBytesAsync(uploadUri, "application/octet-stream", itemData,
-                            cancellationToken).ConfigureAwait(false);
-                        UpdateScriptAgentInventoryResponse(kvpCb, itemId, res, null, cancellationToken);
+                            cancellationToken, progress).ConfigureAwait(false);
+                        UpdateScriptAgentInventoryResponse(kvpCb, itemId, res, null, cancellationToken, progress);
                     }
                     catch (Exception ex)
                     {
-                        UpdateScriptAgentInventoryResponse(kvpCb, itemId, null, ex, cancellationToken);
+                        UpdateScriptAgentInventoryResponse(kvpCb, itemId, null, ex, cancellationToken, progress);
                     }
                 }), cancellationToken);
             }

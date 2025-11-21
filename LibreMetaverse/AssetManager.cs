@@ -1570,46 +1570,46 @@ namespace OpenMetaverse
                 return;
             }
 
-            DownloadProgressHandler progressHandler = null;
+            IProgress<LibreMetaverse.HttpCapsClient.ProgressReport> progressReporter = null;
 
             if (progress)
             {
-                progressHandler = (totalBytesToReceive, bytesReceived, progresPercent) =>
-                    {
-                        FireImageProgressEvent(textureID, (int)bytesReceived, (int)totalBytesToReceive);
-                    };
+                progressReporter = new Progress<LibreMetaverse.HttpCapsClient.ProgressReport>(p =>
+                {
+                    try { FireImageProgressEvent(textureID, (int)p.BytesTransferred, (int)(p.TotalBytes ?? 0)); } catch { }
+                });
             }
 
             DownloadRequest req = new DownloadRequest(
-                new Uri($"{Client.Network.CurrentSim.Caps.GetTextureCapURI()}?texture_id={textureID}"),
-                "image/x-j2c",
-                progressHandler,
-                (response, responseData, error) =>
-                {
-                    if (error == null && responseData != null && response.IsSuccessStatusCode) // success
-                    {
-                        ImageDownload image = new ImageDownload {ID = textureID, AssetData = responseData};
-                        image.Size = image.AssetData.Length;
-                        image.Transferred = image.AssetData.Length;
-                        image.ImageType = imageType;
-                        image.AssetType = AssetType.Texture;
-                        image.Success = true;
+                 new Uri($"{Client.Network.CurrentSim.Caps.GetTextureCapURI()}?texture_id={textureID}"),
+                 "image/x-j2c",
+                 progressReporter,
+                 (response, responseData, error) =>
+                 {
+                     if (error == null && responseData != null && response.IsSuccessStatusCode) // success
+                     {
+                         ImageDownload image = new ImageDownload {ID = textureID, AssetData = responseData};
+                         image.Size = image.AssetData.Length;
+                         image.Transferred = image.AssetData.Length;
+                         image.ImageType = imageType;
+                         image.AssetType = AssetType.Texture;
+                         image.Success = true;
 
-                        callback(TextureRequestState.Finished, new AssetTexture(image.ID, image.AssetData));
-                        FireImageProgressEvent(image.ID, image.Transferred, image.Size);
+                         callback(TextureRequestState.Finished, new AssetTexture(image.ID, image.AssetData));
+                         FireImageProgressEvent(image.ID, image.Transferred, image.Size);
 
-                        Client.Assets.Cache.SaveAssetToCache(textureID, responseData);
-                    }
-                    else // download failed
-                    {
-                        Logger.Log(
-                            $"Failed to fetch texture {textureID} over HTTP, falling back to UDP: " +
-                            $"{((error == null) ? "" : error.Message)}",
-                            Helpers.LogLevel.Warning, Client);
+                         Client.Assets.Cache.SaveAssetToCache(textureID, responseData);
+                     }
+                     else // download failed
+                     {
+                         Logger.Log(
+                             $"Failed to fetch texture {textureID} over HTTP, falling back to UDP: " +
+                             $"{((error == null) ? "" : error.Message)}",
+                             Helpers.LogLevel.Warning, Client);
 
-                        Texture.RequestTexture(textureID, imageType, priority, discardLevel, packetStart, callback, progress);
-                    }
-                }
+                         Texture.RequestTexture(textureID, imageType, priority, discardLevel, packetStart, callback, progress);
+                     }
+                 }
             );
 
             HttpDownloads.QueueDownload(req);

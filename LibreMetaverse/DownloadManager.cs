@@ -26,13 +26,12 @@
  */
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using LibreMetaverse;
 using System.Net.Http;
 using System.Diagnostics;
+using LibreMetaverse;
 
 namespace OpenMetaverse.Http
 {
@@ -43,10 +42,10 @@ namespace OpenMetaverse.Http
     {
         /// <summary>URI of the item to fetch</summary>
         public Uri Address;
-        /// <summary>Download progress callback</summary>
-        public DownloadProgressHandler DownloadProgressCallback;
+        /// <summary>Download progress reporter</summary>
+        public IProgress<HttpCapsClient.ProgressReport> DownloadProgressCallback;
         /// <summary>Download completed callback</summary>
-        public DownloadCompleteHandler CompletedCallback;
+        public HttpCapsClient.DownloadCompleteHandler CompletedCallback;
         /// <summary>Accept the following content type</summary>
         public string ContentType;
         /// <summary>How many times will this request be retried</summary>
@@ -58,8 +57,8 @@ namespace OpenMetaverse.Http
 
         /// <summary>Constructor</summary>
         public DownloadRequest(Uri address, string contentType,
-            DownloadProgressHandler downloadProgressCallback,
-            DownloadCompleteHandler completedCallback)
+            IProgress<HttpCapsClient.ProgressReport> downloadProgressCallback,
+            HttpCapsClient.DownloadCompleteHandler completedCallback)
         {
             Address = address;
             DownloadProgressCallback = downloadProgressCallback;
@@ -70,8 +69,8 @@ namespace OpenMetaverse.Http
 
     internal class ActiveDownload
     {
-        public System.Collections.Concurrent.ConcurrentBag<DownloadProgressHandler> ProgressHandlers = new System.Collections.Concurrent.ConcurrentBag<DownloadProgressHandler>();
-        public System.Collections.Concurrent.ConcurrentBag<DownloadCompleteHandler> CompletedHandlers = new System.Collections.Concurrent.ConcurrentBag<DownloadCompleteHandler>();
+        public ConcurrentBag<IProgress<HttpCapsClient.ProgressReport>> ProgressHandlers = new ConcurrentBag<IProgress<HttpCapsClient.ProgressReport>>();
+        public ConcurrentBag<HttpCapsClient.DownloadCompleteHandler> CompletedHandlers = new ConcurrentBag<HttpCapsClient.DownloadCompleteHandler>();
         public CancellationTokenSource CancellationToken = new CancellationTokenSource();
         // 0 = not started, 1 = started
         public int Started;
@@ -158,7 +157,7 @@ namespace OpenMetaverse.Http
                 }
 
                 // Only one thread should start the actual HTTP request
-                if (System.Threading.Interlocked.Exchange(ref activeDownload.Started, 1) == 0)
+                if (Interlocked.Exchange(ref activeDownload.Started, 1) == 0)
                 {
                     // Ensure we have a semaphore for this host
                     var sem = hostSemaphores.GetOrAdd(hostKey, _ => new SemaphoreSlim(ParallelDownloads));
@@ -251,10 +250,10 @@ namespace OpenMetaverse.Http
                                         progressPercent = Math.Round((double)totalBytesRead / totalBytes.Value * 100, 2);
                                     }
 
-                                    // Fire progress handlers
+                                    // Fire progress handlers using IProgress<ProgressReport>
                                     foreach (var handler in activeDownload.ProgressHandlers)
                                     {
-                                        try { handler(totalBytes, totalBytesRead, progressPercent); } catch { }
+                                        try { handler.Report(new HttpCapsClient.ProgressReport(totalBytes, totalBytesRead, progressPercent)); } catch { }
                                     }
                                 }
 
@@ -424,12 +423,12 @@ namespace OpenMetaverse.Http
         /// <param name="retries">Number of retries for transient failures</param>
         /// <returns>Task that completes with (HttpResponseMessage, byte[] data)</returns>
         public Task<(HttpResponseMessage response, byte[] data)> QueueDownloadAsync(Uri address, string contentType = null,
-            DownloadProgressHandler progressCallback = null, CancellationToken cancellationToken = default, int retries = 5)
+            IProgress<HttpCapsClient.ProgressReport> progressCallback = null, CancellationToken cancellationToken = default, int retries = 5)
         {
             var tcs = new TaskCompletionSource<(HttpResponseMessage, byte[])>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             // Completion handler bridges callback to TCS
-            DownloadCompleteHandler completeHandler = (response, data, error) =>
+            HttpCapsClient.DownloadCompleteHandler completeHandler = (response, data, error) =>
             {
                 if (error != null)
                 {
@@ -460,7 +459,7 @@ namespace OpenMetaverse.Http
             }
 
             // Enqueue using existing API which will deduplicate and attach handlers
-            QueueDownload(req);
+            QueueDownload(req, cancellationToken);
 
             return tcs.Task;
         }

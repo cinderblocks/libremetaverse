@@ -1839,7 +1839,7 @@ namespace OpenMetaverse
                     ObjectID = objectID
                 };
 
-                var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, message.Serialize(), cancellationToken, null);
+                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, message.Serialize(), cancellationToken);
             }
             else
             {
