@@ -709,5 +709,380 @@ namespace OpenMetaverse
             return await tcs.Task.ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Result for CreateItemFromAsset operations containing detailed status
+        /// </summary>
+        public class CreateItemFromAssetResult
+        {
+            /// <summary>True if operation completed successfully</summary>
+            public bool Success { get; set; }
+            /// <summary>Human-readable status returned from server (eg 'upload' or 'complete')</summary>
+            public string Status { get; set; }
+            /// <summary>UUID of the created inventory item (if available)</summary>
+            public UUID ItemID { get; set; }
+            /// <summary>UUID of the created asset (if available)</summary>
+            public UUID AssetID { get; set; }
+            /// <summary>Any exception that occurred during the operation</summary>
+            public Exception Error { get; set; }
+            /// <summary>Raw OSD result returned from capability calls (when available)</summary>
+            public OSD RawResult { get; set; }
+        }
+
+        /// <summary>
+        /// Result returned when requesting a folder update
+        /// </summary>
+        public class FolderUpdateResult
+        {
+            /// <summary>The folder that was updated</summary>
+            public UUID FolderID { get; set; }
+            /// <summary>True when the folder update succeeded</summary>
+            public bool Success { get; set; }
+            /// <summary>Contents of the folder at the time of the update (may be null)</summary>
+            public List<InventoryBase> Contents { get; set; }
+        }
+
+        /// <summary>
+        /// Async API that creates an inventory item by uploading an asset and returns a rich result object.
+        /// This replaces the older callback-only flow with a Task-based result including status and IDs.
+        /// </summary>
+        public async Task<CreateItemFromAssetResult> CreateItemFromAssetAsync(byte[] data, string name, string description, AssetType assetType,
+            InventoryType invType, UUID folderID, Permissions permissions, CancellationToken cancellationToken = default)
+        {
+            var result = new CreateItemFromAssetResult
+            {
+                Success = false,
+                Status = "",
+                ItemID = UUID.Zero,
+                AssetID = UUID.Zero,
+                Error = null,
+                RawResult = null
+            };
+
+            var cap = GetCapabilityURI("NewFileAgentInventory", false);
+            if (cap == null)
+            {
+                result.Status = "capability_missing";
+                result.Error = new InvalidOperationException("NewFileAgentInventory capability is not currently available");
+                return result;
+            }
+
+            var query = new OSDMap
+            {
+                {"folder_id", OSD.FromUUID(folderID)},
+                {"asset_type", OSD.FromString(Utils.AssetTypeToString(assetType))},
+                {"inventory_type", OSD.FromString(Utils.InventoryTypeToString(invType))},
+                {"name", OSD.FromString(name)},
+                {"description", OSD.FromString(description)},
+                {"everyone_mask", OSD.FromInteger((int) permissions.EveryoneMask)},
+                {"group_mask", OSD.FromInteger((int) permissions.GroupMask)},
+                {"next_owner_mask", OSD.FromInteger((int) permissions.NextOwnerMask)},
+                {"expected_upload_cost", OSD.FromInteger(Client.Settings.UPLOAD_COST)}
+            };
+
+            try
+            {
+                // Initial capability call
+                var osd = await PostCapAsync(cap, query, cancellationToken).ConfigureAwait(false);
+                result.RawResult = osd;
+                if (osd == null)
+                {
+                    result.Status = "no_response";
+                    return result;
+                }
+
+                var contents = osd as OSDMap;
+                if (contents == null)
+                {
+                    result.Status = "invalid_response";
+                    return result;
+                }
+
+                var status = contents.ContainsKey("state") ? contents["state"].AsString().ToLower() : string.Empty;
+                result.Status = status;
+
+                if (status == "upload")
+                {
+                    // Upload the raw bytes to the provided uploader URL and re-evaluate result
+                    var uploadUrl = contents.ContainsKey("uploader") ? contents["uploader"].AsString() : null;
+                    if (string.IsNullOrEmpty(uploadUrl))
+                    {
+                        result.Status = "missing_uploader_url";
+                        return result;
+                    }
+
+                    var uploadUri = new Uri(uploadUrl);
+                    var uploadRes = await PostBytesAsync(uploadUri, "application/octet-stream", data, cancellationToken).ConfigureAwait(false);
+                    result.RawResult = uploadRes;
+                    if (uploadRes is OSDMap uploadMap)
+                    {
+                        contents = uploadMap;
+                        status = contents.ContainsKey("state") ? contents["state"].AsString().ToLower() : status;
+                        result.Status = status;
+                    }
+                }
+
+                if (status == "complete")
+                {
+                    if (contents.ContainsKey("new_inventory_item") && contents.ContainsKey("new_asset"))
+                    {
+                        result.ItemID = contents["new_inventory_item"].AsUUID();
+                        result.AssetID = contents["new_asset"].AsUUID();
+
+                        // Request full update on the item so local store stays in sync
+                        try
+                        {
+                            RequestFetchInventory(result.ItemID, Client.Self.AgentID);
+                        }
+                        catch { /* best-effort */ }
+
+                        result.Success = true;
+                        return result;
+                    }
+
+                    result.Status = "missing_ids";
+                    return result;
+                }
+
+                // Non-success status from server
+                result.Success = false;
+                return result;
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Error = ex;
+                result.Status = ex.Message;
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Request an inventory folder contents update and await the corresponding FolderUpdated event.
+        /// Returns a richer result containing success and the folder contents when available.
+        /// </summary>
+        public async Task<FolderUpdateResult> RequestFolderUpdateAsync(UUID folderID, UUID ownerID, bool fetchFolders = true, bool fetchItems = true,
+            InventorySortOrder order = InventorySortOrder.ByName, CancellationToken cancellationToken = default)
+        {
+            var tcs = new TaskCompletionSource<FolderUpdateResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            void Handler(object sender, FolderUpdatedEventArgs e)
+            {
+                if (e.FolderID == folderID)
+                {
+                    // build best-effort result; do not block the event handler
+                    _ = Task.Run(async () =>
+                    {
+                        List<InventoryBase> contents = null;
+                        try
+                        {
+                            contents = await RequestFolderContents(folderID, ownerID, fetchFolders, fetchItems, order, cancellationToken).ConfigureAwait(false);
+                        }
+                        catch
+                        {
+                            // ignore, we'll still return the success flag
+                        }
+
+                        var res = new FolderUpdateResult
+                        {
+                            FolderID = folderID,
+                            Success = e.Success,
+                            Contents = contents
+                        };
+
+                        tcs.TrySetResult(res);
+                    }, cancellationToken);
+                }
+            }
+
+            FolderUpdated += Handler;
+
+            using (cancellationToken.Register(() => tcs.TrySetCanceled(), useSynchronizationContext: false))
+            {
+                try
+                {
+                    // Trigger the fetch which will cause the server to emit FolderUpdated
+                    _ = RequestFolderContents(folderID, ownerID, fetchFolders, fetchItems, order, cancellationToken);
+
+                    return await tcs.Task.ConfigureAwait(false);
+                }
+                finally
+                {
+                    FolderUpdated -= Handler;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Await the next inventory object offer. Returns the event args for the offer.
+        /// </summary>
+        public async Task<InventoryObjectOfferedEventArgs> WaitForNextInventoryOfferAsync(CancellationToken cancellationToken = default)
+        {
+            var tcs = new TaskCompletionSource<InventoryObjectOfferedEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            void Handler(object sender, InventoryObjectOfferedEventArgs e)
+            {
+                tcs.TrySetResult(e);
+            }
+
+            InventoryObjectOffered += Handler;
+
+            using (cancellationToken.Register(() => tcs.TrySetCanceled(), useSynchronizationContext: false))
+            {
+                try
+                {
+                    return await tcs.Task.ConfigureAwait(false);
+                }
+                finally
+                {
+                    InventoryObjectOffered -= Handler;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Result for copy items operations
+        /// </summary>
+        public class CopyItemsResult
+        {
+            /// <summary>True if the request was accepted/submitted successfully</summary>
+            public bool Success { get; set; }
+            /// <summary>Collection of items copied back by the server (may be null or partial)</summary>
+            public List<InventoryBase> CopiedItems { get; set; }
+            /// <summary>If an exception occurred during the operation, populated with the error</summary>
+            public Exception Error { get; set; }
+        }
+
+        /// <summary>
+        /// Async-first wrapper for copying multiple items that returns a rich result object.
+        /// For legacy LLUDP path this will await the per-item copy callbacks and collect returned items
+        /// until all expected items are received or the operation times out/cancelled. For AISv3 path
+        /// the method will POST the request and return success if the POST succeeded (server may still
+        /// emit callbacks which are not correlated to this method).
+        /// </summary>
+        public async Task<CopyItemsResult> RequestCopyItemsWithResultAsync(List<UUID> items, List<UUID> targetFolders, List<string> newNames,
+            UUID oldOwnerID, CancellationToken cancellationToken = default)
+        {
+            if (items == null) throw new ArgumentNullException(nameof(items));
+            if (targetFolders == null) throw new ArgumentNullException(nameof(targetFolders));
+            if (items.Count != targetFolders.Count || (newNames != null && items.Count != newNames.Count))
+                throw new ArgumentException("All list arguments must have an equal number of entries");
+
+            var result = new CopyItemsResult { Success = false, CopiedItems = new List<InventoryBase>(), Error = null };
+
+            // Try AISv3 Inventory API first
+            var invCap = GetCapabilityURI("InventoryAPIv3", false);
+            if (Client.AisClient.IsAvailable && invCap != null)
+            {
+                try
+                {
+                    var ops = new OSDArray(items.Count);
+                    for (var i = 0; i < items.Count; ++i)
+                    {
+                        var op = new OSDMap
+                        {
+                            ["item_id"] = items[i],
+                            ["folder_id"] = targetFolders[i]
+                        };
+
+                        if (newNames != null && !string.IsNullOrEmpty(newNames[i]))
+                            op["new_name"] = newNames[i];
+
+                        ops.Add(op);
+                    }
+
+                    var payload = new OSDMap { ["items"] = ops, ["agent_id"] = Client.Self.AgentID };
+
+                    // POST and return success if it completes without throwing
+                    await PostCapAsync(invCap, payload, cancellationToken).ConfigureAwait(false);
+                    result.Success = true;
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    // Fall through to legacy LLUDP path on error
+                    result.Error = ex;
+                }
+            }
+
+            // Legacy LLUDP path: register a callback to capture copied items
+            var tcs = new TaskCompletionSource<CopyItemsResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var collected = new List<InventoryBase>();
+            uint callbackId = 0;
+
+            // Our wrapper callback will be registered with RegisterItemsCopiedCallback
+            ItemCopiedCallback cb = (invBase) =>
+            {
+                try
+                {
+                    if (invBase == null)
+                    {
+                        // Server indicated failure/timeout for this callback id
+                        // If we have any collected items return partial success, otherwise failure
+                        if (collected.Count > 0)
+                        {
+                            tcs.TrySetResult(new CopyItemsResult { Success = true, CopiedItems = new List<InventoryBase>(collected) });
+                        }
+                        else
+                        {
+                            tcs.TrySetResult(new CopyItemsResult { Success = false, CopiedItems = null });
+                        }
+                        return;
+                    }
+
+                    collected.Add(invBase);
+
+                    // If we've collected all expected items, complete
+                    if (collected.Count >= items.Count)
+                    {
+                        tcs.TrySetResult(new CopyItemsResult { Success = true, CopiedItems = new List<InventoryBase>(collected) });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            };
+
+            callbackId = RegisterItemsCopiedCallback(cb);
+
+            try
+            {
+                var copy = new CopyInventoryItemPacket
+                {
+                    AgentData =
+                    {
+                        AgentID = Client.Self.AgentID,
+                        SessionID = Client.Self.SessionID
+                    },
+                    InventoryData = new CopyInventoryItemPacket.InventoryDataBlock[items.Count]
+                };
+
+                for (var i = 0; i < items.Count; ++i)
+                {
+                    copy.InventoryData[i] = new CopyInventoryItemPacket.InventoryDataBlock
+                    {
+                        CallbackID = callbackId,
+                        NewFolderID = targetFolders[i],
+                        OldAgentID = oldOwnerID,
+                        OldItemID = items[i],
+                        NewName = !string.IsNullOrEmpty(newNames?[i])
+                            ? Utils.StringToBytes(newNames[i])
+                            : Utils.EmptyBytes
+                    };
+                }
+
+                Client.Network.SendPacket(copy);
+
+                using (cancellationToken.Register(() => tcs.TrySetCanceled(), useSynchronizationContext: false))
+                {
+                    // Await completion or cancellation
+                    return await tcs.Task.ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                return new CopyItemsResult { Success = false, CopiedItems = null, Error = ex };
+            }
+        }
     }
 }
