@@ -295,24 +295,26 @@ namespace OpenMetaverse
         /// <summary>
         /// Request A single inventory item
         /// </summary>
-        /// <param name="itemID">The items <see cref="OpenMetaverse.UUID"/></param>f
+        /// <param name="itemID">The items <see cref="OpenMetaverse.UUID"/></param>
         /// <param name="ownerID">The item Owners <see cref="OpenMetaverse.UUID"/></param>
+        /// <param name="cancellationToken">Cancellation token to cancel the request</param>
         /// <see cref="InventoryManager.OnItemReceived"/>
-        public void RequestFetchInventory(UUID itemID, UUID ownerID)
+        public void RequestFetchInventory(UUID itemID, UUID ownerID, CancellationToken cancellationToken = default)
         {
-            RequestFetchInventory(new Dictionary<UUID, UUID>(1) { { itemID, ownerID } });
+            RequestFetchInventory(new Dictionary<UUID, UUID>(1) { { itemID, ownerID } }, cancellationToken);
         }
 
         /// <summary>
         /// Request inventory items
         /// </summary>
         /// <param name="items">Inventory items to request with owner</param>
+        /// <param name="cancellationToken">Cancellation token to cancel the request</param>
         /// <see cref="InventoryManager.OnItemReceived"/>
-        public void RequestFetchInventory(Dictionary<UUID, UUID> items)
+        public void RequestFetchInventory(Dictionary<UUID, UUID> items, CancellationToken cancellationToken = default)
         {
             if (GetCapabilityURI("FetchInventory2") != null)
             {
-                RequestFetchInventoryHttp(items);
+                RequestFetchInventoryHttp(items, cancellationToken);
                 return;
             }
 
@@ -342,11 +344,12 @@ namespace OpenMetaverse
         /// Request inventory items via Capabilities
         /// </summary>
         /// <param name="items">Inventory items to request with owners</param>
+        /// <param name="cancellationToken">Cancellation token to cancel the request</param>
         /// <see cref="OnItemReceived"/>
-        private void RequestFetchInventoryHttp(Dictionary<UUID, UUID> items)
+        private void RequestFetchInventoryHttp(Dictionary<UUID, UUID> items, CancellationToken cancellationToken = default)
         {
             // Fire-and-forget the async request. Use discard to explicitly start the task
-            _ = RequestFetchInventoryHttpAsync(items, CancellationToken.None);
+            _ = RequestFetchInventoryHttpAsync(items, cancellationToken);
         }
 
         /// <summary>
@@ -1214,12 +1217,13 @@ namespace OpenMetaverse
         /// Remove descendants of a folder
         /// </summary>
         /// <param name="folder">The <see cref="UUID"/> of the folder</param>
-        public void RemoveDescendants(UUID folder)
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+        public void RemoveDescendants(UUID folder, CancellationToken cancellationToken = default)
         {
             if (Client.AisClient.IsAvailable)
             {
                 // Fire-and-forget AIS call
-                _ = Client.AisClient.PurgeDescendents(folder, RemoveLocalUi);
+                _ = Client.AisClient.PurgeDescendents(folder, RemoveLocalUi, cancellationToken);
             }
             else
             {
@@ -1241,12 +1245,13 @@ namespace OpenMetaverse
         /// Remove a single item from inventory
         /// </summary>
         /// <param name="item">The <see cref="UUID"/> of the inventory item to remove</param>
-        public void RemoveItem(UUID item)
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+        public void RemoveItem(UUID item, CancellationToken cancellationToken = default)
         {
             if (Client.AisClient.IsAvailable)
             {
                 // Fire-and-forget AIS call
-                _ = Client.AisClient.RemoveItem(item, RemoveLocalUi);
+                _ = Client.AisClient.RemoveItem(item, RemoveLocalUi, cancellationToken);
             }
             else
             {
@@ -1281,12 +1286,13 @@ namespace OpenMetaverse
         /// Remove a folder from inventory
         /// </summary>
         /// <param name="folder">The <see cref="UUID"/> of the folder to remove</param>
-        public void RemoveFolder(UUID folder)
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+        public void RemoveFolder(UUID folder, CancellationToken cancellationToken = default)
         {
             if (Client.AisClient.IsAvailable)
             {
                 // Fire-and-forget AIS call
-                _ = Client.AisClient.RemoveCategory(folder, RemoveLocalUi);
+                _ = Client.AisClient.RemoveCategory(folder, RemoveLocalUi, cancellationToken);
             } 
             else
             {
@@ -1367,20 +1373,22 @@ namespace OpenMetaverse
         /// <summary>
         /// Empty the Lost and Found folder
         /// </summary>
-        public void EmptyLostAndFound()
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+        public void EmptyLostAndFound(CancellationToken cancellationToken = default)
         {
-            EmptySystemFolder(FolderType.LostAndFound);
+            EmptySystemFolder(FolderType.LostAndFound, cancellationToken);
         }
 
         /// <summary>
         /// Empty the Trash folder
         /// </summary>
-        public void EmptyTrash()
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+        public void EmptyTrash(CancellationToken cancellationToken = default)
         {
-            EmptySystemFolder(FolderType.Trash);
+            EmptySystemFolder(FolderType.Trash, cancellationToken);
         }
 
-        private void EmptySystemFolder(FolderType folderType)
+        private void EmptySystemFolder(FolderType folderType, CancellationToken cancellationToken = default)
         {
             if (_Store == null)
             {
@@ -1407,7 +1415,7 @@ namespace OpenMetaverse
                 if (folderKey != UUID.Zero)
                 {
                     // Fire-and-forget AIS call
-                    _ = Client.AisClient.PurgeDescendents(folderKey, RemoveLocalUi);
+                    _ = Client.AisClient.PurgeDescendents(folderKey, RemoveLocalUi, cancellationToken);
                 }
             }
             else
@@ -2457,11 +2465,12 @@ namespace OpenMetaverse
         /// <param name="folderName">The name of the folder</param>
         /// <param name="recipient">The <see cref="UUID"/> of the recipient</param>
         /// <param name="doEffect">true to generate a beam-effect during transfer</param>
-        public void GiveFolder(UUID folderID, string folderName, UUID recipient, bool doEffect)
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+        public void GiveFolder(UUID folderID, string folderName, UUID recipient, bool doEffect, CancellationToken cancellationToken = default)
         {
             try
             {
-                GiveFolderAsync(folderID, folderName, recipient, doEffect, CancellationToken.None).GetAwaiter().GetResult();
+                GiveFolderAsync(folderID, folderName, recipient, doEffect, cancellationToken).GetAwaiter().GetResult();
             }
             catch (Exception ex)
             {
@@ -3041,128 +3050,128 @@ namespace OpenMetaverse
                                         UUID.TryParse(value, out parentID);
                                         break;
                                     case "permissions":
-                                    {
-                                        #region permissions
-
-                                        while (lineNum < lines.Length)
                                         {
-                                            if (ParseLine(lines[lineNum++], out key, out value))
+                                            #region permissions
+
+                                            while (lineNum < lines.Length)
                                             {
-                                                if (key == "{")
+                                                if (ParseLine(lines[lineNum++], out key, out value))
                                                 {
-                                                    continue;
-                                                }
+                                                    if (key == "{")
+                                                    {
+                                                        continue;
+                                                    }
 
-                                                if (key == "}")
-                                                {
-                                                    break;
-                                                }
+                                                    if (key == "}")
+                                                    {
+                                                        break;
+                                                    }
 
-                                                switch (key)
-                                                {
-                                                    case "creator_mask":
+                                                    switch (key)
                                                     {
-                                                        // Deprecated
-                                                        if (Utils.TryParseHex(value, out var val))
-                                                            perms.BaseMask = (PermissionMask)val;
-                                                        break;
-                                                    }
-                                                    case "base_mask":
-                                                    {
-                                                        if (Utils.TryParseHex(value, out var val))
-                                                            perms.BaseMask = (PermissionMask)val;
-                                                        break;
-                                                    }
-                                                    case "owner_mask":
-                                                    {
-                                                        if (Utils.TryParseHex(value, out var val))
-                                                            perms.OwnerMask = (PermissionMask)val;
-                                                        break;
-                                                    }
-                                                    case "group_mask":
-                                                    {
-                                                        if (Utils.TryParseHex(value, out var val))
-                                                            perms.GroupMask = (PermissionMask)val;
-                                                        break;
-                                                    }
-                                                    case "everyone_mask":
-                                                    {
-                                                        if (Utils.TryParseHex(value, out var val))
-                                                            perms.EveryoneMask = (PermissionMask)val;
-                                                        break;
-                                                    }
-                                                    case "next_owner_mask":
-                                                    {
-                                                        if (Utils.TryParseHex(value, out var val))
-                                                            perms.NextOwnerMask = (PermissionMask)val;
-                                                        break;
-                                                    }
-                                                    case "creator_id":
-                                                        UUID.TryParse(value, out creatorID);
-                                                        break;
-                                                    case "owner_id":
-                                                        UUID.TryParse(value, out ownerID);
-                                                        break;
-                                                    case "last_owner_id":
-                                                        UUID.TryParse(value, out lastOwnerID);
-                                                        break;
-                                                    case "group_id":
-                                                        UUID.TryParse(value, out groupID);
-                                                        break;
-                                                    case "group_owned":
-                                                    {
-                                                        if (uint.TryParse(value, out var val))
-                                                            groupOwned = (val != 0);
-                                                        break;
+                                                        case "creator_mask":
+                                                            {
+                                                                // Deprecated
+                                                                if (Utils.TryParseHex(value, out var val))
+                                                                    perms.BaseMask = (PermissionMask)val;
+                                                                break;
+                                                            }
+                                                        case "base_mask":
+                                                            {
+                                                                if (Utils.TryParseHex(value, out var val))
+                                                                    perms.BaseMask = (PermissionMask)val;
+                                                                break;
+                                                            }
+                                                        case "owner_mask":
+                                                            {
+                                                                if (Utils.TryParseHex(value, out var val))
+                                                                    perms.OwnerMask = (PermissionMask)val;
+                                                                break;
+                                                            }
+                                                        case "group_mask":
+                                                            {
+                                                                if (Utils.TryParseHex(value, out var val))
+                                                                    perms.GroupMask = (PermissionMask)val;
+                                                                break;
+                                                            }
+                                                        case "everyone_mask":
+                                                            {
+                                                                if (Utils.TryParseHex(value, out var val))
+                                                                    perms.EveryoneMask = (PermissionMask)val;
+                                                                break;
+                                                            }
+                                                        case "next_owner_mask":
+                                                            {
+                                                                if (Utils.TryParseHex(value, out var val))
+                                                                    perms.NextOwnerMask = (PermissionMask)val;
+                                                                break;
+                                                            }
+                                                        case "creator_id":
+                                                            UUID.TryParse(value, out creatorID);
+                                                            break;
+                                                        case "owner_id":
+                                                            UUID.TryParse(value, out ownerID);
+                                                            break;
+                                                        case "last_owner_id":
+                                                            UUID.TryParse(value, out lastOwnerID);
+                                                            break;
+                                                        case "group_id":
+                                                            UUID.TryParse(value, out groupID);
+                                                            break;
+                                                        case "group_owned":
+                                                            {
+                                                                if (uint.TryParse(value, out var val))
+                                                                    groupOwned = (val != 0);
+                                                                break;
+                                                            }
                                                     }
                                                 }
                                             }
+
+                                            #endregion permissions
+
+                                            break;
                                         }
-
-                                        #endregion permissions
-
-                                        break;
-                                    }
                                     case "sale_info":
-                                    {
-                                        #region sale_info
-
-                                        while (lineNum < lines.Length)
                                         {
-                                            if (ParseLine(lines[lineNum++], out key, out value))
+                                            #region sale_info
+
+                                            while (lineNum < lines.Length)
                                             {
-                                                if (key == "{")
+                                                if (ParseLine(lines[lineNum++], out key, out value))
                                                 {
-                                                    continue;
-                                                }
+                                                    if (key == "{")
+                                                    {
+                                                        continue;
+                                                    }
 
-                                                if (key == "}")
-                                                {
-                                                    break;
-                                                }
+                                                    if (key == "}")
+                                                    {
+                                                        break;
+                                                    }
 
-                                                switch (key)
-                                                {
-                                                    case "sale_type":
-                                                        saleType = Utils.StringToSaleType(value);
-                                                        break;
-                                                    case "sale_price":
-                                                        int.TryParse(value, out salePrice);
-                                                        break;
+                                                    switch (key)
+                                                    {
+                                                        case "sale_type":
+                                                            saleType = Utils.StringToSaleType(value);
+                                                            break;
+                                                        case "sale_price":
+                                                            int.TryParse(value, out salePrice);
+                                                            break;
+                                                    }
                                                 }
                                             }
+
+                                            #endregion sale_info
+
+                                            break;
                                         }
-
-                                        #endregion sale_info
-
-                                        break;
-                                    }
                                     case "shadow_id":
-                                    {
-                                        if (UUID.TryParse(value, out var shadowID))
-                                            assetID = DecryptShadowID(shadowID);
-                                        break;
-                                    }
+                                        {
+                                            if (UUID.TryParse(value, out var shadowID))
+                                                assetID = DecryptShadowID(shadowID);
+                                            break;
+                                        }
                                     case "asset_id":
                                         UUID.TryParse(value, out assetID);
                                         break;
@@ -3182,13 +3191,13 @@ namespace OpenMetaverse
                                         desc = value.Substring(0, value.IndexOf('|'));
                                         break;
                                     case "creation_date":
-                                    {
-                                        if (uint.TryParse(value, out var timestamp))
-                                            creationDate = Utils.UnixTimeToDateTime(timestamp);
-                                        else
-                                            Logger.Log($"Failed to parse creation_date: {value}", Helpers.LogLevel.Warning);
-                                        break;
-                                    }
+                                        {
+                                            if (uint.TryParse(value, out var timestamp))
+                                                creationDate = Utils.UnixTimeToDateTime(timestamp);
+                                            else
+                                                Logger.Log($"Failed to parse creation_date: {value}", Helpers.LogLevel.Warning);
+                                            break;
+                                        }
                                 }
                             }
                         }
