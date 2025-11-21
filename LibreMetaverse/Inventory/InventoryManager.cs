@@ -1156,7 +1156,7 @@ namespace OpenMetaverse
             // Collect all descendants and the root node to remove without recursion
             var toRemove = new List<InventoryBase>();
 
-            using (var writeLock = _storeLock.WriteLock())
+            using (var upg = _storeLock.UpgradeableLock())
             {
                 if (!_Store.TryGetNodeFor(itemId, out var rootNode))
                 {
@@ -1190,7 +1190,7 @@ namespace OpenMetaverse
             }
 
             // Perform removals under write lock
-            using (_storeLock.WriteLock())
+            using (var writeLock = _storeLock.WriteLock())
             {
                 foreach (var b in toRemove)
                 {
