@@ -1972,7 +1972,7 @@ namespace OpenMetaverse
             }
         }
 
-                /// <summary>
+        /// <summary>
         /// Update an existing script in an agents Inventory
         /// </summary>
         /// <param name="data">A byte[] array containing the encoded scripts contents</param>
@@ -1980,28 +1980,11 @@ namespace OpenMetaverse
         /// <param name="mono">if true, sets the script content to run on the mono interpreter</param>
         /// <param name="callback"></param>
         /// <param name="cancellationToken"></param>
+        [Obsolete("Use RequestUpdateScriptAgentInventoryAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
         public void RequestUpdateScriptAgentInventory(byte[] data, UUID itemID, bool mono, ScriptUpdatedCallback callback, CancellationToken cancellationToken = default)
         {
-            var cap = GetCapabilityURI("UpdateScriptAgent");
-            if (cap != null)
-            {
-                var request = new UpdateScriptAgentRequestMessage
-                {
-                    ItemID = itemID,
-                    Target = mono ? "mono" : "lsl2"
-                };
-
-                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, request.Serialize(), cancellationToken,
-                    (response, responseData, error) =>
-                    {
-                        UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data),
-                            itemID, OSDParser.Deserialize(responseData), error, cancellationToken);
-                    });
-            }
-            else
-            {
-                throw new Exception("UpdateScriptAgent capability is not currently available");
-            }
+            // Forward to the async-first implementation and fire-and-forget to preserve original non-blocking behavior
+            _ = RequestUpdateScriptAgentInventoryAsync(data, itemID, mono, callback, cancellationToken);
         }
 
         /// <summary>
