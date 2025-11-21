@@ -28,7 +28,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse
 {
@@ -88,6 +90,49 @@ namespace OpenMetaverse
             Client.Network.SendPacket(update);
 
             return transactionID;
+        }
+
+        /// <summary>
+        /// Update an existing notecard in a task (primitive) inventory (synchronous wrapper)
+        /// </summary>
+        /// <param name="data">Notecard asset bytes</param>
+        /// <param name="notecardID">UUID of the notecard item</param>
+        /// <param name="taskID">UUID of the task (primitive)</param>
+        /// <param name="callback">Callback invoked when upload completes</param>
+        [Obsolete("Use RequestUpdateNotecardTaskAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
+        public void RequestUpdateNotecardTask(byte[] data, UUID notecardID, UUID taskID, InventoryUploadedAssetCallback callback)
+        {
+            try
+            {
+                RequestUpdateNotecardTaskAsync(data, notecardID, taskID, callback, CancellationToken.None).GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"RequestUpdateNotecardTask failed: {ex.Message}", Helpers.LogLevel.Warning, Client, ex);
+            }
+        }
+
+        /// <summary>
+        /// Update an existing script in a task Inventory (synchronous wrapper)
+        /// </summary>
+        /// <param name="data">A byte[] array containing the encoded scripts contents</param>
+        /// <param name="itemID">the itemID of the script</param>
+        /// <param name="taskID">UUID of the prim containing the script</param>
+        /// <param name="mono">if true, sets the script content to run on the mono interpreter</param>
+        /// <param name="running">if true, sets the script to running</param>
+        /// <param name="callback"></param>
+        /// <param name="cancellationToken"></param>
+        [Obsolete("Use RequestUpdateScriptTaskAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
+        public void RequestUpdateScriptTask(byte[] data, UUID itemID, UUID taskID, bool mono, bool running, ScriptUpdatedCallback callback, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                RequestUpdateScriptTaskAsync(data, itemID, taskID, mono, running, callback, cancellationToken).GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"RequestUpdateScriptTask failed: {ex.Message}", Helpers.LogLevel.Warning, Client, ex);
+            }
         }
 
         /// <summary>

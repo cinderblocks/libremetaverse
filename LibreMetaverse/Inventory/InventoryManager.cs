@@ -1972,28 +1972,7 @@ namespace OpenMetaverse
             }
         }
 
-        /// <summary>
-        /// Send an upload notecard request
-        /// </summary>
-        /// <param name="data"></param>
-        /// <param name="notecardID"></param>
-        /// <param name="callback"></param>
-        /// <param name="cancellationToken"></param>
-        public void RequestUploadNotecardAsset(byte[] data, UUID notecardID, InventoryUploadedAssetCallback callback, CancellationToken cancellationToken = default)
-        {
-            var cap = GetCapabilityURI("UpdateNotecardAgentInventory", false);
-            if (cap == null)
-            {
-                throw new Exception("Capability system not initialized to send asset");
-            }
-
-            var query = new OSDMap { { "item_id", OSD.FromUUID(notecardID) } };
-
-            // Fire-and-forget the async-first implementation which will invoke the upload response handling
-            _ = RequestUploadNotecardAssetAsync(data, notecardID, callback, cancellationToken);
-        }
-
-        /// <summary>
+                /// <summary>
         /// Update an existing script in an agents Inventory
         /// </summary>
         /// <param name="data">A byte[] array containing the encoded scripts contents</param>
@@ -2026,42 +2005,49 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Update an existing script in a task Inventory
+        /// Send an upload notecard request
         /// </summary>
-        /// <param name="data">A byte[] array containing the encoded scripts contents</param>
-        /// <param name="itemID">the itemID of the script</param>
-        /// <param name="taskID">UUID of the prim containing the script</param>
-        /// <param name="mono">if true, sets the script content to run on the mono interpreter</param>
-        /// <param name="running">if true, sets the script to running</param>
+        /// <param name="data"></param>
+        /// <param name="notecardID"></param>
         /// <param name="callback"></param>
         /// <param name="cancellationToken"></param>
-        public void RequestUpdateScriptTask(byte[] data, UUID itemID, UUID taskID, bool mono, bool running, ScriptUpdatedCallback callback, CancellationToken cancellationToken = default)
+        public void RequestUploadNotecardAsset(byte[] data, UUID notecardID, InventoryUploadedAssetCallback callback, CancellationToken cancellationToken = default)
         {
-            var cap = GetCapabilityURI("UpdateScriptTask");
-            if (cap != null)
+            var cap = GetCapabilityURI("UpdateNotecardAgentInventory", false);
+            if (cap == null)
             {
-                var msg = new UpdateScriptTaskUpdateMessage
-                {
-                    ItemID = itemID,
-                    TaskID = taskID,
-                    ScriptRunning = running,
-                    Target = mono ? "mono" : "lsl2"
-                };
+                throw new Exception("Capability system not initialized to send asset");
+            }
 
-                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken,
-                    (response, responseData, error) =>
-                    {
-                        UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data),
-                            itemID, OSDParser.Deserialize(responseData), error, cancellationToken);
-                    });
-            }
-            else
-            {
-                throw new Exception("UpdateScriptTask capability is not currently available");
-            }
+            var query = new OSDMap { { "item_id", OSD.FromUUID(notecardID) } };
+
+            // Fire-and-forget the async-first implementation which will invoke the upload response handling
+            _ = RequestUploadNotecardAssetAsync(data, notecardID, callback, cancellationToken);
         }
 
-        #endregion Task
+        /// <summary>
+        /// Send an upload gesture request (synchronous wrapper preserved for compatibility)
+        /// </summary>
+        /// <param name="data">Gesture asset bytes</param>
+        /// <param name="gestureID">UUID of the gesture item</param>
+        /// <param name="callback">Callback invoked when upload completes</param>
+        /// <param name="cancellationToken">Cancellation token for operation</param>
+        [Obsolete("Use RequestUploadGestureAssetAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
+        public void RequestUploadGestureAsset(byte[] data, UUID gestureID, InventoryUploadedAssetCallback callback, CancellationToken cancellationToken = default)
+        {
+            var cap = GetCapabilityURI("UpdateGestureAgentInventory", false);
+            if (cap == null)
+            {
+                throw new Exception("UpdateGestureAgentInventory capability is not currently available");
+            }
+
+            var query = new OSDMap { { "item_id", OSD.FromUUID(gestureID) } };
+
+            // Fire-and-forget the async-first implementation which will invoke the upload response handling
+            _ = RequestUploadGestureAssetAsync(data, gestureID, callback, cancellationToken);
+        }
+
+        #endregion Update
 
         /// <summary>
         /// Wrapper for creating a new <see cref="InventoryItem"/> object
