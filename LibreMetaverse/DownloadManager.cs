@@ -55,6 +55,9 @@ namespace OpenMetaverse.Http
         /// <summary>Optional cancellation token for this request</summary>
         public CancellationToken CancellationToken = CancellationToken.None;
 
+        /// <summary>Optional TaskCompletionSource for task-based completion</summary>
+        public TaskCompletionSource<(HttpResponseMessage, byte[])> CompletionTcs;
+
         /// <summary>Constructor</summary>
         public DownloadRequest(Uri address, string contentType,
             IProgress<HttpCapsClient.ProgressReport> downloadProgressCallback,
@@ -70,7 +73,7 @@ namespace OpenMetaverse.Http
     internal class ActiveDownload
     {
         public ConcurrentBag<IProgress<HttpCapsClient.ProgressReport>> ProgressHandlers = new ConcurrentBag<IProgress<HttpCapsClient.ProgressReport>>();
-        public ConcurrentBag<HttpCapsClient.DownloadCompleteHandler> CompletedHandlers = new ConcurrentBag<HttpCapsClient.DownloadCompleteHandler>();
+        public ConcurrentBag<TaskCompletionSource<(HttpResponseMessage, byte[])>> CompletedHandlers = new ConcurrentBag<TaskCompletionSource<(HttpResponseMessage, byte[])>>();
         public CancellationTokenSource CancellationToken = new CancellationTokenSource();
         // 0 = not started, 1 = started
         public int Started;
@@ -143,8 +146,30 @@ namespace OpenMetaverse.Http
                 // Get or create the active download entry
                 var activeDownload = activeDownloads.GetOrAdd(addr, _ => new ActiveDownload());
 
+                // Add completion handler as TaskCompletionSource; prefer existing CompletionTcs
+                TaskCompletionSource<(HttpResponseMessage, byte[])> completionTcs = item.CompletionTcs ?? new TaskCompletionSource<(HttpResponseMessage, byte[])>(TaskCreationOptions.RunContinuationsAsynchronously);
+                // If caller provided legacy callback, forward TCS completion to it
+                if (item.CompletedCallback != null)
+                {
+                    completionTcs.Task.ContinueWith(t =>
+                    {
+                        if (t.IsCanceled)
+                        {
+                            try { item.CompletedCallback(null, null, new OperationCanceledException()); } catch { }
+                        }
+                        else if (t.IsFaulted)
+                        {
+                            try { item.CompletedCallback(null, null, t.Exception?.InnerException ?? t.Exception); } catch { }
+                        }
+                        else
+                        {
+                            try { item.CompletedCallback(t.Result.Item1, t.Result.Item2, null); } catch { }
+                        }
+                    }, TaskScheduler.Default);
+                }
+                activeDownload.CompletedHandlers.Add(completionTcs);
+
                 // Add handlers in a thread-safe manner
-                activeDownload.CompletedHandlers.Add(item.CompletedCallback);
                 if (item.DownloadProgressCallback != null)
                 {
                     activeDownload.ProgressHandlers.Add(item.DownloadProgressCallback);
@@ -181,7 +206,7 @@ namespace OpenMetaverse.Http
                 var handlers = activeDownload.CompletedHandlers.ToArray();
                 foreach (var handler in handlers)
                 {
-                    try { handler(null, null, new OperationCanceledException()); } catch { }
+                    try { handler.TrySetException(new OperationCanceledException()); } catch { }
                 }
 
                 // Remove from active downloads and try to start pending items
@@ -289,7 +314,18 @@ namespace OpenMetaverse.Http
                                 var handlers = activeDownload.CompletedHandlers.ToArray();
                                 foreach (var handler in handlers)
                                 {
-                                    try { handler(response, responseData, finalError); } catch { }
+                                    try
+                                    {
+                                        if (finalError != null)
+                                        {
+                                            handler.TrySetException(finalError);
+                                        }
+                                        else
+                                        {
+                                            handler.TrySetResult((response, responseData));
+                                        }
+                                    }
+                                    catch { }
                                 }
 
                                 // Dispose response after handlers
@@ -329,7 +365,7 @@ namespace OpenMetaverse.Http
                         var handlers = activeDownload.CompletedHandlers.ToArray();
                         foreach (var handler in handlers)
                         {
-                            try { handler(null, null, new OperationCanceledException()); } catch { }
+                            try { handler.TrySetException(new OperationCanceledException()); } catch { }
                         }
 
                         try { response?.Dispose(); } catch { }
@@ -359,7 +395,7 @@ namespace OpenMetaverse.Http
                         var handlers = activeDownload.CompletedHandlers.ToArray();
                         foreach (var handler in handlers)
                         {
-                            try { handler(null, null, ex); } catch { }
+                            try { handler.TrySetException(ex); } catch { }
                         }
 
                         try { response?.Dispose(); } catch { }
@@ -387,7 +423,27 @@ namespace OpenMetaverse.Http
             // Fast-path: if an active download exists, attach handlers and return
             if (activeDownloads.TryGetValue(addr, out var existing))
             {
-                existing.CompletedHandlers.Add(req.CompletedCallback);
+                // Attach completion TCS to existing active download
+                var tcs = req.CompletionTcs ?? new TaskCompletionSource<(HttpResponseMessage, byte[])>(TaskCreationOptions.RunContinuationsAsynchronously);
+                if (req.CompletedCallback != null)
+                {
+                    tcs.Task.ContinueWith(t =>
+                    {
+                        if (t.IsCanceled)
+                        {
+                            try { req.CompletedCallback(null, null, new OperationCanceledException()); } catch { }
+                        }
+                        else if (t.IsFaulted)
+                        {
+                            try { req.CompletedCallback(null, null, t.Exception?.InnerException ?? t.Exception); } catch { }
+                        }
+                        else
+                        {
+                            try { req.CompletedCallback(t.Result.Item1, t.Result.Item2, null); } catch { }
+                        }
+                    }, TaskScheduler.Default);
+                }
+                existing.CompletedHandlers.Add(tcs);
                 if (req.DownloadProgressCallback != null)
                 {
                     existing.ProgressHandlers.Add(req.DownloadProgressCallback);
@@ -410,6 +466,25 @@ namespace OpenMetaverse.Http
                 req.CancellationToken = cancellationToken;
 
             QueueDownload(req);
+        }
+
+        /// <summary>
+        /// Enqueue a DownloadRequest and return a Task that completes when the download finishes.
+        /// </summary>
+        public Task<(HttpResponseMessage response, byte[] data)> QueueDownloadAsync(DownloadRequest req)
+        {
+            if (req == null) throw new ArgumentNullException(nameof(req));
+
+            if (req.CompletionTcs == null)
+                req.CompletionTcs = new TaskCompletionSource<(HttpResponseMessage, byte[])>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            if (req.CancellationToken.CanBeCanceled)
+            {
+                try { req.CancellationToken.Register(() => req.CompletionTcs.TrySetCanceled()); } catch { }
+            }
+
+            QueueDownload(req);
+            return req.CompletionTcs.Task;
         }
 
         /// <summary>
@@ -464,5 +539,22 @@ namespace OpenMetaverse.Http
             return tcs.Task;
         }
 
+        /// <summary>
+        /// Convenience overload that queues a download and returns a Task for the response and data.
+        /// </summary>
+        public Task<(HttpResponseMessage response, byte[] data)> DownloadAsync(Uri address,
+            string contentType, IProgress<HttpCapsClient.ProgressReport> progress, CancellationToken cancellationToken)
+        {
+            return QueueDownloadAsync(address, contentType, progress, cancellationToken);
+        }
+
+        /// <summary>
+        /// Convenience overload that queues a download and returns a Task for the response and data.
+        /// </summary>
+        public Task<(HttpResponseMessage response, byte[] data)> DownloadAsync(Uri address,
+            IProgress<HttpCapsClient.ProgressReport> progress, CancellationToken cancellationToken)
+        {
+            return QueueDownloadAsync(address, null, progress, cancellationToken);
+        }
     }
 }
