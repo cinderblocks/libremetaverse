@@ -34,6 +34,7 @@ using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Packets;
 using System.Collections.Concurrent;
+using LibreMetaverse.Threading;
 
 namespace OpenMetaverse
 {
@@ -135,11 +136,10 @@ namespace OpenMetaverse
         private Inventory _Store;
         [NonSerialized]
         private bool _disposed;
-
         [NonSerialized]
         private readonly CancellationTokenSource _callbackCleanupCts = new CancellationTokenSource();
-
-        private readonly ReaderWriterLockSlim _storeLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+        [NonSerialized]
+        private readonly IReaderWriterLock _storeLock = new OptimisticReaderWriterLock();
 
         private long _CallbackPos, _SearchPos;
         private readonly ConcurrentDictionary<uint, ItemCreatedCallback> _ItemCreatedCallbacks = new ConcurrentDictionary<uint, ItemCreatedCallback>();
@@ -237,8 +237,6 @@ namespace OpenMetaverse
                         _callbackCleanupCts.Dispose();
                     }
                     catch { }
-
-                    try { _storeLock?.Dispose(); } catch { }
 
                     try { _Store = null; } catch { }
                 }
@@ -405,14 +403,9 @@ namespace OpenMetaverse
                         // Update store under write lock to avoid races
                         if (_Store != null)
                         {
-                            _storeLock.EnterWriteLock();
-                            try
+                            using (var writeLock = _storeLock.WriteLock())
                             {
                                 _Store[item.UUID] = item;
-                            }
-                            finally
-                            {
-                                _storeLock.ExitWriteLock();
                             }
                         }
                         else
@@ -478,14 +471,7 @@ namespace OpenMetaverse
                 {
                     try
                     {
-                        if (_Store != null)
-                        {
-                            inventory = _Store.GetContents(folder);
-                        }
-                        else
-                        {
-                            inventory = new List<InventoryBase>();
-                        }
+                        inventory = _Store != null ? _Store.GetContents(folder) : new List<InventoryBase>();
                     }
                     catch (InventoryException)
                     {
@@ -587,14 +573,9 @@ namespace OpenMetaverse
                                     // Update store under write lock to avoid races
                                     if (_Store != null)
                                     {
-                                        _storeLock.EnterWriteLock();
-                                        try
+                                        using (var writeLock = _storeLock.WriteLock())
                                         {
                                             _Store[fetchedFolder.UUID] = fetchedFolder;
-                                        }
-                                        finally
-                                        {
-                                            _storeLock.ExitWriteLock();
                                         }
                                     }
                                     else
@@ -634,14 +615,9 @@ namespace OpenMetaverse
                                                 // Update store under write lock to avoid races
                                                 if (_Store != null)
                                                 {
-                                                    _storeLock.EnterWriteLock();
-                                                    try
+                                                    using (var writeLock = _storeLock.WriteLock())
                                                     {
                                                         _Store[folderID] = folder;
-                                                    }
-                                                    finally
-                                                    {
-                                                        _storeLock.ExitWriteLock();
                                                     }
                                                 }
                                                 else
@@ -670,14 +646,9 @@ namespace OpenMetaverse
                                                 var item = InventoryItem.FromOSD(it);
                                                 if (_Store != null)
                                                 {
-                                                    _storeLock.EnterWriteLock();
-                                                    try
+                                                    using (var writeLock = _storeLock.WriteLock())
                                                     {
                                                         _Store[item.UUID] = item;
-                                                    }
-                                                    finally
-                                                    {
-                                                        _storeLock.ExitWriteLock();
                                                     }
                                                 }
                                                 else
@@ -909,12 +880,12 @@ namespace OpenMetaverse
         /// Move and rename a folder
         /// </summary>
         /// <param name="folderID">The source folders <see cref="UUID"/></param>
-        /// <param name="newparentID">The destination folders <see cref="UUID"/></param>
+        /// <param name="newParentID">The destination folders <see cref="UUID"/></param>
         /// <param name="newName">The name to change the folder to</param>
         [Obsolete("Method broken with AISv3. Use MoveFolder(folder, parent) and UpdateFolderProperties(folder, parent, name, type) instead")]
-        public void MoveFolder(UUID folderID, UUID newparentID, string newName)
+        public void MoveFolder(UUID folderID, UUID newParentID, string newName)
         {
-            UpdateFolderProperties(folderID, newparentID, newName, FolderType.None);
+            UpdateFolderProperties(folderID, newParentID, newName, FolderType.None);
         }
 
         /// <summary>
@@ -928,8 +899,7 @@ namespace OpenMetaverse
         {
             InventoryFolder inv = null;
 
-            _storeLock.EnterUpgradeableReadLock();
-            try
+            using (var upg = _storeLock.UpgradeableLock())
             {
                 if (_Store != null 
                     && _Store.TryGetValue(folderID, out var storeItem) 
@@ -938,24 +908,13 @@ namespace OpenMetaverse
                     // Retrieve node under read lock
                     inv = item;
 
-                    // Update the folder metadata under write lock
-                    _storeLock.EnterWriteLock();
-                    try
-                    {
-                        inv.Name = name;
-                        inv.ParentUUID = parentID;
-                        inv.PreferredType = type;
-                        _Store.UpdateNodeFor(inv);
-                    }
-                    finally
-                    {
-                        _storeLock.ExitWriteLock();
-                    }
+                    // Upgrade to write lock and update the folder metadata
+                    upg.Upgrade();
+                    inv.Name = name;
+                    inv.ParentUUID = parentID;
+                    inv.PreferredType = type;
+                    _Store.UpdateNodeFor(inv);
                 }
-            }
-            finally
-            {
-                _storeLock.ExitUpgradeableReadLock();
             }
 
             if (Client.AisClient.IsAvailable)
@@ -967,14 +926,9 @@ namespace OpenMetaverse
                         if (success)
                         {
                             // Ensure local store is updated (already updated above) but keep parity
-                            _storeLock.EnterWriteLock();
-                            try
+                            using (var writeLock = _storeLock.WriteLock())
                             {
                                 _Store.UpdateNodeFor(inv);
-                            }
-                            finally
-                            {
-                                _storeLock.ExitWriteLock();
                             }
                         }
                     }).ConfigureAwait(false);
@@ -1010,8 +964,7 @@ namespace OpenMetaverse
         /// <param name="newParentID">The destination folders <see cref="UUID"/></param>
         public void MoveFolder(UUID folderID, UUID newParentID)
         {
-            _storeLock.EnterWriteLock();
-            try
+            using (var writeLock = _storeLock.WriteLock())
             {
                 if (_Store != null 
                     && _Store.TryGetValue(folderID, out var storeItem) 
@@ -1020,10 +973,6 @@ namespace OpenMetaverse
                     inv.ParentUUID = newParentID;
                     _Store.UpdateNodeFor(inv);
                 }
-            }
-            finally
-            {
-                _storeLock.ExitWriteLock();
             }
 
             var move = new MoveInventoryFolderPacket
@@ -1054,9 +1003,7 @@ namespace OpenMetaverse
         /// <see cref="UUID"/> of the destination as the value</param>
         public void MoveFolders(Dictionary<UUID, UUID> foldersNewParents)
         {
-            // Update local store under a write lock
-            _storeLock.EnterWriteLock();
-            try
+            using (var writeLock = _storeLock.WriteLock())
             {
                 foreach (var entry in foldersNewParents)
                 {
@@ -1068,10 +1015,6 @@ namespace OpenMetaverse
                         _Store.UpdateNodeFor(inv);
                     }
                 }
-            }
-            finally
-            {
-                _storeLock.ExitWriteLock();
             }
 
             //TODO: Test if this truly supports multiple-folder move
@@ -1118,8 +1061,7 @@ namespace OpenMetaverse
         /// <param name="newName">The name to change the folder to</param>
         public void MoveItem(UUID itemID, UUID folderID, string newName)
         {
-            _storeLock.EnterWriteLock();
-            try
+            using (var writeLock = _storeLock.WriteLock())
             {
                 if (_Store.TryGetValue(itemID, out var storeItem) && storeItem is InventoryItem inv)
                 {
@@ -1130,10 +1072,6 @@ namespace OpenMetaverse
                     inv.ParentUUID = folderID;
                     _Store.UpdateNodeFor(inv);
                 }
-            }
-            finally
-            {
-                _storeLock.ExitWriteLock();
             }
 
             var move = new MoveInventoryItemPacket
@@ -1164,8 +1102,7 @@ namespace OpenMetaverse
         /// <see cref="UUID"/> of the destination folder as the value</param>
         public void MoveItems(Dictionary<UUID, UUID> itemsNewParents)
         {
-            _storeLock.EnterWriteLock();
-            try
+            using (var writeLock = _storeLock.WriteLock())
             {
                 foreach (var entry in itemsNewParents)
                 {
@@ -1177,10 +1114,6 @@ namespace OpenMetaverse
                         _Store.UpdateNodeFor(inv);
                     }
                 }
-            }
-            finally
-            {
-                _storeLock.ExitWriteLock();
             }
 
             var move = new MoveInventoryItemPacket
@@ -1223,8 +1156,7 @@ namespace OpenMetaverse
             // Collect all descendants and the root node to remove without recursion
             var toRemove = new List<InventoryBase>();
 
-            _storeLock.EnterReadLock();
-            try
+            using (var writeLock = _storeLock.WriteLock())
             {
                 if (!_Store.TryGetNodeFor(itemId, out var rootNode))
                 {
@@ -1256,23 +1188,14 @@ namespace OpenMetaverse
                 // Finally remove the root node itself
                 toRemove.Add(rootNode.Data);
             }
-            finally
-            {
-                _storeLock.ExitReadLock();
-            }
 
             // Perform removals under write lock
-            _storeLock.EnterWriteLock();
-            try
+            using (_storeLock.WriteLock())
             {
                 foreach (var b in toRemove)
                 {
                     try { _Store.RemoveNodeFor(b); } catch { /* swallow individual remove failures */ }
                 }
-            }
-            finally
-            {
-                _storeLock.ExitWriteLock();
             }
         }
 
@@ -1392,8 +1315,7 @@ namespace OpenMetaverse
             }
             else
             {
-                _storeLock.EnterWriteLock();
-                try
+                using (var writeLock = _storeLock.WriteLock())
                 {
                     rem.ItemData = new RemoveInventoryObjectsPacket.ItemDataBlock[items.Count];
                     for (var i = 0; i < items.Count; i++)
@@ -1405,10 +1327,6 @@ namespace OpenMetaverse
                             _Store.RemoveNodeFor(storeItem);
                     }
                 }
-                finally
-                {
-                    _storeLock.ExitWriteLock();
-                }
             }
 
             if (folders == null || folders.Count == 0)
@@ -1419,8 +1337,7 @@ namespace OpenMetaverse
             }
             else
             {
-                _storeLock.EnterWriteLock();
-                try
+                using (var writeLock = _storeLock.WriteLock())
                 {
                     rem.FolderData = new RemoveInventoryObjectsPacket.FolderDataBlock[folders.Count];
                     for (var i = 0; i < folders.Count; i++)
@@ -1431,10 +1348,6 @@ namespace OpenMetaverse
                         if (_Store != null && _Store.TryGetValue(folders[i], out var storeItem))
                             _Store.RemoveNodeFor(storeItem);
                     }
-                }
-                finally
-                {
-                    _storeLock.ExitWriteLock();
                 }
             }
             Client.Network.SendPacket(rem);
@@ -1631,14 +1544,9 @@ namespace OpenMetaverse
             {
                 if (_Store != null)
                 {
-                    _storeLock.EnterWriteLock();
-                    try
+                    using (_storeLock.WriteLock())
                     {
                         _Store[newFolder.UUID] = newFolder;
-                    }
-                    finally
-                    {
-                        _storeLock.ExitWriteLock();
                     }
                 }
                 else
@@ -2459,7 +2367,6 @@ namespace OpenMetaverse
                     CreationDate = (int) Utils.DateTimeToUnixTime(item.CreationDate)
                 }
             };
-
 
             Client.Network.SendPacket(add, simulator);
 
