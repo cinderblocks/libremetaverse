@@ -1295,6 +1295,28 @@ namespace OpenMetaverse
             return attachmentsByPoint;
         }
 
+        public Dictionary<InventoryItem, AttachmentPoint> GetAttachmentsByInventoryItem()
+        {
+            var result = new Dictionary<InventoryItem, AttachmentPoint>();
+
+            foreach (var kvp in Attachments)
+            {
+                try
+                {
+                    if (Client?.Inventory?.Store != null && Client.Inventory.Store.TryGetValue(kvp.Key, out var item) && item is InventoryItem invItem)
+                    {
+                        result[invItem] = kvp.Value;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log($"Failed to map attachment {kvp.Key} to inventory item: {ex.Message}", Helpers.LogLevel.Debug, Client);
+                }
+            }
+
+            return result;
+        }
+
         #endregion Attachments
 
         #region Appearance Helpers
