@@ -209,38 +209,42 @@ namespace OpenMetaverse
                 {
                     if (Client?.Network != null)
                     {
-                        try { Client.Network.UnregisterCallback(PacketType.UpdateCreateInventoryItem, UpdateCreateInventoryItemHandler); } catch { }
-                        try { Client.Network.UnregisterCallback(PacketType.SaveAssetIntoInventory, SaveAssetIntoInventoryHandler); } catch { }
-                        try { Client.Network.UnregisterCallback(PacketType.BulkUpdateInventory, BulkUpdateInventoryHandler); } catch { }
-                        try { Client.Network.UnregisterEventCallback("BulkUpdateInventory", BulkUpdateInventoryCapHandler); } catch { }
-                        try { Client.Network.UnregisterCallback(PacketType.MoveInventoryItem, MoveInventoryItemHandler); } catch { }
-                        try { Client.Network.UnregisterCallback(PacketType.ReplyTaskInventory, ReplyTaskInventoryHandler); } catch { }
-                        try { Client.Network.UnregisterEventCallback("ScriptRunningReply", ScriptRunningReplyMessageHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.UpdateCreateInventoryItem, UpdateCreateInventoryItemHandler); } catch (Exception ex) { Logger.Log("Failed to unregister UpdateCreateInventoryItem callback", Helpers.LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterCallback(PacketType.SaveAssetIntoInventory, SaveAssetIntoInventoryHandler); } catch (Exception ex) { Logger.Log("Failed to unregister SaveAssetIntoInventory callback", Helpers.LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterCallback(PacketType.BulkUpdateInventory, BulkUpdateInventoryHandler); } catch (Exception ex) { Logger.Log("Failed to unregister BulkUpdateInventory callback", Helpers.LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterEventCallback("BulkUpdateInventory", BulkUpdateInventoryCapHandler); } catch (Exception ex) { Logger.Log("Failed to unregister BulkUpdateInventory event callback", Helpers.LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterCallback(PacketType.MoveInventoryItem, MoveInventoryItemHandler); } catch (Exception ex) { Logger.Log("Failed to unregister MoveInventoryItem callback", Helpers.LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterCallback(PacketType.ReplyTaskInventory, ReplyTaskInventoryHandler); } catch (Exception ex) { Logger.Log("Failed to unregister ReplyTaskInventory callback", Helpers.LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterEventCallback("ScriptRunningReply", ScriptRunningReplyMessageHandler); } catch (Exception ex) { Logger.Log("Failed to unregister ScriptRunningReply event callback", Helpers.LogLevel.Debug, Client, ex); }
 
                         // Deprecated callbacks
-                        try { Client.Network.UnregisterCallback(PacketType.InventoryDescendents, InventoryDescendentsHandler); } catch { }
-                        try { Client.Network.UnregisterCallback(PacketType.FetchInventoryReply, FetchInventoryReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.InventoryDescendents, InventoryDescendentsHandler); } catch (Exception ex) { Logger.Log("Failed to unregister InventoryDescendents callback", Helpers.LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterCallback(PacketType.FetchInventoryReply, FetchInventoryReplyHandler); } catch (Exception ex) { Logger.Log("Failed to unregister FetchInventoryReply callback", Helpers.LogLevel.Debug, Client, ex); }
 
-                        try { Client.Network.UnregisterLoginResponseCallback(Network_OnLoginResponse); } catch { }
+                        try { Client.Network.UnregisterLoginResponseCallback(Network_OnLoginResponse); } catch (Exception ex) { Logger.Log("Failed to unregister login response callback", Helpers.LogLevel.Debug, Client, ex); }
                     }
 
-                    try { if (Client?.Self != null) Client.Self.IM -= Self_IM; } catch { }
+                    try { if (Client?.Self != null) Client.Self.IM -= Self_IM; } catch (Exception ex) { Logger.Log("Failed to detach Self_IM event handler", Helpers.LogLevel.Debug, Client, ex); }
 
-                    try { _ItemCreatedCallbacks.Clear(); } catch { }
-                    try { _ItemCopiedCallbacks.Clear(); } catch { }
-                    try { _ItemInventoryTypeRequest.Clear(); } catch { }
-                    try { _Searches.Clear(); } catch { }
+                    try { _ItemCreatedCallbacks.Clear(); } catch (Exception ex) { Logger.Log("Failed to clear ItemCreatedCallbacks", Helpers.LogLevel.Debug, Client, ex); }
+                    try { _ItemCopiedCallbacks.Clear(); } catch (Exception ex) { Logger.Log("Failed to clear ItemCopiedCallbacks", Helpers.LogLevel.Debug, Client, ex); }
+                    try { _ItemInventoryTypeRequest.Clear(); } catch (Exception ex) { Logger.Log("Failed to clear ItemInventoryTypeRequest", Helpers.LogLevel.Debug, Client, ex); }
+                    try { _Searches.Clear(); } catch (Exception ex) { Logger.Log("Failed to clear Searches", Helpers.LogLevel.Debug, Client, ex); }
 
                     try
                     {
                         _callbackCleanupCts.Cancel();
                         _callbackCleanupCts.Dispose();
                     }
-                    catch { }
+                    catch (Exception ex) { Logger.Log("Failed to cancel/dispose callback cleanup CTS", Helpers.LogLevel.Debug, Client, ex); }
 
-                    try { _Store = null; } catch { }
+                    try { _Store = null; } catch (Exception ex) { Logger.Log("Failed to clear inventory store reference", Helpers.LogLevel.Debug, Client, ex); }
                 }
-                catch { /* swallow exceptions in Dispose */ }
+                catch (Exception ex)
+                {
+                    // Log the unexpected exception during Dispose to help debugging
+                    Logger.Log($"Unhandled exception in InventoryManager.Dispose: {ex.Message}", Helpers.LogLevel.Error, Client, ex);
+                }
             }
 
             _disposed = true;
@@ -1185,7 +1189,7 @@ namespace OpenMetaverse
                     }
                 }
 
-                // Finally remove the root node itself
+                // Finally add the root node itself to the removal list
                 toRemove.Add(rootNode.Data);
             }
 
@@ -1194,7 +1198,14 @@ namespace OpenMetaverse
             {
                 foreach (var b in toRemove)
                 {
-                    try { _Store.RemoveNodeFor(b); } catch { /* swallow individual remove failures */ }
+                    try
+                    {
+                        _Store.RemoveNodeFor(b);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log($"Failed removing inventory node {b}: {ex.Message}", Helpers.LogLevel.Debug, Client, ex);
+                    }
                 }
             }
         }
