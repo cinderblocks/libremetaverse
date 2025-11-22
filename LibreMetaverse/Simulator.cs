@@ -608,15 +608,23 @@ namespace OpenMetaverse
                             queueEvent.Set();
                     };
 
-                if (Caps != null)
-                {
-                    Logger.Log("Event queue restart requested.", Helpers.LogLevel.Info, Client);
-                    Client.Network.CurrentSim.Caps.EventQueue.Start();
-                }
-
+                // Subscribe before attempting to start the event queue so we don't miss the event
                 Client.Network.EventQueueRunning += queueCallback;
-                queueEvent.WaitOne(TimeSpan.FromSeconds(10), false);
-                Client.Network.EventQueueRunning -= queueCallback;
+
+                try
+                {
+                    if (Caps != null)
+                    {
+                        Logger.Log("Event queue restart requested.", Helpers.LogLevel.Info, Client);
+                        Client.Network.CurrentSim.Caps.EventQueue.Start();
+                    }
+
+                    queueEvent.WaitOne(TimeSpan.FromSeconds(10), false);
+                }
+                finally
+                {
+                    Client.Network.EventQueueRunning -= queueCallback;
+                }
             }
 
             return Caps != null && Caps.IsEventQueueRunning;
