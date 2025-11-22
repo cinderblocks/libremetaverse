@@ -599,35 +599,80 @@ namespace OpenMetaverse
 
             if (blockUntilRunning)
             {
-                // Wait a bit to see if the event queue comes online
                 AutoResetEvent queueEvent = new AutoResetEvent(false);
                 EventHandler<EventQueueRunningEventArgs> queueCallback =
                     delegate(object sender, EventQueueRunningEventArgs e)
                     {
-                        if (e.Simulator == this)
+                        // Accept notifications for this simulator or the client's current sim
+                        if (e?.Simulator == this || e?.Simulator == Client?.Network?.CurrentSim)
                             queueEvent.Set();
                     };
 
-                // Subscribe before attempting to start the event queue so we don't miss the event
-                Client.Network.EventQueueRunning += queueCallback;
+                if (Client?.Network != null)
+                    Client.Network.EventQueueRunning += queueCallback;
 
                 try
                 {
-                    if (Caps != null)
-                    {
-                        Logger.Log("Event queue restart requested.", Helpers.LogLevel.Info, Client);
-                        Client.Network.CurrentSim.Caps.EventQueue.Start();
-                    }
+                    // Exponential backoff: try a few times to start/wait for the event queue
+                    int maxAttempts = 4; // 1s, 2s, 4s, 8s = ~15s total max wait
+                    int delayMs = 1000;
 
-                    queueEvent.WaitOne(TimeSpan.FromSeconds(10), false);
+                    for (int attempt = 0; attempt < maxAttempts; attempt++)
+                    {
+                        // If either this sim or the current sim already reports running, we're done
+                        if ((Caps != null && Caps.IsEventQueueRunning) ||
+                            (Client?.Network?.CurrentSim?.Caps != null && Client.Network.CurrentSim.Caps.IsEventQueueRunning))
+                        {
+                            return true;
+                        }
+
+                        // Try to start the event queue on the client's current sim if available
+                        try
+                        {
+                            if (Client?.Network?.CurrentSim?.Caps != null)
+                            {
+                                Logger.Log($"Event queue start requested (attempt {attempt + 1}/{maxAttempts}).", Helpers.LogLevel.Info, Client);
+                                Client.Network.CurrentSim.Caps.EventQueue.Start();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Log("Failed to request EventQueue start: " + ex.Message, Helpers.LogLevel.Warning, Client, ex);
+                        }
+
+                        // Wait for the notification or timeout
+                        bool signaled = queueEvent.WaitOne(delayMs);
+                        if (signaled)
+                        {
+                            // Event arrived, break out and re-check
+                            break;
+                        }
+
+                        // Increase delay for next attempt
+                        delayMs *= 2;
+                    }
                 }
                 finally
                 {
-                    Client.Network.EventQueueRunning -= queueCallback;
+                    try
+                    {
+                        if (Client?.Network != null)
+                            Client.Network.EventQueueRunning -= queueCallback;
+                    }
+                    catch { }
+
+                    try { queueEvent.Dispose(); } catch { }
                 }
             }
 
-            return Caps != null && Caps.IsEventQueueRunning;
+            // Final check of both this simulator and the client's current simulator
+            if (Caps != null && Caps.IsEventQueueRunning)
+                return true;
+
+            if (Client?.Network?.CurrentSim?.Caps != null && Client.Network.CurrentSim.Caps.IsEventQueueRunning)
+                return true;
+
+            return false;
         }
 
         internal bool _DownloadingParcelMap = false;
