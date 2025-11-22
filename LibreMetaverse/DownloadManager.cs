@@ -33,6 +33,8 @@ using System.Net.Http;
 using System.Diagnostics;
 using LibreMetaverse;
 
+#pragma warning disable CS0618 // Type or member is obsolete (DownloadCompleteHandler)
+
 namespace OpenMetaverse.Http
 {
     /// <summary>
