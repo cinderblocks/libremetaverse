@@ -648,7 +648,7 @@ namespace OpenMetaverse
             // if not, fallback to UDP (which is obsoleted on Second Life.)
             if (CanFetchAsset(assetType) && Client.Network.CurrentSim?.Caps?.CapabilityURI("ViewerAsset") != null)
             {
-                RequestAssetHTTP(assetID, transfer, callback);
+                _ = RequestAssetHTTP(assetID, transfer, callback);
             }
             else
             {
@@ -877,7 +877,7 @@ namespace OpenMetaverse
             // If ViewerAsset capability exists, use that, if not, fallback to UDP
             if (CanFetchAsset(assetType) && Client.Network.CurrentSim?.Caps?.CapabilityURI("ViewerAsset") != null)
             {
-                RequestInventoryAssetHTTP(assetID, transfer, callback);
+                _ = RequestInventoryAssetHTTP(assetID, transfer, callback);
             }
             else
             {
@@ -1434,8 +1434,8 @@ namespace OpenMetaverse
         {
             if (Client.Settings.USE_HTTP_TEXTURES
                 && Client.Network.CurrentSim?.Caps?.GetTextureCapURI() != null)
-            {
-                HttpRequestTexture(textureID, imageType, priority, discardLevel, packetStart, callback, progress);
+            { 
+                _ = HttpRequestTexture(textureID, imageType, priority, discardLevel, packetStart, callback, progress);
             }
             else
             {

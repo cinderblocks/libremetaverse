@@ -327,7 +327,7 @@ namespace OpenMetaverse
 
             // Convert the hash to a hex string
             foreach (byte b in hash)
-                digest.AppendFormat(EnUsCulture, "{0:x2}", b);
+                _ = digest.AppendFormat(EnUsCulture, "{0:x2}", b);
 
             return digest.ToString();
         }
@@ -355,7 +355,7 @@ namespace OpenMetaverse
 
             // Convert the hash to a hex string
             foreach (byte b in hash)
-                digest.AppendFormat(EnUsCulture, "{0:x2}", b);
+                _ = digest.AppendFormat(EnUsCulture, "{0:x2}", b);
 
             return digest.ToString();
         }
@@ -372,7 +372,7 @@ namespace OpenMetaverse
 
             // Convert the hash to a hex string
             foreach (byte b in hash)
-                digest.AppendFormat(EnUsCulture, "{0:x2}", b);
+                _ = digest.AppendFormat(EnUsCulture, "{0:x2}", b);
 
             return "$1$" + digest;
         }
@@ -389,7 +389,7 @@ namespace OpenMetaverse
 
             // Convert the hash to a hex string
             foreach (byte b in hash)
-                digest.AppendFormat(EnUsCulture, "{0:x2}", b);
+                _ = digest.AppendFormat(EnUsCulture, "{0:x2}", b);
 
             return digest.ToString();
         }

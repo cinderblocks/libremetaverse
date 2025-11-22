@@ -42,7 +42,7 @@ namespace TestClient.Commands.Agent
             var profileTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             // Request the agent profile with callback
-            Client.Avatars.RequestAgentProfile(targetID, (success, profile) =>
+            _ = Client.Avatars.RequestAgentProfile(targetID, (success, profile) =>
             {
                 if (success)
                 {

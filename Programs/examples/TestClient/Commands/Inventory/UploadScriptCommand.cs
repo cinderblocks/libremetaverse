@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Inventory
@@ -43,7 +44,7 @@ namespace TestClient.Commands.Inventory
                 string body;
                 using (var reader = new StreamReader(file))
                 {
-                    body = reader.ReadToEnd();
+                    body = await reader.ReadToEndAsync();
                 }
 
                 var desc = $"{file} created by OpenMetaverse TestClient {DateTime.Now}";
@@ -66,7 +67,7 @@ namespace TestClient.Commands.Inventory
 
                 var uploadTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-                Client.Inventory.RequestUpdateScriptAgentInventory(global::System.Text.Encoding.UTF8.GetBytes(body), createdItem.UUID, true,
+                var uploadTask = Client.Inventory.RequestUpdateScriptAgentInventoryAsync(Encoding.UTF8.GetBytes(body), createdItem.UUID, true,
                     (uploadSuccess, uploadStatus, compileSuccess, compileMessages, itemId, assetId) =>
                     {
                         var log = $"Filename: {file}";

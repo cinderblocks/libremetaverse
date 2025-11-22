@@ -40,107 +40,53 @@ namespace OpenMetaverse
     {
         private async Task<OSD> PostCapAsync(Uri uri, OSD payload, CancellationToken cancellationToken = default, IProgress<LibreMetaverse.HttpCapsClient.ProgressReport> progress = null)
         {
-            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            if (uri == null) { throw new ArgumentNullException(nameof(uri)); }
 
-            var tcs = new TaskCompletionSource<OSD>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var result = await Client.HttpCapsClient.PostAsync(uri, OSDFormat.Xml, payload, cancellationToken, progress, connectedHandler: null).ConfigureAwait(false);
+            var responseData = result.data ?? throw new InvalidOperationException("Empty response from capability POST");
 
-            // Kick off the HTTP POST and wire up the callback to the TaskCompletionSource
-            await Client.HttpCapsClient.PostRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
-                completeHandler: (response, responseData, error) =>
-                {
-                    if (error != null)
-                    {
-                        tcs.TrySetException(error);
-                        return;
-                    }
-
-                    try
-                    {
-                        var osd = OSDParser.Deserialize(responseData);
-                        tcs.TrySetResult(osd);
-                    }
-                    catch (Exception ex)
-                    {
-                        tcs.TrySetException(ex);
-                    }
-                }, connectedHandler: null, progress: progress).ConfigureAwait(false);
-
-            return await tcs.Task.ConfigureAwait(false);
+            return OSDParser.Deserialize(responseData);
         }
 
         private async Task<OSD> PostCapAsync(string capName, OSD payload, CancellationToken cancellationToken = default, IProgress<LibreMetaverse.HttpCapsClient.ProgressReport> progress = null)
         {
             var uri = GetCapabilityURI(capName);
-            if (uri == null) throw new InvalidOperationException($"Capability {capName} is not available");
+            if (uri == null) { throw new InvalidOperationException($"Capability {capName} is not available"); }
             return await PostCapAsync(uri, payload, cancellationToken, progress).ConfigureAwait(false);
         }
 
         private async Task<OSD> PostBytesAsync(Uri uri, string contentType, byte[] data,
             CancellationToken cancellationToken = default, IProgress<LibreMetaverse.HttpCapsClient.ProgressReport> progress = null)
         {
-            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            if (uri == null) { throw new ArgumentNullException(nameof(uri)); }
  
-             var tcs = new TaskCompletionSource<OSD>(TaskCreationOptions.RunContinuationsAsynchronously);
- 
-            await Client.HttpCapsClient.PostRequestAsync(uri, contentType, data, cancellationToken,
-                completeHandler: (response, responseData, error) =>
-                {
-                    if (error != null)
-                    {
-                        tcs.TrySetException(error);
-                        return;
-                    }
+            // Use the newer Task-based PostAsync overload for raw bytes
+            var result = await Client.HttpCapsClient.PostAsync(uri, contentType, data, cancellationToken, progress, connectedHandler: null).ConfigureAwait(false);
+            var responseData = result.data ?? throw new InvalidOperationException("Empty response from capability POST");
 
-                    try
-                    {
-                        var osd = OSDParser.Deserialize(responseData);
-                        tcs.TrySetResult(osd);
-                    }
-                    catch (Exception ex)
-                    {
-                        tcs.TrySetException(ex);
-                    }
-                }, connectedHandler: null, progress: progress).ConfigureAwait(false);
-
-            return await tcs.Task.ConfigureAwait(false);
+            return OSDParser.Deserialize(responseData);
         }
 
         private async Task<OSD> PostBytesAsync(string capName, string contentType, byte[] data,
             CancellationToken cancellationToken = default, IProgress<LibreMetaverse.HttpCapsClient.ProgressReport> progress = null)
         {
             var uri = GetCapabilityURI(capName);
-            if (uri == null) throw new InvalidOperationException($"Capability {capName} is not available");
+            if (uri == null) { throw new InvalidOperationException($"Capability {capName} is not available"); }
             return await PostBytesAsync(uri, contentType, data, cancellationToken, progress).ConfigureAwait(false);
         }
 
         // Helper to POST a serialized string payload to a capability and deserialize the OSD response
         private async Task<OSD> PostStringAsync(Uri uri, string content, CancellationToken cancellationToken = default, IProgress<LibreMetaverse.HttpCapsClient.ProgressReport> progress = null)
         {
-            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            if (uri == null) { throw new ArgumentNullException(nameof(uri)); }
  
-             var tcs = new TaskCompletionSource<OSD>(TaskCreationOptions.RunContinuationsAsynchronously);
- 
-            await Client.HttpCapsClient.PostRequestAsync(uri, OSDFormat.Xml, content, cancellationToken,
-                completeHandler: (response, responseData, error) =>
-                {
-                    if (error != null)
-                    {
-                        tcs.TrySetException(error);
-                        return;
-                    }
+            // The Task-based API does not provide a string overload; convert to bytes and post with the XML LLSD content type
+            var payload = System.Text.Encoding.UTF8.GetBytes(content ?? string.Empty);
 
-                    try
-                    {
-                        var osd = OSDParser.Deserialize(responseData);
-                        tcs.TrySetResult(osd);
-                    }
-                    catch (Exception ex)
-                    {
-                        tcs.TrySetException(ex);
-                    }
-                }, connectedHandler: null, progress: progress).ConfigureAwait(false);
+            var result = await Client.HttpCapsClient.PostAsync(uri, LibreMetaverse.HttpCapsClient.LLSD_XML, payload, cancellationToken, progress, connectedHandler: null).ConfigureAwait(false);
+            var responseData = result.data ?? throw new InvalidOperationException("Empty response from capability POST");
 
-            return await tcs.Task.ConfigureAwait(false);
+            return OSDParser.Deserialize(responseData);
         }
 
         private void Self_IM(object sender, InstantMessageEventArgs e)
