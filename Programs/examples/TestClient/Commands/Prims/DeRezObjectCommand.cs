@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Prims
@@ -35,7 +36,11 @@ namespace TestClient.Commands.Prims
                 Client.Inventory.FindFolderForType(FolderType.Trash),
                 UUID.Random());
             return $"Removing {target}";
+        }
 
+        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
+            return Task.FromResult(Execute(args, fromAgentID));
         }
     }
 }

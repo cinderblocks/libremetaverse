@@ -30,6 +30,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Net;
 using LibreMetaverse;
 using OpenMetaverse.Packets;
@@ -157,98 +158,153 @@ namespace OpenMetaverse
     {
         #region Structs
         /// <summary>
-        /// Simulator Statistics
+        /// Simulator Statistics (thread-safe)
         /// </summary>
-        public struct SimStats
+        public class SimStats
         {
-            /// <summary>Total number of packets sent by this simulator to this agent</summary>
-            public long SentPackets;
-            /// <summary>Total number of packets received by this simulator to this agent</summary>
-            public long RecvPackets;
-            /// <summary>Total number of bytes sent by this simulator to this agent</summary>
-            public long SentBytes;
-            /// <summary>Total number of bytes received by this simulator to this agent</summary>
-            public long RecvBytes;
-            /// <summary>Time in seconds agent has been connected to simulator</summary>
-            public int ConnectTime;
-            /// <summary>Total number of packets that have been resent</summary>
-            public int ResentPackets;
-            /// <summary>Total number of resent packets received</summary>
-            public int ReceivedResends;
-            /// <summary>Total number of pings sent to this simulator by this agent</summary>
-            public int SentPings;
-            /// <summary>Total number of ping replies sent to this agent by this simulator</summary>
-            public int ReceivedPongs;
-            /// <summary>
-            /// Incoming bytes per second
-            /// </summary>
-            /// <remarks>It would be nice to have this calculated on the fly, but
-            /// this is far, far easier</remarks>
-            public int IncomingBPS;
-            /// <summary>
-            /// Outgoing bytes per second
-            /// </summary>
-            /// <remarks>It would be nice to have this calculated on the fly, but
-            /// this is far, far easier</remarks>
-            public int OutgoingBPS;
-            /// <summary>Time last ping was sent</summary>
-            public int LastPingSent;
-            /// <summary>ID of last Ping sent</summary>
-            public byte LastPingID;
+            // Backing fields for commonly updated counters (use Interlocked)
+            private long _sentPackets;
+            private long _recvPackets;
+            private long _sentBytes;
+            private long _recvBytes;
+
+            private int _connectTime;
+            private int _resentPackets;
+            private int _receivedResends;
+            private int _sentPings;
+            private int _receivedPongs;
+            private int _incomingBPS;
+            private int _outgoingBPS;
+            private int _lastPingSent;
+            private int _lastPingID;
+
+            // Less frequently updated fields
+            private readonly object _sync = new object();
+
+            private int _lastLag;
             /// <summary></summary>
-            public int LastLag;
+            public int LastLag { get { lock (_sync) { return _lastLag; } } set { lock (_sync) { _lastLag = value; } } }
+            private int _missedPings;
             /// <summary></summary>
-            public int MissedPings;
-            /// <summary>Current time dilation of this simulator</summary>
-            public float Dilation;
-            /// <summary>Current Frames per second of simulator</summary>
-            public int FPS;
-            /// <summary>Current Physics frames per second of simulator</summary>
-            public float PhysicsFPS;
+            public int MissedPings { get { lock (_sync) { return _missedPings; } } set { lock (_sync) { _missedPings = value; } } }
+            private float _dilation;
             /// <summary></summary>
-            public float AgentUpdates;
+            public float Dilation { get { lock (_sync) { return _dilation; } } set { lock (_sync) { _dilation = value; } } }
+            private int _fps;
             /// <summary></summary>
-            public float FrameTime;
+            public int FPS { get { lock (_sync) { return _fps; } } set { lock (_sync) { _fps = value; } } }
+            private float _physicsFPS;
             /// <summary></summary>
-            public float NetTime;
+            public float PhysicsFPS { get { lock (_sync) { return _physicsFPS; } } set { lock (_sync) { _physicsFPS = value; } } }
+            private float _agentUpdates;
             /// <summary></summary>
-            public float PhysicsTime;
+            public float AgentUpdates { get { lock (_sync) { return _agentUpdates; } } set { lock (_sync) { _agentUpdates = value; } } }
+            private float _frameTime;
             /// <summary></summary>
-            public float ImageTime;
+            public float FrameTime { get { lock (_sync) { return _frameTime; } } set { lock (_sync) { _frameTime = value; } } }
+            private float _netTime;
             /// <summary></summary>
-            public float ScriptTime;
+            public float NetTime { get { lock (_sync) { return _netTime; } } set { lock (_sync) { _netTime = value; } } }
+            private float _physicsTime;
             /// <summary></summary>
-            public float AgentTime;
+            public float PhysicsTime { get { lock (_sync) { return _physicsTime; } } set { lock (_sync) { _physicsTime = value; } } }
+            private float _imageTime;
             /// <summary></summary>
-            public float OtherTime;
-            /// <summary>Total number of objects Simulator is simulating</summary>
-            public int Objects;
-            /// <summary>Total number of Active (Scripted) objects running</summary>
-            public int ScriptedObjects;
-            /// <summary>Number of agents currently in this simulator</summary>
-            public int Agents;
-            /// <summary>Number of agents in neighbor simulators</summary>
-            public int ChildAgents;
-            /// <summary>Number of Active scripts running in this simulator</summary>
-            public int ActiveScripts;
+            public float ImageTime { get { lock (_sync) { return _imageTime; } } set { lock (_sync) { _imageTime = value; } } }
+            private float _scriptTime;
             /// <summary></summary>
-            public int LSLIPS;
+            public float ScriptTime { get { lock (_sync) { return _scriptTime; } } set { lock (_sync) { _scriptTime = value; } } }
+            private float _agentTime;
             /// <summary></summary>
-            public int INPPS;
+            public float AgentTime { get { lock (_sync) { return _agentTime; } } set { lock (_sync) { _agentTime = value; } } }
+            private float _otherTime;
             /// <summary></summary>
-            public int OUTPPS;
-            /// <summary>Number of downloads pending</summary>
-            public int PendingDownloads;
-            /// <summary>Number of uploads pending</summary>
-            public int PendingUploads;
+            public float OtherTime { get { lock (_sync) { return _otherTime; } } set { lock (_sync) { _otherTime = value; } } }
+            private int _objects;
             /// <summary></summary>
-            public int VirtualSize;
+            public int Objects { get { lock (_sync) { return _objects; } } set { lock (_sync) { _objects = value; } } }
+            private int _scriptedObjects;
             /// <summary></summary>
-            public int ResidentSize;
-            /// <summary>Number of local uploads pending</summary>
-            public int PendingLocalUploads;
-            /// <summary>Unacknowledged bytes in queue</summary>
-            public int UnackedBytes;
+            public int ScriptedObjects { get { lock (_sync) { return _scriptedObjects; } } set { lock (_sync) { _scriptedObjects = value; } } }
+            private int _agents;
+            /// <summary></summary>
+            public int Agents { get { lock (_sync) { return _agents; } } set { lock (_sync) { _agents = value; } } }
+            private int _childAgents;
+            /// <summary></summary>
+            public int ChildAgents { get { lock (_sync) { return _childAgents; } } set { lock (_sync) { _childAgents = value; } } }
+            private int _activeScripts;
+            /// <summary></summary>
+            public int ActiveScripts { get { lock (_sync) { return _activeScripts; } } set { lock (_sync) { _activeScripts = value; } } }
+            private int _lslips;
+            /// <summary></summary>
+            public int LSLIPS { get { lock (_sync) { return _lslips; } } set { lock (_sync) { _lslips = value; } } }
+            private int _inpps;
+            /// <summary></summary>
+            public int INPPS { get { lock (_sync) { return _inpps; } } set { lock (_sync) { _inpps = value; } } }
+            private int _outpps;
+            /// <summary></summary>
+            public int OUTPPS { get { lock (_sync) { return _outpps; } } set { lock (_sync) { _outpps = value; } } }
+            private int _pendingDownloads;
+            /// <summary></summary>
+            public int PendingDownloads { get { lock (_sync) { return _pendingDownloads; } } set { lock (_sync) { _pendingDownloads = value; } } }
+            private int _pendingUploads;
+            /// <summary></summary>
+            public int PendingUploads { get { lock (_sync) { return _pendingUploads; } } set { lock (_sync) { _pendingUploads = value; } } }
+            private int _virtualSize;
+            /// <summary></summary>
+            public int VirtualSize { get { lock (_sync) { return _virtualSize; } } set { lock (_sync) { _virtualSize = value; } } }
+            private int _residentSize;
+            /// <summary></summary>
+            public int ResidentSize { get { lock (_sync) { return _residentSize; } } set { lock (_sync) { _residentSize = value; } } }
+            private int _pendingLocalUploads;
+            /// <summary></summary>
+            public int PendingLocalUploads { get { lock (_sync) { return _pendingLocalUploads; } } set { lock (_sync) { _pendingLocalUploads = value; } } }
+            private int _unackedBytes;
+            /// <summary></summary>
+            public int UnackedBytes { get { lock (_sync) { return _unackedBytes; } } set { lock (_sync) { _unackedBytes = value; } } }
+
+            // Atomic operations
+            public void AddRecvBytes(long v) => Interlocked.Add(ref _recvBytes, v);
+            public long GetRecvBytes() => Interlocked.Read(ref _recvBytes);
+
+            public void AddSentBytes(long v) => Interlocked.Add(ref _sentBytes, v);
+            public long GetSentBytes() => Interlocked.Read(ref _sentBytes);
+
+            public void IncrementRecvPackets() => Interlocked.Increment(ref _recvPackets);
+            public long GetRecvPackets() => Interlocked.Read(ref _recvPackets);
+
+            public void IncrementSentPackets() => Interlocked.Increment(ref _sentPackets);
+            public long GetSentPackets() => Interlocked.Read(ref _sentPackets);
+
+            public void IncrementReceivedResends() => Interlocked.Increment(ref _receivedResends);
+            public int GetReceivedResends() => Interlocked.Add(ref _receivedResends, 0);
+
+            public void IncrementResentPackets() => Interlocked.Increment(ref _resentPackets);
+            public int GetResentPackets() => Interlocked.Add(ref _resentPackets, 0);
+
+            public void IncrementSentPings() => Interlocked.Increment(ref _sentPings);
+            public int GetSentPings() => Interlocked.Add(ref _sentPings, 0);
+
+            public void IncrementReceivedPongs() => Interlocked.Increment(ref _receivedPongs);
+            public void GetReceivedPongs() => Interlocked.Add(ref _receivedPongs, 0);
+
+            public int GetAndIncrementLastPingID()
+            {
+                int newVal = Interlocked.Increment(ref _lastPingID);
+                return newVal - 1; // return previous value to preserve legacy ++ semantics
+            }
+
+            public void SetLastPingSent(int v) => Interlocked.Exchange(ref _lastPingSent, v);
+            public int GetLastPingSent() => Interlocked.Add(ref _lastPingSent, 0);
+
+            public void SetConnectTime(int v) => Interlocked.Exchange(ref _connectTime, v);
+            public int GetConnectTime() => Interlocked.Add(ref _connectTime, 0);
+
+            public void SetIncomingBPS(int v) => Interlocked.Exchange(ref _incomingBPS, v);
+            public int GetIncomingBPS() => Interlocked.Add(ref _incomingBPS, 0);
+
+            public void SetOutgoingBPS(int v) => Interlocked.Exchange(ref _outgoingBPS, v);
+            public int GetOutgoingBPS() => Interlocked.Add(ref _outgoingBPS, 0);
         }
 
         #endregion Structs
@@ -399,10 +455,13 @@ namespace OpenMetaverse
         /// </summary>
         public ConcurrentDictionary<UUID, uint> GlobalToLocalID = new ConcurrentDictionary<UUID, uint>();
 
-
         public readonly TerrainPatch[] Terrain;
 
         public readonly Vector2[] WindSpeeds;
+
+        // Number of terrain patches in X and Y directions (patch size = 16m)
+        private readonly int _patchesX;
+        private readonly int _patchesY;
 
         /// <summary>
         /// Provides access to an internal thread-safe dictionary containing parcel
@@ -490,7 +549,7 @@ namespace OpenMetaverse
         internal bool DisconnectCandidate = false;
         /// <summary>Event that is triggered when the simulator successfully
         /// establishes a connection</summary>
-        internal ManualResetEvent ConnectedEvent = new ManualResetEvent(false);
+        internal ManualResetEventSlim ConnectedEvent = new ManualResetEventSlim(false);
         /// <summary>Whether this sim is currently connected or not. Hooked up
         /// to the property Connected</summary>
         internal bool connected;
@@ -514,12 +573,15 @@ namespace OpenMetaverse
 
         // ACKs that are queued up to be sent to the simulator
         private readonly ConcurrentQueue<uint> PendingAcks = new ConcurrentQueue<uint>();
-        private Timer AckTimer;
-        private Timer PingTimer;
-        private Timer StatsTimer;
-        // simulator <> parcel LocalID Map
-        private int[,] _parcelMap;
-        public readonly SimulatorDataPool DataPool;
+        
+        private CancellationTokenSource _timerCts;
+        private Task _ackLoopTask;
+        private Task _statsLoopTask;
+        private Task _pingLoopTask;
+
+         // simulator <> parcel LocalID Map
+         private int[,] _parcelMap;
+         public readonly SimulatorDataPool DataPool;
         internal bool DownloadingParcelMap
         {
             get => Client.Settings.POOL_PARCEL_DATA ? DataPool.DownloadingParcelMap : _DownloadingParcelMap;
@@ -563,8 +625,110 @@ namespace OpenMetaverse
         internal bool _DownloadingParcelMap = false;
 
 
-        private readonly ManualResetEvent GotUseCircuitCodeAck = new ManualResetEvent(false);
+        private readonly ManualResetEventSlim GotUseCircuitCodeAck = new ManualResetEventSlim(false);
+        
         #endregion Internal/Private Members
+
+        // Start periodic background timer tasks (ack, stats, ping)
+        private void StartTimerTasks()
+        {
+            if (_timerCts != null) return;
+
+            _timerCts = new CancellationTokenSource();
+            var token = _timerCts.Token;
+
+            // ACK handling loop
+            _ackLoopTask = Task.Run(async () =>
+            {
+                try
+                {
+                    while (!token.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            SendAcks();
+                            ResendUnacked();
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Log("Error in Ack loop: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                        }
+
+                        await Task.Delay(Settings.NETWORK_TICK_INTERVAL, token).ConfigureAwait(false);
+                    }
+                }
+                catch (TaskCanceledException) { }
+            }, token);
+
+            // Stats loop
+            _statsLoopTask = Task.Run(async () =>
+            {
+                try
+                {
+                    while (!token.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            StatsTimer_Elapsed(null);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Log("Error in Stats loop: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                        }
+
+                        await Task.Delay(1000, token).ConfigureAwait(false);
+                    }
+                }
+                catch (TaskCanceledException) { }
+            }, token);
+
+            // Ping loop (only if SEND_PINGS enabled)
+            if (Client?.Settings?.SEND_PINGS ?? false)
+            {
+                _pingLoopTask = Task.Run(async () =>
+                {
+                    try
+                    {
+                        while (!token.IsCancellationRequested)
+                        {
+                            try
+                            {
+                                PingTimer_Elapsed(null);
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Log("Error in Ping loop: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                            }
+
+                            await Task.Delay(Settings.PING_INTERVAL, token).ConfigureAwait(false);
+                        }
+                    }
+                    catch (TaskCanceledException) { }
+                }, token);
+            }
+        }
+
+        private void StopTimerTasks()
+        {
+            if (_timerCts == null) return;
+
+            try
+            {
+                _timerCts.Cancel();
+            }
+            catch (Exception) { }
+
+            try { _ackLoopTask?.Wait(1000); } catch { }
+            try { _statsLoopTask?.Wait(1000); } catch { }
+            try { _pingLoopTask?.Wait(1000); } catch { }
+
+            _ackLoopTask = null;
+            _statsLoopTask = null;
+            _pingLoopTask = null;
+
+            _timerCts.Dispose();
+            _timerCts = null;
+        }
 
         /// <summary>
         /// Constructor
@@ -589,13 +753,21 @@ namespace OpenMetaverse
             SizeX = sizeX;
             SizeY = sizeY;
             PacketArchive = new IncomingPacketIDCollection(Settings.PACKET_ARCHIVE_SIZE);
+            Stats = new SimStats();
             InBytes = new Queue<long>(Client.Settings.STATS_QUEUE_SIZE);
             OutBytes = new Queue<long>(Client.Settings.STATS_QUEUE_SIZE);
 
             if (client.Settings.STORE_LAND_PATCHES)
             {
-                Terrain = new TerrainPatch[sizeX/16 * sizeY/16];
-                WindSpeeds = new Vector2[sizeX/16 * sizeY/16];
+                _patchesX = Math.Max(1, (int)(sizeX / 16));
+                _patchesY = Math.Max(1, (int)(sizeY / 16));
+                Terrain = new TerrainPatch[_patchesX * _patchesY];
+                WindSpeeds = new Vector2[_patchesX * _patchesY];
+            }
+            else
+            {
+                _patchesX = Math.Max(1, (int)(sizeX / 16));
+                _patchesY = Math.Max(1, (int)(sizeY / 16));
             }
         }
 
@@ -612,10 +784,8 @@ namespace OpenMetaverse
         {
             if (!disposing) return;
 
-            AckTimer?.Dispose();
-            PingTimer?.Dispose();
-            StatsTimer?.Dispose();
-            ConnectedEvent?.Close();
+            StopTimerTasks();
+            ConnectedEvent?.Dispose();
 
             // Force all the CAPS connections closed for this simulator
             Caps?.Disconnect(true);
@@ -642,22 +812,6 @@ namespace OpenMetaverse
                 return true;
             }
 
-            #region Start Timers
-
-            // Timer for sending out queued packet acknowledgements
-            if (AckTimer == null)
-                AckTimer = new Timer(AckTimer_Elapsed, null, Settings.NETWORK_TICK_INTERVAL, Timeout.Infinite);
-
-            // Timer for recording simulator connection statistics
-            if (StatsTimer == null)
-                StatsTimer = new Timer(StatsTimer_Elapsed, null, 1000, 1000);
-
-            // Timer for periodically pinging the simulator
-            if (PingTimer == null && Client.Settings.SEND_PINGS)
-                PingTimer = new Timer(PingTimer_Elapsed, null, Settings.PING_INTERVAL, Settings.PING_INTERVAL);
-
-            #endregion Start Timers
-
             Logger.Log($"Connecting to {this}", Helpers.LogLevel.Info, Client);
 
             try
@@ -671,7 +825,7 @@ namespace OpenMetaverse
                 // Initiate connection
                 UseCircuitCode(true);
 
-                Stats.ConnectTime = Environment.TickCount;
+                Stats.SetConnectTime(Environment.TickCount);
 
                 // Move our agent in to the sim to complete the connection
                 if (moveToSim)
@@ -680,7 +834,7 @@ namespace OpenMetaverse
                     Client.Self.CompleteAgentMovement(this);
                 }
 
-                if (!ConnectedEvent.WaitOne(Client.Settings.LOGIN_TIMEOUT, false))
+                if (!ConnectedEvent.Wait(Client.Settings.LOGIN_TIMEOUT))
                 {
                     Logger.Log($"Giving up waiting for RegionHandshake for {this}",
                         Helpers.LogLevel.Warning, Client);
@@ -689,6 +843,9 @@ namespace OpenMetaverse
                         Client.Network.Simulators.Remove(this);
                     }
                 }
+
+                // Start periodic background tasks for ACKs, stats and pings
+                StartTimerTasks();
 
                 if (Client.Settings.SEND_AGENT_THROTTLE)
                     Client.Throttle.Set(this);
@@ -733,7 +890,7 @@ namespace OpenMetaverse
             
             if (waitForAck)
             {
-                if (!GotUseCircuitCodeAck.WaitOne(Client.Settings.LOGIN_TIMEOUT, false))
+                if (!GotUseCircuitCodeAck.Wait(Client.Settings.LOGIN_TIMEOUT))
                 {
                     Logger.Log("Failed to get ACK for UseCircuitCode packet", Helpers.LogLevel.Error, Client);
                 }
@@ -772,14 +929,8 @@ namespace OpenMetaverse
             if (!connected) return;
 
             connected = false;
-            // Destroy the timers
-            AckTimer?.Dispose();
-            StatsTimer?.Dispose();
-            PingTimer?.Dispose();
-
-            AckTimer = null;
-            StatsTimer = null;
-            PingTimer = null;
+            // Stop background timer tasks
+            StopTimerTasks();
 
             // Kill the current CAPS system
             if (Caps != null)
@@ -862,17 +1013,17 @@ namespace OpenMetaverse
                 x %= 16;
                 y %= 16;
 
-                TerrainPatch patch = Terrain[patchY * 16 + patchX];
-                if (patch != null)
-                {
-                    height = patch.Data[y * 16 + x];
-                    return true;
-                }
-            }
+                TerrainPatch patch = Terrain[patchY * _patchesX + patchX];
+                 if (patch != null)
+                 {
+                     height = patch.Data[y * 16 + x];
+                     return true;
+                 }
+             }
 
-            height = 0.0f;
-            return false;
-        }
+             height = 0.0f;
+             return false;
+         }
 
         #region Packet Sending
 
@@ -1048,13 +1199,13 @@ namespace OpenMetaverse
             {
                 PingID =
                 {
-                    PingID = Stats.LastPingID++,
+                    PingID = (byte)Stats.GetAndIncrementLastPingID(),
                     OldestUnacked = oldestUnacked
                 },
                 Header = {Reliable = false}
             };
             SendPacket(ping);
-            Stats.LastPingSent = Environment.TickCount;
+            Stats.SetLastPingSent(Environment.TickCount);
         }
 
         #endregion Packet Sending
@@ -1150,13 +1301,13 @@ namespace OpenMetaverse
                 return;
             }
 
-            Interlocked.Add(ref Stats.RecvBytes, buffer.DataLength);
-            Interlocked.Increment(ref Stats.RecvPackets);
+            Stats.AddRecvBytes(buffer.DataLength);
+            Stats.IncrementRecvPackets();
 
             #endregion Packet Decoding
 
             if (packet.Header.Resent)
-                Interlocked.Increment(ref Stats.ReceivedResends);
+                Stats.IncrementReceivedResends();
 
             #region ACK Receiving
 
@@ -1253,8 +1404,8 @@ namespace OpenMetaverse
         protected override void PacketSent(UDPPacketBuffer buffer, int bytesSent)
         {
             // Stats tracking
-            Interlocked.Add(ref Stats.SentBytes, bytesSent);
-            Interlocked.Increment(ref Stats.SentPackets);
+            Stats.AddSentBytes(bytesSent);
+            Stats.IncrementSentPackets();
             
             Client.Network.RaisePacketSentEvent(buffer.Data, bytesSent, this);
         }
@@ -1333,7 +1484,7 @@ namespace OpenMetaverse
 
                     // Stats tracking
                     Interlocked.Increment(ref outgoing.ResendCount);
-                    Interlocked.Increment(ref Stats.ResentPackets);
+                    Stats.IncrementResentPackets();
 
                     SendPacketFinal(outgoing);
                 }
@@ -1349,24 +1500,16 @@ namespace OpenMetaverse
 
         private void AckTimer_Elapsed(object obj)
         {
+            // This method is retained for compatibility with existing code paths.
             SendAcks();
             ResendUnacked();
-
-            // Start the ACK handling functions again after NETWORK_TICK_INTERVAL milliseconds
-            if (null == AckTimer) return;
-            try
-            {
-                AckTimer.Change(Settings.NETWORK_TICK_INTERVAL, Timeout.Infinite);
-            }
-            catch (Exception)
-            { } // *TODO: Review catch all code smell
         }
 
         private void StatsTimer_Elapsed(object obj)
         {
             long old_in = 0, old_out = 0;
-            var recv = Stats.RecvBytes;
-            var sent = Stats.SentBytes;
+            var recv = Stats.GetRecvBytes();
+            var sent = Stats.GetSentBytes();
 
             if (InBytes.Count >= Client.Settings.STATS_QUEUE_SIZE)
                 old_in = InBytes.Dequeue();
@@ -1378,8 +1521,8 @@ namespace OpenMetaverse
 
             if (old_in > 0 && old_out > 0)
             {
-                Stats.IncomingBPS = (int)(recv - old_in) / Client.Settings.STATS_QUEUE_SIZE;
-                Stats.OutgoingBPS = (int)(sent - old_out) / Client.Settings.STATS_QUEUE_SIZE;
+                Stats.SetIncomingBPS((int)(recv - old_in) / Client.Settings.STATS_QUEUE_SIZE);
+                Stats.SetOutgoingBPS((int)(sent - old_out) / Client.Settings.STATS_QUEUE_SIZE);
                 //Client.Log("Incoming: " + IncomingBPS + " Out: " + OutgoingBPS +
                 //    " Lag: " + LastLag + " Pings: " + ReceivedPongs +
                 //    "/" + SentPings, Helpers.LogLevel.Debug); 
@@ -1389,7 +1532,7 @@ namespace OpenMetaverse
         private void PingTimer_Elapsed(object obj)
         {
             SendPing();
-            Interlocked.Increment(ref Stats.SentPings);
+            Stats.IncrementSentPings();
         }
     }
 

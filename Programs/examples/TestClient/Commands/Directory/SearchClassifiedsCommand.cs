@@ -1,14 +1,12 @@
 ﻿using System;
-using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Directory
 {
     class SearchClassifiedsCommand : Command
     {
-        global::System.Threading.AutoResetEvent waitQuery = new global::System.Threading.AutoResetEvent(false);        
-
         public SearchClassifiedsCommand(TestClient testClient)
         {
             Name = "searchclassifieds";
@@ -18,17 +16,22 @@ namespace TestClient.Commands.Directory
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length < 1)
                 return "Usage: searchclassifieds [search text]";
 
-            string searchText = args.Aggregate(string.Empty, (current, t) => current + (t + " "));
-            searchText = searchText.TrimEnd();
-            waitQuery.Reset();
+            string searchText = string.Join(" ", args).TrimEnd();
 
-            StringBuilder result = new StringBuilder();
+            var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            EventHandler<DirClassifiedsReplyEventArgs> callback = delegate(object sender, DirClassifiedsReplyEventArgs e)
+            EventHandler<DirClassifiedsReplyEventArgs> callback = null;
+            callback = (sender, e) =>
             {
+                var result = new StringBuilder();
                 result.AppendFormat("Your search string '{0}' returned {1} classified ads" + global::System.Environment.NewLine,
                     searchText, e.Classifieds.Count);
                 foreach (DirectoryManager.Classified ad in e.Classifieds)
@@ -39,22 +42,28 @@ namespace TestClient.Commands.Directory
                 // classifieds are sent 16 ads at a time
                 if (e.Classifieds.Count < 16)
                 {
-                    waitQuery.Set();
+                    tcs.TrySetResult(result.ToString());
                 }
             };
 
-            Client.Directory.DirClassifiedsReply += callback;
-
-            UUID searchID = Client.Directory.StartClassifiedSearch(searchText, DirectoryManager.ClassifiedCategories.Any,  DirectoryManager.ClassifiedQueryFlags.Mature | DirectoryManager.ClassifiedQueryFlags.PG);
-
-            if (!waitQuery.WaitOne(TimeSpan.FromSeconds(20), false) && Client.Network.Connected)
+            try
             {
-                result.AppendLine("Timeout waiting for simulator to respond to query.");
+                Client.Directory.DirClassifiedsReply += callback;
+
+                UUID searchID = Client.Directory.StartClassifiedSearch(searchText, DirectoryManager.ClassifiedCategories.Any, DirectoryManager.ClassifiedQueryFlags.Mature | DirectoryManager.ClassifiedQueryFlags.PG);
+
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(20))).ConfigureAwait(false);
+                if (completed != tcs.Task && Client.Network.Connected)
+                {
+                    return "Timeout waiting for simulator to respond to query.";
+                }
+
+                return await tcs.Task.ConfigureAwait(false);
             }
-
-            Client.Directory.DirClassifiedsReply -= callback;
-
-            return result.ToString();
-        }        
+            finally
+            {
+                Client.Directory.DirClassifiedsReply -= callback;
+            }
+        }
     }
 }

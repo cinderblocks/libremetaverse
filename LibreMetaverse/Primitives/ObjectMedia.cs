@@ -1,5 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -60,13 +61,14 @@ namespace OpenMetaverse
     /// </summary>
     public class MediaEntry
     {
+
         /// <summary>Is display of the alternative image enabled</summary>
-        public bool EnableAlterntiveImage;
+        public bool EnableAlternativeImage { get; set; }
 
         /// <summary>Should media auto loop</summary>
         public bool AutoLoop;
 
-        /// <summary>Shoule media be auto played</summary>
+        /// <summary>Should media be auto played</summary>
         public bool AutoPlay;
 
         /// <summary>Auto scale media to prim face</summary>
@@ -76,7 +78,7 @@ namespace OpenMetaverse
         public bool AutoZoom;
 
         /// <summary>Should viewer interpret first click as interaction with the media
-        /// or when false should the first click be treated as zoom in commadn</summary>
+        /// or when false should the first click be treated as zoom in command</summary>
         public bool InteractOnFirstClick;
 
         /// <summary>Style of controls viewer should display when
@@ -95,7 +97,7 @@ namespace OpenMetaverse
         /// <summary>Media width in pixels</summary>
         public int Width;
 
-        /// <summary>Who can controls the media</summary>
+        /// <summary>Who can control the media</summary>
         public MediaPermission ControlPermissions;
 
         /// <summary>Who can interact with the media</summary>
@@ -113,20 +115,21 @@ namespace OpenMetaverse
         /// <returns>OSDMap with the serialized data</returns>
         public OSDMap GetOSD()
         {
-            OSDMap map = new OSDMap();
-
-            map["alt_image_enable"] = OSD.FromBoolean(EnableAlterntiveImage);
-            map["auto_loop"] = OSD.FromBoolean(AutoLoop);
-            map["auto_play"] = OSD.FromBoolean(AutoPlay);
-            map["auto_scale"] = OSD.FromBoolean(AutoScale);
-            map["auto_zoom"] = OSD.FromBoolean(AutoZoom);
-            map["controls"] = OSD.FromInteger((int)Controls);
-            map["current_url"] = OSD.FromString(CurrentURL);
-            map["first_click_interact"] = OSD.FromBoolean(InteractOnFirstClick);
-            map["height_pixels"] = OSD.FromInteger(Height);
-            map["home_url"] = OSD.FromString(HomeURL);
-            map["perms_control"] = OSD.FromInteger((int)ControlPermissions);
-            map["perms_interact"] = OSD.FromInteger((int)InteractPermissions);
+            OSDMap map = new OSDMap
+            {
+                ["alt_image_enable"] = OSD.FromBoolean(EnableAlternativeImage),
+                ["auto_loop"] = OSD.FromBoolean(AutoLoop),
+                ["auto_play"] = OSD.FromBoolean(AutoPlay),
+                ["auto_scale"] = OSD.FromBoolean(AutoScale),
+                ["auto_zoom"] = OSD.FromBoolean(AutoZoom),
+                ["controls"] = OSD.FromInteger((int)Controls),
+                ["current_url"] = OSD.FromString(CurrentURL),
+                ["first_click_interact"] = OSD.FromBoolean(InteractOnFirstClick),
+                ["height_pixels"] = OSD.FromInteger(Height),
+                ["home_url"] = OSD.FromString(HomeURL),
+                ["perms_control"] = OSD.FromInteger((int)ControlPermissions),
+                ["perms_interact"] = OSD.FromInteger((int)InteractPermissions)
+            };
 
             List<OSD> wl = new List<OSD>();
             if (WhiteList != null && WhiteList.Length > 0)
@@ -151,7 +154,7 @@ namespace OpenMetaverse
             MediaEntry m = new MediaEntry();
             OSDMap map = (OSDMap)osd;
 
-            m.EnableAlterntiveImage = map["alt_image_enable"].AsBoolean();
+            m.EnableAlternativeImage = map["alt_image_enable"].AsBoolean();
             m.AutoLoop = map["auto_loop"].AsBoolean();
             m.AutoPlay = map["auto_play"].AsBoolean();
             m.AutoScale = map["auto_scale"].AsBoolean();

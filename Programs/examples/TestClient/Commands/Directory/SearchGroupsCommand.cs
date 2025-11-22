@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Linq;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Directory
 {
     class SearchGroupsCommand : Command
     {
-        global::System.Threading.AutoResetEvent waitQuery = new global::System.Threading.AutoResetEvent(false);
         int resultCount = 0;
 
         public SearchGroupsCommand(TestClient testClient)
@@ -18,6 +18,11 @@ namespace TestClient.Commands.Directory
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             // process command line arguments
             if (args.Length < 1)
                 return "Usage: searchgroups [search text]";
@@ -25,42 +30,52 @@ namespace TestClient.Commands.Directory
             string searchText = args.Aggregate(string.Empty, (current, t) => current + (t + " "));
             searchText = searchText.TrimEnd();
 
-            waitQuery.Reset();
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            Client.Directory.DirGroupsReply += Directory_DirGroups;
-            
-            // send the request to the directory manager
-            Client.Directory.StartGroupSearch(searchText, 0);
-            
-            string result;
-            if (waitQuery.WaitOne(TimeSpan.FromSeconds(20), false) && Client.Network.Connected)
+            EventHandler<DirGroupsReplyEventArgs> handler = null;
+            handler = (sender, e) =>
             {
-                result = "Your query '" + searchText + "' matched " + resultCount + " Groups. ";
-            }
-            else
-            {
-                result = "Timeout waiting for simulator to respond.";
-            }
-
-            Client.Directory.DirGroupsReply -= Directory_DirGroups;
-
-            return result;
-        }
-
-        void Directory_DirGroups(object sender, DirGroupsReplyEventArgs e)
-        {
-            if (e.MatchedGroups.Count > 0)
-            {
-                foreach (DirectoryManager.GroupSearchData group in e.MatchedGroups)
+                if (e.MatchedGroups.Count > 0)
                 {
-                    Console.WriteLine("Group {1} ({0}) has {2} members", group.GroupID, group.GroupName, group.Members);
+                    foreach (DirectoryManager.GroupSearchData group in e.MatchedGroups)
+                    {
+                        Console.WriteLine("Group {1} ({0}) has {2} members", group.GroupID, group.GroupName, group.Members);
+                    }
                 }
-            }
-            else
+                else
+                {
+                    Console.WriteLine("Didn't find any groups that matched your query :(");
+                }
+
+                resultCount = e.MatchedGroups.Count;
+                tcs.TrySetResult(true);
+            };
+
+            try
             {
-                Console.WriteLine("Didn't find any groups that matched your query :(");
+                Client.Directory.DirGroupsReply += handler;
+
+                // send the request to the directory manager
+                Client.Directory.StartGroupSearch(searchText, 0);
+
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(20))).ConfigureAwait(false);
+
+                string result;
+                if (completed == tcs.Task && Client.Network.Connected)
+                {
+                    result = "Your query '" + searchText + "' matched " + resultCount + " Groups. ";
+                }
+                else
+                {
+                    result = "Timeout waiting for simulator to respond.";
+                }
+
+                return result;
             }
-            waitQuery.Set();
-        }        
+            finally
+            {
+                Client.Directory.DirGroupsReply -= handler;
+            }
+        }
     }
 }

@@ -26,7 +26,7 @@
  */
 
 using System;
-using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 using SkiaSharp;
 
@@ -34,10 +34,6 @@ namespace TestClient.Commands.Inventory
 {
     public class UploadImageCommand : Command
     {
-        AutoResetEvent UploadCompleteEvent = new AutoResetEvent(false);
-        UUID TextureID = UUID.Zero;
-        DateTime start;
-
         public UploadImageCommand(TestClient testClient)
         {
             Name = "uploadimage";
@@ -47,50 +43,80 @@ namespace TestClient.Commands.Inventory
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            uint timeout;
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
 
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length != 3)
                 return "Usage: uploadimage [inventoryname] [timeout] [filename]";
 
-            TextureID = UUID.Zero;
+            if (!uint.TryParse(args[1], out var timeout))
+                return "Usage: uploadimage [inventoryname] [timeout] [filename]";
+
             var inventoryName = args[0];
             var fileName = args[2];
-            if (!uint.TryParse(args[1], out timeout))
-                return "Usage: uploadimage [inventoryname] [timeout] [filename]";
 
             Console.WriteLine("Loading image " + fileName);
             byte[] jpeg2k = LoadImage(fileName);
             if (jpeg2k == null)
                 return "Failed to compress image to JPEG2000";
-            Console.WriteLine("Finished compressing image to JPEG2000, uploading...");
-            start = DateTime.Now;
-            DoUpload(jpeg2k, inventoryName);
 
-            return UploadCompleteEvent.WaitOne((int)timeout, false) 
-                ? $"Texture upload {((TextureID != UUID.Zero) ? "succeeded" : "failed")}: {TextureID}" 
-                : "Texture upload timed out";
+            Console.WriteLine("Finished compressing image to JPEG2000, uploading...");
+            var start = DateTime.Now;
+
+            var assetId = await UploadAsync(jpeg2k, inventoryName, (int)timeout).ConfigureAwait(false);
+
+            if (assetId != UUID.Zero)
+            {
+                Console.WriteLine("Upload took {0}", DateTime.Now.Subtract(start));
+                return $"Texture upload succeeded: {assetId}";
+            }
+            else
+            {
+                return "Texture upload timed out or failed";
+            }
         }
 
-        private void DoUpload(byte[] UploadData, string FileName)
+        private Task<UUID> UploadAsync(byte[] uploadData, string fileName, int timeoutMs)
         {
-            if (UploadData != null)
+            var tcs = new TaskCompletionSource<UUID>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            if (uploadData == null)
             {
-                string name = global::System.IO.Path.GetFileNameWithoutExtension(FileName);
-
-                Client.Inventory.RequestCreateItemFromAsset(UploadData, name, "Uploaded with TestClient",
-                    AssetType.Texture, InventoryType.Texture, Client.Inventory.FindFolderForType(AssetType.Texture),
-                    delegate(bool success, string status, UUID itemID, UUID assetID)
-                    {
-                        Console.WriteLine(
-                            "RequestCreateItemFromAsset() returned: Success={0}, Status={1}, ItemID={2}, AssetID={3}", 
-                            success, status, itemID, assetID);
-
-                        TextureID = assetID;
-                        Console.WriteLine("Upload took {0}", DateTime.Now.Subtract(start));
-                        UploadCompleteEvent.Set();
-                    }
-                );
+                tcs.TrySetResult(UUID.Zero);
+                return tcs.Task;
             }
+
+            string name = global::System.IO.Path.GetFileNameWithoutExtension(fileName);
+
+            Client.Inventory.RequestCreateItemFromAsset(uploadData, name, "Uploaded with TestClient",
+                AssetType.Texture, InventoryType.Texture, Client.Inventory.FindFolderForType(AssetType.Texture),
+                (success, status, itemID, assetID) =>
+                {
+                    try
+                    {
+                        Console.WriteLine("RequestCreateItemFromAsset() returned: Success={0}, Status={1}, ItemID={2}, AssetID={3}", success, status, itemID, assetID);
+                        if (success)
+                            tcs.TrySetResult(assetID);
+                        else
+                            tcs.TrySetResult(UUID.Zero);
+                    }
+                    catch (Exception ex)
+                    {
+                        tcs.TrySetException(ex);
+                    }
+                }
+            );
+
+            // Timeout handling
+            var delay = Task.Delay(timeoutMs);
+            return Task.WhenAny(tcs.Task, delay).ContinueWith(t =>
+            {
+                if (t.Result == tcs.Task && tcs.Task.Status == TaskStatus.RanToCompletion)
+                    return tcs.Task.Result;
+                return UUID.Zero;
+            }, TaskScheduler.Default);
         }
 
         private byte[] LoadImage(string fileName)

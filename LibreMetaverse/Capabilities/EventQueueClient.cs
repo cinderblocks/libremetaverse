@@ -106,7 +106,7 @@ namespace OpenMetaverse.Http
                 _reqPayloadMap = initial;
                 _reqPayloadBytes = OSDParser.SerializeLLSDXmlBytes(_reqPayloadMap);
             }
-
+            _queueCts?.Cancel();
             _queueCts?.Dispose();
             _queueCts = new CancellationTokenSource();
 
@@ -134,7 +134,7 @@ namespace OpenMetaverse.Http
                     }
 
                     await Simulator.Client.HttpCapsClient.PostRequestAsync(
-                        Address, OSDFormat.Xml, payloadSnapshot, _queueCts.Token, RequestCompletedHandler, null, ConnectedResponseHandler)
+                        Address, OSDFormat.Xml, payloadSnapshot, _queueCts.Token, RequestCompletedHandler, ConnectedResponseHandler)
                         .ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
@@ -230,22 +230,20 @@ namespace OpenMetaverse.Http
 
                         case HttpStatusCode.InternalServerError:
                         {
-                            // Read response content in background to avoid blocking this callback
-                            Task.Run(async () =>
+                            // If responseData already buffered, log it directly
+                            if (responseData != null)
                             {
                                 try
                                 {
-                                    var responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                                    if (!string.IsNullOrEmpty(responseString))
+                                    var responseString = System.Text.Encoding.UTF8.GetString(responseData);
+                                    if (!string.IsNullOrEmpty(responseString) &&
+                                        responseString.IndexOf(PROXY_TIMEOUT_RESPONSE, StringComparison.Ordinal) < 0)
                                     {
-                                        if (responseString.IndexOf(PROXY_TIMEOUT_RESPONSE, StringComparison.Ordinal) < 0)
-                                        {
-                                            Logger.Log($"Full response was: {responseString}", Helpers.LogLevel.Debug, Simulator.Client);
-                                        }
+                                        Logger.Log($"Full response was: {responseString}", Helpers.LogLevel.Debug, Simulator.Client);
                                     }
                                 }
-                                catch { /* ignore read failures */ }
-                            });
+                                catch { /* ignore decode failures */ }
+                            }
 
                             if (error.InnerException != null)
                             {

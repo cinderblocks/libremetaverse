@@ -843,8 +843,12 @@ namespace PacketSourceGenerator
                 case FieldType.Variable:
                     if (field.Count == 1) Append(sb, 5, "length = bytes[i++];");
                     else Append(sb, 5, "length = (bytes[i++] + (bytes[i++] << 8));");
-                    Append(sb, 5, $"{n} = new byte[length];");
-                    Append(sb, 5, $"Buffer.BlockCopy(bytes, i, {n}, 0, length); i += length;");
+                    Append(sb, 5, "if (length > 0) {");
+                    Append(sb, 6, $"{n} = new byte[length];");
+                    Append(sb, 6, $"Buffer.BlockCopy(bytes, i, {n}, 0, length); i += length;");
+                    Append(sb, 5, "} else {");
+                    Append(sb, 6, $"{n} = global::System.Array.Empty<byte>();");
+                    Append(sb, 5, "}");
                     break;
                 default:
                     Append(sb, 5, $"// Unhandled FieldType {field.Type} for {n}");

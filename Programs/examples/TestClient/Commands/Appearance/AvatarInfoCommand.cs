@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Appearance
@@ -15,8 +16,13 @@ namespace TestClient.Commands.Appearance
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length != 2)
-                return "Usage: avatarinfo [firstname] [lastname]";
+                return Task.FromResult("Usage: avatarinfo [firstname] [lastname]");
 
             string targetName = $"{args[0]} {args[1]}";
 
@@ -43,11 +49,11 @@ namespace TestClient.Commands.Appearance
                     }
                 }
 
-                return output.ToString();
+                return Task.FromResult(output.ToString());
             }
             else
             {
-                return $"No nearby avatar named {targetName}";
+                return Task.FromResult($"No nearby avatar named {targetName}");
             }
         }
     }

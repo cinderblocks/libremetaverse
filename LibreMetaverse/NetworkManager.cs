@@ -167,8 +167,7 @@ namespace OpenMetaverse
         private EventHandler<SimConnectingEventArgs> m_SimConnecting;
 
         ///<summary>Raises the SimConnecting Event</summary>
-        /// <param name="e">A SimConnectingEventArgs object containing
-        /// the data sent from the simulator</param>
+        /// <param name="e">A SimConnectingEventArgs object containing the packet data</param>
         protected virtual void OnSimConnecting(SimConnectingEventArgs e)
         {
             EventHandler<SimConnectingEventArgs> handler = m_SimConnecting;
@@ -190,8 +189,7 @@ namespace OpenMetaverse
         private EventHandler<SimConnectedEventArgs> m_SimConnected;
 
         ///<summary>Raises the SimConnected Event</summary>
-        /// <param name="e">A SimConnectedEventArgs object containing
-        /// the data sent from the simulator</param>
+        /// <param name="e">A SimConnectedEventArgs object containing the data sent from the simulator</param>
         protected virtual void OnSimConnected(SimConnectedEventArgs e)
         {
             EventHandler<SimConnectedEventArgs> handler = m_SimConnected;
@@ -213,8 +211,7 @@ namespace OpenMetaverse
         private EventHandler<SimDisconnectedEventArgs> m_SimDisconnected;
 
         ///<summary>Raises the SimDisconnected Event</summary>
-        /// <param name="e">A SimDisconnectedEventArgs object containing
-        /// the data sent from the simulator</param>
+        /// <param name="e">A SimDisconnectedEventArgs object containing the packet data</param>
         protected virtual void OnSimDisconnected(SimDisconnectedEventArgs e)
         {
             EventHandler<SimDisconnectedEventArgs> handler = m_SimDisconnected;
@@ -236,8 +233,7 @@ namespace OpenMetaverse
         private EventHandler<DisconnectedEventArgs> m_Disconnected;
 
         ///<summary>Raises the Disconnected Event</summary>
-        /// <param name="e">A DisconnectedEventArgs object containing
-        /// the data sent from the simulator</param>
+        /// <param name="e">A DisconnectedEventArgs object containing the packet data</param>
         protected virtual void OnDisconnected(DisconnectedEventArgs e)
         {
             EventHandler<DisconnectedEventArgs> handler = m_Disconnected;
@@ -259,8 +255,7 @@ namespace OpenMetaverse
         private EventHandler<SimChangedEventArgs> m_SimChanged;
 
         ///<summary>Raises the SimChanged Event</summary>
-        /// <param name="e">A SimChangedEventArgs object containing
-        /// the data sent from the simulator</param>
+        /// <param name="e">A SimChangedEventArgs object</param>
         protected virtual void OnSimChanged(SimChangedEventArgs e)
         {
             EventHandler<SimChangedEventArgs> handler = m_SimChanged;
@@ -282,8 +277,7 @@ namespace OpenMetaverse
         private EventHandler<EventQueueRunningEventArgs> m_EventQueueRunning;
 
         ///<summary>Raises the EventQueueRunning Event</summary>
-        /// <param name="e">A EventQueueRunningEventArgs object containing
-        /// the data sent from the simulator</param>
+        /// <param name="e">A EventQueueRunningEventArgs object containing the simulator</param>
         protected virtual void OnEventQueueRunning(EventQueueRunningEventArgs e)
         {
             EventHandler<EventQueueRunningEventArgs> handler = m_EventQueueRunning;
@@ -340,13 +334,18 @@ namespace OpenMetaverse
 
         /// <summary>Outgoing packets that are awaiting handling</summary>
         private Channel<OutgoingPacket> _packetOutbox;
-
+        
         private int _packetOutboxCount = 0;
+
+        // Cancellation and background task tracking for inbox/outbox processors
+        private CancellationTokenSource _cts;
+        private Task _incomingProcessorTask;
+        private Task _outgoingProcessorTask;
 
         private readonly GridClient Client;
         private Timer DisconnectTimer;
 
-        private long lastpacketwarning = 0;
+        private long lastPacketWarning = 0;
 
         private System.Timers.Timer logoutReplyTimeout;
 
@@ -377,11 +376,11 @@ namespace OpenMetaverse
 
         private void GenericMessageHandler(object sender, PacketReceivedEventArgs e)
         {
-            if (e.Packet is GenericMessagePacket message)
-            {
-                string method = Utils.BytesToString(message.MethodData.Method);
-                Logger.Log("Received Unhandled Generic Message: " + method, Helpers.LogLevel.Info, Client);
-            }
+            if (!(e.Packet is GenericMessagePacket message)) 
+                return;
+            
+            var method = Utils.BytesToString(message.MethodData.Method);
+            Logger.Log("Received Unhandled Generic Message: " + method, Helpers.LogLevel.Info, Client);
         }
 
         /// <summary>
@@ -510,13 +509,12 @@ namespace OpenMetaverse
         protected void NetworkInvalidWarning(string source,string function)
         {
             long now = DateTimeOffset.Now.ToUnixTimeSeconds();
-            long dif = lastpacketwarning - now;
-            if (dif > 10)
-            {
-                lastpacketwarning = now;
-                Logger.Log(source+" is null (Are we disconnected?) - from: " + function,
-                    Helpers.LogLevel.Debug);
-            }
+            long dif = now - lastPacketWarning;
+            if (dif <= 10) { return; }
+
+            lastPacketWarning = now;
+            Logger.Log(source+" is null (Are we disconnected?) - from: " + function,
+                Helpers.LogLevel.Debug);
         }
         
         /// <summary>
@@ -525,15 +523,17 @@ namespace OpenMetaverse
         /// <param name="packet">Incoming packet to process</param>
         public void EnqueueOutgoing(OutgoingPacket packet)
         {
-            if (_packetOutbox != null)
-            {
-                if (_packetOutbox.Writer.TryWrite(packet))
-                    Interlocked.Increment(ref _packetOutboxCount);
-            }
-            else
+            if (_packetOutbox == null)
             {
                 NetworkInvalidWarning("_packetOutbox", "EnqueueOutgoing");
+                return;
             }
+            
+            if (_packetOutbox.Writer.TryWrite(packet))
+            {
+                Interlocked.Increment(ref _packetOutboxCount);
+            }
+
         }
 
         /// <summary>
@@ -614,8 +614,10 @@ namespace OpenMetaverse
                 _packetInbox = Channel.CreateUnbounded<IncomingPacket>(options);
                 _packetOutbox = Channel.CreateUnbounded<OutgoingPacket>(options);
 
-                Task.Run(IncomingPacketHandler);
-                Task.Run(OutgoingPacketHandler);
+                // Create a CancellationTokenSource for background processors and track tasks
+                _cts = new CancellationTokenSource();
+                _incomingProcessorTask = Task.Run(() => IncomingPacketHandler(_cts.Token));
+                _outgoingProcessorTask = Task.Run(() => OutgoingPacketHandler(_cts.Token));
             }
 
             if (!simulator.Connected)
@@ -671,18 +673,17 @@ namespace OpenMetaverse
 
                     return simulator;
                 }
-                else
-                {
-                    // Connection failed, remove this simulator from our list and destroy it
-                    lock (Simulators)
-                    {
-                        Simulators.Remove(simulator);
-                    }                 
 
-                    return null;
+                // Connection failed, remove this simulator from our list and destroy it
+                lock (Simulators)
+                {
+                    Simulators.Remove(simulator);
                 }
+
+                return null;
             }
-            else if (setDefault)
+            
+            if (setDefault)
             {
                 Logger.Log($"Moving to another simulator; sending CompleteAgentMovement to {simulator.Name}",
                     Helpers.LogLevel.Info, Client);
@@ -702,12 +703,11 @@ namespace OpenMetaverse
 
                 return simulator;
             }
-            else
-            {
-                // Already connected to this simulator and wasn't asked to set it as the default,
-                // just return a reference to the existing object
-                return simulator;
-            }
+
+            // Already connected to this simulator and wasn't asked to set it as the default,
+            // just return a reference to the existing object
+            return simulator;
+            
         }
 
         /// <summary>
@@ -752,7 +752,7 @@ namespace OpenMetaverse
             RequestLogout();
 
             // Wait for a logout response. If the response is received, shutdown
-            // will be fired in the callback. Otherwise we fire it manually with
+            // will be fired in the callback. Otherwise, we fire it manually with
             // a NetworkTimeout type
             if (!logoutEvent.WaitOne(Client.Settings.LOGOUT_TIMEOUT, false))
             {
@@ -862,6 +862,15 @@ namespace OpenMetaverse
         /// <param name="message">Shutdown message</param>
         public void Shutdown(DisconnectType type, string message)
         {
+            // Use the async implementation and block to preserve the synchronous API
+            ShutdownAsync(type, message).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Async version of Shutdown that awaits background processors to finish.
+        /// </summary>
+        public async Task ShutdownAsync(DisconnectType type, string message)
+        {
             Logger.Log($"NetworkManager shutdown initiated for {message} due to {type}", Helpers.LogLevel.Info, Client);
 
             // Send a CloseCircuit packet to simulators if we are initiating the disconnect
@@ -899,14 +908,43 @@ namespace OpenMetaverse
                 }
             }
             
+            // Cancel background processors first to speed up shutdown
+            try
+            {
+                _cts?.Cancel();
+            }
+            catch { }
+
             _packetInbox?.Writer.Complete();
             _packetOutbox?.Writer.Complete();
 
+            // Await processor tasks with a timeout to avoid hangs
+            var tasks = new List<Task>();
+            if (_incomingProcessorTask != null) tasks.Add(_incomingProcessorTask);
+            if (_outgoingProcessorTask != null) tasks.Add(_outgoingProcessorTask);
+
+            if (tasks.Count > 0)
+            {
+                var all = Task.WhenAll(tasks);
+                var completed = await Task.WhenAny(all, Task.Delay(2000)).ConfigureAwait(false);
+                if (completed != all)
+                {
+                    Logger.Log("Background processors did not exit within timeout during Shutdown", Helpers.LogLevel.Warning, Client);
+                }
+                else
+                {
+                    // Observe exceptions if any
+                    try { await all.ConfigureAwait(false); } catch { }
+                }
+            }
+
             _packetInbox = null;
             _packetOutbox = null;
-            
-            Interlocked.Exchange(ref _packetInboxCount, 0);
-            Interlocked.Exchange(ref _packetOutboxCount, 0);
+
+            _cts?.Dispose();
+            _cts = null;
+            _incomingProcessorTask = null;
+            _outgoingProcessorTask = null;
 
             Connected = false;
 
@@ -969,16 +1007,22 @@ namespace OpenMetaverse
             }
         }
 
-        private async Task OutgoingPacketHandler()
+        private async Task OutgoingPacketHandler(CancellationToken ct)
         {
-            if (_packetOutbox != null)
+            if (_packetOutbox == null)
             {
-                var reader = _packetOutbox.Reader;
+                NetworkInvalidWarning("_packetOutbox", "OutgoingPacketHandler");
+                return;
+            }
 
-                // FIXME: This is kind of ridiculous. Port the HTB code from Simian over ASAP!	
-                var stopwatch = new System.Diagnostics.Stopwatch();
-
-                while (await reader.WaitToReadAsync() && Connected)
+            // FIXME: This is kind of ridiculous. Port the HTB code from Simian over ASAP!
+            var reader = _packetOutbox.Reader;
+            var stopwatch = new System.Diagnostics.Stopwatch();
+            stopwatch.Start();
+            
+            try
+            {
+                while (await reader.WaitToReadAsync(ct).ConfigureAwait(false) && Connected && !ct.IsCancellationRequested)
                 {
                     while (reader.TryRead(out var outgoingPacket))
                     {
@@ -986,32 +1030,47 @@ namespace OpenMetaverse
 
                         var simulator = outgoingPacket.Simulator;
 
-                        stopwatch.Stop();
-                        if (stopwatch.ElapsedMilliseconds < 10)
+                        var elapsed = stopwatch.ElapsedMilliseconds;
+                        if (elapsed < 10)
                         {
-                            //Logger.DebugLog(String.Format("Rate limiting, last packet was {0}ms ago", ms));	
-                            Thread.Sleep(10 - (int)stopwatch.ElapsedMilliseconds);
+                            await Task.Delay(10 - (int)elapsed, ct).ConfigureAwait(false);
                         }
-
-                        simulator.SendPacketFinal(outgoingPacket);
-                        stopwatch.Start();
+                        try
+                        {
+                            simulator.SendPacketFinal(outgoingPacket);
+                        }
+                        catch (OperationCanceledException) { throw; }
+                        catch (Exception ex)
+                        {
+                            Logger.Log("OutgoingPacketHandler exception: " + ex, Helpers.LogLevel.Error, Client, ex);
+                        }
+                        stopwatch.Restart();
                     }
                 }
             }
-            else
+            catch (OperationCanceledException)
             {
-                NetworkInvalidWarning("_packetOutbox", "OutgoingPacketHandler");
+                // Cancellation requested, exit gracefully
             }
-
+            catch (Exception ex)
+            {
+                Logger.Log("OutgoingPacketHandler fatal exception: " + ex, Helpers.LogLevel.Error, Client, ex);
+            }
         }
 
-        private async Task IncomingPacketHandler()
+        private async Task IncomingPacketHandler(CancellationToken ct)
         {
-            if (_packetInbox != null)
+            if (_packetInbox == null)
             {
-                var reader = _packetInbox.Reader;
+                NetworkInvalidWarning("_packetInbox", "IncomingPacketHandler");
+                return;
+            }
 
-                while (await reader.WaitToReadAsync() && Connected)
+            var reader = _packetInbox.Reader;
+
+            try
+            {
+                while (await reader.WaitToReadAsync(ct).ConfigureAwait(false) && Connected && !ct.IsCancellationRequested)
                 {
                     while (reader.TryRead(out var incomingPacket))
                     {
@@ -1027,23 +1086,36 @@ namespace OpenMetaverse
                         {
                             Logger.Log($"Discarding Blacklisted packet {packet.Type} from {simulator.IPEndPoint}",
                                 Helpers.LogLevel.Warning);
-                            return;
+                            continue;
                         }
 
-                        // Fire the callback(s), if any
-                        PacketEvents.RaiseEvent(packet.Type, packet, simulator);
+                        // Fire the callback(s), if any — protect against handler exceptions
+                        try
+                        {
+                            PacketEvents.RaiseEvent(packet.Type, packet, simulator);
+                        }
+                        catch (OperationCanceledException) { throw; }
+                        catch (Exception ex)
+                        {
+                            Logger.Log("Packet event handler exception: " + ex, Helpers.LogLevel.Error, Client, ex);
+                        }
                     }
                 }
             }
-            else
+            catch (OperationCanceledException)
             {
-                NetworkInvalidWarning("_packetInbox", "IncomingPacketHandler");
+                // Cancellation requested, exit gracefully
+            }
+            catch (Exception ex)
+            {
+                Logger.Log("IncomingPacketHandler fatal exception: " + ex, Helpers.LogLevel.Error, Client, ex);
             }
         }
 
         private void SetCurrentSim(Simulator simulator, Uri seedcaps)
         {
-            if (simulator == CurrentSim) return;
+            if (simulator == CurrentSim) 
+                return;
 
             Simulator oldSim = CurrentSim;
             lock (Simulators) CurrentSim = simulator; // CurrentSim is synchronized against Simulators
@@ -1157,9 +1229,8 @@ namespace OpenMetaverse
             //if ((pong.PingID.PingID - e.Simulator.Stats.LastPingID + 1) != 0)
             //    retval += " (gap of " + (pong.PingID.PingID - e.Simulator.Stats.LastPingID + 1) + ")";
 
-            e.Simulator.Stats.LastLag = Environment.TickCount - e.Simulator.Stats.LastPingSent;
-            e.Simulator.Stats.ReceivedPongs++;
-            //			Client.Log(retval, Helpers.LogLevel.Info);
+            e.Simulator.Stats.LastLag = Environment.TickCount - e.Simulator.Stats.GetLastPingSent();
+            e.Simulator.Stats.IncrementReceivedPongs();
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
@@ -1365,6 +1436,7 @@ namespace OpenMetaverse
 
         #endregion Packet Callbacks
     }
+
     #region EventArgs
 
     public class PacketReceivedEventArgs : EventArgs

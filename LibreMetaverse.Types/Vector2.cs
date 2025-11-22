@@ -104,29 +104,8 @@ namespace OpenMetaverse
         /// <param name="pos">Beginning position in the byte array</param>
         public void FromBytes(byte[] byteArray, int pos)
         {
-            var src = new Span<byte>(byteArray, pos, 8);
-
-            if (!BitConverter.IsLittleEndian)
-            {
-                // Big endian architecture
-                Span<byte> tmp = stackalloc byte[8];
-                for (int i = 0; i < 2; i++)
-                {
-                    tmp[i * 4 + 0] = src[i * 4 + 3];
-                    tmp[i * 4 + 1] = src[i * 4 + 2];
-                    tmp[i * 4 + 2] = src[i * 4 + 1];
-                    tmp[i * 4 + 3] = src[i * 4 + 0];
-                }
-                var fspan = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, float>(tmp);
-                X = fspan[0];
-                Y = fspan[1];
-            }
-            else
-            {
-                var fspan = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, float>(src);
-                X = fspan[0];
-                Y = fspan[1];
-            }
+            X = Utils.ReadSingleLittleEndian(byteArray, pos);
+            Y = Utils.ReadSingleLittleEndian(byteArray, pos + 4);
         }
 
         /// <summary>
@@ -148,26 +127,8 @@ namespace OpenMetaverse
         /// writing. Must be at least 8 bytes before the end of the array</param>
         public void ToBytes(byte[] dest, int pos)
         {
-            Span<float> vals = stackalloc float[2];
-            vals[0] = X;
-            vals[1] = Y;
-
-            var bytes = System.Runtime.InteropServices.MemoryMarshal.Cast<float, byte>(vals);
-
-            if (!BitConverter.IsLittleEndian)
-            {
-                for (int i = 0; i < 2; i++)
-                {
-                    dest[pos + i * 4 + 0] = bytes[i * 4 + 3];
-                    dest[pos + i * 4 + 1] = bytes[i * 4 + 2];
-                    dest[pos + i * 4 + 2] = bytes[i * 4 + 1];
-                    dest[pos + i * 4 + 3] = bytes[i * 4 + 0];
-                }
-            }
-            else
-            {
-                bytes.CopyTo(new Span<byte>(dest, pos, 8));
-            }
+            Utils.WriteSingleLittleEndian(dest, pos, X);
+            Utils.WriteSingleLittleEndian(dest, pos + 4, Y);
         }
 
         public float Length()

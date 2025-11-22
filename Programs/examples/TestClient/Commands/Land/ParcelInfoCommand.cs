@@ -1,14 +1,12 @@
 using System;
 using System.Text;
-using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Land
 {
     public class ParcelInfoCommand : Command
     {
-        private AutoResetEvent ParcelsDownloaded = new AutoResetEvent(false);
-
         public ParcelInfoCommand(TestClient testClient)
         {
             Name = "parcelinfo";
@@ -20,28 +18,32 @@ namespace TestClient.Commands.Land
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             StringBuilder sb = new StringBuilder();
             string result;
 
-            void parcelsDownloaded(object sender, SimParcelsDownloadedEventArgs e)
-            {
-                ParcelsDownloaded.Set();
-            }
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
+            EventHandler<SimParcelsDownloadedEventArgs> handler = null;
+            handler = (sender, e) => tcs.TrySetResult(true);
 
-            ParcelsDownloaded.Reset();
-            Client.Parcels.SimParcelsDownloaded += parcelsDownloaded;
+            Client.Parcels.SimParcelsDownloaded += handler;
             Client.Parcels.RequestAllSimParcels(Client.Network.CurrentSim);
 
             if (Client.Network.CurrentSim.IsParcelMapFull())
-                ParcelsDownloaded.Set();
+                tcs.TrySetResult(true);
 
-            if (ParcelsDownloaded.WaitOne(TimeSpan.FromSeconds(30), false) && Client.Network.Connected)
+            var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(30))).ConfigureAwait(false);
+            if (completed == tcs.Task && Client.Network.Connected)
             {
-                sb.AppendFormat("Downloaded {0} Parcels in {1} " + global::System.Environment.NewLine, 
+                sb.AppendFormat("Downloaded {0} Parcels in {1} " + global::System.Environment.NewLine,
                     Client.Network.CurrentSim.Parcels.Count, Client.Network.CurrentSim.Name);
 
-                Client.Network.CurrentSim.Parcels.ForEach(delegate(Parcel parcel)
+                Client.Network.CurrentSim.Parcels.ForEach(delegate (Parcel parcel)
                 {
                     sb.AppendFormat("Parcel[{0}]: Name: \"{1}\", Description: \"{2}\" ACLBlacklist Count: {3}, ACLWhiteList Count: {5} Traffic: {4}" + global::System.Environment.NewLine,
                         parcel.LocalID, parcel.Name, parcel.Desc, parcel.AccessBlackList.Count, parcel.Dwell, parcel.AccessWhiteList.Count);
@@ -52,13 +54,13 @@ namespace TestClient.Commands.Land
             else
                 result = "Failed to retrieve information on all the simulator parcels";
 
-            Client.Parcels.SimParcelsDownloaded -= parcelsDownloaded;
+            Client.Parcels.SimParcelsDownloaded -= handler;
             return result;
         }
 
         void Network_OnDisconnected(object sender, DisconnectedEventArgs e)
         {
-            ParcelsDownloaded.Set();
+            // best effort to unblock any waiting task
         }
     }
 }

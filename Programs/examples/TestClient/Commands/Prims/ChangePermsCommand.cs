@@ -1,21 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Prims
 {
     public class ChangePermsCommand : Command
     {
-        private readonly AutoResetEvent GotPermissionsEvent = new AutoResetEvent(false);
         private readonly Dictionary<UUID, Primitive> Objects = new Dictionary<UUID, Primitive>();
         private PermissionMask Perms = PermissionMask.None;
         private bool PermsSent;
         private int PermCount;
 
+        // TaskCompletionSource used to await permission propagation
+        private TaskCompletionSource<bool> permsTcs;
+
         public ChangePermsCommand(TestClient testClient)
-        {            
+        {
             testClient.Objects.ObjectProperties += Objects_OnObjectProperties;
 
             Name = "changeperms";
@@ -24,6 +26,11 @@ namespace TestClient.Commands.Prims
         }
 
         public override string Execute(string[] args, UUID fromAgentID)
+        {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
         {
             var localIDs = new List<uint>();
 
@@ -64,7 +71,7 @@ namespace TestClient.Commands.Prims
                 .FirstOrDefault(prim => prim.Value.ID == rootID);
             if (reqkvp.Value == null)
             {
-                return $"Cannot find requested object {rootID}"; 
+                return $"Cannot find requested object {rootID}";
 
             }
             var rootPrim = reqkvp.Value;
@@ -82,8 +89,8 @@ namespace TestClient.Commands.Prims
             }
 
             // Find all the child primitives linked to the root
-            var childPrims = (from kvp 
-                in Client.Network.CurrentSim.ObjectsPrimitives  where kvp.Value != null 
+            var childPrims = (from kvp
+                in Client.Network.CurrentSim.ObjectsPrimitives where kvp.Value != null
                 select kvp.Value into child where child.ParentID == rootPrim.LocalID select child).ToList();
 
             // Build a dictionary of primitives for referencing later
@@ -99,27 +106,33 @@ namespace TestClient.Commands.Prims
             #region Set Linkset Permissions
 
             PermCount = 0;
+            permsTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             Client.Objects.SetPermissions(Client.Network.CurrentSim, localIDs, PermissionWho.NextOwner,
                 PermissionMask.Modify, (Perms & PermissionMask.Modify) == PermissionMask.Modify);
             PermsSent = true;
 
-            if (!GotPermissionsEvent.WaitOne(TimeSpan.FromSeconds(30), false))
+            var completed = await Task.WhenAny(permsTcs.Task, Task.Delay(TimeSpan.FromSeconds(30))).ConfigureAwait(false);
+            if (completed != permsTcs.Task)
                 return "Failed to set the modify bit, permissions in an unknown state";
 
             PermCount = 0;
+            permsTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             Client.Objects.SetPermissions(Client.Network.CurrentSim, localIDs, PermissionWho.NextOwner,
                 PermissionMask.Copy, (Perms & PermissionMask.Copy) == PermissionMask.Copy);
             PermsSent = true;
 
-            if (!GotPermissionsEvent.WaitOne(TimeSpan.FromSeconds(30), false))
+            completed = await Task.WhenAny(permsTcs.Task, Task.Delay(TimeSpan.FromSeconds(30))).ConfigureAwait(false);
+            if (completed != permsTcs.Task)
                 return "Failed to set the copy bit, permissions in an unknown state";
 
             PermCount = 0;
+            permsTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             Client.Objects.SetPermissions(Client.Network.CurrentSim, localIDs, PermissionWho.NextOwner,
                 PermissionMask.Transfer, (Perms & PermissionMask.Transfer) == PermissionMask.Transfer);
             PermsSent = true;
 
-            if (!GotPermissionsEvent.WaitOne(TimeSpan.FromSeconds(30), false))
+            completed = await Task.WhenAny(permsTcs.Task, Task.Delay(TimeSpan.FromSeconds(30))).ConfigureAwait(false);
+            if (completed != permsTcs.Task)
                 return "Failed to set the transfer bit, permissions in an unknown state";
 
             #endregion Set Linkset Permissions
@@ -129,7 +142,7 @@ namespace TestClient.Commands.Prims
             foreach (Primitive prim in Objects.Values)
             {
                 if ((prim.Flags & PrimFlags.InventoryEmpty) != 0) continue;
-                List<InventoryBase> items = Client.Inventory.GetTaskInventory(prim.ID, prim.LocalID, TimeSpan.FromSeconds(30));
+                var items = await Client.Inventory.GetTaskInventoryAsync(prim.ID, prim.LocalID).ConfigureAwait(false);
 
                 if (items == null) continue;
                 foreach (var item in items.Where(i => !(i is InventoryFolder)).Cast<InventoryItem>())
@@ -154,7 +167,7 @@ namespace TestClient.Commands.Prims
 
                 ++PermCount;
                 if (PermCount >= Objects.Count)
-                    GotPermissionsEvent.Set();
+                    permsTcs?.TrySetResult(true);
             }
         }
     }

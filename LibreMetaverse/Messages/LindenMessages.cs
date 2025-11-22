@@ -1742,8 +1742,8 @@ namespace OpenMetaverse.Messages.Linden
         /// <param name="map">An <see cref="OSDMap"/> containing the data</param>
         public void Deserialize(OSDMap map)
         {
-            LanguagePublic = map["language_is_public"].AsBoolean();
             Language = map["language"].AsString();
+            LanguagePublic = map["language_is_public"].AsBoolean();
         }
     }
 

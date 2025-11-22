@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Inventory
@@ -17,24 +17,28 @@ namespace TestClient.Commands.Inventory
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            UUID assetID;
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
 
-            if (args.Length != 1 || !UUID.TryParse(args[0], out assetID))
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
+            if (args.Length != 1 || !UUID.TryParse(args[0], out var assetID))
                 return "Usage: xfer [uuid]";
 
             string filename;
-            byte[] assetData = RequestXfer(assetID, AssetType.Object, out filename);
+            var assetData = await RequestXferAsync(assetID, AssetType.Object).ConfigureAwait(false);
 
             if (assetData != null)
             {
                 try
                 {
+                    filename = assetID + ".asset";
                     File.WriteAllBytes(filename, assetData);
                     return "Saved asset " + filename;
                 }
                 catch (Exception ex)
                 {
-                    return "Failed to save asset " + filename + ": " + ex.Message;
+                    return "Failed to save asset " + assetID + ": " + ex.Message;
                 }
             }
             else
@@ -43,33 +47,38 @@ namespace TestClient.Commands.Inventory
             }
         }
 
-        byte[] RequestXfer(UUID assetID, AssetType type, out string filename)
+        private Task<byte[]> RequestXferAsync(UUID assetID, AssetType type)
         {
-            AutoResetEvent xferEvent = new AutoResetEvent(false);
-            ulong xferID = 0;
-            byte[] data = null;
+            var tcs = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            EventHandler<XferReceivedEventArgs> xferCallback =
-                delegate(object sender, XferReceivedEventArgs e)
+            ulong xferID = 0;
+
+            EventHandler<XferReceivedEventArgs> xferCallback = null;
+            xferCallback = (sender, e) =>
+            {
+                if (e.Xfer.XferID == xferID)
                 {
-                    if (e.Xfer.XferID == xferID)
-                    {
-                        if (e.Xfer.Success)
-                            data = e.Xfer.AssetData;
-                        xferEvent.Set();
-                    }
-                };
+                    if (e.Xfer.Success)
+                        tcs.TrySetResult(e.Xfer.AssetData);
+                    else
+                        tcs.TrySetResult(null);
+                }
+            };
 
             Client.Assets.XferReceived += xferCallback;
 
-            filename = assetID + ".asset";
-            xferID = Client.Assets.RequestAssetXfer(filename, false, true, assetID, type, false);
+            try
+            {
+                var filename = assetID + ".asset";
+                xferID = Client.Assets.RequestAssetXfer(filename, false, true, assetID, type, false);
 
-            xferEvent.WaitOne(FETCH_ASSET_TIMEOUT, false);
-
-            Client.Assets.XferReceived -= xferCallback;
-
-            return data;
+                var completed = Task.WhenAny(tcs.Task, Task.Delay(FETCH_ASSET_TIMEOUT)).GetAwaiter().GetResult();
+                return completed == tcs.Task ? tcs.Task : Task.FromResult<byte[]>(null);
+            }
+            finally
+            {
+                Client.Assets.XferReceived -= xferCallback;
+            }
         }
     }
 }

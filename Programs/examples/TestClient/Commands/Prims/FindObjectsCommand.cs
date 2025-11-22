@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 using Vector3 = OpenMetaverse.Vector3;
 
@@ -10,7 +10,6 @@ namespace TestClient.Commands.Prims
     public class FindObjectsCommand : Command
     {
         Dictionary<UUID, Primitive> PrimsWaiting = new Dictionary<UUID, Primitive>();
-        AutoResetEvent AllPropertiesReceived = new AutoResetEvent(false);
 
         public FindObjectsCommand(TestClient testClient)
         {
@@ -23,6 +22,11 @@ namespace TestClient.Commands.Prims
         }
 
         public override string Execute(string[] args, UUID fromAgentID)
+        {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
         {
             // *** parse arguments ***
             if (args.Length < 1 || args.Length > 2)
@@ -43,7 +47,7 @@ namespace TestClient.Commands.Prims
                 where prim.ParentID == 0 && pos != Vector3.Zero && Vector3.Distance(pos, location) < radius select prim).ToList();
 
             // *** request properties of these objects ***
-            var complete = RequestObjectProperties(prims, 250);
+            var complete = await RequestObjectPropertiesAsync(prims, 250).ConfigureAwait(false);
 
             foreach (var p in prims)
             {
@@ -60,7 +64,7 @@ namespace TestClient.Commands.Prims
             return "Done searching";
         }
 
-        private bool RequestObjectProperties(List<Primitive> objects, int msPerRequest)
+        private async Task<bool> RequestObjectPropertiesAsync(List<Primitive> objects, int msPerRequest)
         {
             // Create an array of the local IDs of all the prims we are requesting properties for
             uint[] localids = new uint[objects.Count];
@@ -76,13 +80,45 @@ namespace TestClient.Commands.Prims
                 }
             }
 
-            Client.Objects.SelectObjects(Client.Network.CurrentSim, localids);
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            return AllPropertiesReceived.WaitOne(2000 + msPerRequest * objects.Count, false);
+            // Wire up a temporary watcher to complete the TCS when all properties are received
+            void LocalHandler(object s, ObjectPropertiesEventArgs e)
+            {
+                lock (PrimsWaiting)
+                {
+                    if (PrimsWaiting.TryGetValue(e.Properties.ObjectID, out var prim))
+                    {
+                        prim.Properties = e.Properties;
+                    }
+                    PrimsWaiting.Remove(e.Properties.ObjectID);
+
+                    if (PrimsWaiting.Count == 0)
+                    {
+                        tcs.TrySetResult(true);
+                    }
+                }
+            }
+
+            try
+            {
+                // Temporary subscribe
+                Client.Objects.ObjectProperties += LocalHandler;
+
+                Client.Objects.SelectObjects(Client.Network.CurrentSim, localids);
+
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(2000 + msPerRequest * objects.Count)).ConfigureAwait(false);
+                return completed == tcs.Task;
+            }
+            finally
+            {
+                Client.Objects.ObjectProperties -= LocalHandler;
+            }
         }
 
         void Objects_OnObjectProperties(object sender, ObjectPropertiesEventArgs e)
         {
+            // Keep the global handler to populate properties when received by other flows
             lock (PrimsWaiting)
             {
                 if (PrimsWaiting.TryGetValue(e.Properties.ObjectID, out var prim))
@@ -90,9 +126,6 @@ namespace TestClient.Commands.Prims
                     prim.Properties = e.Properties;
                 }
                 PrimsWaiting.Remove(e.Properties.ObjectID);
-
-                if (PrimsWaiting.Count == 0)
-                    AllPropertiesReceived.Set();
             }
         }
     }

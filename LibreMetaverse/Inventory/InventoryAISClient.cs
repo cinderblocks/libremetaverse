@@ -74,7 +74,7 @@ namespace LibreMetaverse
                 using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(newInventory), 
                            Encoding.UTF8, HttpCapsClient.LLSD_XML))
                 {
-                    using (var reply = await Client.HttpCapsClient.PostAsync(uri, content, cancellationToken))
+                    using (var reply = await Client.HttpCapsClient.PostAsync(uri, content, cancellationToken).ConfigureAwait(false))
                     {
                         success = reply.IsSuccessStatusCode;
 
@@ -84,9 +84,9 @@ namespace LibreMetaverse
                             return;
                         }
 #if NET5_0_OR_GREATER
-                        if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken)) is OSDMap map && map["_embedded"] is OSDMap embedded)
+                        if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) is OSDMap map && map["_embedded"] is OSDMap embedded)
 #else
-                        if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync()) is OSDMap map && map["_embedded"] is OSDMap embedded)
+                        if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) is OSDMap map && map["_embedded"] is OSDMap embedded)
 #endif
                         {
                             var items = !createLink ?
@@ -126,7 +126,7 @@ namespace LibreMetaverse
                 using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(newInventory), 
                            Encoding.UTF8, HttpCapsClient.LLSD_XML))
                 {
-                    using (var reply = await Client.HttpCapsClient.PutAsync(uri, content, cancellationToken))
+                    using (var reply = await Client.HttpCapsClient.PutAsync(uri, content, cancellationToken).ConfigureAwait(false))
                     {
                         success = reply.IsSuccessStatusCode;
 
@@ -162,7 +162,7 @@ namespace LibreMetaverse
                     return;
                 }
 
-                using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken))
+                using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false))
                 {
                     success = reply.IsSuccessStatusCode;
 
@@ -194,7 +194,7 @@ namespace LibreMetaverse
             {
                 if (!Uri.TryCreate($"{cap}/item/{itemUuid}", UriKind.Absolute, out var uri)) { return; }
 
-                using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken))
+                using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false))
                 {
                     success = reply.IsSuccessStatusCode;
 
@@ -233,7 +233,7 @@ namespace LibreMetaverse
                 {
                     request.Headers.Add("Destination", destUuid.ToString());
 
-                    using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken))
+                    using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
                     {
                         success = reply.IsSuccessStatusCode;
 
@@ -269,7 +269,7 @@ namespace LibreMetaverse
                     return;
                 }
 
-                using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken))
+                using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false))
                 {
                     success = reply.IsSuccessStatusCode;
 
@@ -314,7 +314,7 @@ namespace LibreMetaverse
                     {
                         request.Content = content;
 
-                        using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken))
+                        using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
                         {
                             success = reply.IsSuccessStatusCode;
 
@@ -361,7 +361,7 @@ namespace LibreMetaverse
                     {
                         request.Content = content;
 
-                        using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken))
+                        using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
                         {
                             success = reply.IsSuccessStatusCode;
 
@@ -800,7 +800,7 @@ namespace LibreMetaverse
                     return false;
                 }
 
-                using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken))
+                using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false))
                 {
                     if (!reply.IsSuccessStatusCode)
                     {

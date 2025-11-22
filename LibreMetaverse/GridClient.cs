@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -24,6 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.Security;
@@ -32,9 +34,8 @@ using LibreMetaverse;
 namespace OpenMetaverse
 {
     /// <summary>
-    /// Main class to expose grid functionality to clients. All of the
-    /// classes needed for sending and receiving data are accessible through 
-    /// this class.
+    /// Main class to expose grid functionality to clients. All managers needed
+    /// for sending and receiving data are accessible through this client.
     /// </summary>
     /// <example>
     /// <code>
@@ -65,7 +66,7 @@ namespace OpenMetaverse
     /// }
     /// </code>
     /// </example>
-    public class GridClient
+    public class GridClient : IDisposable
     {
         /// <summary>Networking subsystem</summary>
         public NetworkManager Network;
@@ -172,5 +173,54 @@ namespace OpenMetaverse
         {
             return Self.Name;
         }
+
+        #region IDisposable
+        private bool _disposed;
+
+        /// <summary>
+        /// Dispose managed resources and subsystems
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                // Dispose subsystems that implement IDisposable
+                try { (Sound as IDisposable)?.Dispose(); } catch { }
+                try { (Terrain as IDisposable)?.Dispose(); } catch { }
+                try { (Appearance as IDisposable)?.Dispose(); } catch { }
+                try { (Inventory as IDisposable)?.Dispose(); } catch { }
+                try { (Assets as IDisposable)?.Dispose(); } catch { }
+                try { (Parcels as IDisposable)?.Dispose(); } catch { }
+                try { (Objects as IDisposable)?.Dispose(); } catch { }
+
+                // Dispose HttpCapsClient which is a HttpClient
+                try { HttpCapsClient?.Dispose(); } catch { }
+
+                // If Network has shutdown needs, attempt a graceful shutdown
+                try
+                {
+                    // Best-effort shutdown of network (if available)
+                    Network?.Shutdown( NetworkManager.DisconnectType.ClientInitiated );
+                }
+                catch { }
+            }
+
+            _disposed = true;
+        }
+
+        ~GridClient()
+        {
+            Dispose(false);
+        }
+
+        #endregion
     }
 }

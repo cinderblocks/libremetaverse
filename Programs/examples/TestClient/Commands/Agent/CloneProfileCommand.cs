@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Agent
@@ -10,17 +10,14 @@ namespace TestClient.Commands.Agent
         private Avatar.AvatarProperties Properties;
         private Avatar.Interests Interests;
         private readonly List<UUID> Groups = new List<UUID>();
-        private bool ReceivedProfile = false;
-        private bool ReceivedInterests = false;
-        private bool ReceivedGroups = false;
-        private readonly ManualResetEvent ReceivedProfileEvent = new ManualResetEvent(false);
+        // retain existing global event subscriptions for picks and pick info
 
         public CloneProfileCommand(TestClient testClient)
         {
             testClient.Avatars.AvatarInterestsReply += Avatars_AvatarInterestsReply;
-            testClient.Avatars.AvatarGroupsReply += Avatars_AvatarGroupsReply;            
+            testClient.Avatars.AvatarGroupsReply += Avatars_AvatarGroupsReply;
             testClient.Groups.GroupJoinedReply += Groups_OnGroupJoined;
-            testClient.Avatars.AvatarPicksReply += Avatars_AvatarPicksReply;            
+            testClient.Avatars.AvatarPicksReply += Avatars_AvatarPicksReply;
             testClient.Avatars.PickInfoReply += Avatars_PickInfoReply;
 
             Name = "cloneprofile";
@@ -28,30 +25,27 @@ namespace TestClient.Commands.Agent
                 "destroy your existing profile! Usage: cloneprofile [targetuuid]";
             Category = CommandCategory.Other;
         }
-        
+
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            if (args.Length != 1) { return Description; }
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
 
-            UUID targetID;
-            ReceivedInterests = false;
-            ReceivedGroups = false;
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
+            if (args.Length != 1) return Description;
 
-            try
-            {
-                targetID = new UUID(args[0]);
-            }
-            catch (Exception)
-            {
-                return Description;
-            }
+            if (!UUID.TryParse(args[0], out var targetID)) return Description;
 
-            // Request all packets that make up an avatar profile
+            Groups.Clear();
+
+            var profileTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            // Request the agent profile with callback
             Client.Avatars.RequestAgentProfile(targetID, (success, profile) =>
             {
                 if (success)
                 {
-                    ReceivedProfile = true;
                     Properties = new Avatar.AvatarProperties
                     {
                         AboutText = profile.SecondLifeAboutText,
@@ -63,28 +57,64 @@ namespace TestClient.Commands.Agent
                         MaturePublish = profile.IsMatureProfile
                     };
                 }
-            }).Wait(TimeSpan.FromSeconds(5));
 
-            //Request all avatars pics
-            Client.Avatars.RequestAvatarPicks(Client.Self.AgentID);
-            Client.Avatars.RequestAvatarPicks(targetID);
+                profileTcs.TrySetResult(success);
+            });
 
-            // Wait for all the packets to arrive
-            ReceivedProfileEvent.Reset();
-            ReceivedProfileEvent.WaitOne(TimeSpan.FromSeconds(5), false);
+            var profileCompleted = await Task.WhenAny(profileTcs.Task, Task.Delay(TimeSpan.FromSeconds(5))).ConfigureAwait(false);
+            if (profileCompleted != profileTcs.Task || !profileTcs.Task.Result)
+                return "Failed to retrieve profile";
 
-            // Check if everything showed up
-            if (!ReceivedProfile || !ReceivedInterests || !ReceivedGroups)
+            // Prepare TCS for interests and groups
+            var interestsTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var groupsTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            EventHandler<AvatarInterestsReplyEventArgs> interestsHandler = null;
+            EventHandler<AvatarGroupsReplyEventArgs> groupsHandler = null;
+
+            interestsHandler = (s, e) =>
             {
-                return "Failed to retrieve a complete profile for that UUID";
+                if (e.AvatarID == targetID)
+                {
+                    Interests = e.Interests;
+                    interestsTcs.TrySetResult(true);
+                }
+            };
+
+            groupsHandler = (s, e) =>
+            {
+                if (e.AvatarID == targetID)
+                {
+                    foreach (var g in e.Groups)
+                        Groups.Add(g.GroupID);
+                    groupsTcs.TrySetResult(true);
+                }
+            };
+
+            try
+            {
+                Client.Avatars.AvatarInterestsReply += interestsHandler;
+                Client.Avatars.AvatarGroupsReply += groupsHandler;
+
+                // Request avatar picks as original code did (may trigger replies)
+                Client.Avatars.RequestAvatarPicks(Client.Self.AgentID);
+                Client.Avatars.RequestAvatarPicks(targetID);
+
+                // Wait for both interests and groups, with timeout
+                var combined = Task.WhenAll(interestsTcs.Task, groupsTcs.Task);
+                var completedBoth = await Task.WhenAny(combined, Task.Delay(TimeSpan.FromSeconds(5))).ConfigureAwait(false);
+                if (completedBoth != combined)
+                    return "Failed to retrieve a complete profile for that UUID";
+            }
+            finally
+            {
+                Client.Avatars.AvatarInterestsReply -= interestsHandler;
+                Client.Avatars.AvatarGroupsReply -= groupsHandler;
             }
 
             // Synchronize our profile
             Client.Self.UpdateInterests(Interests);
             Client.Self.UpdateProfile(Properties);
-
-            // TODO: Leave all the groups we're currently a member of? This could
-            // break TestClient connectivity that might be relying on group authentication
 
             // Attempt to join all the groups
             foreach (UUID groupID in Groups)
@@ -109,7 +139,7 @@ namespace TestClient.Commands.Agent
 
         private void Avatars_PickInfoReply(object sender, PickInfoReplyEventArgs e)
         {
-            Client.Self.PickInfoUpdate(e.PickID, e.Pick.TopPick, e.Pick.ParcelID, e.Pick.Name, e.Pick.PosGlobal, 
+            Client.Self.PickInfoUpdate(e.PickID, e.Pick.TopPick, e.Pick.ParcelID, e.Pick.Name, e.Pick.PosGlobal,
                 e.Pick.SnapshotID, e.Pick.Desc);
         }
 
@@ -130,32 +160,12 @@ namespace TestClient.Commands.Agent
 
         private void Avatars_AvatarGroupsReply(object sender, AvatarGroupsReplyEventArgs e)
         {
-            lock (ReceivedProfileEvent)
-            {
-                foreach (AvatarGroup group in e.Groups)
-                {
-                    Groups.Add(group.GroupID);
-                }
-
-                ReceivedGroups = true;
-
-                if (ReceivedInterests && ReceivedGroups)
-                    ReceivedProfileEvent.Set();
-            }
+            // retained for potential other users of this class
         }
 
         private void Avatars_AvatarInterestsReply(object sender, AvatarInterestsReplyEventArgs e)
         {
-            lock (ReceivedProfileEvent)
-            {
-                Interests = e.Interests;
-                ReceivedInterests = true;
-
-                if (ReceivedInterests && ReceivedGroups)
-                    ReceivedProfileEvent.Set();
-            }
-        }        
-
-
+            // retained for potential other users of this class
+        }
     }
 }

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 using OpenMetaverse.Assets;
 
@@ -23,11 +23,14 @@ namespace TestClient.Commands.Inventory
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             UUID embedItemID = UUID.Zero, notecardItemID = UUID.Zero, notecardAssetID = UUID.Zero;
             string filename, fileData;
-            bool success = false, finalUploadSuccess = false;
-            string message = string.Empty;
-            AutoResetEvent notecardEvent = new AutoResetEvent(false);
+            bool finalUploadSuccess = false;
 
             if (args.Length == 1)
             {
@@ -60,7 +63,7 @@ namespace TestClient.Commands.Inventory
             if (embedItemID != UUID.Zero)
             {
                 // Try to fetch the inventory item
-                InventoryItem item = FetchItem(embedItemID);
+                var item = await FetchItemAsync(embedItemID).ConfigureAwait(false);
                 if (item != null)
                 {
                     notecard.EmbeddedItems = new List<InventoryItem> { item };
@@ -76,118 +79,115 @@ namespace TestClient.Commands.Inventory
 
             #endregion Notecard asset data
 
+            var createTcs = new TaskCompletionSource<InventoryItem>(TaskCreationOptions.RunContinuationsAsynchronously);
+
             Client.Inventory.RequestCreateItem(Client.Inventory.FindFolderForType(AssetType.Notecard),
                 filename, filename + " created by OpenMetaverse TestClient " + DateTime.Now, AssetType.Notecard,
                 UUID.Random(), InventoryType.Notecard, PermissionMask.All,
-                delegate(bool createSuccess, InventoryItem item)
+                (createSuccess, item) =>
                 {
                     if (createSuccess)
-                    {
-                        #region Upload an empty notecard asset first
-
-                        AutoResetEvent emptyNoteEvent = new AutoResetEvent(false);
-                        AssetNotecard empty = new AssetNotecard
-                        {
-                            BodyText = "\n"
-                        };
-                        empty.Encode();
-
-                        Client.Inventory.RequestUploadNotecardAsset(empty.AssetData, item.UUID,
-                            delegate(bool uploadSuccess, string status, UUID itemID, UUID assetID)
-                            {
-                                notecardItemID = itemID;
-                                notecardAssetID = assetID;
-                                success = uploadSuccess;
-                                message = status ?? "Unknown error uploading notecard asset";
-                                emptyNoteEvent.Set();
-                            });
-
-                        emptyNoteEvent.WaitOne(NOTECARD_CREATE_TIMEOUT, false);
-
-                        #endregion Upload an empty notecard asset first
-
-                        if (success)
-                        {
-                            // Upload the actual notecard asset
-                            Client.Inventory.RequestUploadNotecardAsset(notecard.AssetData, item.UUID,
-                                delegate(bool uploadSuccess, string status, UUID itemID, UUID assetID)
-                                {
-                                    notecardItemID = itemID;
-                                    notecardAssetID = assetID;
-                                    finalUploadSuccess = uploadSuccess;
-                                    message = status ?? "Unknown error uploading notecard asset";
-                                    notecardEvent.Set();
-                                });
-                        }
-                        else
-                        {
-                            notecardEvent.Set();
-                        }
-                    }
+                        createTcs.TrySetResult(item);
                     else
-                    {
-                        message = "Notecard item creation failed";
-                        notecardEvent.Set();
-                    }
+                        createTcs.TrySetException(new Exception("Item creation failed"));
                 }
             );
 
-            notecardEvent.WaitOne(NOTECARD_CREATE_TIMEOUT, false);
+            InventoryItem createdItem;
+            try
+            {
+                createdItem = await Task.WhenAny(createTcs.Task, Task.Delay(NOTECARD_CREATE_TIMEOUT)).ConfigureAwait(false) == createTcs.Task
+                    ? await createTcs.Task.ConfigureAwait(false)
+                    : null;
+            }
+            catch
+            {
+                createdItem = null;
+            }
+
+            if (createdItem == null)
+                return "Notecard item creation failed or timed out";
+
+            notecardItemID = createdItem.UUID;
+
+            // Upload the notecard asset
+            var uploadTcs = new TaskCompletionSource<(bool success, UUID assetID)>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            Client.Inventory.RequestUploadNotecardAsset(notecard.AssetData, createdItem.UUID,
+                (uploadSuccess, status, itemID, assetID) =>
+                {
+                    uploadTcs.TrySetResult((uploadSuccess, assetID));
+                });
+
+            var uploadCompleted = await Task.WhenAny(uploadTcs.Task, Task.Delay(NOTECARD_CREATE_TIMEOUT)).ConfigureAwait(false);
+            if (uploadCompleted != uploadTcs.Task)
+                return "Notecard upload timed out";
+
+            var uploadResult = await uploadTcs.Task.ConfigureAwait(false);
+            finalUploadSuccess = uploadResult.success;
+            notecardAssetID = uploadResult.assetID;
 
             if (finalUploadSuccess)
             {
                 Logger.Log("Notecard successfully created, ItemID " + notecardItemID + " AssetID " + notecardAssetID, Helpers.LogLevel.Info);
-                return DownloadNotecard(notecardItemID, notecardAssetID);
+                return await DownloadNotecardAsync(notecardItemID, notecardAssetID).ConfigureAwait(false);
             }
             else
-                return "Notecard creation failed: " + message;
+                return "Notecard creation failed during upload";
         }
 
-        private InventoryItem FetchItem(UUID itemID)
+        private async Task<InventoryItem> FetchItemAsync(UUID itemID)
         {
-            InventoryItem fetchItem = null;
-            AutoResetEvent fetchItemEvent = new AutoResetEvent(false);
+            var tcs = new TaskCompletionSource<InventoryItem>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            EventHandler<ItemReceivedEventArgs> itemReceivedCallback =
-                delegate(object sender, ItemReceivedEventArgs e)
+            EventHandler<ItemReceivedEventArgs> itemReceivedCallback = null;
+            itemReceivedCallback = (sender, e) =>
+            {
+                if (e.Item.UUID == itemID)
                 {
-                    if (e.Item.UUID == itemID)
-                    {
-                        fetchItem = e.Item;
-                        fetchItemEvent.Set();
-                    }
-                };
+                    tcs.TrySetResult(e.Item);
+                }
+            };
 
-            Client.Inventory.ItemReceived += itemReceivedCallback;
+            try
+            {
+                Client.Inventory.ItemReceived += itemReceivedCallback;
+                Client.Inventory.RequestFetchInventory(itemID, Client.Self.AgentID);
 
-            Client.Inventory.RequestFetchInventory(itemID, Client.Self.AgentID);
-
-            fetchItemEvent.WaitOne(INVENTORY_FETCH_TIMEOUT, false);
-
-            Client.Inventory.ItemReceived -= itemReceivedCallback;
-
-            return fetchItem;
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(INVENTORY_FETCH_TIMEOUT)).ConfigureAwait(false);
+                if (completed == tcs.Task)
+                    return await tcs.Task.ConfigureAwait(false);
+                else
+                    return null;
+            }
+            finally
+            {
+                Client.Inventory.ItemReceived -= itemReceivedCallback;
+            }
         }
 
-        private string DownloadNotecard(UUID itemID, UUID assetID)
+        private async Task<string> DownloadNotecardAsync(UUID itemID, UUID assetID)
         {
-            AutoResetEvent assetDownloadEvent = new AutoResetEvent(false);
             byte[] notecardData = null;
             string error = "Timeout";
-            var transferID = UUID.Random();
 
-            Client.Assets.RequestInventoryAsset(assetID, itemID, UUID.Zero, Client.Self.AgentID, AssetType.Notecard, true, transferID,
-                                delegate (AssetDownload transfer, Asset asset)
-                                {
-                                    if (transfer.Success)
-                                        notecardData = transfer.AssetData;
-                                    else
-                                        error = transfer.Status.ToString();
-                                    assetDownloadEvent.Set();
-                                }
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var transferId = UUID.Random();
+
+            Client.Assets.RequestInventoryAsset(assetID, itemID, UUID.Zero, Client.Self.AgentID, AssetType.Notecard, true, transferId,
+                (transfer, asset) =>
+                {
+                    if (transfer.Success)
+                        notecardData = transfer.AssetData;
+                    else
+                        error = transfer.Status.ToString();
+                    tcs.TrySetResult(true);
+                }
             );
 
-            assetDownloadEvent.WaitOne(NOTECARD_FETCH_TIMEOUT, false);
+            var completed = await Task.WhenAny(tcs.Task, Task.Delay(NOTECARD_FETCH_TIMEOUT)).ConfigureAwait(false);
+            if (completed != tcs.Task)
+                return "Error downloading notecard asset: " + error;
 
             if (notecardData != null)
                 return Encoding.UTF8.GetString(notecardData);

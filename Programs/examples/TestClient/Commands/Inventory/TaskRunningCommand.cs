@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Inventory
@@ -16,6 +16,11 @@ namespace TestClient.Commands.Inventory
         }
 
         public override string Execute(string[] args, UUID fromAgentID)
+        {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
         {
             if (args.Length != 1)
             {
@@ -32,12 +37,11 @@ namespace TestClient.Commands.Inventory
             {
                 return $"Couldn't find object {objectID}";
             }
-            
+
             var objectLocalID = found.Value.LocalID;
 
-            List<InventoryBase> items = Client.Inventory.GetTaskInventory(objectID, objectLocalID, TimeSpan.FromSeconds(30));
+            List<InventoryBase> items = await Client.Inventory.GetTaskInventoryAsync(objectID, objectLocalID).ConfigureAwait(false);
 
-            //bool wantSet = false;
             bool setTaskTo = false;
             if (items != null)
             {
@@ -62,69 +66,79 @@ namespace TestClient.Commands.Inventory
                     }
 
                 }
-                bool wasRunning = false;
 
-                EventHandler<ScriptRunningReplyEventArgs> callback;
-                using (AutoResetEvent OnScriptRunningReset = new AutoResetEvent(false))
+                foreach (var t in items)
                 {
-                    callback = ((sender, e) =>
+                    if (t is InventoryFolder)
                     {
-                        if (e.ObjectID == objectID)
-                        {
-                            result += $" IsMono: {e.IsMono} IsRunning: {e.IsRunning}";
-                            wasRunning = e.IsRunning;
-                            OnScriptRunningReset.Set();
-                        }
-                    });
-
-                    Client.Inventory.ScriptRunningReply += callback;
-
-                    foreach (var t in items)
+                        // this shouldn't happen this year
+                        result += $"[Folder] Name: {t.Name}" + Environment.NewLine;
+                    }
+                    else
                     {
-                        if (t is InventoryFolder)
+                        InventoryItem item = (InventoryItem)t;
+                        AssetType assetType = item.AssetType;
+                        result += $"[Item] Name: {item.Name} Desc: {item.Description} Type: {assetType}";
+                        if (assetType == AssetType.LSLBytecode || assetType == AssetType.LSLText)
                         {
-                            // this shouldn't happen this year
-                            result += $"[Folder] Name: {t.Name}" + Environment.NewLine;
-                        }
-                        else
-                        {
-                            InventoryItem item = (InventoryItem)t;
-                            AssetType assetType = item.AssetType;
-                            result += $"[Item] Name: {item.Name} Desc: {item.Description} Type: {assetType}";
-                            if (assetType == AssetType.LSLBytecode || assetType == AssetType.LSLText)
+                            // Query script running state asynchronously
+                            var wasRunning = await QueryScriptRunningAsync(objectID, item.UUID).ConfigureAwait(false);
+                            result += $" IsRunning: {wasRunning}";
+
+                            if (setAny && item.Name.Contains(matching))
                             {
-                                OnScriptRunningReset.Reset();
-                                Client.Inventory.RequestGetScriptRunning(objectID, item.UUID);
-                                if (!OnScriptRunningReset.WaitOne(10000, true))
+                                if (wasRunning != setTaskTo)
                                 {
-                                    result += " (no script info)";
-                                }
-                                if (setAny && item.Name.Contains(matching))
-                                {
-                                    if (wasRunning != setTaskTo)
-                                    {
-                                        OnScriptRunningReset.Reset();
-                                        result += " Setting " + setTaskTo + " => ";
-                                        Client.Inventory.RequestSetScriptRunning(objectID, item.UUID, setTaskTo);
-                                        if (!OnScriptRunningReset.WaitOne(10000, true))
-                                        {
-                                            result += " (was not set)";
-                                        }
-                                    }
+                                    // Set script running and then re-query
+                                    Client.Inventory.RequestSetScriptRunning(objectID, item.UUID, setTaskTo);
+                                    var newState = await QueryScriptRunningAsync(objectID, item.UUID).ConfigureAwait(false);
+                                    result += $" Setting {setTaskTo} => {newState}";
                                 }
                             }
-
-                            result += Environment.NewLine;
                         }
+
+                        result += Environment.NewLine;
                     }
                 }
-                Client.Inventory.ScriptRunningReply -= callback;
+
                 return result;
             }
             else
             {
                 return "Failed to download task inventory for " + objectLocalID;
             }
+        }
+
+        private Task<bool> QueryScriptRunningAsync(UUID objectID, UUID scriptID)
+        {
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            EventHandler<ScriptRunningReplyEventArgs> callback = null;
+            callback = (sender, e) =>
+            {
+                if (e.ObjectID == objectID && e.ScriptID == scriptID)
+                {
+                    tcs.TrySetResult(e.IsRunning);
+                }
+            };
+
+            Client.Inventory.ScriptRunningReply += callback;
+
+            // Request status
+            Client.Inventory.RequestGetScriptRunning(objectID, scriptID);
+
+            // Time out after 10 seconds
+            var delay = Task.Delay(TimeSpan.FromSeconds(10));
+
+            return Task.WhenAny(tcs.Task, delay).ContinueWith(t =>
+            {
+                Client.Inventory.ScriptRunningReply -= callback;
+                if (t.Result == delay)
+                    return false;
+                if (t.Result == tcs.Task && tcs.Task.Status == TaskStatus.RanToCompletion)
+                    return tcs.Task.Result;
+                return false;
+            }, TaskScheduler.Default);
         }
     }
 }

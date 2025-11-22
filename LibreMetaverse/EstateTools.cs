@@ -55,9 +55,12 @@ namespace OpenMetaverse
     /// <summary>
     /// Estate level administration and utilities
     /// </summary>
-    public class EstateTools
+    public class EstateTools : IDisposable
     {
         private readonly GridClient Client;
+        // Stored event callback so it can be unregistered later
+        private readonly Caps.EventQueueCallback m_LandStatCapsCallback;
+        private bool disposed = false;
 
         /// <summary>Textures for each of the four terrain height levels</summary>
         public GroundTextureSettings GroundTextures;
@@ -79,7 +82,9 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.EstateOwnerMessage, EstateOwnerMessageHandler);
             Client.Network.RegisterCallback(PacketType.EstateCovenantReply, EstateCovenantReplyHandler);
 
-            Client.Network.RegisterEventCallback("LandStatReply", new Caps.EventQueueCallback(LandStatCapsReplyHandler));
+            // Store the delegate instance so we can unregister the same instance on dispose
+            m_LandStatCapsCallback = new Caps.EventQueueCallback(LandStatCapsReplyHandler);
+            Client.Network.RegisterEventCallback("LandStatReply", m_LandStatCapsCallback);
         }
 
         #region Enums
@@ -623,9 +628,21 @@ namespace OpenMetaverse
             bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, 
             bool blockParcelSearch, RegionMaturity maturity)
         {
-            if (Client.Network.CurrentSim?.Caps?.CapabilityURI("DispatchRegionInfo") == null 
-                || !SetRegionInfoHttp(blockTerraform, blockFly, blockFlyOver, allowDamage, allowLandResell, restrictPushing, 
-                    allowParcelJoinDivide, agentLimit, objectBonus, blockParcelSearch, maturity).Result)
+            // Preserve synchronous API while avoiding Task.Result to prevent deadlocks.
+            SetRegionInfoAsync(blockTerraform, blockFly, blockFlyOver, allowDamage, allowLandResell, restrictPushing,
+                allowParcelJoinDivide, agentLimit, objectBonus, blockParcelSearch, maturity).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Async-first variant of SetRegionInfo. Awaits capability call and falls back to UDP if necessary.
+        /// </summary>
+        public async Task SetRegionInfoAsync(bool blockTerraform, bool blockFly, bool blockFlyOver, bool allowDamage,
+            bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus,
+            bool blockParcelSearch, RegionMaturity maturity)
+        {
+            if (Client.Network.CurrentSim?.Caps?.CapabilityURI("DispatchRegionInfo") == null
+                || !await SetRegionInfoHttp(blockTerraform, blockFly, blockFlyOver, allowDamage, allowLandResell, restrictPushing,
+                    allowParcelJoinDivide, agentLimit, objectBonus, blockParcelSearch, maturity).ConfigureAwait(false))
             {
                 Logger.Log("Falling back to LLUDP SetRegionInfo", Helpers.LogLevel.Info);
                 SetRegionInfoUdp(blockTerraform, blockFly, allowDamage, allowLandResell, restrictPushing,
@@ -1231,6 +1248,56 @@ namespace OpenMetaverse
                 OnTopCollidersReply(new TopCollidersReplyEventArgs((int)m.TotalObjectCount, Tasks));
             }
         }
+        #endregion
+
+        #region IDisposable
+
+        /// <summary>
+        /// Dispose pattern. Unregister network callbacks and event callbacks.
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed) return;
+
+            if (disposing)
+            {
+                try
+                {
+                    if (Client?.Network != null)
+                    {
+                        try { Client.Network.UnregisterCallback(PacketType.LandStatReply, LandStatReplyHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.EstateOwnerMessage, EstateOwnerMessageHandler); } catch { }
+                        try { Client.Network.UnregisterCallback(PacketType.EstateCovenantReply, EstateCovenantReplyHandler); } catch { }
+                        try { if (m_LandStatCapsCallback != null) Client.Network.UnregisterEventCallback("LandStatReply", m_LandStatCapsCallback); } catch { }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Exception while disposing EstateTools: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                }
+            }
+
+            disposed = true;
+        }
+
+        /// <summary>
+        /// Public Dispose
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Finalizer
+        /// </summary>
+        ~EstateTools()
+        {
+            Dispose(false);
+        }
+
         #endregion
     }
     #region EstateTools EventArgs Classes

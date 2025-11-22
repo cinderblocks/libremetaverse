@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Movement
@@ -14,6 +15,11 @@ namespace TestClient.Commands.Movement
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length > 1)
                 return "Usage: back [seconds]";
 
@@ -26,26 +32,26 @@ namespace TestClient.Commands.Movement
             }
             else
             {
-                // Parse the number of seconds
-                int duration;
-                if (!int.TryParse(args[0], out duration))
+                if (!int.TryParse(args[0], out var duration))
                     return "Usage: back [seconds]";
-                // Convert to milliseconds
-                duration *= 1000;
 
+                int ms = duration * 1000;
                 int start = Environment.TickCount;
 
                 Client.Self.Movement.AtNeg = true;
 
-                while (Environment.TickCount - start < duration)
+                try
                 {
-                    // The movement timer will do this automatically, but we do it here as an example
-                    // and to make sure updates are being sent out fast enough
-                    Client.Self.Movement.SendUpdate(false);
-                    global::System.Threading.Thread.Sleep(100);
+                    while (Environment.TickCount - start < ms)
+                    {
+                        Client.Self.Movement.SendUpdate(false);
+                        await Task.Delay(100).ConfigureAwait(false);
+                    }
                 }
-
-                Client.Self.Movement.AtNeg = false;
+                finally
+                {
+                    Client.Self.Movement.AtNeg = false;
+                }
             }
 
             return "Moved backward";

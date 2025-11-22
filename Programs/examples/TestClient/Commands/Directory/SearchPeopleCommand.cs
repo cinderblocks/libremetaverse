@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Linq;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Directory
 {
     class SearchPeopleCommand : Command
     {
-        global::System.Threading.AutoResetEvent waitQuery = new global::System.Threading.AutoResetEvent(false);
         int resultCount = 0;
 
         public SearchPeopleCommand(TestClient testClient)
@@ -18,6 +18,11 @@ namespace TestClient.Commands.Directory
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             // process command line arguments
             if (args.Length < 1)
                 return "Usage: searchpeople [search text]";
@@ -25,43 +30,52 @@ namespace TestClient.Commands.Directory
             string searchText = args.Aggregate(string.Empty, (current, t) => current + (t + " "));
             searchText = searchText.TrimEnd();
 
-            waitQuery.Reset();
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            
-            Client.Directory.DirPeopleReply += Directory_DirPeople;
-
-            // send the request to the directory manager
-            Client.Directory.StartPeopleSearch(searchText, 0);
-            
-            string result;
-            if (waitQuery.WaitOne(TimeSpan.FromSeconds(20), false) && Client.Network.Connected)
+            EventHandler<DirPeopleReplyEventArgs> handler = null;
+            handler = (sender, e) =>
             {
-                result = "Your query '" + searchText + "' matched " + resultCount + " People. ";
-            }
-            else
-            {
-                result = "Timeout waiting for simulator to respond.";
-            }
-
-            Client.Directory.DirPeopleReply -= Directory_DirPeople;
-
-            return result;
-        }
-
-        void Directory_DirPeople(object sender, DirPeopleReplyEventArgs e)
-        {
-            if (e.MatchedPeople.Count > 0)
-            {
-                foreach (DirectoryManager.AgentSearchData agent in e.MatchedPeople)
+                if (e.MatchedPeople.Count > 0)
                 {
-                    Console.WriteLine("{0} {1} ({2})", agent.FirstName, agent.LastName, agent.AgentID);                   
+                    foreach (DirectoryManager.AgentSearchData agent in e.MatchedPeople)
+                    {
+                        Console.WriteLine("{0} {1} ({2})", agent.FirstName, agent.LastName, agent.AgentID);
+                    }
                 }
-            }
-            else
+                else
+                {
+                    Console.WriteLine("Didn't find any people that matched your query :(");
+                }
+
+                resultCount = e.MatchedPeople.Count;
+                tcs.TrySetResult(true);
+            };
+
+            try
             {
-                Console.WriteLine("Didn't find any people that matched your query :(");
+                Client.Directory.DirPeopleReply += handler;
+
+                // send the request to the directory manager
+                var queryId = Client.Directory.StartPeopleSearch(searchText, 0);
+
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(20))).ConfigureAwait(false);
+
+                string result;
+                if (completed == tcs.Task && Client.Network.Connected)
+                {
+                    result = "Your query '" + searchText + "' matched " + resultCount + " People. ";
+                }
+                else
+                {
+                    result = "Timeout waiting for simulator to respond.";
+                }
+
+                return result;
             }
-            waitQuery.Set();
+            finally
+            {
+                Client.Directory.DirPeopleReply -= handler;
+            }
         }
     }
 }

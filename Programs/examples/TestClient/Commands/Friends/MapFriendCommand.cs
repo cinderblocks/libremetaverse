@@ -1,14 +1,11 @@
 using System;
-using System.Text;
-using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Friends
 {
     public class MapFriendCommand : Command
     {
-        ManualResetEvent WaitforFriend = new ManualResetEvent(false);
-
         public MapFriendCommand(TestClient testClient)
         {
             Name = "mapfriend";
@@ -17,37 +14,43 @@ namespace TestClient.Commands.Friends
         }
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length != 1)
                 return Description;
 
-            UUID targetID;
-
-            if (!UUID.TryParse(args[0], out targetID))
+            if (!UUID.TryParse(args[0], out var targetID))
                 return Description;
 
-            StringBuilder sb = new StringBuilder();
+            var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            EventHandler<FriendFoundReplyEventArgs> del = delegate(object sender, FriendFoundReplyEventArgs e)
+            EventHandler<FriendFoundReplyEventArgs> del = null;
+            del = (object sender, FriendFoundReplyEventArgs e) =>
             {
                 if (!e.RegionHandle.Equals(0))
-                    sb.AppendFormat("Found Friend {0} in {1} at {2}/{3}", e.AgentID, e.RegionHandle, e.Location.X, e.Location.Y);
+                    tcs.TrySetResult($"Found Friend {e.AgentID} in {e.RegionHandle} at {e.Location.X}/{e.Location.Y}");
                 else
-                    sb.AppendFormat("Found Friend {0}, But they appear to be offline", e.AgentID);
-
-                WaitforFriend.Set();
+                    tcs.TrySetResult($"Found Friend {e.AgentID}, But they appear to be offline");
             };
 
-
-
-            Client.Friends.FriendFoundReply += del;
-            WaitforFriend.Reset();
-            Client.Friends.MapFriend(targetID);
-            if (!WaitforFriend.WaitOne(TimeSpan.FromSeconds(10), false))
+            try
             {
-                sb.AppendFormat("Timeout waiting for reply, Do you have mapping rights on {0}?", targetID);
+                Client.Friends.FriendFoundReply += del;
+                Client.Friends.MapFriend(targetID);
+
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
+                if (completed != tcs.Task)
+                    return $"Timeout waiting for reply, Do you have mapping rights on {targetID}?";
+
+                return await tcs.Task.ConfigureAwait(false);
             }
-            Client.Friends.FriendFoundReply -= del;
-            return sb.ToString();
+            finally
+            {
+                Client.Friends.FriendFoundReply -= del;
+            }
         }
     }
 }

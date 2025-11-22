@@ -154,20 +154,18 @@ namespace OpenMetaverse
                         tmp[i * 4 + 2] = src[i * 4 + 1];
                         tmp[i * 4 + 3] = src[i * 4 + 0];
                     }
-                    var fspan = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, float>(tmp);
-                    X = fspan[0];
-                    Y = fspan[1];
-                    Z = fspan[2];
-                    W = fspan[3];
+                    X = Utils.ReadSingleLittleEndian(byteArray, pos + 0);
+                    Y = Utils.ReadSingleLittleEndian(byteArray, pos + 4);
+                    Z = Utils.ReadSingleLittleEndian(byteArray, pos + 8);
+                    W = Utils.ReadSingleLittleEndian(byteArray, pos + 12);
                 }
                 else
                 {
                     // Little endian architecture
-                    var fspan = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, float>(src);
-                    X = fspan[0];
-                    Y = fspan[1];
-                    Z = fspan[2];
-                    W = fspan[3];
+                    X = Utils.ReadSingleLittleEndian(byteArray, pos + 0);
+                    Y = Utils.ReadSingleLittleEndian(byteArray, pos + 4);
+                    Z = Utils.ReadSingleLittleEndian(byteArray, pos + 8);
+                    W = Utils.ReadSingleLittleEndian(byteArray, pos + 12);
                 }
             }
             else
@@ -246,20 +244,10 @@ namespace OpenMetaverse
 
                 var bytes = System.Runtime.InteropServices.MemoryMarshal.Cast<float, byte>(vals);
 
-                if (!BitConverter.IsLittleEndian)
-                {
-                    for (int i = 0; i < 3; i++)
-                    {
-                        dest[pos + i * 4 + 0] = bytes[i * 4 + 3];
-                        dest[pos + i * 4 + 1] = bytes[i * 4 + 2];
-                        dest[pos + i * 4 + 2] = bytes[i * 4 + 1];
-                        dest[pos + i * 4 + 3] = bytes[i * 4 + 0];
-                    }
-                }
-                else
-                {
-                    bytes.CopyTo(new Span<byte>(dest, pos, 12));
-                }
+                // Write always in little-endian order
+                Utils.WriteSingleLittleEndian(dest, pos + 0, vals[0]);
+                Utils.WriteSingleLittleEndian(dest, pos + 4, vals[1]);
+                Utils.WriteSingleLittleEndian(dest, pos + 8, vals[2]);
             }
             else
             {

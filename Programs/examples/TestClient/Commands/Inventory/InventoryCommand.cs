@@ -1,6 +1,6 @@
-using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Inventory
@@ -19,33 +19,46 @@ namespace TestClient.Commands.Inventory
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             Manager = Client.Inventory;
             Inventory = Manager.Store;
 
             StringBuilder result = new StringBuilder();
+            var watch = Stopwatch.StartNew();
 
             InventoryFolder rootFolder = Inventory.RootFolder;
-            PrintFolder(rootFolder, result, 0);
+            var itemCount = await PrintFolderAsync(rootFolder, result, 0).ConfigureAwait(false);
+            watch.Stop();
 
+            result.AppendLine();
+            result.AppendLine($"Returned {itemCount} items in {watch.Elapsed.TotalSeconds} seconds.");
             return result.ToString();
         }
 
-        void PrintFolder(InventoryFolder f, StringBuilder result, int indent)
+        private async Task<int> PrintFolderAsync(InventoryFolder f, StringBuilder result, int indent)
         {
-            List<InventoryBase> contents = Manager.FolderContents(f.UUID, Client.Self.AgentID,
-                true, true, InventorySortOrder.ByName, TimeSpan.FromSeconds(3));
+            var numItems = 0;
+
+            var contents = await Manager.FolderContentsAsync(f.UUID, Client.Self.AgentID, true, true, InventorySortOrder.ByName).ConfigureAwait(false);
 
             if (contents != null)
             {
                 foreach (InventoryBase i in contents)
                 {
                     result.AppendFormat("{0}{1} ({2})\n", new string(' ', indent * 2), i.Name, i.UUID);
+                    numItems++;
                     if (i is InventoryFolder folder)
                     {
-                        PrintFolder(folder, result, indent + 1);
+                        numItems += await PrintFolderAsync(folder, result, indent + 1).ConfigureAwait(false);
                     }
                 }
             }
+
+            return numItems;
         }
     }
 }

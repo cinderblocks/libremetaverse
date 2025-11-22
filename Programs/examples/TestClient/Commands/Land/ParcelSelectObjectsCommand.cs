@@ -1,6 +1,6 @@
 using System;
 using System.Text;
-using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Land
@@ -16,50 +16,50 @@ namespace TestClient.Commands.Land
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length < 2)
                 return "Usage: selectobjects parcelID OwnerUUID (use parcelinfo to get ID, use parcelprimowners to get ownerUUID)";
 
-            int parcelID;
-            UUID ownerUUID;
+            if (!int.TryParse(args[0], out var parcelID) || !UUID.TryParse(args[1], out var ownerUUID))
+                return "Usage: selectobjects parcelID OwnerUUID (use parcelinfo to get ID, use parcelprimowners to get ownerUUID)";
 
-            int counter = 0;
-            StringBuilder result = new StringBuilder();
-            // test argument that is is a valid integer, then verify we have that parcel data stored in the dictionary
-            if (int.TryParse(args[0], out parcelID) 
-                && UUID.TryParse(args[1], out ownerUUID))
+            var tcs = new TaskCompletionSource<ForceSelectObjectsReplyEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            EventHandler<ForceSelectObjectsReplyEventArgs> callback = null;
+            callback = (sender, e) =>
             {
-                AutoResetEvent wait = new AutoResetEvent(false);
-                EventHandler<ForceSelectObjectsReplyEventArgs> callback = delegate(object sender, ForceSelectObjectsReplyEventArgs e)
-                {
-                    foreach (var id in e.ObjectIDs)
-                    {
-                        result.Append(id + " ");
-                        counter++;
-                    }
+                if (e.ObjectIDs.Count < 251)
+                    tcs.TrySetResult(e);
+            };
 
-                    if (e.ObjectIDs.Count < 251)
-                        wait.Set();
-                };
-                
-
+            try
+            {
                 Client.Parcels.ForceSelectObjectsReply += callback;
                 Client.Parcels.RequestSelectObjects(parcelID, (ObjectReturnType)16, ownerUUID);
-                
 
-                Client.Parcels.RequestObjectOwners(Client.Network.CurrentSim, parcelID);
-                if (!wait.WaitOne(TimeSpan.FromSeconds(30), false))
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(30))).ConfigureAwait(false);
+                if (completed != tcs.Task)
+                    return "Timed out waiting for packet.";
+
+                var eargs = await tcs.Task.ConfigureAwait(false);
+                var result = new StringBuilder();
+                int counter = 0;
+                foreach (var id in eargs.ObjectIDs)
                 {
-                    result.AppendLine("Timed out waiting for packet.");
+                    result.Append(id + " ");
+                    counter++;
                 }
-                
-                Client.Parcels.ForceSelectObjectsReply -= callback;
+
                 result.AppendLine("Found a total of " + counter + " Objects");
                 return result.ToString();
             }
-            else
+            finally
             {
-                return
-                    $"Unable to find Parcel {args[0]} in Parcels Dictionary, Did you run parcelinfo to populate the dictionary first?";
+                Client.Parcels.ForceSelectObjectsReply -= callback;
             }
         }
     }

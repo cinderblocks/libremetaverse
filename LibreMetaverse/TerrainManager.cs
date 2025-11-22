@@ -29,7 +29,7 @@ using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
 {
-    public class TerrainManager
+    public class TerrainManager : IDisposable
     {
         #region EventHandling
         /// <summary>The event subscribers. null if no subscribers</summary>
@@ -190,6 +190,44 @@ namespace OpenMetaverse
                     break;
             }
         }
+
+        #region IDisposable
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                try
+                {
+                    if (Client?.Network != null)
+                    {
+                        Client.Network.UnregisterCallback(PacketType.LayerData, LayerDataHandler);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Exception while disposing TerrainManager: " + ex.Message, Helpers.LogLevel.Warning, Client, ex);
+                }
+            }
+
+            _disposed = true;
+        }
+
+        ~TerrainManager()
+        {
+            Dispose(false);
+        }
+
+        #endregion
     }
 
     #region EventArgs classes

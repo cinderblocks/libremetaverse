@@ -1,5 +1,6 @@
 ﻿/*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -46,12 +47,7 @@ namespace OpenMetaverse.Stats
             public long RxBytes { get; set; }
         }
 
-        private readonly Dictionary<string, Stat> m_StatsCollection;
-
-        public UtilizationStatistics()
-        {
-            m_StatsCollection = new Dictionary<string, Stat>();
-        }
+        private readonly Dictionary<string, Stat> m_StatsCollection = new Dictionary<string, Stat>();
 
         internal void Update(string key, Type type, long txBytes, long rxBytes)
         {

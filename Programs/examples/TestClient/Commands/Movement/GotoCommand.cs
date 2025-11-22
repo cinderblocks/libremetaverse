@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Movement
@@ -13,8 +14,13 @@ namespace TestClient.Commands.Movement
 
         public override string Execute(string[] args, UUID fromAgentID)
 		{
+			return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+		}
+
+        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+		{
 			if (args.Length < 1)
-                return "Usage: goto sim/x/y/z";
+                return Task.FromResult("Usage: goto sim/x/y/z");
 
             string destination = string.Empty;
 
@@ -27,7 +33,7 @@ namespace TestClient.Commands.Movement
 
             string[] tokens = destination.Split(new[] { '/' });
             if (tokens.Length != 4)
-                return "Usage: goto sim/x/y/z";
+                return Task.FromResult("Usage: goto sim/x/y/z");
 
             string sim = tokens[0];
             float x, y, z;
@@ -35,13 +41,13 @@ namespace TestClient.Commands.Movement
                 !float.TryParse(tokens[2], out y) ||
                 !float.TryParse(tokens[3], out z))
             {
-                return "Usage: goto sim/x/y/z";
+                return Task.FromResult("Usage: goto sim/x/y/z");
             }
 
             if (Client.Self.Teleport(sim, new Vector3(x, y, z)))
-                return "Teleported to " + Client.Network.CurrentSim;
+                return Task.FromResult("Teleported to " + Client.Network.CurrentSim);
             else
-                return "Teleport failed: " + Client.Self.TeleportMessage;
+                return Task.FromResult("Teleport failed: " + Client.Self.TeleportMessage);
 		}
     }
 }

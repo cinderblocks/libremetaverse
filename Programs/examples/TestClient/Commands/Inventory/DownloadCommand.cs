@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 using OpenMetaverse.Assets;
 
@@ -8,10 +8,6 @@ namespace TestClient.Commands.Inventory
 {
     public class DownloadCommand : Command
     {
-        UUID AssetID;
-        AssetType assetType;
-        AutoResetEvent DownloadHandle = new AutoResetEvent(false);
-        bool Success;
         string usage = "Usage: download [uuid] [assetType]";
 
         public DownloadCommand(TestClient testClient)
@@ -23,57 +19,64 @@ namespace TestClient.Commands.Inventory
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             if (args.Length != 2)
                 return usage;
 
-            Success = false;
-            AssetID = UUID.Zero;
-            assetType = AssetType.Unknown;
-            DownloadHandle.Reset();
-
-            if (!UUID.TryParse(args[0], out AssetID))
+            if (!UUID.TryParse(args[0], out var assetID))
                 return usage;
 
-            try {
+            AssetType assetType;
+            try
+            {
                 assetType = (AssetType)Enum.Parse(typeof(AssetType), args[1], true);
-            } catch (ArgumentException) {
+            }
+            catch (ArgumentException)
+            {
                 return usage;
             }
+
             if (!Enum.IsDefined(typeof(AssetType), assetType))
                 return usage;
 
-            // Start the asset download
-            Client.Assets.RequestAsset(AssetID, assetType, true, Assets_OnAssetReceived);
+            var tcs = new TaskCompletionSource<(bool Success, Asset Asset)>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            if (DownloadHandle.WaitOne(TimeSpan.FromMinutes(2), false))
+            // Request the asset and complete the TaskCompletionSource when the callback runs
+            Client.Assets.RequestAsset(assetID, assetType, true, (transfer, asset) =>
             {
-                return Success ? $"Saved {AssetID}.{assetType.ToString().ToLower()}" 
-                    : $"Failed to download asset {AssetID}, perhaps {assetType} is the incorrect asset type?";
-            }
-            else
+                if (transfer.AssetID != assetID) return;
+                tcs.TrySetResult((transfer.Success, asset));
+            });
+
+            var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromMinutes(2))).ConfigureAwait(false);
+
+            if (completed != tcs.Task)
             {
                 return "Timed out waiting for texture download";
             }
-        }
 
-        private void Assets_OnAssetReceived(AssetDownload transfer, Asset asset)
-        {
-            if (transfer.AssetID == AssetID)
+            var result = await tcs.Task.ConfigureAwait(false);
+
+            if (result.Success)
             {
-                if (transfer.Success)
+                try
                 {
-                    try
-                    {
-                        File.WriteAllBytes($"{AssetID}.{assetType.ToString().ToLower()}", asset.AssetData);
-                        Success = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Log(ex.Message, Helpers.LogLevel.Error, ex);
-                    }
+                    File.WriteAllBytes($"{assetID}.{assetType.ToString().ToLower()}", result.Asset.AssetData);
+                    return $"Saved {assetID}.{assetType.ToString().ToLower()}";
                 }
-
-                DownloadHandle.Set();
+                catch (Exception ex)
+                {
+                    Logger.Log(ex.Message, Helpers.LogLevel.Error, ex);
+                    return $"Failed to save asset {assetID}: {ex.Message}";
+                }
+            }
+            else
+            {
+                return $"Failed to download asset {assetID}, perhaps {assetType} is the incorrect asset type?";
             }
         }
     }

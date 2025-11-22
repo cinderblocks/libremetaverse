@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -38,7 +39,7 @@ namespace OpenMetaverse
         /// <summary>Maximum bits per second for resending unacknowledged packets</summary>
         public float Resend
         {
-            get { return resend; }
+            get => resend;
             set
             {
                 if (value > 150000.0f) resend = 150000.0f;
@@ -49,7 +50,7 @@ namespace OpenMetaverse
         /// <summary>Maximum bits per second for LayerData terrain</summary>
         public float Land
         {
-            get { return land; }
+            get => land;
             set
             {
                 if (value > 170000.0f) land = 170000.0f;
@@ -60,7 +61,7 @@ namespace OpenMetaverse
         /// <summary>Maximum bits per second for LayerData wind data</summary>
         public float Wind
         {
-            get { return wind; }
+            get => wind;
             set
             {
                 if (value > 34000.0f) wind = 34000.0f;
@@ -71,7 +72,7 @@ namespace OpenMetaverse
         /// <summary>Maximum bits per second for LayerData clouds</summary>
         public float Cloud
         {
-            get { return cloud; }
+            get => cloud;
             set
             {
                 if (value > 34000.0f) cloud = 34000.0f;
@@ -82,7 +83,7 @@ namespace OpenMetaverse
         /// <summary>Unknown, includes object data</summary>
         public float Task
         {
-            get { return task; }
+            get => task;
             set
             {
                 if (value > 446000.0f*3) task = 446000.0f*3;
@@ -93,7 +94,7 @@ namespace OpenMetaverse
         /// <summary>Maximum bits per second for textures</summary>
         public float Texture
         {
-            get { return texture; }
+            get => texture;
             set
             {
                 if (value > 446000.0f) texture = 446000.0f;
@@ -104,7 +105,7 @@ namespace OpenMetaverse
         /// <summary>Maximum bits per second for downloaded assets</summary>
         public float Asset
         {
-            get { return asset; }
+            get => asset;
             set
             {
                 if (value > 220000.0f) asset = 220000.0f;
@@ -114,10 +115,10 @@ namespace OpenMetaverse
         }
 
         /// <summary>Maximum bits per second the entire connection, divided up
-        /// between invidiual streams using default multipliers</summary>
+        /// between individual streams using default multipliers</summary>
         public float Total
         {
-            get { return Resend + Land + Wind + Cloud + Task + Texture + Asset; }
+            get => Resend + Land + Wind + Cloud + Task + Texture + Asset;
             set
             {
                 // Sane initial values
@@ -131,7 +132,7 @@ namespace OpenMetaverse
             }
         }
 
-        private GridClient Client;
+        private readonly GridClient Client;
         private float resend;
         private float land;
         private float wind;
@@ -161,30 +162,14 @@ namespace OpenMetaverse
         /// never send a throttle packet to the client</remarks>
         public AgentThrottle(byte[] data, int pos)
         {
-            byte[] adjData;
-
-            if (!BitConverter.IsLittleEndian)
-            {
-                byte[] newData = new byte[7 * 4];
-                Buffer.BlockCopy(data, pos, newData, 0, 7 * 4);
-
-                for (int i = 0; i < 7; i++)
-                    Array.Reverse(newData, i * 4, 4);
-
-                adjData = newData;
-            }
-            else
-            {
-                adjData = data;
-            }
-
-            Resend = BitConverter.ToSingle(adjData, pos); pos += 4;
-            Land = BitConverter.ToSingle(adjData, pos); pos += 4;
-            Wind = BitConverter.ToSingle(adjData, pos); pos += 4;
-            Cloud = BitConverter.ToSingle(adjData, pos); pos += 4;
-            Task = BitConverter.ToSingle(adjData, pos); pos += 4;
-            Texture = BitConverter.ToSingle(adjData, pos); pos += 4;
-            Asset = BitConverter.ToSingle(adjData, pos);
+            // Decode 7 little-endian floats from the provided byte array
+            Resend = Utils.ReadSingleLittleEndian(data, pos); pos += 4;
+            Land = Utils.ReadSingleLittleEndian(data, pos); pos += 4;
+            Wind = Utils.ReadSingleLittleEndian(data, pos); pos += 4;
+            Cloud = Utils.ReadSingleLittleEndian(data, pos); pos += 4;
+            Task = Utils.ReadSingleLittleEndian(data, pos); pos += 4;
+            Texture = Utils.ReadSingleLittleEndian(data, pos); pos += 4;
+            Asset = Utils.ReadSingleLittleEndian(data, pos);
         }
 
         /// <summary>
@@ -202,12 +187,20 @@ namespace OpenMetaverse
         /// </summary>
         public void Set(Simulator simulator)
         {
-            AgentThrottlePacket throttle = new AgentThrottlePacket();
-            throttle.AgentData.AgentID = Client.Self.AgentID;
-            throttle.AgentData.SessionID = Client.Self.SessionID;
-            throttle.AgentData.CircuitCode = Client.Network.CircuitCode;
-            throttle.Throttle.GenCounter = 0;
-            throttle.Throttle.Throttles = this.ToBytes();
+            AgentThrottlePacket throttle = new AgentThrottlePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    CircuitCode = Client.Network.CircuitCode
+                },
+                Throttle =
+                {
+                    GenCounter = 0,
+                    Throttles = ToBytes()
+                }
+            };
 
             Client.Network.SendPacket(throttle, simulator);
         }
@@ -219,16 +212,16 @@ namespace OpenMetaverse
         /// <returns>Byte array containing all the throttle values</returns>
         public byte[] ToBytes()
         {
-            byte[] data = new byte[7 * 4];
+            var data = new byte[7 * 4];
             int i = 0;
 
-            Buffer.BlockCopy(Utils.FloatToBytes(Resend), 0, data, i, 4); i += 4;
-            Buffer.BlockCopy(Utils.FloatToBytes(Land), 0, data, i, 4); i += 4;
-            Buffer.BlockCopy(Utils.FloatToBytes(Wind), 0, data, i, 4); i += 4;
-            Buffer.BlockCopy(Utils.FloatToBytes(Cloud), 0, data, i, 4); i += 4;
-            Buffer.BlockCopy(Utils.FloatToBytes(Task), 0, data, i, 4); i += 4;
-            Buffer.BlockCopy(Utils.FloatToBytes(Texture), 0, data, i, 4); i += 4;
-            Buffer.BlockCopy(Utils.FloatToBytes(Asset), 0, data, i, 4); i += 4;
+            Utils.WriteSingleLittleEndian(data, i, Resend); i += 4;
+            Utils.WriteSingleLittleEndian(data, i, Land); i += 4;
+            Utils.WriteSingleLittleEndian(data, i, Wind); i += 4;
+            Utils.WriteSingleLittleEndian(data, i, Cloud); i += 4;
+            Utils.WriteSingleLittleEndian(data, i, Task); i += 4;
+            Utils.WriteSingleLittleEndian(data, i, Texture); i += 4;
+            Utils.WriteSingleLittleEndian(data, i, Asset); i += 4;
 
             return data;
         }

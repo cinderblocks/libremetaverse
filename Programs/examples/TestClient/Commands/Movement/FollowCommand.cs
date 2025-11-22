@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading.Tasks;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
 
@@ -9,35 +10,39 @@ namespace TestClient.Commands.Movement
         const float DISTANCE_BUFFER = 3.0f;
         uint targetLocalID = 0;
 
-		public FollowCommand(TestClient testClient)
-		{
-			Name = "follow";
-			Description = "Follow another avatar. Usage: follow [FirstName LastName]/off.";
+        public FollowCommand(TestClient testClient)
+        {
+            Name = "follow";
+            Description = "Follow another avatar. Usage: follow [FirstName LastName]/off.";
             Category = CommandCategory.Movement;
 
             testClient.Network.RegisterCallback(PacketType.AlertMessage, AlertMessageHandler);
-		}
+        }
 
         public override string Execute(string[] args, UUID fromAgentID)
-		{
-            // Construct the target name from the passed arguments
-			string target = args.Aggregate(string.Empty, (current, t) => current + t + " ");
-            target = target.TrimEnd();
+        {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
 
-            if (target.Length == 0 || target == "off")
+        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
+            // Construct the target name from the passed arguments
+            string target = string.Join(" ", args).TrimEnd();
+
+            if (string.IsNullOrEmpty(target) || target == "off")
             {
                 Active = false;
                 targetLocalID = 0;
                 Client.Self.AutoPilotCancel();
-                return "Following is off";
+                return Task.FromResult("Following is off");
             }
             else
             {
-                return Follow(target) 
-                    ? $"Following {target}." 
-                    : $"Unable to follow {target}. Client may not be able to see the target avatar.";
+                return Task.FromResult(Follow(target)
+                    ? $"Following {target}."
+                    : $"Unable to follow {target}. Client may not be able to see the target avatar.");
             }
-		}
+        }
 
         bool Follow(string name)
         {
@@ -63,8 +68,8 @@ namespace TestClient.Commands.Movement
             return false;
         }
 
-		public override void Think()
-		{
+        public override void Think()
+        {
             if (Active)
             {
                 // Find the target position
@@ -111,13 +116,13 @@ namespace TestClient.Commands.Movement
                 }
             }
 
-			base.Think();
-		}
+            base.Think();
+        }
 
         private void AlertMessageHandler(object sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
-            
+
             AlertMessagePacket alert = (AlertMessagePacket)packet;
             if (alert.AlertInfo.Length > 0)
             {

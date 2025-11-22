@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Inventory
@@ -14,6 +14,11 @@ namespace TestClient.Commands.Inventory
             Category = CommandCategory.Inventory;
         }
         public override string Execute(string[] args, UUID fromAgentID)
+        {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
         {
             Inventory = Client.Inventory.Store;
 
@@ -51,7 +56,7 @@ namespace TestClient.Commands.Inventory
                 }
                 else
                 {
-                    List<InventoryBase> currentContents = Inventory.GetContents(currentFolder);
+                    var currentContents = await Client.Inventory.FolderContentsAsync(currentFolder.UUID, Client.Self.AgentID, true, true, InventorySortOrder.ByName).ConfigureAwait(false);
                     // Try and find an InventoryBase with the corresponding name.
                     bool found = false;
                     foreach (InventoryBase item in currentContents)

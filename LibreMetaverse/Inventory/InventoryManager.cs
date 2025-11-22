@@ -28,100 +28,21 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Packets;
+using System.Collections.Concurrent;
+using LibreMetaverse.Threading;
 
 namespace OpenMetaverse
 {
-    #region Enums
-
-    [Flags]
-    public enum InventorySortOrder : int
-    {
-        /// <summary>Sort by name</summary>
-        ByName = 0,
-        /// <summary>Sort by date</summary>
-        ByDate = 1,
-        /// <summary>Sort folders by name, regardless of whether items are
-        /// sorted by name or date</summary>
-        FoldersByName = 2,
-        /// <summary>Place system folders at the top</summary>
-        SystemFoldersToTop = 4
-    }
-
-    /// <summary>
-    /// Possible destinations for DeRezObject request
-    /// </summary>
-    public enum DeRezDestination : byte
-    {
-        /// <summary></summary>
-        AgentInventorySave = 0,
-        /// <summary>Copy from in-world to agent inventory</summary>
-        AgentInventoryCopy = 1,
-        /// <summary>Derez to TaskInventory</summary>
-        TaskInventory = 2,
-        /// <summary></summary>
-        Attachment = 3,
-        /// <summary>Take Object</summary>
-        AgentInventoryTake = 4,
-        /// <summary>God force to inventory</summary>
-        ForceToGodInventory = 5,
-        /// <summary>Delete Object</summary>
-        TrashFolder = 6,
-        /// <summary>Put an avatar attachment into agent inventory</summary>
-        AttachmentToInventory = 7,
-        /// <summary></summary>
-        AttachmentExists = 8,
-        /// <summary>Return an object back to the owner's inventory</summary>
-        ReturnToOwner = 9,
-        /// <summary>Return a deeded object back to the last owner's inventory</summary>
-        ReturnToLastOwner = 10
-    }
-
-    /// <summary>
-    /// Upper half of the Flags field for inventory items
-    /// </summary>
-    [Flags]
-    public enum InventoryItemFlags : uint
-    {
-        None = 0,
-        /// <summary>Indicates that the NextOwner permission will be set to the
-        /// most restrictive set of permissions found in the object set
-        /// (including linkset items and object inventory items) on next rez</summary>
-        ObjectSlamPerm = 0x100,
-        /// <summary>Indicates that the object sale information has been
-        /// changed</summary>
-        ObjectSlamSale = 0x1000,
-        /// <summary>If set, and a slam bit is set, indicates BaseMask will be overwritten on Rez</summary>
-        ObjectOverwriteBase = 0x010000,
-        /// <summary>If set, and a slam bit is set, indicates OwnerMask will be overwritten on Rez</summary>
-        ObjectOverwriteOwner = 0x020000,
-        /// <summary>If set, and a slam bit is set, indicates GroupMask will be overwritten on Rez</summary>
-        ObjectOverwriteGroup = 0x040000,
-        /// <summary>If set, and a slam bit is set, indicates EveryoneMask will be overwritten on Rez</summary>
-        ObjectOverwriteEveryone = 0x080000,
-        /// <summary>If set, and a slam bit is set, indicates NextOwnerMask will be overwritten on Rez</summary>
-        ObjectOverwriteNextOwner = 0x100000,
-        /// <summary>Indicates whether this object is composed of multiple
-        /// items or not</summary>
-        ObjectHasMultipleItems = 0x200000,
-        /// <summary>Indicates that the asset is only referenced by this
-        /// inventory item. If this item is deleted or updated to reference a
-        /// new assetID, the asset can be deleted</summary>
-        SharedSingleReference = 0x40000000,
-    }
-
-    #endregion Enums
-
     /// <summary>
     /// Tools for dealing with agents inventory
     /// </summary>
-    [Serializable()]
-    public class InventoryManager
+    [Serializable]
+    public partial class InventoryManager : IDisposable
     {
         /// <summary>Used for converting shadow_id to asset_id</summary>
         public static readonly UUID MAGIC_ID = new UUID("3c115e51-04f4-523c-9fa6-98aff1034730");
@@ -138,237 +59,6 @@ namespace OpenMetaverse
             public string[] Path;
             public int Level;
         }
-
-        #region Delegates
-
-        /// <summary>
-        /// Callback for inventory item creation finishing
-        /// </summary>
-        /// <param name="success">Whether the request to create an inventory
-        /// item succeeded or not</param>
-        /// <param name="item">Inventory item being created. If success is
-        /// false this will be null</param>
-        public delegate void ItemCreatedCallback(bool success, InventoryItem item);
-
-        /// <summary>
-        /// Callback for an inventory item being created from an uploaded asset
-        /// </summary>
-        /// <param name="success">true if inventory item creation was successful</param>
-        /// <param name="status"></param>
-        /// <param name="itemID"></param>
-        /// <param name="assetID"></param>
-        public delegate void ItemCreatedFromAssetCallback(bool success, string status, UUID itemID, UUID assetID);
-
-        /// <summary>
-        /// Callback for inventory item copy
-        /// </summary>
-        /// <param name="item"></param>
-        public delegate void ItemCopiedCallback(InventoryBase item);
-
-        /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<ItemReceivedEventArgs> m_ItemReceived;
-
-        ///<summary>Raises the ItemReceived Event</summary>
-        /// <param name="e">A ItemReceivedEventArgs object containing
-        /// the data sent from the simulator</param>
-        protected virtual void OnItemReceived(ItemReceivedEventArgs e)
-        {
-            EventHandler<ItemReceivedEventArgs> handler = m_ItemReceived;
-            handler?.Invoke(this, e);
-        }
-
-        /// <summary>Thread sync lock object</summary>
-        private readonly object m_ItemReceivedLock = new object();
-
-        /// <summary>Raised when the simulator sends us data containing
-        /// ...</summary>
-        public event EventHandler<ItemReceivedEventArgs> ItemReceived
-        {
-            add { lock (m_ItemReceivedLock) { m_ItemReceived += value; } }
-            remove { lock (m_ItemReceivedLock) { m_ItemReceived -= value; } }
-        }
-
-        /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<FolderUpdatedEventArgs> m_FolderUpdated;
-
-        ///<summary>Raises the FolderUpdated Event</summary>
-        /// <param name="e">A FolderUpdatedEventArgs object containing
-        /// the data sent from the simulator</param>
-        protected virtual void OnFolderUpdated(FolderUpdatedEventArgs e)
-        {
-            EventHandler<FolderUpdatedEventArgs> handler = m_FolderUpdated;
-            handler?.Invoke(this, e);
-        }
-
-        /// <summary>Thread sync lock object</summary>
-        private readonly object m_FolderUpdatedLock = new object();
-
-        /// <summary>Raised when the simulator sends us data containing
-        /// ...</summary>
-        public event EventHandler<FolderUpdatedEventArgs> FolderUpdated
-        {
-            add { lock (m_FolderUpdatedLock) { m_FolderUpdated += value; } }
-            remove { lock (m_FolderUpdatedLock) { m_FolderUpdated -= value; } }
-        }
-
-        /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<InventoryObjectOfferedEventArgs> m_InventoryObjectOffered;
-
-        ///<summary>Raises the InventoryObjectOffered Event</summary>
-        /// <param name="e">A InventoryObjectOfferedEventArgs object containing
-        /// the data sent from the simulator</param>
-        protected virtual void OnInventoryObjectOffered(InventoryObjectOfferedEventArgs e)
-        {
-            EventHandler<InventoryObjectOfferedEventArgs> handler = m_InventoryObjectOffered;
-            handler?.Invoke(this, e);
-        }
-
-        /// <summary>Thread sync lock object</summary>
-        private readonly object m_InventoryObjectOfferedLock = new object();
-
-        /// <summary>Raised when the simulator sends us data containing
-        /// an inventory object sent by another avatar or primitive</summary>
-        public event EventHandler<InventoryObjectOfferedEventArgs> InventoryObjectOffered
-        {
-            add { lock (m_InventoryObjectOfferedLock) { m_InventoryObjectOffered += value; } }
-            remove { lock (m_InventoryObjectOfferedLock) { m_InventoryObjectOffered -= value; } }
-        }
-
-        /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<TaskItemReceivedEventArgs> m_TaskItemReceived;
-
-        ///<summary>Raises the TaskItemReceived Event</summary>
-        /// <param name="e">A TaskItemReceivedEventArgs object containing
-        /// the data sent from the simulator</param>
-        protected virtual void OnTaskItemReceived(TaskItemReceivedEventArgs e)
-        {
-            EventHandler<TaskItemReceivedEventArgs> handler = m_TaskItemReceived;
-            handler?.Invoke(this, e);
-        }
-
-        /// <summary>Thread sync lock object</summary>
-        private readonly object m_TaskItemReceivedLock = new object();
-
-        /// <summary>Raised when the simulator sends us data containing
-        /// ...</summary>
-        public event EventHandler<TaskItemReceivedEventArgs> TaskItemReceived
-        {
-            add { lock (m_TaskItemReceivedLock) { m_TaskItemReceived += value; } }
-            remove { lock (m_TaskItemReceivedLock) { m_TaskItemReceived -= value; } }
-        }
-
-        /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<FindObjectByPathReplyEventArgs> m_FindObjectByPathReply;
-
-        ///<summary>Raises the FindObjectByPath Event</summary>
-        /// <param name="e">A FindObjectByPathEventArgs object containing
-        /// the data sent from the simulator</param>
-        protected virtual void OnFindObjectByPathReply(FindObjectByPathReplyEventArgs e)
-        {
-            EventHandler<FindObjectByPathReplyEventArgs> handler = m_FindObjectByPathReply;
-            handler?.Invoke(this, e);
-        }
-
-        /// <summary>Thread sync lock object</summary>
-        private readonly object m_FindObjectByPathReplyLock = new object();
-
-        /// <summary>Raised when the simulator sends us data containing
-        /// ...</summary>
-        public event EventHandler<FindObjectByPathReplyEventArgs> FindObjectByPathReply
-        {
-            add { lock (m_FindObjectByPathReplyLock) { m_FindObjectByPathReply += value; } }
-            remove { lock (m_FindObjectByPathReplyLock) { m_FindObjectByPathReply -= value; } }
-        }
-
-        /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<TaskInventoryReplyEventArgs> m_TaskInventoryReply;
-
-        ///<summary>Raises the TaskInventoryReply Event</summary>
-        /// <param name="e">A TaskInventoryReplyEventArgs object containing
-        /// the data sent from the simulator</param>
-        protected virtual void OnTaskInventoryReply(TaskInventoryReplyEventArgs e)
-        {
-            EventHandler<TaskInventoryReplyEventArgs> handler = m_TaskInventoryReply;
-            handler?.Invoke(this, e);
-        }
-
-        /// <summary>Thread sync lock object</summary>
-        private readonly object m_TaskInventoryReplyLock = new object();
-
-        /// <summary>Raised when the simulator sends us data containing
-        /// ...</summary>
-        public event EventHandler<TaskInventoryReplyEventArgs> TaskInventoryReply
-        {
-            add { lock (m_TaskInventoryReplyLock) { m_TaskInventoryReply += value; } }
-            remove { lock (m_TaskInventoryReplyLock) { m_TaskInventoryReply -= value; } }
-        }
-
-        /// <summary>
-        /// Reply received when uploading an inventory asset
-        /// </summary>
-        /// <param name="success">Has upload been successful</param>
-        /// <param name="status">Error message if upload failed</param>
-        /// <param name="itemID">Inventory asset UUID</param>
-        /// <param name="assetID">New asset UUID</param>
-        public delegate void InventoryUploadedAssetCallback(bool success, string status, UUID itemID, UUID assetID);
-
-        /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<SaveAssetToInventoryEventArgs> m_SaveAssetToInventory;
-
-        ///<summary>Raises the SaveAssetToInventory Event</summary>
-        /// <param name="e">A SaveAssetToInventoryEventArgs object containing
-        /// the data sent from the simulator</param>
-        protected virtual void OnSaveAssetToInventory(SaveAssetToInventoryEventArgs e)
-        {
-            EventHandler<SaveAssetToInventoryEventArgs> handler = m_SaveAssetToInventory;
-            handler?.Invoke(this, e);
-        }
-
-        /// <summary>Thread sync lock object</summary>
-        private readonly object m_SaveAssetToInventoryLock = new object();
-
-        /// <summary>Raised when the simulator sends us data containing
-        /// ...</summary>
-        public event EventHandler<SaveAssetToInventoryEventArgs> SaveAssetToInventory
-        {
-            add { lock (m_SaveAssetToInventoryLock) { m_SaveAssetToInventory += value; } }
-            remove { lock (m_SaveAssetToInventoryLock) { m_SaveAssetToInventory -= value; } }
-        }
-
-        /// <summary>
-        /// Delegate that is invoked when script upload is completed
-        /// </summary>
-        /// <param name="uploadSuccess">Has upload succeeded (note, there still might be compiler errors)</param>
-        /// <param name="uploadStatus">Upload status message</param>
-        /// <param name="compileSuccess">Is compilation successful</param>
-        /// <param name="compileMessages">If compilation failed, list of error messages, null on compilation success</param>
-        /// <param name="itemID">Script inventory UUID</param>
-        /// <param name="assetID">Script's new asset UUID</param>
-        public delegate void ScriptUpdatedCallback(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string> compileMessages, UUID itemID, UUID assetID);
-
-        /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<ScriptRunningReplyEventArgs> m_ScriptRunningReply;
-
-        ///<summary>Raises the ScriptRunningReply Event</summary>
-        /// <param name="e">A ScriptRunningReplyEventArgs object containing
-        /// the data sent from the simulator</param>
-        protected virtual void OnScriptRunningReply(ScriptRunningReplyEventArgs e)
-        {
-            EventHandler<ScriptRunningReplyEventArgs> handler = m_ScriptRunningReply;
-            handler?.Invoke(this, e);
-        }
-
-        /// <summary>Thread sync lock object</summary>
-        private readonly object m_ScriptRunningReplyLock = new object();
-
-        /// <summary>Raised when the simulator sends us data containing
-        /// ...</summary>
-        public event EventHandler<ScriptRunningReplyEventArgs> ScriptRunningReply
-        {
-            add { lock (m_ScriptRunningReplyLock) { m_ScriptRunningReply += value; } }
-            remove { lock (m_ScriptRunningReplyLock) { m_ScriptRunningReply -= value; } }
-        }
-        #endregion Delegates
 
         #region String Arrays
 
@@ -444,12 +134,21 @@ namespace OpenMetaverse
         private readonly GridClient Client;
         [NonSerialized]
         private Inventory _Store;
-        private object _CallbacksLock = new object();
-        private uint _CallbackPos;
-        private readonly Dictionary<uint, ItemCreatedCallback> _ItemCreatedCallbacks = new Dictionary<uint, ItemCreatedCallback>();
-        private readonly Dictionary<uint, ItemCopiedCallback> _ItemCopiedCallbacks = new Dictionary<uint, ItemCopiedCallback>();
-        private readonly Dictionary<uint, InventoryType> _ItemInventoryTypeRequest = new Dictionary<uint, InventoryType>();
-        private readonly List<InventorySearch> _Searches = new List<InventorySearch>();
+        [NonSerialized]
+        private bool _disposed;
+        [NonSerialized]
+        private readonly CancellationTokenSource _callbackCleanupCts = new CancellationTokenSource();
+        [NonSerialized]
+        private readonly IReaderWriterLock _storeLock = new OptimisticReaderWriterLock();
+
+        private long _CallbackPos, _SearchPos;
+        private readonly ConcurrentDictionary<uint, ItemCreatedCallback> _ItemCreatedCallbacks = new ConcurrentDictionary<uint, ItemCreatedCallback>();
+        private readonly ConcurrentDictionary<uint, ItemCopiedCallback> _ItemCopiedCallbacks = new ConcurrentDictionary<uint, ItemCopiedCallback>();
+        private readonly ConcurrentDictionary<uint, InventoryType> _ItemInventoryTypeRequest = new ConcurrentDictionary<uint, InventoryType>();
+        private readonly ConcurrentDictionary<uint, InventorySearch> _Searches = new ConcurrentDictionary<uint, InventorySearch>();
+
+        /// <summary>Default timeout for waiting on a callback before cleaning it up (milliseconds)</summary>
+        private const int CALLBACK_TIMEOUT_MS = 60000;
 
         #region Properties
 
@@ -491,6 +190,71 @@ namespace OpenMetaverse
                     "inventory-lib-owner", "inventory-skel-lib"});
         }
 
+        /// <summary>
+        /// Deterministically release resources and unregister callbacks.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                try
+                {
+                    if (Client?.Network != null)
+                    {
+                        try { Client.Network.UnregisterCallback(PacketType.UpdateCreateInventoryItem, UpdateCreateInventoryItemHandler); } catch (Exception ex) { Logger.Log("Failed to unregister UpdateCreateInventoryItem callback", Helpers.LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterCallback(PacketType.SaveAssetIntoInventory, SaveAssetIntoInventoryHandler); } catch (Exception ex) { Logger.Log("Failed to unregister SaveAssetIntoInventory callback", Helpers.LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterCallback(PacketType.BulkUpdateInventory, BulkUpdateInventoryHandler); } catch (Exception ex) { Logger.Log("Failed to unregister BulkUpdateInventory callback", Helpers.LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterEventCallback("BulkUpdateInventory", BulkUpdateInventoryCapHandler); } catch (Exception ex) { Logger.Log("Failed to unregister BulkUpdateInventory event callback", Helpers.LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterCallback(PacketType.MoveInventoryItem, MoveInventoryItemHandler); } catch (Exception ex) { Logger.Log("Failed to unregister MoveInventoryItem callback", Helpers.LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterCallback(PacketType.ReplyTaskInventory, ReplyTaskInventoryHandler); } catch (Exception ex) { Logger.Log("Failed to unregister ReplyTaskInventory callback", Helpers.LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterEventCallback("ScriptRunningReply", ScriptRunningReplyMessageHandler); } catch (Exception ex) { Logger.Log("Failed to unregister ScriptRunningReply event callback", Helpers.LogLevel.Debug, Client, ex); }
+
+                        // Deprecated callbacks
+                        try { Client.Network.UnregisterCallback(PacketType.InventoryDescendents, InventoryDescendentsHandler); } catch (Exception ex) { Logger.Log("Failed to unregister InventoryDescendents callback", Helpers.LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterCallback(PacketType.FetchInventoryReply, FetchInventoryReplyHandler); } catch (Exception ex) { Logger.Log("Failed to unregister FetchInventoryReply callback", Helpers.LogLevel.Debug, Client, ex); }
+
+                        try { Client.Network.UnregisterLoginResponseCallback(Network_OnLoginResponse); } catch (Exception ex) { Logger.Log("Failed to unregister login response callback", Helpers.LogLevel.Debug, Client, ex); }
+                    }
+
+                    try { if (Client?.Self != null) Client.Self.IM -= Self_IM; } catch (Exception ex) { Logger.Log("Failed to detach Self_IM event handler", Helpers.LogLevel.Debug, Client, ex); }
+
+                    try { _ItemCreatedCallbacks.Clear(); } catch (Exception ex) { Logger.Log("Failed to clear ItemCreatedCallbacks", Helpers.LogLevel.Debug, Client, ex); }
+                    try { _ItemCopiedCallbacks.Clear(); } catch (Exception ex) { Logger.Log("Failed to clear ItemCopiedCallbacks", Helpers.LogLevel.Debug, Client, ex); }
+                    try { _ItemInventoryTypeRequest.Clear(); } catch (Exception ex) { Logger.Log("Failed to clear ItemInventoryTypeRequest", Helpers.LogLevel.Debug, Client, ex); }
+                    try { _Searches.Clear(); } catch (Exception ex) { Logger.Log("Failed to clear Searches", Helpers.LogLevel.Debug, Client, ex); }
+
+                    try
+                    {
+                        _callbackCleanupCts.Cancel();
+                        _callbackCleanupCts.Dispose();
+                    }
+                    catch (Exception ex) { Logger.Log("Failed to cancel/dispose callback cleanup CTS", Helpers.LogLevel.Debug, Client, ex); }
+
+                    try { _Store = null; } catch (Exception ex) { Logger.Log("Failed to clear inventory store reference", Helpers.LogLevel.Debug, Client, ex); }
+                }
+                catch (Exception ex)
+                {
+                    // Log the unexpected exception during Dispose to help debugging
+                    Logger.Log($"Unhandled exception in InventoryManager.Dispose: {ex.Message}", Helpers.LogLevel.Error, Client, ex);
+                }
+            }
+
+            _disposed = true;
+        }
+
+        ~InventoryManager()
+        {
+            Dispose(false);
+        }
+
         #region Fetch
 
         /// <summary>
@@ -501,27 +265,21 @@ namespace OpenMetaverse
         /// <param name="timeout">time to wait for results represented by <see cref="TimeSpan"/></param>
         /// <returns>An <see cref="InventoryItem"/> object on success, or null if no item was found</returns>
         /// <remarks>Items will also be sent to the <see cref="InventoryManager.OnItemReceived"/> event</remarks>
+        [Obsolete("Use FetchItemAsync or FetchItemHttpAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
         public InventoryItem FetchItem(UUID itemID, UUID ownerID, TimeSpan timeout)
         {
-            var fetchEvent = new AutoResetEvent(false);
-            InventoryItem fetchedItem = null;
-
-            void Callback(object sender, ItemReceivedEventArgs e)
+            using (var cts = new CancellationTokenSource())
             {
-                if (e.Item.UUID == itemID)
+                cts.CancelAfter(timeout);
+                try
                 {
-                    fetchedItem = e.Item;
-                    fetchEvent.Set();
+                    return FetchItemAsync(itemID, ownerID, cts.Token).GetAwaiter().GetResult();
+                }
+                catch (OperationCanceledException)
+                {
+                    return null;
                 }
             }
-
-            ItemReceived += Callback;
-            RequestFetchInventory(itemID, ownerID);
-
-            fetchEvent.WaitOne(timeout, false);
-            ItemReceived -= Callback;
-
-            return fetchedItem;
         }
 
         public async Task<InventoryItem> FetchItemHttpAsync(UUID itemId, UUID ownerId, CancellationToken token = default)
@@ -537,24 +295,26 @@ namespace OpenMetaverse
         /// <summary>
         /// Request A single inventory item
         /// </summary>
-        /// <param name="itemID">The items <see cref="OpenMetaverse.UUID"/></param>f
+        /// <param name="itemID">The items <see cref="OpenMetaverse.UUID"/></param>
         /// <param name="ownerID">The item Owners <see cref="OpenMetaverse.UUID"/></param>
+        /// <param name="cancellationToken">Cancellation token to cancel the request</param>
         /// <see cref="InventoryManager.OnItemReceived"/>
-        public void RequestFetchInventory(UUID itemID, UUID ownerID)
+        public void RequestFetchInventory(UUID itemID, UUID ownerID, CancellationToken cancellationToken = default)
         {
-            RequestFetchInventory(new Dictionary<UUID, UUID>(1) { { itemID, ownerID } });
+            RequestFetchInventory(new Dictionary<UUID, UUID>(1) { { itemID, ownerID } }, cancellationToken);
         }
 
         /// <summary>
         /// Request inventory items
         /// </summary>
         /// <param name="items">Inventory items to request with owner</param>
+        /// <param name="cancellationToken">Cancellation token to cancel the request</param>
         /// <see cref="InventoryManager.OnItemReceived"/>
-        public void RequestFetchInventory(Dictionary<UUID, UUID> items)
+        public void RequestFetchInventory(Dictionary<UUID, UUID> items, CancellationToken cancellationToken = default)
         {
-            if (Client.Network.CurrentSim.Caps?.CapabilityURI("FetchInventory2") != null)
+            if (GetCapabilityURI("FetchInventory2") != null)
             {
-                RequestFetchInventoryHttp(items);
+                RequestFetchInventoryHttp(items, cancellationToken);
                 return;
             }
 
@@ -584,10 +344,12 @@ namespace OpenMetaverse
         /// Request inventory items via Capabilities
         /// </summary>
         /// <param name="items">Inventory items to request with owners</param>
+        /// <param name="cancellationToken">Cancellation token to cancel the request</param>
         /// <see cref="OnItemReceived"/>
-        private void RequestFetchInventoryHttp(Dictionary<UUID, UUID> items)
+        private void RequestFetchInventoryHttp(Dictionary<UUID, UUID> items, CancellationToken cancellationToken = default)
         {
-            RequestFetchInventoryHttpAsync(items, CancellationToken.None).ConfigureAwait(false);
+            // Fire-and-forget the async request. Use discard to explicitly start the task
+            _ = RequestFetchInventoryHttpAsync(items, cancellationToken);
         }
 
         /// <summary>
@@ -608,13 +370,13 @@ namespace OpenMetaverse
         /// Request inventory items via HTTP capability
         /// </summary>
         /// <param name="items">Inventory items to request with owner</param>
-        /// <param name="cancellationToken">Cancellation token for operation</param>
+        /// <param name="cancellationToken">Cancellation token to cancel the request</param>
         /// <param name="callback">Action</param>
         public async Task RequestFetchInventoryHttpAsync(Dictionary<UUID, UUID> items,
             CancellationToken cancellationToken, Action<List<InventoryItem> > callback = null)
         {
 
-            var cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("FetchInventory2");
+            var cap = GetCapabilityURI("FetchInventory2");
             if (cap == null)
             {
                 Logger.Log($"Failed to obtain FetchInventory2 capability on {Client.Network.CurrentSim?.Name}",
@@ -636,34 +398,38 @@ namespace OpenMetaverse
 
             payload["items"] = itemArray;
 
-            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, 
-                cancellationToken, (response, data, error) =>
+            try
             {
-                if (error != null) { return; }
-
-                try
+                var result = await PostCapAsync(cap, payload, cancellationToken).ConfigureAwait(false);
+                if (result is OSDMap res && res.TryGetValue("items", out var itemsOsd) && itemsOsd is OSDArray itemsArray)
                 {
-                    var result = OSDParser.Deserialize(data);
-                    var res = (OSDMap)result;
-                    var itemsOSD = (OSDArray)res["items"];
-
-                    var retrievedItems = new List<InventoryItem>(itemsOSD.Count);
-                    foreach (var it in itemsOSD)
+                    var retrievedItems = new List<InventoryItem>(itemsArray.Count);
+                    foreach (var it in itemsArray)
                     {
                         var item = InventoryItem.FromOSD(it);
-                        _Store[item.UUID] = item;
+                        // Update store under write lock to avoid races
+                        if (_Store != null)
+                        {
+                            using (var writeLock = _storeLock.WriteLock())
+                            {
+                                _Store[item.UUID] = item;
+                            }
+                        }
+                        else
+                        {
+                            Logger.Log("Inventory store is not initialized, fetched item will not be cached locally", Helpers.LogLevel.Debug, Client);
+                        }
                         retrievedItems.Add(item);
                         OnItemReceived(new ItemReceivedEventArgs(item));
                     }
 
                     callback?.Invoke(retrievedItems);
                 }
-                catch (Exception ex)
-                {
-                    Logger.Log("Failed getting data from FetchInventory2 capability.",
-                        Helpers.LogLevel.Error, Client, ex);
-                }
-            });
+            }
+            catch (Exception ex)
+            {
+                Logger.Log("Failed getting data from FetchInventory2 capability.", Helpers.LogLevel.Error, Client, ex);
+            }
         }
 
         /// <summary>
@@ -680,33 +446,48 @@ namespace OpenMetaverse
         /// <see cref="RequestFolderContents(UUID,UUID,bool,bool,InventorySortOrder,CancellationToken)"/>
         /// <remarks>InventoryFolder.DescendentCount will only be accurate if both folders and items are
         /// requested</remarks>
+        [Obsolete("Use FolderContentsAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
         public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool fetchFolders, bool fetchItems,
             InventorySortOrder order, TimeSpan timeout, bool followLinks = false)
         {
-            CancellationTokenSource cts = new CancellationTokenSource();
-            cts.CancelAfter(timeout);
-            var inventory = RequestFolderContents(folder, owner, fetchFolders, fetchItems, order, cts.Token).Result;
-            if (inventory == null)
+            if (_Store == null)
             {
-                inventory = _Store.GetContents(folder);
+                var msg = "Inventory store not initialized, cannot get folder contents.";
+                Logger.Log(msg, Helpers.LogLevel.Warning, Client);
+                return new List<InventoryBase>();
             }
 
-            if (inventory != null && followLinks)
+            using (var cts = new CancellationTokenSource())
             {
-                for (var i = 0; i < inventory.Count; ++i)
+                cts.CancelAfter(timeout);
+                List<InventoryBase> inventory = null;
+                try
                 {
-                    if (!(inventory[i] is InventoryItem item)) { continue; }
+                    inventory = FolderContentsAsync(folder, owner, fetchFolders, fetchItems, order, cts.Token, followLinks).GetAwaiter().GetResult();
+                }
+                catch (OperationCanceledException)
+                {
+                    inventory = null;
+                }
+                catch
+                {
+                    inventory = null;
+                }
 
-                    if (item.IsLink())
+                if (inventory == null)
+                {
+                    try
                     {
-                        if (!Store.Contains(item.AssetUUID))
-                        {
-                            inventory[i] = Client.Inventory.FetchItem(item.AssetUUID, owner, timeout);
-                        }
+                        inventory = _Store != null ? _Store.GetContents(folder) : new List<InventoryBase>();
+                    }
+                    catch (InventoryException)
+                    {
+                        inventory = new List<InventoryBase>();
                     }
                 }
+
+                return inventory;
             }
-            return inventory;
         }
 
         /// <summary>
@@ -723,11 +504,9 @@ namespace OpenMetaverse
             bool fetchFolders, bool fetchItems, InventorySortOrder order, CancellationToken cancellationToken = default)
         {
             var cap = (ownerID == Client.Self.AgentID) ? "FetchInventoryDescendents2" : "FetchLibDescendents2";
-            Uri url = Client.Network.CurrentSim.Caps.CapabilityURI(cap);
+            Uri url = GetCapabilityURI(cap);
             if (url == null)
             {
-                Logger.Log($"Failed to obtain {cap} capability on {Client.Network.CurrentSim.Name}",
-                    Helpers.LogLevel.Warning, Client);
                 OnFolderUpdated(new FolderUpdatedEventArgs(folderID, false));
                 return await NoResults;
             }
@@ -770,101 +549,115 @@ namespace OpenMetaverse
                 }
                 var payload = new OSDMap(1) { ["folders"] = requestedFolders };
 
-                await Client.HttpCapsClient.PostRequestAsync(capabilityUri, OSDFormat.Xml, payload, 
-                    cancellationToken, (response, data, error) => 
+                var result = await PostCapAsync(capabilityUri, payload, cancellationToken).ConfigureAwait(false);
+                if (result is OSDMap resultMap && resultMap.TryGetValue("folders", out var foldersSd) && foldersSd is OSDArray fetchedFolders)
                 {
-                    try
+                    ret = new List<InventoryBase>(fetchedFolders.Count);
+                    foreach (var fetchedFolderNr in fetchedFolders)
                     {
-                        if (error != null)
+                        var res = (OSDMap)fetchedFolderNr;
+                        InventoryFolder fetchedFolder;
+
+                        if (_Store.TryGetValue(res["folder_id"], out var invFolder) && invFolder is InventoryFolder folderCast)
                         {
-                            throw error;
+                            fetchedFolder = folderCast;
                         }
-
-                        var result = OSDParser.Deserialize(data);
-                        var resultMap = ((OSDMap)result);
-                        if (resultMap.TryGetValue("folders", out var foldersSd))
+                        else
                         {
-                            var fetchedFolders = (OSDArray)foldersSd;
-                            ret = new List<InventoryBase>(fetchedFolders.Count);
-                            foreach (var fetchedFolderNr in fetchedFolders)
+                            fetchedFolder = new InventoryFolder(res["folder_id"]);
+                            // Update store under write lock to avoid races
+                            if (_Store != null)
                             {
-                                var res = (OSDMap)fetchedFolderNr;
-                                InventoryFolder fetchedFolder;
-
-                                if (_Store.Contains(res["folder_id"])
-                                    && _Store[res["folder_id"]] is InventoryFolder invFolder)
+                                using (var writeLock = _storeLock.WriteLock())
                                 {
-                                    fetchedFolder = invFolder;
+                                    _Store[fetchedFolder.UUID] = fetchedFolder;
                                 }
-                                else
-                                {
-                                    fetchedFolder = new InventoryFolder(res["folder_id"]);
-                                    _Store[res["folder_id"]] = fetchedFolder;
-                                }
-                                fetchedFolder.DescendentCount = res["descendents"];
-                                fetchedFolder.Version = res["version"];
-                                fetchedFolder.OwnerID = res["owner_id"];
-                                _Store.GetNodeFor(fetchedFolder.UUID).NeedsUpdate = false;
-
-                                // Do we have any descendants
-                                if (fetchedFolder.DescendentCount > 0)
-                                {
-                                    // Fetch descendent folders
-                                    if (res["categories"] is OSDArray folders)
-                                    {
-                                        foreach (var cat in folders)
-                                        {
-                                            var descFolder = (OSDMap)cat;
-                                            InventoryFolder folder;
-                                            UUID folderID = descFolder.TryGetValue("category_id", out var category_id)
-                                                ? category_id : descFolder["folder_id"];
-                                            if (!_Store.Contains(folderID))
-                                            {
-                                                folder = new InventoryFolder(folderID)
-                                                {
-                                                    ParentUUID = descFolder["parent_id"],
-                                                };
-                                                _Store[folderID] = folder;
-                                            }
-                                            else
-                                            {
-                                                folder = (InventoryFolder)_Store[folderID];
-                                            }
-                                            folder.OwnerID = descFolder["agent_id"];
-                                            folder.Name = descFolder["name"];
-                                            folder.Version = descFolder["version"];
-                                            folder.PreferredType = (FolderType)descFolder["type_default"].AsInteger();
-                                            ret.Add(folder);
-                                        }
-
-                                        // Fetch descendent items
-                                        if (res.TryGetValue("items", out var items))
-                                        {
-                                            var arr = (OSDArray)items;
-                                            foreach (var it in arr)
-                                            {
-                                                var item = InventoryItem.FromOSD(it);
-                                                _Store[item.UUID] = item;
-                                                ret.Add(item);
-                                            }
-                                        }
-                                    }
-                                }
-                                OnFolderUpdated(new FolderUpdatedEventArgs(res["folder_id"], true));
+                            }
+                            else
+                            {
+                                Logger.Log("Inventory store is not initialized, fetched folder will not be cached locally", Helpers.LogLevel.Debug, Client);
                             }
                         }
-                    }
-                    catch (Exception exc)
-                    {
-                        Logger.Log($"Failed to fetch inventory descendants: {exc.Message}" + Environment.NewLine +
-                                   $"{exc.StackTrace}",
-                                   Helpers.LogLevel.Warning, Client);
-                        foreach (var f in batch)
+                        fetchedFolder.DescendentCount = res["descendents"];
+                        fetchedFolder.Version = res["version"];
+                        fetchedFolder.OwnerID = res["owner_id"];
+                        if (_Store != null && _Store.TryGetNodeFor(fetchedFolder.UUID, out var fetchedNode))
                         {
-                            OnFolderUpdated(new FolderUpdatedEventArgs(f.UUID, false));
+                            fetchedNode.NeedsUpdate = false;
                         }
+
+                        // Do we have any descendants
+                        if (fetchedFolder.DescendentCount > 0)
+                        {
+                            // Fetch descendent folders
+                            if (res["categories"] is OSDArray folders)
+                            {
+                                foreach (var cat in folders)
+                                {
+                                    var descFolder = (OSDMap)cat;
+                                    InventoryFolder folder;
+                                    UUID folderID = descFolder.TryGetValue("category_id", out var category_id)
+                                        ? category_id : descFolder["folder_id"];
+
+                                    if (!(_Store != null 
+                                          && _Store.TryGetValue(folderID, out var existing) 
+                                          && existing is InventoryFolder existingFolder))
+                                    {
+                                        folder = new InventoryFolder(folderID)
+                                        {
+                                            ParentUUID = descFolder["parent_id"],
+                                        };
+                                        // Update store under write lock to avoid races
+                                        if (_Store != null)
+                                        {
+                                            using (var writeLock = _storeLock.WriteLock())
+                                            {
+                                                _Store[folderID] = folder;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Logger.Log("Inventory store is not initialized, descendent folder will not be cached locally", Helpers.LogLevel.Debug, Client);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        folder = existingFolder;
+                                    }
+
+                                    folder.OwnerID = descFolder["agent_id"];
+                                    folder.Name = descFolder["name"];
+                                    folder.Version = descFolder["version"];
+                                    folder.PreferredType = (FolderType)descFolder["type_default"].AsInteger();
+                                    ret.Add(folder);
+                                }
+
+                                // Fetch descendent items
+                                if (res.TryGetValue("items", out var items))
+                                {
+                                    var arr = (OSDArray)items;
+                                    foreach (var it in arr)
+                                    {
+                                        var item = InventoryItem.FromOSD(it);
+                                        if (_Store != null)
+                                        {
+                                            using (var writeLock = _storeLock.WriteLock())
+                                            {
+                                                _Store[item.UUID] = item;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Logger.Log("Inventory store is not initialized, descendent item will not be cached locally", Helpers.LogLevel.Debug, Client);
+                                        }
+                                        ret.Add(item);
+                                    }
+                                }
+                            }
+                        }
+                        OnFolderUpdated(new FolderUpdatedEventArgs(res["folder_id"], true));
                     }
-                });
+                }
             }
             catch (Exception ex)
             {
@@ -897,6 +690,13 @@ namespace OpenMetaverse
             if (_Store == null)
             {
                 Logger.Log("Inventory is null, FindFolderForType() lookup cannot continue",
+                    Helpers.LogLevel.Error, Client);
+                return UUID.Zero;
+            }
+
+            if (_Store.RootFolder == null)
+            {
+                Logger.Log("Inventory RootFolder not initialized, FindFolderForType() lookup cannot continue",
                     Helpers.LogLevel.Error, Client);
                 return UUID.Zero;
             }
@@ -951,26 +751,18 @@ namespace OpenMetaverse
         /// timeout occurs or item is not found</returns>
         public UUID FindObjectByPath(UUID baseFolder, UUID inventoryOwner, string path, TimeSpan timeout)
         {
-            var findEvent = new AutoResetEvent(false);
-            var foundItem = UUID.Zero;
-
-            void Callback(object sender, FindObjectByPathReplyEventArgs e)
+            using (var cts = new CancellationTokenSource())
             {
-                if (e.Path == path)
+                cts.CancelAfter(timeout);
+                try
                 {
-                    foundItem = e.InventoryObjectID;
-                    findEvent.Set();
+                    return FindObjectByPathAsync(baseFolder, inventoryOwner, path, cts.Token).GetAwaiter().GetResult();
+                }
+                catch (OperationCanceledException)
+                {
+                    return UUID.Zero;
                 }
             }
-
-            FindObjectByPathReply += Callback;
-
-            Task task = RequestFindObjectByPath(baseFolder, inventoryOwner, path);
-            findEvent.WaitOne(timeout, false);
-
-            FindObjectByPathReply -= Callback;
-
-            return foundItem;
         }
 
         /// <summary>
@@ -985,13 +777,21 @@ namespace OpenMetaverse
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentException("Empty path is not supported");
 
-            // Store this search
+            // Store this search using a generated id
             InventorySearch search;
             search.Folder = baseFolder;
             search.Owner = inventoryOwner;
             search.Path = path.Split('/');
             search.Level = 0;
-            lock (_Searches) _Searches.Add(search);
+
+            uint id;
+            do
+            {
+                var v = Interlocked.Increment(ref _SearchPos);
+                id = (uint)v;
+            } while (id == 0);
+
+            _Searches[id] = search;
 
             // Start the search
             await RequestFolderContents(baseFolder, inventoryOwner, true, true, InventorySortOrder.ByName);
@@ -1063,12 +863,12 @@ namespace OpenMetaverse
         /// Move and rename a folder
         /// </summary>
         /// <param name="folderID">The source folders <see cref="UUID"/></param>
-        /// <param name="newparentID">The destination folders <see cref="UUID"/></param>
+        /// <param name="newParentID">The destination folders <see cref="UUID"/></param>
         /// <param name="newName">The name to change the folder to</param>
         [Obsolete("Method broken with AISv3. Use MoveFolder(folder, parent) and UpdateFolderProperties(folder, parent, name, type) instead")]
-        public void MoveFolder(UUID folderID, UUID newparentID, string newName)
+        public void MoveFolder(UUID folderID, UUID newParentID, string newName)
         {
-            UpdateFolderProperties(folderID, newparentID, newName, FolderType.None);
+            UpdateFolderProperties(folderID, newParentID, newName, FolderType.None);
         }
 
         /// <summary>
@@ -1081,14 +881,22 @@ namespace OpenMetaverse
         public void UpdateFolderProperties(UUID folderID, UUID parentID, string name, FolderType type)
         {
             InventoryFolder inv = null;
-            lock (_Store)
+
+            using (var upg = _storeLock.UpgradeableLock())
             {
-                if (_Store.Contains(folderID))
+                if (_Store != null 
+                    && _Store.TryGetValue(folderID, out var storeItem) 
+                    && storeItem is InventoryFolder item)
                 {
-                    inv = (InventoryFolder)Store[folderID];
+                    // Retrieve node under read lock
+                    inv = item;
+
+                    // Upgrade to write lock and update the folder metadata
+                    upg.Upgrade();
                     inv.Name = name;
                     inv.ParentUUID = parentID;
                     inv.PreferredType = type;
+                    _Store.UpdateNodeFor(inv);
                 }
             }
 
@@ -1096,26 +904,21 @@ namespace OpenMetaverse
             {
                 if (inv != null)
                 {
-                    Client.AisClient.UpdateCategory(folderID, inv.GetOSD(), success =>
+                    _ = Client.AisClient.UpdateCategory(folderID, inv.GetOSD(), success =>
                     {
                         if (success)
                         {
-                            lock (_Store)
+                            // Ensure local store is updated (already updated above) but keep parity
+                            using (var writeLock = _storeLock.WriteLock())
                             {
                                 _Store.UpdateNodeFor(inv);
                             }
                         }
-                    }
-                        ).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
                 }
             }
             else
             {
-                lock (_Store)
-                {
-                    _Store.UpdateNodeFor(inv);
-                }
-
                 var invFolder = new UpdateInventoryFolderPacket
                 {
                     AgentData =
@@ -1144,11 +947,12 @@ namespace OpenMetaverse
         /// <param name="newParentID">The destination folders <see cref="UUID"/></param>
         public void MoveFolder(UUID folderID, UUID newParentID)
         {
-            lock (Store)
+            using (var writeLock = _storeLock.WriteLock())
             {
-                if (_Store.Contains(folderID))
+                if (_Store != null 
+                    && _Store.TryGetValue(folderID, out var storeItem) 
+                    && storeItem is InventoryFolder inv)
                 {
-                    var inv = Store[folderID];
                     inv.ParentUUID = newParentID;
                     _Store.UpdateNodeFor(inv);
                 }
@@ -1182,15 +986,14 @@ namespace OpenMetaverse
         /// <see cref="UUID"/> of the destination as the value</param>
         public void MoveFolders(Dictionary<UUID, UUID> foldersNewParents)
         {
-            // FIXME: Use two List<UUID> to stay consistent
-
-            lock (Store)
+            using (var writeLock = _storeLock.WriteLock())
             {
                 foreach (var entry in foldersNewParents)
                 {
-                    if (_Store.Contains(entry.Key))
+                    if (_Store != null 
+                        && _Store.TryGetValue(entry.Key, out var storeItem) 
+                        && storeItem is InventoryFolder inv)
                     {
-                        var inv = _Store[entry.Key];
                         inv.ParentUUID = entry.Value;
                         _Store.UpdateNodeFor(inv);
                     }
@@ -1241,11 +1044,10 @@ namespace OpenMetaverse
         /// <param name="newName">The name to change the folder to</param>
         public void MoveItem(UUID itemID, UUID folderID, string newName)
         {
-            lock (_Store)
+            using (var writeLock = _storeLock.WriteLock())
             {
-                if (_Store.Contains(itemID))
+                if (_Store.TryGetValue(itemID, out var storeItem) && storeItem is InventoryItem inv)
                 {
-                    var inv = _Store[itemID];
                     if (!string.IsNullOrEmpty(newName))
                     {
                         inv.Name = newName;
@@ -1283,13 +1085,14 @@ namespace OpenMetaverse
         /// <see cref="UUID"/> of the destination folder as the value</param>
         public void MoveItems(Dictionary<UUID, UUID> itemsNewParents)
         {
-            lock (_Store)
+            using (var writeLock = _storeLock.WriteLock())
             {
                 foreach (var entry in itemsNewParents)
                 {
-                    if (_Store.Contains(entry.Key))
+                    if (_Store != null 
+                        && _Store.TryGetValue(entry.Key, out var storeItem)
+                        && storeItem is InventoryItem inv)
                     {
-                        var inv = _Store[entry.Key];
                         inv.ParentUUID = entry.Value;
                         _Store.UpdateNodeFor(inv);
                     }
@@ -1328,33 +1131,75 @@ namespace OpenMetaverse
 
         private void RemoveLocalUi(bool success, UUID itemId)
         {
-            if(!success)
+            if (!success || _Store == null)
             {
                 return;
             }
 
-            if (!_Store.TryGetNodeFor(itemId, out var item))
+            // Collect all descendants and the root node to remove without recursion
+            var toRemove = new List<InventoryBase>();
+
+            using (var upg = _storeLock.UpgradeableLock())
             {
-                return;
+                if (!_Store.TryGetNodeFor(itemId, out var rootNode))
+                {
+                    return;
+                }
+
+                // Traverse descendants iteratively to avoid recursive write-lock reentrancy
+                var stack = new Stack<UUID>();
+                stack.Push(itemId);
+
+                while (stack.Count > 0)
+                {
+                    var id = stack.Pop();
+
+                    // GetContents is a read operation
+                    var children = _Store.GetContents(id);
+                    foreach (var child in children)
+                    {
+                        toRemove.Add(child);
+
+                        // If folder, traverse its children too
+                        if (child is InventoryFolder)
+                        {
+                            stack.Push(child.UUID);
+                        }
+                    }
+                }
+
+                // Finally add the root node itself to the removal list
+                toRemove.Add(rootNode.Data);
             }
 
-            foreach (var obj in _Store.GetContents(itemId))
+            // Perform removals under write lock
+            using (var writeLock = _storeLock.WriteLock())
             {
-                RemoveLocalUi(true, obj.UUID);
+                foreach (var b in toRemove)
+                {
+                    try
+                    {
+                        _Store.RemoveNodeFor(b);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Log($"Failed removing inventory node {b}: {ex.Message}", Helpers.LogLevel.Debug, Client, ex);
+                    }
+                }
             }
-
-            _Store.RemoveNodeFor(item.Data);
         }
 
         /// <summary>
         /// Remove descendants of a folder
         /// </summary>
         /// <param name="folder">The <see cref="UUID"/> of the folder</param>
-        public void RemoveDescendants(UUID folder)
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+        public void RemoveDescendants(UUID folder, CancellationToken cancellationToken = default)
         {
             if (Client.AisClient.IsAvailable)
             {
-                Client.AisClient.PurgeDescendents(folder, RemoveLocalUi).ConfigureAwait(false);
+                // Fire-and-forget AIS call
+                _ = Client.AisClient.PurgeDescendents(folder, RemoveLocalUi, cancellationToken);
             }
             else
             {
@@ -1376,11 +1221,13 @@ namespace OpenMetaverse
         /// Remove a single item from inventory
         /// </summary>
         /// <param name="item">The <see cref="UUID"/> of the inventory item to remove</param>
-        public void RemoveItem(UUID item)
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+        public void RemoveItem(UUID item, CancellationToken cancellationToken = default)
         {
             if (Client.AisClient.IsAvailable)
             {
-                Client.AisClient.RemoveItem(item, RemoveLocalUi).ConfigureAwait(false);
+                // Fire-and-forget AIS call
+                _ = Client.AisClient.RemoveItem(item, RemoveLocalUi, cancellationToken);
             }
             else
             {
@@ -1415,11 +1262,13 @@ namespace OpenMetaverse
         /// Remove a folder from inventory
         /// </summary>
         /// <param name="folder">The <see cref="UUID"/> of the folder to remove</param>
-        public void RemoveFolder(UUID folder)
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+        public void RemoveFolder(UUID folder, CancellationToken cancellationToken = default)
         {
             if (Client.AisClient.IsAvailable)
             {
-                Client.AisClient.RemoveCategory(folder, RemoveLocalUi).ConfigureAwait(false);
+                // Fire-and-forget AIS call
+                _ = Client.AisClient.RemoveCategory(folder, RemoveLocalUi, cancellationToken);
             } 
             else
             {
@@ -1459,7 +1308,7 @@ namespace OpenMetaverse
             }
             else
             {
-                lock (_Store)
+                using (var writeLock = _storeLock.WriteLock())
                 {
                     rem.ItemData = new RemoveInventoryObjectsPacket.ItemDataBlock[items.Count];
                     for (var i = 0; i < items.Count; i++)
@@ -1467,8 +1316,8 @@ namespace OpenMetaverse
                         rem.ItemData[i] = new RemoveInventoryObjectsPacket.ItemDataBlock { ItemID = items[i] };
 
                         // Update local copy
-                        if (_Store.Contains(items[i]))
-                            _Store.RemoveNodeFor(Store[items[i]]);
+                        if (_Store != null && _Store.TryGetValue(items[i], out var storeItem))
+                            _Store.RemoveNodeFor(storeItem);
                     }
                 }
             }
@@ -1481,7 +1330,7 @@ namespace OpenMetaverse
             }
             else
             {
-                lock (_Store)
+                using (var writeLock = _storeLock.WriteLock())
                 {
                     rem.FolderData = new RemoveInventoryObjectsPacket.FolderDataBlock[folders.Count];
                     for (var i = 0; i < folders.Count; i++)
@@ -1489,8 +1338,8 @@ namespace OpenMetaverse
                         rem.FolderData[i] = new RemoveInventoryObjectsPacket.FolderDataBlock { FolderID = folders[i] };
 
                         // Update local copy
-                        if (_Store.Contains(folders[i]))
-                            _Store.RemoveNodeFor(Store[folders[i]]);
+                        if (_Store != null && _Store.TryGetValue(folders[i], out var storeItem))
+                            _Store.RemoveNodeFor(storeItem);
                     }
                 }
             }
@@ -1500,21 +1349,30 @@ namespace OpenMetaverse
         /// <summary>
         /// Empty the Lost and Found folder
         /// </summary>
-        public void EmptyLostAndFound()
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+        public void EmptyLostAndFound(CancellationToken cancellationToken = default)
         {
-            EmptySystemFolder(FolderType.LostAndFound);
+            EmptySystemFolder(FolderType.LostAndFound, cancellationToken);
         }
 
         /// <summary>
         /// Empty the Trash folder
         /// </summary>
-        public void EmptyTrash()
+        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+        public void EmptyTrash(CancellationToken cancellationToken = default)
         {
-            EmptySystemFolder(FolderType.Trash);
+            EmptySystemFolder(FolderType.Trash, cancellationToken);
         }
 
-        private void EmptySystemFolder(FolderType folderType)
+        private void EmptySystemFolder(FolderType folderType, CancellationToken cancellationToken = default)
         {
+            if (_Store == null)
+            {
+                Logger.Log("Inventory store not initialized, cannot empty system folder",
+                    Helpers.LogLevel.Warning, Client);
+                return;
+            }
+
             var folderKey = UUID.Zero;
 
             var items = _Store.GetContents(_Store.RootFolder);
@@ -1532,7 +1390,8 @@ namespace OpenMetaverse
             {
                 if (folderKey != UUID.Zero)
                 {
-                    Client.AisClient.PurgeDescendents(folderKey, RemoveLocalUi).ConfigureAwait(false);
+                    // Fire-and-forget AIS call
+                    _ = Client.AisClient.PurgeDescendents(folderKey, RemoveLocalUi, cancellationToken);
                 }
             }
             else
@@ -1675,8 +1534,22 @@ namespace OpenMetaverse
                 OwnerID = Client.Self.AgentID
             };
 
-            // Update the local store
-            try { _Store[newFolder.UUID] = newFolder; }
+            // Update the local store if available
+            try
+            {
+                if (_Store != null)
+                {
+                    using (_storeLock.WriteLock())
+                    {
+                        _Store[newFolder.UUID] = newFolder;
+                    }
+                }
+                else
+                {
+                    Logger.Log("Inventory store is not initialized, created folder will not be cached locally",
+                        Helpers.LogLevel.Debug, Client);
+                }
+            }
             catch (InventoryException ie) { Logger.Log(ie.Message, Helpers.LogLevel.Warning, Client, ie); }
 
             // Create the CreateInventoryFolder packet and send it
@@ -1721,7 +1594,15 @@ namespace OpenMetaverse
                 NextOwnerMask = PermissionMask.All
             };
 
-            RequestCreateItemFromAsset(data, name, description, assetType, invType, folderID, permissions, callback);
+            try
+            {
+                // Forward to async-first implementation
+                RequestCreateItemFromAssetAsync(data, name, description, assetType, invType, folderID, permissions, callback, CancellationToken.None).GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"RequestCreateItemFromAsset failed: {ex.Message}", Helpers.LogLevel.Warning, Client, ex);
+            }
         }
 
         /// <summary>
@@ -1736,17 +1617,14 @@ namespace OpenMetaverse
         /// <param name="permissions">Permission of the newly created item 
         /// (EveryoneMask, GroupMask, and NextOwnerMask of Permissions struct are supported)</param>
         /// <param name="callback">Delegate that will receive feedback on success or failure</param>
+        /// <param name="cancellationToken"></param>
+        [Obsolete("Use RequestCreateItemFromAssetAsync")]
         public void RequestCreateItemFromAsset(byte[] data, string name, string description, AssetType assetType,
-            InventoryType invType, UUID folderID, Permissions permissions, ItemCreatedFromAssetCallback callback)
+            InventoryType invType, UUID folderID, Permissions permissions, ItemCreatedFromAssetCallback callback, CancellationToken cancellationToken = default)
         {
-            if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
+            var cap = GetCapabilityURI("NewFileAgentInventory", false);
+            if (cap == null)
             {
-                throw new Exception("NewFileAgentInventory capability is not currently available");
-            }
-
-            var cap = Client.Network.CurrentSim.Caps.CapabilityURI("NewFileAgentInventory");
-
-            if (cap == null) { 
                 throw new Exception("NewFileAgentInventory capability is not currently available");
             }
 
@@ -1763,15 +1641,19 @@ namespace OpenMetaverse
                 {"expected_upload_cost", OSD.FromInteger(Client.Settings.UPLOAD_COST)}
             };
 
-            // Make the request
-            var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, CancellationToken.None,
-                (response, responseData, error) =>
+            // Fire-and-forget using the async helper to preserve original non-blocking behavior
+            _ = Task.Run(async () =>
+            {
+                try
                 {
-                    if (responseData == null) { throw error; }
-                    
-                    CreateItemFromAssetResponse(callback, data, query, 
-                        OSDParser.Deserialize(responseData), error);
-                });
+                    var res = await PostCapAsync(cap, query, cancellationToken).ConfigureAwait(false);
+                    CreateItemFromAssetResponse(callback, data, query, res, null, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    CreateItemFromAssetResponse(callback, data, query, null, ex, cancellationToken);
+                }
+            }, cancellationToken);
         }
 
         /// <summary>
@@ -1848,8 +1730,8 @@ namespace OpenMetaverse
                 links.Add(link);
 
                 var newInventory = new OSDMap { { "links", links } };
-                Client.AisClient.CreateInventory(folderID, newInventory, true, callback, cancellationToken)
-                    .ConfigureAwait(false);
+                // Fire-and-forget AIS call
+                _ = Client.AisClient.CreateInventory(folderID, newInventory, true, callback, cancellationToken);
             }
             else
             {
@@ -1863,10 +1745,7 @@ namespace OpenMetaverse
                     InventoryBlock = { CallbackID = RegisterItemCreatedCallback(callback) }
                 };
 
-                lock (_ItemInventoryTypeRequest)
-                {
-                    _ItemInventoryTypeRequest[create.InventoryBlock.CallbackID] = invType;
-                }
+                _ItemInventoryTypeRequest[create.InventoryBlock.CallbackID] = invType;
                 create.InventoryBlock.FolderID = folderID;
                 create.InventoryBlock.TransactionID = transactionID;
                 create.InventoryBlock.OldItemID = itemID;
@@ -1924,37 +1803,15 @@ namespace OpenMetaverse
         public void RequestCopyItems(List<UUID> items, List<UUID> targetFolders, List<string> newNames,
             UUID oldOwnerID, ItemCopiedCallback callback)
         {
-            if (items.Count != targetFolders.Count || (newNames != null && items.Count != newNames.Count))
-                throw new ArgumentException("All list arguments must have an equal number of entries");
-
-            var callbackID = RegisterItemsCopiedCallback(callback);
-
-            var copy = new CopyInventoryItemPacket
+            // Forward to async-first implementation for consistency. Execute synchronously to preserve original API semantics.
+            try
             {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                InventoryData = new CopyInventoryItemPacket.InventoryDataBlock[items.Count]
-            };
-
-            for (var i = 0; i < items.Count; ++i)
-            {
-                copy.InventoryData[i] = new CopyInventoryItemPacket.InventoryDataBlock
-                {
-                    CallbackID = callbackID,
-                    NewFolderID = targetFolders[i],
-                    OldAgentID = oldOwnerID,
-                    OldItemID = items[i],
-                    NewName = !string.IsNullOrEmpty(newNames?[i])
-                        ? Utils.StringToBytes(newNames[i])
-                        : Utils.EmptyBytes
-                };
-
+                RequestCopyItemsAsync(items, targetFolders, newNames, oldOwnerID, callback).GetAwaiter().GetResult();
             }
-
-            Client.Network.SendPacket(copy);
+            catch (Exception ex)
+            {
+                Logger.Log($"RequestCopyItems failed: {ex.Message}", Helpers.LogLevel.Warning, Client, ex);
+            }
         }
 
         /// <summary>
@@ -1965,12 +1822,12 @@ namespace OpenMetaverse
         /// <param name="folderID">Target folder for asset to go to in your inventory</param>
         /// <param name="itemID">UUID of the embedded asset</param>
         /// <param name="callback">callback to run when item is copied to inventory</param>
-        public void RequestCopyItemFromNotecard(UUID objectID, UUID notecardID, UUID folderID, UUID itemID, ItemCopiedCallback callback)
+        /// <param name="cancellationToken"></param>
+        public void RequestCopyItemFromNotecard(UUID objectID, UUID notecardID, UUID folderID, UUID itemID, ItemCopiedCallback callback, CancellationToken cancellationToken = default)
         {
             _ItemCopiedCallbacks[0] = callback; //Notecards always use callback ID 0
 
-            var cap = Client.Network.CurrentSim.Caps.CapabilityURI("CopyInventoryFromNotecard");
-
+            var cap = GetCapabilityURI("CopyInventoryFromNotecard");
             if (cap != null)
             {
                 var message = new CopyInventoryFromNotecardMessage
@@ -1982,8 +1839,7 @@ namespace OpenMetaverse
                     ObjectID = objectID
                 };
 
-                var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, message.Serialize(),
-                    CancellationToken.None, null);
+                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, message.Serialize(), cancellationToken);
             }
             else
             {
@@ -2049,23 +1905,22 @@ namespace OpenMetaverse
                 foreach (var item in items)
                 {
                     var update = (OSDMap)item.GetOSD();
-                    if (update.ContainsKey("asset_id"))
+                    if (update.Remove("asset_id"))
                     {
-                        update.Remove("asset_id");
                         if (item.TransactionID != UUID.Zero)
                         {
                             update["hash_id"] = item.TransactionID;
                         }
                     }
-                    if (update.ContainsKey("shadow_id"))
+                    if (update.Remove("shadow_id"))
                     {
-                        update.Remove("shadow_id");
                         if (item.TransactionID != UUID.Zero)
                         {
                             update["hash_id"] = item.TransactionID;
                         }
                     }
-                    Client.AisClient.UpdateItem(item.UUID, update, null).ConfigureAwait(false);
+                    // Fire-and-forget AIS update
+                    _ = Client.AisClient.UpdateItem(item.UUID, update, null);
                 }
             }
             else
@@ -2118,907 +1973,64 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Send an upload notecard request
-        /// </summary>
-        /// <param name="data"></param>
-        /// <param name="notecardID"></param>
-        /// <param name="callback"></param>
-        public void RequestUploadNotecardAsset(byte[] data, UUID notecardID, InventoryUploadedAssetCallback callback)
-        {
-            if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
-                throw new Exception("Capability system not initialized to send asset");
-
-            var cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateNotecardAgentInventory");
-
-            if (cap != null)
-            {
-                var query = new OSDMap { { "item_id", OSD.FromUUID(notecardID) } };
-
-                // Make the request
-                var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, CancellationToken.None,
-                    (response, responseData, error) =>
-                    {
-                        if (responseData == null) { throw error; }
-                        
-                        UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
-                            notecardID, OSDParser.Deserialize(responseData), error);
-                    });
-            }
-            else
-            {
-                throw new Exception("UpdateNotecardAgentInventory capability is not currently available");
-            }
-        }
-
-        /// <summary>
-        /// Save changes to notecard embedded in object contents
-        /// </summary>
-        /// <param name="data">Encoded notecard asset data</param>
-        /// <param name="notecardID">Notecard UUID</param>
-        /// <param name="taskID">Object's UUID</param>
-        /// <param name="callback">Called upon finish of the upload with status information</param>
-        public void RequestUpdateNotecardTask(byte[] data, UUID notecardID, UUID taskID, InventoryUploadedAssetCallback callback)
-        {
-            if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
-            {
-                throw new Exception("UpdateNotecardTaskInventory capability is not currently available");
-            }
-
-            var cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateNotecardTaskInventory");
-
-            if (cap != null)
-            {
-                var query = new OSDMap
-                {
-                    {"item_id", OSD.FromUUID(notecardID)},
-                    { "task_id", OSD.FromUUID(taskID)}
-                };
-
-                // Make the request
-                var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, CancellationToken.None,
-                    (response, responseData, error) =>
-                    {
-                        if (responseData == null) { throw error; }
-
-                        UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
-                            notecardID, OSDParser.Deserialize(responseData), error);
-                    });
-            }
-            else
-            {
-                throw new Exception("UpdateNotecardTaskInventory capability is not currently available");
-            }
-        }
-
-        /// <summary>
-        /// Upload new gesture asset for an inventory gesture item
-        /// </summary>
-        /// <param name="data">Encoded gesture asset</param>
-        /// <param name="gestureID">Gesture inventory UUID</param>
-        /// <param name="callback">Callback whick will be called when upload is complete</param>
-        public void RequestUploadGestureAsset(byte[] data, UUID gestureID, InventoryUploadedAssetCallback callback)
-        {
-            if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
-                throw new Exception("UpdateGestureAgentInventory capability is not currently available");
-
-            var cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateGestureAgentInventory");
-
-            if (cap != null)
-            {
-                var query = new OSDMap { { "item_id", OSD.FromUUID(gestureID) } };
-
-                // Make the request
-                var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, query, CancellationToken.None,
-                    (response, responseData, error) =>
-                    {
-                        if (responseData == null) { throw error; }
-
-                        UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
-                            gestureID, OSDParser.Deserialize(responseData), error);
-                    });
-            }
-            else
-            {
-                throw new Exception("UpdateGestureAgentInventory capability is not currently available");
-            }
-        }
-
-        /// <summary>
         /// Update an existing script in an agents Inventory
         /// </summary>
         /// <param name="data">A byte[] array containing the encoded scripts contents</param>
         /// <param name="itemID">the itemID of the script</param>
         /// <param name="mono">if true, sets the script content to run on the mono interpreter</param>
         /// <param name="callback"></param>
-        public void RequestUpdateScriptAgentInventory(byte[] data, UUID itemID, bool mono, ScriptUpdatedCallback callback)
+        /// <param name="cancellationToken"></param>
+        [Obsolete("Use RequestUpdateScriptAgentInventoryAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
+        public void RequestUpdateScriptAgentInventory(byte[] data, UUID itemID, bool mono, ScriptUpdatedCallback callback, CancellationToken cancellationToken = default)
         {
-            var cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateScriptAgent");
-
-            if (cap != null)
-            {
-                var msg = new UpdateScriptAgentRequestMessage
-                {
-                    ItemID = itemID,
-                    Target = mono ? "mono" : "lsl2"
-                };
-
-                var req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), CancellationToken.None,
-                    (response, responseData, error) =>
-                    {
-                        if (responseData == null) { throw error; }
-
-                        UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), 
-                            itemID, OSDParser.Deserialize(responseData), error);
-                    });
-            }
-            else
-            {
-                throw new Exception("UpdateScriptAgent capability is not currently available");
-            }
+            // Forward to the async-first implementation and fire-and-forget to preserve original non-blocking behavior
+            _ = RequestUpdateScriptAgentInventoryAsync(data, itemID, mono, callback, cancellationToken);
         }
 
         /// <summary>
-        /// Update an existing script in an task Inventory
+        /// Send an upload notecard request
         /// </summary>
-        /// <param name="data">A byte[] array containing the encoded scripts contents</param>
-        /// <param name="itemID">the itemID of the script</param>
-        /// <param name="taskID">UUID of the prim containting the script</param>
-        /// <param name="mono">if true, sets the script content to run on the mono interpreter</param>
-        /// <param name="running">if true, sets the script to running</param>
+        /// <param name="data"></param>
+        /// <param name="notecardID"></param>
         /// <param name="callback"></param>
-        public void RequestUpdateScriptTask(byte[] data, UUID itemID, UUID taskID, bool mono, bool running, ScriptUpdatedCallback callback)
+        /// <param name="cancellationToken"></param>
+        public void RequestUploadNotecardAsset(byte[] data, UUID notecardID, InventoryUploadedAssetCallback callback, CancellationToken cancellationToken = default)
         {
-            var cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateScriptTask");
-
-            if (cap != null)
+            var cap = GetCapabilityURI("UpdateNotecardAgentInventory", false);
+            if (cap == null)
             {
-                var msg = new UpdateScriptTaskUpdateMessage
-                {
-                    ItemID = itemID,
-                    TaskID = taskID,
-                    ScriptRunning = running,
-                    Target = mono ? "mono" : "lsl2"
-                };
-
-                var req= Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), CancellationToken.None,
-                    (response, responseData, error) =>
-                    {
-                        if (responseData == null) { throw error; }
-
-                        UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data), 
-                            itemID, OSDParser.Deserialize(responseData), error);
-                    });
+                throw new Exception("Capability system not initialized to send asset");
             }
-            else
-            {
-                throw new Exception("UpdateScriptTask capability is not currently available");
-            }
+
+            var query = new OSDMap { { "item_id", OSD.FromUUID(notecardID) } };
+
+            // Fire-and-forget the async-first implementation which will invoke the upload response handling
+            _ = RequestUploadNotecardAssetAsync(data, notecardID, callback, cancellationToken);
         }
+
+        /// <summary>
+        /// Send an upload gesture request (synchronous wrapper preserved for compatibility)
+        /// </summary>
+        /// <param name="data">Gesture asset bytes</param>
+        /// <param name="gestureID">UUID of the gesture item</param>
+        /// <param name="callback">Callback invoked when upload completes</param>
+        /// <param name="cancellationToken">Cancellation token for operation</param>
+        [Obsolete("Use RequestUploadGestureAssetAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
+        public void RequestUploadGestureAsset(byte[] data, UUID gestureID, InventoryUploadedAssetCallback callback, CancellationToken cancellationToken = default)
+        {
+            var cap = GetCapabilityURI("UpdateGestureAgentInventory", false);
+            if (cap == null)
+            {
+                throw new Exception("UpdateGestureAgentInventory capability is not currently available");
+            }
+
+            var query = new OSDMap { { "item_id", OSD.FromUUID(gestureID) } };
+
+            // Fire-and-forget the async-first implementation which will invoke the upload response handling
+            _ = RequestUploadGestureAssetAsync(data, gestureID, callback, cancellationToken);
+        }
+
         #endregion Update
-
-        #region Rez/Give
-
-        /// <summary>
-        /// Rez an object from inventory
-        /// </summary>
-        /// <param name="simulator">Simulator to place object in</param>
-        /// <param name="rotation">Rotation of the object when rezzed</param>
-        /// <param name="position">Vector of where to place object</param>
-        /// <param name="item">InventoryItem object containing item details</param>
-        public UUID RequestRezFromInventory(Simulator simulator, Quaternion rotation, Vector3 position,
-            InventoryItem item)
-        {
-            return RequestRezFromInventory(simulator, rotation, position, item, Client.Self.ActiveGroup,
-                UUID.Random(), true);
-        }
-
-        /// <summary>
-        /// Rez an object from inventory
-        /// </summary>
-        /// <param name="simulator">Simulator to place object in</param>
-        /// <param name="rotation">Rotation of the object when rezzed</param>
-        /// <param name="position">Vector of where to place object</param>
-        /// <param name="item">InventoryItem object containing item details</param>
-        /// <param name="groupOwner">UUID of group to own the object</param>
-        public UUID RequestRezFromInventory(Simulator simulator, Quaternion rotation, Vector3 position,
-            InventoryItem item, UUID groupOwner)
-        {
-            return RequestRezFromInventory(simulator, rotation, position, item, groupOwner, UUID.Random(), true);
-        }
-
-        /// <summary>
-        /// Rez an object from inventory
-        /// </summary>
-        /// <param name="simulator">Simulator to place object in</param>
-        /// <param name="rotation">Rotation of the object when rezzed</param>
-        /// <param name="position">Vector of where to place object</param>
-        /// <param name="item">InventoryItem object containing item details</param>
-        /// <param name="groupOwner">UUID of group to own the object</param>        
-        /// <param name="queryID">User defined queryID to correlate replies</param>
-        /// <param name="rezSelected">If set to true, the CreateSelected flag
-        /// will be set on the rezzed object</param>        
-        public UUID RequestRezFromInventory(Simulator simulator, Quaternion rotation, Vector3 position,
-            InventoryItem item, UUID groupOwner, UUID queryID, bool rezSelected)
-        {
-            return RequestRezFromInventory(simulator, UUID.Zero, rotation, position, item, groupOwner, queryID,
-                                           rezSelected);
-        }
-
-        /// <summary>
-        /// Rez an object from inventory
-        /// </summary>
-        /// <param name="simulator">Simulator to place object in</param>
-        /// <param name="taskID">TaskID object when rezzed</param>
-        /// <param name="rotation">Rotation of the object when rezzed</param>
-        /// <param name="position">Vector of where to place object</param>
-        /// <param name="item">InventoryItem object containing item details</param>
-        /// <param name="groupOwner">UUID of group to own the object</param>        
-        /// <param name="queryID">User defined queryID to correlate replies</param>
-        /// <param name="rezSelected">If set to true, the CreateSelected flag
-        /// will be set on the rezzed object</param>        
-        public UUID RequestRezFromInventory(Simulator simulator, UUID taskID, Quaternion rotation, Vector3 position,
-            InventoryItem item, UUID groupOwner, UUID queryID, bool rezSelected)
-        {
-            var add = new RezObjectPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID,
-                    GroupID = groupOwner
-                },
-                RezData =
-                {
-                    FromTaskID = taskID,
-                    BypassRaycast = 1,
-                    RayStart = position,
-                    RayEnd = position,
-                    RayTargetID = UUID.Zero,
-                    RayEndIsIntersection = false,
-                    RezSelected = rezSelected,
-                    RemoveItem = false,
-                    ItemFlags = (uint) item.Flags,
-                    GroupMask = (uint) item.Permissions.GroupMask,
-                    EveryoneMask = (uint) item.Permissions.EveryoneMask,
-                    NextOwnerMask = (uint) item.Permissions.NextOwnerMask
-                },
-                InventoryData =
-                {
-                    ItemID = item.UUID,
-                    FolderID = item.ParentUUID,
-                    CreatorID = item.CreatorID,
-                    OwnerID = item.OwnerID,
-                    GroupID = item.GroupID,
-                    BaseMask = (uint) item.Permissions.BaseMask,
-                    OwnerMask = (uint) item.Permissions.OwnerMask,
-                    GroupMask = (uint) item.Permissions.GroupMask,
-                    EveryoneMask = (uint) item.Permissions.EveryoneMask,
-                    NextOwnerMask = (uint) item.Permissions.NextOwnerMask,
-                    GroupOwned = item.GroupOwned,
-                    TransactionID = queryID,
-                    Type = (sbyte) item.InventoryType,
-                    InvType = (sbyte) item.InventoryType,
-                    Flags = (uint) item.Flags,
-                    SaleType = (byte) item.SaleType,
-                    SalePrice = item.SalePrice,
-                    Name = Utils.StringToBytes(item.Name),
-                    Description = Utils.StringToBytes(item.Description),
-                    CreationDate = (int) Utils.DateTimeToUnixTime(item.CreationDate)
-                }
-            };
-
-            Client.Network.SendPacket(add, simulator);
-
-            // Remove from store if the item is no copy
-            if (Store.Contains(item.UUID) && Store[item.UUID] is InventoryItem invItem)
-            {
-                if ((invItem.Permissions.OwnerMask & PermissionMask.Copy) == PermissionMask.None)
-                {
-                    Store.RemoveNodeFor(invItem);
-                }
-            }
-
-            return queryID;
-        }
-
-        /// <summary>
-        /// DeRez an object from the simulator to the agents Objects folder in the agents Inventory
-        /// </summary>
-        /// <param name="objectLocalID">The simulator Local ID of the object</param>
-        /// <remarks>If objectLocalID is a child primitive in a linkset, the entire linkset will be derezzed</remarks>
-        public void RequestDeRezToInventory(uint objectLocalID)
-        {
-            RequestDeRezToInventory(objectLocalID, DeRezDestination.AgentInventoryTake,
-                Client.Inventory.FindFolderForType(AssetType.Object), UUID.Random());
-        }
-
-        /// <summary>
-        /// DeRez an object from the simulator and return to inventory
-        /// </summary>
-        /// <param name="objectLocalID">The simulator Local ID of the object</param>
-        /// <param name="destType">The type of destination from the <see cref="DeRezDestination"/> enum</param>
-        /// <param name="destFolder">The destination inventory folders <see cref="UUID"/> -or-
-        /// if DeRezzing object to a tasks Inventory, the Tasks <see cref="UUID"/></param>
-        /// <param name="transactionID">The transaction ID for this request which
-        /// can be used to correlate this request with other packets</param>
-        /// <remarks>If objectLocalID is a child primitive in a linkset, the entire linkset will be derezzed</remarks>
-        public void RequestDeRezToInventory(uint objectLocalID, DeRezDestination destType, UUID destFolder, UUID transactionID)
-        {
-            var take = new DeRezObjectPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                AgentBlock = new DeRezObjectPacket.AgentBlockBlock
-                {
-                    GroupID = UUID.Zero,
-                    Destination = (byte)destType,
-                    DestinationID = destFolder,
-                    PacketCount = 1,
-                    PacketNumber = 1,
-                    TransactionID = transactionID
-                },
-                ObjectData = new DeRezObjectPacket.ObjectDataBlock[1]
-            };
-
-
-            take.ObjectData[0] = new DeRezObjectPacket.ObjectDataBlock { ObjectLocalID = objectLocalID };
-
-            Client.Network.SendPacket(take);
-        }
-
-        /// <summary>
-        /// Rez an item from inventory to its previous simulator location
-        /// </summary>
-        /// <param name="simulator"></param>
-        /// <param name="item"></param>
-        /// <param name="queryID"></param>
-        /// <returns></returns>
-        public UUID RequestRestoreRezFromInventory(Simulator simulator, InventoryItem item, UUID queryID)
-        {
-            var add = new RezRestoreToWorldPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                InventoryData =
-                {
-                    ItemID = item.UUID,
-                    FolderID = item.ParentUUID,
-                    CreatorID = item.CreatorID,
-                    OwnerID = item.OwnerID,
-                    GroupID = item.GroupID,
-                    BaseMask = (uint) item.Permissions.BaseMask,
-                    OwnerMask = (uint) item.Permissions.OwnerMask,
-                    GroupMask = (uint) item.Permissions.GroupMask,
-                    EveryoneMask = (uint) item.Permissions.EveryoneMask,
-                    NextOwnerMask = (uint) item.Permissions.NextOwnerMask,
-                    GroupOwned = item.GroupOwned,
-                    TransactionID = queryID,
-                    Type = (sbyte) item.InventoryType,
-                    InvType = (sbyte) item.InventoryType,
-                    Flags = (uint) item.Flags,
-                    SaleType = (byte) item.SaleType,
-                    SalePrice = item.SalePrice,
-                    Name = Utils.StringToBytes(item.Name),
-                    Description = Utils.StringToBytes(item.Description),
-                    CreationDate = (int) Utils.DateTimeToUnixTime(item.CreationDate)
-                }
-            };
-
-
-
-            Client.Network.SendPacket(add, simulator);
-
-            return queryID;
-        }
-
-        /// <summary>
-        /// Give an inventory item to another avatar
-        /// </summary>
-        /// <param name="itemID">The <see cref="UUID"/> of the item to give</param>
-        /// <param name="itemName">The name of the item</param>
-        /// <param name="assetType">The type of the item from the <see cref="AssetType"/> enum</param>
-        /// <param name="recipient">The <see cref="UUID"/> of the recipient</param>
-        /// <param name="doEffect">true to generate a beameffect during transfer</param>
-        public void GiveItem(UUID itemID, string itemName, AssetType assetType, UUID recipient,
-            bool doEffect)
-        {
-            var bucket = new byte[17];
-            bucket[0] = (byte)assetType;
-            Buffer.BlockCopy(itemID.GetBytes(), 0, bucket, 1, 16);
-
-            Client.Self.InstantMessage(
-                    Client.Self.Name,
-                    recipient,
-                    itemName,
-                    UUID.Random(),
-                    InstantMessageDialog.InventoryOffered,
-                    InstantMessageOnline.Online,
-                    Client.Self.SimPosition,
-                    Client.Network.CurrentSim.ID,
-                    bucket);
-
-            if (doEffect)
-            {
-                Client.Self.BeamEffect(Client.Self.AgentID, recipient, Vector3d.Zero,
-                    Client.Settings.DEFAULT_EFFECT_COLOR, 1f, UUID.Random());
-            }
-
-            // Remove from store if the item is no copy
-            if (Store.Contains(itemID) && Store[itemID] is InventoryItem item)
-            {
-                if ((item.Permissions.OwnerMask & PermissionMask.Copy) == PermissionMask.None)
-                {
-                    Store.RemoveNodeFor(item);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Recurse inventory category and return folders and items. Does NOT contain parent folder being searched
-        /// </summary>
-        /// <param name="folderID">Inventory category to recursively search</param>
-        /// <param name="owner">Owner of folder</param>
-        /// <param name="cats">reference to list of categories</param>
-        /// <param name="items">reference to list of items</param>
-        private void GetInventoryRecursive(UUID folderID, UUID owner,
-            ref List<InventoryFolder> cats, ref List<InventoryItem> items)
-        {
-
-            var contents = Client.Inventory.FolderContents(
-                folderID, owner, true, true, InventorySortOrder.ByDate, TimeSpan.FromSeconds(15));
-
-            foreach (var entry in contents)
-            {
-                switch (entry)
-                {
-                    case InventoryFolder folder:
-                        cats.Add(folder);
-                        GetInventoryRecursive(folder.UUID, owner, ref cats, ref items);
-                        break;
-                    case InventoryItem _:
-                        items.Add(Client.Inventory.FetchItem(entry.UUID, owner, TimeSpan.FromSeconds(10)));
-                        break;
-                    default: // shouldn't happen
-                        Logger.Log("Retrieved inventory contents of invalid type", Helpers.LogLevel.Error);
-                        break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Give an inventory Folder with contents to another avatar
-        /// </summary>
-        /// <param name="folderID">The <see cref="UUID"/> of the Folder to give</param>
-        /// <param name="folderName">The name of the folder</param>
-        /// <param name="recipient">The <see cref="UUID"/> of the recipient</param>
-        /// <param name="doEffect">true to generate a beameffect during transfer</param>
-        public void GiveFolder(UUID folderID, string folderName, UUID recipient, bool doEffect)
-        {
-            var folders = new List<InventoryFolder>();
-            var items = new List<InventoryItem>();
-
-            GetInventoryRecursive(folderID, Client.Self.AgentID, ref folders, ref items);
-
-            var total_contents = folders.Count + items.Count;
-
-            // check for too many items.
-            if (total_contents > MAX_GIVE_ITEMS)
-            {
-                Logger.Log("Cannot give more than 42 items in a single inventory transfer.", Helpers.LogLevel.Info);
-                return;
-            }
-            if (items.Count == 0)
-            {
-                Logger.Log("No items to transfer.", Helpers.LogLevel.Info);
-                return;
-            }
-
-            var bucket = new byte[17 * (total_contents + 1)];
-            var offset = 0; // account for first byte
-
-            //Add folders (parent folder first)
-            bucket[offset++] = (byte)AssetType.Folder;
-            Buffer.BlockCopy(folderID.GetBytes(), 0, bucket, offset, 16);
-            offset += 16;
-            foreach (var folder in folders)
-            {
-                bucket[offset++] = (byte)AssetType.Folder;
-                Buffer.BlockCopy(folder.UUID.GetBytes(), 0, bucket, offset, 16);
-                offset += 16;
-            }
-
-            //Add items to bucket after folders
-            foreach (var item in items)
-            {
-                bucket[offset++] = (byte)item.AssetType;
-                Buffer.BlockCopy(item.UUID.GetBytes(), 0, bucket, offset, 16);
-                offset += 16;
-            }
-
-            Client.Self.InstantMessage(
-                    Client.Self.Name,
-                    recipient,
-                    folderName,
-                    UUID.Random(),
-                    InstantMessageDialog.InventoryOffered,
-                    InstantMessageOnline.Online,
-                    Client.Self.SimPosition,
-                    Client.Network.CurrentSim.ID,
-                    bucket);
-
-            if (doEffect)
-            {
-                Client.Self.BeamEffect(Client.Self.AgentID, recipient, Vector3d.Zero,
-                    Client.Settings.DEFAULT_EFFECT_COLOR, 1f, UUID.Random());
-            }
-
-            // Remove from store if items were no copy
-            foreach (var invItem in from item in items 
-                     where Store.Contains(item.UUID) && Store[item.UUID] is InventoryItem 
-                     select (InventoryItem)Store[item.UUID] into invItem 
-                     where (invItem.Permissions.OwnerMask & PermissionMask.Copy) == PermissionMask.None select invItem)
-            {
-                Store.RemoveNodeFor(invItem);
-            }
-        }
-
-        #endregion Rez/Give
-
-        #region Task
-
-        /// <summary>
-        /// Copy or move an <see cref="InventoryItem"/> from agent inventory to a task (primitive) inventory
-        /// </summary>
-        /// <param name="objectLocalID">The target object</param>
-        /// <param name="item">The item to copy or move from inventory</param>
-        /// <returns></returns>
-        /// <remarks>For items with copy permissions a copy of the item is placed in the tasks inventory,
-        /// for no-copy items the object is moved to the tasks inventory</remarks>
-        // DocTODO: what does the return UUID correlate to if anything?
-        public UUID UpdateTaskInventory(uint objectLocalID, InventoryItem item)
-        {
-            var transactionID = UUID.Random();
-
-            var update = new UpdateTaskInventoryPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                UpdateData =
-                {
-                    Key = 0,
-                    LocalID = objectLocalID
-                },
-                InventoryData =
-                {
-                    ItemID = item.UUID,
-                    FolderID = item.ParentUUID,
-                    CreatorID = item.CreatorID,
-                    OwnerID = item.OwnerID,
-                    GroupID = item.GroupID,
-                    BaseMask = (uint) item.Permissions.BaseMask,
-                    OwnerMask = (uint) item.Permissions.OwnerMask,
-                    GroupMask = (uint) item.Permissions.GroupMask,
-                    EveryoneMask = (uint) item.Permissions.EveryoneMask,
-                    NextOwnerMask = (uint) item.Permissions.NextOwnerMask,
-                    GroupOwned = item.GroupOwned,
-                    TransactionID = transactionID,
-                    Type = (sbyte) item.AssetType,
-                    InvType = (sbyte) item.InventoryType,
-                    Flags = (uint) item.Flags,
-                    SaleType = (byte) item.SaleType,
-                    SalePrice = item.SalePrice,
-                    Name = Utils.StringToBytes(item.Name),
-                    Description = Utils.StringToBytes(item.Description),
-                    CreationDate = (int) Utils.DateTimeToUnixTime(item.CreationDate),
-                    CRC = ItemCRC(item)
-                }
-            };
-
-
-            Client.Network.SendPacket(update);
-
-            return transactionID;
-        }
-
-        /// <summary>
-        /// Retrieve a listing of the items contained in a task (Primitive)
-        /// </summary>
-        /// <param name="objectID">The tasks <see cref="UUID"/></param>
-        /// <param name="objectLocalID">The tasks simulator local ID</param>
-        /// <param name="timeout">time to wait for reply from simulator</param>
-        /// <returns>A list containing the inventory items inside the task or null
-        /// if a timeout occurs</returns>
-        /// <remarks>This request blocks until the response from the simulator arrives 
-        /// before timeout is exceeded</remarks>
-        public List<InventoryBase> GetTaskInventory(UUID objectID, uint objectLocalID, TimeSpan timeout)
-        {
-            string filename = null;
-            var taskReplyEvent = new AutoResetEvent(false);
-
-            void Callback(object sender, TaskInventoryReplyEventArgs e)
-            {
-                if (e.ItemID == objectID)
-                {
-                    filename = e.AssetFilename;
-                    taskReplyEvent.Set();
-                }
-            }
-
-            TaskInventoryReply += Callback;
-
-            RequestTaskInventory(objectLocalID);
-
-            if (taskReplyEvent.WaitOne(timeout, false))
-            {
-                TaskInventoryReply -= Callback;
-
-                if (!string.IsNullOrEmpty(filename))
-                {
-                    byte[] assetData = null;
-                    ulong xferID = 0;
-                    var taskDownloadEvent = new AutoResetEvent(false);
-
-                    void XferCallback(object sender, XferReceivedEventArgs e)
-                    {
-                        if (e.Xfer.XferID == xferID)
-                        {
-                            assetData = e.Xfer.AssetData;
-                            taskDownloadEvent.Set();
-                        }
-                    }
-
-                    Client.Assets.XferReceived += XferCallback;
-
-                    // Start the actual asset xfer
-                    xferID = Client.Assets.RequestAssetXfer(filename, true, false, UUID.Zero, AssetType.Unknown, true);
-
-                    if (taskDownloadEvent.WaitOne(timeout, false))
-                    {
-                        Client.Assets.XferReceived -= XferCallback;
-
-                        var taskList = Utils.BytesToString(assetData);
-                        return ParseTaskInventory(taskList);
-                    }
-                    else
-                    {
-                        Logger.Log("Timed out waiting for task inventory download for " + filename, Helpers.LogLevel.Warning, Client);
-                        Client.Assets.XferReceived -= XferCallback;
-                        return null;
-                    }
-                }
-                else
-                {
-                    Logger.DebugLog("Task is empty for " + objectLocalID, Client);
-                    return new List<InventoryBase>(0);
-                }
-            }
-            else
-            {
-                Logger.Log("Timed out waiting for task inventory reply for " + objectLocalID, Helpers.LogLevel.Warning, Client);
-                TaskInventoryReply -= Callback;
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Request the contents of a tasks (primitives) inventory from the 
-        /// current simulator
-        /// </summary>
-        /// <param name="objectLocalID">The LocalID of the object</param>
-        /// <see cref="TaskInventoryReply"/>
-        public void RequestTaskInventory(uint objectLocalID)
-        {
-            RequestTaskInventory(objectLocalID, Client.Network.CurrentSim);
-        }
-
-        /// <summary>
-        /// Request the contents of a tasks (primitives) inventory
-        /// </summary>
-        /// <param name="objectLocalID">The simulator Local ID of the object</param>
-        /// <param name="simulator">A reference to the simulator object that contains the object</param>
-        /// <see cref="TaskInventoryReply"/>
-        public void RequestTaskInventory(uint objectLocalID, Simulator simulator)
-        {
-            var request = new RequestTaskInventoryPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                InventoryData = { LocalID = objectLocalID }
-            };
-
-            Client.Network.SendPacket(request, simulator);
-        }
-
-        /// <summary>
-        /// Move an item from a tasks (Primitive) inventory to the specified folder in the avatars inventory
-        /// </summary>
-        /// <param name="objectLocalID">LocalID of the object in the simulator</param>
-        /// <param name="taskItemID">UUID of the task item to move</param>
-        /// <param name="inventoryFolderID">The ID of the destination folder in this agents inventory</param>
-        /// <param name="simulator">Simulator Object</param>
-        /// <remarks>Raises the <see cref="OnTaskItemReceived"/> event</remarks>
-        public void MoveTaskInventory(uint objectLocalID, UUID taskItemID, UUID inventoryFolderID, Simulator simulator)
-        {
-            var request = new MoveTaskInventoryPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID,
-                    FolderID = inventoryFolderID
-                },
-                InventoryData =
-                {
-                    ItemID = taskItemID,
-                    LocalID = objectLocalID
-                }
-            };
-
-            Client.Network.SendPacket(request, simulator);
-        }
-
-        /// <summary>
-        /// Remove an item from an objects (Prim) Inventory
-        /// </summary>
-        /// <param name="objectLocalID">LocalID of the object in the simulator</param>
-        /// <param name="taskItemID">UUID of the task item to remove</param>
-        /// <param name="simulator">Simulator Object</param>
-        /// <remarks>You can confirm the removal by comparing the tasks inventory serial before and after the 
-        /// request with the <see cref="RequestTaskInventory"/> request combined with
-        /// the <see cref="TaskInventoryReply"/> event</remarks>
-        public void RemoveTaskInventory(uint objectLocalID, UUID taskItemID, Simulator simulator)
-        {
-            var remove = new RemoveTaskInventoryPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                InventoryData =
-                {
-                    ItemID = taskItemID,
-                    LocalID = objectLocalID
-                }
-            };
-
-            Client.Network.SendPacket(remove, simulator);
-        }
-
-        /// <summary>
-        /// Copy an InventoryScript item from the Agents Inventory into a primitives task inventory
-        /// </summary>
-        /// <param name="objectLocalID">An unsigned integer representing a primitive being simulated</param>
-        /// <param name="item">An <see cref="InventoryItem"/> which represents a script object from the agents inventory</param>
-        /// <param name="enableScript">true to set the scripts running state to enabled</param>
-        /// <returns>A Unique Transaction ID</returns>
-        /// <example>
-        /// The following example shows the basic steps necessary to copy a script from the agents inventory into a tasks inventory
-        /// and assumes the script exists in the agents inventory.
-        /// <code>
-        ///    uint primID = 95899503; // Fake prim ID
-        ///    UUID scriptID = UUID.Parse("92a7fe8a-e949-dd39-a8d8-1681d8673232"); // Fake Script UUID in Inventory
-        ///
-        ///    Client.Inventory.FolderContents(Client.Inventory.FindFolderForType(AssetType.LSLText), Client.Self.AgentID, 
-        ///        false, true, InventorySortOrder.ByName, 10000);
-        ///
-        ///    Client.Inventory.RezScript(primID, (InventoryItem)Client.Inventory.Store[scriptID]);
-        /// </code>
-        /// </example>
-        // DocTODO: what does the return UUID correlate to if anything?
-        public UUID CopyScriptToTask(uint objectLocalID, InventoryItem item, bool enableScript)
-        {
-            var transactionID = UUID.Random();
-
-            var ScriptPacket = new RezScriptPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                UpdateBlock =
-                {
-                    ObjectLocalID = objectLocalID,
-                    Enabled = enableScript
-                },
-                InventoryBlock =
-                {
-                    ItemID = item.UUID,
-                    FolderID = item.ParentUUID,
-                    CreatorID = item.CreatorID,
-                    OwnerID = item.OwnerID,
-                    GroupID = item.GroupID,
-                    BaseMask = (uint) item.Permissions.BaseMask,
-                    OwnerMask = (uint) item.Permissions.OwnerMask,
-                    GroupMask = (uint) item.Permissions.GroupMask,
-                    EveryoneMask = (uint) item.Permissions.EveryoneMask,
-                    NextOwnerMask = (uint) item.Permissions.NextOwnerMask,
-                    GroupOwned = item.GroupOwned,
-                    TransactionID = transactionID,
-                    Type = (sbyte) item.AssetType,
-                    InvType = (sbyte) item.InventoryType,
-                    Flags = (uint) item.Flags,
-                    SaleType = (byte) item.SaleType,
-                    SalePrice = item.SalePrice,
-                    Name = Utils.StringToBytes(item.Name),
-                    Description = Utils.StringToBytes(item.Description),
-                    CreationDate = (int) Utils.DateTimeToUnixTime(item.CreationDate),
-                    CRC = ItemCRC(item)
-                }
-            };
-
-            Client.Network.SendPacket(ScriptPacket);
-
-            return transactionID;
-        }
-
-
-        /// <summary>
-        /// Request the running status of a script contained in a task (primitive) inventory
-        /// </summary>
-        /// <param name="objectID">The ID of the primitive containing the script</param>
-        /// <param name="scriptID">The ID of the script</param>
-        /// <remarks>The <see cref="ScriptRunningReply"/> event can be used to obtain the results of the 
-        /// request</remarks>
-        /// <see cref="ScriptRunningReply"/>
-        public void RequestGetScriptRunning(UUID objectID, UUID scriptID)
-        {
-            var request = new GetScriptRunningPacket
-            {
-                Script =
-                {
-                    ObjectID = objectID,
-                    ItemID = scriptID
-                }
-            };
-
-            Client.Network.SendPacket(request);
-        }
-
-        /// <summary>
-        /// Send a request to set the running state of a script contained in a task (primitive) inventory
-        /// </summary>
-        /// <param name="objectID">The ID of the primitive containing the script</param>
-        /// <param name="scriptID">The ID of the script</param>
-        /// <param name="running">true to set the script running, false to stop a running script</param>
-        /// <remarks>To verify the change you can use the <see cref="RequestGetScriptRunning"/> method combined
-        /// with the <see cref="ScriptRunningReply"/> event</remarks>
-        public void RequestSetScriptRunning(UUID objectID, UUID scriptID, bool running)
-        {
-            var request = new SetScriptRunningPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                Script =
-                {
-                    Running = running,
-                    ItemID = scriptID,
-                    ObjectID = objectID
-                }
-            };
-
-            Client.Network.SendPacket(request);
-        }
-
-        #endregion Task
-
-        #region Helper Functions
 
         /// <summary>
         /// Wrapper for creating a new <see cref="InventoryItem"/> object
@@ -3060,8 +2072,15 @@ namespace OpenMetaverse
         {
             InventoryItem ret = null;
 
-            if (_Store.Contains(ItemID))
-                ret = _Store[ItemID] as InventoryItem;
+            if (_Store == null)
+            {
+                Logger.Log("Inventory store not initialized, cannot create or retrieve inventory item",
+                    Helpers.LogLevel.Warning, Client);
+                return null;
+            }
+
+            if (_Store.TryGetValue(ItemID, out var storeItem) && storeItem is InventoryItem inventoryItem)
+                ret = inventoryItem;
 
             return ret ?? (ret = CreateInventoryItem(InvType, ItemID));
         }
@@ -3084,8 +2103,6 @@ namespace OpenMetaverse
             CRC += iitem.CreatorID.CRC(); // CreatorID
             CRC += iitem.OwnerID.CRC(); // OwnerID
             CRC += iitem.GroupID.CRC(); // GroupID
-
-            // CRC += another 4 words which always seem to be zero -- unclear if this is a UUID or what
             CRC += (uint)iitem.Permissions.OwnerMask; //owner_mask;      // Either owner_mask or next_owner_mask may need to be
             CRC += (uint)iitem.Permissions.NextOwnerMask; //next_owner_mask; // switched with base_mask -- 2 values go here and in my
             CRC += (uint)iitem.Permissions.EveryoneMask; //everyone_mask;   // study item, the three were identical.
@@ -3122,346 +2139,100 @@ namespace OpenMetaverse
             return assetID ^ MAGIC_ID;
         }
 
-        /// <summary>
-        /// Parse the results of a RequestTaskInventory() response
-        /// </summary>
-        /// <param name="taskData">A string which contains the data from the task reply</param>
-        /// <returns>A List containing the items contained within the tasks inventory</returns>
-        public static List<InventoryBase> ParseTaskInventory(string taskData)
-        {
-            var items = new List<InventoryBase>();
-            var lineNum = 0;
-            var lines = taskData.Replace("\r\n", "\n").Split('\n');
-
-            while (lineNum < lines.Length)
-            {
-                string key, value;
-                if (ParseLine(lines[lineNum++], out key, out value))
-                {
-                    if (key == "inv_object")
-                    {
-                        #region inv_object
-
-                        // In practice this appears to only be used for folders
-                        var itemID = UUID.Zero;
-                        var parentID = UUID.Zero;
-                        var name = string.Empty;
-                        var assetType = AssetType.Unknown;
-
-                        while (lineNum < lines.Length)
-                        {
-                            if (ParseLine(lines[lineNum++], out key, out value))
-                            {
-                                if (key == "{")
-                                {
-                                    continue;
-                                }
-                                else if (key == "}")
-                                {
-                                    break;
-                                }
-                                else if (key == "obj_id")
-                                {
-                                    UUID.TryParse(value, out itemID);
-                                }
-                                else if (key == "parent_id")
-                                {
-                                    UUID.TryParse(value, out parentID);
-                                }
-                                else if (key == "type")
-                                {
-                                    assetType = Utils.StringToAssetType(value);
-                                }
-                                else if (key == "name")
-                                {
-                                    name = value.Substring(0, value.IndexOf('|'));
-                                }
-                            }
-                        }
-
-                        if (assetType == AssetType.Folder)
-                        {
-                            var folder = new InventoryFolder(itemID)
-                            {
-                                Name = name,
-                                ParentUUID = parentID
-                            };
-
-                            items.Add(folder);
-                        }
-                        else
-                        {
-                            var item = new InventoryItem(itemID)
-                            {
-                                Name = name,
-                                ParentUUID = parentID,
-                                AssetType = assetType
-                            };
-
-                            items.Add(item);
-                        }
-
-                        #endregion inv_object
-                    }
-                    else if (key == "inv_item")
-                    {
-                        #region inv_item
-
-                        // Any inventory item that links to an assetID, has permissions, etc
-                        var itemID = UUID.Zero;
-                        var assetID = UUID.Zero;
-                        var parentID = UUID.Zero;
-                        var creatorID = UUID.Zero;
-                        var ownerID = UUID.Zero;
-                        var lastOwnerID = UUID.Zero;
-                        var groupID = UUID.Zero;
-                        var groupOwned = false;
-                        var name = string.Empty;
-                        var desc = string.Empty;
-                        var assetType = AssetType.Unknown;
-                        var inventoryType = InventoryType.Unknown;
-                        var creationDate = Utils.Epoch;
-                        uint flags = 0;
-                        var perms = Permissions.NoPermissions;
-                        var saleType = SaleType.Not;
-                        var salePrice = 0;
-
-                        while (lineNum < lines.Length)
-                        {
-                            if (ParseLine(lines[lineNum++], out key, out value))
-                            {
-                                if (key == "{")
-                                {
-                                    continue;
-                                }
-                                else if (key == "}")
-                                {
-                                    break;
-                                }
-                                else if (key == "item_id")
-                                {
-                                    UUID.TryParse(value, out itemID);
-                                }
-                                else if (key == "parent_id")
-                                {
-                                    UUID.TryParse(value, out parentID);
-                                }
-                                else if (key == "permissions")
-                                {
-                                    #region permissions
-
-                                    while (lineNum < lines.Length)
-                                    {
-                                        if (ParseLine(lines[lineNum++], out key, out value))
-                                        {
-                                            if (key == "{")
-                                            {
-                                                continue;
-                                            }
-                                            else if (key == "}")
-                                            {
-                                                break;
-                                            }
-                                            else if (key == "creator_mask")
-                                            {
-                                                // Deprecated
-                                                uint val;
-                                                if (Utils.TryParseHex(value, out val))
-                                                    perms.BaseMask = (PermissionMask)val;
-                                            }
-                                            else if (key == "base_mask")
-                                            {
-                                                uint val;
-                                                if (Utils.TryParseHex(value, out val))
-                                                    perms.BaseMask = (PermissionMask)val;
-                                            }
-                                            else if (key == "owner_mask")
-                                            {
-                                                uint val;
-                                                if (Utils.TryParseHex(value, out val))
-                                                    perms.OwnerMask = (PermissionMask)val;
-                                            }
-                                            else if (key == "group_mask")
-                                            {
-                                                uint val;
-                                                if (Utils.TryParseHex(value, out val))
-                                                    perms.GroupMask = (PermissionMask)val;
-                                            }
-                                            else if (key == "everyone_mask")
-                                            {
-                                                uint val;
-                                                if (Utils.TryParseHex(value, out val))
-                                                    perms.EveryoneMask = (PermissionMask)val;
-                                            }
-                                            else if (key == "next_owner_mask")
-                                            {
-                                                uint val;
-                                                if (Utils.TryParseHex(value, out val))
-                                                    perms.NextOwnerMask = (PermissionMask)val;
-                                            }
-                                            else if (key == "creator_id")
-                                            {
-                                                UUID.TryParse(value, out creatorID);
-                                            }
-                                            else if (key == "owner_id")
-                                            {
-                                                UUID.TryParse(value, out ownerID);
-                                            }
-                                            else if (key == "last_owner_id")
-                                            {
-                                                UUID.TryParse(value, out lastOwnerID);
-                                            }
-                                            else if (key == "group_id")
-                                            {
-                                                UUID.TryParse(value, out groupID);
-                                            }
-                                            else if (key == "group_owned")
-                                            {
-                                                uint val;
-                                                if (uint.TryParse(value, out val))
-                                                    groupOwned = (val != 0);
-                                            }
-                                        }
-                                    }
-
-                                    #endregion permissions
-                                }
-                                else if (key == "sale_info")
-                                {
-                                    #region sale_info
-
-                                    while (lineNum < lines.Length)
-                                    {
-                                        if (ParseLine(lines[lineNum++], out key, out value))
-                                        {
-                                            if (key == "{")
-                                            {
-                                                continue;
-                                            }
-                                            else if (key == "}")
-                                            {
-                                                break;
-                                            }
-                                            else if (key == "sale_type")
-                                            {
-                                                saleType = Utils.StringToSaleType(value);
-                                            }
-                                            else if (key == "sale_price")
-                                            {
-                                                int.TryParse(value, out salePrice);
-                                            }
-                                        }
-                                    }
-
-                                    #endregion sale_info
-                                }
-                                else if (key == "shadow_id")
-                                {
-                                    UUID shadowID;
-                                    if (UUID.TryParse(value, out shadowID))
-                                        assetID = DecryptShadowID(shadowID);
-                                }
-                                else if (key == "asset_id")
-                                {
-                                    UUID.TryParse(value, out assetID);
-                                }
-                                else if (key == "type")
-                                {
-                                    assetType = Utils.StringToAssetType(value);
-                                }
-                                else if (key == "inv_type")
-                                {
-                                    inventoryType = Utils.StringToInventoryType(value);
-                                }
-                                else if (key == "flags")
-                                {
-                                    uint.TryParse(value, out flags);
-                                }
-                                else if (key == "name")
-                                {
-                                    name = value.Substring(0, value.IndexOf('|'));
-                                }
-                                else if (key == "desc")
-                                {
-                                    desc = value.Substring(0, value.IndexOf('|'));
-                                }
-                                else if (key == "creation_date")
-                                {
-                                    uint timestamp;
-                                    if (uint.TryParse(value, out timestamp))
-                                        creationDate = Utils.UnixTimeToDateTime(timestamp);
-                                    else
-                                        Logger.Log($"Failed to parse creation_date: {value}", Helpers.LogLevel.Warning);
-                                }
-                            }
-                        }
-
-                        var item = CreateInventoryItem(inventoryType, itemID);
-                        item.AssetUUID = assetID;
-                        item.AssetType = assetType;
-                        item.CreationDate = creationDate;
-                        item.CreatorID = creatorID;
-                        item.Description = desc;
-                        item.Flags = flags;
-                        item.GroupID = groupID;
-                        item.GroupOwned = groupOwned;
-                        item.Name = name;
-                        item.OwnerID = ownerID;
-                        item.LastOwnerID = lastOwnerID;
-                        item.ParentUUID = parentID;
-                        item.Permissions = perms;
-                        item.SalePrice = salePrice;
-                        item.SaleType = saleType;
-
-                        items.Add(item);
-
-                        #endregion inv_item
-                    }
-                    else
-                    {
-                        Logger.Log($"Unrecognized token {key} in: " + Environment.NewLine + taskData,
-                            Helpers.LogLevel.Error);
-                    }
-                }
-            }
-
-            return items;
-        }
-
         private uint RegisterItemCreatedCallback(ItemCreatedCallback callback)
         {
-            lock (_CallbacksLock)
+            uint id;
+            do
             {
-                if (_CallbackPos == uint.MaxValue)
-                    _CallbackPos = 0;
+                var v = Interlocked.Increment(ref _CallbackPos);
+                id = (uint)v;
+            } while (id == 0);
 
-                _CallbackPos++;
-
-                if (_ItemCreatedCallbacks.ContainsKey(_CallbackPos))
-                    Logger.Log("Overwriting an existing ItemCreatedCallback", Helpers.LogLevel.Warning, Client);
-
-                _ItemCreatedCallbacks[_CallbackPos] = callback;
-
-                return _CallbackPos;
+            if (!_ItemCreatedCallbacks.TryAdd(id, callback))
+            {
+                _ItemCreatedCallbacks[id] = callback;
+                Logger.Log("Overwriting an existing ItemCreatedCallback", Helpers.LogLevel.Warning, Client);
             }
+
+            // Schedule cleanup in case the server never responds. If the callback is
+            // already removed by a successful response the TryRemove here will fail
+            // and we won't invoke the callback twice.
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(CALLBACK_TIMEOUT_MS, _callbackCleanupCts.Token).ConfigureAwait(false);
+                    if (_ItemCreatedCallbacks.TryRemove(id, out var cb))
+                    {
+                        try
+                        {
+                            // Signal failure/timeout to the caller
+                            cb(false, null);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                        }
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Cancellation expected during Dispose, swallow
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(ex.Message, Helpers.LogLevel.Debug, Client, ex);
+                }
+            }, _callbackCleanupCts.Token);
+
+            return id;
         }
 
         private uint RegisterItemsCopiedCallback(ItemCopiedCallback callback)
         {
-            lock (_CallbacksLock)
+            uint id;
+            do
             {
-                if (_CallbackPos == uint.MaxValue)
-                    _CallbackPos = 0;
+                var v = Interlocked.Increment(ref _CallbackPos);
+                id = (uint)v;
+            } while (id == 0);
 
-                _CallbackPos++;
-
-                if (_ItemCopiedCallbacks.ContainsKey(_CallbackPos))
-                    Logger.Log("Overwriting an existing ItemsCopiedCallback", Helpers.LogLevel.Warning, Client);
-
-                _ItemCopiedCallbacks[_CallbackPos] = callback;
-
-                return _CallbackPos;
+            if (!_ItemCopiedCallbacks.TryAdd(id, callback))
+            {
+                _ItemCopiedCallbacks[id] = callback;
+                Logger.Log("Overwriting an existing ItemsCopiedCallback", Helpers.LogLevel.Warning, Client);
             }
+
+            // Schedule cleanup for copied-item callbacks as well to avoid leaks
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(CALLBACK_TIMEOUT_MS, _callbackCleanupCts.Token).ConfigureAwait(false);
+                    if (_ItemCopiedCallbacks.TryRemove(id, out var cb))
+                    {
+                        try
+                        {
+                            // Indicate failure by passing null
+                            cb(null);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                        }
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Cancellation expected during Dispose, swallow
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log(ex.Message, Helpers.LogLevel.Debug, Client, ex);
+                }
+            }, _callbackCleanupCts.Token);
+
+            return id;
         }
 
         private static bool ParseLine(string line, out string key, out string value)
@@ -3497,1082 +2268,17 @@ namespace OpenMetaverse
             return false;
         }
 
-        #endregion Helper Functions
-
-        #region Internal Callbacks
-
-        void Self_IM(object sender, InstantMessageEventArgs e)
+        // Centralized capability lookup helper to reduce duplicated null checks
+        private Uri GetCapabilityURI(string capName, bool logOnMissing = true)
         {
-            // TODO: MainAvatar.InstantMessageDialog.GroupNotice can also be an inventory offer, should we
-            // handle it here?
-
-            if (m_InventoryObjectOffered != null &&
-                (e.IM.Dialog == InstantMessageDialog.InventoryOffered
-                || e.IM.Dialog == InstantMessageDialog.TaskInventoryOffered))
+            var sim = Client?.Network?.CurrentSim;
+            Uri uri = sim?.Caps?.CapabilityURI(capName);
+            if (uri == null && logOnMissing)
             {
-                var type = AssetType.Unknown;
-                var objectID = UUID.Zero;
-                var fromTask = false;
-
-                if (e.IM.Dialog == InstantMessageDialog.InventoryOffered)
-                {
-                    if (e.IM.BinaryBucket.Length == 17)
-                    {
-                        type = (AssetType)e.IM.BinaryBucket[0];
-                        objectID = new UUID(e.IM.BinaryBucket, 1);
-                        fromTask = false;
-                    }
-                    else
-                    {
-                        Logger.Log("Malformed inventory offer from agent", Helpers.LogLevel.Warning, Client);
-                        return;
-                    }
-                }
-                else if (e.IM.Dialog == InstantMessageDialog.TaskInventoryOffered)
-                {
-                    if (e.IM.BinaryBucket.Length == 1)
-                    {
-                        type = (AssetType)e.IM.BinaryBucket[0];
-                        fromTask = true;
-                    }
-                    else
-                    {
-                        Logger.Log("Malformed inventory offer from object", Helpers.LogLevel.Warning, Client);
-                        return;
-                    }
-                }
-
-                // Find the folder where this is going to go
-                var destinationFolderID = FindFolderForType(type);
-
-                // Fire the callback
-                try
-                {
-                    var imp = new ImprovedInstantMessagePacket
-                    {
-                        AgentData =
-                        {
-                            AgentID = Client.Self.AgentID,
-                            SessionID = Client.Self.SessionID
-                        },
-                        MessageBlock =
-                        {
-                            FromGroup = false,
-                            ToAgentID = e.IM.FromAgentID,
-                            Offline = 0,
-                            ID = e.IM.IMSessionID,
-                            Timestamp = 0,
-                            FromAgentName = Utils.StringToBytes(Client.Self.Name),
-                            Message = Utils.EmptyBytes,
-                            ParentEstateID = 0,
-                            RegionID = UUID.Zero,
-                            Position = Client.Self.SimPosition
-                        }
-                    };
-
-                    var args = new InventoryObjectOfferedEventArgs(e.IM, type, objectID, fromTask, destinationFolderID);
-
-                    OnInventoryObjectOffered(args);
-
-                    if (args.Accept)
-                    {
-                        // Accept the inventory offer
-                        switch (e.IM.Dialog)
-                        {
-                            case InstantMessageDialog.InventoryOffered:
-                                imp.MessageBlock.Dialog = (byte)InstantMessageDialog.InventoryAccepted;
-                                break;
-                            case InstantMessageDialog.TaskInventoryOffered:
-                                imp.MessageBlock.Dialog = (byte)InstantMessageDialog.TaskInventoryAccepted;
-                                break;
-                            case InstantMessageDialog.GroupNotice:
-                                imp.MessageBlock.Dialog = (byte)InstantMessageDialog.GroupNoticeInventoryAccepted;
-                                break;
-                        }
-                        imp.MessageBlock.BinaryBucket = args.FolderID.GetBytes();
-                        RequestFetchInventory(objectID, e.IM.ToAgentID);
-                    }
-                    else
-                    {
-                        // Decline the inventory offer
-                        switch (e.IM.Dialog)
-                        {
-                            case InstantMessageDialog.InventoryOffered:
-                                imp.MessageBlock.Dialog = (byte)InstantMessageDialog.InventoryDeclined;
-                                break;
-                            case InstantMessageDialog.TaskInventoryOffered:
-                                imp.MessageBlock.Dialog = (byte)InstantMessageDialog.TaskInventoryDeclined;
-                                break;
-                            case InstantMessageDialog.GroupNotice:
-                                imp.MessageBlock.Dialog = (byte)InstantMessageDialog.GroupNoticeInventoryDeclined;
-                                break;
-                        }
-
-                        imp.MessageBlock.BinaryBucket = Utils.EmptyBytes;
-                    }
-
-                    Client.Network.SendPacket(imp, e.Simulator ?? Client.Network.CurrentSim);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
-                }
+                var simName = sim?.Name ?? "unknown";
+                Logger.Log($"Failed to obtain {capName} capability on {simName}", Helpers.LogLevel.Warning, Client);
             }
-        }
-
-        private void CreateItemFromAssetResponse(ItemCreatedFromAssetCallback callback, byte[] itemData, OSDMap request, 
-            OSD result, Exception error)
-        {
-            if (result == null)
-            {
-                try { callback(false, error.Message, UUID.Zero, UUID.Zero); }
-                catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
-                return;
-            }
-
-            if (result.Type == OSDType.Unknown)
-            {
-                try
-                {
-                    callback(false, "Failed to parse asset and item UUIDs", UUID.Zero, UUID.Zero);
-                }
-                catch (Exception e)
-                {
-                    Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
-                }
-            }
-
-            var contents = (OSDMap)result;
-
-            var status = contents["state"].AsString().ToLower();
-
-            if (status == "upload")
-            {
-                var uploadURL = contents["uploader"].AsString();
-
-                Logger.DebugLog($"CreateItemFromAsset: uploading to {uploadURL}");
-
-                // This makes the assumption that all uploads go to CurrentSim, to avoid
-                // the problem of HttpRequestState not knowing anything about simulators
-                var req = Client.HttpCapsClient.PostRequestAsync(new Uri(uploadURL),
-                    "application/octet-stream", itemData, CancellationToken.None,
-                    (response, responseData, err) =>
-                    {
-                        CreateItemFromAssetResponse(callback, itemData, request, 
-                            OSDParser.Deserialize(responseData), err);
-                    });
-            }
-            else if (status == "complete")
-            {
-                Logger.DebugLog("CreateItemFromAsset: completed");
-
-                if (contents.ContainsKey("new_inventory_item") && contents.ContainsKey("new_asset"))
-                {
-                    // Request full update on the item in order to update the local store
-                    RequestFetchInventory(contents["new_inventory_item"].AsUUID(), Client.Self.AgentID);
-
-                    try { callback(true, string.Empty, contents["new_inventory_item"].AsUUID(), contents["new_asset"].AsUUID()); }
-                    catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
-                }
-                else
-                {
-                    try { callback(false, "Failed to parse asset and item UUIDs", UUID.Zero, UUID.Zero); }
-                    catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
-                }
-            }
-            else
-            {
-                // Failure
-                try { callback(false, status, UUID.Zero, UUID.Zero); }
-                catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
-            }
-        }
-
-        private void Network_OnLoginResponse(bool loginSuccess, bool redirect, string message, string reason, LoginResponseData replyData)
-        {
-            if (!loginSuccess) { return; }
-            if (replyData.InventorySkeleton == null || replyData.LibrarySkeleton == null) { return; }
-
-            // Initialize the store here to link it with the owner
-            _Store = new Inventory(Client, Client.Self.AgentID);
-            Logger.DebugLog($"Setting InventoryRoot to {replyData.InventoryRoot}", Client);
-            var rootFolder = new InventoryFolder(replyData.InventoryRoot)
-            {
-                Name = string.Empty,
-                ParentUUID = UUID.Zero
-            };
-            _Store.RootFolder = rootFolder;
-
-            foreach (var folder in replyData.InventorySkeleton)
-                _Store.UpdateNodeFor(folder);
-
-            var libraryRootFolder = new InventoryFolder(replyData.LibraryRoot)
-            {
-                Name = string.Empty,
-                ParentUUID = UUID.Zero
-            };
-            _Store.LibraryFolder = libraryRootFolder;
-
-            foreach (var folder in replyData.LibrarySkeleton)
-                _Store.UpdateNodeFor(folder);
-        }
-
-        private void UploadInventoryAssetResponse(KeyValuePair<InventoryUploadedAssetCallback, byte[]> kvp, 
-            UUID itemId, OSD result, Exception error)
-        {
-            var callback = kvp.Key;
-            var itemData = (byte[])kvp.Value;
-
-            if (error == null && result is OSDMap contents)
-            {
-                var status = contents["state"].AsString();
-
-                if (status == "upload")
-                {
-                    var uploadURL = contents["uploader"].AsUri();
-
-                    if (uploadURL != null)
-                    {
-                        // This makes the assumption that all uploads go to CurrentSim, to avoid
-                        // the problem of HttpRequestState not knowing anything about simulators
-                        var req = Client.HttpCapsClient.PostRequestAsync(uploadURL, "application/octet-stream",
-                            itemData, CancellationToken.None, (response, responseData, exception) =>
-                            {
-                                UploadInventoryAssetResponse(kvp, itemId, OSDParser.Deserialize(responseData), exception);
-                            });
-                    }
-                    else
-                    {
-                        try { callback(false, "Missing uploader URL", UUID.Zero, UUID.Zero); }
-                        catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
-                    }
-                }
-                else if (status == "complete")
-                {
-                    if (contents.ContainsKey("new_asset"))
-                    {
-                        // Request full item update so we keep store in sync
-                        RequestFetchInventory(itemId, contents["new_asset"].AsUUID());
-
-                        try { callback(true, string.Empty, itemId, contents["new_asset"].AsUUID()); }
-                        catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
-                    }
-                    else
-                    {
-                        try { callback(false, "Failed to parse asset and item UUIDs", UUID.Zero, UUID.Zero); }
-                        catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
-                    }
-                }
-                else
-                {
-                    try { callback(false, status, UUID.Zero, UUID.Zero); }
-                    catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
-                }
-            }
-            else
-            {
-                var message = "Unrecognized or empty response";
-
-                if (error != null)
-                {
-                    if (error is WebException exception)
-                        message = ((HttpWebResponse)exception.Response).StatusDescription;
-
-                    if (message == null || message == "None")
-                        message = error.Message;
-                }
-
-                try { callback(false, message, UUID.Zero, UUID.Zero); }
-                catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
-            }
-        }
-
-        private void UpdateScriptAgentInventoryResponse(KeyValuePair<ScriptUpdatedCallback, byte[]> kvpCb, 
-            UUID itemId, OSD result, Exception error)
-        {
-            var callback = kvpCb.Key;
-            var itemData = (byte[])kvpCb.Value;
-
-            if (result == null)
-            {
-                try { callback(false, error.Message, false, 
-                    null, UUID.Zero, UUID.Zero); }
-                catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
-                return;
-            }
-
-            var contents = (OSDMap)result;
-
-            var status = contents["state"].AsString();
-            if (status == "upload")
-            {
-                var uploadURL = contents["uploader"].AsString();
-
-                var req = Client.HttpCapsClient.PostRequestAsync(new Uri(uploadURL), "application/octet-stream",
-                    itemData, CancellationToken.None, (response, responseData, exception) =>
-                    {
-                        UpdateScriptAgentInventoryResponse(kvpCb, itemId, 
-                            OSDParser.Deserialize(responseData), exception);
-                    });
-            }
-            else if (status == "complete" && callback != null)
-            {
-                if (contents.ContainsKey("new_asset"))
-                {
-                    // Request full item update so we keep store in sync
-                    RequestFetchInventory(itemId, contents["new_asset"].AsUUID());
-
-                    try
-                    {
-                        List<string> compileErrors = null;
-
-                        if (contents.TryGetValue("errors", out var content))
-                        {
-                            var errors = (OSDArray)content;
-                            compileErrors = new List<string>(errors.Count);
-                            compileErrors.AddRange(errors.Select(t => t.AsString()));
-                        }
-
-                        callback(true,
-                            status,
-                            contents["compiled"].AsBoolean(),
-                            compileErrors,
-                            itemId,
-                            contents["new_asset"].AsUUID());
-                    }
-                    catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
-                }
-                else
-                {
-                    try { callback(false, "Failed to parse asset UUID", 
-                        false, null, UUID.Zero, UUID.Zero); }
-                    catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
-                }
-            }
-            else if (callback != null)
-            {
-                try { callback(false, status, false, 
-                    null, UUID.Zero, UUID.Zero); }
-                catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
-            }
-        }
-        #endregion Internal Handlers
-
-        #region Packet Handlers
-
-        /// <summary>Process an incoming packet and raise the appropriate events</summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void SaveAssetIntoInventoryHandler(object sender, PacketReceivedEventArgs e)
-        {
-            if (m_SaveAssetToInventory != null)
-            {
-                var packet = e.Packet;
-
-                var save = (SaveAssetIntoInventoryPacket)packet;
-                OnSaveAssetToInventory(new SaveAssetToInventoryEventArgs(save.InventoryData.ItemID, save.InventoryData.NewAssetID));
-            }
-        }
-
-        /// <summary>Process an incoming packet and raise the appropriate events</summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void InventoryDescendentsHandler(object sender, PacketReceivedEventArgs e)
-        {
-            var packet = e.Packet;
-
-            var reply = (InventoryDescendentsPacket)packet;
-
-            if (reply.AgentData.Descendents > 0)
-            {
-                // InventoryDescendantsReply sends a null folder if the parent doesn't contain any folders
-                if (reply.FolderData[0].FolderID != UUID.Zero)
-                {
-                    // Iterate folders in this packet
-                    foreach (var data in reply.FolderData)
-                    {
-                        // If folder already exists then ignore, we assume the version cache
-                        // logic is working and if the folder is stale then it should not be present.
-                        if (!_Store.Contains(data.FolderID))
-                        {
-                            var folder = new InventoryFolder(data.FolderID)
-                            {
-                                ParentUUID = data.ParentID,
-                                Name = Utils.BytesToString(data.Name),
-                                PreferredType = (FolderType)data.Type,
-                                OwnerID = reply.AgentData.OwnerID
-                            };
-
-                            _Store[folder.UUID] = folder;
-                        }
-                    }
-                }
-
-                // InventoryDescendantsReply sends a null item if the parent doesn't contain any items.
-                if (reply.ItemData[0].ItemID != UUID.Zero)
-                {
-                    // Iterate items in this packet
-                    foreach (var data in reply.ItemData)
-                    {
-                        if (data.ItemID != UUID.Zero)
-                        {
-                            InventoryItem item;
-                            /* 
-                             * Objects that have been attached in-world prior to being stored on the 
-                             * asset server are stored with the InventoryType of 0 (Texture) 
-                             * instead of 17 (Attachment) 
-                             * 
-                             * This corrects that behavior by forcing Object Asset types that have an 
-                             * invalid InventoryType with the proper InventoryType of Attachment.
-                             */
-                            if ((InventoryType)data.InvType == InventoryType.Texture &&
-                                (AssetType)data.Type == AssetType.Object
-                                || (AssetType)data.Type == AssetType.Mesh)
-                            {
-                                item = CreateInventoryItem(InventoryType.Attachment, data.ItemID);
-                                item.InventoryType = InventoryType.Attachment;
-                            }
-                            else
-                            {
-                                item = CreateInventoryItem((InventoryType)data.InvType, data.ItemID);
-                                item.InventoryType = (InventoryType)data.InvType;
-                            }
-
-                            item.ParentUUID = data.FolderID;
-                            item.CreatorID = data.CreatorID;
-                            item.AssetType = (AssetType)data.Type;
-                            item.AssetUUID = data.AssetID;
-                            item.CreationDate = Utils.UnixTimeToDateTime((uint)data.CreationDate);
-                            item.Description = Utils.BytesToString(data.Description);
-                            item.Flags = data.Flags;
-                            item.Name = Utils.BytesToString(data.Name);
-                            item.GroupID = data.GroupID;
-                            item.GroupOwned = data.GroupOwned;
-                            item.Permissions = new Permissions(
-                                data.BaseMask,
-                                data.EveryoneMask,
-                                data.GroupMask,
-                                data.NextOwnerMask,
-                                data.OwnerMask);
-                            item.SalePrice = data.SalePrice;
-                            item.SaleType = (SaleType)data.SaleType;
-                            item.OwnerID = reply.AgentData.OwnerID;
-
-                            _Store[item.UUID] = item;
-                        }
-                    }
-                }
-            }
-
-            InventoryFolder parentFolder = null;
-
-            if (_Store.Contains(reply.AgentData.FolderID) &&
-                _Store[reply.AgentData.FolderID] is InventoryFolder invFolder)
-            {
-                parentFolder = invFolder;
-            }
-            else
-            {
-                Logger.Log($"No reference for FolderID {reply.AgentData.FolderID} or it is not a folder", 
-                    Helpers.LogLevel.Error, Client);
-                return;
-            }
-
-            if (reply.AgentData.Version < parentFolder.Version)
-            {
-                Logger.Log($"Received outdated InventoryDescendents packet for folder {parentFolder.Name}, " +
-                           $"this version = {reply.AgentData.Version}, latest version = {parentFolder.Version}",
-                    Helpers.LogLevel.Warning, Client);
-                return;
-            }
-
-            parentFolder.Version = reply.AgentData.Version;
-            // FIXME: reply.AgentData.Descendants is not parentFolder.DescendentCount if we didn't 
-            // request items and folders
-            parentFolder.DescendentCount = reply.AgentData.Descendents;
-            _Store.GetNodeFor(reply.AgentData.FolderID).NeedsUpdate = false;
-
-            #region FindObjectsByPath Handling
-
-            lock (_Searches)
-            {
-                if (_Searches.Count > 0)
-                {
-                    StartSearch:
-                    // Iterate over all outstanding searches
-                    for (var i = 0; i < _Searches.Count; ++i)
-                    {
-                        var search = _Searches[i];
-                        var folderContents = _Store.GetContents(search.Folder);
-
-                        // Iterate over all inventory objects in the base search folder
-                        foreach (var content in folderContents.Where(
-                                     content => content.Name == search.Path[search.Level]))
-                        {
-                            if (search.Level == search.Path.Length - 1)
-                            {
-                                Logger.DebugLog("Finished path search of " + string.Join("/", search.Path), Client);
-
-                                // This is the last node in the path, fire the callback and clean up
-                                if (m_FindObjectByPathReply != null)
-                                {
-                                    OnFindObjectByPathReply(new FindObjectByPathReplyEventArgs(string.Join("/", search.Path),
-                                        content.UUID));
-                                }
-
-                                // Remove this entry and restart the loop since we are changing the collection size
-                                _Searches.RemoveAt(i);
-                                goto StartSearch;
-                            }
-                            else
-                            {
-                                // We found a match, but it is not the end of the path; request the next level
-                                Logger.DebugLog(
-                                    $"Matched level {search.Level}/{search.Path.Length - 1} " +
-                                    $"in a path search of {string.Join("/", search.Path)}", Client);
-
-                                search.Folder = content.UUID;
-                                search.Level++;
-                                _Searches[i] = search;
-
-                                Task task = RequestFolderContents(search.Folder, search.Owner, true, true,
-                                    InventorySortOrder.ByName);
-                            }
-                        }
-                    }
-                }
-            }
-
-            #endregion FindObjectsByPath Handling
-
-            // Callback for inventory folder contents being updated
-            OnFolderUpdated(new FolderUpdatedEventArgs(parentFolder.UUID, true));
-        }
-
-        /// <summary>
-        /// UpdateCreateInventoryItem packets are received when a new inventory item 
-        /// is created. This may occur when an object that's rezzed in world is
-        /// taken into inventory, when an item is created using the <see cref="CreateInventoryItem"/>
-        /// packet, or when an object has been purchased
-        /// </summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void UpdateCreateInventoryItemHandler(object sender, PacketReceivedEventArgs e)
-        {
-            var packet = e.Packet;
-            if (!(packet is UpdateCreateInventoryItemPacket reply)) return;
-
-            foreach (var dataBlock in reply.InventoryData)
-            {
-                if (dataBlock.InvType == (sbyte)InventoryType.Folder)
-                {
-                    Logger.Log(
-                        "Received InventoryFolder in an UpdateCreateInventoryItem packet, this should not happen!",
-                        Helpers.LogLevel.Error, Client);
-                    continue;
-                }
-
-                var item = CreateInventoryItem((InventoryType)dataBlock.InvType, dataBlock.ItemID);
-                item.AssetType = (AssetType)dataBlock.Type;
-                item.AssetUUID = dataBlock.AssetID;
-                item.CreationDate = Utils.UnixTimeToDateTime(dataBlock.CreationDate);
-                item.CreatorID = dataBlock.CreatorID;
-                item.Description = Utils.BytesToString(dataBlock.Description);
-                item.Flags = dataBlock.Flags;
-                item.GroupID = dataBlock.GroupID;
-                item.GroupOwned = dataBlock.GroupOwned;
-                item.Name = Utils.BytesToString(dataBlock.Name);
-                item.OwnerID = dataBlock.OwnerID;
-                item.ParentUUID = dataBlock.FolderID;
-                item.Permissions = new Permissions(
-                    dataBlock.BaseMask,
-                    dataBlock.EveryoneMask,
-                    dataBlock.GroupMask,
-                    dataBlock.NextOwnerMask,
-                    dataBlock.OwnerMask);
-                item.SalePrice = dataBlock.SalePrice;
-                item.SaleType = (SaleType)dataBlock.SaleType;
-
-                /* 
-                     * When attaching new objects, an UpdateCreateInventoryItem packet will be
-                     * returned by the server that has a FolderID/ParentUUID of zero. It is up
-                     * to the client to make sure that the item gets a good folder, otherwise
-                     * it will end up inaccessible in inventory.
-                     */
-                if (item.ParentUUID == UUID.Zero)
-                {
-                    // assign default folder for type
-                    item.ParentUUID = FindFolderForType(item.AssetType);
-
-                    Logger.Log(
-                        "Received an item through UpdateCreateInventoryItem with no parent folder, assigning to folder " +
-                        item.ParentUUID, Helpers.LogLevel.Info);
-
-                    // send update to the sim
-                    RequestUpdateItem(item);
-                }
-
-                // Update the local copy
-                _Store[item.UUID] = item;
-
-                // Look for an "item created" callback
-                ItemCreatedCallback createdCallback;
-                if (_ItemCreatedCallbacks.TryGetValue(dataBlock.CallbackID, out createdCallback))
-                {
-                    _ItemCreatedCallbacks.Remove(dataBlock.CallbackID);
-
-                    try
-                    {
-                        createdCallback(true, item);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
-                    }
-                }
-
-                // TODO: Is this callback even triggered when items are copied?
-                // Look for an "item copied" callback
-                ItemCopiedCallback copyCallback;
-                if (_ItemCopiedCallbacks.TryGetValue(dataBlock.CallbackID, out copyCallback))
-                {
-                    _ItemCopiedCallbacks.Remove(dataBlock.CallbackID);
-
-                    try
-                    {
-                        copyCallback(item);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
-                    }
-                }
-
-                //This is triggered when an item is received from a task
-                if (m_TaskItemReceived != null)
-                {
-                    OnTaskItemReceived(new TaskItemReceivedEventArgs(item.UUID, dataBlock.FolderID,
-                        item.CreatorID, item.AssetUUID, item.InventoryType));
-                }
-            }
-        }
-
-        /// <summary>Process an incoming packet and raise the appropriate events</summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void MoveInventoryItemHandler(object sender, PacketReceivedEventArgs e)
-        {
-            var packet = e.Packet;
-
-            var move = (MoveInventoryItemPacket)packet;
-
-            foreach (var data in move.InventoryData)
-            {
-                // FIXME: Do something here
-                var newName = Utils.BytesToString(data.NewName);
-
-                Logger.Log(
-                    $"MoveInventoryItemHandler: Item {data.ItemID} is moving to Folder {data.FolderID} with new name \"{newName}\"." +
-                    " Someone write this function!",
-                    Helpers.LogLevel.Warning, Client);
-            }
-        }
-
-        protected void BulkUpdateInventoryCapHandler(string capsKey, Interfaces.IMessage message, Simulator simulator)
-        {
-            var msg = (BulkUpdateInventoryMessage)message;
-
-            foreach (var newFolder in msg.FolderData)
-            {
-                if (newFolder.FolderID == UUID.Zero) continue;
-
-                InventoryFolder folder;
-                if (!_Store.Contains(newFolder.FolderID))
-                {
-                    folder = new InventoryFolder(newFolder.FolderID);
-                }
-                else
-                {
-                    folder = (InventoryFolder)_Store[newFolder.FolderID];
-                }
-
-                folder.Name = newFolder.Name;
-                folder.ParentUUID = newFolder.ParentID;
-                folder.PreferredType = newFolder.Type;
-                _Store[folder.UUID] = folder;
-            }
-
-            foreach (var newItem in msg.ItemData)
-            {
-                if (newItem.ItemID == UUID.Zero) continue;
-                var invType = newItem.InvType;
-
-                lock (_ItemInventoryTypeRequest)
-                {
-                    InventoryType storedType = 0;
-                    if (_ItemInventoryTypeRequest.TryGetValue(newItem.CallbackID, out storedType))
-                    {
-                        _ItemInventoryTypeRequest.Remove(newItem.CallbackID);
-                        invType = storedType;
-                    }
-                }
-                var item = CreateOrRetrieveInventoryItem(invType, newItem.ItemID);
-
-                item.AssetType = newItem.Type;
-                item.AssetUUID = newItem.AssetID;
-                item.CreationDate = newItem.CreationDate;
-                item.CreatorID = newItem.CreatorID;
-                item.Description = newItem.Description;
-                item.Flags = newItem.Flags;
-                item.GroupID = newItem.GroupID;
-                item.GroupOwned = newItem.GroupOwned;
-                item.Name = newItem.Name;
-                item.OwnerID = newItem.OwnerID;
-                item.ParentUUID = newItem.FolderID;
-                item.Permissions.BaseMask = newItem.BaseMask;
-                item.Permissions.EveryoneMask = newItem.EveryoneMask;
-                item.Permissions.GroupMask = newItem.GroupMask;
-                item.Permissions.NextOwnerMask = newItem.NextOwnerMask;
-                item.Permissions.OwnerMask = newItem.OwnerMask;
-                item.SalePrice = newItem.SalePrice;
-                item.SaleType = newItem.SaleType;
-
-                _Store[item.UUID] = item;
-
-                // Look for an "item created" callback
-                ItemCreatedCallback callback;
-                if (_ItemCreatedCallbacks.TryGetValue(newItem.CallbackID, out callback))
-                {
-                    _ItemCreatedCallbacks.Remove(newItem.CallbackID);
-
-                    try { callback(true, item); }
-                    catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
-                }
-
-                // Look for an "item copied" callback
-                ItemCopiedCallback copyCallback;
-                if (_ItemCopiedCallbacks.TryGetValue(newItem.CallbackID, out copyCallback))
-                {
-                    _ItemCopiedCallbacks.Remove(newItem.CallbackID);
-
-                    try { copyCallback(item); }
-                    catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
-                }
-
-            }
-
-        }
-
-        /// <summary>Process an incoming packet and raise the appropriate events</summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void BulkUpdateInventoryHandler(object sender, PacketReceivedEventArgs e)
-        {
-            var packet = e.Packet;
-
-            if (!(packet is BulkUpdateInventoryPacket update)) return;
-
-            if (update.FolderData.Length > 0 && update.FolderData[0].FolderID != UUID.Zero)
-            {
-                foreach (var dataBlock in update.FolderData)
-                {
-                    InventoryFolder folder;
-                    if (!_Store.Contains(dataBlock.FolderID))
-                    {
-                        folder = new InventoryFolder(dataBlock.FolderID);
-                    }
-                    else
-                    {
-                        folder = (InventoryFolder)_Store[dataBlock.FolderID];
-                    }
-
-                    if (dataBlock.Name != null)
-                    {
-                        folder.Name = Utils.BytesToString(dataBlock.Name);
-                    }
-                    folder.OwnerID = update.AgentData.AgentID;
-                    folder.ParentUUID = dataBlock.ParentID;
-                    _Store[folder.UUID] = folder;
-                }
-            }
-
-            if (update.ItemData.Length > 0 && update.ItemData[0].ItemID != UUID.Zero)
-            {
-                foreach (var dataBlock in update.ItemData)
-                {
-                    var item =
-                        CreateOrRetrieveInventoryItem((InventoryType)dataBlock.InvType, dataBlock.ItemID);
-
-                    item.AssetType = (AssetType)dataBlock.Type;
-                    if (dataBlock.AssetID != UUID.Zero) item.AssetUUID = dataBlock.AssetID;
-                    item.CreationDate = Utils.UnixTimeToDateTime(dataBlock.CreationDate);
-                    item.CreatorID = dataBlock.CreatorID;
-                    item.Description = Utils.BytesToString(dataBlock.Description);
-                    item.Flags = dataBlock.Flags;
-                    item.GroupID = dataBlock.GroupID;
-                    item.GroupOwned = dataBlock.GroupOwned;
-                    item.Name = Utils.BytesToString(dataBlock.Name);
-                    item.OwnerID = dataBlock.OwnerID;
-                    item.ParentUUID = dataBlock.FolderID;
-                    item.Permissions = new Permissions(
-                        dataBlock.BaseMask,
-                        dataBlock.EveryoneMask,
-                        dataBlock.GroupMask,
-                        dataBlock.NextOwnerMask,
-                        dataBlock.OwnerMask);
-                    item.SalePrice = dataBlock.SalePrice;
-                    item.SaleType = (SaleType)dataBlock.SaleType;
-
-                    _Store[item.UUID] = item;
-
-                    // Look for an "item created" callback
-                    ItemCreatedCallback callback;
-                    if (_ItemCreatedCallbacks.TryGetValue(dataBlock.CallbackID, out callback))
-                    {
-                        _ItemCreatedCallbacks.Remove(dataBlock.CallbackID);
-
-                        try
-                        {
-                            callback(true, item);
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
-                        }
-                    }
-
-                    // Look for an "item copied" callback
-                    ItemCopiedCallback copyCallback;
-                    if (_ItemCopiedCallbacks.TryGetValue(dataBlock.CallbackID, out copyCallback))
-                    {
-                        _ItemCopiedCallbacks.Remove(dataBlock.CallbackID);
-
-                        try
-                        {
-                            copyCallback(item);
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
-                        }
-                    }
-                }
-            }
-        }
-
-        /// <summary>Process an incoming packet and raise the appropriate events</summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void FetchInventoryReplyHandler(object sender, PacketReceivedEventArgs e)
-        {
-            var packet = e.Packet;
-            if (!(packet is FetchInventoryReplyPacket reply)) return;
-
-            foreach (var dataBlock in reply.InventoryData)
-            {
-                if (dataBlock.InvType == (sbyte)InventoryType.Folder)
-                {
-                    Logger.Log("Received FetchInventoryReply for an inventory folder, this should not happen!",
-                        Helpers.LogLevel.Error, Client);
-                    continue;
-                }
-
-                var item = CreateInventoryItem((InventoryType)dataBlock.InvType, dataBlock.ItemID);
-                item.AssetType = (AssetType)dataBlock.Type;
-                item.AssetUUID = dataBlock.AssetID;
-                item.CreationDate = Utils.UnixTimeToDateTime(dataBlock.CreationDate);
-                item.CreatorID = dataBlock.CreatorID;
-                item.Description = Utils.BytesToString(dataBlock.Description);
-                item.Flags = dataBlock.Flags;
-                item.GroupID = dataBlock.GroupID;
-                item.GroupOwned = dataBlock.GroupOwned;
-                item.InventoryType = (InventoryType)dataBlock.InvType;
-                item.Name = Utils.BytesToString(dataBlock.Name);
-                item.OwnerID = dataBlock.OwnerID;
-                item.ParentUUID = dataBlock.FolderID;
-                item.Permissions = new Permissions(
-                    dataBlock.BaseMask,
-                    dataBlock.EveryoneMask,
-                    dataBlock.GroupMask,
-                    dataBlock.NextOwnerMask,
-                    dataBlock.OwnerMask);
-                item.SalePrice = dataBlock.SalePrice;
-                item.SaleType = (SaleType)dataBlock.SaleType;
-                item.UUID = dataBlock.ItemID;
-
-                _Store[item.UUID] = item;
-
-                // Fire the callback for an item being fetched
-                OnItemReceived(new ItemReceivedEventArgs(item));
-            }
-        }
-
-        /// <summary>Process an incoming packet and raise the appropriate events</summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void ReplyTaskInventoryHandler(object sender, PacketReceivedEventArgs e)
-        {
-            if (m_TaskInventoryReply != null)
-            {
-                var packet = e.Packet;
-
-                var reply = (ReplyTaskInventoryPacket)packet;
-
-                OnTaskInventoryReply(new TaskInventoryReplyEventArgs(reply.InventoryData.TaskID, reply.InventoryData.Serial,
-                    Utils.BytesToString(reply.InventoryData.Filename)));
-            }
-        }
-
-        protected void ScriptRunningReplyMessageHandler(string capsKey, Interfaces.IMessage message, Simulator simulator)
-        {
-            if (m_ScriptRunningReply != null)
-            {
-                var msg = (ScriptRunningReplyMessage)message;
-                OnScriptRunningReply(new ScriptRunningReplyEventArgs(msg.ObjectID, msg.ItemID, msg.Mono, msg.Running));
-            }
-        }
-
-        #endregion Packet Handlers
-    }
-
-    #region EventArgs
-
-    public class InventoryObjectOfferedEventArgs : EventArgs
-    {
-        /// <summary>Set to true to accept offer, false to decline it</summary>
-        public bool Accept { get; set; }
-        /// <summary>The folder to accept the inventory into, if null default folder for <see cref="AssetType"/> will be used</summary>
-        public UUID FolderID { get; set; }
-
-        public InstantMessage Offer { get; }
-
-        public AssetType AssetType { get; }
-
-        public UUID ObjectID { get; }
-
-        public bool FromTask { get; }
-
-        public InventoryObjectOfferedEventArgs(InstantMessage offerDetails, AssetType type, UUID objectID, bool fromTask, UUID folderID)
-        {
-            this.Accept = false;
-            this.FolderID = folderID;
-            this.Offer = offerDetails;
-            this.AssetType = type;
-            this.ObjectID = objectID;
-            this.FromTask = fromTask;
+            return uri;
         }
     }
-
-    public class FolderUpdatedEventArgs : EventArgs
-    {
-        public UUID FolderID { get; }
-
-        public bool Success { get; }
-
-        public FolderUpdatedEventArgs(UUID folderID, bool success)
-        {
-            this.FolderID = folderID;
-            this.Success = success;
-        }
-    }
-
-    public class ItemReceivedEventArgs : EventArgs
-    {
-        public InventoryItem Item { get; }
-
-        public ItemReceivedEventArgs(InventoryItem item)
-        {
-            this.Item = item;
-        }
-    }
-
-    public class FindObjectByPathReplyEventArgs : EventArgs
-    {
-        public string Path { get; }
-
-        public UUID InventoryObjectID { get; }
-
-        public FindObjectByPathReplyEventArgs(string path, UUID inventoryObjectID)
-        {
-            this.Path = path;
-            this.InventoryObjectID = inventoryObjectID;
-        }
-    }
-
-    /// <summary>
-    /// Callback when an inventory object is accepted and received from a
-    /// task inventory. This is the callback in which you actually get
-    /// the ItemID, as in ObjectOfferedCallback it is null when received
-    /// from a task.
-    /// </summary>
-    public class TaskItemReceivedEventArgs : EventArgs
-    {
-        public UUID ItemID { get; }
-
-        public UUID FolderID { get; }
-
-        public UUID CreatorID { get; }
-
-        public UUID AssetID { get; }
-
-        public InventoryType Type { get; }
-
-        public TaskItemReceivedEventArgs(UUID itemID, UUID folderID, UUID creatorID, UUID assetID, InventoryType type)
-        {
-            this.ItemID = itemID;
-            this.FolderID = folderID;
-            this.CreatorID = creatorID;
-            this.AssetID = assetID;
-            this.Type = type;
-        }
-    }
-
-    public class TaskInventoryReplyEventArgs : EventArgs
-    {
-        public UUID ItemID { get; }
-
-        public short Serial { get; }
-
-        public string AssetFilename { get; }
-
-        public TaskInventoryReplyEventArgs(UUID itemID, short serial, string assetFilename)
-        {
-            this.ItemID = itemID;
-            this.Serial = serial;
-            this.AssetFilename = assetFilename;
-        }
-    }
-
-    public class SaveAssetToInventoryEventArgs : EventArgs
-    {
-        public UUID ItemID { get; }
-
-        public UUID NewAssetID { get; }
-
-        public SaveAssetToInventoryEventArgs(UUID itemID, UUID newAssetID)
-        {
-            this.ItemID = itemID;
-            this.NewAssetID = newAssetID;
-        }
-    }
-
-    public class ScriptRunningReplyEventArgs : EventArgs
-    {
-        public UUID ObjectID { get; }
-
-        public UUID ScriptID { get; }
-
-        public bool IsMono { get; }
-
-        public bool IsRunning { get; }
-
-        public ScriptRunningReplyEventArgs(UUID objectID, UUID sctriptID, bool isMono, bool isRunning)
-        {
-            this.ObjectID = objectID;
-            this.ScriptID = sctriptID;
-            this.IsMono = isMono;
-            this.IsRunning = isRunning;
-        }
-    }
-    #endregion
 }

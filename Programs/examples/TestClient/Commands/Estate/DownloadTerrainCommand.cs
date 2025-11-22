@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Estate
@@ -13,11 +13,6 @@ namespace TestClient.Commands.Estate
     /// </summary>
     public class DownloadTerrainCommand : Command
     {
-        /// <summary>
-        /// Create a Synchronization event object
-        /// </summary>
-        private static AutoResetEvent xferTimeout = new AutoResetEvent(false);
-
         /// <summary>A string we use to report the result of the request with.</summary>
         private static global::System.Text.StringBuilder result = new global::System.Text.StringBuilder();
 
@@ -42,11 +37,20 @@ namespace TestClient.Commands.Estate
         /// <returns></returns>
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             int timeout = 120000; // default the timeout to 2 minutes
             fileName = Client.Network.CurrentSim.Name + ".raw";
 
             if (args.Length > 0 && int.TryParse(args[0], out timeout) != true)
                 return "Usage: downloadterrain [timeout]";
+
+            result.Clear();
+
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             // Create a delegate which will be fired when the simulator receives our download request
             // Starts the actual transfer request
@@ -57,51 +61,50 @@ namespace TestClient.Commands.Estate
                 };
 
             // Subscribe to the event that will tell us the status of the download
-            Client.Assets.XferReceived += Assets_XferReceived;
-            // subscribe to the event which tells us when the simulator has received our request
-            Client.Assets.InitiateDownload += initiateDownloadDelegate;
-
-            // configure request to tell the simulator to send us the file
-            List<string> parameters = new List<string>
+            EventHandler<XferReceivedEventArgs> xferHandler = null;
+            xferHandler = (s, e) =>
             {
-                "download filename",
-                fileName
+                if (e.Xfer.Success)
+                {
+                    // set the result message
+                    result.AppendFormat("Terrain file {0} ({1} bytes) downloaded successfully, written to {2}", e.Xfer.Filename, e.Xfer.Size, fileName);
+
+                    // write the file to disk
+                    FileStream stream = new FileStream(fileName, FileMode.Create);
+                    BinaryWriter w = new BinaryWriter(stream);
+                    w.Write(e.Xfer.AssetData);
+                    w.Close();
+
+                    tcs.TrySetResult(true);
+                }
             };
-            // send the request
-            Client.Estate.EstateOwnerMessage("terrain", parameters);
 
-            // wait for (timeout) seconds for the request to complete (defaults 2 minutes)
-            if (!xferTimeout.WaitOne(timeout, false))
+            try
             {
-                result.Append("Timeout while waiting for terrain data");
+                Client.Assets.InitiateDownload += initiateDownloadDelegate;
+                Client.Assets.XferReceived += xferHandler;
+
+                // configure request to tell the simulator to send us the file
+                List<string> parameters = new List<string>
+                {
+                    "download filename",
+                    fileName
+                };
+                // send the request
+                Client.Estate.EstateOwnerMessage("terrain", parameters);
+
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(timeout)).ConfigureAwait(false);
+                if (completed != tcs.Task)
+                {
+                    return "Timeout while waiting for terrain data";
+                }
+
+                return result.ToString();
             }
-
-            // unsubscribe from events
-            Client.Assets.InitiateDownload -= initiateDownloadDelegate;
-            Client.Assets.XferReceived -= Assets_XferReceived;
-
-            // return the result
-            return result.ToString();
-        }
-
-        /// <summary>
-        /// Handle the reply to the OnXferReceived event
-        /// </summary>
-        private void Assets_XferReceived(object sender, XferReceivedEventArgs e)
-        {
-            if (e.Xfer.Success)
+            finally
             {
-                // set the result message
-                result.AppendFormat("Terrain file {0} ({1} bytes) downloaded successfully, written to {2}", e.Xfer.Filename, e.Xfer.Size, fileName);
-
-                // write the file to disk
-                FileStream stream = new FileStream(fileName, FileMode.Create);
-                BinaryWriter w = new BinaryWriter(stream);
-                w.Write(e.Xfer.AssetData);
-                w.Close();
-
-                // tell the application we've gotten the file
-                xferTimeout.Set();
+                Client.Assets.InitiateDownload -= initiateDownloadDelegate;
+                Client.Assets.XferReceived -= xferHandler;
             }
         }
     }

@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Communication
@@ -14,12 +15,17 @@ namespace TestClient.Commands.Communication
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
+            return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
+        }
+
+        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        {
             int channel = 0;
             int startIndex = 0;
             string message = string.Empty;
             if (args.Length < 1)
             {
-                return "usage: shout (optional channel) whatever";
+                return Task.FromResult("usage: shout (optional channel) whatever");
             }
             else if (args.Length > 1)
             {
@@ -44,7 +50,7 @@ namespace TestClient.Commands.Communication
 
             Client.Self.Chat(message, channel, ChatType.Shout);
 
-            return "Shouted " + message;
+            return Task.FromResult("Shouted " + message);
         }
     }
 }

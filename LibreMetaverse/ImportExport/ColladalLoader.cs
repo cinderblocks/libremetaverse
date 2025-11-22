@@ -559,7 +559,6 @@ namespace OpenMetaverse.ImportExport
 
         private void AddFacesFromPolyList(polylist list, mesh mesh, ModelPrim prim, Matrix4 transform)
         {
-            string material = list.material;
             source posSrc = null;
             source normalSrc = null;
             source uvSrc = null;
