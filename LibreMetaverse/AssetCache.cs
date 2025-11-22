@@ -196,7 +196,6 @@ namespace OpenMetaverse
                 var path = FileName(assetID);
                 if (File.Exists(path))
                 {
-                    DebugLog($"Reading {path} from asset cache.");
                     using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
                     {
                         var length = (int)fs.Length;
