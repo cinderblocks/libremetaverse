@@ -30,6 +30,9 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Security;
 using LibreMetaverse;
+#if NET8_0_OR_GREATER
+using System.Threading.Tasks;
+#endif
 
 namespace OpenMetaverse
 {
@@ -66,7 +69,10 @@ namespace OpenMetaverse
     /// }
     /// </code>
     /// </example>
-    public class GridClient : IDisposable
+    public partial class GridClient : IDisposable
+#if NET8_0_OR_GREATER
+        , IAsyncDisposable
+#endif
     {
         /// <summary>Networking subsystem</summary>
         public NetworkManager Network;
@@ -211,6 +217,9 @@ namespace OpenMetaverse
                     Network?.Shutdown( NetworkManager.DisconnectType.ClientInitiated );
                 }
                 catch { }
+
+                // Attempt to shutdown logging synchronously to flush providers when possible
+                try { Logger.Shutdown(); } catch { }
             }
 
             _disposed = true;
@@ -221,6 +230,23 @@ namespace OpenMetaverse
             Dispose(false);
         }
 
+#if NET8_0_OR_GREATER
+        /// <summary>
+        /// Async dispose that ensures logger providers are flushed.
+        /// </summary>
+        public async ValueTask DisposeAsync()
+        {
+            // Dispose managed resources
+            Dispose(true);
+
+            // Suppress finalizer
+            GC.SuppressFinalize(this);
+
+            // Await logger shutdown to allow providers to flush
+            try { await Logger.ShutdownAsync().ConfigureAwait(false); } catch { }
+        }
+#endif
         #endregion
+
     }
 }

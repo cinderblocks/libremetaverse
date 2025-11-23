@@ -28,6 +28,8 @@
 using System;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
+using System.Threading;
+using System.Threading.Tasks;
 #if NET8_0_OR_GREATER
 using ZLogger;
 #endif
@@ -54,6 +56,7 @@ namespace OpenMetaverse
         /// <summary>Logger instance</summary>
         private static ILogger _logger;
         private static ILoggerFactory _loggerFactory;
+        private static readonly object _sync = new object();
 
         static Logger()
         {
@@ -89,8 +92,90 @@ namespace OpenMetaverse
         /// </summary>
         public static void SetLoggerFactory(ILoggerFactory factory)
         {
-            _loggerFactory = factory ?? throw new ArgumentNullException(nameof(factory));
-            _logger = _loggerFactory.CreateLogger("LibreMetaverse");
+            if (factory == null) throw new ArgumentNullException(nameof(factory));
+
+            lock (_sync)
+            {
+                // dispose existing factory if different to avoid leaks
+                try
+                {
+                    if (_loggerFactory != null && !ReferenceEquals(_loggerFactory, factory))
+                    {
+                        _loggerFactory.Dispose();
+                    }
+                }
+                catch
+                {
+                    // ignore dispose errors
+                }
+
+                _loggerFactory = factory;
+                _logger = _loggerFactory.CreateLogger("LibreMetaverse");
+            }
+        }
+
+        /// <summary>
+        /// Shutdown the logging system and dispose the logger factory to flush providers and release resources.
+        /// Safe to call multiple times.
+        /// </summary>
+        public static void Shutdown()
+        {
+            lock (_sync)
+            {
+                try
+                {
+                    _loggerFactory?.Dispose();
+                }
+                catch
+                {
+                    // swallow dispose exceptions
+                }
+
+                _loggerFactory = null;
+                _logger = null;
+            }
+        }
+
+        /// <summary>
+        /// Asynchronously shutdown the logging system and dispose the logger factory.
+        /// If the factory supports IAsyncDisposable (on supported frameworks) its DisposeAsync will be awaited
+        /// to allow providers to flush buffers. Safe to call multiple times.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token (not currently used to cancel disposal).</param>
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+        public static async Task ShutdownAsync(CancellationToken cancellationToken = default)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        {
+            ILoggerFactory factory = null;
+
+            lock (_sync)
+            {
+                factory = _loggerFactory;
+                _loggerFactory = null;
+                _logger = null;
+            }
+
+            if (factory == null) return;
+
+            try
+            {
+#if NET8_0_OR_GREATER
+                var asyncDisp = factory as IAsyncDisposable;
+                if (asyncDisp != null)
+                {
+                    await asyncDisp.DisposeAsync().ConfigureAwait(false);
+                    return;
+                }
+#endif
+                if (factory is IDisposable disp)
+                {
+                    disp.Dispose();
+                }
+            }
+            catch
+            {
+                // swallow exceptions during async shutdown
+            }
         }
 
         private static void LogWithLevel(Helpers.LogLevel level, object message, Exception exception)
