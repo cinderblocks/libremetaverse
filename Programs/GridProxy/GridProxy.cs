@@ -377,7 +377,7 @@ namespace GridProxy
                         });
 
                         connThread.IsBackground = true;
-                        connThread.Name = "LoginProxy";
+                        connThread.Name = "Login Proxy";
                         connThread.Start();
                     }
                     catch (SocketException e)
@@ -913,7 +913,7 @@ namespace GridProxy
                             CapsDataFormat resFmt = BinaryResponseCaps.Contains(key) ? CapsDataFormat.Binary : CapsDataFormat.OSD;
                             const CapsDataFormat reqFmt = CapsDataFormat.OSD;
                             CapInfo newCap = new CapInfo(val, capReq.Info.Sim, key, reqFmt, resFmt);
-                            newCap.AddDelegate(new CapsDelegate(KnownCapDelegate));
+                            newCap.AddDelegate(new CapsDelegate(FixupSeedCapsResponse));
                             lock (this) { KnownCaps[val] = newCap; }
                         }
                         nm[key] = OSD.FromString(loginURI + val);
@@ -2102,7 +2102,7 @@ namespace GridProxy
     public class CapInfo
     {
         private List<CapsDelegate> Delegates = new List<CapsDelegate>();
-
+        private ReaderWriterLockSlim rwLock = new ReaderWriterLockSlim();
 
         public CapInfo(string URI, IPEndPoint Sim, string CapType)
             :
@@ -2123,28 +2123,43 @@ namespace GridProxy
 
         public void AddDelegate(CapsDelegate deleg)
         {
-            lock (this)
+            rwLock.EnterWriteLock();
+            try
             {
                 if (!Delegates.Contains(deleg))
                 {
                     Delegates.Add(deleg);
                 }
             }
+            finally
+            {
+                rwLock.ExitWriteLock();
+            }
         }
         public void RemoveDelegate(CapsDelegate deleg)
         {
-            lock (this)
+            rwLock.EnterWriteLock();
+            try
             {
                 Delegates.Remove(deleg);
+            }
+            finally
+            {
+                rwLock.ExitWriteLock();
             }
         }
 
         // inefficient, but avoids potential deadlocks.
         public List<CapsDelegate> GetDelegates()
         {
-            lock (this)
+            rwLock.EnterReadLock();
+            try
             {
                 return new List<CapsDelegate>(Delegates);
+            }
+            finally
+            {
+                rwLock.ExitReadLock();
             }
         }
     }

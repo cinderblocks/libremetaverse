@@ -31,6 +31,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Xml;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse;
@@ -302,7 +303,7 @@ namespace LibreMetaverse.Voice.Vivox
             }
         }
 
-        private bool RequestVoiceInternal(string me, HttpCapsClient.DownloadCompleteHandler callback, string capsName)
+        private bool RequestVoiceInternal(string me, Func<HttpResponseMessage, byte[], Task> callbackAsync, string capsName)
         {
             if (_enabled && _client.Network.Connected)
             {
@@ -312,8 +313,38 @@ namespace LibreMetaverse.Voice.Vivox
 
                     if (cap != null)
                     {
-                        var req = _client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSDMap(),
-                            CancellationToken.None, callback);
+                        // Use the newer Task-based PostAsync overload and invoke the modern async callback when complete
+                        Task.Run(async () =>
+                        {
+                            try
+                            {
+                                var result = await _client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, new OSDMap(), CancellationToken.None).ConfigureAwait(false);
+                                try
+                                {
+                                    if (callbackAsync != null)
+                                        await callbackAsync(result.response, result.data).ConfigureAwait(false);
+                                }
+                                catch (Exception cbEx)
+                                {
+                                    Logger.Log($"VoiceManager.{me}(): callback threw an exception: {cbEx}", Helpers.LogLevel.Warning, _client, cbEx);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                // Post failed — try to invoke callback with nulls so it can handle the failure if desired
+                                try
+                                {
+                                    if (callbackAsync != null)
+                                        await callbackAsync(null, null).ConfigureAwait(false);
+                                }
+                                catch (Exception cbEx)
+                                {
+                                    Logger.Log($"VoiceManager.{me}(): callback threw an exception after failed POST: {cbEx}", Helpers.LogLevel.Warning, _client, cbEx);
+                                }
+
+                                Logger.Log($"VoiceManager.{me}(): POST failed: {ex.Message}", Helpers.LogLevel.Warning, _client, ex);
+                            }
+                        }, CancellationToken.None);
 
                         return true;
                     }
@@ -326,7 +357,6 @@ namespace LibreMetaverse.Voice.Vivox
             Logger.Log("VoiceManager.RequestVoiceInternal(): Voice system is currently disabled", 
                        Helpers.LogLevel.Info, _client);
             return false;
-            
         }
 
         public bool RequestProvisionAccount()
@@ -337,6 +367,60 @@ namespace LibreMetaverse.Voice.Vivox
         public bool RequestParcelVoiceInfo()
         {
             return RequestVoiceInternal("RequestParcelVoiceInfo", ParcelVoiceInfoResponse, "ParcelVoiceInfoRequest");
+        }
+
+        private async Task ProvisionCapsResponse(HttpResponseMessage httpResponse, byte[] responseData)
+        {
+            if (httpResponse == null || responseData == null)
+            {
+                Logger.Log("Failed to provision voice capability: empty response", Helpers.LogLevel.Warning, _client);
+                return;
+            }
+
+            try
+            {
+                var response = OSDParser.Deserialize(responseData);
+                if (!(response is OSDMap respMap)) return;
+
+                if (OnProvisionAccount == null) return;
+                try { OnProvisionAccount(respMap["username"].AsString(), respMap["password"].AsString()); }
+                catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, _client, e); }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log("Failed to provision voice capability: " + ex.Message, Helpers.LogLevel.Warning, _client, ex);
+            }
+        }
+
+        private async Task ParcelVoiceInfoResponse(HttpResponseMessage httpResponse, byte[] responseData)
+        {
+            if (httpResponse == null || responseData == null)
+            {
+                Logger.Log("Failed to retrieve voice info: empty response", Helpers.LogLevel.Warning, _client);
+                return;
+            }
+
+            try
+            {
+                var response = OSDParser.Deserialize(responseData);
+                if (!(response is OSDMap respMap)) return;
+
+                var regionName = respMap["region_name"].AsString();
+                var localId = respMap["parcel_local_id"].AsInteger();
+
+                string channelUri = null;
+                if (respMap["voice_credentials"] is OSDMap)
+                {
+                    var creds = (OSDMap)respMap["voice_credentials"];
+                    channelUri = creds["channel_uri"].AsString();
+                }
+
+                OnParcelVoiceInfo?.Invoke(regionName, localId, channelUri);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log("Failed to retrieve voice info: " + ex.Message, Helpers.LogLevel.Warning, _client, ex);
+            }
         }
 
         public int RequestLogin(string accountName, string password, string connHandle)
@@ -514,44 +598,6 @@ namespace LibreMetaverse.Voice.Vivox
             {
                 Logger.DebugLog("Voice version " + msg.MajorVersion + " verified", _client);
             }
-        }
-
-        private void ProvisionCapsResponse(HttpResponseMessage httpResponse, byte[] responseData, Exception error)
-        {
-            if (error != null)
-            {
-                Logger.Log("Failed to provision voice capability", Helpers.LogLevel.Warning, _client, error);
-                return;
-            }
-            var response = OSDParser.Deserialize(responseData);
-            if (!(response is OSDMap respMap)) return;
-
-            if (OnProvisionAccount == null) return;
-            try { OnProvisionAccount(respMap["username"].AsString(), respMap["password"].AsString()); }
-            catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, _client, e); }
-        }
-
-        private void ParcelVoiceInfoResponse(HttpResponseMessage httpResponse, byte[] responseData, Exception error)
-        {
-            if (error != null)
-            {
-                Logger.Log("Failed to retrieve voice info", Helpers.LogLevel.Warning, _client, error);
-                return;
-            }
-            var response = OSDParser.Deserialize(responseData);
-            if (!(response is OSDMap respMap)) return;
-
-            var regionName = respMap["region_name"].AsString();
-            var localId = respMap["parcel_local_id"].AsInteger();
-
-            string channelUri = null;
-            if (respMap["voice_credentials"] is OSDMap)
-            {
-                var creds = (OSDMap)respMap["voice_credentials"];
-                channelUri = creds["channel_uri"].AsString();
-            }
-
-            OnParcelVoiceInfo?.Invoke(regionName, localId, channelUri);
         }
 
         private static void _DaemonPipe_OnDisconnected(SocketException se)

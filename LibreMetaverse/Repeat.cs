@@ -73,19 +73,19 @@ namespace LibreMetaverse
             CancellationToken token,
             bool immediately = false)
         {
-            return Task.Factory.StartNew(
-                async () =>
+            return Task.Run(async () =>
+            {
+                if (immediately)
                 {
-                    if (immediately)
-                    {
-                        await asyncAction(); }
+                    await asyncAction().ConfigureAwait(false);
+                }
 
-                    for (; ; )
-                    {
-                        if (token.WaitCancellationRequested(pollInterval)) { break; }
-                        await asyncAction();
-                    }
-                }, token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                for (; ; )
+                {
+                    if (token.WaitCancellationRequested(pollInterval)) { break; }
+                    await asyncAction().ConfigureAwait(false);
+                }
+            }, token);
         }
     }
 
