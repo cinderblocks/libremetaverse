@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -26,11 +27,10 @@
 
 using System;
 using System.Reflection;
-using log4net;
-using log4net.Appender;
-using log4net.Config;
-
-[assembly: XmlConfigurator(Watch = true)]
+using Microsoft.Extensions.Logging;
+#if NET8_0_OR_GREATER
+using ZLogger;
+#endif
 
 namespace OpenMetaverse
 {
@@ -51,29 +51,88 @@ namespace OpenMetaverse
         /// null, log messages will go to the console</summary>
         public static event LogCallback OnLogMessage;
 
-        /// <summary>log4net logging engine</summary>
-        public static ILog LogInstance;
+        /// <summary>Logger instance</summary>
+        private static ILogger _logger;
+        private static ILoggerFactory _loggerFactory;
 
-        /// <summary>
-        /// Default constructor
-        /// </summary>
         static Logger()
         {
-            LogInstance = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-
-            // If error level reporting isn't enabled we assume no logger is configured and initialize a default
-            // ConsoleAppender
-            if (!LogInstance.Logger.IsEnabledFor(log4net.Core.Level.Error))
+            try
             {
-                IAppender appender = new ConsoleAppender()
+                // set up a default logger factory
+                _loggerFactory = LoggerFactory.Create(builder =>
                 {
-                    Layout = new log4net.Layout.PatternLayout("%date{HH:mm:ss,fff} [%thread] %-5level - %message%newline")
-                };
+#if NET8_0_OR_GREATER
+                    // Use ZLogger console provider for .NET 8+ for higher performance
+                    builder.AddZLoggerConsole();
+#else
+                    // Fall back to Microsoft Console provider for netstandard2.0 and older targets
+                    builder.AddConsole();
+#endif
+                });
 
-                BasicConfigurator.Configure(LogManager.GetRepository(Assembly.GetCallingAssembly()), appender);
+                _logger = _loggerFactory.CreateLogger(MethodBase.GetCurrentMethod()?.DeclaringType?.FullName ?? "LibreMetaverse");
 
-                if(Settings.LOG_LEVEL != Helpers.LogLevel.None)
-                    LogInstance.Info("No log configuration found, defaulting to console logging");
+                if (Settings.LOG_LEVEL != Helpers.LogLevel.None)
+                {
+                    _logger.LogInformation("Default console logger initialized");
+                }
+            }
+            catch
+            {
+                // swallow any logging initialization errors to avoid breaking consumers
+            }
+        }
+
+        /// <summary>
+        /// Allow consumers to configure a custom ILoggerFactory (e.g. to integrate with their host)
+        /// </summary>
+        public static void SetLoggerFactory(ILoggerFactory factory)
+        {
+            _loggerFactory = factory ?? throw new ArgumentNullException(nameof(factory));
+            _logger = _loggerFactory.CreateLogger("LibreMetaverse");
+        }
+
+        private static void LogWithLevel(Helpers.LogLevel level, object message, Exception exception)
+        {
+            if (_logger == null) return;
+
+            var msg = message?.ToString() ?? string.Empty;
+
+            switch (level)
+            {
+                case Helpers.LogLevel.Debug when exception != null:
+                    _logger.LogDebug(exception, "{Message}", msg);
+                    break;
+                case Helpers.LogLevel.Debug:
+                    _logger.LogDebug("{Message}", msg);
+                    break;
+                case Helpers.LogLevel.Info when exception != null:
+                    _logger.LogInformation(exception, "{Message}", msg);
+                    break;
+                case Helpers.LogLevel.Info:
+                    _logger.LogInformation("{Message}", msg);
+                    break;
+                case Helpers.LogLevel.Warning when exception != null:
+                    _logger.LogWarning(exception, "{Message}", msg);
+                    break;
+                case Helpers.LogLevel.Warning:
+                    _logger.LogWarning("{Message}", msg);
+                    break;
+                case Helpers.LogLevel.Error when exception != null:
+                    _logger.LogError(exception, "{Message}", msg);
+                    break;
+                case Helpers.LogLevel.Error:
+                    _logger.LogError("{Message}", msg);
+                    break;
+                default:
+                {
+                    if (exception != null)
+                        _logger.LogTrace(exception, "{Message}", msg);
+                    else
+                        _logger.LogTrace("{Message}", msg);
+                    break;
+                }
             }
         }
 
@@ -121,44 +180,32 @@ namespace OpenMetaverse
             if (client != null && client.Settings.LOG_NAMES)
                 message = $"<{client.Self.Name}>: {message}";
 
+            // OnLogMessage may be subscribed and expect the library's enum; keep behavior
             OnLogMessage?.Invoke(message, level);
 
+            if (Settings.LOG_LEVEL == Helpers.LogLevel.None) { return; }
+
+            // enforce configured log level
+            bool shouldLog = false;
             switch (level)
             {
                 case Helpers.LogLevel.Debug:
-                    if (Settings.LOG_LEVEL == Helpers.LogLevel.Debug)
-                        LogInstance.Debug(message, exception);
+                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Debug);
                     break;
                 case Helpers.LogLevel.Info:
-                    if (Settings.LOG_LEVEL == Helpers.LogLevel.Debug
-                        || Settings.LOG_LEVEL == Helpers.LogLevel.Info)
-                    {
-                        LogInstance.Info(message, exception);
-                    }
-
+                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Debug || Settings.LOG_LEVEL == Helpers.LogLevel.Info);
                     break;
                 case Helpers.LogLevel.Warning:
-                    if (Settings.LOG_LEVEL == Helpers.LogLevel.Debug
-                        || Settings.LOG_LEVEL == Helpers.LogLevel.Info
-                        || Settings.LOG_LEVEL == Helpers.LogLevel.Warning)
-                    {
-                        LogInstance.Warn(message, exception);
-                    }
-
+                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Debug || Settings.LOG_LEVEL == Helpers.LogLevel.Info || Settings.LOG_LEVEL == Helpers.LogLevel.Warning);
                     break;
                 case Helpers.LogLevel.Error:
-                    if (Settings.LOG_LEVEL == Helpers.LogLevel.Debug
-                        || Settings.LOG_LEVEL == Helpers.LogLevel.Info
-                        || Settings.LOG_LEVEL == Helpers.LogLevel.Warning
-                        || Settings.LOG_LEVEL == Helpers.LogLevel.Error)
-                    {
-                        LogInstance.Error(message, exception);
-                    }
+                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Debug || Settings.LOG_LEVEL == Helpers.LogLevel.Info || Settings.LOG_LEVEL == Helpers.LogLevel.Warning || Settings.LOG_LEVEL == Helpers.LogLevel.Error);
+                    break;
+            }
 
-                    break;
-                default:
-                    break;
-            } 
+            if (!shouldLog) { return; }
+
+            LogWithLevel(level, message, exception);
         }
 
         /// <summary>
@@ -192,7 +239,7 @@ namespace OpenMetaverse
 
             OnLogMessage?.Invoke(message, Helpers.LogLevel.Debug);
 
-            LogInstance.Debug(message);
+            LogWithLevel(Helpers.LogLevel.Debug, message, null);
         }
     }
 }
