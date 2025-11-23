@@ -115,6 +115,32 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Create a recommended default ILoggerFactory configured to use ZLogger console provider on .NET 8+ (high-performance)
+        /// or the standard console provider on other targets. Consumers can use this factory via SetLoggerFactory.
+        /// </summary>
+        public static ILoggerFactory CreateDefaultConsoleLoggerFactory()
+        {
+#if NET8_0_OR_GREATER
+            return LoggerFactory.Create(builder =>
+            {
+                // Recommended minimum level can be adjusted by callers after creation
+                builder.SetMinimumLevel(LogLevel.Debug);
+
+                // Use ZLogger console provider for best performance on modern runtimes
+                // Consumers who need custom formatters or sync/async options can configure the builder themselves.
+                builder.AddZLoggerConsole();
+            });
+#else
+            // Fallback for netstandard2.0: use the default console provider
+            return LoggerFactory.Create(builder =>
+            {
+                builder.SetMinimumLevel(LogLevel.Debug);
+                builder.AddConsole();
+            });
+#endif
+        }
+
+        /// <summary>
         /// Shutdown the logging system and dispose the logger factory to flush providers and release resources.
         /// Safe to call multiple times.
         /// </summary>
