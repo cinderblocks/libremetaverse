@@ -46,8 +46,8 @@ namespace OpenMetaverse
         /// the library
         /// </summary>
         /// <param name="message">Data being logged</param>
-        /// <param name="level">The severity of the log entry from <see cref="Helpers.LogLevel"/></param>
-        public delegate void LogCallback(object message, Helpers.LogLevel level);
+        /// <param name="level">The severity of the log entry from <see cref="LogLevel"/></param>
+        public delegate void LogCallback(object message, LogLevel level);
 
         /// <summary>Triggered whenever a message is logged. If this is left
         /// null, log messages will go to the console</summary>
@@ -57,6 +57,24 @@ namespace OpenMetaverse
         private static ILogger _logger;
         private static ILoggerFactory _loggerFactory;
         private static readonly object _sync = new object();
+
+        // Map library log levels to Microsoft.Extensions.Logging.LogLevel
+        private static LogLevel MapLevel(Helpers.LogLevel level)
+        {
+            switch (level)
+            {
+                case Helpers.LogLevel.Debug:
+                    return LogLevel.Debug;
+                case Helpers.LogLevel.Info:
+                    return LogLevel.Information;
+                case Helpers.LogLevel.Warning:
+                    return LogLevel.Warning;
+                case Helpers.LogLevel.Error:
+                    return LogLevel.Error;
+                default:
+                    return LogLevel.Trace;
+            }
+        }
 
         static Logger()
         {
@@ -204,46 +222,28 @@ namespace OpenMetaverse
             }
         }
 
-        private static void LogWithLevel(Helpers.LogLevel level, object message, Exception exception)
+        private static void LogWithLevel(LogLevel level, object message, Exception exception, string clientName = null)
         {
             if (_logger == null) return;
 
-            var msg = message?.ToString() ?? string.Empty;
+            // Avoid formatting/allocations when the log level is disabled
+            if (!_logger.IsEnabled(level)) return;
 
-            switch (level)
+            // Use structured logging and pass object directly to avoid ToString allocation
+            // Include client name as structured property when available
+            if (exception != null)
             {
-                case Helpers.LogLevel.Debug when exception != null:
-                    _logger.LogDebug(exception, "{Message}", msg);
-                    break;
-                case Helpers.LogLevel.Debug:
-                    _logger.LogDebug("{Message}", msg);
-                    break;
-                case Helpers.LogLevel.Info when exception != null:
-                    _logger.LogInformation(exception, "{Message}", msg);
-                    break;
-                case Helpers.LogLevel.Info:
-                    _logger.LogInformation("{Message}", msg);
-                    break;
-                case Helpers.LogLevel.Warning when exception != null:
-                    _logger.LogWarning(exception, "{Message}", msg);
-                    break;
-                case Helpers.LogLevel.Warning:
-                    _logger.LogWarning("{Message}", msg);
-                    break;
-                case Helpers.LogLevel.Error when exception != null:
-                    _logger.LogError(exception, "{Message}", msg);
-                    break;
-                case Helpers.LogLevel.Error:
-                    _logger.LogError("{Message}", msg);
-                    break;
-                default:
-                {
-                    if (exception != null)
-                        _logger.LogTrace(exception, "{Message}", msg);
-                    else
-                        _logger.LogTrace("{Message}", msg);
-                    break;
-                }
+                if (!string.IsNullOrEmpty(clientName))
+                    _logger.Log(level, exception, "[{Client}] {Message}", clientName, message);
+                else
+                    _logger.Log(level, exception, "{Message}", message);
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(clientName))
+                    _logger.Log(level, "{Client} {Message}", clientName, message);
+                else
+                    _logger.Log(level, "{Message}", message);
             }
         }
 
@@ -252,9 +252,10 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="message">The log message</param>
         /// <param name="level">The severity of the log entry</param>
-        public static void Log(object message, Helpers.LogLevel level)
+        /// <param name="client">Instance of the client</param>
+        public static void Log(object message, Helpers.LogLevel level, GridClient client = null)
         {
-            Log(message, level, null, null);
+            Log(message, MapLevel(level), client, null);
         }
 
         /// <summary>
@@ -263,7 +264,7 @@ namespace OpenMetaverse
         /// <param name="message">The log message</param>
         /// <param name="level">The severity of the log entry</param>
         /// <param name="client">Instance of the client</param>
-        public static void Log(object message, Helpers.LogLevel level, GridClient client)
+        public static void Log(object message, LogLevel level, GridClient client = null)
         {
             Log(message, level, client, null);
         }
@@ -275,6 +276,17 @@ namespace OpenMetaverse
         /// <param name="level">The severity of the log entry</param>
         /// <param name="exception">Exception that was raised</param>
         public static void Log(object message, Helpers.LogLevel level, Exception exception)
+        {
+            Log(message, MapLevel(level), null, exception);
+        }
+
+        /// <summary>
+        /// Send a log message to the logging engine
+        /// </summary>
+        /// <param name="message">The log message</param>
+        /// <param name="level">The severity of the log entry</param>
+        /// <param name="exception">Exception that was raised</param>
+        public static void Log(object message, LogLevel level, Exception exception)
         {
             Log(message, level, null, exception);
         }
@@ -288,8 +300,19 @@ namespace OpenMetaverse
         /// <param name="exception">Exception that was raised</param>
         public static void Log(object message, Helpers.LogLevel level, GridClient client, Exception exception)
         {
-            if (client != null && client.Settings.LOG_NAMES)
-                message = $"<{client.Self.Name}>: {message}";
+            Log(message, MapLevel(level), client, exception);
+        }
+
+        /// <summary>
+        /// Send a log message to the logging engine
+        /// </summary>
+        /// <param name="message">The log message</param>
+        /// <param name="level">The severity of the log entry</param>
+        /// <param name="client">Instance of the client</param>
+        /// <param name="exception">Exception that was raised</param>
+        public static void Log(object message, LogLevel level, GridClient client, Exception exception)
+        {
+            var clientName = (client != null && client.Settings.LOG_NAMES) ? client.Self?.Name : null;
 
             // OnLogMessage may be subscribed and expect the library's enum; keep behavior
             OnLogMessage?.Invoke(message, level);
@@ -297,60 +320,153 @@ namespace OpenMetaverse
             if (Settings.LOG_LEVEL == Helpers.LogLevel.None) { return; }
 
             // enforce configured log level
-            bool shouldLog = false;
+            bool shouldLog;
             switch (level)
             {
-                case Helpers.LogLevel.Debug:
-                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Debug);
+                case LogLevel.Trace:
+                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Trace);
                     break;
-                case Helpers.LogLevel.Info:
-                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Debug || Settings.LOG_LEVEL == Helpers.LogLevel.Info);
+                case LogLevel.Debug:
+                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Trace || Settings.LOG_LEVEL == Helpers.LogLevel.Debug);
                     break;
-                case Helpers.LogLevel.Warning:
-                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Debug || Settings.LOG_LEVEL == Helpers.LogLevel.Info || Settings.LOG_LEVEL == Helpers.LogLevel.Warning);
+                case LogLevel.Information:
+                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Trace || Settings.LOG_LEVEL == Helpers.LogLevel.Debug || Settings.LOG_LEVEL == Helpers.LogLevel.Info);
                     break;
-                case Helpers.LogLevel.Error:
-                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Debug || Settings.LOG_LEVEL == Helpers.LogLevel.Info || Settings.LOG_LEVEL == Helpers.LogLevel.Warning || Settings.LOG_LEVEL == Helpers.LogLevel.Error);
+                case LogLevel.Warning:
+                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Trace || Settings.LOG_LEVEL == Helpers.LogLevel.Debug || Settings.LOG_LEVEL == Helpers.LogLevel.Info || Settings.LOG_LEVEL == Helpers.LogLevel.Warning);
+                    break;
+                case LogLevel.Critical:
+                case LogLevel.Error:
+                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Trace || Settings.LOG_LEVEL == Helpers.LogLevel.Debug || Settings.LOG_LEVEL == Helpers.LogLevel.Info || Settings.LOG_LEVEL == Helpers.LogLevel.Warning || Settings.LOG_LEVEL == Helpers.LogLevel.Error);
+                    break;
+                default:
+                    shouldLog = false;
                     break;
             }
 
             if (!shouldLog) { return; }
 
-            LogWithLevel(level, message, exception);
+            LogWithLevel(level, message, exception, clientName);
         }
 
         /// <summary>
-        /// If the library is compiled with DEBUG defined, an event will be
+        /// If the library is compiled with TRACE defined and
+        /// <see cref="GridClient.Settings.TRACE" /> is true, an event will be
         /// fired if a <see cref="OnLogMessage" /> handler is registered and the
         /// message will be sent to the logging engine
         /// </summary>
-        /// <param name="message">The message to log at the DEBUG level to the
-        /// current logging engine</param>
-        public static void DebugLog(object message)
-        {
-            DebugLog(message, null);
-        }
-
-        /// <summary>
-        /// If the library is compiled with DEBUG defined and
-        /// <see cref="GridClient.Settings.DEBUG" /> is true, an event will be
-        /// fired if a <see cref="OnLogMessage" /> handler is registered and the
-        /// message will be sent to the logging engine
-        /// </summary>
-        /// <param name="message">The message to log at the DEBUG level to the
+        /// <param name="message">The message to log at the TRACE level to the
         /// current logging engine</param>
         /// <param name="client">Instance of the client</param>
         [System.Diagnostics.Conditional("DEBUG")]
-        public static void DebugLog(object message, GridClient client)
+        public static void DebugLog(object message, GridClient client = null)
         {
-            if (Settings.LOG_LEVEL != Helpers.LogLevel.Debug) return;
+            if (Settings.LOG_LEVEL != Helpers.LogLevel.Trace) { return; }
 
-            if (client != null && client.Settings.LOG_NAMES)
-                message = $"<{client.Self.Name}>: {message}";
+            var clientName = (client != null && client.Settings.LOG_NAMES) ? client.Self?.Name : null;
 
-            OnLogMessage?.Invoke(message, Helpers.LogLevel.Debug);
+            OnLogMessage?.Invoke(message, LogLevel.Trace);
 
-            LogWithLevel(Helpers.LogLevel.Debug, message, null);
+            LogWithLevel(LogLevel.Debug, message, null, clientName);
+        }
+
+        /// <summary>
+        /// Begin a logging scope with arbitrary state. Returns a disposable scope. If logging is not configured returns a no-op scope.
+        /// </summary>
+        public static IDisposable BeginScope(object state)
+        {
+            var logger = _logger;
+            if (logger == null) { return NoopScope.Instance; }
+            try
+            {
+                return logger.BeginScope(state);
+            }
+            catch
+            {
+                return NoopScope.Instance;
+            }
+        }
+
+        /// <summary>
+        /// Begin a logging scope containing client context (Client name) if available.
+        /// </summary>
+        public static IDisposable BeginClientScope(GridClient client)
+        {
+            var logger = _logger;
+            if (logger == null) return NoopScope.Instance;
+
+            string clientName = null;
+            try
+            {
+                if (client?.Settings != null && client.Settings.LOG_NAMES)
+                    clientName = client.Self?.Name;
+            }
+            catch
+            {
+                // ignore any errors while accessing client info
+            }
+
+            if (string.IsNullOrEmpty(clientName)) return NoopScope.Instance;
+
+            try
+            {
+                return logger.BeginScope(new System.Collections.Generic.Dictionary<string, object>
+                {
+                    { "Client", clientName }
+                });
+            }
+            catch
+            {
+                return NoopScope.Instance;
+            }
+        }
+
+        /// <summary>
+        /// Run an async action inside a logging scope containing client context (if available).
+        /// Ensures the scope is disposed even if the action throws.
+        /// </summary>
+        public static async Task UseClientScopeAsync(GridClient client, Func<Task> action)
+        {
+            if (action == null) { throw new ArgumentNullException(nameof(action)); }
+
+            IDisposable scope = null;
+            try
+            {
+                scope = BeginClientScope(client);
+                await action().ConfigureAwait(false);
+            }
+            finally
+            {
+                try { scope?.Dispose(); } catch { }
+            }
+        }
+
+        /// <summary>
+        /// Run an async action inside a logging scope with arbitrary state.
+        /// Ensures the scope is disposed even if the action throws.
+        /// </summary>
+        public static async Task UseScopeAsync(object state, Func<Task> action)
+        {
+            if (action == null) throw new ArgumentNullException(nameof(action));
+
+            IDisposable scope = null;
+            try
+            {
+                scope = BeginScope(state);
+                await action().ConfigureAwait(false);
+            }
+            finally
+            {
+                try { scope?.Dispose(); } catch { }
+            }
+        }
+
+        // Simple no-op scope used when logging is not available
+        private sealed class NoopScope : IDisposable
+        {
+            public static readonly NoopScope Instance = new NoopScope();
+            private NoopScope() { }
+            public void Dispose() { }
         }
     }
 }

@@ -72,7 +72,8 @@ namespace OpenMetaverse
             /// generate very noisy (long and/or repetitive) messages. Don't
             /// pass this to the Log() function, use DebugLog() instead.
             /// </summary>
-            Debug
+            Debug,
+            Trace
         }
 
         /// <summary>
