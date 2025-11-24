@@ -53,6 +53,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Passed to Logger.Log() to identify the severity of a log entry
         /// </summary>
+        [Obsolete("Use Microsoft.Extensions.Logging.LogLevel")]
         public enum LogLevel
         {
             /// <summary>No logging information will be output</summary>

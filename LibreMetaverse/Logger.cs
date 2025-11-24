@@ -58,6 +58,7 @@ namespace OpenMetaverse
         private static ILoggerFactory _loggerFactory;
         private static readonly object _sync = new object();
 
+#pragma warning disable CS0618 // Type or member is obsolete
         // Map library log levels to Microsoft.Extensions.Logging.LogLevel
         private static LogLevel MapLevel(Helpers.LogLevel level)
         {
@@ -75,6 +76,7 @@ namespace OpenMetaverse
                     return LogLevel.Trace;
             }
         }
+#pragma warning restore CS0618 // Type or member is obsolete
 
         static Logger()
         {
@@ -92,7 +94,7 @@ namespace OpenMetaverse
                 {
                     _loggerFactory = CreateDefaultConsoleLoggerFactory();
                     _logger = _loggerFactory.CreateLogger(MethodBase.GetCurrentMethod()?.DeclaringType?.FullName ?? "LibreMetaverse");
-                    if (Settings.LOG_LEVEL != Helpers.LogLevel.None)
+                    if (Settings.LOG_LEVEL != LogLevel.None)
                     {
                         _logger.LogInformation("Default console logger initialized");
                     }
@@ -273,10 +275,11 @@ namespace OpenMetaverse
 
         private static void LogWithLevel(LogLevel level, object message, Exception exception, string clientName = null)
         {
-            if (_logger == null) return;
+            Ensu
+            if (_logger == null) { return; }
 
             // Avoid formatting/allocations when the log level is disabled
-            if (!_logger.IsEnabled(level)) return;
+            if (!_logger.IsEnabled(level)) { return; }
 
             // Use structured logging and pass object directly to avoid ToString allocation
             // Include client name as structured property when available
@@ -302,6 +305,7 @@ namespace OpenMetaverse
         /// <param name="message">The log message</param>
         /// <param name="level">The severity of the log entry</param>
         /// <param name="client">Instance of the client</param>
+        [Obsolete("Use Microsoft.Extensions.Logging.LogLevel")]
         public static void Log(object message, Helpers.LogLevel level, GridClient client = null)
         {
             Log(message, MapLevel(level), client, null);
@@ -324,6 +328,7 @@ namespace OpenMetaverse
         /// <param name="message">The log message</param>
         /// <param name="level">The severity of the log entry</param>
         /// <param name="exception">Exception that was raised</param>
+        [Obsolete("Use Microsoft.Extensions.Logging.LogLevel")]
         public static void Log(object message, Helpers.LogLevel level, Exception exception)
         {
             Log(message, MapLevel(level), null, exception);
@@ -347,6 +352,7 @@ namespace OpenMetaverse
         /// <param name="level">The severity of the log entry</param>
         /// <param name="client">Instance of the client</param>
         /// <param name="exception">Exception that was raised</param>
+        [Obsolete("Use Microsoft.Extensions.Logging.LogLevel")]
         public static void Log(object message, Helpers.LogLevel level, GridClient client, Exception exception)
         {
             Log(message, MapLevel(level), client, exception);
@@ -365,34 +371,10 @@ namespace OpenMetaverse
 
             RaiseOnLogMessage(message, level);
 
-            if (Settings.LOG_LEVEL == Helpers.LogLevel.None) { return; }
+            if (Settings.LOG_LEVEL == LogLevel.None) { return; }
 
             // enforce configured log level
-            bool shouldLog;
-            switch (level)
-            {
-                case LogLevel.Trace:
-                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Trace);
-                    break;
-                case LogLevel.Debug:
-                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Trace || Settings.LOG_LEVEL == Helpers.LogLevel.Debug);
-                    break;
-                case LogLevel.Information:
-                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Trace || Settings.LOG_LEVEL == Helpers.LogLevel.Debug || Settings.LOG_LEVEL == Helpers.LogLevel.Info);
-                    break;
-                case LogLevel.Warning:
-                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Trace || Settings.LOG_LEVEL == Helpers.LogLevel.Debug || Settings.LOG_LEVEL == Helpers.LogLevel.Info || Settings.LOG_LEVEL == Helpers.LogLevel.Warning);
-                    break;
-                case LogLevel.Critical:
-                case LogLevel.Error:
-                    shouldLog = (Settings.LOG_LEVEL == Helpers.LogLevel.Trace || Settings.LOG_LEVEL == Helpers.LogLevel.Debug || Settings.LOG_LEVEL == Helpers.LogLevel.Info || Settings.LOG_LEVEL == Helpers.LogLevel.Warning || Settings.LOG_LEVEL == Helpers.LogLevel.Error);
-                    break;
-                default:
-                    shouldLog = false;
-                    break;
-            }
-
-            if (!shouldLog) { return; }
+            if (Settings.LOG_LEVEL > level) { return; }
 
             LogWithLevel(level, message, exception, clientName);
         }
@@ -409,13 +391,13 @@ namespace OpenMetaverse
         [System.Diagnostics.Conditional("DEBUG")]
         public static void DebugLog(object message, GridClient client = null)
         {
-            if (Settings.LOG_LEVEL != Helpers.LogLevel.Trace) { return; }
+            if (Settings.LOG_LEVEL > LogLevel.Debug) { return; }
 
             var clientName = (client != null && client.Settings.LOG_NAMES) ? client.Self?.Name : null;
 
-            RaiseOnLogMessage(message, LogLevel.Trace);
+            RaiseOnLogMessage(message, Settings.LOG_LEVEL);
 
-            LogWithLevel(LogLevel.Debug, message, null, clientName);
+            LogWithLevel(Settings.LOG_LEVEL, message, null, clientName);
         }
 
         /// <summary>

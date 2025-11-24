@@ -26,6 +26,7 @@
  */
 
 using System.IO;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
@@ -345,9 +346,9 @@ namespace OpenMetaverse
         /// 
         /// If the library is not compiled with DEBUG defined and this level is set to DEBUG
         /// You will get no output on the console. This behavior can be overriden by creating
-        /// a logger configuration file for log4net
+        /// a logger configuration
         /// </summary>
-        public static Helpers.LogLevel LOG_LEVEL = Helpers.LogLevel.Debug;
+        public static LogLevel LOG_LEVEL = LogLevel.Debug;
 
         /// <summary>Attach avatar names to log messages</summary>
         public bool LOG_NAMES = true;

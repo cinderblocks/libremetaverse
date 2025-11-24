@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse.Voice.Vivox;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
 using TestClient.Commands.Appearance;
@@ -44,7 +45,7 @@ namespace TestClient
 
             RegisterAllCommands(Assembly.GetExecutingAssembly());
 
-            Settings.LOG_LEVEL = Helpers.LogLevel.Debug;
+            Settings.LOG_LEVEL = LogLevel.Debug;
             Settings.LOG_RESENDS = false;
             Settings.STORE_LAND_PATCHES = true;
             Settings.ALWAYS_DECODE_OBJECTS = true;

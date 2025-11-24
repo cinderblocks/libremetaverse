@@ -73,7 +73,7 @@ namespace VoiceTest
 
             GridClient client = new GridClient();
             client.Settings.MULTIPLE_SIMS = false;
-            Settings.LOG_LEVEL = Helpers.LogLevel.None;
+            Settings.LOG_LEVEL = Microsoft.Extensions.Logging.LogLevel.None;
             client.Settings.LOG_RESENDS = false;
             client.Settings.STORE_LAND_PATCHES = true;
             client.Settings.ALWAYS_DECODE_OBJECTS = true;
