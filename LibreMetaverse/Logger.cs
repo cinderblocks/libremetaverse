@@ -185,9 +185,10 @@ namespace OpenMetaverse
         /// If the factory supports IAsyncDisposable (on supported frameworks) its DisposeAsync will be awaited
         /// to allow providers to flush buffers. Safe to call multiple times.
         /// </summary>
+        /// <param name="timeout">Optional timeout for the shutdown operation. If not specified, will wait indefinitely.</param>
         /// <param name="cancellationToken">Cancellation token (not currently used to cancel disposal).</param>
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        public static async Task ShutdownAsync(CancellationToken cancellationToken = default)
+        public static async Task<bool> ShutdownAsync(TimeSpan? timeout = null, CancellationToken cancellationToken = default)
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             ILoggerFactory factory = null;
@@ -199,26 +200,75 @@ namespace OpenMetaverse
                 _logger = null;
             }
 
-            if (factory == null) return;
+            if (factory == null) return true;
 
+            bool completedDispose = false;
             try
             {
 #if NET8_0_OR_GREATER
                 var asyncDisp = factory as IAsyncDisposable;
                 if (asyncDisp != null)
                 {
-                    await asyncDisp.DisposeAsync().ConfigureAwait(false);
-                    return;
+                    // If no timeout and no cancellation requested just await normally
+                    if (!timeout.HasValue && !cancellationToken.CanBeCanceled)
+                    {
+                        await asyncDisp.DisposeAsync().ConfigureAwait(false);
+                        return true;
+                    }
+
+                    // Await DisposeAsync but honor timeout/cancellation
+                    var vt = asyncDisp.DisposeAsync();
+                    var disposeTask = vt.AsTask();
+
+                    Task waitTask;
+                    if (timeout.HasValue)
+                    {
+                        waitTask = Task.Delay(timeout.Value, cancellationToken);
+                    }
+                    else
+                    {
+                        // wait only on cancellation
+                        if (cancellationToken.CanBeCanceled)
+                            waitTask = Task.Delay(-1, cancellationToken);
+                        else
+                            waitTask = Task.CompletedTask; // should not reach here
+                    }
+
+                    var completed = await Task.WhenAny(disposeTask, waitTask).ConfigureAwait(false);
+                    if (completed == disposeTask)
+                    {
+                        await disposeTask.ConfigureAwait(false);
+                        completedDispose = true;
+                    }
+
+                    return completedDispose;
                 }
 #endif
                 if (factory is IDisposable disp)
                 {
-                    disp.Dispose();
+                    if (!timeout.HasValue && !cancellationToken.CanBeCanceled)
+                    {
+                        disp.Dispose();
+                        return true;
+                    }
+
+                    // Run Dispose on thread-pool and wait with timeout/cancellation
+                    var disposeTask = Task.Run(() => { try { disp.Dispose(); } catch { } });
+                    Task waitTask = timeout.HasValue ? Task.Delay(timeout.Value, cancellationToken) : (cancellationToken.CanBeCanceled ? Task.Delay(-1, cancellationToken) : Task.CompletedTask);
+
+                    var completed = await Task.WhenAny(disposeTask, waitTask).ConfigureAwait(false);
+                    if (completed == disposeTask)
+                    {
+                        await disposeTask.ConfigureAwait(false);
+                        completedDispose = true;
+                    }
                 }
+                return completedDispose;
             }
             catch
             {
                 // swallow exceptions during async shutdown
+                return false;
             }
         }
 
