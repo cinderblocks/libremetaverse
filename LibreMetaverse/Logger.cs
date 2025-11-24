@@ -78,30 +78,29 @@ namespace OpenMetaverse
 
         static Logger()
         {
-            try
+        }
+
+        // Ensure logger factory and logger are initialized with defaults if not provided by consumer
+        private static void EnsureInitialized()
+        {
+            if (_loggerFactory != null) return;
+
+            lock (_sync)
             {
-                // set up a default logger factory
-                _loggerFactory = LoggerFactory.Create(builder =>
+                if (_loggerFactory != null) return;
+                try
                 {
-#if NET8_0_OR_GREATER
-                    // Use ZLogger console provider for .NET 8+ for higher performance
-                    builder.AddZLoggerConsole();
-#else
-                    // Fall back to Microsoft Console provider for netstandard2.0 and older targets
-                    builder.AddConsole();
-#endif
-                });
-
-                _logger = _loggerFactory.CreateLogger(MethodBase.GetCurrentMethod()?.DeclaringType?.FullName ?? "LibreMetaverse");
-
-                if (Settings.LOG_LEVEL != Helpers.LogLevel.None)
-                {
-                    _logger.LogInformation("Default console logger initialized");
+                    _loggerFactory = CreateDefaultConsoleLoggerFactory();
+                    _logger = _loggerFactory.CreateLogger(MethodBase.GetCurrentMethod()?.DeclaringType?.FullName ?? "LibreMetaverse");
+                    if (Settings.LOG_LEVEL != Helpers.LogLevel.None)
+                    {
+                        _logger.LogInformation("Default console logger initialized");
+                    }
                 }
-            }
-            catch
-            {
-                // swallow any logging initialization errors to avoid breaking consumers
+                catch
+                {
+                    // swallow any logging initialization errors to avoid breaking consumers
+                }
             }
         }
 
