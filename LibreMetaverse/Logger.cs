@@ -363,8 +363,7 @@ namespace OpenMetaverse
         {
             var clientName = (client != null && client.Settings.LOG_NAMES) ? client.Self?.Name : null;
 
-            // OnLogMessage may be subscribed and expect the library's enum; keep behavior
-            OnLogMessage?.Invoke(message, level);
+            RaiseOnLogMessage(message, level);
 
             if (Settings.LOG_LEVEL == Helpers.LogLevel.None) { return; }
 
@@ -414,7 +413,7 @@ namespace OpenMetaverse
 
             var clientName = (client != null && client.Settings.LOG_NAMES) ? client.Self?.Name : null;
 
-            OnLogMessage?.Invoke(message, LogLevel.Trace);
+            RaiseOnLogMessage(message, LogLevel.Trace);
 
             LogWithLevel(LogLevel.Debug, message, null, clientName);
         }
@@ -516,6 +515,32 @@ namespace OpenMetaverse
             public static readonly NoopScope Instance = new NoopScope();
             private NoopScope() { }
             public void Dispose() { }
+        }
+
+        // Invoke OnLogMessage in a non-blocking way on the thread-pool
+        private static void RaiseOnLogMessage(object message, LogLevel level)
+        {
+            var cb = OnLogMessage;
+            if (cb == null) return;
+
+            try
+            {
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        cb(message, level);
+                    }
+                    catch
+                    {
+                        // swallow subscriber exceptions
+                    }
+                });
+            }
+            catch
+            {
+                // swallow Task.Run exceptions
+            }
         }
     }
 }
