@@ -275,7 +275,7 @@ namespace OpenMetaverse
 
         private static void LogWithLevel(LogLevel level, object message, Exception exception, string clientName = null)
         {
-            Ensu
+            EnsureInitialized();
             if (_logger == null) { return; }
 
             // Avoid formatting/allocations when the log level is disabled

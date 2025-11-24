@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse;
 using OpenMetaverse.Assets;
 
@@ -129,7 +130,7 @@ namespace TestClient.Commands.Inventory
 
             if (finalUploadSuccess)
             {
-                Logger.Log("Notecard successfully created, ItemID " + notecardItemID + " AssetID " + notecardAssetID, Helpers.LogLevel.Info);
+                Logger.Log($"Notecard successfully created, ItemID {notecardItemID} AssetID {notecardAssetID}", LogLevel.Information);
                 return await DownloadNotecardAsync(notecardItemID, notecardAssetID).ConfigureAwait(false);
             }
             else

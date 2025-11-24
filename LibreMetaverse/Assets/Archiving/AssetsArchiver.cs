@@ -27,6 +27,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse.Assets
 {
@@ -128,9 +129,8 @@ namespace OpenMetaverse.Assets
                 }
                 else
                 {
-                    Logger.Log(string.Format(
-                        "Unrecognized asset type {0} with uuid {1}.  This asset will be saved but not reloaded",
-                        asset.AssetType, asset.AssetID), Helpers.LogLevel.Warning);
+                    Logger.Log($"Unrecognized asset type {asset.AssetType} with uuid {asset.AssetID}. " +
+                               $"This asset will be saved but not reloaded", LogLevel.Warning);
                 }
 
                 asset.Encode();

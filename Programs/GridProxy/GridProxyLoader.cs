@@ -8,7 +8,7 @@ using OpenMetaverse;
 using OpenMetaverse.Packets;
 using XmlRpcCore;
 using Logger = OpenMetaverse.Logger;
-
+using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace GridProxy
 {
@@ -75,7 +75,7 @@ namespace GridProxy
                         string sw = arg.Substring(0, ipos);
                         string val = arg.Substring(ipos + 1);
 
-                        Logger.Log("arg '" + sw + "' val '" + val + "'", Helpers.LogLevel.Debug);
+                        Logger.Log("arg '" + sw + "' val '" + val + "'", LogLevel.Debug);
 
                         if (sw == "--load")
                         {
@@ -100,7 +100,7 @@ namespace GridProxy
                 }
                 catch (Exception e)
                 {
-                    Logger.Log("LoadPlugin exception", Helpers.LogLevel.Error, e);
+                    Logger.Log("LoadPlugin exception", LogLevel.Error, e);
                 }
             }
         }
@@ -115,14 +115,14 @@ namespace GridProxy
                 {
                     if (t.IsSubclassOf(typeof(ProxyPlugin)))
                     {
-                        ConstructorInfo info = t.GetConstructor(new Type[] { typeof(ProxyFrame) });
-                        ProxyPlugin plugin = (ProxyPlugin)info.Invoke(new object[] { this });
+                        ConstructorInfo info = t.GetConstructor([typeof(ProxyFrame)]);
+                        ProxyPlugin plugin = (ProxyPlugin)info.Invoke([this]);
                         plugin.Init();
                     }
                 }
                 catch (Exception e)
                 {
-                    Logger.Log("LoadPlugin exception", Helpers.LogLevel.Error, e);
+                    Logger.Log("LoadPlugin exception", LogLevel.Error, e);
                 }
             }
 

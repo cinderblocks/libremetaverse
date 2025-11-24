@@ -321,11 +321,11 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log(string.Format("Zerodecoding error: i={0}, srclen={1}, bodylen={2}, zerolen={3}\n{4}\n{5}",
-                    i, srclen, bodylen, zerolen, Utils.BytesToHexString(src, srclen, null), ex), LogLevel.Error);
+                Logger.Log(
+                    $"Zerodecoding error: i={i}, srclen={srclen}, bodylen={bodylen}, zerolen={zerolen}\n{Utils.BytesToHexString(src, srclen, null)}\n{ex}", Microsoft.Extensions.Logging.LogLevel.Error);
 
-                throw new IndexOutOfRangeException(string.Format("Zerodecoding error: i={0}, srclen={1}, bodylen={2}, zerolen={3}\n{4}\n{5}",
-                    i, srclen, bodylen, zerolen, Utils.BytesToHexString(src, srclen, null), ex.InnerException));
+                throw new IndexOutOfRangeException(
+                    $"Zerodecoding error: i={i}, srclen={srclen}, bodylen={bodylen}, zerolen={zerolen}\n{Utils.BytesToHexString(src, srclen, null)}\n{ex.InnerException}");
             }
         }
 
@@ -461,7 +461,7 @@ namespace OpenMetaverse
         /// <param name="resourceName">The filename of the resource to load</param>
         /// <returns>A Stream for the requested file, or null if the resource
         /// was not successfully loaded</returns>
-        public static System.IO.Stream GetResourceStream(string resourceName)
+        public static Stream GetResourceStream(string resourceName)
         {
             return GetResourceStream(resourceName, "openmetaverse_data");
         }
@@ -475,7 +475,7 @@ namespace OpenMetaverse
         /// the asset is not found embedded in the assembly</param>
         /// <returns>A Stream for the requested file, or null if the resource
         /// was not successfully loaded</returns>
-        public static System.IO.Stream GetResourceStream(string resourceName, string searchPath)
+        public static Stream GetResourceStream(string resourceName, string searchPath)
         {
             if (searchPath != null)
             {
@@ -484,32 +484,32 @@ namespace OpenMetaverse
                 string dirname = ".";
                 if (gea.Location != null)
                 {
-                    dirname = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(gea.Location), searchPath);
+                    dirname = Path.Combine(Path.GetDirectoryName(gea.Location), searchPath);
                 }
 
-                string filename = System.IO.Path.Combine(dirname, resourceName);
+                string filename = Path.Combine(dirname, resourceName);
                 try
                 {
-                    return new System.IO.FileStream(
+                    return new FileStream(
                         filename,
-                        System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read);
+                        FileMode.Open, FileAccess.Read, FileShare.Read);
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"Failed opening resource from file {filename}: {ex.Message}", LogLevel.Error);
+                    Logger.Log($"Failed opening resource from file {filename}: {ex.Message}", Microsoft.Extensions.Logging.LogLevel.Error);
                 }
             }
             else
             {
                 try
                 {
-                    System.Reflection.Assembly a = System.Reflection.Assembly.GetExecutingAssembly();
-                    System.IO.Stream s = a.GetManifestResourceStream("OpenMetaverse.Resources." + resourceName);
+                    Assembly a = Assembly.GetExecutingAssembly();
+                    Stream s = a.GetManifestResourceStream("OpenMetaverse.Resources." + resourceName);
                     if (s != null) return s;
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"Failed opening resource stream: {ex.Message}", LogLevel.Error);
+                    Logger.Log($"Failed opening resource stream: {ex.Message}", Microsoft.Extensions.Logging.LogLevel.Error);
                 }
             }
 
@@ -521,9 +521,9 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="prims">Primitives to convert to a serializable object</param>
         /// <returns>An object that can be serialized with LLSD</returns>
-        public static StructuredData.OSD PrimListToOSD(List<Primitive> prims)
+        public static OSD PrimListToOSD(List<Primitive> prims)
         {
-            StructuredData.OSDMap map = new OpenMetaverse.StructuredData.OSDMap(prims.Count);
+            OSDMap map = new OSDMap(prims.Count);
 
             foreach (Primitive prim in prims)
                 map.Add(prim.LocalID.ToString(), prim.GetOSD());
@@ -537,15 +537,15 @@ namespace OpenMetaverse
         /// <param name="osd">Structure holding the serialized primitive list,
         /// must be of the SDMap type</param>
         /// <returns>A list of deserialized primitives</returns>
-        public static List<Primitive> OSDToPrimList(StructuredData.OSD osd)
+        public static List<Primitive> OSDToPrimList(OSD osd)
         {
-            if (osd.Type != StructuredData.OSDType.Map)
+            if (osd.Type != OSDType.Map)
                 throw new ArgumentException("LLSD must be in the Map structure");
 
-            StructuredData.OSDMap map = (StructuredData.OSDMap)osd;
+            OSDMap map = (OSDMap)osd;
             List<Primitive> prims = new List<Primitive>(map.Count);
 
-            foreach (KeyValuePair<string, StructuredData.OSD> kvp in map)
+            foreach (KeyValuePair<string, OSD> kvp in map)
             {
                 Primitive prim = Primitive.FromOSD(kvp.Value);
                 prim.LocalID = uint.Parse(kvp.Key);

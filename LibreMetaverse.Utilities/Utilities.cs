@@ -27,6 +27,7 @@
 
 using System;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse.Utilities
 {
@@ -85,7 +86,7 @@ namespace OpenMetaverse.Utilities
             }
             else
             {
-                Logger.Log("Attempted Shoot but agent updates are disabled", Helpers.LogLevel.Warning, client);
+                Logger.Log("Attempted Shoot but agent updates are disabled", LogLevel.Warning, client);
                 return false;
             }
         }
@@ -179,32 +180,32 @@ namespace OpenMetaverse.Utilities
 
             if (client.Network.Login(firstName, lastName, password, userAgent, start, author))
             {
-                Logger.Log("Logged in to " + client.Network.CurrentSim, Helpers.LogLevel.Info, client);
+                Logger.Log("Logged in to " + client.Network.CurrentSim, LogLevel.Information, client);
                 return true;
             }
             switch (client.Network.LoginErrorKey)
             {
                 case "god":
-                    Logger.Log("Grid is down, waiting 10 minutes", Helpers.LogLevel.Warning, client);
+                    Logger.Log("Grid is down, waiting 10 minutes", LogLevel.Warning, client);
                     LoginWait(10);
                     goto Start;
                 case "key":
-                    Logger.Log("Bad username or password, giving up on login", Helpers.LogLevel.Error, client);
+                    Logger.Log("Bad username or password, giving up on login", LogLevel.Error, client);
                     return false;
                 case "presence":
-                    Logger.Log("Server is still logging us out, waiting 1 minute", Helpers.LogLevel.Warning, client);
+                    Logger.Log("Server is still logging us out, waiting 1 minute", LogLevel.Warning, client);
                     LoginWait(1);
                     goto Start;
                 case "disabled":
-                    Logger.Log("This account has been banned! Giving up on login", Helpers.LogLevel.Error, client);
+                    Logger.Log("This account has been banned! Giving up on login", LogLevel.Error, client);
                     return false;
                 case "timed out":
                 case "no connection":
-                    Logger.Log("Login request timed out, waiting 1 minute", Helpers.LogLevel.Warning, client);
+                    Logger.Log("Login request timed out, waiting 1 minute", LogLevel.Warning, client);
                     LoginWait(1);
                     goto Start;
                 case "bad response":
-                    Logger.Log("Login server returned unparsable result", Helpers.LogLevel.Warning, client);
+                    Logger.Log("Login server returned unparsable result", LogLevel.Warning, client);
                     LoginWait(1);
                     goto Start;
                 default:
@@ -213,11 +214,11 @@ namespace OpenMetaverse.Utilities
                     if (unknownLogins < 5)
                     {
                         Logger.Log("Unknown login error, waiting 2 minutes: " + client.Network.LoginErrorKey,
-                            Helpers.LogLevel.Warning, client);
+                            LogLevel.Warning, client);
                         LoginWait(2);
                         goto Start;
                     }
-                    Logger.Log("Too many unknown login error codes, giving up", Helpers.LogLevel.Error, client);
+                    Logger.Log("Too many unknown login error codes, giving up", LogLevel.Error, client);
                     return false;
             }
         }

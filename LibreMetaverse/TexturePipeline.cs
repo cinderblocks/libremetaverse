@@ -35,6 +35,7 @@ using System.Threading.Tasks;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Assets;
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {
@@ -204,7 +205,7 @@ namespace OpenMetaverse
                 return;
 #if DEBUG_TIMING
             Logger.Log(String.Format("Combined Execution Time: {0}, Network Execution Time {1}, Network {2}K/sec, Image Size {3}",
-                        TotalTime, NetworkTime, Math.Round(TotalBytes / NetworkTime.TotalSeconds / 60, 2), TotalBytes), Helpers.LogLevel.Debug);
+                        TotalTime, NetworkTime, Math.Round(TotalBytes / NetworkTime.TotalSeconds / 60, 2), TotalBytes), LogLevel.Debug);
 #endif
             RefreshDownloadsTimer?.Dispose();
             RefreshDownloadsTimer = null;
@@ -398,7 +399,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    Logger.Log("Received texture download request for a texture that isn't in the download queue: " + imageID, Helpers.LogLevel.Warning);
+                    Logger.Log("Received texture download request for a texture that isn't in the download queue: " + imageID, LogLevel.Warning);
                 }
             }
         }
@@ -489,7 +490,7 @@ namespace OpenMetaverse
                 try { await Task.Delay(500, downloadTokenSource.Token).ConfigureAwait(false); } catch { }
             }
 
-            Logger.Log("Texture pipeline shutting down", Helpers.LogLevel.Info);
+            Logger.Log("Texture pipeline shutting down", LogLevel.Information);
         }
 
         private async Task RunWorkerAsync(TaskInfo task)
@@ -509,7 +510,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log("Exception in texture worker: " + ex.Message, Helpers.LogLevel.Error, _Client, ex);
+                Logger.Log("Exception in texture worker: " + ex.Message, LogLevel.Error, _Client, ex);
             }
             finally
             {
@@ -571,7 +572,7 @@ namespace OpenMetaverse
 
             // Otherwise this is a genuine timeout/abort not yet handled, run timeout handling
             Logger.Log("Worker timeout waiting for texture " + task.RequestID + " to download got " +
-                task.Transfer.Transferred + " of " + task.Transfer.Size, Helpers.LogLevel.Warning);
+                task.Transfer.Transferred + " of " + task.Transfer.Size, LogLevel.Warning);
 
             AssetTexture texture = new AssetTexture(task.RequestID, task.Transfer.AssetData);
             foreach (TextureDownloadCallback callback in task.Callbacks)
@@ -638,7 +639,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("Received an ImageNotFound packet for an image we did not request: " + imageNotFoundData.ImageID.ID, Helpers.LogLevel.Warning);
+                Logger.Log("Received an ImageNotFound packet for an image we did not request: " + imageNotFoundData.ImageID.ID, LogLevel.Warning);
             }
         }
 
@@ -665,7 +666,7 @@ namespace OpenMetaverse
                         if (!signaled || task.Transfer.Size == 0)
                         {
                             Logger.Log("Timed out while waiting for the image header to download for " +
-                                       task.Transfer.ID, Helpers.LogLevel.Warning, _Client);
+                                       task.Transfer.ID, LogLevel.Warning, _Client);
 
                             task.TokenSource.Cancel();
 
@@ -676,7 +677,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log("Exception while waiting for image header: " + ex.Message, Helpers.LogLevel.Error, _Client, ex);
+                        Logger.Log("Exception while waiting for image header: " + ex.Message, LogLevel.Error, _Client, ex);
                         task.TokenSource.Cancel();
                         CompleteTransfer(task.Transfer.ID, TextureRequestState.Timeout, task.Transfer.AssetData);
                         return;
@@ -716,7 +717,7 @@ namespace OpenMetaverse
                                 "Transfer Complete {0} [{1}] Total Request Time: {2}, Download Time {3}, Network {4}Kb/sec, Image Size {5} bytes",
                                 task.RequestID, task.RequestSlot, requestDuration, networkDuration,
                                 Math.Round(task.Transfer.Size/networkDuration.TotalSeconds/60, 2), task.Transfer.Size),
-                            Helpers.LogLevel.Debug);
+                            LogLevel.Debug);
 #endif
 
                     task.Transfer.Success = true;
@@ -790,7 +791,7 @@ namespace OpenMetaverse
                             "Transfer Complete {0} [{1}] Total Request Time: {2}, Download Time {3}, Network {4}Kb/sec, Image Size {5} bytes",
                             task.RequestID, task.RequestSlot, requestDuration, networkDuration,
                             Math.Round(task.Transfer.Size/networkDuration.TotalSeconds/60, 2), task.Transfer.Size),
-                        Helpers.LogLevel.Debug);
+                        LogLevel.Debug);
 #endif
                     task.Transfer.Success = true;
                     task.TokenSource.Cancel();
@@ -845,7 +846,7 @@ namespace OpenMetaverse
                 foreach (var callback in info.Callbacks)
                 {
                     try { callback(finalState, new AssetTexture(textureID, data ?? Utils.EmptyBytes)); }
-                    catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, _Client, ex); }
+                    catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, _Client, ex); }
                 }
 
                 try { _Client.Assets.FireImageProgressEvent(textureID, info.Transfer?.Transferred ?? 0, info.Transfer?.Size ?? 0); } catch { }

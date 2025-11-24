@@ -32,6 +32,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using static LibreMetaverse.HttpCapsClient;
 
 namespace OpenMetaverse
@@ -606,12 +607,12 @@ namespace OpenMetaverse
             // check for too many items.
             if (total_contents > MAX_GIVE_ITEMS)
             {
-                Logger.Log($"Cannot give more than {MAX_GIVE_ITEMS} items in a single inventory transfer.", Helpers.LogLevel.Info);
+                Logger.Log($"Cannot give more than {MAX_GIVE_ITEMS} items in a single inventory transfer.", LogLevel.Information);
                 return;
             }
             if (items.Count == 0)
             {
-                Logger.Log("No items to transfer.", Helpers.LogLevel.Info);
+                Logger.Log("No items to transfer.", LogLevel.Information);
                 return;
             }
 
@@ -697,7 +698,7 @@ namespace OpenMetaverse
                             items.Add(fetched);
                         break;
                     default: // shouldn't happen
-                        Logger.Log("Retrieved inventory contents of invalid type", Helpers.LogLevel.Error);
+                        Logger.Log("Retrieved inventory contents of invalid type", LogLevel.Error);
                         break;
                 }
             }

@@ -29,6 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse;
 using TestClient.Commands.Inventory;
 using TestClient.Commands.System;
@@ -129,7 +130,7 @@ namespace TestClient
 
             if (string.IsNullOrEmpty(account.URI))
                 account.URI = Program.LoginURI;
-            Logger.Log($"Using login URI {account.URI}", Helpers.LogLevel.Info);
+            Logger.Log($"Using login URI {account.URI}", LogLevel.Information);
 
             return Login(account);
         }
@@ -159,7 +160,7 @@ namespace TestClient
             client.Network.LoginProgress +=
                 delegate(object sender, LoginProgressEventArgs e)
                 {
-                    Logger.Log($"Login {e.Status}: {e.Message}", Helpers.LogLevel.Info, client);
+                    Logger.Log($"Login {e.Status}: {e.Message}", LogLevel.Information, client);
 
                     if (e.Status == LoginStatus.Success)
                     {
@@ -174,12 +175,12 @@ namespace TestClient
                                 if (dpe.QueryID != query) { return; }
                                 if (dpe.MatchedPeople.Count != 1)
                                 {
-                                    Logger.Log($"Unable to resolve master key from {client.MasterName}", Helpers.LogLevel.Warning);
+                                    Logger.Log($"Unable to resolve master key from {client.MasterName}", LogLevel.Warning);
                                 }
                                 else
                                 {
                                     client.MasterKey = dpe.MatchedPeople[0].AgentID;
-                                    Logger.Log($"Master key resolved to {client.MasterKey}", Helpers.LogLevel.Info);
+                                    Logger.Log($"Master key resolved to {client.MasterKey}", LogLevel.Information);
                                 }
                             }
 
@@ -187,13 +188,13 @@ namespace TestClient
                             query = client.Directory.StartPeopleSearch(client.MasterName, 0);
                         }
 
-                        Logger.Log($"Logged in {client}", Helpers.LogLevel.Info);
+                        Logger.Log($"Logged in {client}", LogLevel.Information);
                         --PendingLogins;
                     }
                     else if (e.Status == LoginStatus.Failed)
                     {
                         Logger.Log($"Failed to login {account.FirstName} {account.LastName}: {client.Network.LoginMessage}", 
-                            Helpers.LogLevel.Warning);
+                            LogLevel.Warning);
                         --PendingLogins;
                     }
                 };
@@ -292,9 +293,9 @@ namespace TestClient
                     Logger.Log(
                         found
                             ? $"Commanding only {onlyAvatar} now"
-                            : $"Commanding nobody now. Avatar {onlyAvatar} is offline", Helpers.LogLevel.Info);
+                            : $"Commanding nobody now. Avatar {onlyAvatar} is offline", LogLevel.Information);
                 } else {
-                    Logger.Log("Commanding all avatars now", Helpers.LogLevel.Info);
+                    Logger.Log("Commanding all avatars now", LogLevel.Information);
                 }
                 return;
             }
@@ -310,7 +311,7 @@ namespace TestClient
             else if (firstToken == "quit")
             {
                 Quit();
-                Logger.Log("All clients logged out and program finished running.", Helpers.LogLevel.Info);
+                Logger.Log("All clients logged out and program finished running.", LogLevel.Information);
             }
             else if (firstToken == "help")
             {
@@ -332,7 +333,7 @@ namespace TestClient
             {
                 // No reason to pass this to all bots, and we also want to allow it when there are no bots
                 ScriptCommand command = new ScriptCommand(null);
-                Logger.Log(command.ExecuteAsync(args, UUID.Zero).GetAwaiter().GetResult(), Helpers.LogLevel.Info);
+                Logger.Log(command.ExecuteAsync(args, UUID.Zero).GetAwaiter().GetResult(), LogLevel.Information);
             }
             else if (firstToken == "waitforlogin")
             {
@@ -340,11 +341,11 @@ namespace TestClient
                 if (ClientManager.Instance.PendingLogins > 0)
                 {
                     WaitForLoginCommand command = new WaitForLoginCommand(null);
-                    Logger.Log(command.ExecuteAsync(args, UUID.Zero).GetAwaiter().GetResult(), Helpers.LogLevel.Info);
+                    Logger.Log(command.ExecuteAsync(args, UUID.Zero).GetAwaiter().GetResult(), LogLevel.Information);
                 }
                 else
                 {
-                    Logger.Log("No pending logins", Helpers.LogLevel.Info);
+                    Logger.Log("No pending logins", LogLevel.Information);
                 }
             }
             else
@@ -360,19 +361,18 @@ namespace TestClient
 
                     if ((string.Empty == onlyAvatar) || (testClient.ToString() == onlyAvatar))
                     {
-                        if (testClient.Commands.ContainsKey(firstToken))
+                        if (testClient.Commands.TryGetValue(firstToken, out var command))
                         {
-                            var command = testClient.Commands[firstToken];
                             var task = System.Threading.Tasks.Task.Run(async () =>
                             {
                                 try
                                 {
                                     var result = await command.ExecuteAsync(args, fromAgentID).ConfigureAwait(false);
-                                    Logger.Log(result, Helpers.LogLevel.Info, testClient);
+                                    Logger.Log(result, LogLevel.Information, testClient);
                                 }
                                 catch (Exception e)
                                 {
-                                    Logger.Log($"{firstToken} raised exception {e}", Helpers.LogLevel.Error, testClient);
+                                    Logger.Log($"{firstToken} raised exception {e}", LogLevel.Error, testClient);
                                 }
                             });
 
@@ -380,7 +380,7 @@ namespace TestClient
                         }
                         else
                         {
-                            Logger.Log($"Unknown command {firstToken}", Helpers.LogLevel.Warning);
+                            Logger.Log($"Unknown command {firstToken}", LogLevel.Warning);
                         }
                     }
                 }

@@ -29,6 +29,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
 
 namespace OpenMetaverse
@@ -166,7 +167,7 @@ namespace OpenMetaverse
             {
                 if (e.SocketErrorCode == SocketError.ConnectionReset)
                 {
-                    Logger.Log("SIO_UDP_CONNRESET was ignored, attempting to salvage the UDP listener on port " + udpPort, Helpers.LogLevel.Error);
+                    Logger.Log("SIO_UDP_CONNRESET was ignored, attempting to salvage the UDP listener on port " + udpPort, LogLevel.Error);
                     bool salvaged = false;
                     while (!salvaged)
                     {
@@ -188,7 +189,7 @@ namespace OpenMetaverse
                         catch (ObjectDisposedException) { return; }
                     }
 
-                    Logger.Log("Salvaged the UDP listener on port " + udpPort, Helpers.LogLevel.Info);
+                    Logger.Log("Salvaged the UDP listener on port " + udpPort, LogLevel.Information);
                 }
             }
             catch (ObjectDisposedException) { }

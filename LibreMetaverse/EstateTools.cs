@@ -37,6 +37,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {
@@ -644,7 +645,7 @@ namespace OpenMetaverse
                 || !await SetRegionInfoHttp(blockTerraform, blockFly, blockFlyOver, allowDamage, allowLandResell, restrictPushing,
                     allowParcelJoinDivide, agentLimit, objectBonus, blockParcelSearch, maturity).ConfigureAwait(false))
             {
-                Logger.Log("Falling back to LLUDP SetRegionInfo", Helpers.LogLevel.Info);
+                Logger.Log("Falling back to LLUDP SetRegionInfo", LogLevel.Information);
                 SetRegionInfoUdp(blockTerraform, blockFly, allowDamage, allowLandResell, restrictPushing,
                     allowParcelJoinDivide, agentLimit, objectBonus, maturity);
             }
@@ -681,7 +682,7 @@ namespace OpenMetaverse
                             return true;
                         }
 
-                        Logger.Log($"Failed to set region info via capability: {reply.ReasonPhrase}", Helpers.LogLevel.Warning);
+                        Logger.Log($"Failed to set region info via capability: {reply.ReasonPhrase}", LogLevel.Warning);
                     }
                 }
             }
@@ -988,10 +989,10 @@ namespace OpenMetaverse
                 {
                     if (reply != null && reply.IsSuccessStatusCode)
                     {
-                        Logger.Log($"Committed estate change info for {estateName}", Helpers.LogLevel.Info, Client);
+                        Logger.Log($"Committed estate change info for {estateName}", LogLevel.Information, Client);
                         return true;
                     }
-                    Logger.Log($"Failed to commit estate info for {estateName}", Helpers.LogLevel.Warning, Client);
+                    Logger.Log($"Failed to commit estate info for {estateName}", LogLevel.Warning, Client);
                     return false;
                 }
             }
@@ -1088,7 +1089,7 @@ namespace OpenMetaverse
                                             var managerID = new UUID(message.ParamList[i].Parameter, 0);
                                             managers.Add(managerID);
                                         }
-                                        catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                                        catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client, ex); }
                                     }
                                     OnEstateManagersReply(new EstateManagersReplyEventArgs(estateID, count, managers));
                                 }
@@ -1109,7 +1110,7 @@ namespace OpenMetaverse
                                             var bannedID = new UUID(message.ParamList[i].Parameter, 0);
                                             bannedUsers.Add(bannedID);
                                         }
-                                        catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                                        catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client, ex); }
                                     }
                                     OnEstateBansReply(new EstateBansReplyEventArgs(estateID, count, bannedUsers));
                                 }
@@ -1130,7 +1131,7 @@ namespace OpenMetaverse
                                             var allowedID = new UUID(message.ParamList[i].Parameter, 0);
                                             allowedUsers.Add(allowedID);
                                         }
-                                        catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                                        catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client, ex); }
                                     }
                                     OnEstateUsersReply(new EstateUsersReplyEventArgs(estateID, count, allowedUsers));
                                 }
@@ -1151,7 +1152,7 @@ namespace OpenMetaverse
                                             var groupID = new UUID(message.ParamList[i].Parameter, 0);
                                             allowedGroups.Add(groupID);
                                         }
-                                        catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                                        catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client, ex); }
                                     }
                                     OnEstateGroupsReply(new EstateGroupsReplyEventArgs(estateID, count, allowedGroups));
                                 }
@@ -1274,7 +1275,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Exception while disposing EstateTools: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                    Logger.Log("Exception while disposing EstateTools: " + ex.Message, LogLevel.Error, Client, ex);
                 }
             }
 

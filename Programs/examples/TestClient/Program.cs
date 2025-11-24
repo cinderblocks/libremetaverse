@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse;
 
 namespace TestClient
@@ -61,7 +62,7 @@ namespace TestClient
                 LoginURI = arguments["loginuri"];
             if (string.IsNullOrEmpty(LoginURI))
                 LoginURI = Settings.AGNI_LOGIN_SERVER;
-            Logger.Log("Using login URI " + LoginURI, Helpers.LogLevel.Info);
+            Logger.Log("Using login URI " + LoginURI, LogLevel.Information);
 
             if (arguments["gettextures"] != null)
                 getTextures = true;
@@ -74,7 +75,7 @@ namespace TestClient
                 scriptFile = arguments["scriptfile"];
                 if (!File.Exists(scriptFile))
                 {
-                    Logger.Log($"File {scriptFile} Does not exist", Helpers.LogLevel.Error);
+                    Logger.Log($"File {scriptFile} Does not exist", LogLevel.Error);
                     return;
                 }
             }
@@ -85,7 +86,7 @@ namespace TestClient
 
                 if (!File.Exists(file))
                 {
-                    Logger.Log($"File {file} Does not exist", Helpers.LogLevel.Error);
+                    Logger.Log($"File {file} Does not exist", LogLevel.Error);
                     return;
                 }
 
@@ -126,14 +127,14 @@ namespace TestClient
                             {
                                 Logger.Log("Invalid data on line " + lineNumber +
                                            ", must be in the format of: FirstName LastName Password [Sim/StartX/StartY/StartZ]",
-                                    Helpers.LogLevel.Warning);
+                                    LogLevel.Warning);
                             }
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Error reading from " + args[1], Helpers.LogLevel.Error, ex);
+                    Logger.Log("Error reading from " + args[1], LogLevel.Error, ex);
                     return;
                 }
             }

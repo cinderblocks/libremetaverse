@@ -35,6 +35,7 @@ using OpenMetaverse.StructuredData;
 using OpenMetaverse.Packets;
 using System.Collections.Concurrent;
 using LibreMetaverse.Threading;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {
@@ -209,41 +210,41 @@ namespace OpenMetaverse
                 {
                     if (Client?.Network != null)
                     {
-                        try { Client.Network.UnregisterCallback(PacketType.UpdateCreateInventoryItem, UpdateCreateInventoryItemHandler); } catch (Exception ex) { Logger.Log("Failed to unregister UpdateCreateInventoryItem callback", Helpers.LogLevel.Debug, Client, ex); }
-                        try { Client.Network.UnregisterCallback(PacketType.SaveAssetIntoInventory, SaveAssetIntoInventoryHandler); } catch (Exception ex) { Logger.Log("Failed to unregister SaveAssetIntoInventory callback", Helpers.LogLevel.Debug, Client, ex); }
-                        try { Client.Network.UnregisterCallback(PacketType.BulkUpdateInventory, BulkUpdateInventoryHandler); } catch (Exception ex) { Logger.Log("Failed to unregister BulkUpdateInventory callback", Helpers.LogLevel.Debug, Client, ex); }
-                        try { Client.Network.UnregisterEventCallback("BulkUpdateInventory", BulkUpdateInventoryCapHandler); } catch (Exception ex) { Logger.Log("Failed to unregister BulkUpdateInventory event callback", Helpers.LogLevel.Debug, Client, ex); }
-                        try { Client.Network.UnregisterCallback(PacketType.MoveInventoryItem, MoveInventoryItemHandler); } catch (Exception ex) { Logger.Log("Failed to unregister MoveInventoryItem callback", Helpers.LogLevel.Debug, Client, ex); }
-                        try { Client.Network.UnregisterCallback(PacketType.ReplyTaskInventory, ReplyTaskInventoryHandler); } catch (Exception ex) { Logger.Log("Failed to unregister ReplyTaskInventory callback", Helpers.LogLevel.Debug, Client, ex); }
-                        try { Client.Network.UnregisterEventCallback("ScriptRunningReply", ScriptRunningReplyMessageHandler); } catch (Exception ex) { Logger.Log("Failed to unregister ScriptRunningReply event callback", Helpers.LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterCallback(PacketType.UpdateCreateInventoryItem, UpdateCreateInventoryItemHandler); } catch (Exception ex) { Logger.Log("Failed to unregister UpdateCreateInventoryItem callback", LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterCallback(PacketType.SaveAssetIntoInventory, SaveAssetIntoInventoryHandler); } catch (Exception ex) { Logger.Log("Failed to unregister SaveAssetIntoInventory callback", LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterCallback(PacketType.BulkUpdateInventory, BulkUpdateInventoryHandler); } catch (Exception ex) { Logger.Log("Failed to unregister BulkUpdateInventory callback", LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterEventCallback("BulkUpdateInventory", BulkUpdateInventoryCapHandler); } catch (Exception ex) { Logger.Log("Failed to unregister BulkUpdateInventory event callback", LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterCallback(PacketType.MoveInventoryItem, MoveInventoryItemHandler); } catch (Exception ex) { Logger.Log("Failed to unregister MoveInventoryItem callback", LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterCallback(PacketType.ReplyTaskInventory, ReplyTaskInventoryHandler); } catch (Exception ex) { Logger.Log("Failed to unregister ReplyTaskInventory callback", LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterEventCallback("ScriptRunningReply", ScriptRunningReplyMessageHandler); } catch (Exception ex) { Logger.Log("Failed to unregister ScriptRunningReply event callback", LogLevel.Debug, Client, ex); }
 
                         // Deprecated callbacks
-                        try { Client.Network.UnregisterCallback(PacketType.InventoryDescendents, InventoryDescendentsHandler); } catch (Exception ex) { Logger.Log("Failed to unregister InventoryDescendents callback", Helpers.LogLevel.Debug, Client, ex); }
-                        try { Client.Network.UnregisterCallback(PacketType.FetchInventoryReply, FetchInventoryReplyHandler); } catch (Exception ex) { Logger.Log("Failed to unregister FetchInventoryReply callback", Helpers.LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterCallback(PacketType.InventoryDescendents, InventoryDescendentsHandler); } catch (Exception ex) { Logger.Log("Failed to unregister InventoryDescendents callback", LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterCallback(PacketType.FetchInventoryReply, FetchInventoryReplyHandler); } catch (Exception ex) { Logger.Log("Failed to unregister FetchInventoryReply callback", LogLevel.Debug, Client, ex); }
 
-                        try { Client.Network.UnregisterLoginResponseCallback(Network_OnLoginResponse); } catch (Exception ex) { Logger.Log("Failed to unregister login response callback", Helpers.LogLevel.Debug, Client, ex); }
+                        try { Client.Network.UnregisterLoginResponseCallback(Network_OnLoginResponse); } catch (Exception ex) { Logger.Log("Failed to unregister login response callback", LogLevel.Debug, Client, ex); }
                     }
 
-                    try { if (Client?.Self != null) Client.Self.IM -= Self_IM; } catch (Exception ex) { Logger.Log("Failed to detach Self_IM event handler", Helpers.LogLevel.Debug, Client, ex); }
+                    try { if (Client?.Self != null) Client.Self.IM -= Self_IM; } catch (Exception ex) { Logger.Log("Failed to detach Self_IM event handler", LogLevel.Debug, Client, ex); }
 
-                    try { _ItemCreatedCallbacks.Clear(); } catch (Exception ex) { Logger.Log("Failed to clear ItemCreatedCallbacks", Helpers.LogLevel.Debug, Client, ex); }
-                    try { _ItemCopiedCallbacks.Clear(); } catch (Exception ex) { Logger.Log("Failed to clear ItemCopiedCallbacks", Helpers.LogLevel.Debug, Client, ex); }
-                    try { _ItemInventoryTypeRequest.Clear(); } catch (Exception ex) { Logger.Log("Failed to clear ItemInventoryTypeRequest", Helpers.LogLevel.Debug, Client, ex); }
-                    try { _Searches.Clear(); } catch (Exception ex) { Logger.Log("Failed to clear Searches", Helpers.LogLevel.Debug, Client, ex); }
+                    try { _ItemCreatedCallbacks.Clear(); } catch (Exception ex) { Logger.Log("Failed to clear ItemCreatedCallbacks", LogLevel.Debug, Client, ex); }
+                    try { _ItemCopiedCallbacks.Clear(); } catch (Exception ex) { Logger.Log("Failed to clear ItemCopiedCallbacks", LogLevel.Debug, Client, ex); }
+                    try { _ItemInventoryTypeRequest.Clear(); } catch (Exception ex) { Logger.Log("Failed to clear ItemInventoryTypeRequest", LogLevel.Debug, Client, ex); }
+                    try { _Searches.Clear(); } catch (Exception ex) { Logger.Log("Failed to clear Searches", LogLevel.Debug, Client, ex); }
 
                     try
                     {
                         _callbackCleanupCts.Cancel();
                         _callbackCleanupCts.Dispose();
                     }
-                    catch (Exception ex) { Logger.Log("Failed to cancel/dispose callback cleanup CTS", Helpers.LogLevel.Debug, Client, ex); }
+                    catch (Exception ex) { Logger.Log("Failed to cancel/dispose callback cleanup CTS", LogLevel.Debug, Client, ex); }
 
-                    try { _Store = null; } catch (Exception ex) { Logger.Log("Failed to clear inventory store reference", Helpers.LogLevel.Debug, Client, ex); }
+                    try { _Store = null; } catch (Exception ex) { Logger.Log("Failed to clear inventory store reference", LogLevel.Debug, Client, ex); }
                 }
                 catch (Exception ex)
                 {
                     // Log the unexpected exception during Dispose to help debugging
-                    Logger.Log($"Unhandled exception in InventoryManager.Dispose: {ex.Message}", Helpers.LogLevel.Error, Client, ex);
+                    Logger.Log($"Unhandled exception in InventoryManager.Dispose: {ex.Message}", LogLevel.Error, Client, ex);
                 }
             }
 
@@ -380,7 +381,7 @@ namespace OpenMetaverse
             if (cap == null)
             {
                 Logger.Log($"Failed to obtain FetchInventory2 capability on {Client.Network.CurrentSim?.Name}",
-                    Helpers.LogLevel.Warning, Client);
+                    LogLevel.Warning, Client);
                 return;
             }
 
@@ -417,7 +418,7 @@ namespace OpenMetaverse
                         }
                         else
                         {
-                            Logger.Log("Inventory store is not initialized, fetched item will not be cached locally", Helpers.LogLevel.Debug, Client);
+                            Logger.Log("Inventory store is not initialized, fetched item will not be cached locally", LogLevel.Debug, Client);
                         }
                         retrievedItems.Add(item);
                         OnItemReceived(new ItemReceivedEventArgs(item));
@@ -428,7 +429,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed getting data from FetchInventory2 capability.", Helpers.LogLevel.Error, Client, ex);
+                Logger.Log("Failed getting data from FetchInventory2 capability.", LogLevel.Error, Client, ex);
             }
         }
 
@@ -453,7 +454,7 @@ namespace OpenMetaverse
             if (_Store == null)
             {
                 var msg = "Inventory store not initialized, cannot get folder contents.";
-                Logger.Log(msg, Helpers.LogLevel.Warning, Client);
+                Logger.Log(msg, LogLevel.Warning, Client);
                 return new List<InventoryBase>();
             }
 
@@ -575,7 +576,7 @@ namespace OpenMetaverse
                             }
                             else
                             {
-                                Logger.Log("Inventory store is not initialized, fetched folder will not be cached locally", Helpers.LogLevel.Debug, Client);
+                                Logger.Log("Inventory store is not initialized, fetched folder will not be cached locally", LogLevel.Debug, Client);
                             }
                         }
                         fetchedFolder.DescendentCount = res["descendents"];
@@ -617,7 +618,7 @@ namespace OpenMetaverse
                                         }
                                         else
                                         {
-                                            Logger.Log("Inventory store is not initialized, descendent folder will not be cached locally", Helpers.LogLevel.Debug, Client);
+                                            Logger.Log("Inventory store is not initialized, descendent folder will not be cached locally", LogLevel.Debug, Client);
                                         }
                                     }
                                     else
@@ -648,7 +649,7 @@ namespace OpenMetaverse
                                         }
                                         else
                                         {
-                                            Logger.Log("Inventory store is not initialized, descendent item will not be cached locally", Helpers.LogLevel.Debug, Client);
+                                            Logger.Log("Inventory store is not initialized, descendent item will not be cached locally", LogLevel.Debug, Client);
                                         }
                                         ret.Add(item);
                                     }
@@ -663,7 +664,7 @@ namespace OpenMetaverse
             {
                 Logger.Log($"Failed to fetch inventory descendants: {ex.Message}" + Environment.NewLine +
                            $"{ex.StackTrace}",
-                           Helpers.LogLevel.Warning, Client);
+                           LogLevel.Warning, Client);
                 foreach (var f in batch)
                 {
                     OnFolderUpdated(new FolderUpdatedEventArgs(f.UUID, false));
@@ -690,14 +691,14 @@ namespace OpenMetaverse
             if (_Store == null)
             {
                 Logger.Log("Inventory is null, FindFolderForType() lookup cannot continue",
-                    Helpers.LogLevel.Error, Client);
+                    LogLevel.Error, Client);
                 return UUID.Zero;
             }
 
             if (_Store.RootFolder == null)
             {
                 Logger.Log("Inventory RootFolder not initialized, FindFolderForType() lookup cannot continue",
-                    Helpers.LogLevel.Error, Client);
+                    LogLevel.Error, Client);
                 return UUID.Zero;
             }
 
@@ -726,7 +727,7 @@ namespace OpenMetaverse
             if (_Store == null)
             {
                 Logger.Log("Inventory is null, FindFolderForType() lookup cannot continue",
-                    Helpers.LogLevel.Error, Client);
+                    LogLevel.Error, Client);
                 return UUID.Zero;
             }
 
@@ -1183,7 +1184,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log($"Failed removing inventory node {b}: {ex.Message}", Helpers.LogLevel.Debug, Client, ex);
+                        Logger.Log($"Failed removing inventory node {b}: {ex.Message}", LogLevel.Debug, Client, ex);
                     }
                 }
             }
@@ -1369,7 +1370,7 @@ namespace OpenMetaverse
             if (_Store == null)
             {
                 Logger.Log("Inventory store not initialized, cannot empty system folder",
-                    Helpers.LogLevel.Warning, Client);
+                    LogLevel.Warning, Client);
                 return;
             }
 
@@ -1547,10 +1548,10 @@ namespace OpenMetaverse
                 else
                 {
                     Logger.Log("Inventory store is not initialized, created folder will not be cached locally",
-                        Helpers.LogLevel.Debug, Client);
+                        LogLevel.Debug, Client);
                 }
             }
-            catch (InventoryException ie) { Logger.Log(ie.Message, Helpers.LogLevel.Warning, Client, ie); }
+            catch (InventoryException ie) { Logger.Log(ie.Message, LogLevel.Warning, Client, ie); }
 
             // Create the CreateInventoryFolder packet and send it
             var create = new CreateInventoryFolderPacket
@@ -1601,7 +1602,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log($"RequestCreateItemFromAsset failed: {ex.Message}", Helpers.LogLevel.Warning, Client, ex);
+                Logger.Log($"RequestCreateItemFromAsset failed: {ex.Message}", LogLevel.Warning, Client, ex);
             }
         }
 
@@ -1810,7 +1811,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log($"RequestCopyItems failed: {ex.Message}", Helpers.LogLevel.Warning, Client, ex);
+                Logger.Log($"RequestCopyItems failed: {ex.Message}", LogLevel.Warning, Client, ex);
             }
         }
 
@@ -2075,7 +2076,7 @@ namespace OpenMetaverse
             if (_Store == null)
             {
                 Logger.Log("Inventory store not initialized, cannot create or retrieve inventory item",
-                    Helpers.LogLevel.Warning, Client);
+                    LogLevel.Warning, Client);
                 return null;
             }
 
@@ -2151,7 +2152,7 @@ namespace OpenMetaverse
             if (!_ItemCreatedCallbacks.TryAdd(id, callback))
             {
                 _ItemCreatedCallbacks[id] = callback;
-                Logger.Log("Overwriting an existing ItemCreatedCallback", Helpers.LogLevel.Warning, Client);
+                Logger.Log("Overwriting an existing ItemCreatedCallback", LogLevel.Warning, Client);
             }
 
             // Schedule cleanup in case the server never responds. If the callback is
@@ -2171,7 +2172,7 @@ namespace OpenMetaverse
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                            Logger.Log(ex.Message, LogLevel.Error, Client, ex);
                         }
                     }
                 }
@@ -2181,7 +2182,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(ex.Message, Helpers.LogLevel.Debug, Client, ex);
+                    Logger.Log(ex.Message, LogLevel.Debug, Client, ex);
                 }
             }, _callbackCleanupCts.Token);
 
@@ -2200,7 +2201,7 @@ namespace OpenMetaverse
             if (!_ItemCopiedCallbacks.TryAdd(id, callback))
             {
                 _ItemCopiedCallbacks[id] = callback;
-                Logger.Log("Overwriting an existing ItemsCopiedCallback", Helpers.LogLevel.Warning, Client);
+                Logger.Log("Overwriting an existing ItemsCopiedCallback", LogLevel.Warning, Client);
             }
 
             // Schedule cleanup for copied-item callbacks as well to avoid leaks
@@ -2218,7 +2219,7 @@ namespace OpenMetaverse
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                            Logger.Log(ex.Message, LogLevel.Error, Client, ex);
                         }
                     }
                 }
@@ -2228,7 +2229,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(ex.Message, Helpers.LogLevel.Debug, Client, ex);
+                    Logger.Log(ex.Message, LogLevel.Debug, Client, ex);
                 }
             }, _callbackCleanupCts.Token);
 
@@ -2276,7 +2277,7 @@ namespace OpenMetaverse
             if (uri == null && logOnMissing)
             {
                 var simName = sim?.Name ?? "unknown";
-                Logger.Log($"Failed to obtain {capName} capability on {simName}", Helpers.LogLevel.Warning, Client);
+                Logger.Log($"Failed to obtain {capName} capability on {simName}", LogLevel.Warning, Client);
             }
             return uri;
         }

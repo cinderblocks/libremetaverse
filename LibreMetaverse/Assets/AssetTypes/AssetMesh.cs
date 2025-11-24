@@ -26,6 +26,7 @@
 
 using System;
 using System.IO;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.Assets
@@ -99,7 +100,7 @@ namespace OpenMetaverse.Assets
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed to decode mesh asset", Helpers.LogLevel.Error, ex);
+                Logger.Log("Failed to decode mesh asset", LogLevel.Error, ex);
                 return false;
             }
         }

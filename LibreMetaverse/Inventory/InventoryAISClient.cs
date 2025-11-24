@@ -31,6 +31,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 
@@ -80,7 +81,7 @@ namespace LibreMetaverse
 
                         if (!success)
                         {
-                            Logger.Log($"Could not create inventory: {reply.ReasonPhrase}", Helpers.LogLevel.Warning);
+                            Logger.Log($"Could not create inventory: {reply.ReasonPhrase}", LogLevel.Warning);
                             return;
                         }
 #if NET5_0_OR_GREATER
@@ -100,7 +101,7 @@ namespace LibreMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log(ex.Message, LogLevel.Warning);
             }
             finally
             {
@@ -133,14 +134,14 @@ namespace LibreMetaverse
                         if (!success)
                         {
                             Logger.Log($"Could not slam folder: {folderUuid}: {reply.ReasonPhrase}", 
-                                Helpers.LogLevel.Warning);
+                                LogLevel.Warning);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log(ex.Message, LogLevel.Warning);
             }
             finally
             {
@@ -169,13 +170,13 @@ namespace LibreMetaverse
                     if (!success)
                     {
                         Logger.Log($"Could not remove folder {categoryUuid}: {reply.ReasonPhrase}",
-                            Helpers.LogLevel.Warning);
+                            LogLevel.Warning);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log(ex.Message, LogLevel.Warning);
             }
             finally
             {
@@ -201,13 +202,13 @@ namespace LibreMetaverse
                     if (!success)
                     {
                         Logger.Log($"Could not remove item {itemUuid}: {reply.ReasonPhrase}",
-                            Helpers.LogLevel.Warning);
+                            LogLevel.Warning);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log(ex.Message, LogLevel.Warning);
             }
             finally
             {
@@ -240,14 +241,14 @@ namespace LibreMetaverse
                         if (!success)
                         {
                             Logger.Log($"Could not copy library folder {sourceUuid}: {reply.ReasonPhrase}", 
-                                Helpers.LogLevel.Warning);
+                                LogLevel.Warning);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log(ex.Message, LogLevel.Warning);
             }
             finally
             {
@@ -276,13 +277,13 @@ namespace LibreMetaverse
                     if (!success)
                     {
                         Logger.Log($"Could not purge descendents of {categoryUuid}: {reply.ReasonPhrase}", 
-                            Helpers.LogLevel.Warning);
+                            LogLevel.Warning);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log(ex.Message, LogLevel.Warning);
             }
             finally
             {
@@ -321,7 +322,7 @@ namespace LibreMetaverse
                             if (!success)
                             {
                                 Logger.Log($"Could not update folder {categoryUuid}: {reply.ReasonPhrase}",
-                                    Helpers.LogLevel.Warning);
+                                    LogLevel.Warning);
                             }
                         }
                     }
@@ -329,7 +330,7 @@ namespace LibreMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log(ex.Message, LogLevel.Warning);
             }
             finally
             {
@@ -368,7 +369,7 @@ namespace LibreMetaverse
                             if (!success)
                             {
                                 Logger.Log($"Could not update item {itemUuid}: {reply.ReasonPhrase}",
-                                    Helpers.LogLevel.Warning);
+                                    LogLevel.Warning);
                             }
                         }
                     }
@@ -376,7 +377,7 @@ namespace LibreMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log(ex.Message, LogLevel.Warning);
             }
             finally
             {
@@ -406,7 +407,7 @@ namespace LibreMetaverse
                         if (!success)
                         {
                             Logger.Log($"Could not fetch {itemUUID}: {reply.ReasonPhrase}",
-                                Helpers.LogLevel.Warning);
+                                LogLevel.Warning);
                         }
 #if NET5_0_OR_GREATER
                         if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken)) is OSDMap map)
@@ -421,7 +422,7 @@ namespace LibreMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log(ex.Message, LogLevel.Warning);
             }
             finally
             {
@@ -457,7 +458,7 @@ namespace LibreMetaverse
                         if (!success)
                         {
                             Logger.Log($"Could not fetch children for {categoryUuid}: {reply.ReasonPhrase}",
-                                Helpers.LogLevel.Warning);
+                                LogLevel.Warning);
                         }
 #if NET5_0_OR_GREATER
                         if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken)) is OSDMap map)
@@ -472,7 +473,7 @@ namespace LibreMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log(ex.Message, LogLevel.Warning);
             }
             finally
             {
@@ -511,7 +512,7 @@ namespace LibreMetaverse
                         if (!success)
                         {
                             Logger.Log($"Could not fetch children for {identifier}: {reply.ReasonPhrase}",
-                                Helpers.LogLevel.Warning);
+                                LogLevel.Warning);
                         }
 #if NET5_0_OR_GREATER
                         if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken)) is OSDMap map)
@@ -526,7 +527,7 @@ namespace LibreMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log(ex.Message, LogLevel.Warning);
             }
             finally
             {
@@ -562,7 +563,7 @@ namespace LibreMetaverse
                         if (!success)
                         {
                             Logger.Log($"Could not fetch categories for {categoryUuid}: {reply.ReasonPhrase}",
-                                Helpers.LogLevel.Warning);
+                                LogLevel.Warning);
                         }
 #if NET5_0_OR_GREATER
                         if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken)) is OSDMap map)
@@ -577,7 +578,7 @@ namespace LibreMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log(ex.Message, LogLevel.Warning);
             }
             finally
             {
@@ -621,7 +622,7 @@ namespace LibreMetaverse
                         if (!success)
                         {
                             Logger.Log($"Could not fetch categories for {categoryUuid}: {reply.ReasonPhrase}",
-                                Helpers.LogLevel.Warning);
+                                LogLevel.Warning);
                         }
 #if NET5_0_OR_GREATER
                         if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken)) is OSDMap map)
@@ -636,7 +637,7 @@ namespace LibreMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log(ex.Message, LogLevel.Warning);
             }
             finally
             {
@@ -666,7 +667,7 @@ namespace LibreMetaverse
                         if (!success)
                         {
                             Logger.Log($"Could not fetch links for {categoryUuid}: {reply.ReasonPhrase}",
-                                Helpers.LogLevel.Warning);
+                                LogLevel.Warning);
                         }
 #if NET5_0_OR_GREATER
                         if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken)) is OSDMap map)
@@ -681,7 +682,7 @@ namespace LibreMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log(ex.Message, LogLevel.Warning);
             }
             finally
             {
@@ -716,7 +717,7 @@ namespace LibreMetaverse
                             if (!success)
                             {
                                 Logger.Log($"Could not fetch from Current Outfit Folder: {reply.ReasonPhrase}",
-                                    Helpers.LogLevel.Warning);
+                                    LogLevel.Warning);
                                 return;
                             }
 #if NET5_0_OR_GREATER
@@ -736,7 +737,7 @@ namespace LibreMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log(ex.Message, LogLevel.Warning);
             }
             finally
             {
@@ -766,7 +767,7 @@ namespace LibreMetaverse
                         if (!success)
                         {
                             Logger.Log($"Could not fetch orphans: {reply.ReasonPhrase}",
-                                Helpers.LogLevel.Warning);
+                                LogLevel.Warning);
                         }
 #if NET5_0_OR_GREATER
                         if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken)) is OSDMap map)
@@ -781,7 +782,7 @@ namespace LibreMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log(ex.Message, LogLevel.Warning);
             }
             finally
             {
@@ -805,14 +806,14 @@ namespace LibreMetaverse
                     if (!reply.IsSuccessStatusCode)
                     {
                         Logger.Log($"Could not empty Trash folder: {reply.ReasonPhrase}",
-                            Helpers.LogLevel.Warning);
+                            LogLevel.Warning);
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log(ex.Message, LogLevel.Warning);
             }
             return true;
         }
@@ -893,7 +894,7 @@ namespace LibreMetaverse
         {
             inventoryCapUri = Client.Network.CurrentSim?.Caps?.CapabilityURI(INVENTORY_CAP_NAME);
             if (inventoryCapUri != null) { return true; }
-            Logger.Log("AISv3 Capability not found!", Helpers.LogLevel.Warning, Client);
+            Logger.Log("AISv3 Capability not found!", LogLevel.Warning, Client);
             return false;
         }
 
@@ -901,7 +902,7 @@ namespace LibreMetaverse
         {
             libraryCapUri = Client.Network.CurrentSim?.Caps?.CapabilityURI(LIBRARY_CAP_NAME);
             if (libraryCapUri != null) { return true; }
-            Logger.Log("AISv3 Capability not found!", Helpers.LogLevel.Warning, Client);
+            Logger.Log("AISv3 Capability not found!", LogLevel.Warning, Client);
             return false;
         }
     }

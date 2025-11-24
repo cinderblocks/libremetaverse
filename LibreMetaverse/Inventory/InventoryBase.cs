@@ -28,6 +28,7 @@
 using System;
 using OpenMetaverse.StructuredData;
 using MessagePack;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {
@@ -74,7 +75,7 @@ namespace OpenMetaverse
         protected InventoryBase(UUID UUID)
         {
             if (UUID == UUID.Zero)
-                Logger.Log("Initializing an InventoryBase with UUID.Zero", Helpers.LogLevel.Warning);
+                Logger.Log("Initializing an InventoryBase with UUID.Zero", LogLevel.Warning);
             this.UUID = UUID;
         }
 

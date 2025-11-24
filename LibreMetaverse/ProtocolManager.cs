@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {    
@@ -556,7 +557,7 @@ namespace OpenMetaverse
                                         }
                                         else
                                         {
-                                            Logger.Log("Unknown packet frequency", Helpers.LogLevel.Error, Client);
+                                            Logger.Log("Unknown packet frequency", LogLevel.Error, Client);
                                         }
 
                                         #endregion
@@ -626,7 +627,7 @@ namespace OpenMetaverse
                                         }
                                         else
                                         {
-                                            Logger.Log("Unknown block frequency", Helpers.LogLevel.Error, Client);
+                                            Logger.Log("Unknown block frequency", LogLevel.Error, Client);
                                         }
 
                                         #endregion

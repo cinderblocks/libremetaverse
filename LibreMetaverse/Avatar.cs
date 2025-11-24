@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using OpenMetaverse.StructuredData;
 using System.Reflection;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {
@@ -535,7 +536,7 @@ namespace OpenMetaverse
 
             foreach (FieldInfo info in Fields)
             {
-                Logger.Log("Field Matched in FromOSD: "+info.Name, Helpers.LogLevel.Debug);
+                Logger.Log("Field Matched in FromOSD: "+info.Name, LogLevel.Debug);
                 info.SetValue(A, info.GetValue(P));
             }            
 

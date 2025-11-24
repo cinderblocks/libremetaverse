@@ -1,4 +1,5 @@
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Appearance
@@ -24,7 +25,7 @@ namespace TestClient.Commands.Appearance
 
                 // TODO: Fetch properties for the objects with missing property sets, so we can show names
                 Logger.Log($"[Attachment @ {point}] LocalID: {prim.LocalID} UUID: {prim.ID} Offset: {prim.Position}", 
-                    Helpers.LogLevel.Info, Client);
+                    LogLevel.Information, Client);
             }
 
             return $"Found {attachments.Count} attachments";

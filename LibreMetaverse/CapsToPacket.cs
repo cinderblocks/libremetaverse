@@ -155,7 +155,7 @@ namespace OpenMetaverse.Packets
             }
             catch (Exception)
             {
-                //FIXME Logger.Log(e.Message, Helpers.LogLevel.Error, e);
+                //FIXME Logger.Log(e.Message, LogLevel.Error, e);
             }
 
             return packet;

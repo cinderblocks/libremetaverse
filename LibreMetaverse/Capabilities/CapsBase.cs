@@ -30,6 +30,7 @@ using System.Net;
 using System.IO;
 using System.Threading;
 using System.Security.Cryptography.X509Certificates;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse.Http
 {
@@ -209,10 +210,9 @@ namespace OpenMetaverse.Http
             if (request.ServicePoint.ConnectionLimit < Settings.MAX_HTTP_CONNECTIONS)
             {
                 Logger.Log(
-                    string.Format(
-                        "In CapsBase.SetupRequest() setting conn limit for {0}:{1} to {2}", 
-                        address.Host, address.Port, Settings.MAX_HTTP_CONNECTIONS), 
-                    Helpers.LogLevel.Debug);
+                    $"In CapsBase.SetupRequest() setting conn limit for {address.Host}:{address.Port} " +
+                    $"to {Settings.MAX_HTTP_CONNECTIONS}", 
+                    LogLevel.Debug);
                 request.ServicePoint.ConnectionLimit = Settings.MAX_HTTP_CONNECTIONS;
             }
             // Caps requests are never sent as trickles of data, so Nagle's

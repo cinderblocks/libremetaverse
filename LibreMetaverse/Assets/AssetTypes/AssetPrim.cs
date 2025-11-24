@@ -29,6 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.Assets
@@ -147,7 +148,7 @@ namespace OpenMetaverse.Assets
                                 }
                                 else
                                 {
-                                    //Logger.Log("Found unexpected prim XML element " + reader.Name, Helpers.LogLevel.Debug);
+                                    //Logger.Log("Found unexpected prim XML element " + reader.Name, LogLevel.Debug);
                                     reader.Read();
                                 }
                                 break;
@@ -163,7 +164,7 @@ namespace OpenMetaverse.Assets
                 }
                 else
                 {
-                    Logger.Log("Failed to load root linkset prim", Helpers.LogLevel.Error);
+                    Logger.Log("Failed to load root linkset prim", LogLevel.Error);
                     return false;
                 }
             }

@@ -35,6 +35,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {
@@ -642,7 +643,7 @@ namespace OpenMetaverse
 
             if (!found)
             {
-                Logger.Log($"Could not find region at region handle {handle}", Helpers.LogLevel.Warning, Client);
+                Logger.Log($"Could not find region at region handle {handle}", LogLevel.Warning, Client);
             }
 
             return found;
@@ -662,7 +663,7 @@ namespace OpenMetaverse
         {
             if (string.IsNullOrEmpty(name))
             {
-                Logger.Log("GetGridRegion called with a null or empty region name", Helpers.LogLevel.Error, Client);
+                Logger.Log("GetGridRegion called with a null or empty region name", LogLevel.Error, Client);
                 region = new GridRegion();
                 return false;
             }
@@ -693,7 +694,7 @@ namespace OpenMetaverse
             if (Regions.TryGetValue(key, out region))
                 return true;
             
-            Logger.Log($"Could not find region named {name}", Helpers.LogLevel.Warning, Client);
+            Logger.Log($"Could not find region named {name}", LogLevel.Warning, Client);
             region = new GridRegion();
             return false;
             
@@ -703,7 +704,7 @@ namespace OpenMetaverse
         {
             if (error != null)
             {
-                Logger.Log($"MapLayerResponseHandler error: {error.Message}", Helpers.LogLevel.Error, Client, error);
+                Logger.Log($"MapLayerResponseHandler error: {error.Message}", LogLevel.Error, Client, error);
                 return;
             }
 
@@ -731,7 +732,7 @@ namespace OpenMetaverse
             if (body.ContainsKey("MapBlocks"))
             {
                 // TODO: At one point this will become activated
-                Logger.Log("Got MapBlocks through CAPS, please finish this function!", Helpers.LogLevel.Error, Client);
+                Logger.Log("Got MapBlocks through CAPS, please finish this function!", LogLevel.Error, Client);
             }
         }
 
@@ -802,7 +803,7 @@ namespace OpenMetaverse
                         break;
                     case GridItemType.Classified:
                         //FIXME:
-                        Logger.Log("FIXME", Helpers.LogLevel.Error, Client);
+                        Logger.Log("FIXME", LogLevel.Error, Client);
                         break;
                     case GridItemType.LandForSale:
                         MapLandForSale landsale = new MapLandForSale
@@ -838,7 +839,7 @@ namespace OpenMetaverse
                         break;
                     case GridItemType.Popular:
                         //FIXME:
-                        Logger.Log("FIXME", Helpers.LogLevel.Error, Client);
+                        Logger.Log("FIXME", LogLevel.Error, Client);
                         break;
                     case GridItemType.Telehub:
                         MapTelehub teleHubItem = new MapTelehub
@@ -871,7 +872,7 @@ namespace OpenMetaverse
                         items.Add(adultEvent);
                         break;
                     default:
-                        Logger.Log($"Unknown map item type: {type}", Helpers.LogLevel.Warning, Client);
+                        Logger.Log($"Unknown map item type: {type}", LogLevel.Warning, Client);
                         break;
                 }
             }
@@ -982,7 +983,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Exception while disposing GridManager: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                    Logger.Log("Exception while disposing GridManager: " + ex.Message, LogLevel.Error, Client, ex);
                 }
             }
 

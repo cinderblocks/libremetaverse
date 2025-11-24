@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
 
@@ -130,7 +131,7 @@ namespace TestClient.Commands.Movement
                 if (id == "AutopilotCanceled")
                 {
                     Logger.Log("FollowCommand: " + Utils.BytesToString(alert.AlertData.Message),
-                        Helpers.LogLevel.Info, Client);
+                        LogLevel.Information, Client);
                 }
             }
         }

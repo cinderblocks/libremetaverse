@@ -32,6 +32,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.StructuredData;
 
@@ -143,7 +144,7 @@ namespace OpenMetaverse.Http
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"Exception sending EventQueue POST to {Simulator}: {ex.Message}", Helpers.LogLevel.Error, ex);
+                    Logger.Log($"Exception sending EventQueue POST to {Simulator}: {ex.Message}", LogLevel.Error, ex);
                 }
             }
         }
@@ -170,7 +171,7 @@ namespace OpenMetaverse.Http
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Error, ex);
+                Logger.Log(ex.Message, LogLevel.Error, ex);
             }
         }
 
@@ -200,13 +201,13 @@ namespace OpenMetaverse.Http
 #endif
                             {
                                 Logger.Log($"Unable to parse response from {Simulator} event queue: " +
-                                           error.Message, Helpers.LogLevel.Error);
+                                           error.Message, LogLevel.Error);
                             }
                         }
                         else
                         {
                             Logger.Log($"Unable to parse response from {Simulator} event queue: " +
-                                       error.Message, Helpers.LogLevel.Error);
+                                       error.Message, LogLevel.Error);
                         }
 
                         return;
@@ -217,13 +218,13 @@ namespace OpenMetaverse.Http
                         case HttpStatusCode.NotFound:
                         case HttpStatusCode.Gone:
                             Logger.Log($"Closing event queue at {Simulator} due to missing caps URI",
-                                Helpers.LogLevel.Info);
+                                LogLevel.Information);
 
                             _queueCts.Cancel();
                             break;
                         case (HttpStatusCode)499: // weird error returned occasionally, ignore for now
                             Logger.Log($"Possible HTTP-out timeout error from {Simulator}, no need to continue",
-                                Helpers.LogLevel.Debug);
+                                LogLevel.Debug);
 
                             _queueCts.Cancel();
                             break;
@@ -239,7 +240,7 @@ namespace OpenMetaverse.Http
                                     if (!string.IsNullOrEmpty(responseString) &&
                                         responseString.IndexOf(PROXY_TIMEOUT_RESPONSE, StringComparison.Ordinal) < 0)
                                     {
-                                        Logger.Log($"Full response was: {responseString}", Helpers.LogLevel.Debug, Simulator.Client);
+                                        Logger.Log($"Full response was: {responseString}", LogLevel.Debug, Simulator.Client);
                                     }
                                 }
                                 catch { /* ignore decode failures */ }
@@ -275,36 +276,36 @@ namespace OpenMetaverse.Http
                             // that the client closes the connection, as per LL's specs (gwyneth 20220414)
                             Logger.Log($"Grid sent a Bad Gateway Error at {Simulator}; " +
                                        $"probably a time-out from the grid's EventQueue server (normal) -- ignoring and continuing",
-                                Helpers.LogLevel.Debug);
+                                LogLevel.Debug);
                             break;
                         default:
                             // Try to log a meaningful error message
                             if (response.StatusCode != HttpStatusCode.OK)
                             {
                                 Logger.Log($"Unrecognized caps connection problem from {Simulator}: {response.StatusCode} {response.ReasonPhrase}",
-                                    Helpers.LogLevel.Warning);
+                                    LogLevel.Warning);
                             }
                             else if (error.InnerException != null)
                             {
                                 // see comment above (gwyneth 20220414)
                                 Logger.Log($"Unrecognized internal caps exception from {Simulator}: '{error.InnerException.Message}'",
-                                    Helpers.LogLevel.Warning);
-                                Logger.Log($"Message ---\n{error.Message}", Helpers.LogLevel.Warning);
+                                    LogLevel.Warning);
+                                Logger.Log($"Message ---\n{error.Message}", LogLevel.Warning);
                                 if (error.Data.Count > 0)
                                 {
-                                    Logger.Log("  Extra details:", Helpers.LogLevel.Warning);
+                                    Logger.Log("  Extra details:", LogLevel.Warning);
                                     foreach (DictionaryEntry de in error.Data)
                                     {
                                         Logger.Log(string.Format("    Key: {0,-20}      Value: {1}",
                                                 "'" + de.Key + "'", de.Value),
-                                            Helpers.LogLevel.Warning);
+                                            LogLevel.Warning);
                                     }
                                 }
                             }
                             else
                             {
                                 Logger.Log($"Unrecognized caps exception from {Simulator}: {error.Message}",
-                                    Helpers.LogLevel.Warning);
+                                    LogLevel.Warning);
                             }
 
                             break;
@@ -330,7 +331,7 @@ namespace OpenMetaverse.Http
                             && responseString.IndexOf(MALFORMED_EMPTY_RESPONSE, StringComparison.Ordinal) < 0)
                         {
                             Logger.Log($"Could not parse response (1) from {Simulator} event queue: \"" +
-                                       responseString + "\"", Helpers.LogLevel.Warning);
+                                       responseString + "\"", LogLevel.Warning);
                         }
                     }
                 }
@@ -384,7 +385,7 @@ namespace OpenMetaverse.Http
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(ex.Message, Helpers.LogLevel.Error, ex);
+                        Logger.Log(ex.Message, LogLevel.Error, ex);
                     }
                 }
 
@@ -393,7 +394,7 @@ namespace OpenMetaverse.Http
 
             catch (Exception e)
             {
-                Logger.Log($"Exception in EventQueueGet handler; {e.Message}", Helpers.LogLevel.Warning, e);
+                Logger.Log($"Exception in EventQueueGet handler; {e.Message}", LogLevel.Warning, e);
             }
         }
     }

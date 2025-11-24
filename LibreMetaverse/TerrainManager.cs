@@ -25,6 +25,7 @@
  */
 
 using System;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
@@ -89,7 +90,7 @@ namespace OpenMetaverse
                     Logger.Log(String.Format(
                         "Invalid LayerData land packet, x={0}, y={1}, dc_offset={2}, range={3}, quant_wbits={4}, patchids={5}, count={6}",
                         x, y, header.DCOffset, header.Range, header.QuantWBits, header.PatchIDs, count),
-                        Helpers.LogLevel.Warning, Client);
+                        LogLevel.Warning, Client);
                     return;
                 }
 
@@ -102,7 +103,7 @@ namespace OpenMetaverse
                 count++;
 
                 try { OnLandPatchReceived(new LandPatchReceivedEventArgs(simulator, x, y, group.PatchSize, heightmap)); }
-                catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
+                catch (Exception e) { Logger.Log(e.Message, LogLevel.Error, Client, e); }
 
                 if (Client.Settings.STORE_LAND_PATCHES)
                 {
@@ -177,7 +178,7 @@ namespace OpenMetaverse
                         DecompressLand(e.Simulator, bitpack, header, true);
                     break;
                 case TerrainPatch.LayerType.Water:
-                    Logger.Log("Got a Water LayerData packet, implement me!", Helpers.LogLevel.Error, Client);
+                    Logger.Log("Got a Water LayerData packet, implement me!", LogLevel.Error, Client);
                     break;
                 case TerrainPatch.LayerType.Wind:
                     DecompressWind(e.Simulator, bitpack, header);
@@ -186,7 +187,7 @@ namespace OpenMetaverse
                     DecompressCloud(e.Simulator, bitpack, header);
                     break;
                 default:
-                    Logger.Log("Unrecognized LayerData type " + type, Helpers.LogLevel.Warning, Client);
+                    Logger.Log("Unrecognized LayerData type " + type, LogLevel.Warning, Client);
                     break;
             }
         }
@@ -215,7 +216,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Exception while disposing TerrainManager: " + ex.Message, Helpers.LogLevel.Warning, Client, ex);
+                    Logger.Log("Exception while disposing TerrainManager: " + ex.Message, LogLevel.Warning, Client, ex);
                 }
             }
 

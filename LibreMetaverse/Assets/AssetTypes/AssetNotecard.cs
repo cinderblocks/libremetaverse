@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse.Assets
 {
@@ -384,7 +385,7 @@ namespace OpenMetaverse.Assets
             }
             catch (Exception ex)
             {
-                Logger.Log("Decoding notecard asset failed: " + ex.Message, Helpers.LogLevel.Error);
+                Logger.Log("Decoding notecard asset failed: " + ex.Message, LogLevel.Error);
                 return false;
             }
         }

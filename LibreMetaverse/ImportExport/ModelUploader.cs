@@ -29,6 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.ImportExport
@@ -212,7 +213,7 @@ namespace OpenMetaverse.ImportExport
                 Client.Network.CurrentSim.Caps == null ||
                 (cap = Client.Network.CurrentSim.Caps.CapabilityURI("NewFileAgentInventory")) == null)
             {
-                Logger.Log("Cannot upload mesh, no connection or NewFileAgentInventory not available", Helpers.LogLevel.Warning);
+                Logger.Log("Cannot upload mesh, no connection or NewFileAgentInventory not available", LogLevel.Warning);
                 callback?.Invoke(null);
                 return;
             }
@@ -239,7 +240,7 @@ namespace OpenMetaverse.ImportExport
             {
                 if (error != null)
                 {
-                    Logger.Log($"Mesh upload request failure: {error.Message}", Helpers.LogLevel.Error, Client, error);
+                    Logger.Log($"Mesh upload request failure: {error.Message}", LogLevel.Error, Client, error);
                     callback?.Invoke(null);
                     return;
                 }
@@ -251,17 +252,17 @@ namespace OpenMetaverse.ImportExport
 
                     if (res["state"] != "upload")
                     {
-                        Logger.Log($"Mesh upload failure: {res["message"]}", Helpers.LogLevel.Error, Client);
+                        Logger.Log($"Mesh upload failure: {res["message"]}", LogLevel.Error, Client);
                         callback?.Invoke(null);
                         return;
                     }
                     Logger.Log($"Response from mesh upload prepare: {Environment.NewLine}" +
-                               OSDParser.SerializeLLSDNotationFormatted(result), Helpers.LogLevel.Debug, Client);
+                               OSDParser.SerializeLLSDNotationFormatted(result), LogLevel.Debug, Client);
                     callback?.Invoke(result);
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"Mesh upload request failure: {ex.Message}", Helpers.LogLevel.Error, Client, ex);
+                    Logger.Log($"Mesh upload request failure: {ex.Message}", LogLevel.Error, Client, ex);
                     callback?.Invoke(null);
                 }
             });
@@ -283,7 +284,7 @@ namespace OpenMetaverse.ImportExport
                     if (error != null)
                     {
                         Logger.Log($"Mesh upload request failure: {error.Message}", 
-                            Helpers.LogLevel.Error, Client, error);
+                            LogLevel.Error, Client, error);
                         callback?.Invoke(null);
                         return;
                     }
@@ -294,12 +295,12 @@ namespace OpenMetaverse.ImportExport
                         OSDMap res = (OSDMap)result;
 
                         Logger.Log($"Response from mesh upload perform: {Environment.NewLine}" +
-                                   OSDParser.SerializeLLSDNotationFormatted(result), Helpers.LogLevel.Debug);
+                                   OSDParser.SerializeLLSDNotationFormatted(result), LogLevel.Debug);
                         callback?.Invoke(res);
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log($"Mesh upload request failure: {ex.Message}", Helpers.LogLevel.Error, Client, ex);
+                        Logger.Log($"Mesh upload request failure: {ex.Message}", LogLevel.Error, Client, ex);
                         callback?.Invoke(null);
                     }
                 });

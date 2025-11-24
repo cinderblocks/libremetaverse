@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse.Assets
 {
@@ -223,8 +224,8 @@ namespace OpenMetaverse.Assets
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed decoding wearable asset " + this.AssetID + ": " + ex.Message,
-                    Helpers.LogLevel.Warning);
+                Logger.Log($"Failed decoding wearable asset {AssetID}: " + ex.Message,
+                    LogLevel.Warning);
                 return false;
             }
 
@@ -232,7 +233,7 @@ namespace OpenMetaverse.Assets
         }
 
         /// <summary>
-        /// Encode the assets string represantion into a format consumable by the asset server
+        /// Encode the assets string representation into a format consumable by the asset server
         /// </summary>
         public sealed override void Encode()
         {

@@ -25,6 +25,7 @@
  */
 
 using System;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
@@ -459,7 +460,7 @@ namespace OpenMetaverse
             if (wbits > 17 || wbits < 2)
             {
                 Logger.Log("Bits needed per word in EncodePatchHeader() are outside the allowed range",
-                    Helpers.LogLevel.Error);
+                    LogLevel.Error);
             }
 
             header.QuantWBits |= (wbits - 2);
@@ -605,7 +606,7 @@ namespace OpenMetaverse
         {
             if (postquant > 16 * 16 || postquant < 0)
             {
-                Logger.Log("Postquant is outside the range of allowed values in EncodePatch()", Helpers.LogLevel.Error);
+                Logger.Log("Postquant is outside the range of allowed values in EncodePatch()", LogLevel.Error);
                 return;
             }
 
@@ -688,7 +689,7 @@ namespace OpenMetaverse
                     block[n] = patches[CopyMatrix32[n]] * DequantizeTable32[n];
                 }
 
-                Logger.Log("Implement IDCTPatchLarge", Helpers.LogLevel.Error);
+                Logger.Log("Implement IDCTPatchLarge", LogLevel.Error);
             }
 
             for (int j = 0; j < block.Length; j++)

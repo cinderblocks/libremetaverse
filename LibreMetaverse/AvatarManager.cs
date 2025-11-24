@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
@@ -741,7 +742,7 @@ namespace OpenMetaverse
                 catch (Exception ex)
                 {
                     Logger.Log("Failed to call GetDisplayNames capability: ",
-                        Helpers.LogLevel.Warning, Client, ex);
+                        LogLevel.Warning, Client, ex);
                     callback(false, null, null);
                 }
             });
@@ -811,7 +812,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Failed to call AgentProfile capability: ", Helpers.LogLevel.Warning, Client, ex);
+                    Logger.Log("Failed to call AgentProfile capability: ", LogLevel.Warning, Client, ex);
                     callback(false, null);
                 }
             });
@@ -1070,7 +1071,7 @@ namespace OpenMetaverse
             // Guard against malformed packets
             if (appearance.ObjectData == null || appearance.ObjectData.TextureEntry == null || appearance.ObjectData.TextureEntry.Length == 0)
             {
-                Logger.Log("Malformed AvatarAppearance packet - missing texture entry", Helpers.LogLevel.Warning, Client);
+                Logger.Log("Malformed AvatarAppearance packet - missing texture entry", LogLevel.Warning, Client);
                 return;
             }
 
@@ -1347,35 +1348,35 @@ namespace OpenMetaverse
                 {
                     case EffectType.Text:
                         Logger.Log("Received a ViewerEffect of type " + type + ", implement me!",
-                            Helpers.LogLevel.Warning, Client);
+                            LogLevel.Warning, Client);
                         break;
                     case EffectType.Icon:
                         Logger.Log("Received a ViewerEffect of type " + type + ", implement me!",
-                            Helpers.LogLevel.Warning, Client);
+                            LogLevel.Warning, Client);
                         break;
                     case EffectType.Connector:
                         Logger.Log("Received a ViewerEffect of type " + type + ", implement me!",
-                            Helpers.LogLevel.Warning, Client);
+                            LogLevel.Warning, Client);
                         break;
                     case EffectType.FlexibleObject:
                         Logger.Log("Received a ViewerEffect of type " + type + ", implement me!",
-                            Helpers.LogLevel.Warning, Client);
+                            LogLevel.Warning, Client);
                         break;
                     case EffectType.AnimalControls:
                         Logger.Log("Received a ViewerEffect of type " + type + ", implement me!",
-                            Helpers.LogLevel.Warning, Client);
+                            LogLevel.Warning, Client);
                         break;
                     case EffectType.AnimationObject:
                         Logger.Log("Received a ViewerEffect of type " + type + ", implement me!",
-                            Helpers.LogLevel.Warning, Client);
+                            LogLevel.Warning, Client);
                         break;
                     case EffectType.Cloth:
                         Logger.Log("Received a ViewerEffect of type " + type + ", implement me!",
-                            Helpers.LogLevel.Warning, Client);
+                            LogLevel.Warning, Client);
                         break;
                     case EffectType.Glow:
                         Logger.Log("Received a Glow ViewerEffect which is not implemented yet",
-                            Helpers.LogLevel.Warning, Client);
+                            LogLevel.Warning, Client);
                         break;
                     case EffectType.Beam:
                     case EffectType.Point:
@@ -1396,7 +1397,7 @@ namespace OpenMetaverse
                             {
                                 Logger.Log("Received a " + type +
                                     " ViewerEffect with an incorrect TypeData size of " +
-                                    block.TypeData.Length + " bytes", Helpers.LogLevel.Warning, Client);
+                                    block.TypeData.Length + " bytes", LogLevel.Warning, Client);
                             }
                         }
                         break;
@@ -1416,7 +1417,7 @@ namespace OpenMetaverse
                             else
                             {
                                 Logger.Log("Received a LookAt ViewerEffect with an incorrect TypeData size of " +
-                                    block.TypeData.Length + " bytes", Helpers.LogLevel.Warning, Client);
+                                    block.TypeData.Length + " bytes", LogLevel.Warning, Client);
                             }
                         }
                         break;
@@ -1436,12 +1437,12 @@ namespace OpenMetaverse
                             else
                             {
                                 Logger.Log("Received a PointAt ViewerEffect with an incorrect TypeData size of " +
-                                    block.TypeData.Length + " bytes", Helpers.LogLevel.Warning, Client);
+                                    block.TypeData.Length + " bytes", LogLevel.Warning, Client);
                             }
                         }
                         break;
                     default:
-                        Logger.Log("Received a ViewerEffect with an unknown type " + type, Helpers.LogLevel.Warning, Client);
+                        Logger.Log("Received a ViewerEffect with an unknown type " + type, LogLevel.Warning, Client);
                         break;
                 }
             }
@@ -1573,7 +1574,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Exception while disposing AvatarManager: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                    Logger.Log("Exception while disposing AvatarManager: " + ex.Message, LogLevel.Error, Client, ex);
                 }
             }
 

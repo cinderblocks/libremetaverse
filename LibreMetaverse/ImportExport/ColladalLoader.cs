@@ -33,6 +33,7 @@ using System.IO;
 using System.Xml;
 using System.Linq;
 using System.Xml.Serialization;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.ImportExport.Collada14;
 using OpenMetaverse.Rendering;
 using SkiaSharp;
@@ -91,7 +92,7 @@ namespace OpenMetaverse.ImportExport
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed parsing collada file: " + ex.Message, Helpers.LogLevel.Error, ex);
+                Logger.Log("Failed parsing collada file: " + ex.Message, LogLevel.Error, ex);
                 return new List<ModelPrim>();
             }
         }
@@ -152,7 +153,7 @@ namespace OpenMetaverse.ImportExport
                     height = height > 1024 ? 1024 : height;
 
                     Logger.Log($"Image has irregular dimensions {origWidth}x{origHieght}. Resizing to {width}x{height}", 
-                        Helpers.LogLevel.Info);
+                        LogLevel.Information);
 
                     var info = new SKImageInfo(width, height);
                     var scaledImage = new SKBitmap(info);
@@ -163,11 +164,11 @@ namespace OpenMetaverse.ImportExport
 
                 material.TextureData = Imaging.J2K.ToBytes(bitmap);
 
-                Logger.Log($"Successfully encoded {fname}", Helpers.LogLevel.Info);
+                Logger.Log($"Successfully encoded {fname}", LogLevel.Information);
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed loading {fname}: {ex.Message}", Helpers.LogLevel.Warning);
+                Logger.Log($"Failed loading {fname}: {ex.Message}", LogLevel.Warning);
             }
 
         }

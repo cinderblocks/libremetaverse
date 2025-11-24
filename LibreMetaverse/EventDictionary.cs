@@ -29,6 +29,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
 
@@ -157,7 +158,7 @@ namespace OpenMetaverse
                 else
                 {
                     try { callback.Callback(this, eventArgs); }
-                    catch (Exception ex) { Logger.Log("Default packet event handler: " + ex, Helpers.LogLevel.Error, Client); }
+                    catch (Exception ex) { Logger.Log("Default packet event handler: " + ex, LogLevel.Error, Client); }
                 }
             }
 
@@ -171,7 +172,7 @@ namespace OpenMetaverse
                 else
                 {
                     try { callback.Callback(this, eventArgs); }
-                    catch (Exception ex) { Logger.Log("Packet event handler: " + ex, Helpers.LogLevel.Error, Client); }
+                    catch (Exception ex) { Logger.Log("Packet event handler: " + ex, LogLevel.Error, Client); }
                 }
 
                 // If specific handlers exist and are synchronous, we return after firing them
@@ -232,7 +233,7 @@ namespace OpenMetaverse
                 {
                     var h = da[i];
                     try { h(owner, eventArgs); }
-                    catch (Exception ex) { Logger.Log("Async Packet Event Handler: " + ex, Helpers.LogLevel.Error, owner.Client); }
+                    catch (Exception ex) { Logger.Log("Async Packet Event Handler: " + ex, LogLevel.Error, owner.Client); }
                 }
             }
 
@@ -242,7 +243,7 @@ namespace OpenMetaverse
                 {
                     var h = sa[i];
                     try { h(owner, eventArgs); }
-                    catch (Exception ex) { Logger.Log("Async Packet Event Handler: " + ex, Helpers.LogLevel.Error, owner.Client); }
+                    catch (Exception ex) { Logger.Log("Async Packet Event Handler: " + ex, LogLevel.Error, owner.Client); }
                 }
             }
         };
@@ -328,20 +329,20 @@ namespace OpenMetaverse
             if (_EventTable.TryGetValue(string.Empty, out var callback) && callback != null)
             {
                 try { callback(capsEvent, message, simulator); }
-                catch (Exception ex) { Logger.Log("CAPS Event Handler: " + ex, Helpers.LogLevel.Error, Client); }
+                catch (Exception ex) { Logger.Log("CAPS Event Handler: " + ex, LogLevel.Error, Client); }
             }
 
             // Explicit handler next
             if (_EventTable.TryGetValue(capsEvent, out callback) && callback != null)
             {
                 try { callback(capsEvent, message, simulator); }
-                catch (Exception ex) { Logger.Log("CAPS Event Handler: " + ex, Helpers.LogLevel.Error, Client); }
+                catch (Exception ex) { Logger.Log("CAPS Event Handler: " + ex, LogLevel.Error, Client); }
 
                 specialHandler = true;
             }
 
             if (!specialHandler)
-                Logger.Log("Unhandled CAPS event " + capsEvent, Helpers.LogLevel.Warning, Client);
+                Logger.Log("Unhandled CAPS event " + capsEvent, LogLevel.Warning, Client);
         }
 
         /// <summary>
@@ -362,7 +363,7 @@ namespace OpenMetaverse
                 Task.Run(() =>
                 {
                     try { cb(capsEvent, message, simulator); }
-                    catch (Exception ex) { Logger.Log("Async CAPS Event Handler: " + ex, Helpers.LogLevel.Error, Client); }
+                    catch (Exception ex) { Logger.Log("Async CAPS Event Handler: " + ex, LogLevel.Error, Client); }
                 });
             }
 
@@ -373,14 +374,14 @@ namespace OpenMetaverse
                 Task.Run(() =>
                 {
                     try { cb(capsEvent, message, simulator); }
-                    catch (Exception ex) { Logger.Log("Async CAPS Event Handler: " + ex, Helpers.LogLevel.Error, Client); }
+                    catch (Exception ex) { Logger.Log("Async CAPS Event Handler: " + ex, LogLevel.Error, Client); }
                 });
 
                 specialHandler = true;
             }
 
             if (!specialHandler)
-                Logger.Log("Unhandled CAPS event " + capsEvent, Helpers.LogLevel.Warning, Client);
+                Logger.Log("Unhandled CAPS event " + capsEvent, LogLevel.Warning, Client);
         }
     }
 

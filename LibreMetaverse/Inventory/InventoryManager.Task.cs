@@ -28,6 +28,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
@@ -108,7 +109,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log($"RequestUpdateNotecardTask failed: {ex.Message}", Helpers.LogLevel.Warning, Client, ex);
+                Logger.Log($"RequestUpdateNotecardTask failed: {ex.Message}", LogLevel.Warning, Client, ex);
             }
         }
 
@@ -131,7 +132,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log($"RequestUpdateScriptTask failed: {ex.Message}", Helpers.LogLevel.Warning, Client, ex);
+                Logger.Log($"RequestUpdateScriptTask failed: {ex.Message}", LogLevel.Warning, Client, ex);
             }
         }
 
@@ -681,7 +682,7 @@ namespace OpenMetaverse
                                             if (uint.TryParse(value, out var timestamp))
                                                 creationDate = Utils.UnixTimeToDateTime(timestamp);
                                             else
-                                                Logger.Log($"Failed to parse creation_date: {value}", Helpers.LogLevel.Warning);
+                                                Logger.Log($"Failed to parse creation_date: {value}", LogLevel.Warning);
                                             break;
                                         }
                                 }
@@ -712,7 +713,7 @@ namespace OpenMetaverse
                     else
                     {
                         Logger.Log($"Unrecognized token {key} in: " + Environment.NewLine + taskData,
-                            Helpers.LogLevel.Error);
+                            LogLevel.Error);
                     }
                 }
             }

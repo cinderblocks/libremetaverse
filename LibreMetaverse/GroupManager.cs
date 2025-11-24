@@ -35,6 +35,7 @@ using OpenMetaverse.StructuredData;
 using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.Interfaces;
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {
@@ -1039,7 +1040,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Exception while disposing GroupManager: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                    Logger.Log("Exception while disposing GroupManager: " + ex.Message, LogLevel.Error, Client, ex);
                 }
             }
 
@@ -1808,7 +1809,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"Failed to fetch group ban list for {groupID}: {ex.Message}", Helpers.LogLevel.Warning, Client);
+                    Logger.Log($"Failed to fetch group ban list for {groupID}: {ex.Message}", LogLevel.Warning, Client);
                     var ret = new BannedAgentsEventArgs(groupID, false, null);
                     OnBannedAgents(ret);
                     if (callback != null)
@@ -1846,7 +1847,7 @@ namespace OpenMetaverse
             {
                 if (error != null)
                 {
-                    Logger.Log($"Failed to ban members from {groupID}: {error.Message}", Helpers.LogLevel.Warning, Client);
+                    Logger.Log($"Failed to ban members from {groupID}: {error.Message}", LogLevel.Warning, Client);
                     return;
                 }
                 if (callback != null)
@@ -2088,7 +2089,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed to decode result of GroupMemberData capability: ", Helpers.LogLevel.Error, Client, ex);
+                Logger.Log("Failed to decode result of GroupMemberData capability: ", LogLevel.Error, Client, ex);
             }
         }
 
@@ -2175,7 +2176,7 @@ namespace OpenMetaverse
             GroupActiveProposalItemReplyPacket proposal = (GroupActiveProposalItemReplyPacket)e.Packet;
 
             // NOTE: Second Life server removed this many years back.
-            Logger.Log($"Received GroupActiveProposalItemReplyPacket: {proposal}", Helpers.LogLevel.Info);
+            Logger.Log($"Received GroupActiveProposalItemReplyPacket: {proposal}", LogLevel.Information);
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
@@ -2186,7 +2187,7 @@ namespace OpenMetaverse
             GroupVoteHistoryItemReplyPacket history = (GroupVoteHistoryItemReplyPacket)e.Packet;
 
             // NOTE: Second Life server removed  this many years back.
-            Logger.Log($"Received GroupVoteHistoryItemReplyPacket: {history}", Helpers.LogLevel.Info);
+            Logger.Log($"Received GroupVoteHistoryItemReplyPacket: {history}", LogLevel.Information);
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>

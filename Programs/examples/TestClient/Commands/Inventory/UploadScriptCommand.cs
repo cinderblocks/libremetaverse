@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Text;
 using OpenMetaverse;
+using Microsoft.Extensions.Logging;
 
 namespace TestClient.Commands.Inventory
 {
@@ -89,12 +90,12 @@ namespace TestClient.Commands.Inventory
                     return "Timed out uploading script";
 
                 var resultLog = await uploadTcs.Task.ConfigureAwait(false);
-                Logger.Log(resultLog, Helpers.LogLevel.Info, Client);
+                Logger.Log(resultLog, LogLevel.Information, Client);
                 return $"Filename: {file} is being uploaded.";
             }
             catch (Exception e)
             {
-                Logger.Log(e.ToString(), Helpers.LogLevel.Error, Client);
+                Logger.Log(e.ToString(), LogLevel.Error, Client);
                 return $"Error creating script for {file}";
             }
         }

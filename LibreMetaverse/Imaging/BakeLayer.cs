@@ -29,6 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.Assets;
 
 namespace OpenMetaverse.Imaging
@@ -161,11 +162,11 @@ namespace OpenMetaverse.Imaging
                 {
                     AddAlpha(bakedTexture.Image, LoadResourceLayer("head_alpha.tga"));
                     MultiplyLayerFromAlpha(bakedTexture.Image, LoadResourceLayer("head_skingrain.tga"));
-                    Logger.Log("[Bake]: created head master bake", Helpers.LogLevel.Debug);
+                    Logger.Log("[Bake]: created head master bake", LogLevel.Debug);
                 }
                 else
                 {
-                    Logger.Log("[Bake]: Unable to draw layer from texture file", Helpers.LogLevel.Debug);
+                    Logger.Log("[Bake]: Unable to draw layer from texture file", LogLevel.Debug);
                 }
             }
 
@@ -330,7 +331,7 @@ namespace OpenMetaverse.Imaging
             }
 
             // Apply any alpha wearable textures to make parts of the avatar disappear
-            Logger.Log("[XBakes]: Number of alpha wearable textures: " + alphaWearableTextures.Count, Helpers.LogLevel.Debug);
+            Logger.Log("[XBakes]: Number of alpha wearable textures: " + alphaWearableTextures.Count, LogLevel.Debug);
             foreach (ManagedImage img in alphaWearableTextures)
                 AddAlpha(bakedTexture.Image, img);
 
@@ -359,7 +360,7 @@ namespace OpenMetaverse.Imaging
                                 }
                                 else
                                 {
-                                    Logger.Log($"Failed loading resource file: {fileName}", Helpers.LogLevel.Error);
+                                    Logger.Log($"Failed loading resource file: {fileName}", LogLevel.Error);
                                     return null;
                                 }
 
@@ -368,13 +369,13 @@ namespace OpenMetaverse.Imaging
                     }
                 }
 
-                Logger.Log($"Failed loading resource file: {fileName}", Helpers.LogLevel.Error);
+                Logger.Log($"Failed loading resource file: {fileName}", LogLevel.Error);
                 return null;
             }
             catch (Exception e)
             {
                 Logger.Log($"Failed loading resource file: {fileName} ({e.Message})",
-                    Helpers.LogLevel.Error, e);
+                    LogLevel.Error, e);
                 return null;
             }
         }

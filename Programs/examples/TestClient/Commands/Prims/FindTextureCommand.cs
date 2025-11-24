@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Prims
@@ -32,7 +33,7 @@ namespace TestClient.Commands.Prims
                     {
                         Logger.Log(
                             $"Primitive {prim.ID.ToString()} ({prim.LocalID}) has face index {faceIndex} set to {textureID.ToString()}",
-                            Helpers.LogLevel.Info, Client);
+                            LogLevel.Information, Client);
                     }
                 }
 

@@ -25,6 +25,7 @@
  */
 
 using System;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
@@ -131,7 +132,7 @@ namespace OpenMetaverse.Messages
             }
             catch (Exception e)
             {
-                Logger.Log("Exception while trying to Deserialize " + eventName + ":" + e.Message + ": " + e.StackTrace, Helpers.LogLevel.Error);                    
+                Logger.Log("Exception while trying to Deserialize " + eventName + ":" + e.Message + ": " + e.StackTrace, LogLevel.Error);                    
             }
 
             return null;

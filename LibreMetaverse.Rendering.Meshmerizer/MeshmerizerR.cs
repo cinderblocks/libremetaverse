@@ -39,6 +39,7 @@ using System.IO;
 using SkiaSharp;
 using OpenMetaverse.StructuredData;
 using LibreMetaverse.PrimMesher;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse.Rendering
 {
@@ -751,7 +752,7 @@ namespace OpenMetaverse.Rendering
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed to decode mesh asset", Helpers.LogLevel.Error, ex);
+                Logger.Log("Failed to decode mesh asset", LogLevel.Error, ex);
                 meshData = null;
             }
             return meshData;

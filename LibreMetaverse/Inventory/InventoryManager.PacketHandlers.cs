@@ -28,6 +28,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.Packets;
 
@@ -150,7 +151,7 @@ namespace OpenMetaverse
             else
             {
                 Logger.Log($"No reference for FolderID {reply.AgentData.FolderID} or it is not a folder",
-                    Helpers.LogLevel.Error, Client);
+                    LogLevel.Error, Client);
                 return;
             }
 
@@ -158,7 +159,7 @@ namespace OpenMetaverse
             {
                 Logger.Log($"Received outdated InventoryDescendents packet for folder {parentFolder.Name}, " +
                            $"this version = {reply.AgentData.Version}, latest version = {parentFolder.Version}",
-                    Helpers.LogLevel.Warning, Client);
+                    LogLevel.Warning, Client);
                 return;
             }
 
@@ -241,7 +242,7 @@ namespace OpenMetaverse
                 {
                     Logger.Log(
                         "Received InventoryFolder in an UpdateCreateInventoryItem packet, this should not happen!",
-                        Helpers.LogLevel.Error, Client);
+                        LogLevel.Error, Client);
                     continue;
                 }
 
@@ -279,7 +280,7 @@ namespace OpenMetaverse
 
                     Logger.Log(
                         "Received an item through UpdateCreateInventoryItem with no parent folder, assigning to folder " +
-                        item.ParentUUID, Helpers.LogLevel.Info);
+                        item.ParentUUID, LogLevel.Information);
 
                     // send update to the sim
                     RequestUpdateItem(item);
@@ -299,7 +300,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                        Logger.Log(ex.Message, LogLevel.Error, Client, ex);
                     }
                 }
 
@@ -315,7 +316,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                        Logger.Log(ex.Message, LogLevel.Error, Client, ex);
                     }
                 }
 
@@ -345,7 +346,7 @@ namespace OpenMetaverse
                 Logger.Log(
                     $"MoveInventoryItemHandler: Item {data.ItemID} is moving to Folder {data.FolderID} with new name \"{newName}\"." +
                     " Someone write this function!",
-                    Helpers.LogLevel.Warning, Client);
+                    LogLevel.Warning, Client);
             }
         }
 
@@ -418,7 +419,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                        Logger.Log(ex.Message, LogLevel.Error, Client, ex);
                     }
                 }
 
@@ -433,7 +434,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                        Logger.Log(ex.Message, LogLevel.Error, Client, ex);
                     }
                 }
             }
@@ -513,7 +514,7 @@ namespace OpenMetaverse
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                            Logger.Log(ex.Message, LogLevel.Error, Client, ex);
                         }
                     }
 
@@ -528,7 +529,7 @@ namespace OpenMetaverse
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                            Logger.Log(ex.Message, LogLevel.Error, Client, ex);
                         }
                     }
                 }
@@ -548,7 +549,7 @@ namespace OpenMetaverse
                 if (dataBlock.InvType == (sbyte)InventoryType.Folder)
                 {
                     Logger.Log("Received FetchInventoryReply for an inventory folder, this should not happen!",
-                        Helpers.LogLevel.Error, Client);
+                        LogLevel.Error, Client);
                     continue;
                 }
 

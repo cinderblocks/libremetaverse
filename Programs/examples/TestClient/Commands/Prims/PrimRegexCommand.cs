@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Prims
@@ -31,7 +32,7 @@ namespace TestClient.Commands.Prims
                 // Print result
                 Logger.Log(
                     $"Searching prim for [{predicatePrim}] ({Client.Network.CurrentSim.ObjectsPrimitives.Count} prims loaded in simulator)\n", 
-                    Helpers.LogLevel.Info, Client);
+                    LogLevel.Information, Client);
 
                 foreach (var kvp in Client.Network.CurrentSim.ObjectsPrimitives)
                 {
@@ -59,12 +60,12 @@ namespace TestClient.Commands.Prims
                     }
                     Logger.Log(
                         $"\nNAME={name}\nID = {prim.ID}\nFLAGS = {prim.Flags.ToString()}\nTEXT = '{prim.Text}'\nDESC='{description}'", 
-                        Helpers.LogLevel.Info, Client);
+                        LogLevel.Information, Client);
                 }
             }
             catch (global::System.Exception e)
             {
-                Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
+                Logger.Log(e.Message, LogLevel.Error, Client, e);
                 return "Error searching";
             }
 

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse;
 
 namespace TestClient.Commands.Prims
@@ -42,34 +43,34 @@ namespace TestClient.Commands.Prims
             var target = kvp.Value;
             if (target.Text != string.Empty)
             {
-                Logger.Log("Text: " + target.Text, Helpers.LogLevel.Info, Client);
+                Logger.Log("Text: " + target.Text, LogLevel.Information, Client);
             }
             if (target.Light != null)
             {
-                Logger.Log("Light: " + target.Light, Helpers.LogLevel.Info, Client);
+                Logger.Log("Light: " + target.Light, LogLevel.Information, Client);
             }
             if (target.ParticleSys.CRC != 0)
             {
-                Logger.Log("Particles: " + target.ParticleSys, Helpers.LogLevel.Info, Client);
+                Logger.Log("Particles: " + target.ParticleSys, LogLevel.Information, Client);
             }
 
             if (target.Textures != null)
             {
                 Logger.Log($"Default texture: {target.Textures.DefaultTexture.TextureID.ToString()}",
-                    Helpers.LogLevel.Info);
+                    LogLevel.Information);
 
                 for (int i = 0; i < target.Textures.FaceTextures.Length; i++)
                 {
                     if (target.Textures.FaceTextures[i] != null)
                     {
                         Logger.Log($"Face {i}: {target.Textures.FaceTextures[i].TextureID.ToString()}",
-                            Helpers.LogLevel.Info, Client);
+                            LogLevel.Information, Client);
                     }
                 }
             }
             else
             {
-                Logger.Log("null", Helpers.LogLevel.Info, Client);
+                Logger.Log("null", LogLevel.Information, Client);
             }
 
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -80,7 +81,7 @@ namespace TestClient.Commands.Prims
                 try
                 {
                     Logger.Log(
-                        $"Category: {e.Properties.Category}\nFolderID: {e.Properties.FolderID}\nFromTaskID: {e.Properties.FromTaskID}\nInventorySerial: {e.Properties.InventorySerial}\nItemID: {e.Properties.ItemID}\nCreationDate: {e.Properties.CreationDate}", Helpers.LogLevel.Info);
+                        $"Category: {e.Properties.Category}\nFolderID: {e.Properties.FolderID}\nFromTaskID: {e.Properties.FromTaskID}\nInventorySerial: {e.Properties.InventorySerial}\nItemID: {e.Properties.ItemID}\nCreationDate: {e.Properties.CreationDate}", LogLevel.Information);
                 }
                 finally
                 {

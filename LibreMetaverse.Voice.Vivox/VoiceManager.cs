@@ -38,6 +38,7 @@ using OpenMetaverse;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
 using System.Net.Http;
+using Microsoft.Extensions.Logging;
 
 namespace LibreMetaverse.Voice.Vivox
 {
@@ -247,7 +248,7 @@ namespace LibreMetaverse.Voice.Vivox
 
                 return _commandCookie - 1;
             }
-            Logger.Log("VoiceManager.RequestCaptureDevices() called when the daemon pipe is disconnected", Helpers.LogLevel.Error, _client);
+            Logger.Log("VoiceManager.RequestCaptureDevices() called when the daemon pipe is disconnected", LogLevel.Error, _client);
             return -1;
         }
 
@@ -260,7 +261,7 @@ namespace LibreMetaverse.Voice.Vivox
 
                 return _commandCookie - 1;
             }
-            Logger.Log("VoiceManager.RequestRenderDevices() called when the daemon pipe is disconnected", Helpers.LogLevel.Error, _client);
+            Logger.Log("VoiceManager.RequestRenderDevices() called when the daemon pipe is disconnected", LogLevel.Error, _client);
             return -1;
         }
 
@@ -298,7 +299,7 @@ namespace LibreMetaverse.Voice.Vivox
             }
             else
             {
-                Logger.Log("VoiceManager.CreateConnector() called when the daemon pipe is disconnected", Helpers.LogLevel.Error, _client);
+                Logger.Log("VoiceManager.CreateConnector() called when the daemon pipe is disconnected", LogLevel.Error, _client);
                 return -1;
             }
         }
@@ -326,7 +327,7 @@ namespace LibreMetaverse.Voice.Vivox
                                 }
                                 catch (Exception cbEx)
                                 {
-                                    Logger.Log($"VoiceManager.{me}(): callback threw an exception: {cbEx}", Helpers.LogLevel.Warning, _client, cbEx);
+                                    Logger.Log($"VoiceManager.{me}(): callback threw an exception: {cbEx}", LogLevel.Warning, _client, cbEx);
                                 }
                             }
                             catch (Exception ex)
@@ -339,23 +340,23 @@ namespace LibreMetaverse.Voice.Vivox
                                 }
                                 catch (Exception cbEx)
                                 {
-                                    Logger.Log($"VoiceManager.{me}(): callback threw an exception after failed POST: {cbEx}", Helpers.LogLevel.Warning, _client, cbEx);
+                                    Logger.Log($"VoiceManager.{me}(): callback threw an exception after failed POST: {cbEx}", LogLevel.Warning, _client, cbEx);
                                 }
 
-                                Logger.Log($"VoiceManager.{me}(): POST failed: {ex.Message}", Helpers.LogLevel.Warning, _client, ex);
+                                Logger.Log($"VoiceManager.{me}(): POST failed: {ex.Message}", LogLevel.Warning, _client, ex);
                             }
                         }, CancellationToken.None);
 
                         return true;
                     }
                     Logger.Log($"VoiceManager.{me}(): {capsName} capability is missing",
-                        Helpers.LogLevel.Info, _client);
+                        LogLevel.Information, _client);
                     return false;
                 }
             }
 
             Logger.Log("VoiceManager.RequestVoiceInternal(): Voice system is currently disabled", 
-                       Helpers.LogLevel.Info, _client);
+                       LogLevel.Information, _client);
             return false;
         }
 
@@ -373,7 +374,7 @@ namespace LibreMetaverse.Voice.Vivox
         {
             if (httpResponse == null || responseData == null)
             {
-                Logger.Log("Failed to provision voice capability: empty response", Helpers.LogLevel.Warning, _client);
+                Logger.Log("Failed to provision voice capability: empty response", LogLevel.Warning, _client);
                 return;
             }
 
@@ -384,11 +385,11 @@ namespace LibreMetaverse.Voice.Vivox
 
                 if (OnProvisionAccount == null) return;
                 try { OnProvisionAccount(respMap["username"].AsString(), respMap["password"].AsString()); }
-                catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, _client, e); }
+                catch (Exception e) { Logger.Log(e.Message, LogLevel.Error, _client, e); }
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed to provision voice capability: " + ex.Message, Helpers.LogLevel.Warning, _client, ex);
+                Logger.Log("Failed to provision voice capability: " + ex.Message, LogLevel.Warning, _client, ex);
             }
         }
 
@@ -396,7 +397,7 @@ namespace LibreMetaverse.Voice.Vivox
         {
             if (httpResponse == null || responseData == null)
             {
-                Logger.Log("Failed to retrieve voice info: empty response", Helpers.LogLevel.Warning, _client);
+                Logger.Log("Failed to retrieve voice info: empty response", LogLevel.Warning, _client);
                 return;
             }
 
@@ -419,7 +420,7 @@ namespace LibreMetaverse.Voice.Vivox
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed to retrieve voice info: " + ex.Message, Helpers.LogLevel.Warning, _client, ex);
+                Logger.Log("Failed to retrieve voice info: " + ex.Message, LogLevel.Warning, _client, ex);
             }
         }
 
@@ -446,7 +447,7 @@ namespace LibreMetaverse.Voice.Vivox
             else
             {
                 Logger.Log("VoiceManager.Login() called when the daemon pipe is disconnected", 
-                    Helpers.LogLevel.Error, _client);
+                    LogLevel.Error, _client);
                 return -1;
             }
         }
@@ -462,7 +463,7 @@ namespace LibreMetaverse.Voice.Vivox
             }
             else
             {
-                Logger.Log("VoiceManager.RequestSetRenderDevice() called when the daemon pipe is disconnected", Helpers.LogLevel.Error, _client);
+                Logger.Log("VoiceManager.RequestSetRenderDevice() called when the daemon pipe is disconnected", LogLevel.Error, _client);
                 return -1;
             }
         }
@@ -479,7 +480,7 @@ namespace LibreMetaverse.Voice.Vivox
             else
             {
                 Logger.Log("VoiceManager.RequestStartTuningMode() called when the daemon pipe is disconnected",
-                    Helpers.LogLevel.Error, _client);
+                    LogLevel.Error, _client);
                 return -1;
             }
         }
@@ -496,7 +497,7 @@ namespace LibreMetaverse.Voice.Vivox
             else
             {
                 Logger.Log("VoiceManager.RequestStopTuningMode() called when the daemon pipe is disconnected", 
-                    Helpers.LogLevel.Error, _client);
+                    LogLevel.Error, _client);
                 return _commandCookie - 1;
             }
         }
@@ -516,7 +517,7 @@ namespace LibreMetaverse.Voice.Vivox
             else
             {
                 Logger.Log("VoiceManager.RequestSetSpeakerVolume() called when the daemon pipe is disconnected",
-                    Helpers.LogLevel.Error, _client);
+                    LogLevel.Error, _client);
                 return -1;
             }
         }
@@ -536,7 +537,7 @@ namespace LibreMetaverse.Voice.Vivox
             else
             {
                 Logger.Log("VoiceManager.RequestSetCaptureVolume() called when the daemon pipe is disconnected",
-                    Helpers.LogLevel.Error, _client);
+                    LogLevel.Error, _client);
                 return -1;
             }
         }
@@ -560,7 +561,7 @@ namespace LibreMetaverse.Voice.Vivox
             else
             {
                 Logger.Log("VoiceManager.RequestRenderAudioStart() called when the daemon pipe is disconnected", 
-                    Helpers.LogLevel.Error, _client);
+                    LogLevel.Error, _client);
                 return -1;
             }
         }
@@ -577,7 +578,7 @@ namespace LibreMetaverse.Voice.Vivox
             else
             {
                 Logger.Log("VoiceManager.RequestRenderAudioStop() called when the daemon pipe is disconnected", 
-                    Helpers.LogLevel.Error, _client);
+                    LogLevel.Error, _client);
                 return -1;
             }
         }
@@ -591,7 +592,7 @@ namespace LibreMetaverse.Voice.Vivox
             if (VOICE_MAJOR_VERSION != msg.MajorVersion)
             {
                 Logger.Log(
-                    $"Voice version mismatch! Got {msg.MajorVersion}, expecting {VOICE_MAJOR_VERSION}. Disabling the voice manager", Helpers.LogLevel.Error, _client);
+                    $"Voice version mismatch! Got {msg.MajorVersion}, expecting {VOICE_MAJOR_VERSION}. Disabling the voice manager", LogLevel.Error, _client);
                 _enabled = false;
             }
             else
@@ -658,7 +659,7 @@ namespace LibreMetaverse.Voice.Vivox
                                     {
                                         Logger.Log(
                                             "VoiceManager._DaemonPipe_OnReceiveLine(): Failed to parse InputXml for the cookie",
-                                            Helpers.LogLevel.Warning, _client);
+                                            LogLevel.Warning, _client);
                                     }
                                     break;
                                 case "CaptureDevices":

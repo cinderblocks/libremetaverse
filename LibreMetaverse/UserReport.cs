@@ -29,6 +29,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
@@ -78,7 +79,7 @@ namespace LibreMetaverse
             if (abuseCategoriesCap == null)
             {
                 Logger.Log("AbuseCategories capability does not exist. Could not fetch categories list.",
-                    Helpers.LogLevel.Info);
+                    LogLevel.Information);
                 return null;
             }
 
@@ -98,7 +99,7 @@ namespace LibreMetaverse
                     if (error != null)
                     {
                         Logger.Log($"Could not fetch abuse categories from cap. ({error.Message}",
-                            Helpers.LogLevel.Info);
+                            LogLevel.Information);
                         return;
                     }
 
@@ -163,7 +164,7 @@ namespace LibreMetaverse
                         {
                             Logger.Log($"Failed to send abuse report via {userReportCap}. " +
                                        $"({error.Message}) Falling back to legacy protocol.",
-                                Helpers.LogLevel.Warning);
+                                LogLevel.Warning);
                             SendUserReportLegacy(reportType, category, screenshotId, objectId, abuserId,
                                 abuseRegionName, abuseRegionId, pos, summary, details);
                         }

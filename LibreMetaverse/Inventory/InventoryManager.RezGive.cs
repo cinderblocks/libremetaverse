@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
@@ -196,7 +197,7 @@ namespace OpenMetaverse
         {
             if (_Store == null)
             {
-                Logger.Log("Inventory store not initialized, cannot empty folder", Helpers.LogLevel.Warning, Client);
+                Logger.Log("Inventory store not initialized, cannot empty folder", LogLevel.Warning, Client);
                 return;
             }
 
@@ -355,7 +356,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                Logger.Log(ex.Message, LogLevel.Error, Client, ex);
             }
         }
     }

@@ -31,6 +31,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {
@@ -336,7 +337,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed saving asset to cache (" + ex.Message + ")", Helpers.LogLevel.Warning, Client);
+                Logger.Log("Failed saving asset to cache (" + ex.Message + ")", LogLevel.Warning, Client);
                 return false;
             }
 
@@ -397,7 +398,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"Failed to delete cache file {filePath}: {ex}", Helpers.LogLevel.Warning, Client);
+                    Logger.Log($"Failed to delete cache file {filePath}: {ex}", LogLevel.Warning, Client);
                 }
             }
 
@@ -437,7 +438,7 @@ namespace OpenMetaverse
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log($"Failed accessing cache file {p}: {ex}", Helpers.LogLevel.Warning, Client);
+                            Logger.Log($"Failed accessing cache file {p}: {ex}", LogLevel.Warning, Client);
                         }
                     }
 
@@ -455,7 +456,7 @@ namespace OpenMetaverse
                             }
                             catch (Exception ex)
                             {
-                                Logger.Log($"Failed accessing cache file {p}: {ex}", Helpers.LogLevel.Warning, Client);
+                                Logger.Log($"Failed accessing cache file {p}: {ex}", LogLevel.Warning, Client);
                             }
                         }
 
@@ -475,7 +476,7 @@ namespace OpenMetaverse
                             }
                             catch (Exception ex)
                             {
-                                Logger.Log($"Failed deleting cache file {entry.Path}: {ex}", Helpers.LogLevel.Warning, Client);
+                                Logger.Log($"Failed deleting cache file {entry.Path}: {ex}", LogLevel.Warning, Client);
                             }
                             if (size < targetSize)
                             {

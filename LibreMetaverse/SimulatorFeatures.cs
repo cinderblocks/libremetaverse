@@ -26,6 +26,7 @@
 
 using System;
 using System.Net.Http;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
 
@@ -76,14 +77,14 @@ namespace LibreMetaverse
             if (error != null)
             {
                 Logger.Log($"Failed to retrieve simulator features. Error: {error.Message}", 
-                    Helpers.LogLevel.Warning, _simulator.Client);
+                    LogLevel.Warning, _simulator.Client);
                 return;
             }
 
             if (!response.IsSuccessStatusCode)
             {
                 Logger.Log($"Failed to retrieve simulator features. Status: {response.StatusCode} {response.ReasonPhrase}",
-                    Helpers.LogLevel.Warning, _simulator.Client);
+                    LogLevel.Warning, _simulator.Client);
                 return;
             }
             OSD features = OSDParser.Deserialize(responseData);
@@ -91,7 +92,7 @@ namespace LibreMetaverse
             if (features.Type != OSDType.Map)
             {
                 Logger.Log($"Simulator Features response was not valid LLSD map", 
-                    Helpers.LogLevel.Warning, _simulator.Client);
+                    LogLevel.Warning, _simulator.Client);
                 return;
             }
             _featureMap = (OSDMap)features;

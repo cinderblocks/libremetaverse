@@ -30,6 +30,7 @@ using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using LibreMetaverse;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.Http
@@ -281,7 +282,7 @@ namespace OpenMetaverse.Http
             if (OnDownloadProgress != null)
             {
                 try { OnDownloadProgress(this, bytesReceived, totalBytesToReceive); }
-                catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, ex); }
+                catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, ex); }
             }
         }
 
@@ -339,7 +340,7 @@ namespace OpenMetaverse.Http
                 catch (Exception ex)
                 {
                     Logger.DebugLog($"CapsBase.GetResponse() {_CapName} : {ex.Message}");
-                    Logger.Log(ex.Message, Helpers.LogLevel.Error, ex);
+                    Logger.Log(ex.Message, LogLevel.Error, ex);
                 }
             }
 

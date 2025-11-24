@@ -37,6 +37,7 @@ using OpenMetaverse.Interfaces;
 using OpenMetaverse.Http;
 using System.Net.Http;
 using LibreMetaverse;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {
@@ -92,7 +93,7 @@ namespace OpenMetaverse
         public void Disconnect(bool immediate)
         {
             Logger.Log($"Caps system for {Simulator} is {(immediate ? "aborting" : "disconnecting")}", 
-                Helpers.LogLevel.Info, Simulator.Client);
+                LogLevel.Information, Simulator.Client);
 
             _HttpCts.Cancel();
 
@@ -289,12 +290,12 @@ namespace OpenMetaverse
                 if (response.StatusCode == HttpStatusCode.NotFound)
                 {
                     Logger.Log("Seed capability returned a 404, capability system is aborting",
-                        Helpers.LogLevel.Error);
+                        LogLevel.Error);
                 }
                 else
                 {
                     Logger.Log($"Seed capability returned {response.StatusCode}. Trying again.",
-                        Helpers.LogLevel.Warning);
+                        LogLevel.Warning);
                     MakeSeedRequest();
                 }
                 return;
@@ -334,7 +335,7 @@ namespace OpenMetaverse
             catch (LitJson.JsonException)
             {
                 Logger.Log($"Invalid caps response; '{System.Text.Encoding.UTF8.GetString(responseData)}' for seed request.", 
-                    Helpers.LogLevel.Warning, Simulator.Client);
+                    LogLevel.Warning, Simulator.Client);
             }
         }
 
@@ -365,9 +366,9 @@ namespace OpenMetaverse
             else
             {
                 Logger.Log($"No Message handler exists for event {eventName}. Unable to decode. Will try Generic Handler next", 
-                    Helpers.LogLevel.Warning);
+                    LogLevel.Warning);
                 Logger.Log("Please report this information at https://github.com/cinderblocks/libremetaverse/issues: " + Environment.NewLine + body, 
-                    Helpers.LogLevel.Debug);
+                    LogLevel.Debug);
 
                 // try generic decoder next which takes a caps event and tries to match it to an existing packet
                 if (body.Type == OSDType.Map)
@@ -390,7 +391,7 @@ namespace OpenMetaverse
                     else
                     {
                         Logger.Log($"No Packet or Message handler exists for {eventName}", 
-                            Helpers.LogLevel.Warning);
+                            LogLevel.Warning);
                     }
                 }
             }

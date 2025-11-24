@@ -31,6 +31,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Xml;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse.Assets
 {
@@ -97,12 +98,12 @@ namespace OpenMetaverse.Assets
             }
             catch (Exception e)
             {
-                Logger.Log("[OarFile] Error loading OAR file: " + e.Message, Helpers.LogLevel.Error);
+                Logger.Log("[OarFile] Error loading OAR file: " + e.Message, LogLevel.Error);
                 return;
             }
 
             if (failedAssetRestores > 0)
-                Logger.Log($"[OarFile]: Failed to load {failedAssetRestores} assets", Helpers.LogLevel.Warning);
+                Logger.Log($"[OarFile]: Failed to load {failedAssetRestores} assets", LogLevel.Warning);
         }
 
         private static bool LoadAsset(string assetPath, byte[] data, AssetLoadedCallback assetCallback, long bytesRead, long totalBytes)
@@ -115,7 +116,7 @@ namespace OpenMetaverse.Assets
             {
                 Logger.Log(
                     $"[OarFile]: Could not find extension information in asset path {assetPath} since it's missing the separator " +
-                    $"{ArchiveConstants.ASSET_EXTENSION_SEPARATOR}.  Skipping", Helpers.LogLevel.Warning);
+                    $"{ArchiveConstants.ASSET_EXTENSION_SEPARATOR}.  Skipping", LogLevel.Warning);
                 return false;
             }
 
@@ -163,7 +164,7 @@ namespace OpenMetaverse.Assets
                         asset = new AssetTexture(uuid, data);
                         break;
                     default:
-                        Logger.Log("[OarFile] Unhandled asset type " + assetType, Helpers.LogLevel.Error);
+                        Logger.Log("[OarFile] Unhandled asset type " + assetType, LogLevel.Error);
                         break;
                 }
 
@@ -174,7 +175,7 @@ namespace OpenMetaverse.Assets
                 }
             }
 
-            Logger.Log("[OarFile] Failed to load asset", Helpers.LogLevel.Warning);
+            Logger.Log("[OarFile] Failed to load asset", LogLevel.Warning);
             return false;
         }
 
@@ -191,7 +192,7 @@ namespace OpenMetaverse.Assets
             }
             catch (Exception ex)
             {
-                Logger.Log("[OarFile] Failed to parse region settings file " + filePath + ": " + ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log("[OarFile] Failed to parse region settings file " + filePath + ": " + ex.Message, LogLevel.Warning);
             }
 
             // Parse the region name out of the filename
@@ -231,7 +232,7 @@ namespace OpenMetaverse.Assets
                     else
                     {
                         Logger.Log("[OarFile] RAW32 terrain file " + filePath + " has the wrong number of bytes: " + data.Length,
-                            Helpers.LogLevel.Warning);
+                            LogLevel.Warning);
                     }
                     break;
             // commented out - maybe for later
@@ -254,7 +255,7 @@ namespace OpenMetaverse.Assets
                     // TIFF
             */
                 default:
-                    Logger.Log("[OarFile] Unrecognized terrain format in " + filePath, Helpers.LogLevel.Warning);
+                    Logger.Log("[OarFile] Unrecognized terrain format in " + filePath, LogLevel.Warning);
                     break;
             }
 
@@ -500,7 +501,7 @@ namespace OpenMetaverse.Assets
             try { Directory.CreateDirectory(primsPath); }
             catch (Exception ex)
             {
-                Logger.Log("Failed saving prims: " + ex.Message, Helpers.LogLevel.Error);
+                Logger.Log("Failed saving prims: " + ex.Message, LogLevel.Error);
                 return;
             }
 
@@ -556,7 +557,7 @@ namespace OpenMetaverse.Assets
             try { Directory.CreateDirectory(assetsPath); }
             catch (Exception ex)
             {
-                Logger.Log("Failed saving assets: " + ex.Message, Helpers.LogLevel.Error);
+                Logger.Log("Failed saving assets: " + ex.Message, LogLevel.Error);
             }
         }
 
@@ -620,7 +621,7 @@ namespace OpenMetaverse.Assets
             }
             AllPropertiesReceived.WaitOne(5000 + 350 * assets.Count);
 
-            Logger.Log("Copied " + count + " textures to the asset archive folder", Helpers.LogLevel.Info);
+            Logger.Log("Copied " + count + " textures to the asset archive folder", LogLevel.Information);
         }
 
         public static void SaveSimAssets(AssetManager assetManager, AssetType assetType, UUID assetID, UUID itemID, UUID primID, string assetsPath)
@@ -646,7 +647,7 @@ namespace OpenMetaverse.Assets
             });
             AllPropertiesReceived.WaitOne(5000);
 
-            Logger.Log("Copied " + count + " textures to the asset archive folder", Helpers.LogLevel.Info);
+            Logger.Log("Copied " + count + " textures to the asset archive folder", LogLevel.Information);
         }
 
         static void SavePrim(AssetPrim prim, string filename)
@@ -665,7 +666,7 @@ namespace OpenMetaverse.Assets
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed saving linkset: " + ex.Message, Helpers.LogLevel.Error);
+                Logger.Log("Failed saving linkset: " + ex.Message, LogLevel.Error);
             }
         }
 

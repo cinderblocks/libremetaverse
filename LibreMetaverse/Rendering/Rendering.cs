@@ -29,6 +29,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.Assets;
 using OpenMetaverse.StructuredData;
 
@@ -411,7 +412,7 @@ namespace OpenMetaverse.Rendering
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed to decode mesh asset: " + ex.Message, Helpers.LogLevel.Warning);
+                Logger.Log("Failed to decode mesh asset: " + ex.Message, LogLevel.Warning);
                 return false;
             }
 
@@ -473,7 +474,7 @@ namespace OpenMetaverse.Rendering
                             else
                             {
                                 Logger.Log("Rendering plugin does not support the [RendererName] attribute: " + f,
-                                    Helpers.LogLevel.Warning);
+                                    LogLevel.Warning);
                             }
 
                             break;
@@ -483,7 +484,7 @@ namespace OpenMetaverse.Rendering
                 catch (Exception e)
                 {
                     Logger.Log($"Unrecognized rendering plugin {f}: {e.Message}",
-                        Helpers.LogLevel.Warning, e);
+                        LogLevel.Warning, e);
                 }
             }
 

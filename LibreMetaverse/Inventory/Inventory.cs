@@ -31,6 +31,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {
@@ -187,7 +188,7 @@ namespace OpenMetaverse
             Client = client;
             Owner = owner;
             if (owner == UUID.Zero)
-                Logger.Log("Inventory owned by nobody!", Helpers.LogLevel.Warning, Client);
+                Logger.Log("Inventory owned by nobody!", LogLevel.Warning, Client);
             Items = new ConcurrentDictionary<UUID, InventoryNode>();
             ChildrenIndex = new ConcurrentDictionary<UUID, ConcurrentDictionary<UUID, InventoryNode>>();
             LinksByAssetId = new ConcurrentDictionary<UUID, ConcurrentDictionary<UUID, InventoryNode>>();
@@ -687,7 +688,7 @@ namespace OpenMetaverse
                     if (value.UUID != uuid)
                     {
                         Logger.Log($"Inventory[uuid]: uuid {uuid} is not equal to value.UUID {value.UUID}",
-                            Helpers.LogLevel.Warning, Client);
+                            LogLevel.Warning, Client);
                     }
                     UpdateNodeFor(value);
                 }

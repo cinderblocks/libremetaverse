@@ -31,6 +31,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Assets;
 using OpenMetaverse.Http;
@@ -639,7 +640,7 @@ namespace OpenMetaverse
                 asset.AssetID = assetID;
 
                 try { callback(transfer, asset); }
-                catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
+                catch (Exception e) { Logger.Log(e.Message, LogLevel.Error, Client, e); }
 
                 return;
             }
@@ -694,7 +695,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    Logger.Log($"Failed to fetch asset {assetID}: ", Helpers.LogLevel.Warning, Client);
+                    Logger.Log($"Failed to fetch asset {assetID}: ", LogLevel.Warning, Client);
                     if (callback != null)
                     {
                         transfer.Success = false;
@@ -705,7 +706,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed to fetch asset {assetID}: {ex}", Helpers.LogLevel.Warning, Client);
+                Logger.Log($"Failed to fetch asset {assetID}: {ex}", LogLevel.Warning, Client);
                 if (callback != null)
                 {
                     transfer.Success = false;
@@ -869,7 +870,7 @@ namespace OpenMetaverse
                 asset.AssetID = assetID;
 
                 try { callback(transfer, asset); }
-                catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
+                catch (Exception e) { Logger.Log(e.Message, LogLevel.Error, Client, e); }
 
                 return;
             }
@@ -919,7 +920,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    Logger.Log($"Failed to fetch asset {assetID}", Helpers.LogLevel.Warning, Client);
+                    Logger.Log($"Failed to fetch asset {assetID}", LogLevel.Warning, Client);
                     if (callback != null)
                     {
                         transfer.Success = false;
@@ -929,7 +930,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed to fetch asset {assetID}: {ex}", Helpers.LogLevel.Warning, Client);
+                Logger.Log($"Failed to fetch asset {assetID}: {ex}", LogLevel.Warning, Client);
                 if (callback != null)
                 {
                     transfer.Success = false;
@@ -1125,7 +1126,7 @@ namespace OpenMetaverse
             {
                 Logger.Log(
                     String.Format("Beginning asset upload [Single Packet], ID: {0}, AssetID: {1}, Size: {2}",
-                    upload.ID.ToString(), upload.AssetID.ToString(), upload.Size), Helpers.LogLevel.Info, Client);
+                    upload.ID.ToString(), upload.AssetID.ToString(), upload.Size), LogLevel.Information, Client);
 
                 Transfers[upload.ID] = upload;
 
@@ -1137,7 +1138,7 @@ namespace OpenMetaverse
             {
                 Logger.Log(
                     String.Format("Beginning asset upload [Multiple Packets], ID: {0}, AssetID: {1}, Size: {2}",
-                    upload.ID.ToString(), upload.AssetID.ToString(), upload.Size), Helpers.LogLevel.Info, Client);
+                    upload.ID.ToString(), upload.AssetID.ToString(), upload.Size), LogLevel.Information, Client);
 
                 // Asset is too big, send in multiple packets
                 request.AssetBlock.AssetData = Utils.EmptyBytes;
@@ -1196,7 +1197,7 @@ namespace OpenMetaverse
                         var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, new OSD(), cancellationToken).ConfigureAwait(false);
                         if (response == null || data == null)
                         {
-                            Logger.Log("Bake upload failed during uploader retrieval", Helpers.LogLevel.Warning, Client);
+                            Logger.Log("Bake upload failed during uploader retrieval", LogLevel.Warning, Client);
                             callback(UUID.Zero);
                             return;
                         }
@@ -1218,7 +1219,7 @@ namespace OpenMetaverse
                                         var (resp2, respData2) = await Client.HttpCapsClient.PostAsync(uploadUrl, "application/octet-stream", textureData, cancellationToken).ConfigureAwait(false);
                                         if (resp2 == null || respData2 == null)
                                         {
-                                            Logger.Log("Bake upload failed during asset upload", Helpers.LogLevel.Warning, Client);
+                                            Logger.Log("Bake upload failed during asset upload", LogLevel.Warning, Client);
                                             callback(UUID.Zero);
                                             return;
                                         }
@@ -1236,12 +1237,12 @@ namespace OpenMetaverse
                                             }
                                         }
 
-                                        Logger.Log("Bake upload failed during asset upload", Helpers.LogLevel.Warning, Client);
+                                        Logger.Log("Bake upload failed during asset upload", LogLevel.Warning, Client);
                                         callback(UUID.Zero);
                                     }
                                     catch (Exception ex)
                                     {
-                                        Logger.Log("Bake upload failed during asset upload", Helpers.LogLevel.Warning, Client, ex);
+                                        Logger.Log("Bake upload failed during asset upload", LogLevel.Warning, Client, ex);
                                         callback(UUID.Zero);
                                     }
 
@@ -1250,19 +1251,19 @@ namespace OpenMetaverse
                             }
                         }
 
-                        Logger.Log("Bake upload failed during uploader retrieval", Helpers.LogLevel.Warning, Client);
+                        Logger.Log("Bake upload failed during uploader retrieval", LogLevel.Warning, Client);
                         callback(UUID.Zero);
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log("Bake upload failed during uploader retrieval", Helpers.LogLevel.Warning, Client, ex);
+                        Logger.Log("Bake upload failed during uploader retrieval", LogLevel.Warning, Client, ex);
                         callback(UUID.Zero);
                     }
                 });
             }
             else
             {
-                Logger.Log("UploadBakedTexture not available, falling back to UDP method", Helpers.LogLevel.Info, Client);
+                Logger.Log("UploadBakedTexture not available, falling back to UDP method", LogLevel.Information, Client);
 
                 ThreadPool.QueueUserWorkItem(
                     delegate(object o)
@@ -1343,18 +1344,18 @@ namespace OpenMetaverse
                         }
                         else
                         {
-                            Logger.Log($"Failed to fetch mesh asset {meshID}", Helpers.LogLevel.Warning, Client);
+                            Logger.Log($"Failed to fetch mesh asset {meshID}", LogLevel.Warning, Client);
                         }
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log($"Failed to fetch mesh asset {meshID}: {ex}", Helpers.LogLevel.Warning, Client);
+                        Logger.Log($"Failed to fetch mesh asset {meshID}: {ex}", LogLevel.Warning, Client);
                     }
                 });
             }
             else
             {
-                Logger.Log("Mesh fetch capabilities not available", Helpers.LogLevel.Error, Client);
+                Logger.Log("Mesh fetch capabilities not available", LogLevel.Error, Client);
                 callback(false, null);
             }
         }
@@ -1554,13 +1555,13 @@ namespace OpenMetaverse
                     }
                     else
                     {
-                        Logger.Log($"Failed to fetch server bake {textureID}: Status={response?.StatusCode}", Helpers.LogLevel.Warning, Client);
+                        Logger.Log($"Failed to fetch server bake {textureID}: Status={response?.StatusCode}", LogLevel.Warning, Client);
                         callback(TextureRequestState.Timeout, null);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"Failed to fetch server bake {textureID}: {ex}", Helpers.LogLevel.Warning, Client);
+                    Logger.Log($"Failed to fetch server bake {textureID}: {ex}", LogLevel.Warning, Client);
                     callback(TextureRequestState.Timeout, null);
                 }
             }, cancellationToken);
@@ -1575,7 +1576,7 @@ namespace OpenMetaverse
         internal void FireImageProgressEvent(UUID textureID, int transferredBytes, int totalBytes)
         {
             try { OnImageReceiveProgress(new ImageReceiveProgressEventArgs(textureID, transferredBytes, totalBytes)); }
-            catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
+            catch (Exception e) { Logger.Log(e.Message, LogLevel.Error, Client, e); }
         }
 
         // Helper method for downloading textures via GetTexture cap
@@ -1644,14 +1645,14 @@ namespace OpenMetaverse
                 {
                     Logger.Log(
                         $"Failed to fetch texture {textureID} over HTTP, falling back to UDP. Status={response?.StatusCode}",
-                        Helpers.LogLevel.Warning, Client);
+                        LogLevel.Warning, Client);
 
                     Texture.RequestTexture(textureID, imageType, priority, discardLevel, packetStart, callback, progress);
                 }
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed to fetch texture {textureID} over HTTP: {ex.Message}", Helpers.LogLevel.Warning, Client);
+                Logger.Log($"Failed to fetch texture {textureID} over HTTP: {ex.Message}", LogLevel.Warning, Client);
                 Texture.RequestTexture(textureID, imageType, priority, discardLevel, packetStart, callback, progress);
             }
         }
@@ -1707,7 +1708,7 @@ namespace OpenMetaverse
                     break;
                 default:
                     asset = new AssetMutable(type);
-                    Logger.Log("Unimplemented asset type: " + type, Helpers.LogLevel.Error);
+                    Logger.Log("Unimplemented asset type: " + type, LogLevel.Error);
                     break;
             }
 
@@ -1864,7 +1865,7 @@ namespace OpenMetaverse
                 // will need to become smarter
                 if (download.Status != StatusCode.OK)
                 {
-                    Logger.Log("Transfer failed with status code " + download.Status, Helpers.LogLevel.Warning, Client);
+                    Logger.Log("Transfer failed with status code " + download.Status, LogLevel.Warning, Client);
 
                     Transfers.TryRemove(download.ID, out _);
 
@@ -1873,7 +1874,7 @@ namespace OpenMetaverse
 
                     // Fire the event with our transfer that contains Success = false;
                     try { download.Callback(download, null); }
-                    catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                    catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client, ex); }
                 }
                 else
                 {
@@ -1906,7 +1907,7 @@ namespace OpenMetaverse
                     {
                         Logger.Log("Received a TransferInfo packet with a SourceType of " + download.Source +
                             " and a Params field length of " + info.TransferInfo.Params.Length,
-                            Helpers.LogLevel.Warning, Client);
+                            LogLevel.Warning, Client);
                     }
                 }
                 try { download.HeaderReceivedTcs.TrySetResult(true); } catch { }
@@ -1914,7 +1915,7 @@ namespace OpenMetaverse
             else
             {
                 Logger.Log("Received a TransferInfo packet for an asset we didn't request, TransferID: " +
-                    info.TransferInfo.TransferID, Helpers.LogLevel.Warning, Client);
+                    info.TransferInfo.TransferID, LogLevel.Warning, Client);
             }
         }
 
@@ -1949,7 +1950,7 @@ namespace OpenMetaverse
                         if (completed != headerTask || download.Size == 0)
                         {
                             Logger.Log("Timed out while waiting for the asset header to download for " +
-                                       download.ID, Helpers.LogLevel.Warning, Client);
+                                       download.ID, LogLevel.Warning, Client);
 
                             // Abort the transfer
                             TransferAbortPacket abort = new TransferAbortPacket
@@ -1969,7 +1970,7 @@ namespace OpenMetaverse
                             if (download.Callback != null)
                             {
                                 try { download.Callback(download, null); }
-                                catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                                catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client, ex); }
                             }
 
                             return;
@@ -1977,7 +1978,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log("Exception while waiting for header: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                        Logger.Log("Exception while waiting for header: " + ex.Message, LogLevel.Error, Client, ex);
                         return;
                     }
                 }
@@ -1996,7 +1997,7 @@ namespace OpenMetaverse
                     if (download.Callback != null)
                     {
                         try { download.Callback(download, WrapAsset(download)); }
-                        catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                        catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client, ex); }
                     }
                 }
             });
@@ -2016,7 +2017,7 @@ namespace OpenMetaverse
                 OnInitiateDownload(new InitiateDownloadEventArgs(Utils.BytesToString(request.FileData.SimFilename),
                     Utils.BytesToString(request.FileData.ViewerFilename)));
             }
-            catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+            catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client, ex); }
         }
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
@@ -2024,7 +2025,7 @@ namespace OpenMetaverse
         protected void RequestXferHandler(object sender, PacketReceivedEventArgs e)
         {
             if (PendingUpload == null)
-                Logger.Log("Received a RequestXferPacket for an unknown asset upload", Helpers.LogLevel.Warning, Client);
+                Logger.Log("Received a RequestXferPacket for an unknown asset upload", LogLevel.Warning, Client);
             else
             {
                 AssetUpload upload = PendingUpload;
@@ -2065,7 +2066,7 @@ namespace OpenMetaverse
             //    upload.AssetID.ToString(), upload.Type, upload.Transferred, upload.Size));
 
             try { OnUploadProgress(new AssetUploadEventArgs(upload)); }
-            catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+            catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client, ex); }
 
             if (upload.Transferred < upload.Size)
                 SendNextUploadPacket(upload);
@@ -2118,14 +2119,14 @@ namespace OpenMetaverse
                     Transfers.TryRemove(foundTransfer.Key, out _);
 
                     try { OnAssetUploaded(new AssetUploadEventArgs((AssetUpload)foundTransfer.Value)); }
-                    catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                    catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client, ex); }
                 }
                 else
                 {
                     Logger.Log(String.Format(
                         "Got an AssetUploadComplete on an unrecognized asset, AssetID: {0}, Type: {1}, Success: {2}",
                         complete.AssetBlock.UUID, (AssetType)complete.AssetBlock.Type, complete.AssetBlock.Success),
-                        Helpers.LogLevel.Warning);
+                        LogLevel.Warning);
                 }
             }
         }
@@ -2162,7 +2163,7 @@ namespace OpenMetaverse
                 else
                 {
                     Logger.Log("Out of order Xfer packet in a download, got " + packetNum + " expecting " + download.PacketNum,
-                        Helpers.LogLevel.Warning, Client);
+                        LogLevel.Warning, Client);
                     // Re-confirm the last packet we actually received
                     SendConfirmXferPacket(download.XferID, download.PacketNum - 1);
                 }
@@ -2206,7 +2207,7 @@ namespace OpenMetaverse
                 Transfers.TryRemove(download.ID, out _);
 
                 try { OnXferReceived(new XferReceivedEventArgs(download)); }
-                catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client, ex); }
             }
         }
 
@@ -2232,7 +2233,7 @@ namespace OpenMetaverse
                 download.Error = (TransferError)abort.XferID.Result;
 
                 try { OnXferReceived(new XferReceivedEventArgs(download)); }
-                catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client, ex); }
             }
         }
 #endregion Xfer Callbacks

@@ -38,6 +38,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace OpenMetaverse
 {
@@ -682,7 +683,7 @@ namespace OpenMetaverse
             }
             catch (OSDException e)
             {
-                Logger.Log("Login server returned (some) invalid data", Helpers.LogLevel.Warning, e);
+                Logger.Log("Login server returned (some) invalid data", LogLevel.Warning, e);
             }
 
             // Home
@@ -869,7 +870,7 @@ namespace OpenMetaverse
             }
             catch (Exception e)
             {
-                Logger.Log("Login server returned (some) invalid data: " + e.Message, Helpers.LogLevel.Warning);
+                Logger.Log("Login server returned (some) invalid data: " + e.Message, LogLevel.Warning);
             }
             if (!Success) { return; }
 
@@ -934,7 +935,7 @@ namespace OpenMetaverse
                 }
             } catch (Exception ex)
             {
-                Logger.Log("Could not parse home info from login response. Setting nil", Helpers.LogLevel.Warning, ex);
+                Logger.Log("Could not parse home info from login response. Setting nil", LogLevel.Warning, ex);
                 Home = new HomeInfo();
             }
 
@@ -1533,7 +1534,7 @@ namespace OpenMetaverse
             if (OnLoginResponse != null)
             {
                 try { OnLoginResponse(LoginResponseData.Success, false, "Login Message", LoginResponseData.Reason, LoginResponseData); }
-                catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client, ex); }
             }
 
             // These parameters are stored in NetworkManager, so instead of registering
@@ -1733,13 +1734,13 @@ namespace OpenMetaverse
             
             if (string.IsNullOrEmpty(loginParams.Channel))
             {
-                Logger.Log("Viewer channel not set.", Helpers.LogLevel.Warning);
+                Logger.Log("Viewer channel not set.", LogLevel.Warning);
                 loginParams.Channel = $"{Settings.USER_AGENT}";
             }
 
             if (string.IsNullOrEmpty((loginParams.Version)))
             {
-                Logger.Log("Viewer version not set.", Helpers.LogLevel.Warning);
+                Logger.Log("Viewer version not set.", LogLevel.Warning);
                 loginParams.Version = "?.?.?";
             }
 
@@ -1814,7 +1815,7 @@ namespace OpenMetaverse
                 catch (Exception ex)
                 {
                     Logger.Log($"Failed to parse login URI {loginParams.URI}, {ex.Message}",
-                        Helpers.LogLevel.Error, Client);
+                        LogLevel.Error, Client);
                     return;
                 }
 
@@ -1945,7 +1946,7 @@ namespace OpenMetaverse
             if (!(response?.Value is Hashtable value))
             {
                 UpdateLoginStatus(LoginStatus.Failed, "Invalid or missing login response from the server");
-                Logger.Log("Invalid or missing login response from the server", Helpers.LogLevel.Warning);
+                Logger.Log("Invalid or missing login response from the server", LogLevel.Warning);
                 return;
             }
 
@@ -1956,14 +1957,14 @@ namespace OpenMetaverse
                 {
                     Logger.Log("Login response does not match login request. " +
                                "Only one login can be attempted at a time",
-                        Helpers.LogLevel.Error);
+                        LogLevel.Error);
                     return;
                 }
             }
             catch (Exception ex)
             {
                 UpdateLoginStatus(LoginStatus.Failed, $"Error retrieving the login response from the server: {ex.Message}");
-                Logger.Log($"Login response failure: {ex.Message} ", Helpers.LogLevel.Warning, ex);
+                Logger.Log($"Login response failure: {ex.Message} ", LogLevel.Warning, ex);
                 return;
             }
             LoginReplyXmlRpcHandler(reply, context);
@@ -2021,7 +2022,7 @@ namespace OpenMetaverse
                         }
                         else
                         {
-                            Logger.Log($"Could not parse {entry} from UDP Blacklist", Helpers.LogLevel.Warning);
+                            Logger.Log($"Could not parse {entry} from UDP Blacklist", LogLevel.Warning);
                         }
                     }
                 }
@@ -2041,10 +2042,10 @@ namespace OpenMetaverse
                 if (OnLoginResponse != null)
                 {
                     try { OnLoginResponse(reply.Success, redirect, message, reason, reply); }
-                    catch (Exception ex) { Logger.Log(ex.ToString(), Helpers.LogLevel.Error); }
+                    catch (Exception ex) { Logger.Log(ex.ToString(), LogLevel.Error); }
                 }
             }
-            catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, ex); }
+            catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, ex); }
 
             // Make the next network jump, if needed
             if (redirect)
@@ -2058,7 +2059,7 @@ namespace OpenMetaverse
                 // Sleep for some amount of time while the servers work
                 var seconds = reply.NextDuration;
                 Logger.Log($"Sleeping for {seconds} seconds during a login redirect",
-                    Helpers.LogLevel.Info);
+                    LogLevel.Information);
                 Thread.Sleep(seconds * 1000);
 
                 CurrentContext = loginParams;
@@ -2134,7 +2135,7 @@ namespace OpenMetaverse
                         // Sleep for some amount of time while the servers work
                         var seconds = (int)LoginResponseData.ParseUInt("next_duration", resMap);
                         Logger.Log($"Sleeping for {seconds} seconds during a login redirect",
-                            Helpers.LogLevel.Info);
+                            LogLevel.Information);
                         Thread.Sleep(seconds * 1000);
 
                         // Ignore next_options for now
@@ -2150,7 +2151,7 @@ namespace OpenMetaverse
                         if (OnLoginResponse != null)
                         {
                             try { OnLoginResponse(loginSuccess, redirect, data.Message, data.Reason, data); }
-                            catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                            catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client, ex); }
                         }
 
                         // These parameters are stored in NetworkManager, so instead of registering

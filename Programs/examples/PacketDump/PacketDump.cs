@@ -27,6 +27,7 @@
 
 using System;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
 
@@ -77,7 +78,7 @@ namespace PacketDump
                 if (LoginSuccess)
                 {
                     // Network.LoginMessage is set after a successful login
-                    Logger.Log("Message of the day: " + client.Network.LoginMessage, Helpers.LogLevel.Info);
+                    Logger.Log("Message of the day: " + client.Network.LoginMessage, LogLevel.Information);
 
                     // Determine how long to run for
                     var start = Environment.TickCount;
@@ -99,18 +100,18 @@ namespace PacketDump
                 }
                 else
                 {
-                    Logger.Log("Login failed: " + client.Network.LoginMessage, Helpers.LogLevel.Error);
+                    Logger.Log("Login failed: " + client.Network.LoginMessage, LogLevel.Error);
                 }
             }
             else
             {
-                Logger.Log("Login timed out", Helpers.LogLevel.Error);
+                Logger.Log("Login timed out", LogLevel.Error);
             }
 		}
 
         private static void LoginHandler(object sender, LoginProgressEventArgs e)
         {
-            Logger.Log($"Login: {e.Status} ({e.Message})", Helpers.LogLevel.Info);
+            Logger.Log($"Login: {e.Status} ({e.Message})", LogLevel.Information);
 
             switch (e.Status)
             {
@@ -138,7 +139,7 @@ namespace PacketDump
 
         public static void DefaultHandler(object sender, PacketReceivedEventArgs e)
         {
-            Logger.Log(e.Packet.ToString(), Helpers.LogLevel.Info);
+            Logger.Log(e.Packet.ToString(), LogLevel.Information);
         }
 	}
 }

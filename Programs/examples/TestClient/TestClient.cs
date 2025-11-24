@@ -305,7 +305,7 @@ namespace TestClient
             
             AlertMessagePacket message = (AlertMessagePacket)packet;
 
-            Logger.Log("[AlertMessage] " + Utils.BytesToString(message.AlertData.Message), Helpers.LogLevel.Info, this);
+            Logger.Log("[AlertMessage] " + Utils.BytesToString(message.AlertData.Message), LogLevel.Information, this);
         }
        
         private void Inventory_OnInventoryObjectReceived(object sender, InventoryObjectOfferedEventArgs e)
