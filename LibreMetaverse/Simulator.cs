@@ -286,7 +286,7 @@ namespace OpenMetaverse
             public int GetSentPings() => Interlocked.Add(ref _sentPings, 0);
 
             public void IncrementReceivedPongs() => Interlocked.Increment(ref _receivedPongs);
-            public void GetReceivedPongs() => Interlocked.Add(ref _receivedPongs, 0);
+            public int GetReceivedPongs() => Interlocked.Add(ref _receivedPongs, 0);
 
             public int GetAndIncrementLastPingID()
             {
