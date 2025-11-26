@@ -452,6 +452,43 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Begin a logging scope containing region context (Region name/handle) if available.
+        /// </summary>
+        public static IDisposable BeginRegionScope(Simulator simulator)
+        {
+            var logger = _logger;
+            if (logger == null) return NoopScope.Instance;
+
+            string regionName = null;
+            try
+            {
+                if (simulator != null)
+                {
+                    // Prefer human readable name, fall back to handle
+                    regionName = !string.IsNullOrEmpty(simulator.Name) ? simulator.Name : simulator.Handle.ToString();
+                }
+            }
+            catch
+            {
+                // ignore any errors while accessing simulator info
+            }
+
+            if (string.IsNullOrEmpty(regionName)) return NoopScope.Instance;
+
+            try
+            {
+                return logger.BeginScope(new System.Collections.Generic.Dictionary<string, object>
+                {
+                    { "Region", regionName }
+                });
+            }
+            catch
+            {
+                return NoopScope.Instance;
+            }
+        }
+
+        /// <summary>
         /// Run an async action inside a logging scope containing client context (if available).
         /// Ensures the scope is disposed even if the action throws.
         /// </summary>
@@ -463,6 +500,26 @@ namespace OpenMetaverse
             try
             {
                 scope = BeginClientScope(client);
+                await action().ConfigureAwait(false);
+            }
+            finally
+            {
+                try { scope?.Dispose(); } catch { }
+            }
+        }
+
+        /// <summary>
+        /// Run an async action inside a logging scope containing region context (if available).
+        /// Ensures the scope is disposed even if the action throws.
+        /// </summary>
+        public static async Task UseRegionScopeAsync(Simulator simulator, Func<Task> action)
+        {
+            if (action == null) { throw new ArgumentNullException(nameof(action)); }
+
+            IDisposable scope = null;
+            try
+            {
+                scope = BeginRegionScope(simulator);
                 await action().ConfigureAwait(false);
             }
             finally
