@@ -1690,48 +1690,85 @@ namespace OpenMetaverse
 
     public class SimulatorDataPool
     {
-        private static Timer InactiveSimReaper;
+        private static CancellationTokenSource InactiveSimReaperCts;
+        private static Task InactiveSimReaperTask;
 
-        private static void RemoveOldSims(object state)
+        private static async Task InactiveSimReaperLoop(CancellationToken token)
         {
-            lock (SimulatorDataPools)
+            try
             {
-                int simTimeout = Settings.SIMULATOR_POOL_TIMEOUT;
-                var reap = (from pool in SimulatorDataPools.Values
-                    where pool.InactiveSince != DateTime.MaxValue
-                          && pool.InactiveSince.AddMilliseconds(simTimeout) < DateTime.Now
-                    select pool.Handle).ToList();
-                foreach (var hndl in reap)
+                while (!token.IsCancellationRequested)
                 {
-                    SimulatorDataPools.Remove(hndl);
+                    try
+                    {
+                        lock (SimulatorDataPools)
+                        {
+                            int simTimeout = Settings.SIMULATOR_POOL_TIMEOUT;
+                            var reap = (from pool in SimulatorDataPools.Values
+                                        where pool.InactiveSince != DateTime.MaxValue
+                                              && pool.InactiveSince.AddMilliseconds(simTimeout) < DateTime.Now
+                                        select pool.Handle).ToList();
+                            foreach (var hndl in reap)
+                            {
+                                SimulatorDataPools.Remove(hndl);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        try { Logger.Error($"InactiveSimReaperLoop exception", ex); } catch { }
+                    }
+
+                    await Task.Delay(TimeSpan.FromMinutes(3), token).ConfigureAwait(false);
                 }
+            }
+            catch (TaskCanceledException) { }
+            catch (Exception ex)
+            {
+                try { Logger.Error($"InactiveSimReaperLoop fatal exception", ex); } catch { }
             }
         }
 
-        public static void SimulatorAdd(Simulator sim)
-        {
+         public static void SimulatorAdd(Simulator sim)
+         {
             lock (SimulatorDataPools)
             {
-                if (InactiveSimReaper == null)
+                if (InactiveSimReaperCts == null)
                 {
-                    InactiveSimReaper = new Timer(RemoveOldSims, null, TimeSpan.FromMinutes(3), TimeSpan.FromMinutes(3));
+                    InactiveSimReaperCts = new CancellationTokenSource();
+                    InactiveSimReaperTask = Task.Run(() => InactiveSimReaperLoop(InactiveSimReaperCts.Token));
                 }
                 var pool = GetSimulatorData(sim.Handle);
                 if (pool.ActiveClients < 1) pool.ActiveClients = 1; else pool.ActiveClients++;
                 pool.InactiveSince = DateTime.MaxValue;
             }
-        }
-        public static void SimulatorRelease(Simulator sim)
+         }
+         public static void SimulatorRelease(Simulator sim)
+         {
+             var hndl = sim.Handle;
+             lock (SimulatorDataPools)
+             {
+                 SimulatorDataPool dataPool = GetSimulatorData(hndl);
+                 dataPool.ActiveClients--;
+                 if (dataPool.ActiveClients <= 0)
+                 {
+                     dataPool.InactiveSince = DateTime.Now;
+                 }
+             }
+         }
+        
+        // Optional: allow explicit shutdown of the reaper (not currently called)
+        public static void ShutdownReaper()
         {
-            var hndl = sim.Handle;
             lock (SimulatorDataPools)
             {
-                SimulatorDataPool dataPool = GetSimulatorData(hndl);
-                dataPool.ActiveClients--;
-                if (dataPool.ActiveClients <= 0)
+                try
                 {
-                    dataPool.InactiveSince = DateTime.Now;
+                    InactiveSimReaperCts?.Cancel();
                 }
+                catch { }
+                InactiveSimReaperCts = null;
+                InactiveSimReaperTask = null;
             }
         }
 
