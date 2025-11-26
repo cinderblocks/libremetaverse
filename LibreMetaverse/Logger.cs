@@ -833,5 +833,22 @@ namespace OpenMetaverse
         {
             LogWithLevel(LogLevel.Critical, message, exception, clientName);
         }
+
+        /// <summary>
+        /// Returns whether the configured logger is enabled for the specified level.
+        /// Safe to call even if logging has not been initialized.
+        /// </summary>
+        public static bool IsEnabled(Microsoft.Extensions.Logging.LogLevel level)
+        {
+            try
+            {
+                EnsureInitialized();
+                return _logger != null && _logger.IsEnabled(level);
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }
