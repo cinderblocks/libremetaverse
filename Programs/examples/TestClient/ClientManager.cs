@@ -217,7 +217,8 @@ namespace TestClient
             if (!string.IsNullOrEmpty(account.URI))
                 loginParams.URI = account.URI;
 
-            client.Network.BeginLogin(loginParams);
+            // Prefer async login API even from synchronous callers to centralize async behavior
+            client.Network.LoginAsync(loginParams).GetAwaiter().GetResult();
             return client;
         }
 
@@ -231,7 +232,7 @@ namespace TestClient
             {
                 while (Running)
                 {
-                    Thread.Sleep(2 * 1000);
+                    System.Threading.Tasks.Task.Delay(2 * 1000).GetAwaiter().GetResult();
                 }
             }
             else {

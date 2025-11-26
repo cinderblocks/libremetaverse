@@ -27,6 +27,7 @@
 
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace OpenMetaverse.Utilities
 {
@@ -111,7 +112,14 @@ namespace OpenMetaverse.Utilities
         /// <param name="message">The chat message to send</param>
         /// <param name="type">The chat type (usually Normal, Whisper or Shout)</param>
         /// <param name="cps">Characters per second rate for chatting</param>
+        // Synchronous compatibility wrapper that blocks on the async implementation
         public static void Chat(GridClient client, string message, ChatType type, int cps)
+        {
+            ChatAsync(client, message, type, cps).GetAwaiter().GetResult();
+        }
+
+        // Async implementation using Task.Delay so callers can avoid blocking threads
+        public static async Task ChatAsync(GridClient client, string message, ChatType type, int cps, CancellationToken cancellationToken = default)
         {
             var rand = new Random();
             var characters = 0;
@@ -123,6 +131,8 @@ namespace OpenMetaverse.Utilities
 
             while (characters < message.Length)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 if (!typing)
                 {
                     // Start typing again
@@ -141,8 +151,8 @@ namespace OpenMetaverse.Utilities
                     }
                 }
 
-                // Sleep for a second and increase the amount of characters we've typed
-                Thread.Sleep(1000);
+                // Async delay for a second and increase the amount of characters we've typed
+                await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
                 characters += cps;
             }
 
@@ -160,14 +170,15 @@ namespace OpenMetaverse.Utilities
         private readonly GridClient _client;
         private ulong _simHandle;
         private Vector3 _position = Vector3.Zero;
-        private readonly System.Timers.Timer _checkTimer;
+        private CancellationTokenSource _checkCts;
+        private Task _checkTask;
+        private readonly int _timerFrequency;
 
         public ConnectionManager(GridClient client, int timerFrequency)
         {
             _client = client;
 
-            _checkTimer = new System.Timers.Timer(timerFrequency);
-            _checkTimer.Elapsed += CheckTimer_Elapsed;
+            _timerFrequency = timerFrequency;
         }
 
         public static bool PersistentLogin(GridClient client, string firstName, string lastName, string password,
@@ -225,24 +236,53 @@ namespace OpenMetaverse.Utilities
         {
             _simHandle = handle;
             _position = desiredPosition;
-            _checkTimer.Start();
+            StartCheckLoop();
+        }
+
+        private void StartCheckLoop()
+        {
+            if (_checkCts != null) return;
+            _checkCts = new CancellationTokenSource();
+            var token = _checkCts.Token;
+            _checkTask = Task.Run(async () =>
+            {
+                try
+                {
+                    while (!token.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            if (_simHandle != 0 && _client?.Network?.CurrentSim?.Handle != 0 && _client.Network.CurrentSim.Handle != _simHandle)
+                            {
+                                // Attempt to move to our target sim
+                                _client.Self.Teleport(_simHandle, _position);
+                             }
+                        }
+                        catch (Exception) { }
+
+                        await Task.Delay(_timerFrequency, token).ConfigureAwait(false);
+                    }
+                }
+                catch (TaskCanceledException) { }
+            }, token);
+        }
+
+        public void Stop()
+        {
+            try
+            {
+                _checkCts?.Cancel();
+            }
+            catch { }
+
+            _checkCts = null;
+            _checkTask = null;
         }
 
         private static void LoginWait(int minutes)
         {
+            // Keep blocking behavior for compatibility; callers that want non-blocking should use async APIs.
             Thread.Sleep(TimeSpan.FromMinutes(minutes));
-        }
-
-        private void CheckTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            if (_simHandle == 0) return;
-
-            if (_client.Network.CurrentSim.Handle != 0 &&
-                _client.Network.CurrentSim.Handle != _simHandle)
-            {
-                // Attempt to move to our target sim
-                _client.Self.Teleport(_simHandle, _position);
-            }
         }
     }
 }

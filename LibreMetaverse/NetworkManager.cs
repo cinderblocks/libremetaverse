@@ -1430,6 +1430,23 @@ namespace OpenMetaverse
         }
 
         #endregion Packet Callbacks
+
+        /// <summary>
+        /// Async wrapper around the synchronous Connect method. Runs the blocking Connect on a threadpool thread
+        /// so callers can await the operation without blocking their calling thread.
+        /// </summary>
+        public Task<Simulator> ConnectAsync(IPAddress ip, ushort port, ulong handle, bool setDefault, Uri seedcaps)
+        {
+            return Task.Run(() => Connect(ip, port, handle, setDefault, seedcaps));
+        }
+
+        /// <summary>
+        /// Async wrapper around the synchronous Connect method (IPEndPoint overload).
+        /// </summary>
+        public Task<Simulator> ConnectAsync(IPEndPoint endPoint, ulong handle, bool setDefault, Uri seedcaps, uint sizeX, uint sizeY)
+        {
+            return Task.Run(() => Connect(endPoint, handle, setDefault, seedcaps, sizeX, sizeY));
+        }
     }
 
     #region EventArgs

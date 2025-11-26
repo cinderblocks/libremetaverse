@@ -33,6 +33,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
 using LibreMetaverse;
+using LibreMetaverse.Threading;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
@@ -433,7 +434,7 @@ namespace OpenMetaverse
         /// Flags indicating which protocols this region supports
         /// </summary>
         public RegionProtocols Protocols;
-       
+      
 
         /// <summary>The current sequence number for packets sent to this
         /// simulator. Must be Interlocked before modifying. Only
@@ -903,21 +904,18 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Attempt to connect to this simulator
+        /// Attempt to connect to this simulator (async variant)
         /// </summary>
-        /// <param name="moveToSim">Whether to move our agent in to this sim or not</param>
-        /// <returns>True if the connection succeeded or  unknown, false if there
-        /// was a failure</returns>
-        public bool Connect(bool moveToSim)
+        public async Task<bool> ConnectAsync(bool moveToSim)
         {
             handshakeComplete = false;
 
             if (connected)
             {
-                UseCircuitCode(true);
+                await UseCircuitCodeAsync(true).ConfigureAwait(false);
                 if (moveToSim)
                 {
-                    Thread.Sleep(500);
+                    await Task.Delay(500).ConfigureAwait(false);
                     Client.Self.CompleteAgentMovement(this);
                 }
                 return true;
@@ -934,18 +932,20 @@ namespace OpenMetaverse
                 connected = true;
 
                 // Initiate connection
-                UseCircuitCode(true);
+                await UseCircuitCodeAsync(true).ConfigureAwait(false);
 
                 Stats.SetConnectTime(Environment.TickCount);
 
                 // Move our agent in to the sim to complete the connection
                 if (moveToSim)
                 {
-                    Thread.Sleep(500);
+                    await Task.Delay(500).ConfigureAwait(false);
                     Client.Self.CompleteAgentMovement(this);
                 }
 
-                if (!ConnectedEvent.Wait(Client.Settings.LOGIN_TIMEOUT))
+                // Wait for handshake event asynchronously
+                bool signaled = await WaitHandleAsyncFactory.FromWaitHandle(ConnectedEvent.WaitHandle, TimeSpan.FromMilliseconds(Client.Settings.LOGIN_TIMEOUT)).ConfigureAwait(false);
+                if (!signaled)
                 {
                     Logger.Warn($"Giving up waiting for RegionHandshake for {this}", Client);
                     //Remove the simulator from the list, not useful if we haven't received the RegionHandshake
@@ -974,10 +974,17 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Initiates connection to the simulator
+        /// Backwards-compatible synchronous wrapper
         /// </summary>
-        /// <param name="waitForAck">Should we block until ack for this packet is received</param>
-        public void UseCircuitCode(bool waitForAck)
+        public bool Connect(bool moveToSim)
+        {
+            return ConnectAsync(moveToSim).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Initiates connection to the simulator (async variant)
+        /// </summary>
+        public async Task<bool> UseCircuitCodeAsync(bool waitForAck)
         {
             // Send the UseCircuitCode packet to initiate the connection
             UseCircuitCodePacket use = new UseCircuitCodePacket
@@ -994,16 +1001,40 @@ namespace OpenMetaverse
             {
                 GotUseCircuitCodeAck.Reset();
             }
-            
+
             // Send the initial packet out
             SendPacket(use);
-            
+
             if (waitForAck)
             {
-                if (!GotUseCircuitCodeAck.Wait(Client.Settings.LOGIN_TIMEOUT))
+                bool signaled = await WaitHandleAsyncFactory.FromWaitHandle(GotUseCircuitCodeAck.WaitHandle, TimeSpan.FromMilliseconds(Client.Settings.LOGIN_TIMEOUT)).ConfigureAwait(false);
+                if (!signaled)
                 {
                     Logger.Error("Failed to get ACK for UseCircuitCode packet", Client);
                 }
+                return signaled;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Backwards-compatible synchronous wrapper
+        /// </summary>
+        public void UseCircuitCode(bool waitForAck)
+        {
+            // Prefer async implementation while preserving synchronous behavior
+            try
+            {
+                bool signaled = UseCircuitCodeAsync(waitForAck).GetAwaiter().GetResult();
+                if (waitForAck && !signaled)
+                {
+                    Logger.Error("Failed to get ACK for UseCircuitCode packet", Client);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e.Message, e, Client);
             }
         }
 

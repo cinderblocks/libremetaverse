@@ -146,57 +146,24 @@ namespace OpenMetaverse
         [Obsolete("Use GetTaskInventoryAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
         public List<InventoryBase> GetTaskInventory(UUID objectID, uint objectLocalID, TimeSpan timeout)
         {
-            string filename = null;
-            var taskReplyEvent = new AutoResetEvent(false);
-
-            void Callback(object sender, TaskInventoryReplyEventArgs e)
+            try
             {
-                if (e.ItemID == objectID)
+                using (var cts = new CancellationTokenSource())
                 {
-                    filename = e.AssetFilename;
-                    taskReplyEvent.Set();
+                    if (timeout != TimeSpan.Zero)
+                        cts.CancelAfter(timeout);
+
+                    var task = GetTaskInventoryAsync(objectID, objectLocalID, cts.Token);
+                    return task.GetAwaiter().GetResult();
                 }
             }
-
-            TaskInventoryReply += Callback;
-
-            RequestTaskInventory(objectLocalID);
-
-            taskReplyEvent.WaitOne(timeout, false);
-
-            TaskInventoryReply -= Callback;
-
-            if (!string.IsNullOrEmpty(filename))
+            catch (OperationCanceledException)
             {
-                byte[] assetData = null;
-                ulong xferID = 0;
-                var taskDownloadEvent = new AutoResetEvent(false);
-
-                void XferCallback(object sender, XferReceivedEventArgs e)
-                {
-                    if (e.Xfer.XferID == xferID)
-                    {
-                        assetData = e.Xfer.AssetData;
-                        taskDownloadEvent.Set();
-                    }
-                }
-
-                Client.Assets.XferReceived += XferCallback;
-
-                // Start the actual asset xfer
-                xferID = Client.Assets.RequestAssetXfer(filename, true, false, UUID.Zero, AssetType.Unknown, true);
-
-                taskDownloadEvent.WaitOne(timeout, false);
-
-                Client.Assets.XferReceived -= XferCallback;
-
-                var taskList = Utils.BytesToString(assetData);
-                return ParseTaskInventory(taskList);
+                return new List<InventoryBase>();
             }
-            else
+            catch (Exception)
             {
-                Logger.DebugLog("Task is empty for " + objectLocalID, Client);
-                return new List<InventoryBase>(0);
+                return new List<InventoryBase>();
             }
         }
 
