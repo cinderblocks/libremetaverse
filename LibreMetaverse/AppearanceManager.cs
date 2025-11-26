@@ -399,6 +399,10 @@ namespace OpenMetaverse
         /// </summary>
         private Thread AppearanceThread;
         /// <summary>
+        /// Task tracking the async appearance workflow started by RequestSetAppearance
+        /// </summary>
+        private Task AppearanceTask;
+        /// <summary>
         /// Main appearance cancellation token source
         /// </summary>
         private CancellationTokenSource AppearanceCts;
@@ -406,6 +410,9 @@ namespace OpenMetaverse
         /// Is server baking complete. It needs doing only once
         /// </summary>
         private bool ServerBakingDone = false;
+
+        // Lock to guard creation/cancellation/cleanup of appearance workflow state
+        private readonly object _appearanceLock = new object();
 
         private bool _disposed = false;
 
@@ -433,45 +440,57 @@ namespace OpenMetaverse
             try
             {
                 // Unregister packet callbacks
-                try { Client?.Network?.UnregisterCallback(PacketType.AgentWearablesUpdate, AgentWearablesUpdateHandler); } catch { }
-                try { Client?.Network?.UnregisterCallback(PacketType.AgentCachedTextureResponse, AgentCachedTextureResponseHandler); } catch { }
-                try { Client?.Network?.UnregisterCallback(PacketType.RebakeAvatarTextures, RebakeAvatarTexturesHandler); } catch { }
+                try { Client?.Network?.UnregisterCallback(PacketType.AgentWearablesUpdate, AgentWearablesUpdateHandler); } catch (Exception ex) { Logger.Warn($"Failed to unregister AgentWearablesUpdate callback: {ex}", Client); }
+                try { Client?.Network?.UnregisterCallback(PacketType.AgentCachedTextureResponse, AgentCachedTextureResponseHandler); } catch (Exception ex) { Logger.Warn($"Failed to unregister AgentCachedTextureResponse callback: {ex}", Client); }
+                try { Client?.Network?.UnregisterCallback(PacketType.RebakeAvatarTextures, RebakeAvatarTexturesHandler); } catch (Exception ex) { Logger.Warn($"Failed to unregister RebakeAvatarTextures callback: {ex}", Client); }
 
                 // Unsubscribe from events
-                try { if (Client?.Objects != null) Client.Objects.ObjectUpdate -= Objects_AttachmentUpdate; } catch { }
+                try { if (Client?.Objects != null) Client.Objects.ObjectUpdate -= Objects_AttachmentUpdate; } catch (Exception ex) { Logger.Warn($"Failed to unsubscribe Objects.ObjectUpdate: {ex}", Client); }
 
                 if (Client?.Network != null)
                 {
-                    try { Client.Network.Disconnected -= Network_OnDisconnected; } catch { }
-                    try { Client.Network.SimChanged -= Network_OnSimChanged; } catch { }
+                    try { Client.Network.Disconnected -= Network_OnDisconnected; } catch (Exception ex) { Logger.Warn($"Failed to unsubscribe Network.Disconnected: {ex}", Client); }
+                    try { Client.Network.SimChanged -= Network_OnSimChanged; } catch (Exception ex) { Logger.Warn($"Failed to unsubscribe Network.SimChanged: {ex}", Client); }
 
                     if (Client.Network.CurrentSim?.Caps != null)
                     {
-                        try { Client.Network.CurrentSim.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived; } catch { }
+                        try { Client.Network.CurrentSim.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived; } catch (Exception ex) { Logger.Warn($"Failed to unsubscribe CapabilitiesReceived: {ex}", Client); }
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Unexpected error during Dispose cleanup: {ex}", Client);
+            }
 
             // Cancel and dispose cancellation token source
             try
             {
                 if (AppearanceCts != null)
                 {
-                    try { AppearanceCts.Cancel(); } catch { }
-                    try { AppearanceCts.Dispose(); } catch { }
+                    try { AppearanceCts.Cancel(); } catch (Exception ex) { Logger.Debug($"AppearanceCts.Cancel failed: {ex}", Client); }
+                    try { AppearanceCts.Dispose(); } catch (Exception ex) { Logger.Debug($"AppearanceCts.Dispose failed: {ex}", Client); }
                     AppearanceCts = null;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed during AppearanceCts cleanup: {ex}", Client);
+            }
 
             // Dispose timer
             try
             {
-                RebakeScheduleTimer?.Dispose();
-                RebakeScheduleTimer = null;
+                if (RebakeScheduleTimer != null)
+                {
+                    try { RebakeScheduleTimer.Dispose(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleTimer.Dispose failed: {ex}", Client); }
+                    RebakeScheduleTimer = null;
+                }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed disposing RebakeScheduleTimer: {ex}", Client);
+            }
 
             // Clear thread references/state
             try
@@ -479,7 +498,10 @@ namespace OpenMetaverse
                 AppearanceThread = null;
                 Interlocked.Exchange(ref AppearanceThreadRunning, 0);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed clearing appearance thread state: {ex}", Client);
+            }
         }
         #endregion Private Members
 
@@ -512,26 +534,77 @@ namespace OpenMetaverse
         /// Starts the appearance setting thread
         /// </summary>
         /// <param name="forceRebake">True to force rebaking, otherwise false</param>
-        public void RequestSetAppearance(bool forceRebake = false)
+        public Task RequestSetAppearance(bool forceRebake = false)
         {
-            if (Interlocked.CompareExchange(ref AppearanceThreadRunning, 1, 0) != 0)
+            Task previousTask = null;
+            CancellationTokenSource previousCts = null;
+
+            lock (_appearanceLock)
             {
-                Logger.Warn("Appearance thread is already running, skipping");
-                return;
+                previousTask = AppearanceTask;
+                previousCts = AppearanceCts;
             }
 
-            // If we have an active delayed scheduled appearance bake, we dispose of it
+            if (previousTask != null && !previousTask.IsCompleted)
+            {
+                try { previousCts?.Cancel(); } catch (Exception ex) { Logger.Debug($"Cancel previous appearance CTS failed: {ex}", Client); }
+
+                // Chain start after previous task completes
+                var chained = previousTask.ContinueWith(_ =>
+                {
+                    try { previousCts?.Dispose(); } catch (Exception ex) { Logger.Debug($"Disposing previous CTS failed: {ex}", Client); }
+
+                    // Dispose any scheduled rebake timer so we start fresh
+                    if (RebakeScheduleTimer != null)
+                    {
+                        try { RebakeScheduleTimer.Dispose(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleTimer.Dispose failed: {ex}", Client); }
+                        RebakeScheduleTimer = null;
+                    }
+
+                    return StartAppearanceImmediate(forceRebake);
+                }, TaskScheduler.Default).Unwrap();
+
+                return chained;
+            }
+
+            // No previous running task - start immediately
             if (RebakeScheduleTimer != null)
             {
-                RebakeScheduleTimer.Dispose();
+                try { RebakeScheduleTimer.Dispose(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleTimer.Dispose failed: {ex}", Client); }
                 RebakeScheduleTimer = null;
             }
 
-            AppearanceCts = new CancellationTokenSource();
+            return StartAppearanceImmediate(forceRebake);
+        }
 
-            // Start the async appearance workflow on the thread pool so the caller is not blocked.
-            var ct = AppearanceCts.Token;
-            _ = Task.Run(() => RequestSetAppearanceAsync(forceRebake, ct), ct);
+        // Starts the appearance workflow immediately and returns the appearance Task
+        private Task StartAppearanceImmediate(bool forceRebake)
+        {
+            var cts = new CancellationTokenSource();
+            var ct = cts.Token;
+
+            lock (_appearanceLock)
+            {
+                AppearanceCts = cts;
+                Interlocked.Exchange(ref AppearanceThreadRunning, 1);
+                AppearanceTask = Task.Run(() => RequestSetAppearanceAsync(forceRebake, ct), ct);
+
+                var runningTask = AppearanceTask;
+                runningTask.ContinueWith(t =>
+                {
+                    lock (_appearanceLock)
+                    {
+                        if (ReferenceEquals(AppearanceTask, t))
+                        {
+                            try { AppearanceCts?.Dispose(); } catch (Exception ex) { Logger.Debug($"Disposing AppearanceCts failed: {ex}", Client); }
+                            AppearanceCts = null;
+                            AppearanceTask = null;
+                        }
+                    }
+                }, TaskScheduler.Default);
+
+                return runningTask;
+            }
         }
 
         /// <summary>
@@ -1714,7 +1787,7 @@ namespace OpenMetaverse
         /// <returns>True on success, otherwise false</returns>
         private async Task<bool> GetCachedBakesAsync()
         {
-            var tcs = new TaskCompletionSource<bool>();
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             EventHandler<AgentCachedBakesReplyEventArgs> CacheCallback = (sender, e) => tcs.TrySetResult(true);
 
             CachedBakesReply += CacheCallback;
@@ -1724,7 +1797,14 @@ namespace OpenMetaverse
                 RequestCachedBakes();
 
                 var completed = await Task.WhenAny(tcs.Task, Task.Delay(WEARABLE_TIMEOUT)).ConfigureAwait(false);
-                return completed == tcs.Task && tcs.Task.Result;
+                if (completed == tcs.Task)
+                {
+                    return tcs.Task.Result;
+                }
+
+                // Timeout - cancel tcs to ensure any later callback doesn't run continuations inline
+                tcs.TrySetCanceled();
+                return false;
             }
             finally
             {
@@ -1771,7 +1851,7 @@ namespace OpenMetaverse
                     await semaphore.WaitAsync().ConfigureAwait(false);
                     try
                     {
-                        var tcs = new TaskCompletionSource<Asset>();
+                        var tcs = new TaskCompletionSource<Asset>(TaskCreationOptions.RunContinuationsAsynchronously);
 
                         Client.Assets.RequestAsset(wearable.AssetID, wearable.AssetType, true,
                             (transfer, asset) =>
@@ -1811,6 +1891,8 @@ namespace OpenMetaverse
                         }
                         else
                         {
+                            // Timeout
+                            tcs.TrySetCanceled();
                             Logger.Error("Timed out downloading wearable asset " + wearable.AssetID + " (" + wearable.WearableType + ")", Client);
                             success = false;
                         }
@@ -1880,7 +1962,7 @@ namespace OpenMetaverse
                     await semaphore.WaitAsync().ConfigureAwait(false);
                     try
                     {
-                        var tcs = new TaskCompletionSource<AssetTexture>();
+                        var tcs = new TaskCompletionSource<AssetTexture>(TaskCreationOptions.RunContinuationsAsynchronously);
 
                         Client.Assets.RequestImage(textureId,
                             (state, assetTexture) =>
@@ -1904,7 +1986,10 @@ namespace OpenMetaverse
                             {
                                 assetTexture.Decode();
                             }
-                            catch { }
+                            catch (Exception decodeEx)
+                            {
+                                Logger.Debug($"Failed to decode texture {textureId}: {decodeEx}", Client);
+                            }
 
                             foreach (var tex in Textures)
                             {
@@ -1914,6 +1999,8 @@ namespace OpenMetaverse
                         }
                         else
                         {
+                            // Timeout or failed
+                            tcs.TrySetCanceled();
                             Logger.Warn("Texture " + textureId + " failed to download, one or more bakes will be incomplete");
                         }
                     }
@@ -1968,7 +2055,7 @@ namespace OpenMetaverse
             {
                 await DownloadTexturesAsync(pendingBakes).ConfigureAwait(false);
 
-                using (var semaphore = new SemaphoreSlim(MAX_CONCURRENT_DOWNLOADS))
+                using (var semaphore = new SemaphoreSlim(MAX_CONCURRENT_UPLOADS))
                 {
                     var tasks = pendingBakes.Select(async bakeType =>
                     {
@@ -2050,7 +2137,7 @@ namespace OpenMetaverse
         /// <returns>UUID of the newly created asset on success, otherwise UUID.Zero</returns>
         private async Task<UUID> UploadBakeAsync(byte[] textureData)
         {
-            var tcs = new TaskCompletionSource<UUID>();
+            var tcs = new TaskCompletionSource<UUID>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             Client.Assets.RequestUploadBakedTexture(textureData,
                 delegate (UUID newAssetID)
@@ -2065,6 +2152,8 @@ namespace OpenMetaverse
                 return await tcs.Task.ConfigureAwait(false);
             }
 
+            // Timeout - ensure TCS is cancelled to avoid late continuations
+            tcs.TrySetCanceled();
             return UUID.Zero;
         }
 
@@ -2598,7 +2687,7 @@ namespace OpenMetaverse
                 RebakeScheduleTimer = new Timer(RebakeScheduleTimerTick);
             }
             try { RebakeScheduleTimer.Change(REBAKE_DELAY, Timeout.Infinite); }
-            catch { }
+            catch (Exception ex) { Logger.Warn($"Failed to schedule rebake timer: {ex}", Client); }
         }
 
         private void RebakeScheduleTimerTick(object state)
