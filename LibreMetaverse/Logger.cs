@@ -581,5 +581,257 @@ namespace OpenMetaverse
                 // swallow Task.Run exceptions
             }
         }
+
+        /// <summary>
+        /// Convenience method for Trace level logging.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
+        public static void Trace(object message, GridClient client = null)
+        {
+            Log(message, LogLevel.Trace, client, null);
+        }
+
+        /// <summary>
+        /// Convenience method for Trace level logging with an exception.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="exception">Exception to include with the log entry.</param>
+        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
+        public static void Trace(object message, Exception exception, GridClient client = null)
+        {
+            Log(message, LogLevel.Trace, client, exception);
+        }
+
+        /// <summary>
+        /// Convenience method for Trace level logging using an explicit client name.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="clientName">Client name to include in the log scope.</param>
+        public static void Trace(object message, string clientName)
+        {
+            LogWithLevel(LogLevel.Trace, message, null, clientName);
+        }
+
+        /// <summary>
+        /// Convenience method for Trace level logging with an exception and explicit client name.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="exception">Exception to include with the log entry.</param>
+        /// <param name="clientName">Client name to include in the log scope.</param>
+        public static void Trace(object message, Exception exception, string clientName)
+        {
+            LogWithLevel(LogLevel.Trace, message, exception, clientName);
+        }
+
+        /// <summary>
+        /// Convenience method for Debug level logging.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
+        public static void Debug(object message, GridClient client = null)
+        {
+            Log(message, LogLevel.Debug, client, null);
+        }
+
+        /// <summary>
+        /// Convenience method for Debug level logging with an exception.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="exception">Exception to include with the log entry.</param>
+        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
+        public static void Debug(object message, Exception exception, GridClient client = null)
+        {
+            Log(message, LogLevel.Debug, client, exception);
+        }
+
+        /// <summary>
+        /// Convenience method for Debug level logging using an explicit client name.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="clientName">Client name to include in the log scope.</param>
+        public static void Debug(object message, string clientName)
+        {
+            LogWithLevel(LogLevel.Debug, message, null, clientName);
+        }
+
+        /// <summary>
+        /// Convenience method for Debug level logging with an exception and explicit client name.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="exception">Exception to include with the log entry.</param>
+        /// <param name="clientName">Client name to include in the log scope.</param>
+        public static void Debug(object message, Exception exception, string clientName)
+        {
+            LogWithLevel(LogLevel.Debug, message, exception, clientName);
+        }
+
+        /// <summary>
+        /// Convenience method for Information (Info) level logging.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
+        public static void Info(object message, GridClient client = null)
+        {
+            Log(message, LogLevel.Information, client, null);
+        }
+
+        /// <summary>
+        /// Convenience method for Information (Info) level logging with an exception.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="exception">Exception to include with the log entry.</param>
+        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
+        public static void Info(object message, Exception exception, GridClient client = null)
+        {
+            Log(message, LogLevel.Information, client, exception);
+        }
+
+        /// <summary>
+        /// Convenience method for Information (Info) level logging using an explicit client name.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="clientName">Client name to include in the log scope.</param>
+        public static void Info(object message, string clientName)
+        {
+            LogWithLevel(LogLevel.Information, message, null, clientName);
+        }
+
+        /// <summary>
+        /// Convenience method for Information (Info) level logging with an exception and explicit client name.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="exception">Exception to include with the log entry.</param>
+        /// <param name="clientName">Client name to include in the log scope.</param>
+        public static void Info(object message, Exception exception, string clientName)
+        {
+            LogWithLevel(LogLevel.Information, message, exception, clientName);
+        }
+
+        /// <summary>
+        /// Convenience method for Warning (Warn) level logging.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
+        public static void Warn(object message, GridClient client = null)
+        {
+            Log(message, LogLevel.Warning, client, null);
+        }
+
+        /// <summary>
+        /// Convenience method for Warning (Warn) level logging with an exception.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="exception">Exception to include with the log entry.</param>
+        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
+        public static void Warn(object message, Exception exception, GridClient client = null)
+        {
+            Log(message, LogLevel.Warning, client, exception);
+        }
+
+        /// <summary>
+        /// Convenience method for Warning (Warn) level logging using an explicit client name.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="clientName">Client name to include in the log scope.</param>
+        public static void Warn(object message, string clientName)
+        {
+            LogWithLevel(LogLevel.Warning, message, null, clientName);
+        }
+
+        /// <summary>
+        /// Convenience method for Warning (Warn) level logging with an exception and explicit client name.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="exception">Exception to include with the log entry.</param>
+        /// <param name="clientName">Client name to include in the log scope.</param>
+        public static void Warn(object message, Exception exception, string clientName)
+        {
+            LogWithLevel(LogLevel.Warning, message, exception, clientName);
+        }
+
+        /// <summary>
+        /// Convenience method for Error level logging.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
+        public static void Error(object message, GridClient client = null)
+        {
+            Log(message, LogLevel.Error, client, null);
+        }
+
+        /// <summary>
+        /// Convenience method for Error level logging with an exception.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="exception">Exception to include with the log entry.</param>
+        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
+        public static void Error(object message, Exception exception, GridClient client = null)
+        {
+            Log(message, LogLevel.Error, client, exception);
+        }
+
+        /// <summary>
+        /// Convenience method for Error level logging using an explicit client name.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="clientName">Client name to include in the log scope.</param>
+        public static void Error(object message, string clientName)
+        {
+            LogWithLevel(LogLevel.Error, message, null, clientName);
+        }
+
+        /// <summary>
+        /// Convenience method for Error level logging with an exception and explicit client name.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="exception">Exception to include with the log entry.</param>
+        /// <param name="clientName">Client name to include in the log scope.</param>
+        public static void Error(object message, Exception exception, string clientName)
+        {
+            LogWithLevel(LogLevel.Error, message, exception, clientName);
+        }
+
+        /// <summary>
+        /// Convenience method for Critical level logging.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
+        public static void Critical(object message, GridClient client = null)
+        {
+            Log(message, LogLevel.Critical, client, null);
+        }
+
+        /// <summary>
+        /// Convenience method for Critical level logging with an exception.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="exception">Exception to include with the log entry.</param>
+        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
+        public static void Critical(object message, Exception exception, GridClient client = null)
+        {
+            Log(message, LogLevel.Critical, client, exception);
+        }
+
+        /// <summary>
+        /// Convenience method for Critical level logging using an explicit client name.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="clientName">Client name to include in the log scope.</param>
+        public static void Critical(object message, string clientName)
+        {
+            LogWithLevel(LogLevel.Critical, message, null, clientName);
+        }
+
+        /// <summary>
+        /// Convenience method for Critical level logging with an exception and explicit client name.
+        /// </summary>
+        /// <param name="message">Message object to log.</param>
+        /// <param name="exception">Exception to include with the log entry.</param>
+        /// <param name="clientName">Client name to include in the log scope.</param>
+        public static void Critical(object message, Exception exception, string clientName)
+        {
+            LogWithLevel(LogLevel.Critical, message, exception, clientName);
+        }
     }
 }
