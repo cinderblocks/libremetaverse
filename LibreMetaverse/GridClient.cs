@@ -54,12 +54,18 @@ namespace OpenMetaverse
     ///     class Bot
     ///     {
     ///         public static GridClient Client;
-    ///         static void Main(string[] args)
+    ///         static async Task Main(string[] args)
     ///         {
     ///             Client = new GridClient(); // instantiates the GridClient class
     ///                                        // to the global Client object
-    ///             // Login to Simulator
-    ///             Client.Network.Login("FirstName", "LastName", "Password", "FirstBot", "1.0");
+    ///             // Async login to Simulator using the new API
+    ///             var loginParams = Client.Network.DefaultLoginParams("FirstName", "LastName", "Password", "FirstBot", "1.0");
+    ///             bool success = await Client.Network.LoginAsync(loginParams);
+    ///             if (success)
+    ///             {
+    ///                 Console.WriteLine("Login successful");
+    ///             }
+    /// 
     ///             // Wait for a Keypress
     ///             Console.ReadLine();
     ///             // Logout of simulator

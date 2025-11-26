@@ -43,24 +43,14 @@ namespace OpenMetaverse
 {
     #region Enums
 
-    /// <summary>
-    /// 
-    /// </summary>
     public enum LoginStatus
     {
-        /// <summary></summary>
         Failed = -1,
-        /// <summary></summary>
         None = 0,
-        /// <summary></summary>
         ConnectingToLogin,
-        /// <summary></summary>
         ReadingResponse,
-        /// <summary></summary>
         ConnectingToSim,
-        /// <summary></summary>
         Redirecting,
-        /// <summary></summary>
         Success
     }
 
@@ -110,9 +100,7 @@ namespace OpenMetaverse
         { }
     }
 
-    /// <summary>
-    /// Login Request Parameters
-    /// </summary>
+    /// <summary>Login Request Parameters</summary>
     public class LoginParams
     {
         /// <summary>The URL of the Login Server</summary>
@@ -331,7 +319,7 @@ namespace OpenMetaverse
         public int BuddyRightsHas;
     }
 
-    public struct HomeInfo
+    public class HomeInfo
     {
         public ulong RegionHandle;
         public Vector3 Position;
@@ -524,766 +512,38 @@ namespace OpenMetaverse
 
         private static List<T> GetListFromMap<T>(Hashtable reply, string key)
         {
-            if (!reply.ContainsKey(key))
+            if (!reply.ContainsKey(key) || !(reply[key] is ArrayList valArray))
             {
                 return new List<T>();
             }
 
-            if (!(reply[key] is ArrayList valArray))
-            {
-                return new List<T>();
-            }
-
-            return valArray
-                .OfType<T>()
-                .ToList();
+            return valArray.OfType<T>().ToList();
         }
 
         private static int GetIntFromMap(OSDMap reply, string key, int defaultValue)
         {
-            if (reply.TryGetValue(key, out var osd))
-            {
-                return osd.AsInteger();
-            }
-            return defaultValue;
+            return reply.TryGetValue(key, out var osd) ? osd.AsInteger() : defaultValue;
         }
 
         private static double GetRealFromMap(OSDMap reply, string key, double defaultValue)
         {
-            if (reply.TryGetValue(key, out var osd))
-            {
-                return osd.AsReal();
-            }
-            return defaultValue;
+            return reply.TryGetValue(key, out var osd) ? osd.AsReal() : defaultValue;
         }
 
         private static string GetStringFromMap(OSDMap reply, string key, string defaultValue)
         {
-            if (reply.TryGetValue(key, out var osd))
-            {
-                return osd.AsString();
-            }
-            return defaultValue;
+            return reply.TryGetValue(key, out var osd) ? osd.AsString() : defaultValue;
         }
 
         private static List<T> GetListFromMap<T>(OSDMap reply, string key)
         {
-            if(!reply.TryGetValue(key, out var osd))
-            {
-                return new List<T>();
-            }
-
-            if(!(osd is OSDArray osdArray))
+            if(!reply.TryGetValue(key, out var osd) || !(osd is OSDArray osdArray))
             {
                 return new List<T>();
             }
 
             return new List<T>(osdArray);
         }
-    }
-
-    /// <summary>
-    /// The decoded data returned from the login server after a successful login
-    /// </summary>
-    public struct LoginResponseData
-    {
-        /// <summary>true, false, indeterminate</summary>
-        public string Login;
-        public bool Success;
-        public string Reason;
-        /// <summary>Login message of the day</summary>
-        public string Message;
-        public bool FirstLogin;
-        public UUID AgentID;
-        public UUID SessionID;
-        public UUID SecureSessionID;
-        public string MfaHash;
-        public string FirstName;
-        public string LastName;
-        public string StartLocation;
-        public string AccountType;
-        public string AgentAccess;
-        public string AgentAccessMax;
-        public string AgentRegionAccess;
-        public string InitialOutfit;
-        public Vector3 LookAt;
-        public HomeInfo Home;
-        public int CircuitCode;
-        public uint RegionX;
-        public uint RegionY;
-        public uint RegionSizeX;
-        public uint RegionSizeY;
-        public ushort SimPort;
-        public IPAddress SimIP;
-        public string SeedCapability;
-        public BuddyListEntry[] BuddyList;
-        public int SecondsSinceEpoch;
-        public string UDPBlacklist;
-        public int MaxAgentGroups;
-        public string OpenIDUrl;
-        public string AgentAppearanceServiceURL;
-        public string MapServerUrl;
-        public string SnapshotConfigUrl;
-        public uint COFVersion;
-        public AccountLevelBenefits AccountLevelBenefits;
-        public Hashtable PremiumPackages;
-        public ArrayList ClassifiedCategories;
-        public ArrayList EventCategories;
-        public ArrayList GlobalTextures;
-        public ArrayList UiConfig;
-
-        #region Inventory
-
-        public UUID InventoryRoot;
-        public UUID LibraryRoot;
-        public InventoryFolder[] InventorySkeleton;
-        public InventoryFolder[] LibrarySkeleton;
-        public UUID LibraryOwner;
-        public Dictionary<UUID, UUID> Gestures;
-
-        #endregion
-
-        #region Redirection
-
-        public string NextMethod;
-        public string NextUrl;
-        public string[] NextOptions;
-        public int NextDuration;
-
-        #endregion
-
-        /// <summary>
-        /// Parse LLSD Login Reply Data
-        /// </summary>
-        /// <param name="reply">An <see cref="OSDMap"/> 
-        /// containing the login response data</param>
-        /// <remarks>XML-RPC logins do not require this as XML-RPC.NET 
-        /// automatically populates the struct properly using attributes</remarks>
-        public void Parse(OSDMap reply)
-        {
-            try
-            {
-                AgentID = ParseUUID("agent_id", reply);
-                SessionID = ParseUUID("session_id", reply);
-                SecureSessionID = ParseUUID("secure_session_id", reply);
-                FirstName = ParseString("first_name", reply).Trim('"').Trim(); // lol but necessary, unfortunately.
-                LastName = ParseString("last_name", reply).Trim('"').Trim();
-                StartLocation = ParseString("start_location", reply);
-                AgentAccess = ParseString("agent_access", reply);
-                AgentAccessMax = ParseString("agent_access_max", reply);
-                AgentRegionAccess = ParseString("agent_region_access", reply);
-                LookAt = ParseVector3("look_at", reply);
-                Reason = ParseString("reason", reply);
-                Message = ParseString("message", reply);
-
-                Login = reply["login"].AsString();
-                Success = reply["login"].AsBoolean();
-            }
-            catch (OSDException e)
-            {
-                Logger.Log("Login server returned (some) invalid data", LogLevel.Warning, e);
-            }
-
-            // Home
-            if (reply.ContainsKey("home_info"))
-            {
-                if (reply["home_info"].Type == OSDType.Map)
-                {
-                    var map = (OSDMap)reply["home_info"];
-                    Home.Position = ParseVector3("position", map);
-                    Home.LookAt = ParseVector3("look_at", map);
-
-                    var coords = (OSDArray)OSDParser.DeserializeLLSDNotation(map["region_handle"].ToString());
-                    if (coords.Type == OSDType.Array)
-                    {
-                        Home.RegionHandle = (coords.Count == 2)
-                            ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
-                    }
-                }
-            }
-            else if (reply.ContainsKey("home"))
-            {
-                var osdHome = OSDParser.DeserializeLLSDNotation(reply["home"].AsString());
-
-                if (osdHome.Type == OSDType.Map)
-                {
-                    var home = (OSDMap)osdHome;
-
-                    if (home.TryGetValue("region_handle", out var homeRegion) && homeRegion.Type == OSDType.Array)
-                    {
-                        var homeArray = (OSDArray)homeRegion;
-                        Home.RegionHandle = homeArray.Count == 2
-                            ? Utils.UIntsToLong((uint)homeArray[0].AsInteger(), (uint)homeArray[1].AsInteger())
-                            : 0;
-                    }
-
-                    Home.Position = ParseVector3("position", home);
-                    Home.LookAt = ParseVector3("look_at", home);
-                }
-            }
-            else
-            {
-                Home.RegionHandle = 0;
-                Home.Position = Vector3.Zero;
-                Home.LookAt = Vector3.Zero;
-            }
-
-            CircuitCode = (int)ParseUInt("circuit_code", reply);
-            RegionX = ParseUInt("region_x", reply);
-            RegionY = ParseUInt("region_y", reply);
-            // Region size is returned by OpenSimulator derived systems but not SL
-            RegionSizeX = reply.ContainsKey("region_size_x") ? ParseUInt("region_size_x", reply) : Simulator.DefaultRegionSizeX;
-            RegionSizeY = reply.ContainsKey("region_size_y") ? ParseUInt("region_size_y", reply) : Simulator.DefaultRegionSizeY;
-            SimPort = (ushort)ParseUInt("sim_port", reply);
-            var simIP = ParseString("sim_ip", reply);
-            IPAddress.TryParse(simIP, out SimIP);
-            SeedCapability = ParseString("seed_capability", reply);
-
-            // Buddy list
-            if (reply.TryGetValue("buddy-list", out var buddyLLSD) && buddyLLSD.Type == OSDType.Array)
-            {
-                var buddys = new List<BuddyListEntry>();
-                var buddyArray = (OSDArray)buddyLLSD;
-                foreach (var t in buddyArray)
-                {
-                    if (t.Type == OSDType.Map)
-                    {
-                        var bud = new BuddyListEntry();
-                        var buddy = (OSDMap)t;
-
-                        bud.BuddyId = buddy["buddy_id"].AsString();
-                        bud.BuddyRightsGiven = (int)ParseUInt("buddy_rights_given", buddy);
-                        bud.BuddyRightsHas = (int)ParseUInt("buddy_rights_has", buddy);
-
-                        buddys.Add(bud);
-                    }
-                    BuddyList = buddys.ToArray();
-                }
-            }
-
-            SecondsSinceEpoch = (int)ParseUInt("seconds_since_epoch", reply);
-
-            InventoryRoot = ParseMappedUUID("inventory-root", "folder_id", reply);
-            InventorySkeleton = ParseInventorySkeleton("inventory-skeleton", reply);
-
-            LibraryOwner = ParseMappedUUID("inventory-lib-owner", "agent_id", reply);
-            LibraryRoot = ParseMappedUUID("inventory-lib-root", "folder_id", reply);
-            LibrarySkeleton = ParseInventorySkeleton("inventory-skel-lib", reply);
-
-            if (reply.ContainsKey("mfa_hash"))
-            {
-                MfaHash = ParseString("mfa_hash", reply);
-            }
-
-            if (reply.ContainsKey("account_level_benefits"))
-            {
-                if (reply["account_level_benefits"].Type == OSDType.Map)
-                {
-                    AccountLevelBenefits = new AccountLevelBenefits((OSDMap)reply["account_level_benefits"]);
-                }
-            }
-
-            if (reply.ContainsKey("classified_categories"))
-            {
-                if (reply["classified_categories"].Type == OSDType.Array)
-                {
-                    ClassifiedCategories = ((OSDArray)reply["classified_categories"]).ToArrayList();
-                }
-            }
-
-            if (reply.ContainsKey("event_categories"))
-            {
-                if (reply["event_categories"].Type == OSDType.Array)
-                {
-                    EventCategories = ((OSDArray)reply["event_categories"]).ToArrayList();
-                }
-            }
-
-            if (reply.ContainsKey("global-textures"))
-            {
-                if (reply["global-textures"].Type == OSDType.Array)
-                {
-                    GlobalTextures = ((OSDArray)reply["global-textures"]).ToArrayList();
-                }
-            }
-
-            if (reply.ContainsKey("premium_packages"))
-            {
-                if (reply["premium_packages"].Type == OSDType.Map)
-                {
-                    PremiumPackages = ((OSDMap)reply["premium_packages"]).ToHashtable();
-                }
-            }
-
-            if (reply.ContainsKey("ui-config"))
-            {
-                if (reply["ui-config"].Type == OSDType.Array)
-                {
-                    UiConfig = ((OSDArray)reply["ui-config"]).ToArrayList();
-                }
-            }
-
-            if (reply.ContainsKey("max-agent-groups"))
-            {
-                MaxAgentGroups = (int)ParseUInt("max-agent-groups", reply);
-            }
-            else
-            {
-                MaxAgentGroups = -1;
-            }
-        }
-
-        public void Parse(Hashtable reply)
-        {
-            try
-            {
-                AgentID = ParseUUID("agent_id", reply);
-                SessionID = ParseUUID("session_id", reply);
-                SecureSessionID = ParseUUID("secure_session_id", reply);
-                FirstName = ParseString("first_name", reply).Trim('"');
-                LastName = ParseString("last_name", reply).Trim('"');
-                // "first_login" for brand-new accounts
-                StartLocation = ParseString("start_location", reply);
-                AgentAccess = ParseString("agent_access", reply);
-                LookAt = ParseVector3("look_at", reply);
-                Reason = ParseString("reason", reply);
-                Message = ParseString("message", reply);
-
-                if (reply.ContainsKey("login"))
-                {
-                    Login = (string)reply["login"];
-                    Success = Login == "true";
-
-                    // Parse redirect options
-                    if (Login == "indeterminate")
-                    {
-                        NextUrl = ParseString("next_url", reply);
-                        NextDuration = (int)ParseUInt("next_duration", reply);
-                        NextMethod = ParseString("next_method", reply);
-                        NextOptions = (string[])((ArrayList)reply["next_options"]).ToArray(typeof(string));
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Logger.Log("Login server returned (some) invalid data: " + e.Message, LogLevel.Warning);
-            }
-            if (!Success) { return; }
-
-            // HomeInfo
-            try
-            {
-                if (reply.ContainsKey("home_info"))
-                {
-                    if (reply["home_info"] is Hashtable map)
-                    {
-                        Home.Position = ParseVector3("position", map);
-                        Home.LookAt = ParseVector3("look_at", map);
-
-                        var coords = (OSDArray)OSDParser.DeserializeLLSDNotation(map["region_handle"].ToString());
-                        if (coords.Type == OSDType.Array)
-                        {
-                            Home.RegionHandle = (coords.Count == 2)
-                                ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
-                        }
-                    }
-                }
-
-                // Home
-                if (Home.RegionHandle == 0 && reply.ContainsKey("home"))
-                {
-                    if (reply["home"] is Hashtable map)
-                    {
-                        Home.Position = ParseVector3("position", map);
-                        Home.LookAt = ParseVector3("look_at", map);
-
-                        var coords = (OSDArray)OSDParser.DeserializeLLSDNotation(map["region_handle"].ToString());
-                        if (coords.Type == OSDType.Array)
-                        {
-                            Home.RegionHandle = (coords.Count == 2)
-                                ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
-                        }
-                    }
-                    else if (reply["home"] is string osdString)
-                    {
-                        var osdHome = OSDParser.DeserializeLLSDNotation(reply["home"].ToString());
-
-                        if (osdHome.Type == OSDType.Map)
-                        {
-                            var home = (OSDMap)osdHome;
-
-                            if (home.TryGetValue("region_handle", out var homeRegion) && homeRegion.Type == OSDType.Array)
-                            {
-                                var coords = (OSDArray)homeRegion;
-                                Home.RegionHandle = (coords.Count == 2)
-                                    ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
-
-                            }
-                            Home.Position = ParseVector3("position", home);
-                            Home.LookAt = ParseVector3("look_at", home);
-                        }
-                    }
-                    else
-                    {
-                        throw new LoginException("Could not parse 'home' in Login Response");
-                    }
-                }
-            } catch (Exception ex)
-            {
-                Logger.Log("Could not parse home info from login response. Setting nil", LogLevel.Warning, ex);
-                Home = new HomeInfo();
-            }
-
-            CircuitCode = (int)ParseUInt("circuit_code", reply);
-            RegionX = ParseUInt("region_x", reply);
-            RegionY = ParseUInt("region_y", reply);
-            // Region size is returned by OpenSimulator derived systems but not SL
-            RegionSizeX = reply.ContainsKey("region_size_x") ? ParseUInt("region_size_x", reply) : Simulator.DefaultRegionSizeX;
-            RegionSizeY = reply.ContainsKey("region_size_y") ? ParseUInt("region_size_y", reply) : Simulator.DefaultRegionSizeY;
-            SimPort = (ushort)ParseUInt("sim_port", reply);
-            var simIP = ParseString("sim_ip", reply);
-            IPAddress.TryParse(simIP, out SimIP);
-            SeedCapability = ParseString("seed_capability", reply);
-
-            // Buddy list
-            if (reply.ContainsKey("buddy-list") && reply["buddy-list"] is ArrayList)
-            {
-                var buddys = new List<BuddyListEntry>();
-
-                var buddyArray = (ArrayList)reply["buddy-list"];
-                foreach (var t in buddyArray)
-                {
-                    if (!(t is Hashtable buddy)) continue;
-
-                    var bud = new BuddyListEntry
-                    {
-                        BuddyId = ParseString("buddy_id", buddy),
-                        BuddyRightsGiven = (int)ParseUInt("buddy_rights_given", buddy),
-                        BuddyRightsHas = (int)ParseUInt("buddy_rights_has", buddy)
-                    };
-
-                    buddys.Add(bud);
-                }
-
-                BuddyList = buddys.ToArray();
-            }
-
-            SecondsSinceEpoch = (int)ParseUInt("seconds_since_epoch", reply);
-
-            InventoryRoot = ParseMappedUUID("inventory-root", "folder_id", reply);
-            InventorySkeleton = ParseInventorySkeleton("inventory-skeleton", reply);
-
-            LibraryOwner = ParseMappedUUID("inventory-lib-owner", "agent_id", reply);
-            LibraryRoot = ParseMappedUUID("inventory-lib-root", "folder_id", reply);
-            LibrarySkeleton = ParseInventorySkeleton("inventory-skel-lib", reply);
-            
-            AccountType = ParseString("account_type", reply);
-            AgentAppearanceServiceURL = ParseString("agent_appearance_service", reply);
-            COFVersion = ParseUInt("cof_version", reply);
-            MapServerUrl = ParseString("map-server-url", reply);
-            OpenIDUrl = ParseString("openid_url", reply);
-            SnapshotConfigUrl = ParseString("snapshot_config_url", reply);
-            UDPBlacklist = ParseString("udp_blacklist", reply);
-
-            if (reply.ContainsKey("mfa_hash"))
-            {
-                MfaHash = ParseString("mfa_hash", reply);
-            }
-
-            if (reply.ContainsKey("account_level_benefits"))
-            {
-                if (reply?["account_level_benefits"] is Hashtable accountLevelBenefitsTable)
-                {
-                    AccountLevelBenefits = new AccountLevelBenefits(accountLevelBenefitsTable);
-                }
-            }
-
-            if (reply.ContainsKey("classified_categories"))
-            {
-                if (reply?["classified_categories"] is ArrayList)
-                {
-                    ClassifiedCategories = (ArrayList)reply["classified_categories"];
-                }
-            }
-
-            if (reply.ContainsKey("event_categories"))
-            {
-                if (reply?["event_categories"] is ArrayList)
-                {
-                    EventCategories = (ArrayList)reply["event_categories"];
-                }
-            }
-
-            if (reply.ContainsKey("global-textures"))
-            {
-                if (reply?["global-textures"] is ArrayList)
-                {
-                    GlobalTextures = (ArrayList)reply["global-textures"];
-                }
-            }
-
-            if (reply.ContainsKey("premium_packages"))
-            {
-                if (reply?["premium_packages"] is Hashtable)
-                {
-                    PremiumPackages = (Hashtable)reply["premium_packages"];
-                }
-            }
-
-            if (reply.ContainsKey("ui-config"))
-            {
-                if (reply?["ui-config"] is ArrayList)
-                {
-                    UiConfig = (ArrayList)reply["ui-config"];
-                }
-            }
-
-            if (reply.ContainsKey("max-agent-groups"))
-            {
-                MaxAgentGroups = (int)ParseUInt("max-agent-groups", reply);
-            }
-            else
-            {
-                MaxAgentGroups = -1;
-            }
-
-
-            InitialOutfit = string.Empty;
-            if (reply.ContainsKey("initial-outfit") && reply["initial-outfit"] is ArrayList)
-            {
-                var array = (ArrayList)reply["initial-outfit"];
-                foreach (var t in array)
-                {
-                    if (!(t is Hashtable map)) continue;
-
-                    InitialOutfit = ParseString("folder_name", map);
-                }
-            }
-
-            Gestures = new Dictionary<UUID, UUID>();
-            if (reply.ContainsKey("gestures") && reply["gestures"] is ArrayList)
-            {
-                var gestureMaps = (ArrayList)reply["gestures"];
-                foreach (var item in gestureMaps)
-                {
-                    if (!(item is Hashtable gestureMap) || !gestureMap.ContainsKey("item_id") || !gestureMap.ContainsKey("asset_id"))
-                    {
-                        continue;
-                    }
-
-                    if (!UUID.TryParse(gestureMap["item_id"].ToString(), out var itemId))
-                    {
-                        continue;
-                    }
-
-                    if (!UUID.TryParse(gestureMap["asset_id"].ToString(), out var assetId))
-                    {
-                        continue;
-                    }
-
-                    Gestures.Add(itemId, assetId);
-                }
-            }
-
-            FirstLogin = false;
-            if (reply.ContainsKey("login-flags") && reply["login-flags"] is ArrayList)
-            {
-                var array = (ArrayList)reply["login-flags"];
-                foreach (var t in array)
-                {
-                    if (!(t is Hashtable map)) continue;
-
-                    FirstLogin = ParseString("ever_logged_in", map) == "N";
-                }
-            }
-
-
-        }
-
-        #region Parsing Helpers
-
-        public static uint ParseUInt(string key, OSDMap reply)
-        {
-            return reply.TryGetValue(key, out var osd) ? osd.AsUInteger() : 0;
-        }
-
-        public static uint ParseUInt(string key, Hashtable reply)
-        {
-            if (!reply.ContainsKey(key)) return 0;
-
-            var value = reply[key];
-            if (value is int i)
-                return (uint)i;
-
-            return 0;
-        }
-
-        public static UUID ParseUUID(string key, OSDMap reply)
-        {
-            return reply.TryGetValue(key, out var osd) ? osd.AsUUID() : UUID.Zero;
-        }
-
-        public static UUID ParseUUID(string key, Hashtable reply)
-        {
-            if (!reply.ContainsKey(key)) return UUID.Zero;
-
-            return UUID.TryParse((string)reply[key], out var value) ? value : UUID.Zero;
-        }
-
-        public static string ParseString(string key, OSDMap reply)
-        {
-            return reply.TryGetValue(key, out var osd) ? osd.AsString() : string.Empty;
-        }
-
-        public static string ParseString(string key, Hashtable reply)
-        {
-            return reply.ContainsKey(key) ? $"{reply[key]}" : string.Empty;
-        }
-
-        public static Vector3 ParseVector3(string key, OSDMap reply)
-        {
-            if (!reply.TryGetValue(key, out var osd)) return Vector3.Zero;
-
-            switch (osd.Type)
-            {
-                case OSDType.Array:
-                    return ((OSDArray)osd).AsVector3();
-                case OSDType.String:
-                    var array = (OSDArray)OSDParser.DeserializeLLSDNotation(osd.AsString());
-                    return array.AsVector3();
-            }
-
-            return Vector3.Zero;
-        }
-
-        public static Vector3 ParseVector3(string key, Hashtable reply)
-        {
-            if (!reply.ContainsKey(key)) return Vector3.Zero;
-            var value = reply[key];
-
-            if (value is IList list1)
-            {
-                var list = list1;
-                if (list.Count == 3)
-                {
-                    float.TryParse((string)list[0], out var x);
-                    float.TryParse((string)list[1], out var y);
-                    float.TryParse((string)list[2], out var z);
-
-                    return new Vector3(x, y, z);
-                }
-            }
-            else if (value is string str)
-            {
-                var array = (OSDArray)OSDParser.DeserializeLLSDNotation(str);
-                return array.AsVector3();
-            }
-
-            return Vector3.Zero;
-        }
-
-        public static UUID ParseMappedUUID(string key, string key2, OSDMap reply)
-        {
-            if (!reply.TryGetValue(key, out var folderOSD) || folderOSD.Type != OSDType.Array) {return UUID.Zero;}
-
-            var array = (OSDArray)folderOSD;
-            if (array.Count == 1 && array[0].Type == OSDType.Map)
-            {
-                var map = (OSDMap)array[0];
-                if (map.TryGetValue(key2, out var folder))
-                    return folder.AsUUID();
-            }
-
-            return UUID.Zero;
-        }
-
-        public static UUID ParseMappedUUID(string key, string key2, Hashtable reply)
-        {
-            if (!reply.ContainsKey(key) || !(reply[key] is ArrayList)) {return UUID.Zero;}
-
-            var array = (ArrayList)reply[key];
-            if (array.Count == 1 && array[0] is Hashtable)
-            {
-                var map = (Hashtable)array[0];
-                return ParseUUID(key2, map);
-            }
-
-            return UUID.Zero;
-        }
-
-        public static InventoryFolder[] ParseInventoryFolders(string key, UUID owner, OSDMap reply)
-        {
-            var folders = new List<InventoryFolder>();
-
-            if (!reply.TryGetValue(key, out var skeleton) || skeleton.Type != OSDType.Array) {return folders.ToArray();}
-
-            var array = (OSDArray)skeleton;
-
-            folders.AddRange(from t in array
-                where t.Type == OSDType.Map
-                select (OSDMap)t
-                into map
-                select new InventoryFolder(map["folder_id"].AsUUID())
-                {
-                    PreferredType = (FolderType)map["type_default"].AsInteger(),
-                    Version = map["version"].AsInteger(),
-                    OwnerID = owner,
-                    ParentUUID = map["parent_id"].AsUUID(),
-                    Name = map["name"].AsString()
-                });
-
-            return folders.ToArray();
-        }
-
-        public InventoryFolder[] ParseInventorySkeleton(string key, OSDMap reply)
-        {
-            var folders = new List<InventoryFolder>();
-
-            if (!reply.TryGetValue(key, out var skeleton) || skeleton.Type != OSDType.Array) {return folders.ToArray();}
-            var array = (OSDArray)skeleton;
-            folders.AddRange(from t in array
-                where t.Type == OSDType.Map
-                select (OSDMap)t
-                into map
-                select new InventoryFolder(map["folder_id"].AsUUID())
-                {
-                    Name = map["name"].AsString(),
-                    ParentUUID = map["parent_id"].AsUUID(),
-                    PreferredType = (FolderType)map["type_default"].AsInteger(),
-                    Version = map["version"].AsInteger()
-                });
-            return folders.ToArray();
-        }
-
-        public InventoryFolder[] ParseInventorySkeleton(string key, Hashtable reply)
-        {
-            UUID ownerID;
-            ownerID = key.Equals("inventory-skel-lib") ? LibraryOwner : AgentID;
-
-            var folders = new List<InventoryFolder>();
-
-            if (!reply.ContainsKey(key) || !(reply[key] is ArrayList)) {return folders.ToArray();}
-
-            var array = (ArrayList)reply[key];
-            foreach (var t in array)
-            {
-                if (!(t is Hashtable map)) continue;
-                var folder = new InventoryFolder(ParseUUID("folder_id", map))
-                {
-                    Name = ParseString("name", map),
-                    ParentUUID = ParseUUID("parent_id", map),
-                    PreferredType = (FolderType)ParseUInt("type_default", map),
-                    Version = (int)ParseUInt("version", map),
-                    OwnerID = ownerID
-                };
-
-                folders.Add(folder);
-            }
-
-            return folders.ToArray();
-        }
-
-        #endregion Parsing Helpers
     }
 
     #endregion Structs
@@ -1300,7 +560,11 @@ namespace OpenMetaverse
     }
     
     /// <summary>
-    /// Login Routines
+    /// Provides login routines and network-related state used during the
+    /// login sequence. This partial class contains methods and events used to
+    /// perform credential exchange with the grid login service, handle
+    /// redirects and multifactor challenges, and establish a connection to
+    /// the simulator returned by the login reply.
     /// </summary>
     public partial class NetworkManager
     {
@@ -1327,30 +591,6 @@ namespace OpenMetaverse
             add { lock (m_LoginProgressLock) { m_LoginProgress += value; } }
             remove { lock (m_LoginProgressLock) { m_LoginProgress -= value; } }
         }
-
-        ///// <summary>The event subscribers, null if no subscribers</summary>
-        //private EventHandler<LoggedInEventArgs> m_LoggedIn;
-
-        /////<summary>Raises the LoggedIn Event</summary>
-        ///// <param name="e">A LoggedInEventArgs object containing
-        ///// the data sent from the simulator</param>
-        //protected virtual void OnLoggedIn(LoggedInEventArgs e)
-        //{
-        //    EventHandler<LoggedInEventArgs> handler = m_LoggedIn;
-        //    if (handler != null)
-        //        handler(this, e);
-        //}
-
-        ///// <summary>Thread sync lock object</summary>
-        //private readonly object m_LoggedInLock = new object();
-
-        ///// <summary>Raised when the simulator sends us data containing
-        ///// ...</summary>
-        //public event EventHandler<LoggedInEventArgs> LoggedIn
-        //{
-        //    add { lock (m_LoggedInLock) { m_LoggedIn += value; } }
-        //    remove { lock (m_LoggedInLock) { m_LoggedIn -= value; } }
-        //}
 
         /// <summary>
         /// 
@@ -1383,10 +623,6 @@ namespace OpenMetaverse
         /// type of login error that occurred</summary>
         public string LoginErrorKey { get; private set; } = string.Empty;
 
-        /// <summary>The raw XML-RPC reply from the login server, exactly as it
-        /// was received (minus the HTTP header)</summary>
-        public string RawLoginReply { get; } = string.Empty;
-
         /// <summary>During login this contains a descriptive version of 
         /// LoginStatusCode. After a successful login this will contain the 
         /// message of the day, and after a failed login a descriptive error 
@@ -1405,7 +641,13 @@ namespace OpenMetaverse
         #region Private Members
         
         private LoginParams CurrentContext = null;
-        private readonly AutoResetEvent LoginEvent = new AutoResetEvent(false);
+        // Cancellation token source for the active login request
+        private CancellationTokenSource loginCts;
+        // TaskCompletionSource used for async login waiting
+        private TaskCompletionSource<bool> loginTcs;
+        // Carries the parsed LoginResponseData result for the async API
+        private TaskCompletionSource<LoginResponseData> loginResultTcs;
+
         private readonly Dictionary<LoginResponseCallback, string[]> CallbackOptions = new Dictionary<LoginResponseCallback, string[]>();
 
         /// <summary>A list of packets obtained during the login process which 
@@ -1449,6 +691,7 @@ namespace OpenMetaverse
         /// <returns>Whether the login was successful or not. On failure the
         /// LoginErrorKey string will contain the error code and LoginMessage
         /// will contain a description of the error</returns>
+        [Obsolete("Use LoginAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
         public bool Login(string firstName, string lastName, string password, string channel, string version)
         {
             return Login(firstName, lastName, password, channel, "last", version);
@@ -1486,6 +729,7 @@ namespace OpenMetaverse
         /// Login that works via a SeedCap to allow logins to occur on another host with the details passed in here.
         /// </summary>
         /// <returns>Whether we are able to connect to a simulator using this data</returns>
+        [Obsolete("Use LoginWithResponseAsync or LoginAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
         public bool Login(string fullLLSD, string seedcap, string username, UUID agentID, UUID sessionID,
                           UUID secureSessionID, string host, uint port, int circuitCode, uint regionX, uint regionY)
         {
@@ -1496,8 +740,8 @@ namespace OpenMetaverse
                     AgentID = agentID, SessionID = sessionID, SecureSessionID = secureSessionID,
                     CircuitCode = circuitCode,
                     RegionX = regionX, RegionY = regionY, SeedCapability = seedcap, SimIP = IPAddress.Parse(host),
-                    SimPort = (ushort)port, Success = true
-                };
+                    SimPort = (ushort)port, Login = LoginState.True
+                 };
             }
             else
             {
@@ -1566,6 +810,7 @@ namespace OpenMetaverse
         /// <returns>Whether the login was successful or not. On failure the
         /// LoginErrorKey string will contain the error code and LoginMessage
         /// will contain a description of the error</returns>
+        [Obsolete("Use LoginAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
         public bool Login(string firstName, string lastName, string password, string channel, string start,
             string version)
         {
@@ -1584,21 +829,17 @@ namespace OpenMetaverse
         /// <returns>Whether the login was successful or not. On failure the
         /// LoginErrorKey string will contain the error code and LoginMessage
         /// will contain a description of the error</returns>
+        [Obsolete("Use LoginAsync(LoginParams) or LoginWithResponseAsync(LoginParams) instead (async-first). This synchronous wrapper will block the calling thread.")]
         public bool Login(LoginParams loginParams)
         {
-            BeginLogin(loginParams);
-
-            LoginEvent.WaitOne(loginParams.Timeout, false);
-
-            if (CurrentContext != null)
+            try
             {
-                CurrentContext = null; // Will force any pending callbacks to bail out early
-                LoginStatusCode = LoginStatus.Failed;
-                LoginMessage = "Timed out";
+                return LoginAsync(loginParams).GetAwaiter().GetResult();
+            }
+            catch
+            {
                 return false;
             }
-
-            return (LoginStatusCode == LoginStatus.Success);
         }
 
         public void BeginLogin(LoginParams loginParams)
@@ -1606,10 +847,140 @@ namespace OpenMetaverse
             // FIXME: Now that we're using CAPS we could cancel the current login and start a new one
             if (CurrentContext != null) {throw new LoginException("Login already in progress");}
 
-            LoginEvent.Reset();
+            // initialize async wait primitives
+            loginTcs?.TrySetResult(false);
+            loginTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            loginResultTcs?.TrySetCanceled();
+            loginResultTcs = new TaskCompletionSource<LoginResponseData>(TaskCreationOptions.RunContinuationsAsynchronously);
+
             CurrentContext = loginParams;
 
             BeginLogin();
+        }
+
+        /// <summary>
+        /// Async version of Login that returns a Task and supports cancellation.
+        /// </summary>
+        public async Task<bool> LoginAsync(LoginParams loginParams, CancellationToken cancellationToken = default)
+        {
+            BeginLogin(loginParams);
+
+            // Wait for parsed login response or timeout/cancellation
+            using (var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+            {
+                var timeoutTask = Task.Delay(loginParams.Timeout, linked.Token);
+                var completed = await Task.WhenAny(loginResultTcs.Task, timeoutTask).ConfigureAwait(false);
+                if (completed == timeoutTask)
+                {
+                    try { loginCts?.Cancel(); } catch { }
+                    UpdateLoginStatus(LoginStatus.Failed, "Timed out");
+                    return false;
+                }
+
+                try
+                {
+                    var parsed = await loginResultTcs.Task.ConfigureAwait(false);
+                    return parsed != null && parsed.Success;
+                }
+                catch (OperationCanceledException)
+                {
+                    UpdateLoginStatus(LoginStatus.Failed, "Canceled");
+                    return false;
+                }
+                catch
+                {
+                    UpdateLoginStatus(LoginStatus.Failed, "Login failed");
+                    return false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Async convenience overload that returns the parsed LoginResponseData.
+        /// </summary>
+        public async Task<LoginResponseData> LoginWithResponseAsync(LoginParams loginParams, CancellationToken cancellationToken = default)
+        {
+            BeginLogin(loginParams);
+
+            using (var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+            {
+                var timeoutTask = Task.Delay(loginParams.Timeout, linked.Token);
+                var completed = await Task.WhenAny(loginResultTcs.Task, timeoutTask).ConfigureAwait(false);
+                if (completed == timeoutTask)
+                {
+                    try { loginCts?.Cancel(); } catch { }
+                    UpdateLoginStatus(LoginStatus.Failed, "Timed out");
+                    return null;
+                }
+
+                try
+                {
+                    return await loginResultTcs.Task.ConfigureAwait(false);
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Async version of Login that returns a Task and supports cancellation.
+        /// </summary>
+        public Task<bool> LoginAsync(string firstName, string lastName, string password, string channel, string start, string version, CancellationToken cancellationToken = default)
+        {
+            var loginParams = DefaultLoginParams(firstName, lastName, password, channel, version);
+            loginParams.Start = start;
+            return LoginAsync(loginParams, cancellationToken);
+        }
+
+        /// <summary>
+        /// Async convenience overload that accepts a pre-built LoginCredential instance.
+        /// </summary>
+        public Task<bool> LoginAsync(LoginCredential credential, string channel, string version, CancellationToken cancellationToken = default)
+        {
+            var loginParams = new LoginParams(Client, credential, channel, version);
+            return LoginAsync(loginParams, cancellationToken);
+        }
+
+        /// <summary>
+        /// Async convenience overload that accepts a pre-built LoginCredential instance and explicit start location.
+        /// </summary>
+        public Task<bool> LoginAsync(LoginCredential credential, string channel, string start, string version, CancellationToken cancellationToken = default)
+        {
+            var loginParams = new LoginParams(Client, credential, channel, version);
+            loginParams.Start = start;
+            return LoginAsync(loginParams, cancellationToken);
+        }
+
+        /// <summary>
+        /// Async convenience overload with explicit start location that returns the parsed LoginResponseData.
+        /// </summary>
+        public Task<LoginResponseData> LoginWithResponseAsync(string firstName, string lastName, string password, string channel, string start, string version, CancellationToken cancellationToken = default)
+        {
+            var loginParams = DefaultLoginParams(firstName, lastName, password, channel, version);
+            loginParams.Start = start;
+            return LoginWithResponseAsync(loginParams, cancellationToken);
+        }
+
+        /// <summary>
+        /// Async convenience overload that accepts a pre-built LoginCredential instance and returns parsed LoginResponseData.
+        /// </summary>
+        public Task<LoginResponseData> LoginWithResponseAsync(LoginCredential credential, string channel, string version, CancellationToken cancellationToken = default)
+        {
+            var loginParams = new LoginParams(Client, credential, channel, version);
+            return LoginWithResponseAsync(loginParams, cancellationToken);
+        }
+
+        /// <summary>
+        /// Async convenience overload that accepts a pre-built LoginCredential instance with explicit start location and returns parsed LoginResponseData.
+        /// </summary>
+        public Task<LoginResponseData> LoginWithResponseAsync(LoginCredential credential, string channel, string start, string version, CancellationToken cancellationToken = default)
+        {
+            var loginParams = new LoginParams(Client, credential, channel, version);
+            loginParams.Start = start;
+            return LoginWithResponseAsync(loginParams, cancellationToken);
         }
 
         public void RegisterLoginResponseCallback(LoginResponseCallback callback)
@@ -1631,7 +1002,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Build a start location URI for passing to the Login function
+        /// Build a start location URI for passing to the Login function.
         /// </summary>
         /// <param name="sim">Name of the simulator to start in</param>
         /// <param name="x">X coordinate to start at</param>
@@ -1642,10 +1013,19 @@ namespace OpenMetaverse
         {
             return $"uri:{sim}&{x}&{y}&{z}";
         }
+        /// <summary>
+        /// Abort the in-progress login attempt, if any. This will cancel outstanding
+        /// network requests and mark the login as failed. Any registered login
+        /// progress callbacks will receive a failure notification.
+        /// </summary>
         public void AbortLogin()
         {
             var loginParams = CurrentContext;
             CurrentContext = null; // Will force any pending callbacks to bail out early
+            // Cancel any active login request
+            try { loginCts?.Cancel(); } catch { }
+            try { loginCts?.Dispose(); loginCts = null; } catch { }
+            try { loginResultTcs?.TrySetCanceled(); } catch { }
             // FIXME: Now that we're using CAPS we could cancel the current login and start a new one
             if (loginParams == null)
             {
@@ -1792,10 +1172,31 @@ namespace OpenMetaverse
                 return;
             }
 
+            // prepare cancellation for this login
+            loginCts?.Dispose();
+            loginCts = new CancellationTokenSource();
+
             UpdateLoginStatus(LoginStatus.ConnectingToLogin,
                 $"Logging in as {loginParams.FirstName} {loginParams.LastName}...");
-            Task loginReq = Client.HttpCapsClient.PostRequestAsync(loginUri, OSDFormat.Xml, loginLLSD, 
-                CancellationToken.None, LoginReplyLLSDHandler);
+
+            // Use task-based PostAsync to get response and data, then pass to the async handler
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var (resp, data) = await Client.HttpCapsClient.PostAsync(loginUri, OSDFormat.Xml, loginLLSD, loginCts.Token).ConfigureAwait(false);
+                    await LoginReplyLLSDHandler(resp, data, null).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (loginCts.IsCancellationRequested)
+                {
+                    // login canceled
+                    UpdateLoginStatus(LoginStatus.Failed, "Login canceled");
+                }
+                catch (Exception ex)
+                {
+                    await LoginReplyLLSDHandler(null, null, ex).ConfigureAwait(false);
+                }
+            });
         }
 
         private void UpdateLoginStatus(LoginStatus status, string message)
@@ -1809,13 +1210,33 @@ namespace OpenMetaverse
             if (status == LoginStatus.Success || status == LoginStatus.Failed)
             {
                 CurrentContext = null;
-                LoginEvent.Set();
             }
 
             // Fire the login status callback
             if (m_LoginProgress != null)
             {
                 OnLoginProgress(new LoginProgressEventArgs(status, message, LoginErrorKey));
+            }
+
+            // set the TaskCompletionSource result for async waits
+            if (loginTcs != null)
+            {
+                if (status == LoginStatus.Success)
+                    loginTcs.TrySetResult(true);
+                else
+                    loginTcs.TrySetResult(false);
+            }
+
+            if (loginResultTcs != null && (status == LoginStatus.Success || status == LoginStatus.Failed))
+            {
+                if (status == LoginStatus.Success && LoginResponseData != null)
+                {
+                    loginResultTcs.TrySetResult(LoginResponseData);
+                }
+                else
+                {
+                    loginResultTcs.TrySetCanceled();
+                }
             }
         }
 
@@ -1825,7 +1246,7 @@ namespace OpenMetaverse
         /// <param name="response">Server response as <see cref="HttpResponseMessage"/></param>
         /// <param name="responseData">Payload response data</param>
         /// <param name="error">Any <see cref="Exception"/> returned from the request</param>
-        private void LoginReplyLLSDHandler(HttpResponseMessage response, byte[] responseData, Exception error)
+        private async Task LoginReplyLLSDHandler(HttpResponseMessage response, byte[] responseData, Exception error)
         {
             if (error != null)
             {
@@ -1858,9 +1279,18 @@ namespace OpenMetaverse
 
                         // Sleep for some amount of time while the servers work
                         var seconds = (int)LoginResponseData.ParseUInt("next_duration", resMap);
-                        Logger.Log($"Sleeping for {seconds} seconds during a login redirect",
+                        Logger.Log($"Delaying for {seconds} seconds during a login redirect",
                             LogLevel.Information);
-                        Thread.Sleep(seconds * 1000);
+                        try
+                        {
+                            // honor cancellation
+                            await Task.Delay(TimeSpan.FromSeconds(seconds), loginCts?.Token ?? CancellationToken.None).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            UpdateLoginStatus(LoginStatus.Failed, "Login canceled");
+                            return;
+                        }
 
                         // Ignore next_options for now
                         CurrentContext = loginParams;
@@ -1931,6 +1361,15 @@ namespace OpenMetaverse
                 // No LLSD response
                 LoginErrorKey = "bad response";
                 UpdateLoginStatus(LoginStatus.Failed, "Empty or corrupt login response");
+            }
+
+            // set the parsed result for LoginResponseData
+            if (loginResultTcs != null)
+            {
+                if (LoginStatusCode == LoginStatus.Success)
+                    loginResultTcs.TrySetResult(LoginResponseData);
+                else
+                    loginResultTcs.TrySetResult(null);
             }
         }
 
