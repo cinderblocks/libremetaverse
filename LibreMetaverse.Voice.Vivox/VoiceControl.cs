@@ -179,7 +179,7 @@ namespace LibreMetaverse.Voice.Vivox
             // Account events
             OnAccountLoginResponse += connector_OnAccountLoginResponse;
 
-            Logger.Log("Voice initialized", LogLevel.Information);
+            Logger.Info("Voice initialized");
 
             // If voice provisioning capability is already available,
             // proceed with voice startup. Otherwise, wait for CAPS to do it.
@@ -199,7 +199,7 @@ namespace LibreMetaverse.Voice.Vivox
         void connector_OnVoiceResponse(object sender, VoiceResponseEventArgs e)
         {
             if (e.StatusCode == 0) { return; }
-            Logger.Log($"{e.Message} on {sender}", LogLevel.Error);
+            Logger.Error($"{e.Message} on {sender}");
         }
 
         public void Stop()
@@ -314,7 +314,7 @@ namespace LibreMetaverse.Voice.Vivox
 
         void RequestVoiceProvision(Uri cap)
         {
-            Logger.Log("Requesting voice capability", LogLevel.Information);
+            Logger.Info("Requesting voice capability");
             _ = _client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(),
                 _posTokenSource.Token, cClient_OnComplete);
         }
@@ -347,7 +347,7 @@ namespace LibreMetaverse.Voice.Vivox
                     // Do we have voice capability?
                     if (vCap == null)
                     {
-                        Logger.Log("Null voice capability after event queue running", LogLevel.Warning);
+                        Logger.Warn("Null voice capability after event queue running");
                     }
                     else
                     {
@@ -385,7 +385,7 @@ namespace LibreMetaverse.Voice.Vivox
                 // Do we have voice capability?
                 if (vCap == null)
                 {
-                    Logger.Log("Null voice capability after event queue running", LogLevel.Warning);
+                    Logger.Warn("Null voice capability after event queue running");
                 }
                 else
                 {
@@ -441,7 +441,7 @@ namespace LibreMetaverse.Voice.Vivox
             var s = FindSession(e.SessionHandle, false);
             if (s == null)
             {
-                Logger.Log("Orphan participant", LogLevel.Error);
+                Logger.Error("Orphan participant");
                 return;
             }
             s.AddParticipant(e.Uri);
@@ -468,7 +468,7 @@ namespace LibreMetaverse.Voice.Vivox
             // Tell any user-facing code.
             OnSessionCreate?.Invoke(s, null);
 
-            Logger.Log("Added voice session in " + _regionName, LogLevel.Information);
+            Logger.Info("Added voice session in " + _regionName);
         }
 
         /// <summary>
@@ -486,7 +486,7 @@ namespace LibreMetaverse.Voice.Vivox
                     s.RegionName = _regionName;
                     _spatialSession = s;
 
-                    Logger.Log("Voice connected in " + _regionName, LogLevel.Information);
+                    Logger.Info("Voice connected in " + _regionName);
                     // Tell any user-facing code.
                     OnSessionCreate?.Invoke(s, null);
                     break;
@@ -497,7 +497,7 @@ namespace LibreMetaverse.Voice.Vivox
 
                     if (s != null)
                     {
-                        Logger.Log("Voice disconnected in " + s.RegionName, LogLevel.Information);
+                        Logger.Info("Voice disconnected in " + s.RegionName);
 
                         // Inform interested parties
                         OnSessionRemove?.Invoke(s, null);
@@ -614,11 +614,11 @@ namespace LibreMetaverse.Voice.Vivox
         {
             if (error != null)
             {
-                Logger.Log("Voice cap error " + error.Message, LogLevel.Error);
+                Logger.Error("Voice cap error " + error.Message);
                 return;
             }
 
-            Logger.Log("Voice provisioned", LogLevel.Information);
+            Logger.Info("Voice provisioned");
             ReportConnectionState(ConnectionState.Provisioned);
 
             var result = OSDParser.Deserialize(responseData);
@@ -643,7 +643,7 @@ namespace LibreMetaverse.Voice.Vivox
             // Test if the executable exists
             if (!File.Exists(_slvoicePath))
             {
-                Logger.Log("SLVoice is missing", LogLevel.Error);
+                Logger.Error("SLVoice is missing");
                 return;
             }
 
@@ -654,12 +654,12 @@ namespace LibreMetaverse.Voice.Vivox
         #region Daemon
         void connector_OnDaemonCouldntConnect()
         {
-            Logger.Log("No voice daemon connect", LogLevel.Error);
+            Logger.Error("No voice daemon connect");
         }
 
         void connector_OnDaemonCouldntRun()
         {
-            Logger.Log("Daemon not started", LogLevel.Error);
+            Logger.Error("Daemon not started");
         }
 
         /// <summary>
@@ -669,7 +669,7 @@ namespace LibreMetaverse.Voice.Vivox
         {
             OnDaemonRunning -= connector_OnDaemonRunning;
 
-            Logger.Log("Daemon started", LogLevel.Information);
+            Logger.Info("Daemon started");
             ReportConnectionState(ConnectionState.DaemonStarted);
 
             // STEP 2
@@ -682,7 +682,7 @@ namespace LibreMetaverse.Voice.Vivox
         /// </summary>
         void connector_OnDaemonConnected()
         {
-            Logger.Log("Daemon connected", LogLevel.Information);
+            Logger.Info("Daemon connected");
             ReportConnectionState(ConnectionState.DaemonConnected);
 
             // The connector is what does the logging.
@@ -703,7 +703,7 @@ namespace LibreMetaverse.Voice.Vivox
                 vLog);
             if (reqId < 0)
             {
-                Logger.Log("No voice connector request", LogLevel.Error);
+                Logger.Error("No voice connector request");
             }
         }
 
@@ -714,7 +714,7 @@ namespace LibreMetaverse.Voice.Vivox
             object sender,
             VoiceConnectorEventArgs e)
         {
-            Logger.Log("Voice daemon protocol started " + e.Message, LogLevel.Information);
+            Logger.Info("Voice daemon protocol started " + e.Message);
 
             _connectionHandle = e.Handle;
 
@@ -737,7 +737,7 @@ namespace LibreMetaverse.Voice.Vivox
             object sender,
             VoiceAccountEventArgs e)
         {
-            Logger.Log($"Account Login {e.Message}", LogLevel.Information);
+            Logger.Info($"Account Login {e.Message}");
             _accountHandle = e.AccountHandle;
             ReportConnectionState(ConnectionState.AccountLogin);
             ParcelChanged();
@@ -846,7 +846,7 @@ namespace LibreMetaverse.Voice.Vivox
 
             if (pCap == null)
             {
-                Logger.Log("Null voice capability", LogLevel.Error);
+                Logger.Error("Null voice capability");
                 return;
             }
 
@@ -868,7 +868,7 @@ namespace LibreMetaverse.Voice.Vivox
 
         void RequestParcelInfo(Uri cap)
         {
-            Logger.Log("Requesting region voice info", LogLevel.Information);
+            Logger.Info("Requesting region voice info");
 
             _currentParcelCap = cap;
             var req = _client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(),
@@ -885,7 +885,7 @@ namespace LibreMetaverse.Voice.Vivox
         {
             if (error != null)
             {
-                Logger.Log("Region voice cap " + error.Message, LogLevel.Error);
+                Logger.Error("Region voice cap " + error.Message);
                 return;
             }
 
@@ -913,7 +913,7 @@ namespace LibreMetaverse.Voice.Vivox
                 return;
             }
 
-            Logger.Log("Voice connecting for region " + _regionName, LogLevel.Information);
+            Logger.Info("Voice connecting for region " + _regionName);
 
             // STEP 5
             var reqId = SessionCreate(
@@ -926,7 +926,7 @@ namespace LibreMetaverse.Voice.Vivox
                 "");
             if (reqId < 0)
             {
-                Logger.Log($"Voice Session ReqID {reqId}", LogLevel.Error);
+                Logger.Error($"Voice Session ReqID {reqId}");
             }
         }
 
@@ -994,3 +994,4 @@ namespace LibreMetaverse.Voice.Vivox
 
     }
 }
+

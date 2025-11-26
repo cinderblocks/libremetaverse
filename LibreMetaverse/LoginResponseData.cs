@@ -372,7 +372,7 @@ namespace OpenMetaverse
             }
             catch (Exception e)
             {
-                Logger.Log("Login server returned (some) invalid data while parsing basic fields", LogLevel.Warning, e);
+                Logger.Warn("Login server returned (some) invalid data while parsing basic fields", e);
                 diagnostics?.Add(ParseMessageLevel.Warning, "Login server returned (some) invalid data while parsing basic fields", e);
             }
 
@@ -384,7 +384,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log("Could not parse home info from login response. Setting nil", LogLevel.Warning, ex);
+                Logger.Warn("Could not parse home info from login response. Setting nil", ex);
                 diagnostics?.Add(ParseMessageLevel.Warning, "Could not parse home info from login response. Setting nil", ex);
                 // reset home fields to defaults
                 target.Home.RegionHandle = 0;
@@ -402,7 +402,7 @@ namespace OpenMetaverse
             }
             catch (Exception e)
             {
-                Logger.Log("Login server returned (some) invalid data during later parsing", LogLevel.Warning, e);
+                Logger.Warn("Login server returned (some) invalid data during later parsing", e);
                 diagnostics?.Add(ParseMessageLevel.Warning, "Login server returned (some) invalid data during later parsing", e);
             }
         }

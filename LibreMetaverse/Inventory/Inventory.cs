@@ -188,7 +188,7 @@ namespace OpenMetaverse
             Client = client;
             Owner = owner;
             if (owner == UUID.Zero)
-                Logger.Log("Inventory owned by nobody!", LogLevel.Warning, Client);
+                Logger.Warn("Inventory owned by nobody!", Client);
             Items = new ConcurrentDictionary<UUID, InventoryNode>();
             ChildrenIndex = new ConcurrentDictionary<UUID, ConcurrentDictionary<UUID, InventoryNode>>();
             LinksByAssetId = new ConcurrentDictionary<UUID, ConcurrentDictionary<UUID, InventoryNode>>();
@@ -687,8 +687,7 @@ namespace OpenMetaverse
                     // Log a warning if there is a UUID mismatch, this will cause problems
                     if (value.UUID != uuid)
                     {
-                        Logger.Log($"Inventory[uuid]: uuid {uuid} is not equal to value.UUID {value.UUID}",
-                            LogLevel.Warning, Client);
+                        Logger.Warn($"Inventory[uuid]: uuid {uuid} is not equal to value.UUID {value.UUID}", Client);
                     }
                     UpdateNodeFor(value);
                 }
@@ -927,3 +926,4 @@ namespace OpenMetaverse
     }
     #endregion EventArgs
 }
+

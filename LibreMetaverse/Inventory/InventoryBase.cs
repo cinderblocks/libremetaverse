@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2006-2016, openmetaverse.co
  * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
@@ -75,7 +75,7 @@ namespace OpenMetaverse
         protected InventoryBase(UUID UUID)
         {
             if (UUID == UUID.Zero)
-                Logger.Log("Initializing an InventoryBase with UUID.Zero", LogLevel.Warning);
+                Logger.Warn("Initializing an InventoryBase with UUID.Zero");
             this.UUID = UUID;
         }
 
@@ -916,3 +916,4 @@ namespace OpenMetaverse
         }
     }
 }
+

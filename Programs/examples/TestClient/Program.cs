@@ -62,7 +62,7 @@ namespace TestClient
                 LoginURI = arguments["loginuri"];
             if (string.IsNullOrEmpty(LoginURI))
                 LoginURI = Settings.AGNI_LOGIN_SERVER;
-            Logger.Log("Using login URI " + LoginURI, LogLevel.Information);
+            Logger.Info("Using login URI " + LoginURI);
 
             if (arguments["gettextures"] != null)
                 getTextures = true;
@@ -75,7 +75,7 @@ namespace TestClient
                 scriptFile = arguments["scriptfile"];
                 if (!File.Exists(scriptFile))
                 {
-                    Logger.Log($"File {scriptFile} Does not exist", LogLevel.Error);
+                    Logger.Error($"File {scriptFile} Does not exist");
                     return;
                 }
             }
@@ -86,7 +86,7 @@ namespace TestClient
 
                 if (!File.Exists(file))
                 {
-                    Logger.Log($"File {file} Does not exist", LogLevel.Error);
+                    Logger.Error($"File {file} Does not exist");
                     return;
                 }
 
@@ -125,16 +125,15 @@ namespace TestClient
                             }
                             else
                             {
-                                Logger.Log("Invalid data on line " + lineNumber +
-                                           ", must be in the format of: FirstName LastName Password [Sim/StartX/StartY/StartZ]",
-                                    LogLevel.Warning);
+                                Logger.Warn("Invalid data on line " + lineNumber +
+                                           ", must be in the format of: FirstName LastName Password [Sim/StartX/StartY/StartZ]");
                             }
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Error reading from " + args[1], LogLevel.Error, ex);
+                    Logger.Error("Error reading from " + args[1], ex);
                     return;
                 }
             }
@@ -183,3 +182,4 @@ namespace TestClient
         }
     }
 }
+

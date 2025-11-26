@@ -752,7 +752,7 @@ namespace OpenMetaverse.Rendering
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed to decode mesh asset", LogLevel.Error, ex);
+                Logger.Error("Failed to decode mesh asset", ex);
                 meshData = null;
             }
             return meshData;
@@ -915,3 +915,4 @@ namespace OpenMetaverse.Rendering
         }
     }
 }
+

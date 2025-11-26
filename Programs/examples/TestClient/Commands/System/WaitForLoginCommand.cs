@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse;
 
 namespace TestClient.Commands.System
@@ -17,10 +17,11 @@ namespace TestClient.Commands.System
             while (ClientManager.Instance.PendingLogins > 0)
             {
                 global::System.Threading.Thread.Sleep(1000);
-                Logger.Log("Pending logins: " + ClientManager.Instance.PendingLogins, LogLevel.Information);
+                Logger.Info("Pending logins: " + ClientManager.Instance.PendingLogins);
             }
 
             return "All pending logins have completed, currently tracking " + ClientManager.Instance.Clients.Count + " bots";
         }
     }
 }
+

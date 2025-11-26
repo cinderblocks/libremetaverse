@@ -79,13 +79,13 @@ namespace PacketDump
                 }
                 catch (OperationCanceledException)
                 {
-                    Logger.Log("Login timed out", LogLevel.Error);
+                    Logger.Error("Login timed out");
                     return;
                 }
 
                 if (success)
                 {
-                    Logger.Log("Message of the day: " + client.Network.LoginMessage, LogLevel.Information);
+                    Logger.Info("Message of the day: " + client.Network.LoginMessage);
 
                     // Determine how long to run for
                     var start = Environment.TickCount;
@@ -107,14 +107,14 @@ namespace PacketDump
                 }
                 else
                 {
-                    Logger.Log("Login failed: " + client.Network.LoginMessage, LogLevel.Error);
+                    Logger.Error("Login failed: " + client.Network.LoginMessage);
                 }
             }
 		}
 
         private static void LoginHandler(object sender, LoginProgressEventArgs e)
         {
-            Logger.Log($"Login: {e.Status} ({e.Message})", LogLevel.Information);
+            Logger.Info($"Login: {e.Status} ({e.Message})");
 
             switch (e.Status)
             {
@@ -139,7 +139,8 @@ namespace PacketDump
 
         public static void DefaultHandler(object sender, PacketReceivedEventArgs e)
         {
-            Logger.Log(e.Packet.ToString(), LogLevel.Information);
+            Logger.Info(e.Packet.ToString());
         }
 	}
 }
+

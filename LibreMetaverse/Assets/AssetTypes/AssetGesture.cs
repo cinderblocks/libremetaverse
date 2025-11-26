@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2006-2016, openmetaverse.co
  * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
@@ -424,9 +424,10 @@ namespace OpenMetaverse.Assets
             }
             catch (Exception ex)
             {
-                Logger.Log("Decoding gesture asset failed:" + ex.Message, LogLevel.Error);
+                Logger.Error("Decoding gesture asset failed:" + ex.Message);
                 return false;
             }
         }
     }
 }
+

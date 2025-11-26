@@ -181,7 +181,7 @@ namespace OpenMetaverse
             var sim = _client?.Network?.CurrentSim;
             if (sim == null)
             {
-                Logger.Log("Cannot send sound trigger: no current simulator.", LogLevel.Warning, _client);
+                Logger.Warn("Cannot send sound trigger: no current simulator.", _client);
                 return;
             }
 
@@ -211,14 +211,14 @@ namespace OpenMetaverse
             // Validate client/network
             if (_client == null || _client.Network == null)
             {
-                Logger.Log("Cannot send sound trigger: network is not available.", LogLevel.Warning, _client);
+                Logger.Warn("Cannot send sound trigger: network is not available.", _client);
                 return;
             }
 
             // Validate sound id
             if (soundID == UUID.Zero)
             {
-                Logger.Log("Cannot send sound trigger: invalid SoundID (UUID.Zero).", LogLevel.Warning, _client);
+                Logger.Warn("Cannot send sound trigger: invalid SoundID (UUID.Zero).", _client);
                 return;
             }
 
@@ -246,7 +246,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed to send SoundTrigger packet: " + ex.Message, LogLevel.Error, _client, ex);
+                Logger.Error("Failed to send SoundTrigger packet: " + ex.Message, ex, _client);
             }
         }
 
@@ -342,7 +342,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Exception while disposing SoundManager: " + ex.Message, LogLevel.Warning, _client, ex);
+                    Logger.Warn("Exception while disposing SoundManager: " + ex.Message, ex, _client);
                 }
             }
 

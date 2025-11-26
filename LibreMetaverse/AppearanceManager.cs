@@ -517,7 +517,7 @@ namespace OpenMetaverse
         {
             if (Interlocked.CompareExchange(ref AppearanceThreadRunning, 1, 0) != 0)
             {
-                Logger.Log("Appearance thread is already running, skipping", LogLevel.Warning);
+                Logger.Warn("Appearance thread is already running, skipping");
                 return;
             }
 
@@ -566,7 +566,7 @@ namespace OpenMetaverse
             var cof = await GetCurrentOutfitFolder(cancellationToken).ConfigureAwait(false);
             if (cof == null)
             {
-                Logger.Log("Could not retrieve 'Current Outfit' folder", LogLevel.Warning, Client);
+                Logger.Warn("Could not retrieve 'Current Outfit' folder", Client);
                 return null;
             }
 
@@ -580,7 +580,7 @@ namespace OpenMetaverse
 
             if (contents == null)
             {
-                Logger.Log("Could not retrieve 'Current Outfit' folder contents", LogLevel.Warning, Client);
+                Logger.Warn("Could not retrieve 'Current Outfit' folder contents", Client);
                 return null;
             }
 
@@ -902,8 +902,7 @@ namespace OpenMetaverse
 
                 if (needsCurrentWearables && !GatherAgentWearables())
                 {
-                    Logger.Log("Failed to fetch the current agent wearables, cannot safely replace outfit",
-                        LogLevel.Error);
+                    Logger.Error("Failed to fetch the current agent wearables, cannot safely replace outfit");
                     return;
                 }
             }
@@ -924,7 +923,7 @@ namespace OpenMetaverse
             }
             catch (AppearanceManagerException e)
             {
-                Logger.Log(e.Message, LogLevel.Error, Client);
+                Logger.Error(e.Message, Client);
             }
         }
 
@@ -1091,7 +1090,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    Logger.Log($"Cannot attach inventory item {attachments[i].Name}", LogLevel.Warning, Client);
+                    Logger.Warn($"Cannot attach inventory item {attachments[i].Name}", Client);
                 }
             }
 
@@ -1289,7 +1288,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"Failed to fetch attachment {item.Key}: {ex}", LogLevel.Warning, Client);
+                    Logger.Warn($"Failed to fetch attachment {item.Key}: {ex}", Client);
                 }
             }
 
@@ -1311,7 +1310,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"Failed to map attachment {kvp.Key} to inventory item: {ex.Message}", LogLevel.Debug, Client);
+                    Logger.Debug($"Failed to map attachment {kvp.Key} to inventory item: {ex.Message}", Client);
                 }
             }
 
@@ -1555,7 +1554,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log($"GatherAgentWearables failed: {ex}", LogLevel.Warning, Client);
+                Logger.Warn($"GatherAgentWearables failed: {ex}", Client);
                 return false;
             }
         }
@@ -1800,28 +1799,26 @@ namespace OpenMetaverse
                                 else
                                 {
                                     wearable.Asset = null;
-                                    Logger.Log("Failed to decode asset:" + Environment.NewLine +
-                                               Utils.BytesToString(assetWearable.AssetData), LogLevel.Error, Client);
+                                    Logger.Error("Failed to decode asset:" + Environment.NewLine +
+                                               Utils.BytesToString(assetWearable.AssetData), Client);
                                     success = false;
                                 }
                             }
                             else
                             {
-                                Logger.Log("Wearable " + wearable.AssetID + "(" + wearable.WearableType + ") failed to download or wrong asset type",
-                                    LogLevel.Warning, Client);
+                                Logger.Warn("Wearable " + wearable.AssetID + "(" + wearable.WearableType + ") failed to download or wrong asset type", Client);
                                 success = false;
                             }
                         }
                         else
                         {
-                            Logger.Log("Timed out downloading wearable asset " + wearable.AssetID + " (" + wearable.WearableType + ")",
-                                LogLevel.Error, Client);
+                            Logger.Error("Timed out downloading wearable asset " + wearable.AssetID + " (" + wearable.WearableType + ")", Client);
                             success = false;
                         }
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log($"Downloading wearable {wearable.AssetID} failed: {ex}", LogLevel.Warning, Client);
+                        Logger.Warn($"Downloading wearable {wearable.AssetID} failed: {ex}", Client);
                         success = false;
                     }
                     finally
@@ -1918,15 +1915,12 @@ namespace OpenMetaverse
                         }
                         else
                         {
-                            Logger.Log("Texture " + textureId + " failed to download, one or more bakes will be incomplete",
-                                LogLevel.Warning);
+                            Logger.Warn("Texture " + textureId + " failed to download, one or more bakes will be incomplete");
                         }
                     }
                     catch (Exception e)
                     {
-                        Logger.Log(
-                            $"Download of texture {textureId} failed with exception {e}",
-                            LogLevel.Warning, Client);
+                        Logger.Warn($"Download of texture {textureId} failed with exception {e}", Client);
                     }
                     finally
                     {
@@ -2043,7 +2037,7 @@ namespace OpenMetaverse
 
             if (newAssetID == UUID.Zero)
             {
-                Logger.Log($"Failed uploading bake {bakeType}", LogLevel.Warning);
+                Logger.Warn($"Failed uploading bake {bakeType}");
                 return false;
             }
 
@@ -2141,16 +2135,14 @@ namespace OpenMetaverse
                 var cap = Client.Network.CurrentSim.Caps?.CapabilityURI("UpdateAvatarAppearance");
                 if (cap == null)
                 {
-                    Logger.Log("Could not retrieve UpdateAvatarAppearance region capability",
-                        LogLevel.Warning, Client);
+                    Logger.Warn("Could not retrieve UpdateAvatarAppearance region capability", Client);
                     return false;
                 }
 
                 var currentOutfitFolder = await GetCurrentOutfitFolder(cancellationToken);
                 if (currentOutfitFolder == null)
                 {
-                    Logger.Log("Could not retrieve Current Outfit folder",
-                        LogLevel.Warning, Client);
+                    Logger.Warn("Could not retrieve Current Outfit folder", Client);
                     return false;
                 }
                 else
@@ -2158,8 +2150,7 @@ namespace OpenMetaverse
                     // TODO: create Current Outfit Folder
                 }
 
-                Logger.Log($"Requesting bake for COF version {currentOutfitFolder.Version}",
-                    LogLevel.Information, Client);
+                Logger.Info($"Requesting bake for COF version {currentOutfitFolder.Version}", Client);
 
                 var request = new OSDMap(1) { ["cof_version"] = currentOutfitFolder.Version };
 
@@ -2194,8 +2185,7 @@ namespace OpenMetaverse
                     }
                     if (error != null)
                     {
-                        Logger.Log($"UpdateAvatarAppearance failed. Server responded: {error.Message}",
-                            LogLevel.Warning, Client);
+                        Logger.Warn($"UpdateAvatarAppearance failed. Server responded: {error.Message}", Client);
                     }
                 });
 
@@ -2227,7 +2217,7 @@ namespace OpenMetaverse
 
                         if (selfPrim == null)
                         {
-                            Logger.Log("Unable to find avatar to set appearance information", LogLevel.Error, Client);
+                            Logger.Error("Unable to find avatar to set appearance information", Client);
                         }
                         else
                         {
@@ -2264,18 +2254,17 @@ namespace OpenMetaverse
                     }
                     catch (Exception e)
                     {
-                        Logger.Log($"Error applying textures to avatar object: {e.Message}", LogLevel.Error, Client);
+                        Logger.Error($"Error applying textures to avatar object: {e.Message}", Client);
                         throw;
                     }
 
-                    Logger.Log("Returning appearance information from server-side bake request.", LogLevel.Information, Client);
+                    Logger.Info("Returning appearance information from server-side bake request.", Client);
                     return true;
                 }
                 if (result.ContainsKey("expected"))
                 {
-                    Logger.Log($"Server expected {result["expected"].AsInteger()} as COF version. " +
-                               $"Version {currentOutfitFolder.Version} was sent.",
-                        LogLevel.Warning, Client);
+                    Logger.Warn($"Server expected {result["expected"].AsInteger()} as COF version. " +
+                               $"Version {currentOutfitFolder.Version} was sent.", Client);
 
                     await SyncCofVersion(cancellationToken);
 
@@ -2287,12 +2276,11 @@ namespace OpenMetaverse
                     var er = result["error"].AsString();
                     if (string.IsNullOrEmpty(er))
                     {
-                        Logger.Log($"UpdateAvatarAppearance failed. Server responded with: '{result["error"].AsString()}'",
-                            LogLevel.Warning, Client);
+                        Logger.Warn($"UpdateAvatarAppearance failed. Server responded with: '{result["error"].AsString()}'", Client);
                     }
                 }
 
-                Logger.Log($"Avatar appearance update failed on {totalRetries} attempt.", LogLevel.Information, Client);
+                Logger.Info($"Avatar appearance update failed on {totalRetries} attempt.", Client);
                 await Task.Delay(REBAKE_DELAY, cancellationToken);
                 --totalRetries;
             }
@@ -2510,15 +2498,15 @@ namespace OpenMetaverse
             var worn = await RequestAgentWornAsync(cancellationToken).ConfigureAwait(false);
             if (worn == null)
             {
-                Logger.Log("Could not retrieve 'Current Outfit' folder to send to simulator", LogLevel.Warning, Client);
+                Logger.Warn("Could not retrieve 'Current Outfit' folder to send to simulator", Client);
                 return;
             }
 
-            Logger.Log($"{worn.Count} inventory items in 'Current Outfit' folder", LogLevel.Information, Client);
+            Logger.Info($"{worn.Count} inventory items in 'Current Outfit' folder", Client);
 
             foreach (var inventoryBase in worn.Where(inventoryBase => inventoryBase != null))
             {
-                Logger.Log($"'{inventoryBase.Name}' found in 'Current Outfit' folder ({inventoryBase.GetType().Name})", LogLevel.Information, Client);
+                Logger.Info($"'{inventoryBase.Name}' found in 'Current Outfit' folder ({inventoryBase.GetType().Name})", Client);
 
                 switch (inventoryBase)
                 {
@@ -2537,7 +2525,7 @@ namespace OpenMetaverse
                                 OwnerID = attachment.OwnerID
                             };
 
-                            Logger.Log($"Wearing attachment {attachment.UUID} ({attachment.Name})", LogLevel.Debug, Client);
+                            Logger.Debug($"Wearing attachment {attachment.UUID} ({attachment.Name})", Client);
 
                             blocks.Add(block);
                             break;
@@ -2557,7 +2545,7 @@ namespace OpenMetaverse
                                 OwnerID = attachmentIO.OwnerID
                             };
 
-                            Logger.Log($"Wearing object {attachmentIO.UUID} ({attachmentIO.Name})", LogLevel.Debug, Client);
+                            Logger.Debug($"Wearing object {attachmentIO.UUID} ({attachmentIO.Name})", Client);
 
                             blocks.Add(block);
                             break;
@@ -2626,10 +2614,10 @@ namespace OpenMetaverse
             Uri capability = Client.Network.CurrentSim.Caps.CapabilityURI("IncrementCOFVersion");
             if (capability == null)
             {
-                Logger.Log("Region returned no IncrementCOFVersion capability", LogLevel.Warning, Client);
+                Logger.Warn("Region returned no IncrementCOFVersion capability", Client);
                 return;
             }
-            Logger.Log("Requesting COF version be incremented by the server", LogLevel.Debug, Client);
+            Logger.Debug("Requesting COF version be incremented by the server", Client);
 
             using (var request = new HttpRequestMessage(HttpMethod.Get, capability))
             {
@@ -2637,8 +2625,7 @@ namespace OpenMetaverse
                 {
                     if (!reply.IsSuccessStatusCode)
                     {
-                        Logger.Log($"Failed to increment COF version: {reply.ReasonPhrase}",
-                            LogLevel.Warning);
+                        Logger.Warn($"Failed to increment COF version: {reply.ReasonPhrase}");
                     }
                     else
                     {
@@ -2647,8 +2634,7 @@ namespace OpenMetaverse
                         if (OSDParser.Deserialize(data) is OSDMap map)
                         {
                             var version = map["version"].AsInteger();
-                            Logger.Log($"Slamming {version} version to Current Outfit Folder",
-                                LogLevel.Information, Client);
+                            Logger.Info($"Slamming {version} version to Current Outfit Folder", Client);
                             var cof = await GetCurrentOutfitFolder(cancellationToken);
                             cof.Version = version;
                         }
@@ -2695,7 +2681,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log($"Failed to download folder contents of {folder}", LogLevel.Error, Client);
+                Logger.Error($"Failed to download folder contents of {folder}", Client);
                 return false;
             }
 
@@ -2721,12 +2707,12 @@ namespace OpenMetaverse
             }
             catch (OperationCanceledException)
             {
-                Logger.Log($"GetFolderWearablesAsync cancelled while fetching folder {folder}", LogLevel.Debug, Client);
+                Logger.Debug($"GetFolderWearablesAsync cancelled while fetching folder {folder}", Client);
                 return (false, null, null);
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed to download folder contents of {folder}: {ex}", LogLevel.Error, Client);
+                Logger.Error($"Failed to download folder contents of {folder}: {ex}", Client);
                 return (false, null, null);
             }
 
@@ -2757,7 +2743,7 @@ namespace OpenMetaverse
                 return (true, wearables, attachments);
             }
 
-            Logger.Log($"Failed to download folder contents of {folder}", LogLevel.Error, Client);
+            Logger.Error($"Failed to download folder contents of {folder}", Client);
             return (false, null, null);
         }
 
@@ -2896,11 +2882,11 @@ namespace OpenMetaverse
             }
             catch (OperationCanceledException)
             {
-                Logger.Log("Simulator_OnCapabilitiesReceived cancelled.", LogLevel.Debug, Client);
+                Logger.Debug("Simulator_OnCapabilitiesReceived cancelled.", Client);
             }
             catch (Exception ex)
             {
-                Logger.Log($"Simulator_OnCapabilitiesReceived failed: {ex}", LogLevel.Warning, Client);
+                Logger.Warn($"Simulator_OnCapabilitiesReceived failed: {ex}", Client);
             }
         }
 
@@ -3089,11 +3075,7 @@ namespace OpenMetaverse
 
                 if (!GatherAgentAttachments())
                 {
-                    Logger.Log(
-                        "Failed to retrieve a list of current agent attachments, appearance cannot be set",
-                        LogLevel.Warning,
-                        Client);
-
+                    Logger.Warn("Failed to retrieve a list of current agent attachments, appearance cannot be set", Client);
                     throw new AppearanceManagerException(
                         "Failed to retrieve a list of current agent attachments, appearance cannot be set");
                 }
@@ -3125,8 +3107,7 @@ namespace OpenMetaverse
                     {
                         if (!await GatherAgentWearablesAsync(cancellationToken))
                         {
-                            Logger.Log("Failed to retrieve a list of current agent wearables, appearance cannot be set",
-                                LogLevel.Error, Client);
+                            Logger.Error("Failed to retrieve a list of current agent wearables, appearance cannot be set", Client);
                             throw new AppearanceManagerException(
                                 "Failed to retrieve a list of current agent wearables, appearance cannot be set");
                         }
@@ -3139,9 +3120,7 @@ namespace OpenMetaverse
                     if (!await DownloadWearablesAsync().ConfigureAwait(false))
                     {
                         success = false;
-                        Logger.Log(
-                            "One or more agent wearables failed to download, appearance will be incomplete",
-                            LogLevel.Warning, Client);
+                        Logger.Warn("One or more agent wearables failed to download, appearance will be incomplete", Client);
                     }
 
                     cancellationToken.ThrowIfCancellationRequested();
@@ -3150,9 +3129,7 @@ namespace OpenMetaverse
                     {
                         if (!await GetCachedBakesAsync().ConfigureAwait(false))
                         {
-                            Logger.Log(
-                                "Failed to get a list of cached bakes from the simulator, appearance will be rebaked",
-                                LogLevel.Warning, Client);
+                            Logger.Warn("Failed to get a list of cached bakes from the simulator, appearance will be rebaked", Client);
                         }
                     }
 
@@ -3161,9 +3138,7 @@ namespace OpenMetaverse
                     if (!await CreateBakesAsync().ConfigureAwait(false))
                     {
                         success = false;
-                        Logger.Log(
-                            "Failed to create or upload one or more bakes, appearance will be incomplete",
-                            LogLevel.Warning, Client);
+                        Logger.Warn("Failed to create or upload one or more bakes, appearance will be incomplete", Client);
                     }
 
                     cancellationToken.ThrowIfCancellationRequested();
@@ -3175,11 +3150,11 @@ namespace OpenMetaverse
             {
                 if (e is OperationCanceledException)
                 {
-                    Logger.Log("Setting appearance cancelled.", LogLevel.Debug, Client);
+                    Logger.Debug("Setting appearance cancelled.", Client);
                 }
                 else
                 {
-                    Logger.Log($"Failed to set appearance with exception {e}", LogLevel.Warning, Client);
+                    Logger.Warn($"Failed to set appearance with exception {e}", Client);
                 }
 
                 success = false;

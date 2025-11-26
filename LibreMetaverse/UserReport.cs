@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2021-2025, Sjofn LLC
  * All rights reserved.
  *
@@ -78,8 +78,7 @@ namespace LibreMetaverse
             Uri abuseCategoriesCap = Client.Network.CurrentSim.Caps.CapabilityURI("AbuseCategories");
             if (abuseCategoriesCap == null)
             {
-                Logger.Log("AbuseCategories capability does not exist. Could not fetch categories list.",
-                    LogLevel.Information);
+                Logger.Info("AbuseCategories capability does not exist. Could not fetch categories list.");
                 return null;
             }
 
@@ -98,8 +97,7 @@ namespace LibreMetaverse
                 {
                     if (error != null)
                     {
-                        Logger.Log($"Could not fetch abuse categories from cap. ({error.Message}",
-                            LogLevel.Information);
+                        Logger.Info($"Could not fetch abuse categories from cap. ({error.Message}");
                         return;
                     }
 
@@ -162,9 +160,8 @@ namespace LibreMetaverse
                     {
                         if (error != null)
                         {
-                            Logger.Log($"Failed to send abuse report via {userReportCap}. " +
-                                       $"({error.Message}) Falling back to legacy protocol.",
-                                LogLevel.Warning);
+                            Logger.Warn($"Failed to send abuse report via {userReportCap}. " +
+                                       $"({error.Message}) Falling back to legacy protocol.");
                             SendUserReportLegacy(reportType, category, screenshotId, objectId, abuserId,
                                 abuseRegionName, abuseRegionId, pos, summary, details);
                         }
@@ -223,3 +220,4 @@ namespace LibreMetaverse
 		}
     }
 }
+

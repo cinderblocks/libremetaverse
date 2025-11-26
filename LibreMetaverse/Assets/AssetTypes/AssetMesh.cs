@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2006-2016, openmetaverse.co
  * All rights reserved.
  *
@@ -100,9 +100,10 @@ namespace OpenMetaverse.Assets
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed to decode mesh asset", LogLevel.Error, ex);
+                Logger.Error("Failed to decode mesh asset", ex);
                 return false;
             }
         }
     }
 }
+

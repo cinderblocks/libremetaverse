@@ -130,10 +130,10 @@ namespace TestClient.Commands.Movement
                 string id = Utils.BytesToString(alert.AlertInfo[0].Message);
                 if (id == "AutopilotCanceled")
                 {
-                    Logger.Log("FollowCommand: " + Utils.BytesToString(alert.AlertData.Message),
-                        LogLevel.Information, Client);
+                    Logger.Info("FollowCommand: " + Utils.BytesToString(alert.AlertData.Message), Client);
                 }
             }
         }
     }
 }
+

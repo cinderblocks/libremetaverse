@@ -755,7 +755,7 @@ namespace OpenMetaverse
             if (OnLoginResponse != null)
             {
                 try { OnLoginResponse(LoginResponseData.Success, false, "Login Message", LoginResponseData.Reason, LoginResponseData); }
-                catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client, ex); }
+                catch (Exception ex) { Logger.Error(ex.Message, ex, Client); }
             }
 
             // These parameters are stored in NetworkManager, so instead of registering
@@ -1091,13 +1091,13 @@ namespace OpenMetaverse
             
             if (string.IsNullOrEmpty(loginParams.Channel))
             {
-                Logger.Log("Viewer channel not set.", LogLevel.Warning);
+                Logger.Warn("Viewer channel not set.");
                 loginParams.Channel = $"{Settings.USER_AGENT}";
             }
 
             if (string.IsNullOrEmpty((loginParams.Version)))
             {
-                Logger.Log("Viewer version not set.", LogLevel.Warning);
+                Logger.Warn("Viewer version not set.");
                 loginParams.Version = "?.?.?";
             }
 
@@ -1167,8 +1167,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed to parse login URI {loginParams.URI}, {ex.Message}",
-                    LogLevel.Error, Client);
+                Logger.Error($"Failed to parse login URI {loginParams.URI}, {ex.Message}", Client);
                 return;
             }
 
@@ -1279,8 +1278,7 @@ namespace OpenMetaverse
 
                         // Sleep for some amount of time while the servers work
                         var seconds = (int)LoginResponseData.ParseUInt("next_duration", resMap);
-                        Logger.Log($"Delaying for {seconds} seconds during a login redirect",
-                            LogLevel.Information);
+                        Logger.Info($"Delaying for {seconds} seconds during a login redirect");
                         try
                         {
                             // honor cancellation
@@ -1305,7 +1303,7 @@ namespace OpenMetaverse
                         if (OnLoginResponse != null)
                         {
                             try { OnLoginResponse(loginSuccess, redirect, data.Message, data.Reason, data); }
-                            catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client, ex); }
+                            catch (Exception ex) { Logger.Error(ex.Message, ex, Client); }
                         }
 
                         // These parameters are stored in NetworkManager, so instead of registering
@@ -1536,3 +1534,4 @@ namespace OpenMetaverse
 
     #endregion EventArgs
 }
+

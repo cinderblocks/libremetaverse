@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2006-2016, openmetaverse.co
  * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
@@ -92,7 +92,7 @@ namespace OpenMetaverse.ImportExport
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed parsing collada file: " + ex.Message, LogLevel.Error, ex);
+                Logger.Error("Failed parsing collada file: " + ex.Message, ex);
                 return new List<ModelPrim>();
             }
         }
@@ -152,8 +152,7 @@ namespace OpenMetaverse.ImportExport
                     width = width > 1024 ? 1024 : width;
                     height = height > 1024 ? 1024 : height;
 
-                    Logger.Log($"Image has irregular dimensions {origWidth}x{origHieght}. Resizing to {width}x{height}", 
-                        LogLevel.Information);
+                    Logger.Info($"Image has irregular dimensions {origWidth}x{origHieght}. Resizing to {width}x{height}");
 
                     var info = new SKImageInfo(width, height);
                     var scaledImage = new SKBitmap(info);
@@ -164,11 +163,11 @@ namespace OpenMetaverse.ImportExport
 
                 material.TextureData = Imaging.J2K.ToBytes(bitmap);
 
-                Logger.Log($"Successfully encoded {fname}", LogLevel.Information);
+                Logger.Info($"Successfully encoded {fname}");
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed loading {fname}: {ex.Message}", LogLevel.Warning);
+                Logger.Warn($"Failed loading {fname}: {ex.Message}");
             }
 
         }
@@ -710,3 +709,4 @@ namespace OpenMetaverse.ImportExport
 
     }
 }
+

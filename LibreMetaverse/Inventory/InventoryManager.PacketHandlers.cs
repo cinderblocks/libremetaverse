@@ -150,16 +150,14 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log($"No reference for FolderID {reply.AgentData.FolderID} or it is not a folder",
-                    LogLevel.Error, Client);
+                Logger.Error($"No reference for FolderID {reply.AgentData.FolderID} or it is not a folder", Client);
                 return;
             }
 
             if (reply.AgentData.Version < parentFolder.Version)
             {
-                Logger.Log($"Received outdated InventoryDescendents packet for folder {parentFolder.Name}, " +
-                           $"this version = {reply.AgentData.Version}, latest version = {parentFolder.Version}",
-                    LogLevel.Warning, Client);
+                Logger.Warn($"Received outdated InventoryDescendents packet for folder {parentFolder.Name}, " +
+                           $"this version = {reply.AgentData.Version}, latest version = {parentFolder.Version}", Client);
                 return;
             }
 
@@ -240,9 +238,7 @@ namespace OpenMetaverse
             {
                 if (dataBlock.InvType == (sbyte)InventoryType.Folder)
                 {
-                    Logger.Log(
-                        "Received InventoryFolder in an UpdateCreateInventoryItem packet, this should not happen!",
-                        LogLevel.Error, Client);
+                    Logger.Error("Received InventoryFolder in an UpdateCreateInventoryItem packet, this should not happen!", Client);
                     continue;
                 }
 
@@ -278,9 +274,8 @@ namespace OpenMetaverse
                     // assign default folder for type
                     item.ParentUUID = FindFolderForType(item.AssetType);
 
-                    Logger.Log(
-                        "Received an item through UpdateCreateInventoryItem with no parent folder, assigning to folder " +
-                        item.ParentUUID, LogLevel.Information);
+                    Logger.Info("Received an item through UpdateCreateInventoryItem with no parent folder, assigning to folder " +
+                        item.ParentUUID);
 
                     // send update to the sim
                     RequestUpdateItem(item);
@@ -300,7 +295,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(ex.Message, LogLevel.Error, Client, ex);
+                        Logger.Error(ex.Message, ex, Client);
                     }
                 }
 
@@ -316,7 +311,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(ex.Message, LogLevel.Error, Client, ex);
+                        Logger.Error(ex.Message, ex, Client);
                     }
                 }
 
@@ -343,10 +338,8 @@ namespace OpenMetaverse
                 // FIXME: Do something here
                 var newName = Utils.BytesToString(data.NewName);
 
-                Logger.Log(
-                    $"MoveInventoryItemHandler: Item {data.ItemID} is moving to Folder {data.FolderID} with new name \"{newName}\"." +
-                    " Someone write this function!",
-                    LogLevel.Warning, Client);
+                Logger.Warn($"MoveInventoryItemHandler: Item {data.ItemID} is moving to Folder {data.FolderID} with new name \"{newName}\"." +
+                    " Someone write this function!", Client);
             }
         }
 
@@ -419,7 +412,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(ex.Message, LogLevel.Error, Client, ex);
+                        Logger.Error(ex.Message, ex, Client);
                     }
                 }
 
@@ -434,7 +427,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(ex.Message, LogLevel.Error, Client, ex);
+                        Logger.Error(ex.Message, ex, Client);
                     }
                 }
             }
@@ -514,7 +507,7 @@ namespace OpenMetaverse
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log(ex.Message, LogLevel.Error, Client, ex);
+                            Logger.Error(ex.Message, ex, Client);
                         }
                     }
 
@@ -529,7 +522,7 @@ namespace OpenMetaverse
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log(ex.Message, LogLevel.Error, Client, ex);
+                            Logger.Error(ex.Message, ex, Client);
                         }
                     }
                 }
@@ -548,8 +541,7 @@ namespace OpenMetaverse
             {
                 if (dataBlock.InvType == (sbyte)InventoryType.Folder)
                 {
-                    Logger.Log("Received FetchInventoryReply for an inventory folder, this should not happen!",
-                        LogLevel.Error, Client);
+                    Logger.Error("Received FetchInventoryReply for an inventory folder, this should not happen!", Client);
                     continue;
                 }
 
@@ -611,3 +603,4 @@ namespace OpenMetaverse
         }
     }
 }
+

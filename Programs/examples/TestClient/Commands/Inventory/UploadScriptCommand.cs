@@ -90,14 +90,15 @@ namespace TestClient.Commands.Inventory
                     return "Timed out uploading script";
 
                 var resultLog = await uploadTcs.Task.ConfigureAwait(false);
-                Logger.Log(resultLog, LogLevel.Information, Client);
+                Logger.Info(resultLog, Client);
                 return $"Filename: {file} is being uploaded.";
             }
             catch (Exception e)
             {
-                Logger.Log(e.ToString(), LogLevel.Error, Client);
+                Logger.Error(e.ToString(), Client);
                 return $"Error creating script for {file}";
             }
         }
     }
 }
+

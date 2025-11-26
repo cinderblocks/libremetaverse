@@ -557,7 +557,7 @@ namespace OpenMetaverse
                                         }
                                         else
                                         {
-                                            Logger.Log("Unknown packet frequency", LogLevel.Error, Client);
+                                            Logger.Error("Unknown packet frequency", Client);
                                         }
 
                                         #endregion
@@ -627,7 +627,7 @@ namespace OpenMetaverse
                                         }
                                         else
                                         {
-                                            Logger.Log("Unknown block frequency", LogLevel.Error, Client);
+                                            Logger.Error("Unknown block frequency", Client);
                                         }
 
                                         #endregion
@@ -680,3 +680,4 @@ namespace OpenMetaverse
 		}
 	}
 }
+

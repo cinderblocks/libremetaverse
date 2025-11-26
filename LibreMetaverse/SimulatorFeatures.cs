@@ -76,23 +76,20 @@ namespace LibreMetaverse
         {
             if (error != null)
             {
-                Logger.Log($"Failed to retrieve simulator features. Error: {error.Message}", 
-                    LogLevel.Warning, _simulator.Client);
+                Logger.Warn($"Failed to retrieve simulator features. Error: {error.Message}", _simulator.Client);
                 return;
             }
 
             if (!response.IsSuccessStatusCode)
             {
-                Logger.Log($"Failed to retrieve simulator features. Status: {response.StatusCode} {response.ReasonPhrase}",
-                    LogLevel.Warning, _simulator.Client);
+                Logger.Warn($"Failed to retrieve simulator features. Status: {response.StatusCode} {response.ReasonPhrase}", _simulator.Client);
                 return;
             }
             OSD features = OSDParser.Deserialize(responseData);
             
             if (features.Type != OSDType.Map)
             {
-                Logger.Log($"Simulator Features response was not valid LLSD map", 
-                    LogLevel.Warning, _simulator.Client);
+                Logger.Warn($"Simulator Features response was not valid LLSD map", _simulator.Client);
                 return;
             }
             _featureMap = (OSDMap)features;

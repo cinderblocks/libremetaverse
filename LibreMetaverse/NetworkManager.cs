@@ -381,7 +381,7 @@ namespace OpenMetaverse
                 return;
             
             var method = Utils.BytesToString(message.MethodData.Method);
-            Logger.Log("Received Unhandled Generic Message: " + method, LogLevel.Information, Client);
+            Logger.Info("Received Unhandled Generic Message: " + method, Client);
         }
 
         /// <summary>
@@ -514,8 +514,7 @@ namespace OpenMetaverse
             if (dif <= 10) { return; }
 
             lastPacketWarning = now;
-            Logger.Log(source+" is null (Are we disconnected?) - from: " + function,
-                LogLevel.Debug);
+            Logger.Debug(source+" is null (Are we disconnected?) - from: " + function);
         }
         
         /// <summary>
@@ -686,8 +685,7 @@ namespace OpenMetaverse
             
             if (setDefault)
             {
-                Logger.Log($"Moving to another simulator; sending CompleteAgentMovement to {simulator.Name}",
-                    LogLevel.Information, Client);
+                Logger.Info($"Moving to another simulator; sending CompleteAgentMovement to {simulator.Name}", Client);
                 // Move in to this simulator
                 simulator.handshakeComplete = false;
                 simulator.UseCircuitCode(true);
@@ -779,11 +777,11 @@ namespace OpenMetaverse
             // This will catch a Logout when the client is not logged in
             if (CurrentSim == null || !Connected)
             {
-                Logger.Log("Ignoring RequestLogout(), client is already logged out", LogLevel.Warning, Client);
+                Logger.Warn("Ignoring RequestLogout(), client is already logged out", Client);
                 return;
             }
 
-            Logger.Log("Logging out", LogLevel.Information, Client);
+            Logger.Info("Logging out", Client);
 
             // Send a logout request to the current sim
             LogoutRequestPacket logout = new LogoutRequestPacket
@@ -872,7 +870,7 @@ namespace OpenMetaverse
         /// </summary>
         public async Task ShutdownAsync(DisconnectType type, string message)
         {
-            Logger.Log($"NetworkManager shutdown initiated for {message} due to {type}", LogLevel.Information, Client);
+            Logger.Info($"NetworkManager shutdown initiated for {message} due to {type}", Client);
 
             // Send a CloseCircuit packet to simulators if we are initiating the disconnect
             bool sendCloseCircuit = (type == DisconnectType.ClientInitiated || type == DisconnectType.NetworkTimeout);
@@ -930,7 +928,7 @@ namespace OpenMetaverse
                 var completed = await Task.WhenAny(all, Task.Delay(2000)).ConfigureAwait(false);
                 if (completed != all)
                 {
-                    Logger.Log("Background processors did not exit within timeout during Shutdown", LogLevel.Warning, Client);
+                    Logger.Warn("Background processors did not exit within timeout during Shutdown", Client);
                 }
                 else
                 {
@@ -1043,7 +1041,7 @@ namespace OpenMetaverse
                         catch (OperationCanceledException) { throw; }
                         catch (Exception ex)
                         {
-                            Logger.Log("OutgoingPacketHandler exception: " + ex, LogLevel.Error, Client, ex);
+                            Logger.Error("OutgoingPacketHandler exception: " + ex, ex, Client);
                         }
                         stopwatch.Restart();
                     }
@@ -1055,7 +1053,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log("OutgoingPacketHandler fatal exception: " + ex, LogLevel.Error, Client, ex);
+                Logger.Error("OutgoingPacketHandler fatal exception: " + ex, ex, Client);
             }
         }
 
@@ -1085,12 +1083,11 @@ namespace OpenMetaverse
                         // Skip blacklisted packets
                         if (UDPBlacklist.Contains(packet.Type))
                         {
-                            Logger.Log($"Discarding Blacklisted packet {packet.Type} from {simulator.IPEndPoint}",
-                                LogLevel.Warning);
+                            Logger.Warn($"Discarding Blacklisted packet {packet.Type} from {simulator.IPEndPoint}");
                             continue;
                         }
 
-                        // Fire the callback(s), if any — protect against handler exceptions
+                        // Fire the callback(s), if any ï¿½ protect against handler exceptions
                         try
                         {
                             PacketEvents.RaiseEvent(packet.Type, packet, simulator);
@@ -1098,7 +1095,7 @@ namespace OpenMetaverse
                         catch (OperationCanceledException) { throw; }
                         catch (Exception ex)
                         {
-                            Logger.Log("Packet event handler exception: " + ex, LogLevel.Error, Client, ex);
+                            Logger.Error("Packet event handler exception: " + ex, ex, Client);
                         }
                     }
                 }
@@ -1109,7 +1106,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log("IncomingPacketHandler fatal exception: " + ex, LogLevel.Error, Client, ex);
+                Logger.Error("IncomingPacketHandler fatal exception: " + ex, ex, Client);
             }
         }
 
@@ -1146,8 +1143,7 @@ namespace OpenMetaverse
             else if (CurrentSim.DisconnectCandidate)
             {
                 // The currently occupied simulator hasn't sent us any traffic in a while, shutdown
-                Logger.Log($"Network timeout for the current simulator ({CurrentSim}), logging out",
-                    LogLevel.Warning, Client);
+                Logger.Warn($"Network timeout for the current simulator ({CurrentSim}), logging out", Client);
 
                 if (DisconnectTimer != null)
                 {
@@ -1198,7 +1194,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("Invalid Session or Agent ID received in Logout Reply... ignoring", LogLevel.Warning, Client);
+                Logger.Warn("Invalid Session or Agent ID received in Logout Reply... ignoring", Client);
             }
         }
 
@@ -1410,8 +1406,7 @@ namespace OpenMetaverse
 
                 if (Connect(ip, port, handle, false, null, t.RegionSizeX, t.RegionSizeY) == null)
                 {
-                    Logger.Log($"Unable to connect to new sim {ip}:{port}",
-                            LogLevel.Error, Client);
+                    Logger.Error($"Unable to connect to new sim {ip}:{port}", Client);
                 }
             }
         }
@@ -1551,3 +1546,4 @@ namespace OpenMetaverse
     }
     #endregion
 }
+

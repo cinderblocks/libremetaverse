@@ -632,13 +632,13 @@ namespace OpenMetaverse
                         {
                             if (Client?.Network?.CurrentSim?.Caps != null)
                             {
-                                Logger.Log($"Event queue start requested (attempt {attempt + 1}/{maxAttempts}).", LogLevel.Information, Client);
+                                Logger.Info($"Event queue start requested (attempt {attempt + 1}/{maxAttempts}).", Client);
                                 Client.Network.CurrentSim.Caps.EventQueue.Start();
                             }
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log("Failed to request EventQueue start: " + ex.Message, LogLevel.Warning, Client, ex);
+                            Logger.Warn("Failed to request EventQueue start: " + ex.Message, ex, Client);
                         }
 
                         // Wait for the notification or timeout
@@ -709,7 +709,7 @@ namespace OpenMetaverse
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log("Error in Ack loop: " + ex.Message, LogLevel.Error, Client, ex);
+                            Logger.Error("Error in Ack loop: " + ex.Message, ex, Client);
                         }
 
                         await Task.Delay(Settings.NETWORK_TICK_INTERVAL, token).ConfigureAwait(false);
@@ -735,7 +735,7 @@ namespace OpenMetaverse
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log("Error in Stats loop: " + ex.Message, LogLevel.Error, Client, ex);
+                            Logger.Error("Error in Stats loop: " + ex.Message, ex, Client);
                         }
 
                         await Task.Delay(1000, token).ConfigureAwait(false);
@@ -763,7 +763,7 @@ namespace OpenMetaverse
                             }
                             catch (Exception ex)
                             {
-                                Logger.Log("Error in Ping loop: " + ex.Message, LogLevel.Error, Client, ex);
+                                Logger.Error("Error in Ping loop: " + ex.Message, ex, Client);
                             }
 
                             await Task.Delay(Settings.PING_INTERVAL, token).ConfigureAwait(false);
@@ -878,7 +878,7 @@ namespace OpenMetaverse
                 return true;
             }
 
-            Logger.Log($"Connecting to {this}", LogLevel.Information, Client);
+            Logger.Info($"Connecting to {this}", Client);
 
             try
             {
@@ -902,8 +902,7 @@ namespace OpenMetaverse
 
                 if (!ConnectedEvent.Wait(Client.Settings.LOGIN_TIMEOUT))
                 {
-                    Logger.Log($"Giving up waiting for RegionHandshake for {this}",
-                        LogLevel.Warning, Client);
+                    Logger.Warn($"Giving up waiting for RegionHandshake for {this}", Client);
                     //Remove the simulator from the list, not useful if we haven't received the RegionHandshake
                     lock (Client.Network.Simulators) {
                         Client.Network.Simulators.Remove(this);
@@ -923,7 +922,7 @@ namespace OpenMetaverse
             }
             catch (Exception e)
             {
-                Logger.Log(e.Message, LogLevel.Error, Client, e);
+                Logger.Error(e.Message, e, Client);
             }
 
             return false;
@@ -958,7 +957,7 @@ namespace OpenMetaverse
             {
                 if (!GotUseCircuitCodeAck.Wait(Client.Settings.LOGIN_TIMEOUT))
                 {
-                    Logger.Log("Failed to get ACK for UseCircuitCode packet", LogLevel.Error, Client);
+                    Logger.Error("Failed to get ACK for UseCircuitCode packet", Client);
                 }
             }
         }
@@ -969,7 +968,7 @@ namespace OpenMetaverse
             {
                 if (Caps._SeedCapsURI == seedcaps && !changedSim) return;
 
-                Logger.Log("Unexpected change of seed capability", LogLevel.Warning, Client);
+                Logger.Warn("Unexpected change of seed capability", Client);
                 Caps.Disconnect(true);
                 Caps = null;
             }
@@ -981,7 +980,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("Setting up a sim without valid http capabilities", LogLevel.Error, Client);
+                Logger.Error("Setting up a sim without valid http capabilities", Client);
             }
         }
 
@@ -1101,7 +1100,7 @@ namespace OpenMetaverse
         {
             // DEBUG: This can go away after we are sure nothing in the library is trying to do this
             if (packet.Header.AppendedAcks || (packet.Header.AckList != null && packet.Header.AckList.Length > 0))
-                Logger.Log("Attempting to send packet " + packet.Type + " with ACKs appended before serialization", LogLevel.Error);
+                Logger.Error("Attempting to send packet " + packet.Type + " with ACKs appended before serialization");
 
             if (packet.HasVariableBlocks)
             {
@@ -1109,14 +1108,14 @@ namespace OpenMetaverse
                 try { datas = packet.ToBytesMultiple(); }
                 catch (NullReferenceException)
                 {
-                    Logger.Log("Failed to serialize " + packet.Type + " packet to one or more payloads due to a missing block or field. StackTrace: " +
-                        Environment.StackTrace, LogLevel.Error);
+                    Logger.Error("Failed to serialize " + packet.Type + " packet to one or more payloads due to a missing block or field. StackTrace: " +
+                        Environment.StackTrace);
                     return;
                 }
                 int packetCount = datas.Length;
 
                 if (packetCount > 1)
-                    Logger.DebugLog("Split " + packet.Type + " packet into " + packetCount + " packets");
+                    Logger.Debug("Split " + packet.Type + " packet into " + packetCount + " packets");
 
                 for (int i = 0; i < packetCount; i++)
                 {
@@ -1343,8 +1342,7 @@ namespace OpenMetaverse
                 // Check if this packet came from the server we expected it to come from
                 if (!remoteEndPoint.Address.Equals(((IPEndPoint)buffer.RemoteEndPoint).Address))
                 {
-                    Logger.Log($"Received {buffer.DataLength} bytes of data from unrecognized source {(IPEndPoint)buffer.RemoteEndPoint}",
-                        LogLevel.Warning, Client);
+                    Logger.Warn($"Received {buffer.DataLength} bytes of data from unrecognized source {(IPEndPoint)buffer.RemoteEndPoint}", Client);
                     return;
                 }
 
@@ -1363,14 +1361,13 @@ namespace OpenMetaverse
                 }
                 catch (MalformedDataException)
                 {
-                    Logger.Log(
-                        $"Malformed data, cannot parse packet:\n{Utils.BytesToHexString(buffer.Data, buffer.DataLength, null)}", LogLevel.Error);
+                    Logger.Error($"Malformed data, cannot parse packet:\n{Utils.BytesToHexString(buffer.Data, buffer.DataLength, null)}");
                 }
 
                 // Fail-safe check
                 if (packet == null)
                 {
-                    Logger.Log("Couldn't build a message from the incoming data", LogLevel.Warning, Client);
+                    Logger.Warn("Couldn't build a message from the incoming data", Client);
                     return;
                 }
 
@@ -1438,16 +1435,15 @@ namespace OpenMetaverse
                     if (!PacketArchive.TryEnqueue(packet.Header.Sequence))
                     {
                         if (packet.Header.Resent)
-                            Logger.DebugLog(
+                            Logger.Debug(
                                 string.Format(
                                     "Received a resend of already processed packet #{0}, type: {1} from {2}", 
                                     packet.Header.Sequence, packet.Type, Name));
                         else
-                            Logger.Log(
+                            Logger.Warn(
                                 string.Format(
                                     "Received a duplicate (not marked as resend) of packet #{0}, type: {1} for {2} from {3}", 
-                                    packet.Header.Sequence, packet.Type, Client.Self.Name, Name),
-                                LogLevel.Warning);
+                                    packet.Header.Sequence, packet.Type, Client.Self.Name, Name));
 
                         // Avoid firing a callback twice for the same packet
                         return;
@@ -1545,7 +1541,7 @@ namespace OpenMetaverse
                 {
                     if (Client.Settings.LOG_RESENDS)
                     {
-                        Logger.DebugLog(string.Format("Resending {2} packet #{0}, {1}ms have passed",
+                        Logger.Debug(string.Format("Resending {2} packet #{0}, {1}ms have passed",
                             outgoing.SequenceNumber, now - outgoing.TickCount, outgoing.Type), Client);
                     }
 
@@ -1564,7 +1560,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    Logger.DebugLog(string.Format("Dropping packet #{0} after {1} failed attempts",
+                    Logger.Debug(string.Format("Dropping packet #{0} after {1} failed attempts",
                         outgoing.SequenceNumber, outgoing.ResendCount));
 
                     lock (NeedAck) NeedAck.Remove(outgoing.SequenceNumber);
@@ -1777,3 +1773,4 @@ namespace OpenMetaverse
         }
     }
 }
+

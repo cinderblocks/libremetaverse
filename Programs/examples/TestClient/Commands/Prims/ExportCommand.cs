@@ -120,16 +120,16 @@ namespace TestClient.Commands.Prims
 
             if (!complete)
             {
-                Logger.Log("Warning: Unable to retrieve full properties for:", LogLevel.Warning, Client);
+                Logger.Warn("Warning: Unable to retrieve full properties for:", Client);
                 foreach (UUID uuid in PrimsWaiting.Keys)
-                    Logger.Log(uuid.ToString(), LogLevel.Warning, Client);
+                    Logger.Warn(uuid.ToString(), Client);
             }
 
             string output = OSDParser.SerializeLLSDXmlString(Helpers.PrimListToOSD(prims));
             try { File.WriteAllText(file, output); }
             catch (Exception e) { return e.Message; }
 
-            Logger.Log("Exported " + prims.Count + " prims to " + file, LogLevel.Information, Client);
+            Logger.Info("Exported " + prims.Count + " prims to " + file, Client);
 
             // Create a list of all the textures to download
             List<ImageRequest> textureRequests = new List<ImageRequest>();
@@ -227,19 +227,19 @@ namespace TestClient.Commands.Prims
                     Textures.Remove(asset.AssetID);
 
                 try { File.WriteAllBytes(asset.AssetID + ".jp2", asset.AssetData); }
-                catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client); }
+                catch (Exception ex) { Logger.Error(ex.Message, Client); }
 
                 if (asset.Decode())
                 {
                     try { File.WriteAllBytes(asset.AssetID + ".tga", OpenMetaverse.Imaging.Targa.Encode(asset.Image)); }
-                    catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, Client); }
+                    catch (Exception ex) { Logger.Error(ex.Message, Client); }
                 }
                 else
                 {
-                    Logger.Log("Failed to decode image " + asset.AssetID, LogLevel.Error, Client);
+                    Logger.Error("Failed to decode image " + asset.AssetID, Client);
                 }
 
-                Logger.Log("Finished downloading image " + asset.AssetID, LogLevel.Information, Client);
+                Logger.Info("Finished downloading image " + asset.AssetID, Client);
             }
         }
 
@@ -265,3 +265,4 @@ namespace TestClient.Commands.Prims
         }
     }
 }
+

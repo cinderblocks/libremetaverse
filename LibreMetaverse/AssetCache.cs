@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2006-2016, openmetaverse.co
  * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
@@ -337,7 +337,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed saving asset to cache (" + ex.Message + ")", LogLevel.Warning, Client);
+                Logger.Warn("Failed saving asset to cache (" + ex.Message + ")", Client);
                 return false;
             }
 
@@ -398,7 +398,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"Failed to delete cache file {filePath}: {ex}", LogLevel.Warning, Client);
+                    Logger.Warn($"Failed to delete cache file {filePath}: {ex}", Client);
                 }
             }
 
@@ -438,7 +438,7 @@ namespace OpenMetaverse
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log($"Failed accessing cache file {p}: {ex}", LogLevel.Warning, Client);
+                            Logger.Warn($"Failed accessing cache file {p}: {ex}", Client);
                         }
                     }
 
@@ -456,7 +456,7 @@ namespace OpenMetaverse
                             }
                             catch (Exception ex)
                             {
-                                Logger.Log($"Failed accessing cache file {p}: {ex}", LogLevel.Warning, Client);
+                                Logger.Warn($"Failed accessing cache file {p}: {ex}", Client);
                             }
                         }
 
@@ -476,7 +476,7 @@ namespace OpenMetaverse
                             }
                             catch (Exception ex)
                             {
-                                Logger.Log($"Failed deleting cache file {entry.Path}: {ex}", LogLevel.Warning, Client);
+                                Logger.Warn($"Failed deleting cache file {entry.Path}: {ex}", Client);
                             }
                             if (size < targetSize)
                             {
@@ -579,3 +579,4 @@ namespace OpenMetaverse
         }
     }
 }
+

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2006-2016, openmetaverse.co
  * All rights reserved.
  *
@@ -224,8 +224,7 @@ namespace OpenMetaverse.Assets
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed decoding wearable asset {AssetID}: " + ex.Message,
-                    LogLevel.Warning);
+                Logger.Warn($"Failed decoding wearable asset {AssetID}: " + ex.Message);
                 return false;
             }
 
@@ -276,3 +275,4 @@ namespace OpenMetaverse.Assets
         }
     }
 }
+

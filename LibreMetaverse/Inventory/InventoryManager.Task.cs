@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
@@ -109,7 +109,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log($"RequestUpdateNotecardTask failed: {ex.Message}", LogLevel.Warning, Client, ex);
+                Logger.Warn($"RequestUpdateNotecardTask failed: {ex.Message}", ex, Client);
             }
         }
 
@@ -132,7 +132,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log($"RequestUpdateScriptTask failed: {ex.Message}", LogLevel.Warning, Client, ex);
+                Logger.Warn($"RequestUpdateScriptTask failed: {ex.Message}", ex, Client);
             }
         }
 
@@ -682,7 +682,7 @@ namespace OpenMetaverse
                                             if (uint.TryParse(value, out var timestamp))
                                                 creationDate = Utils.UnixTimeToDateTime(timestamp);
                                             else
-                                                Logger.Log($"Failed to parse creation_date: {value}", LogLevel.Warning);
+                                                Logger.Warn($"Failed to parse creation_date: {value}");
                                             break;
                                         }
                                 }
@@ -712,8 +712,7 @@ namespace OpenMetaverse
                     }
                     else
                     {
-                        Logger.Log($"Unrecognized token {key} in: " + Environment.NewLine + taskData,
-                            LogLevel.Error);
+                        Logger.Error($"Unrecognized token {key} in: " + Environment.NewLine + taskData);
                     }
                 }
             }
@@ -722,3 +721,4 @@ namespace OpenMetaverse
         }
     }
 }
+

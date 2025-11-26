@@ -607,12 +607,12 @@ namespace OpenMetaverse
             // check for too many items.
             if (total_contents > MAX_GIVE_ITEMS)
             {
-                Logger.Log($"Cannot give more than {MAX_GIVE_ITEMS} items in a single inventory transfer.", LogLevel.Information);
+                Logger.Info($"Cannot give more than {MAX_GIVE_ITEMS} items in a single inventory transfer.");
                 return;
             }
             if (items.Count == 0)
             {
-                Logger.Log("No items to transfer.", LogLevel.Information);
+                Logger.Info("No items to transfer.");
                 return;
             }
 
@@ -698,7 +698,7 @@ namespace OpenMetaverse
                             items.Add(fetched);
                         break;
                     default: // shouldn't happen
-                        Logger.Log("Retrieved inventory contents of invalid type", LogLevel.Error);
+                        Logger.Error("Retrieved inventory contents of invalid type");
                         break;
                 }
             }
@@ -1082,3 +1082,4 @@ namespace OpenMetaverse
         }
     }
 }
+

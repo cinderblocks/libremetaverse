@@ -112,7 +112,7 @@ namespace LibreMetaverse.Voice.Vivox
                         if (OnDaemonCouldntRun != null)
                         {
                             try { OnDaemonCouldntRun(); }
-                            catch (Exception e) { Logger.Log(e.Message, LogLevel.Error, null, e); }
+                            catch (Exception e) { Logger.Error(e.Message, e); }
                         }
 
                         return;
@@ -124,7 +124,7 @@ namespace LibreMetaverse.Voice.Vivox
                         if (OnDaemonRunning != null)
                         {
                             try { OnDaemonRunning(); }
-                            catch (Exception e) { Logger.Log(e.Message, LogLevel.Error, null, e); }
+                            catch (Exception e) { Logger.Error(e.Message, e); }
                         }
 
                         Logger.DebugLog("Started voice daemon, waiting for exit...");
@@ -135,7 +135,7 @@ namespace LibreMetaverse.Voice.Vivox
                         if (OnDaemonExited != null)
                         {
                             try { OnDaemonExited(); }
-                            catch (Exception e) { Logger.Log(e.Message, LogLevel.Error, null, e); }
+                            catch (Exception e) { Logger.Error(e.Message, e); }
                         }
                     }
                 }
@@ -162,7 +162,7 @@ namespace LibreMetaverse.Voice.Vivox
             }
             catch (InvalidOperationException ex)
             {
-                Logger.Log("Failed to stop the voice daemon", LogLevel.Error, ex);
+                Logger.Error("Failed to stop the voice daemon", ex);
             }
         }
 
@@ -183,7 +183,7 @@ namespace LibreMetaverse.Voice.Vivox
                     if (OnDaemonDisconnected == null) { return; }
                     
                     try { OnDaemonDisconnected(); }
-                    catch (Exception ex) { Logger.Log(ex.Message, LogLevel.Error, null, ex); }
+                    catch (Exception ex) { Logger.Error(ex.Message, ex); }
                 };
             _daemonPipe.OnReceiveLine += new TCPPipe.OnReceiveLineCallback(daemonPipe_OnReceiveLine);
 
@@ -195,7 +195,7 @@ namespace LibreMetaverse.Voice.Vivox
                 if (OnDaemonConnected != null)
                 {
                     try { OnDaemonConnected(); }
-                    catch (Exception e) { Logger.Log(e.Message, LogLevel.Error, null, e); }
+                    catch (Exception e) { Logger.Error(e.Message, e); }
                 }
 
                 return true;
@@ -207,10 +207,10 @@ namespace LibreMetaverse.Voice.Vivox
                 if (OnDaemonCouldntConnect != null)
                 {
                     try { OnDaemonCouldntConnect(); }
-                    catch (Exception e) { Logger.Log(e.Message, LogLevel.Error, null, e); }
+                    catch (Exception e) { Logger.Error(e.Message, e); }
                 }
 
-                Logger.Log("Voice daemon connection failed: " + se.Message, LogLevel.Error);
+                Logger.Error("Voice daemon connection failed: " + se.Message);
                 return false;
             }
         }
@@ -242,7 +242,7 @@ namespace LibreMetaverse.Voice.Vivox
                 sb.Append("\n\n\n");
 
 #if DEBUG
-                Logger.Log("Request: " + sb, LogLevel.Debug);
+                Logger.Debug("Request: " + sb);
 #endif
                 try
                 {
@@ -271,7 +271,7 @@ namespace LibreMetaverse.Voice.Vivox
         private void daemonPipe_OnReceiveLine(string line)
         {
 #if DEBUG
-            Logger.Log(line, LogLevel.Debug);
+            Logger.Debug(line);
 #endif
 
             if (line.Substring(0, 10) == "<Response ")
@@ -283,7 +283,7 @@ namespace LibreMetaverse.Voice.Vivox
                 }
                 catch (Exception e)
                 {
-                    Logger.Log("Failed to deserialize voice daemon response", LogLevel.Error, e);
+                    Logger.Error("Failed to deserialize voice daemon response", e);
                     return;
                 }
 
@@ -435,7 +435,7 @@ namespace LibreMetaverse.Voice.Vivox
                             genericResponse = ResponseType.Set3DPosition;
                             break;
                         default:
-                            Logger.Log("Unimplemented response from the voice daemon: " + line, LogLevel.Error);
+                            Logger.Error("Unimplemented response from the voice daemon: " + line);
                             break;
                     }
 
@@ -460,7 +460,7 @@ namespace LibreMetaverse.Voice.Vivox
                 }
                 catch (Exception e)
                 {
-                    Logger.Log("Failed to deserialize voice daemon event", LogLevel.Error, e);
+                    Logger.Error("Failed to deserialize voice daemon event", e);
                     return;
                 }
 
@@ -503,7 +503,7 @@ namespace LibreMetaverse.Voice.Vivox
                             break;
 
                         case "ParticipantAddedEvent":
-                            Logger.Log("Add participant " + evt.ParticipantUri, LogLevel.Debug);
+                            Logger.Debug("Add participant " + evt.ParticipantUri);
                             OnSessionParticipantAddedEvent?.Invoke(this,
                                 new ParticipantAddedEventArgs(
                                     evt.SessionGroupHandle,
@@ -645,14 +645,15 @@ namespace LibreMetaverse.Voice.Vivox
                             break;
 
                         default:
-                            Logger.Log("Unimplemented event from the voice daemon: " + line, LogLevel.Error);
+                            Logger.Error("Unimplemented event from the voice daemon: " + line);
                             break;
                     }
             }
             else
             {
-                Logger.Log("Unrecognized data from the voice daemon: " + line, LogLevel.Error);
+                Logger.Error("Unrecognized data from the voice daemon: " + line);
             }
         }
     }
 }
+

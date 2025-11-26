@@ -130,7 +130,7 @@ namespace TestClient.Commands.Inventory
 
             if (finalUploadSuccess)
             {
-                Logger.Log($"Notecard successfully created, ItemID {notecardItemID} AssetID {notecardAssetID}", LogLevel.Information);
+                Logger.Info($"Notecard successfully created, ItemID {notecardItemID} AssetID {notecardAssetID}");
                 return await DownloadNotecardAsync(notecardItemID, notecardAssetID).ConfigureAwait(false);
             }
             else

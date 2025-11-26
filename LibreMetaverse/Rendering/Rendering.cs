@@ -412,7 +412,7 @@ namespace OpenMetaverse.Rendering
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed to decode mesh asset: " + ex.Message, LogLevel.Warning);
+                Logger.Warn("Failed to decode mesh asset: " + ex.Message);
                 return false;
             }
 
@@ -473,8 +473,7 @@ namespace OpenMetaverse.Rendering
                             }
                             else
                             {
-                                Logger.Log("Rendering plugin does not support the [RendererName] attribute: " + f,
-                                    LogLevel.Warning);
+                                Logger.Warn("Rendering plugin does not support the [RendererName] attribute: " + f);
                             }
 
                             break;
@@ -483,8 +482,7 @@ namespace OpenMetaverse.Rendering
                 }
                 catch (Exception e)
                 {
-                    Logger.Log($"Unrecognized rendering plugin {f}: {e.Message}",
-                        LogLevel.Warning, e);
+                    Logger.Warn($"Unrecognized rendering plugin {f}: {e.Message}", e);
                 }
             }
 
@@ -525,3 +523,4 @@ namespace OpenMetaverse.Rendering
 
     #endregion Plugin Loading
 }
+

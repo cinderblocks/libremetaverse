@@ -513,7 +513,7 @@ namespace OpenMetaverse
             {
                 if (!Client.Settings.SEND_AGENT_UPDATES)
                 {
-                    Logger.Log("Attempted TurnToward but agent updates are disabled", LogLevel.Warning, Client);
+                    Logger.Warn("Attempted TurnToward but agent updates are disabled", Client);
                     return false;
                 }
 
@@ -523,7 +523,7 @@ namespace OpenMetaverse
                 {
                     if (!Client.Network.CurrentSim.ObjectsPrimitives.TryGetValue(Client.Self.SittingOn, out var parent))
                     {
-                        Logger.Log("Attempted TurnToward but parent prim is not found", LogLevel.Warning, Client);
+                        Logger.Warn("Attempted TurnToward but parent prim is not found", Client);
                         return false;
                     }
 
@@ -736,3 +736,4 @@ namespace OpenMetaverse
         }
     }
 }
+
