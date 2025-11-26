@@ -79,6 +79,19 @@ namespace OpenMetaverse.Http
             }
             catch { /* noop */ }
 
+            // Ensure task is observed/cleaned up
+            try
+            {
+                if (_eqTask != null)
+                {
+                    if (_eqTask.IsFaulted && _eqTask.Exception != null)
+                    {
+                        Logger.Error($"EventQueueClient background task faulted during dispose: {_eqTask.Exception}");
+                    }
+                }
+            }
+            catch { /* noop */ }
+
             _queueCts?.Dispose();
             _queueCts = null;
             GC.SuppressFinalize(this);
@@ -156,6 +169,29 @@ namespace OpenMetaverse.Http
         {
             // do we need to POST one more request telling EQ we are done? i dunno!
             _queueCts.Cancel();
+
+            // Wait a short time for the background task to finish so resources are cleaned up
+            try
+            {
+                if (_eqTask != null)
+                {
+                    // Wait up to 2 seconds for the repeating task to stop
+                    if (!_eqTask.Wait(2000))
+                    {
+                        Logger.Debug($"EventQueueClient background task did not stop within timeout for {Simulator}");
+                    }
+
+                    // Observe any exceptions to avoid unobserved task exceptions
+                    if (_eqTask.IsFaulted && _eqTask.Exception != null)
+                    {
+                        Logger.Error($"EventQueueClient background task faulted: {_eqTask.Exception}");
+                    }
+                }
+            }
+            catch (AggregateException ae)
+            {
+                Logger.Error($"Exception while waiting for EventQueueClient task to stop: {ae}");
+            }
         }
 
         private void ConnectedResponseHandler(HttpResponseMessage response)

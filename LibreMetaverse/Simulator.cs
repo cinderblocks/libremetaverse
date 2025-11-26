@@ -775,6 +775,13 @@ namespace OpenMetaverse
 
         private void StopTimerTasks()
         {
+            // Backward-compatible synchronous wrapper for the async implementation
+            StopTimerTasksAsync().GetAwaiter().GetResult();
+        }
+
+        // Async variant that cancels timer token and waits for background tasks to finish with a timeout
+        private async Task StopTimerTasksAsync(int timeoutMs = 2000)
+        {
             if (_timerCts == null) return;
 
             try
@@ -783,15 +790,54 @@ namespace OpenMetaverse
             }
             catch (Exception) { }
 
-            try { _ackLoopTask?.Wait(1000); } catch { }
-            try { _statsLoopTask?.Wait(1000); } catch { }
-            try { _pingLoopTask?.Wait(1000); } catch { }
+            var tasksToWait = new List<Task>();
+            if (_ackLoopTask != null) tasksToWait.Add(_ackLoopTask);
+            if (_statsLoopTask != null) tasksToWait.Add(_statsLoopTask);
+            if (_pingLoopTask != null) tasksToWait.Add(_pingLoopTask);
+
+            if (tasksToWait.Count > 0)
+            {
+                try
+                {
+                    var all = Task.WhenAll(tasksToWait);
+                    var delay = Task.Delay(timeoutMs);
+
+                    var completed = await Task.WhenAny(all, delay).ConfigureAwait(false);
+                    if (completed != all)
+                    {
+                        Logger.Debug($"One or more Simulator timer tasks did not stop within {timeoutMs}ms for {this}", Client);
+                    }
+
+                    // Await all to observe exceptions if completed
+                    try
+                    {
+                        await all.ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error($"Exception while awaiting Simulator timer tasks: {ex}", ex, Client);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"Exception while waiting for Simulator timer tasks: {ex}", ex, Client);
+                }
+
+                // Observe and log any task exceptions to avoid unobserved exceptions
+                foreach (var t in tasksToWait)
+                {
+                    if (t.IsFaulted && t.Exception != null)
+                    {
+                        try { Logger.Error($"Simulator timer task faulted: {t.Exception}", t.Exception, Client); } catch { }
+                    }
+                }
+            }
 
             _ackLoopTask = null;
             _statsLoopTask = null;
             _pingLoopTask = null;
 
-            _timerCts.Dispose();
+            try { _timerCts.Dispose(); } catch { }
             _timerCts = null;
         }
 
