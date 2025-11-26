@@ -25,7 +25,6 @@
  */
 
 using System;
-using Microsoft.Extensions.Logging;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;

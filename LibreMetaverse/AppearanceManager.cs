@@ -37,7 +37,6 @@ using OpenMetaverse.Imaging;
 using OpenMetaverse.Assets;
 using OpenMetaverse.StructuredData;
 using LibreMetaverse;
-using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {

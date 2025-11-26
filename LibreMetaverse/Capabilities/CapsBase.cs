@@ -30,7 +30,6 @@ using System.Net;
 using System.IO;
 using System.Threading;
 using System.Security.Cryptography.X509Certificates;
-using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse.Http
 {

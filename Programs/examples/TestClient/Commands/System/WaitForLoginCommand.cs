@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using OpenMetaverse;
 
 namespace TestClient.Commands.System

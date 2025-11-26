@@ -37,7 +37,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse;
-using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {

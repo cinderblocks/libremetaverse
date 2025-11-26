@@ -35,7 +35,6 @@ using System.Threading.Tasks;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Assets;
 using System.Collections.Concurrent;
-using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {

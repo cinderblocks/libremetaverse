@@ -27,7 +27,6 @@
 
 using System;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse

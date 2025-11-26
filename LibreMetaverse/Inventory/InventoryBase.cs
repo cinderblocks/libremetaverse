@@ -28,7 +28,6 @@
 using System;
 using OpenMetaverse.StructuredData;
 using MessagePack;
-using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {

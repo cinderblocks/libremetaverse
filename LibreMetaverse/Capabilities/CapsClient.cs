@@ -30,7 +30,6 @@ using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using LibreMetaverse;
-using Microsoft.Extensions.Logging;
 using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse.Http

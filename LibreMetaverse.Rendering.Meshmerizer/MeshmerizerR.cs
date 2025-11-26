@@ -39,7 +39,6 @@ using System.IO;
 using SkiaSharp;
 using OpenMetaverse.StructuredData;
 using LibreMetaverse.PrimMesher;
-using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse.Rendering
 {

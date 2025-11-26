@@ -28,10 +28,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using Microsoft.Extensions.Logging;
-using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse
 {

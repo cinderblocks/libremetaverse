@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Text;
 using OpenMetaverse;
-using Microsoft.Extensions.Logging;
 
 namespace TestClient.Commands.Inventory
 {

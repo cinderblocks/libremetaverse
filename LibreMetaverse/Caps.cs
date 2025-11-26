@@ -37,7 +37,6 @@ using OpenMetaverse.Interfaces;
 using OpenMetaverse.Http;
 using System.Net.Http;
 using LibreMetaverse;
-using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {

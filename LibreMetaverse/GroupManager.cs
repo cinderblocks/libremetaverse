@@ -35,7 +35,6 @@ using OpenMetaverse.StructuredData;
 using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.Interfaces;
 using System.Collections.Concurrent;
-using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {

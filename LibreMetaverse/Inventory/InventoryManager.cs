@@ -35,7 +35,6 @@ using OpenMetaverse.StructuredData;
 using OpenMetaverse.Packets;
 using System.Collections.Concurrent;
 using LibreMetaverse.Threading;
-using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {

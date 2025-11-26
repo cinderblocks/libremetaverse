@@ -32,7 +32,6 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using System.Diagnostics;
 using LibreMetaverse;
-using Microsoft.Extensions.Logging;
 
 #pragma warning disable CS0618 // Type or member is obsolete (DownloadCompleteHandler)
 

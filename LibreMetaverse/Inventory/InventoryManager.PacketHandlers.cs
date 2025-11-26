@@ -27,8 +27,6 @@
 
 using System;
 using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.Packets;
 

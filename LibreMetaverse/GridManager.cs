@@ -35,7 +35,6 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
-using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {

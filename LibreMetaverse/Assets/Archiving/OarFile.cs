@@ -31,7 +31,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Xml;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse.Assets
 {

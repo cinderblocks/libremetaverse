@@ -33,7 +33,6 @@ using System.IO;
 using System.Xml;
 using System.Linq;
 using System.Xml.Serialization;
-using Microsoft.Extensions.Logging;
 using OpenMetaverse.ImportExport.Collada14;
 using OpenMetaverse.Rendering;
 using SkiaSharp;

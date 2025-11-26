@@ -29,7 +29,6 @@ using System.IO;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Microsoft.Extensions.Logging;
 using OpenMetaverse.Assets;
 using OpenMetaverse.StructuredData;
 

@@ -28,7 +28,6 @@ using System;
 using System.Collections.Generic;
 using OpenMetaverse.StructuredData;
 using System.Reflection;
-using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {

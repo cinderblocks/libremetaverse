@@ -40,7 +40,6 @@ using OpenMetaverse.Messages.Linden;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Collections;
-using Microsoft.Extensions.Logging;
 
 namespace OpenMetaverse
 {

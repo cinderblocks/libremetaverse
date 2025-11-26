@@ -33,7 +33,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
 using LibreMetaverse;
-using Microsoft.Extensions.Logging;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse

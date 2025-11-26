@@ -28,7 +28,6 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
-using Microsoft.Extensions.Logging;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Interfaces;
 

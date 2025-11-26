@@ -32,7 +32,6 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse;
-using Microsoft.Extensions.Logging;
 using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.StructuredData;
 
