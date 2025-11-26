@@ -60,6 +60,10 @@ namespace OpenMetaverse
 
             var reply = (InventoryDescendentsPacket)packet;
 
+            // Include folder and agent context for correlation across logs for this reply
+            using (Logger.BeginScope(new { FolderId = reply.AgentData.FolderID, OwnerId = reply.AgentData.OwnerID }))
+            {
+
             if (reply.AgentData.Descendents > 0)
             {
                 // InventoryDescendantsReply sends a null folder if the parent doesn't contain any folders
@@ -219,6 +223,7 @@ namespace OpenMetaverse
 
             // Callback for inventory folder contents being updated
             OnFolderUpdated(new FolderUpdatedEventArgs(parentFolder.UUID, true));
+            }
         }
 
         /// <summary>
@@ -236,90 +241,96 @@ namespace OpenMetaverse
 
             foreach (var dataBlock in reply.InventoryData)
             {
-                if (dataBlock.InvType == (sbyte)InventoryType.Folder)
+                using (Logger.BeginScope(new { CallbackId = dataBlock.CallbackID }))
                 {
-                    Logger.Error("Received InventoryFolder in an UpdateCreateInventoryItem packet, this should not happen!", Client);
-                    continue;
-                }
-
-                var item = CreateInventoryItem((InventoryType)dataBlock.InvType, dataBlock.ItemID);
-                item.AssetType = (AssetType)dataBlock.Type;
-                item.AssetUUID = dataBlock.AssetID;
-                item.CreationDate = Utils.UnixTimeToDateTime(dataBlock.CreationDate);
-                item.CreatorID = dataBlock.CreatorID;
-                item.Description = Utils.BytesToString(dataBlock.Description);
-                item.Flags = dataBlock.Flags;
-                item.GroupID = dataBlock.GroupID;
-                item.GroupOwned = dataBlock.GroupOwned;
-                item.Name = Utils.BytesToString(dataBlock.Name);
-                item.OwnerID = dataBlock.OwnerID;
-                item.ParentUUID = dataBlock.FolderID;
-                item.Permissions = new Permissions(
-                    dataBlock.BaseMask,
-                    dataBlock.EveryoneMask,
-                    dataBlock.GroupMask,
-                    dataBlock.NextOwnerMask,
-                    dataBlock.OwnerMask);
-                item.SalePrice = dataBlock.SalePrice;
-                item.SaleType = (SaleType)dataBlock.SaleType;
-
-                /*
-                 * When attaching new objects, an UpdateCreateInventoryItem packet will be
-                 * returned by the server that has a FolderID/ParentUUID of zero. It is up
-                 * to the client to make sure that the item gets a good folder, otherwise
-                 * it will end up inaccessible in inventory.
-                 */
-                if (item.ParentUUID == UUID.Zero)
-                {
-                    // assign default folder for type
-                    item.ParentUUID = FindFolderForType(item.AssetType);
-
-                    Logger.Info("Received an item through UpdateCreateInventoryItem with no parent folder, assigning to folder " +
-                        item.ParentUUID);
-
-                    // send update to the sim
-                    RequestUpdateItem(item);
-                }
-
-                // Update the local copy
-                _Store[item.UUID] = item;
-
-                // Look for an "item created" callback
-                if (_ItemCreatedCallbacks.TryGetValue(dataBlock.CallbackID, out var createdCallback))
-                {
-                    _ItemCreatedCallbacks.TryRemove(dataBlock.CallbackID, out _);
-
-                    try
+                    if (dataBlock.InvType == (sbyte)InventoryType.Folder)
                     {
-                        createdCallback(true, item);
+                        Logger.Error("Received InventoryFolder in an UpdateCreateInventoryItem packet, this should not happen!", Client);
+                        continue;
                     }
-                    catch (Exception ex)
-                    {
-                        Logger.Error(ex.Message, ex, Client);
-                    }
-                }
 
-                // TODO: Is this callback even triggered when items are copied?
-                // Look for an "item copied" callback
-                if (_ItemCopiedCallbacks.TryGetValue(dataBlock.CallbackID, out var copyCallback))
-                {
-                    _ItemCopiedCallbacks.TryRemove(dataBlock.CallbackID, out _);
-
-                    try
+                    var item = CreateInventoryItem((InventoryType)dataBlock.InvType, dataBlock.ItemID);
+                    using (Logger.BeginScope(new { ItemId = item.UUID }))
                     {
-                        copyCallback(item);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Error(ex.Message, ex, Client);
-                    }
-                }
+                        item.AssetType = (AssetType)dataBlock.Type;
+                        item.AssetUUID = dataBlock.AssetID;
+                        item.CreationDate = Utils.UnixTimeToDateTime(dataBlock.CreationDate);
+                        item.CreatorID = dataBlock.CreatorID;
+                        item.Description = Utils.BytesToString(dataBlock.Description);
+                        item.Flags = dataBlock.Flags;
+                        item.GroupID = dataBlock.GroupID;
+                        item.GroupOwned = dataBlock.GroupOwned;
+                        item.Name = Utils.BytesToString(dataBlock.Name);
+                        item.OwnerID = dataBlock.OwnerID;
+                        item.ParentUUID = dataBlock.FolderID;
+                        item.Permissions = new Permissions(
+                            dataBlock.BaseMask,
+                            dataBlock.EveryoneMask,
+                            dataBlock.GroupMask,
+                            dataBlock.NextOwnerMask,
+                            dataBlock.OwnerMask);
+                        item.SalePrice = dataBlock.SalePrice;
+                        item.SaleType = (SaleType)dataBlock.SaleType;
 
-                //This is triggered when an item is received from a task
-                if (m_TaskItemReceived != null)
-                {
-                    OnTaskItemReceived(new TaskItemReceivedEventArgs(item.UUID, dataBlock.FolderID,
-                        item.CreatorID, item.AssetUUID, item.InventoryType));
+                        /*
+                         * When attaching new objects, an UpdateCreateInventoryItem packet will be
+                         * returned by the server that has a FolderID/ParentUUID of zero. It is up
+                         * to the client to make sure that the item gets a good folder, otherwise
+                         * it will end up inaccessible in inventory.
+                         */
+                        if (item.ParentUUID == UUID.Zero)
+                        {
+                            // assign default folder for type
+                            item.ParentUUID = FindFolderForType(item.AssetType);
+
+                            Logger.Info($"Received an item through UpdateCreateInventoryItem with no parent folder, assigning to folder {item.ParentUUID}");
+
+                            // send update to the sim
+                            RequestUpdateItem(item);
+                        }
+
+                        // Update the local copy
+                        _Store[item.UUID] = item;
+
+                        // Look for an "item created" callback
+                        if (_ItemCreatedCallbacks.TryGetValue(dataBlock.CallbackID, out var createdCallback))
+                        {
+                            _ItemCreatedCallbacks.TryRemove(dataBlock.CallbackID, out _);
+
+                            try
+                            {
+                                Logger.Debug($"Invoking created callback for CallbackID={dataBlock.CallbackID}", Client);
+                                createdCallback(true, item);
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Error(ex.Message, ex, Client);
+                            }
+                        }
+
+                        // TODO: Is this callback even triggered when items are copied?
+                        // Look for an "item copied" callback
+                        if (_ItemCopiedCallbacks.TryGetValue(dataBlock.CallbackID, out var copyCallback))
+                        {
+                            _ItemCopiedCallbacks.TryRemove(dataBlock.CallbackID, out _);
+
+                            try
+                            {
+                                copyCallback(item);
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Error(ex.Message, ex, Client);
+                            }
+                        }
+
+                        //This is triggered when an item is received from a task
+                        if (m_TaskItemReceived != null)
+                        {
+                            OnTaskItemReceived(new TaskItemReceivedEventArgs(item.UUID, dataBlock.FolderID,
+                                item.CreatorID, item.AssetUUID, item.InventoryType));
+                        }
+                    }
                 }
             }
         }
