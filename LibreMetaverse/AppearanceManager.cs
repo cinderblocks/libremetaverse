@@ -1280,14 +1280,15 @@ namespace OpenMetaverse
                 if (nameValue.Equals(default(NameValue))) { continue; }
 
                 // Retrieve the inventory item UUID from the name values.
-                var inventoryItemId = (string)nameValue.Value;
+                var inventoryItemId = nameValue.Value?.ToString();
 
-                if (string.IsNullOrEmpty(inventoryItemId) ||
-                    !UUID.TryParse(inventoryItemId, out var itemID))
+                // If the AttachItemID is missing or invalid, skip this primitive instead of failing the whole gather
+                if (string.IsNullOrEmpty(inventoryItemId) || !UUID.TryParse(inventoryItemId, out var itemID))
                 {
-                    return false;
+                    Logger.Debug($"GatherAgentAttachments: Invalid AttachItemID '{inventoryItemId}' on primitive {primitive.LocalID}", Client);
+                    continue;
                 }
-                
+
                 // Determine the attachment point from the primitive.
                 var attachmentPoint = primitive.PrimData.AttachmentPoint;
 
@@ -2768,7 +2769,7 @@ namespace OpenMetaverse
                 }
             }
             else
-            {
+        {
                 Logger.Error($"Failed to download folder contents of {folder}", Client);
                 return false;
             }
@@ -2943,12 +2944,25 @@ namespace OpenMetaverse
                     continue;
                 }
 
-                UUID inventoryID = new UUID(prim.NameValues[i].Value.ToString());
-
-                if (Attachments.TryGetValue(inventoryID, out AttachmentPoint attachmentPoint))
+                try
                 {
-                    Attachments.AddOrUpdate(inventoryID, attachmentPoint, (id, value) => prim.PrimData.AttachmentPoint);
+                    var valueStr = prim.NameValues[i].Value?.ToString();
+                    if (UUID.TryParse(valueStr, out var inventoryID))
+                    {
+                        var attachPoint = prim.PrimData.AttachmentPoint;
+                        // Always add or update using the attachment point from the primitive
+                        Attachments.AddOrUpdate(inventoryID, attachPoint, (id, old) => attachPoint);
+                    }
+                    else
+                    {
+                        Logger.Debug($"Objects_AttachmentUpdate: AttachItemID '{valueStr}' could not be parsed to UUID", Client);
+                    }
                 }
+                catch (Exception ex)
+                {
+                    Logger.Debug($"Objects_AttachmentUpdate: failed parsing AttachItemID: {ex}", Client);
+                }
+
                 break;
             }
         }
