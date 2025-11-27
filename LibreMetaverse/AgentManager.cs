@@ -3417,10 +3417,12 @@ namespace OpenMetaverse
                 InstantMessageOnline.Online, SimPosition, UUID.Zero, Utils.EmptyBytes);
             }
         }
+
         public void SendTeleportLureRequest(UUID targetID, string message)
         {
             SendTeleportLureRequest(targetID, targetID, message);
         }
+
         public void SendTeleportLureRequest(UUID targetID)
         {
             SendTeleportLureRequest(targetID, "Let me join you in your location");
@@ -3491,7 +3493,7 @@ namespace OpenMetaverse
         /// Only updates about text fields, profile url, and allow_publish.
         /// Does not update image UUID, etc. like the legacy LLUDP request.
         /// </remarks>
-        public async void UpdateProfileHttp(Avatar.AvatarProperties profile, CancellationToken cancellationToken = default)
+        public async Task UpdateProfileHttp(Avatar.AvatarProperties profile, CancellationToken cancellationToken = default)
         {
             var payload = new OSDMap
             {
@@ -3503,48 +3505,50 @@ namespace OpenMetaverse
                 ["fl_image_id"] = profile.FirstLifeImage
             };
 
-            var capability = Client.Network.CurrentSim.Caps.CapabilityURI(AGENT_PROFILE_CAP);
-            var uri = new Uri($"{capability}/{AgentID}");
-            await Client.HttpCapsClient.PutRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
-                (response, data, error) =>
-                {
-                    if (error != null)
-                    {
-                        Logger.Warn($"AgentProfile update failed: {error.Message}");
-                        return;
-                    }
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        Logger.Debug("AgentProfile update succeeded.");
-                    }
-                });
-        }
-
-        /// <summary>
-        /// Update agent's profile interests
-        /// </summary>
-        /// <param name="interests">selection of interests from <see cref="Avatar.Interests"/> struct</param>
-        public void UpdateInterests(Avatar.Interests interests)
-        {
-            AvatarInterestsUpdatePacket aiup = new AvatarInterestsUpdatePacket
+            try
             {
-                AgentData =
+                if (Client?.Network?.CurrentSim?.Caps == null)
                 {
-                    AgentID = AgentID,
-                    SessionID = SessionID
-                },
-                PropertiesData =
-                {
-                    LanguagesText = Utils.StringToBytes(interests.LanguagesText),
-                    SkillsMask = interests.SkillsMask,
-                    SkillsText = Utils.StringToBytes(interests.SkillsText),
-                    WantToMask = interests.WantToMask,
-                    WantToText = Utils.StringToBytes(interests.WantToText)
+                    Logger.Warn("Not connected to simulator or capabilities unavailable, cannot update profile.", Client);
+                    return;
                 }
-            };
 
-            Client.Network.SendPacket(aiup);
+                var capability = Client.Network.CurrentSim.Caps.CapabilityURI(AGENT_PROFILE_CAP);
+                if (capability == null)
+                {
+                    Logger.Warn("AgentProfile capability not available, cannot update profile.", Client);
+                    return;
+                }
+
+                var uri = new Uri($"{capability}/{AgentID}");
+
+                await Client.HttpCapsClient.PutRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
+                    (response, data, error) =>
+                    {
+                        if (error != null)
+                        {
+                            Logger.Warn($"AgentProfile update failed: {error.Message}", Client);
+                            return;
+                        }
+
+                        if (response != null && response.IsSuccessStatusCode)
+                        {
+                            Logger.Debug("AgentProfile update succeeded.", Client);
+                        }
+                        else
+                        {
+                            Logger.Warn($"AgentProfile update returned non-success status: {response?.StatusCode}", Client);
+                        }
+                    }).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                Logger.Debug("UpdateProfileHttp cancelled.", Client);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("AgentProfile update failed", ex, Client);
+            }
         }
 
         /// <summary>
@@ -3590,25 +3594,53 @@ namespace OpenMetaverse
         /// <param name="target">target avatar for notes</param>
         /// <param name="notes">notes to store</param>
         /// <param name="cancellationToken"></param>
-        public async void UpdateProfileNotesHttp(UUID target, string notes, CancellationToken cancellationToken = default)
+        public async Task UpdateProfileNotesHttp(UUID target, string notes, CancellationToken cancellationToken = default)
         {
             var payload = new OSDMap { ["notes"] = notes };
 
-            var capability = Client.Network.CurrentSim.Caps.CapabilityURI(AGENT_PROFILE_CAP);
-            var uri = new Uri($"{capability}/{target}");
-            await Client.HttpCapsClient.PutRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
-                (response, data, error) =>
+            try
+            {
+                if (Client?.Network?.CurrentSim?.Caps == null)
                 {
-                    if (error != null)
-                    {
-                        Logger.Warn($"AgentProfile notes update failed: {error.Message}");
-                    }
+                    Logger.Warn("Not connected to simulator or capabilities unavailable, cannot update profile notes.", Client);
+                    return;
+                }
 
-                    if (response.IsSuccessStatusCode)
+                var capability = Client.Network.CurrentSim.Caps.CapabilityURI(AGENT_PROFILE_CAP);
+                if (capability == null)
+                {
+                    Logger.Warn("AgentProfile capability not available, cannot update profile notes.", Client);
+                    return;
+                }
+
+                var uri = new Uri($"{capability}/{target}");
+
+                await Client.HttpCapsClient.PutRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
+                    (response, data, error) =>
                     {
-                        Logger.Debug("AgentProfile notes update succeeded.");
-                    }
-                });
+                        if (error != null)
+                        {
+                            Logger.Warn($"AgentProfile notes update failed: {error.Message}", Client);
+                        }
+
+                        if (response != null && response.IsSuccessStatusCode)
+                        {
+                            Logger.Debug("AgentProfile notes update succeeded.", Client);
+                        }
+                        else
+                        {
+                            Logger.Warn($"AgentProfile notes update returned non-success status: {response?.StatusCode}", Client);
+                        }
+                    }).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                Logger.Debug("UpdateProfileNotesHttp cancelled.", Client);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("AgentProfile notes update failed", ex, Client);
+            }
         }
 
         #endregion Profile
@@ -4095,8 +4127,7 @@ namespace OpenMetaverse
                     Logger.Warn("Could not retrieve 'UpdateAgentLanguage' capability.", Client);
                     return;
                 }
-                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), 
-                    cancellationToken);
+                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken);
             }
             catch (Exception ex)
             {
