@@ -109,7 +109,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Allow consumers to configure a custom ILoggerFactory (e.g. to integrate with their host)
         /// </summary>
-        public static void SetLoggerFactory(ILoggerFactory factory)
+        public static void SetLoggerFactory(ILoggerFactory factory, string name)
         {
             if (factory == null) throw new ArgumentNullException(nameof(factory));
 
@@ -129,7 +129,7 @@ namespace OpenMetaverse
                 }
 
                 _loggerFactory = factory;
-                _logger = _loggerFactory.CreateLogger("LibreMetaverse");
+                _logger = _loggerFactory.CreateLogger(name);
             }
         }
 
