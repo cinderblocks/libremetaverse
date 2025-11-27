@@ -3643,6 +3643,32 @@ namespace OpenMetaverse
             }
         }
 
+        /// <summary>
+        /// Update agent's profile interests
+        /// </summary>
+        /// <param name="interests">selection of interests from <see cref="Avatar.Interests"/> struct</param>
+        public void UpdateInterests(Avatar.Interests interests)
+        {
+            AvatarInterestsUpdatePacket aiup = new AvatarInterestsUpdatePacket
+            {
+                AgentData =
+                {
+                    AgentID = AgentID,
+                    SessionID = SessionID
+                },
+                PropertiesData =
+                {
+                    LanguagesText = Utils.StringToBytes(interests.LanguagesText),
+                    SkillsMask = interests.SkillsMask,
+                    SkillsText = Utils.StringToBytes(interests.SkillsText),
+                    WantToMask = interests.WantToMask,
+                    WantToText = Utils.StringToBytes(interests.WantToText)
+                }
+            };
+
+            Client.Network.SendPacket(aiup);
+        }
+
         #endregion Profile
 
         #region Mute List
