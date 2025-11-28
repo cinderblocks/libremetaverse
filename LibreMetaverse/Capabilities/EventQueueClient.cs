@@ -210,6 +210,54 @@ namespace OpenMetaverse.Http
             }
         }
 
+        /// <summary>
+        /// Determine whether an HTTP response payload is likely LLSD/XML and therefore safe to attempt LLSD parsing.
+        /// Checks the Content-Type header first (if present) and otherwise peeks up to the first 256 bytes
+        /// of the payload to detect HTML/DOCTYPE bodies or LLSD/XML markers. Centralized to keep parsing
+        /// decision logic in one place and to provide consistent logging behaviour.
+        /// </summary>
+        /// <param name="response">The HTTP response message (may be null).</param>
+        /// <param name="data">The response body bytes.</param>
+        /// <returns>True if the payload should be treated as LLSD/XML and can be parsed; false otherwise.</returns>
+        private static bool IsLikelyLLSD(HttpResponseMessage response, byte[] data)
+        {
+            if (data == null || data.Length == 0) return false;
+
+            // Prefer a canonical content-type check when available
+            string mediaType = null;
+            try { mediaType = response?.Content?.Headers?.ContentType?.MediaType; } catch { mediaType = null; }
+            if (!string.IsNullOrEmpty(mediaType))
+            {
+                var mt = mediaType.ToLowerInvariant();
+                if (mt.Contains("xml") || mt.Contains("llsd"))
+                    return true;
+                // Content type explicitly present and not XML-like -> avoid parsing as LLSD
+                return false;
+            }
+
+            // No content-type header: peek at the start of the body
+            string prefix;
+            try { prefix = System.Text.Encoding.UTF8.GetString(data, 0, Math.Min(data.Length, 256)).TrimStart(); } catch { return false; }
+
+            // Common non-LLSD payloads we want to reject quickly
+            if (prefix.StartsWith("<!DOCTYPE", StringComparison.OrdinalIgnoreCase) ||
+                prefix.StartsWith("<html", StringComparison.OrdinalIgnoreCase) ||
+                prefix.StartsWith("<!doctype", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            // Common LLSD/XML markers
+            if (prefix.StartsWith("<? LLSD/", StringComparison.Ordinal) ||
+                prefix.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase) ||
+                prefix.StartsWith("<llsd", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // If it starts with a '<' and none of the HTML doctype matches above, treat as XML-like
+            if (prefix.StartsWith("<"))
+                return true;
+
+            return false;
+        }
+
         private void RequestCompletedHandler(HttpResponseMessage response, byte[] responseData, Exception error)
         {
             // Ignore anything if we're no longer connected to the sim.
@@ -342,24 +390,37 @@ namespace OpenMetaverse.Http
                 #endregion Error handling
                 else if (responseData != null)
                 {
-                    // Got a response
-                    if (OSDParser.DeserializeLLSDXml(responseData) is OSDMap result)
-                    {
-                        events = result["events"] as OSDArray;
-                        ack = result["id"];
-                    }
-                    else
+                    // Got a response. Validate that the payload is likely LLSD/XML before attempting to parse.
+                    if (!IsLikelyLLSD(response, responseData))
                     {
                         var responseString = System.Text.Encoding.UTF8.GetString(responseData);
-
-                        // We might get a ghost Gateway 502 in the message body, or we may get a 
-                        // badly-formed Undefined LLSD response. It's just par for the course for
-                        // EventQueueGet and we take it in stride
                         if (responseString.IndexOf(PROXY_TIMEOUT_RESPONSE, StringComparison.Ordinal) < 0
                             && responseString.IndexOf(MALFORMED_EMPTY_RESPONSE, StringComparison.Ordinal) < 0)
                         {
-                            Logger.Warn($"Could not parse response (1) from {Simulator} event queue: \"" +
-                                       responseString + "\"");
+                            var preview = responseString.Length > 200 ? responseString.Substring(0, 200) : responseString;
+                            Logger.Warn($"Skipping LLSD parsing; server returned non-LLSD response from {Simulator}: \"{preview}\"");
+                        }
+                    }
+                    else
+                    {
+                        if (OSDParser.DeserializeLLSDXml(responseData) is OSDMap result)
+                        {
+                            events = result["events"] as OSDArray;
+                            ack = result["id"];
+                        }
+                        else
+                        {
+                            var responseString = System.Text.Encoding.UTF8.GetString(responseData);
+
+                            // We might get a ghost Gateway 502 in the message body, or we may get a 
+                            // badly-formed Undefined LLSD response. It's just par for the course for
+                            // EventQueueGet and we take it in stride
+                            if (responseString.IndexOf(PROXY_TIMEOUT_RESPONSE, StringComparison.Ordinal) < 0
+                                && responseString.IndexOf(MALFORMED_EMPTY_RESPONSE, StringComparison.Ordinal) < 0)
+                            {
+                                Logger.Warn($"Could not parse response (1) from {Simulator} event queue: \"" +
+                                           responseString + "\"");
+                            }
                         }
                     }
                 }
