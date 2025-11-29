@@ -864,35 +864,30 @@ namespace OpenMetaverse
         /// </summary>
         public async Task<bool> LoginAsync(LoginParams loginParams, CancellationToken cancellationToken = default)
         {
+            // Create or replace the per-login cancellation source, linking caller token
+            loginCts?.Dispose();
+            loginCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+            // Configure timeout via CancelAfter so Http client cancellations are honored
+            try { loginCts.CancelAfter(loginParams.Timeout); } catch { }
+
             BeginLogin(loginParams);
 
-            // Wait for parsed login response or timeout/cancellation
-            using (var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+            try
             {
-                var timeoutTask = Task.Delay(loginParams.Timeout, linked.Token);
-                var completed = await Task.WhenAny(loginResultTcs.Task, timeoutTask).ConfigureAwait(false);
-                if (completed == timeoutTask)
-                {
-                    try { loginCts?.Cancel(); } catch { }
-                    UpdateLoginStatus(LoginStatus.Failed, "Timed out");
-                    return false;
-                }
-
-                try
-                {
-                    var parsed = await loginResultTcs.Task.ConfigureAwait(false);
-                    return parsed != null && parsed.Success;
-                }
-                catch (OperationCanceledException)
-                {
-                    UpdateLoginStatus(LoginStatus.Failed, "Canceled");
-                    return false;
-                }
-                catch
-                {
-                    UpdateLoginStatus(LoginStatus.Failed, "Login failed");
-                    return false;
-                }
+                var parsed = await loginResultTcs.Task.ConfigureAwait(false);
+                return parsed != null && parsed.Success;
+            }
+            catch (OperationCanceledException)
+            {
+                UpdateLoginStatus(LoginStatus.Failed, "Canceled");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("LoginAsync failed", ex, Client);
+                UpdateLoginStatus(LoginStatus.Failed, "Login failed");
+                return false;
             }
         }
 
@@ -901,27 +896,26 @@ namespace OpenMetaverse
         /// </summary>
         public async Task<LoginResponseData> LoginWithResponseAsync(LoginParams loginParams, CancellationToken cancellationToken = default)
         {
+            // Create or replace the per-login cancellation source, linking caller token
+            loginCts?.Dispose();
+            loginCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            try { loginCts.CancelAfter(loginParams.Timeout); } catch { }
+
             BeginLogin(loginParams);
 
-            using (var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+            try
             {
-                var timeoutTask = Task.Delay(loginParams.Timeout, linked.Token);
-                var completed = await Task.WhenAny(loginResultTcs.Task, timeoutTask).ConfigureAwait(false);
-                if (completed == timeoutTask)
-                {
-                    try { loginCts?.Cancel(); } catch { }
-                    UpdateLoginStatus(LoginStatus.Failed, "Timed out");
-                    return null;
-                }
-
-                try
-                {
-                    return await loginResultTcs.Task.ConfigureAwait(false);
-                }
-                catch
-                {
-                    return null;
-                }
+                return await loginResultTcs.Task.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                UpdateLoginStatus(LoginStatus.Failed, "Canceled");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("LoginWithResponseAsync failed", ex, Client);
+                return null;
             }
         }
 
@@ -1171,15 +1165,17 @@ namespace OpenMetaverse
                 return;
             }
 
-            // prepare cancellation for this login
-            loginCts?.Dispose();
-            loginCts = new CancellationTokenSource();
+            // prepare cancellation for this login if not already provided by caller
+            if (loginCts == null)
+            {
+                loginCts = new CancellationTokenSource();
+            }
 
             UpdateLoginStatus(LoginStatus.ConnectingToLogin,
                 $"Logging in as {loginParams.FirstName} {loginParams.LastName}...");
 
             // Use task-based PostAsync to get response and data, then pass to the async handler
-            _ = Task.Run(async () =>
+            var loginTask = Task.Run(async () =>
             {
                 try
                 {
@@ -1193,10 +1189,21 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    await LoginReplyLLSDHandler(null, null, ex).ConfigureAwait(false);
+                    try { await LoginReplyLLSDHandler(null, null, ex).ConfigureAwait(false); }
+                    catch (Exception inner)
+                    {
+                        Logger.Error("Unhandled exception in login task", inner, Client);
+                    }
                 }
-            });
-        }
+            }, CancellationToken.None);
+
+            // Observe exceptions to avoid unobserved task exceptions
+            loginTask.ContinueWith(t =>
+            {
+                if (t.Exception != null)
+                    Logger.Error("Login task faulted", t.Exception.Flatten(), Client);
+            }, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+         }
 
         private void UpdateLoginStatus(LoginStatus status, string message)
         {
@@ -1479,32 +1486,25 @@ namespace OpenMetaverse
         /// <returns>Hashed string</returns>
         private static string HashString(string str)
         {
-            MD5 sec = MD5.Create();
-            var enc = new ASCIIEncoding();
-            var buf = enc.GetBytes(str);
-            return GetHexString(sec.ComputeHash(buf));
+            using (var md5 = MD5.Create())
+            {
+                var buf = Encoding.UTF8.GetBytes(str ?? string.Empty);
+                return GetHexString(md5.ComputeHash(buf));
+            }
         }
 
         private static string GetHexString(byte[] buf)
         {
-            var str = string.Empty;
-
+            var sb = new StringBuilder(buf.Length * 2);
             foreach (var b in buf)
             {
-                var n = (int)b;
-                var n1 = n & 15;
-                var n2 = (n >> 4) & 15;
-                if (n2 > 9)
-                    str += ((char)(n2 - 10 + 'A')).ToString();
-                else
-                    str += ((char)(n1 - 10 + 'A')).ToString();
-                if (n1 > 9)
-                    str += ((char)(n1 - 10 + 'A')).ToString();
-                else
-                    str += n1.ToString();
+                int hi = (b >> 4) & 0xF;
+                int lo = b & 0xF;
+                sb.Append(hi < 10 ? (char)('0' + hi) : (char)('A' + hi - 10));
+                sb.Append(lo < 10 ? (char)('0' + lo) : (char)('A' + lo - 10));
             }
 
-            return str;
+            return sb.ToString();
         }
 
         public static string GetHashedMAC()
