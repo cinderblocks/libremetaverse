@@ -535,7 +535,7 @@ namespace OpenMetaverse
 
             foreach (FieldInfo info in Fields)
             {
-                Logger.Log("Field Matched in FromOSD: "+info.Name, Helpers.LogLevel.Debug);
+                Logger.Debug("Field Matched in FromOSD: "+info.Name);
                 info.SetValue(A, info.GetValue(P));
             }            
 
@@ -608,3 +608,4 @@ namespace OpenMetaverse
 
     }
 }
+

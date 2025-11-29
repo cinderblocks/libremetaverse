@@ -740,8 +740,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Failed to call GetDisplayNames capability: ",
-                        Helpers.LogLevel.Warning, Client, ex);
+                    Logger.Warn("Failed to call GetDisplayNames capability: ", ex, Client);
                     callback(false, null, null);
                 }
             });
@@ -811,7 +810,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Failed to call AgentProfile capability: ", Helpers.LogLevel.Warning, Client, ex);
+                    Logger.Warn("Failed to call AgentProfile capability: ", ex, Client);
                     callback(false, null);
                 }
             });
@@ -1070,7 +1069,7 @@ namespace OpenMetaverse
             // Guard against malformed packets
             if (appearance.ObjectData == null || appearance.ObjectData.TextureEntry == null || appearance.ObjectData.TextureEntry.Length == 0)
             {
-                Logger.Log("Malformed AvatarAppearance packet - missing texture entry", Helpers.LogLevel.Warning, Client);
+                Logger.Warn("Malformed AvatarAppearance packet - missing texture entry", Client);
                 return;
             }
 
@@ -1346,36 +1345,28 @@ namespace OpenMetaverse
                 switch (type)
                 {
                     case EffectType.Text:
-                        Logger.Log("Received a ViewerEffect of type " + type + ", implement me!",
-                            Helpers.LogLevel.Warning, Client);
+                        Logger.Warn("Received a ViewerEffect of type " + type + ", implement me!", Client);
                         break;
                     case EffectType.Icon:
-                        Logger.Log("Received a ViewerEffect of type " + type + ", implement me!",
-                            Helpers.LogLevel.Warning, Client);
+                        Logger.Warn("Received a ViewerEffect of type " + type + ", implement me!", Client);
                         break;
                     case EffectType.Connector:
-                        Logger.Log("Received a ViewerEffect of type " + type + ", implement me!",
-                            Helpers.LogLevel.Warning, Client);
+                        Logger.Warn("Received a ViewerEffect of type " + type + ", implement me!", Client);
                         break;
                     case EffectType.FlexibleObject:
-                        Logger.Log("Received a ViewerEffect of type " + type + ", implement me!",
-                            Helpers.LogLevel.Warning, Client);
+                        Logger.Warn("Received a ViewerEffect of type " + type + ", implement me!", Client);
                         break;
                     case EffectType.AnimalControls:
-                        Logger.Log("Received a ViewerEffect of type " + type + ", implement me!",
-                            Helpers.LogLevel.Warning, Client);
+                        Logger.Warn("Received a ViewerEffect of type " + type + ", implement me!", Client);
                         break;
                     case EffectType.AnimationObject:
-                        Logger.Log("Received a ViewerEffect of type " + type + ", implement me!",
-                            Helpers.LogLevel.Warning, Client);
+                        Logger.Warn("Received a ViewerEffect of type " + type + ", implement me!", Client);
                         break;
                     case EffectType.Cloth:
-                        Logger.Log("Received a ViewerEffect of type " + type + ", implement me!",
-                            Helpers.LogLevel.Warning, Client);
+                        Logger.Warn("Received a ViewerEffect of type " + type + ", implement me!", Client);
                         break;
                     case EffectType.Glow:
-                        Logger.Log("Received a Glow ViewerEffect which is not implemented yet",
-                            Helpers.LogLevel.Warning, Client);
+                        Logger.Warn("Received a Glow ViewerEffect which is not implemented yet", Client);
                         break;
                     case EffectType.Beam:
                     case EffectType.Point:
@@ -1394,9 +1385,9 @@ namespace OpenMetaverse
                             }
                             else
                             {
-                                Logger.Log("Received a " + type +
+                                Logger.Warn("Received a " + type +
                                     " ViewerEffect with an incorrect TypeData size of " +
-                                    block.TypeData.Length + " bytes", Helpers.LogLevel.Warning, Client);
+                                    block.TypeData.Length + " bytes", Client);
                             }
                         }
                         break;
@@ -1415,8 +1406,8 @@ namespace OpenMetaverse
                             }
                             else
                             {
-                                Logger.Log("Received a LookAt ViewerEffect with an incorrect TypeData size of " +
-                                    block.TypeData.Length + " bytes", Helpers.LogLevel.Warning, Client);
+                                Logger.Warn("Received a LookAt ViewerEffect with an incorrect TypeData size of " +
+                                    block.TypeData.Length + " bytes", Client);
                             }
                         }
                         break;
@@ -1435,13 +1426,13 @@ namespace OpenMetaverse
                             }
                             else
                             {
-                                Logger.Log("Received a PointAt ViewerEffect with an incorrect TypeData size of " +
-                                    block.TypeData.Length + " bytes", Helpers.LogLevel.Warning, Client);
+                                Logger.Warn("Received a PointAt ViewerEffect with an incorrect TypeData size of " +
+                                    block.TypeData.Length + " bytes", Client);
                             }
                         }
                         break;
                     default:
-                        Logger.Log("Received a ViewerEffect with an unknown type " + type, Helpers.LogLevel.Warning, Client);
+                        Logger.Warn("Received a ViewerEffect with an unknown type " + type, Client);
                         break;
                 }
             }
@@ -1573,7 +1564,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Exception while disposing AvatarManager: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                    Logger.Error("Exception while disposing AvatarManager: " + ex.Message, ex, Client);
                 }
             }
 
@@ -1954,3 +1945,4 @@ namespace OpenMetaverse
     }
     #endregion
 }
+

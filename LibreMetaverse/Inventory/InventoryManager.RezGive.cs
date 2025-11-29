@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
@@ -196,7 +196,7 @@ namespace OpenMetaverse
         {
             if (_Store == null)
             {
-                Logger.Log("Inventory store not initialized, cannot empty folder", Helpers.LogLevel.Warning, Client);
+                Logger.Warn("Inventory store not initialized, cannot empty folder", Client);
                 return;
             }
 
@@ -355,8 +355,9 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                Logger.Error(ex.Message, ex, Client);
             }
         }
     }
 }
+

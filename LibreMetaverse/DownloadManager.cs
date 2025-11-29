@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2006-2016, openmetaverse.co
  * Copyright (c) 2019-2025, Sjofn LLC.
  * All rights reserved.
@@ -310,7 +310,7 @@ namespace OpenMetaverse.Http
                             {
                                 sw.Stop();
                                 try {
-                                    Logger.Log($"Download completed {addr} attempts={representative.Attempt} status={(int)response.StatusCode} bytes={responseData?.Length ?? 0} time={sw.ElapsedMilliseconds}ms", Helpers.LogLevel.Debug);
+                                    Logger.Debug($"Download completed {addr} attempts={representative.Attempt} status={(int)response.StatusCode} bytes={responseData?.Length ?? 0} time={sw.ElapsedMilliseconds}ms");
                                 } catch { }
 
                                 var handlers = activeDownload.CompletedHandlers.ToArray();
@@ -339,8 +339,7 @@ namespace OpenMetaverse.Http
                             {
                                 // Transient error -> retry
                                 representative.Attempt++;
-                                Logger.Log($"{representative.Address} HTTP download failed, trying again retry {representative.Attempt}/{representative.Retries}",
-                                    Helpers.LogLevel.Warning);
+                                Logger.Warn($"{representative.Address} HTTP download failed, trying again retry {representative.Attempt}/{representative.Retries}");
 
                                 // Dispose response before retry/backoff
                                 try { response.Dispose(); } catch { }
@@ -350,7 +349,7 @@ namespace OpenMetaverse.Http
                                 try { await Task.Delay(delay + jitter, activeDownload.CancellationToken.Token).ConfigureAwait(false); } catch { }
 
                                 sw.Stop();
-                                try { Logger.Log($"Download failed {addr} attempts={representative.Attempt} error={finalError?.Message ?? "status"} time={sw.ElapsedMilliseconds}ms", Helpers.LogLevel.Debug); } catch { }
+                                try { Logger.Debug($"Download failed {addr} attempts={representative.Attempt} error={finalError?.Message ?? "status"} time={sw.ElapsedMilliseconds}ms"); } catch { }
 
                                 // Requeue the representative for another attempt
                                 queue.Enqueue(representative);
@@ -380,13 +379,13 @@ namespace OpenMetaverse.Http
                         if (representative.Attempt < representative.Retries)
                         {
                             representative.Attempt++;
-                            Logger.Log($"{representative.Address} HTTP download exception, retry {representative.Attempt}/{representative.Retries}: {ex}", Helpers.LogLevel.Warning);
+                            Logger.Warn($"{representative.Address} HTTP download exception, retry {representative.Attempt}/{representative.Retries}: {ex}");
                             try { response?.Dispose(); } catch { }
                             var delay = Math.Min(2000, 200 * representative.Attempt);
                             var jitter = new Random().Next(0, 200);
                             try { await Task.Delay(delay + jitter, activeDownload.CancellationToken.Token).ConfigureAwait(false); } catch { }
 
-                            try { Logger.Log($"Download exception {addr} attempts={representative.Attempt} error={ex.Message}", Helpers.LogLevel.Debug); } catch { }
+                            try { Logger.Debug($"Download exception {addr} attempts={representative.Attempt} error={ex.Message}"); } catch { }
 
                             queue.Enqueue(representative);
                             EnqueuePending();
@@ -560,3 +559,4 @@ namespace OpenMetaverse.Http
         }
     }
 }
+

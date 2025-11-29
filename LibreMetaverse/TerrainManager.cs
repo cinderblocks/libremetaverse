@@ -86,10 +86,9 @@ namespace OpenMetaverse
 
                 if (!largeRegion && (x >= TerrainCompressor.PATCHES_PER_EDGE || y >= TerrainCompressor.PATCHES_PER_EDGE))
                 {
-                    Logger.Log(String.Format(
+                    Logger.Warn(String.Format(
                         "Invalid LayerData land packet, x={0}, y={1}, dc_offset={2}, range={3}, quant_wbits={4}, patchids={5}, count={6}",
-                        x, y, header.DCOffset, header.Range, header.QuantWBits, header.PatchIDs, count),
-                        Helpers.LogLevel.Warning, Client);
+                        x, y, header.DCOffset, header.Range, header.QuantWBits, header.PatchIDs, count), Client);
                     return;
                 }
 
@@ -102,7 +101,7 @@ namespace OpenMetaverse
                 count++;
 
                 try { OnLandPatchReceived(new LandPatchReceivedEventArgs(simulator, x, y, group.PatchSize, heightmap)); }
-                catch (Exception e) { Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e); }
+                catch (Exception e) { Logger.Error(e.Message, e, Client); }
 
                 if (Client.Settings.STORE_LAND_PATCHES)
                 {
@@ -177,7 +176,7 @@ namespace OpenMetaverse
                         DecompressLand(e.Simulator, bitpack, header, true);
                     break;
                 case TerrainPatch.LayerType.Water:
-                    Logger.Log("Got a Water LayerData packet, implement me!", Helpers.LogLevel.Error, Client);
+                    Logger.Error("Got a Water LayerData packet, implement me!", Client);
                     break;
                 case TerrainPatch.LayerType.Wind:
                     DecompressWind(e.Simulator, bitpack, header);
@@ -186,7 +185,7 @@ namespace OpenMetaverse
                     DecompressCloud(e.Simulator, bitpack, header);
                     break;
                 default:
-                    Logger.Log("Unrecognized LayerData type " + type, Helpers.LogLevel.Warning, Client);
+                    Logger.Warn("Unrecognized LayerData type " + type, Client);
                     break;
             }
         }
@@ -215,7 +214,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Exception while disposing TerrainManager: " + ex.Message, Helpers.LogLevel.Warning, Client, ex);
+                    Logger.Warn("Exception while disposing TerrainManager: " + ex.Message, ex, Client);
                 }
             }
 
@@ -260,3 +259,4 @@ namespace OpenMetaverse
     }
     #endregion
 }
+

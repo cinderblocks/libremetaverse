@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using OpenMetaverse;
@@ -70,7 +70,7 @@ namespace TestClient.Commands.Inventory
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(ex.Message, Helpers.LogLevel.Error, ex);
+                    Logger.Error(ex.Message, ex);
                     return $"Failed to save asset {assetID}: {ex.Message}";
                 }
             }
@@ -81,3 +81,4 @@ namespace TestClient.Commands.Inventory
         }
     }
 }
+

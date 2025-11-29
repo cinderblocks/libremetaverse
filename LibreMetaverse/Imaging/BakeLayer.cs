@@ -161,11 +161,11 @@ namespace OpenMetaverse.Imaging
                 {
                     AddAlpha(bakedTexture.Image, LoadResourceLayer("head_alpha.tga"));
                     MultiplyLayerFromAlpha(bakedTexture.Image, LoadResourceLayer("head_skingrain.tga"));
-                    Logger.Log("[Bake]: created head master bake", Helpers.LogLevel.Debug);
+                    Logger.Debug("[Bake]: created head master bake");
                 }
                 else
                 {
-                    Logger.Log("[Bake]: Unable to draw layer from texture file", Helpers.LogLevel.Debug);
+                    Logger.Debug("[Bake]: Unable to draw layer from texture file");
                 }
             }
 
@@ -330,7 +330,7 @@ namespace OpenMetaverse.Imaging
             }
 
             // Apply any alpha wearable textures to make parts of the avatar disappear
-            Logger.Log("[XBakes]: Number of alpha wearable textures: " + alphaWearableTextures.Count, Helpers.LogLevel.Debug);
+            Logger.Debug("[XBakes]: Number of alpha wearable textures: " + alphaWearableTextures.Count);
             foreach (ManagedImage img in alphaWearableTextures)
                 AddAlpha(bakedTexture.Image, img);
 
@@ -359,7 +359,7 @@ namespace OpenMetaverse.Imaging
                                 }
                                 else
                                 {
-                                    Logger.Log($"Failed loading resource file: {fileName}", Helpers.LogLevel.Error);
+                                    Logger.Error($"Failed loading resource file: {fileName}");
                                     return null;
                                 }
 
@@ -368,13 +368,12 @@ namespace OpenMetaverse.Imaging
                     }
                 }
 
-                Logger.Log($"Failed loading resource file: {fileName}", Helpers.LogLevel.Error);
+                Logger.Error($"Failed loading resource file: {fileName}");
                 return null;
             }
             catch (Exception e)
             {
-                Logger.Log($"Failed loading resource file: {fileName} ({e.Message})",
-                    Helpers.LogLevel.Error, e);
+                Logger.Error($"Failed loading resource file: {fileName} ({e.Message})", e);
                 return null;
             }
         }
@@ -702,3 +701,4 @@ namespace OpenMetaverse.Imaging
         #endregion
     }
 }
+

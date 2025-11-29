@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using OpenMetaverse;
 
 namespace TestClient.Commands.System
@@ -14,36 +15,35 @@ namespace TestClient.Commands.System
         public override string Execute(string[] args, UUID fromAgentID)
         {
             if (args.Length != 1)
+            {
                 return "Usage: debug [level] where level is one of None, Debug, Error, Info, Warn";
+            }
 
-            if (args[0].ToLower() == "debug")
+            switch (args[0].ToLower())
             {
-                Settings.LOG_LEVEL = Helpers.LogLevel.Debug;
-                return "Logging is set to Debug";
-            }
-            else if (args[0].ToLower() == "none")
-            {
-                Settings.LOG_LEVEL = Helpers.LogLevel.None;
-                return "Logging is set to None";
-            }
-            else if (args[0].ToLower() == "warn")
-            {
-                Settings.LOG_LEVEL = Helpers.LogLevel.Warning;
-                return "Logging is set to level Warning";
-            }
-            else if (args[0].ToLower() == "info")
-            {
-                Settings.LOG_LEVEL = Helpers.LogLevel.Info;
-                return "Logging is set to level Info";
-            }
-            else if (args[0].ToLower() == "error")
-            {
-                Settings.LOG_LEVEL = Helpers.LogLevel.Error;
-                return "Logging is set to level Error";
-            }
-            else
-            {
-                return "Usage: debug [level] where level is one of None, Debug, Error, Info, Warn";
+                case "trace":
+                    Settings.LOG_LEVEL = LogLevel.Trace;
+                    return "Logging is set to Trace";
+                case "debug":
+                    Settings.LOG_LEVEL = LogLevel.Debug;
+                    return "Logging is set to Debug";
+                case "none":
+                    Settings.LOG_LEVEL = LogLevel.None;
+                    return "Logging is set to None";
+                case "warn":
+                    Settings.LOG_LEVEL = LogLevel.Warning;
+                    return "Logging is set to level Warning";
+                case "info":
+                    Settings.LOG_LEVEL = LogLevel.Information;
+                    return "Logging is set to level Info";
+                case "error":
+                    Settings.LOG_LEVEL = LogLevel.Error;
+                    return "Logging is set to level Error";
+                case "critical":
+                    Settings.LOG_LEVEL = LogLevel.Critical;
+                    return "Logging is set to Critical";
+                default:
+                    return "Usage: debug [level] where level is one of None, Trace, Debug, Info, Warn, Error, Critical";
             }
         }
     }

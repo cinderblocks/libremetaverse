@@ -79,6 +79,19 @@ namespace OpenMetaverse.Http
             }
             catch { /* noop */ }
 
+            // Ensure task is observed/cleaned up
+            try
+            {
+                if (_eqTask != null)
+                {
+                    if (_eqTask.IsFaulted && _eqTask.Exception != null)
+                    {
+                        Logger.Error($"EventQueueClient background task faulted during dispose: {_eqTask.Exception}");
+                    }
+                }
+            }
+            catch { /* noop */ }
+
             _queueCts?.Dispose();
             _queueCts = null;
             GC.SuppressFinalize(this);
@@ -143,7 +156,7 @@ namespace OpenMetaverse.Http
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"Exception sending EventQueue POST to {Simulator}: {ex.Message}", Helpers.LogLevel.Error, ex);
+                    Logger.Error($"Exception sending EventQueue POST to {Simulator}: {ex.Message}", ex);
                 }
             }
         }
@@ -156,6 +169,29 @@ namespace OpenMetaverse.Http
         {
             // do we need to POST one more request telling EQ we are done? i dunno!
             _queueCts.Cancel();
+
+            // Wait a short time for the background task to finish so resources are cleaned up
+            try
+            {
+                if (_eqTask != null)
+                {
+                    // Wait up to 2 seconds for the repeating task to stop
+                    if (!_eqTask.Wait(2000))
+                    {
+                        Logger.Debug($"EventQueueClient background task did not stop within timeout for {Simulator}");
+                    }
+
+                    // Observe any exceptions to avoid unobserved task exceptions
+                    if (_eqTask.IsFaulted && _eqTask.Exception != null)
+                    {
+                        Logger.Error($"EventQueueClient background task faulted: {_eqTask.Exception}");
+                    }
+                }
+            }
+            catch (AggregateException ae)
+            {
+                Logger.Error($"Exception while waiting for EventQueueClient task to stop: {ae}");
+            }
         }
 
         private void ConnectedResponseHandler(HttpResponseMessage response)
@@ -170,8 +206,56 @@ namespace OpenMetaverse.Http
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.Message, Helpers.LogLevel.Error, ex);
+                Logger.Error(ex.Message, ex);
             }
+        }
+
+        /// <summary>
+        /// Determine whether an HTTP response payload is likely LLSD/XML and therefore safe to attempt LLSD parsing.
+        /// Checks the Content-Type header first (if present) and otherwise peeks up to the first 256 bytes
+        /// of the payload to detect HTML/DOCTYPE bodies or LLSD/XML markers. Centralized to keep parsing
+        /// decision logic in one place and to provide consistent logging behaviour.
+        /// </summary>
+        /// <param name="response">The HTTP response message (may be null).</param>
+        /// <param name="data">The response body bytes.</param>
+        /// <returns>True if the payload should be treated as LLSD/XML and can be parsed; false otherwise.</returns>
+        private static bool IsLikelyLLSD(HttpResponseMessage response, byte[] data)
+        {
+            if (data == null || data.Length == 0) return false;
+
+            // Prefer a canonical content-type check when available
+            string mediaType = null;
+            try { mediaType = response?.Content?.Headers?.ContentType?.MediaType; } catch { mediaType = null; }
+            if (!string.IsNullOrEmpty(mediaType))
+            {
+                var mt = mediaType.ToLowerInvariant();
+                if (mt.Contains("xml") || mt.Contains("llsd"))
+                    return true;
+                // Content type explicitly present and not XML-like -> avoid parsing as LLSD
+                return false;
+            }
+
+            // No content-type header: peek at the start of the body
+            string prefix;
+            try { prefix = System.Text.Encoding.UTF8.GetString(data, 0, Math.Min(data.Length, 256)).TrimStart(); } catch { return false; }
+
+            // Common non-LLSD payloads we want to reject quickly
+            if (prefix.StartsWith("<!DOCTYPE", StringComparison.OrdinalIgnoreCase) ||
+                prefix.StartsWith("<html", StringComparison.OrdinalIgnoreCase) ||
+                prefix.StartsWith("<!doctype", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            // Common LLSD/XML markers
+            if (prefix.StartsWith("<? LLSD/", StringComparison.Ordinal) ||
+                prefix.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase) ||
+                prefix.StartsWith("<llsd", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // If it starts with a '<' and none of the HTML doctype matches above, treat as XML-like
+            if (prefix.StartsWith("<"))
+                return true;
+
+            return false;
         }
 
         private void RequestCompletedHandler(HttpResponseMessage response, byte[] responseData, Exception error)
@@ -199,14 +283,14 @@ namespace OpenMetaverse.Http
                             if (exception.Message.Equals("The response ended prematurely. (ResponseEnded)"))
 #endif
                             {
-                                Logger.Log($"Unable to parse response from {Simulator} event queue: " +
-                                           error.Message, Helpers.LogLevel.Error);
+                                Logger.Error($"Unable to parse response from {Simulator} event queue: " +
+                                           error.Message);
                             }
                         }
                         else
                         {
-                            Logger.Log($"Unable to parse response from {Simulator} event queue: " +
-                                       error.Message, Helpers.LogLevel.Error);
+                            Logger.Error($"Unable to parse response from {Simulator} event queue: " +
+                                       error.Message);
                         }
 
                         return;
@@ -216,14 +300,12 @@ namespace OpenMetaverse.Http
                     {
                         case HttpStatusCode.NotFound:
                         case HttpStatusCode.Gone:
-                            Logger.Log($"Closing event queue at {Simulator} due to missing caps URI",
-                                Helpers.LogLevel.Info);
+                            Logger.Info($"Closing event queue at {Simulator} due to missing caps URI");
 
                             _queueCts.Cancel();
                             break;
                         case (HttpStatusCode)499: // weird error returned occasionally, ignore for now
-                            Logger.Log($"Possible HTTP-out timeout error from {Simulator}, no need to continue",
-                                Helpers.LogLevel.Debug);
+                            Logger.Debug($"Possible HTTP-out timeout error from {Simulator}, no need to continue");
 
                             _queueCts.Cancel();
                             break;
@@ -239,7 +321,7 @@ namespace OpenMetaverse.Http
                                     if (!string.IsNullOrEmpty(responseString) &&
                                         responseString.IndexOf(PROXY_TIMEOUT_RESPONSE, StringComparison.Ordinal) < 0)
                                     {
-                                        Logger.Log($"Full response was: {responseString}", Helpers.LogLevel.Debug, Simulator.Client);
+                                        Logger.Debug($"Full response was: {responseString}", Simulator.Client);
                                     }
                                 }
                                 catch { /* ignore decode failures */ }
@@ -273,38 +355,33 @@ namespace OpenMetaverse.Http
                             //
                             // Note: if this condition persists, it _might_ be the grid trying to request
                             // that the client closes the connection, as per LL's specs (gwyneth 20220414)
-                            Logger.Log($"Grid sent a Bad Gateway Error at {Simulator}; " +
-                                       $"probably a time-out from the grid's EventQueue server (normal) -- ignoring and continuing",
-                                Helpers.LogLevel.Debug);
+                            Logger.Debug($"Grid sent a Bad Gateway Error at {Simulator}; " +
+                                       $"probably a time-out from the grid's EventQueue server (normal) -- ignoring and continuing");
                             break;
                         default:
                             // Try to log a meaningful error message
                             if (response.StatusCode != HttpStatusCode.OK)
                             {
-                                Logger.Log($"Unrecognized caps connection problem from {Simulator}: {response.StatusCode} {response.ReasonPhrase}",
-                                    Helpers.LogLevel.Warning);
+                                Logger.Warn($"Unrecognized caps connection problem from {Simulator}: {response.StatusCode} {response.ReasonPhrase}");
                             }
                             else if (error.InnerException != null)
                             {
                                 // see comment above (gwyneth 20220414)
-                                Logger.Log($"Unrecognized internal caps exception from {Simulator}: '{error.InnerException.Message}'",
-                                    Helpers.LogLevel.Warning);
-                                Logger.Log($"Message ---\n{error.Message}", Helpers.LogLevel.Warning);
+                                Logger.Warn($"Unrecognized internal caps exception from {Simulator}: '{error.InnerException.Message}'");
+                                Logger.Warn($"Message ---\n{error.Message}");
                                 if (error.Data.Count > 0)
                                 {
-                                    Logger.Log("  Extra details:", Helpers.LogLevel.Warning);
+                                    Logger.Warn("  Extra details:");
                                     foreach (DictionaryEntry de in error.Data)
                                     {
-                                        Logger.Log(string.Format("    Key: {0,-20}      Value: {1}",
-                                                "'" + de.Key + "'", de.Value),
-                                            Helpers.LogLevel.Warning);
+                                        Logger.Warn(string.Format("    Key: {0,-20}      Value: {1}",
+                                                "'" + de.Key + "'", de.Value));
                                     }
                                 }
                             }
                             else
                             {
-                                Logger.Log($"Unrecognized caps exception from {Simulator}: {error.Message}",
-                                    Helpers.LogLevel.Warning);
+                                Logger.Warn($"Unrecognized caps exception from {Simulator}: {error.Message}");
                             }
 
                             break;
@@ -313,24 +390,37 @@ namespace OpenMetaverse.Http
                 #endregion Error handling
                 else if (responseData != null)
                 {
-                    // Got a response
-                    if (OSDParser.DeserializeLLSDXml(responseData) is OSDMap result)
-                    {
-                        events = result["events"] as OSDArray;
-                        ack = result["id"];
-                    }
-                    else
+                    // Got a response. Validate that the payload is likely LLSD/XML before attempting to parse.
+                    if (!IsLikelyLLSD(response, responseData))
                     {
                         var responseString = System.Text.Encoding.UTF8.GetString(responseData);
-
-                        // We might get a ghost Gateway 502 in the message body, or we may get a 
-                        // badly-formed Undefined LLSD response. It's just par for the course for
-                        // EventQueueGet and we take it in stride
                         if (responseString.IndexOf(PROXY_TIMEOUT_RESPONSE, StringComparison.Ordinal) < 0
                             && responseString.IndexOf(MALFORMED_EMPTY_RESPONSE, StringComparison.Ordinal) < 0)
                         {
-                            Logger.Log($"Could not parse response (1) from {Simulator} event queue: \"" +
-                                       responseString + "\"", Helpers.LogLevel.Warning);
+                            var preview = responseString.Length > 200 ? responseString.Substring(0, 200) : responseString;
+                            Logger.Warn($"Skipping LLSD parsing; server returned non-LLSD response from {Simulator}: \"{preview}\"");
+                        }
+                    }
+                    else
+                    {
+                        if (OSDParser.DeserializeLLSDXml(responseData) is OSDMap result)
+                        {
+                            events = result["events"] as OSDArray;
+                            ack = result["id"];
+                        }
+                        else
+                        {
+                            var responseString = System.Text.Encoding.UTF8.GetString(responseData);
+
+                            // We might get a ghost Gateway 502 in the message body, or we may get a 
+                            // badly-formed Undefined LLSD response. It's just par for the course for
+                            // EventQueueGet and we take it in stride
+                            if (responseString.IndexOf(PROXY_TIMEOUT_RESPONSE, StringComparison.Ordinal) < 0
+                                && responseString.IndexOf(MALFORMED_EMPTY_RESPONSE, StringComparison.Ordinal) < 0)
+                            {
+                                Logger.Warn($"Could not parse response (1) from {Simulator} event queue: \"" +
+                                           responseString + "\"");
+                            }
                         }
                     }
                 }
@@ -384,7 +474,7 @@ namespace OpenMetaverse.Http
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(ex.Message, Helpers.LogLevel.Error, ex);
+                        Logger.Error(ex.Message, ex);
                     }
                 }
 
@@ -393,8 +483,9 @@ namespace OpenMetaverse.Http
 
             catch (Exception e)
             {
-                Logger.Log($"Exception in EventQueueGet handler; {e.Message}", Helpers.LogLevel.Warning, e);
+                Logger.Warn($"Exception in EventQueueGet handler; {e.Message}", e);
             }
         }
     }
 }
+

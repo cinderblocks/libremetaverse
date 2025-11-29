@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2006-2016, openmetaverse.co
  * All rights reserved.
  *
@@ -128,9 +128,8 @@ namespace OpenMetaverse.Assets
                 }
                 else
                 {
-                    Logger.Log(string.Format(
-                        "Unrecognized asset type {0} with uuid {1}.  This asset will be saved but not reloaded",
-                        asset.AssetType, asset.AssetID), Helpers.LogLevel.Warning);
+                    Logger.Warn($"Unrecognized asset type {asset.AssetType} with uuid {asset.AssetID}. " +
+                               $"This asset will be saved but not reloaded");
                 }
 
                 asset.Encode();
@@ -144,3 +143,4 @@ namespace OpenMetaverse.Assets
         }
     }
 }
+

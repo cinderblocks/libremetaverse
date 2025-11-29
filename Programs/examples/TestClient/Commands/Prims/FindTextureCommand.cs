@@ -30,9 +30,7 @@ namespace TestClient.Commands.Prims
                     if (prim.Textures?.FaceTextures[faceIndex] == null) { continue; }
                     if (prim.Textures.FaceTextures[faceIndex].TextureID == textureID)
                     {
-                        Logger.Log(
-                            $"Primitive {prim.ID.ToString()} ({prim.LocalID}) has face index {faceIndex} set to {textureID.ToString()}",
-                            Helpers.LogLevel.Info, Client);
+                        Logger.Info($"Primitive {prim.ID.ToString()} ({prim.LocalID}) has face index {faceIndex} set to {textureID.ToString()}", Client);
                     }
                 }
 
@@ -43,3 +41,4 @@ namespace TestClient.Commands.Prims
         }
     }
 }
+

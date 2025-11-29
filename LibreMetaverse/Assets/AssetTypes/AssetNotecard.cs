@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2006-2016, openmetaverse.co
  * All rights reserved.
  *
@@ -384,9 +384,10 @@ namespace OpenMetaverse.Assets
             }
             catch (Exception ex)
             {
-                Logger.Log("Decoding notecard asset failed: " + ex.Message, Helpers.LogLevel.Error);
+                Logger.Error("Decoding notecard asset failed: " + ex.Message);
                 return false;
             }
         }
     }
 }
+

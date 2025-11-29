@@ -27,7 +27,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -570,7 +569,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Exception while disposing ObjectManager: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                    Logger.Error("Exception while disposing ObjectManager: " + ex.Message, ex, Client);
                 }
             }
 
@@ -1802,8 +1801,8 @@ namespace OpenMetaverse
         /// Deed an object (prim) to a group, Object must be shared with group which
         /// can be accomplished with SetPermissions()
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
-        /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
+        /// /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>
+        /// <param name="localID">The Local ID of the object</param>
         /// <param name="groupOwner">The <see cref="UUID"/> of the group to deed the object to</param>
         public void DeedObject(Simulator simulator, uint localID, UUID groupOwner)
         {
@@ -1836,7 +1835,7 @@ namespace OpenMetaverse
         /// Deed multiple objects (prims) to a group, Objects must be shared with group which
         /// can be accomplished with SetPermissions()
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>
         /// <param name="localIDs">An array which contains the IDs of the objects to deed</param>
         /// <param name="groupOwner">The <see cref="UUID"/> of the group to deed the object to</param>
         public void DeedObjects(Simulator simulator, List<uint> localIDs, UUID groupOwner)
@@ -1989,7 +1988,7 @@ namespace OpenMetaverse
             Uri cap;
             if ((cap = Client.Network.CurrentSim.Caps?.CapabilityURI("ObjectMediaNavigate")) == null)
             {
-                Logger.Log("ObjectMediaNavigate capability not available", Helpers.LogLevel.Error, Client);
+                Logger.Error("ObjectMediaNavigate capability not available", Client);
                 return;
             }
 
@@ -2003,7 +2002,7 @@ namespace OpenMetaverse
             {
                 if (error != null)
                 {
-                    Logger.Log($"ObjectMediaNavigate: {error.Message}", Helpers.LogLevel.Error, Client, error);
+                    Logger.Error($"ObjectMediaNavigate: {error.Message}", error, Client);
                 }
             });
         }
@@ -2020,7 +2019,7 @@ namespace OpenMetaverse
             Uri cap;
             if (sim.Caps == null || (cap = Client.Network.CurrentSim.Caps.CapabilityURI("ObjectMedia")) == null)
             {
-                Logger.Log("ObjectMedia capability not available", Helpers.LogLevel.Error, Client);
+                Logger.Error("ObjectMedia capability not available", Client);
                 return;
             }
 
@@ -2031,7 +2030,7 @@ namespace OpenMetaverse
             {
                 if (error != null)
                 {
-                    Logger.Log($"ObjectMediaUpdate: {error.Message}", Helpers.LogLevel.Error, Client, error);
+                    Logger.Error($"ObjectMediaUpdate: {error.Message}", error, Client);
                 }
             });
 
@@ -2055,9 +2054,9 @@ namespace OpenMetaverse
                 {
                     if (error != null)
                     {
-                        Logger.Log("Failed retrieving ObjectMedia data", Helpers.LogLevel.Error, Client, error);
+                        Logger.Error("Failed retrieving ObjectMedia data", error, Client);
                         try { callback(false, string.Empty, null); }
-                        catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
+                        catch (Exception ex) { Logger.Error(ex.Message, Client); }
                         return;
                     }
 
@@ -2085,20 +2084,20 @@ namespace OpenMetaverse
                         }
 
                         try { callback(true, response.Version, response.FaceMedia); }
-                        catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
+                        catch (Exception ex) { Logger.Error(ex.Message, Client); }
                     }
                     else
                     {
                         try { callback(false, string.Empty, null); }
-                        catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
+                        catch (Exception ex) { Logger.Error(ex.Message, Client); }
                     }
                 });
             }
             else
             {
-                Logger.Log("ObjectMedia capability not available", Helpers.LogLevel.Error, Client);
+                Logger.Error("ObjectMedia capability not available", Client);
                 try { callback(false, string.Empty, null); }
-                catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client); }
+                catch (Exception ex) { Logger.Error("RequestObjectMedia callback failed", ex, Client); }
             }
         }
 
@@ -2113,7 +2112,7 @@ namespace OpenMetaverse
 
             if (sim.Caps == null)
             {
-                Logger.Log("Caps are down, unable to retrieve materials.", Helpers.LogLevel.Info, Client);
+                Logger.Info("Caps are down, unable to retrieve materials.", Client);
                 return null;
             }
 
@@ -2121,20 +2120,20 @@ namespace OpenMetaverse
 
             List<LegacyMaterial> matsToReturn = new List<LegacyMaterial>();
 
-            Logger.Log($"Awaiting materials from {uri}", Helpers.LogLevel.Info, Client);
+            Logger.Info($"Awaiting materials from {uri}", Client);
 
             await Client.HttpCapsClient.GetRequestAsync(uri, CancellationToken.None,
                    ((response, data, error) =>
                    {
                        if (error != null)
                        {
-                           Logger.Log("Failed fetching materials", Helpers.LogLevel.Error, Client, error);
+                           Logger.Error($"Failed fetching materials: {error}", Client);
                            return;
                        }
 
                        if (data == null || data.Length == 0)
                        {
-                           Logger.Log("Failed fetching materials; result was empty.", Helpers.LogLevel.Error, Client);
+                           Logger.Error("Failed fetching materials; result was empty.", Client);
 
                            return;
                        }
@@ -2155,28 +2154,24 @@ namespace OpenMetaverse
                                    }
                                    else
                                    {
-                                       Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(entry, true), 
-                                           Helpers.LogLevel.Info, Client);
+                                       Logger.Info("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(entry, true), Client);
                                    }
                                }
                            }
                            else
                            {
-                               Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(result, true), 
-                                   Helpers.LogLevel.Info, Client);
+                               Logger.Info("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(result, true), Client);
                            }
 
-                           Logger.Log($"Fetched (x{matsToReturn.Count}) from {uri}", Helpers.LogLevel.Info, Client);
+                           Logger.Info($"Fetched (x{matsToReturn.Count}) from {uri}", Client);
                        }
                        catch (Exception ex)
                        {
-                           Logger.Log("Failed fetching RenderMaterials", Helpers.LogLevel.Error, Client, ex);
+                           Logger.Error("Failed fetching RenderMaterials", ex, Client);
 
                            if (data.Length > 0)
                            {
-                               Logger
-                                   .Log("Response unparsable; " + System.Text.Encoding.UTF8.GetString(data),
-                                        Helpers.LogLevel.Info, Client);
+                               Logger.Info("Response unparsable; " + System.Text.Encoding.UTF8.GetString(data), Client);
                            }
                        }
                    }));
@@ -2195,7 +2190,7 @@ namespace OpenMetaverse
 
             if (sim.Caps == null)
             {
-                Logger.Log("Caps are down, unable to retrieve materials.", Helpers.LogLevel.Info, Client);
+                Logger.Info("Caps are down, unable to retrieve materials.", Client);
                 return null;
             }
 
@@ -2215,26 +2210,23 @@ namespace OpenMetaverse
 
             List<LegacyMaterial> matsToReturn = new List<LegacyMaterial>();
 
-            Logger.Log($"Awaiting materials (x{array.Count}) from {uri}", Helpers.LogLevel.Info, Client);
+            Logger.Info($"Awaiting materials (x{array.Count}) from {uri}", Client);
 
             await Client.HttpCapsClient.PostRequestAsync(uri, OSDFormat.Xml, request, CancellationToken.None,
                        (response, data, error) =>
                        {
                            if (error != null)
                            {
-                               Logger.Log("Failed fetching materials",
-                                          Helpers.LogLevel.Error, Client, error);
+                               Logger.Error("Failed fetching materials {error}", Client);
                                return;
                            }
 
                            if (data == null || data.Length == 0)
                            {
-                               Logger.Log("Failed fetching materials; result was empty.",
-                                          Helpers.LogLevel.Error, Client);
+                               Logger.Error("Failed fetching materials; result was empty.", Client);
 
-                               Logger
-                                   .Log($"Sent:\n{uri}\n{Convert.ToBase64String(OSDParser.SerializeLLSDBinary(request), Base64FormattingOptions.InsertLineBreaks)}",
-                                        Helpers.LogLevel.Info, Client);
+                               Logger.Info($"Sent:\n{uri}\n" +
+                                           $"{Convert.ToBase64String(OSDParser.SerializeLLSDBinary(request), Base64FormattingOptions.InsertLineBreaks)}", Client);
 
                                return;
                            }
@@ -2255,35 +2247,28 @@ namespace OpenMetaverse
                                        }
                                        else
                                        {
-                                           Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(entry, true), 
-                                               Helpers.LogLevel.Info, Client);
+                                           Logger.Info("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(entry, true), Client);
                                        }
                                    }
                                }
                                else
                                {
-                                   Logger.Log("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(result, true), 
-                                       Helpers.LogLevel.Info, Client);
+                                   Logger.Info("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(result, true), Client);
                                }
 
-                               Logger.Log($"Fetched (x{matsToReturn.Count}) from {uri}", Helpers.LogLevel.Info, Client);
+                               Logger.Info($"Fetched (x{matsToReturn.Count}) from {uri}", Client);
                            }
                            catch (Exception ex)
                            {
-                               Logger.Log("Failed fetching RenderMaterials",
-                                          Helpers.LogLevel.Error, Client, ex);
+                               Logger.Error("Failed fetching RenderMaterials", ex, Client);
 
-                               Logger.Log($"Sent:\n{uri}\n{System.Text.Encoding.UTF8.GetString(OSDParser.SerializeLLSDXmlBytes(request))}",
-                                        Helpers.LogLevel.Info, Client);
+                               Logger.Info($"Sent:\n{uri}\n{System.Text.Encoding.UTF8.GetString(OSDParser.SerializeLLSDXmlBytes(request))}", Client);
 
-                               Logger.Log("Requests: " + string.Join(",", materials.Select(m => m.ToString())),
-                                       Helpers.LogLevel.Info);
+                               Logger.Info("Requests: " + string.Join(",", materials.Select(m => m.ToString())));
 
                                if (data.Length > 0)
                                {
-                                   Logger
-                                       .Log("Unable to parse response; " + System.Text.Encoding.UTF8.GetString(data),
-                                            Helpers.LogLevel.Info, Client);
+                                   Logger.Info("Unable to parse response; " + System.Text.Encoding.UTF8.GetString(data), Client);
                                }
                            }
                        });
@@ -2380,7 +2365,7 @@ namespace OpenMetaverse
                             continue;
                         
                         NameValue nv = new NameValue(lines[i]);
-                        if (nv.Name == "AttachItemID") attachment = true;
+                        if (nv.Name == "AttachItemID") { attachment = true; }
                         nameValues[i] = nv;
                     }
                 }
@@ -2504,7 +2489,7 @@ namespace OpenMetaverse
                             Utils.ByteToFloat(block.ObjectData, pos + 1, -256.0f, 256.0f),
                             Utils.ByteToFloat(block.ObjectData, pos + 2, -256.0f, 256.0f));
                         pos += 3;
-                        // Accleration
+                        // Acceleration
                         objectupdate.Acceleration = new Vector3(
                             Utils.ByteToFloat(block.ObjectData, pos, -256.0f, 256.0f),
                             Utils.ByteToFloat(block.ObjectData, pos + 1, -256.0f, 256.0f),
@@ -2526,8 +2511,8 @@ namespace OpenMetaverse
 
                         break;
                     default:
-                        Logger.Log("Got an ObjectUpdate block with ObjectUpdate field length of " +
-                                   block.ObjectData.Length, Helpers.LogLevel.Warning, Client);
+                        Logger.Warn("Got an ObjectUpdate block with ObjectUpdate field length of " +
+                                   block.ObjectData.Length, Client);
 
                         continue;
                 }
@@ -2557,8 +2542,7 @@ namespace OpenMetaverse
 
                         if ((prim.Flags & PrimFlags.ZlibCompressed) != 0)
                         {
-                            Logger.Log("Got a ZlibCompressed ObjectUpdate, implement me!",
-                                Helpers.LogLevel.Warning, Client);
+                            Logger.Warn("Got a ZlibCompressed ObjectUpdate, implement me!", Client);
                             continue;
                         }
 
@@ -2610,7 +2594,7 @@ namespace OpenMetaverse
                                 if (block.Data.Length == 1)
                                     prim.TreeSpecies = (Tree)block.Data[0];
                                 else
-                                    Logger.Log("Got a foliage update with an invalid TreeSpecies field", Helpers.LogLevel.Warning);
+                                    Logger.Warn("Got a foliage update with an invalid TreeSpecies field");
                                 //    prim.ScratchPad = Utils.EmptyBytes;
                                 //    break;
                                 //default:
@@ -2698,7 +2682,7 @@ namespace OpenMetaverse
                         avatar.PrimData = data;
                         if (block.Data.Length > 0)
                         {
-                            Logger.Log("Unexpected Data field for an avatar update, length " + block.Data.Length, Helpers.LogLevel.Warning);
+                            Logger.Warn("Unexpected Data field for an avatar update, length " + block.Data.Length);
                         }
                         avatar.ParentID = block.ParentID;
                         avatar.RegionHandle = update.RegionData.RegionHandle;
@@ -2718,7 +2702,7 @@ namespace OpenMetaverse
                         DecodeParticleUpdate(block);
                         break;
                     default:
-                        Logger.DebugLog("Got an ObjectUpdate block with an unrecognized PCode " + pcode, Client);
+                        Logger.Debug("Got an ObjectUpdate block with an unrecognized PCode " + pcode, Client);
                         break;
                 }
             }
@@ -2888,7 +2872,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(ex.Message, Helpers.LogLevel.Warning, Client, ex);
+                    Logger.Warn(ex.Message, ex, Client);
                 }
             }
         }
@@ -3144,8 +3128,8 @@ namespace OpenMetaverse
                 }
                 catch (IndexOutOfRangeException ex)
                 {
-                    Logger.Log("Error decoding an ObjectUpdateCompressed packet", Helpers.LogLevel.Warning, Client, ex);
-                    Logger.Log(block, Helpers.LogLevel.Warning);
+                    Logger.Warn("Error decoding an ObjectUpdateCompressed packet", ex, Client);
+                    Logger.Warn(block);
                 }
             }
         }
@@ -3852,7 +3836,7 @@ namespace OpenMetaverse
                                 //FIXME: Point movement extrapolation
                                 break;
                             default:
-                                Logger.Log($"Unhandled joint type {joint}", Helpers.LogLevel.Warning, Client);
+                                Logger.Warn($"Unhandled joint type {joint}", Client);
                                 break;
                         }
                     }
@@ -4345,3 +4329,4 @@ namespace OpenMetaverse
 
     #endregion
 }
+

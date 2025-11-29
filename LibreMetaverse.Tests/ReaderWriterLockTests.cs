@@ -1,9 +1,7 @@
 using NUnit.Framework;
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse.Threading;
-using System.Collections.Concurrent;
 
 namespace LibreMetaverse.Tests
 {

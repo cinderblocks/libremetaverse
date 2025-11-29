@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2006-2016, openmetaverse.co
  * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
@@ -196,7 +196,6 @@ namespace OpenMetaverse
                 var path = FileName(assetID);
                 if (File.Exists(path))
                 {
-                    DebugLog($"Reading {path} from asset cache.");
                     using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
                     {
                         var length = (int)fs.Length;
@@ -337,7 +336,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed saving asset to cache (" + ex.Message + ")", Helpers.LogLevel.Warning, Client);
+                Logger.Warn("Failed saving asset to cache (" + ex.Message + ")", Client);
                 return false;
             }
 
@@ -398,7 +397,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"Failed to delete cache file {filePath}: {ex}", Helpers.LogLevel.Warning, Client);
+                    Logger.Warn($"Failed to delete cache file {filePath}: {ex}", Client);
                 }
             }
 
@@ -438,7 +437,7 @@ namespace OpenMetaverse
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log($"Failed accessing cache file {p}: {ex}", Helpers.LogLevel.Warning, Client);
+                            Logger.Warn($"Failed accessing cache file {p}: {ex}", Client);
                         }
                     }
 
@@ -456,7 +455,7 @@ namespace OpenMetaverse
                             }
                             catch (Exception ex)
                             {
-                                Logger.Log($"Failed accessing cache file {p}: {ex}", Helpers.LogLevel.Warning, Client);
+                                Logger.Warn($"Failed accessing cache file {p}: {ex}", Client);
                             }
                         }
 
@@ -476,7 +475,7 @@ namespace OpenMetaverse
                             }
                             catch (Exception ex)
                             {
-                                Logger.Log($"Failed deleting cache file {entry.Path}: {ex}", Helpers.LogLevel.Warning, Client);
+                                Logger.Warn($"Failed deleting cache file {entry.Path}: {ex}", Client);
                             }
                             if (size < targetSize)
                             {
@@ -579,3 +578,4 @@ namespace OpenMetaverse
         }
     }
 }
+

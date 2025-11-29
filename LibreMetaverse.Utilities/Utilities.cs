@@ -27,6 +27,7 @@
 
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace OpenMetaverse.Utilities
 {
@@ -85,7 +86,7 @@ namespace OpenMetaverse.Utilities
             }
             else
             {
-                Logger.Log("Attempted Shoot but agent updates are disabled", Helpers.LogLevel.Warning, client);
+                Logger.Warn("Attempted Shoot but agent updates are disabled", client);
                 return false;
             }
         }
@@ -111,7 +112,14 @@ namespace OpenMetaverse.Utilities
         /// <param name="message">The chat message to send</param>
         /// <param name="type">The chat type (usually Normal, Whisper or Shout)</param>
         /// <param name="cps">Characters per second rate for chatting</param>
+        // Synchronous compatibility wrapper that blocks on the async implementation
         public static void Chat(GridClient client, string message, ChatType type, int cps)
+        {
+            ChatAsync(client, message, type, cps).GetAwaiter().GetResult();
+        }
+
+        // Async implementation using Task.Delay so callers can avoid blocking threads
+        public static async Task ChatAsync(GridClient client, string message, ChatType type, int cps, CancellationToken cancellationToken = default)
         {
             var rand = new Random();
             var characters = 0;
@@ -123,6 +131,8 @@ namespace OpenMetaverse.Utilities
 
             while (characters < message.Length)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 if (!typing)
                 {
                     // Start typing again
@@ -141,8 +151,8 @@ namespace OpenMetaverse.Utilities
                     }
                 }
 
-                // Sleep for a second and increase the amount of characters we've typed
-                Thread.Sleep(1000);
+                // Async delay for a second and increase the amount of characters we've typed
+                await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
                 characters += cps;
             }
 
@@ -160,14 +170,15 @@ namespace OpenMetaverse.Utilities
         private readonly GridClient _client;
         private ulong _simHandle;
         private Vector3 _position = Vector3.Zero;
-        private readonly System.Timers.Timer _checkTimer;
+        private CancellationTokenSource _checkCts;
+        private Task _checkTask;
+        private readonly int _timerFrequency;
 
         public ConnectionManager(GridClient client, int timerFrequency)
         {
             _client = client;
 
-            _checkTimer = new System.Timers.Timer(timerFrequency);
-            _checkTimer.Elapsed += CheckTimer_Elapsed;
+            _timerFrequency = timerFrequency;
         }
 
         public static bool PersistentLogin(GridClient client, string firstName, string lastName, string password,
@@ -179,32 +190,32 @@ namespace OpenMetaverse.Utilities
 
             if (client.Network.Login(firstName, lastName, password, userAgent, start, author))
             {
-                Logger.Log("Logged in to " + client.Network.CurrentSim, Helpers.LogLevel.Info, client);
+                Logger.Info("Logged in to " + client.Network.CurrentSim, client);
                 return true;
             }
             switch (client.Network.LoginErrorKey)
             {
                 case "god":
-                    Logger.Log("Grid is down, waiting 10 minutes", Helpers.LogLevel.Warning, client);
+                    Logger.Warn("Grid is down, waiting 10 minutes", client);
                     LoginWait(10);
                     goto Start;
                 case "key":
-                    Logger.Log("Bad username or password, giving up on login", Helpers.LogLevel.Error, client);
+                    Logger.Error("Bad username or password, giving up on login", client);
                     return false;
                 case "presence":
-                    Logger.Log("Server is still logging us out, waiting 1 minute", Helpers.LogLevel.Warning, client);
+                    Logger.Warn("Server is still logging us out, waiting 1 minute", client);
                     LoginWait(1);
                     goto Start;
                 case "disabled":
-                    Logger.Log("This account has been banned! Giving up on login", Helpers.LogLevel.Error, client);
+                    Logger.Error("This account has been banned! Giving up on login", client);
                     return false;
                 case "timed out":
                 case "no connection":
-                    Logger.Log("Login request timed out, waiting 1 minute", Helpers.LogLevel.Warning, client);
+                    Logger.Warn("Login request timed out, waiting 1 minute", client);
                     LoginWait(1);
                     goto Start;
                 case "bad response":
-                    Logger.Log("Login server returned unparsable result", Helpers.LogLevel.Warning, client);
+                    Logger.Warn("Login server returned unparsable result", client);
                     LoginWait(1);
                     goto Start;
                 default:
@@ -212,12 +223,11 @@ namespace OpenMetaverse.Utilities
 
                     if (unknownLogins < 5)
                     {
-                        Logger.Log("Unknown login error, waiting 2 minutes: " + client.Network.LoginErrorKey,
-                            Helpers.LogLevel.Warning, client);
+                        Logger.Warn("Unknown login error, waiting 2 minutes: " + client.Network.LoginErrorKey, client);
                         LoginWait(2);
                         goto Start;
                     }
-                    Logger.Log("Too many unknown login error codes, giving up", Helpers.LogLevel.Error, client);
+                    Logger.Error("Too many unknown login error codes, giving up", client);
                     return false;
             }
         }
@@ -226,24 +236,54 @@ namespace OpenMetaverse.Utilities
         {
             _simHandle = handle;
             _position = desiredPosition;
-            _checkTimer.Start();
+            StartCheckLoop();
+        }
+
+        private void StartCheckLoop()
+        {
+            if (_checkCts != null) return;
+            _checkCts = new CancellationTokenSource();
+            var token = _checkCts.Token;
+            _checkTask = Task.Run(async () =>
+            {
+                try
+                {
+                    while (!token.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            if (_simHandle != 0 && _client?.Network?.CurrentSim?.Handle != 0 && _client.Network.CurrentSim.Handle != _simHandle)
+                            {
+                                // Attempt to move to our target sim
+                                _client.Self.Teleport(_simHandle, _position);
+                             }
+                        }
+                        catch (Exception) { }
+
+                        await Task.Delay(_timerFrequency, token).ConfigureAwait(false);
+                    }
+                }
+                catch (TaskCanceledException) { }
+            }, token);
+        }
+
+        public void Stop()
+        {
+            try
+            {
+                _checkCts?.Cancel();
+            }
+            catch { }
+
+            _checkCts = null;
+            _checkTask = null;
         }
 
         private static void LoginWait(int minutes)
         {
+            // Keep blocking behavior for compatibility; callers that want non-blocking should use async APIs.
             Thread.Sleep(TimeSpan.FromMinutes(minutes));
-        }
-
-        private void CheckTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            if (_simHandle == 0) return;
-
-            if (_client.Network.CurrentSim.Handle != 0 &&
-                _client.Network.CurrentSim.Handle != _simHandle)
-            {
-                // Attempt to move to our target sim
-                _client.Self.Teleport(_simHandle, _position);
-            }
         }
     }
 }
+

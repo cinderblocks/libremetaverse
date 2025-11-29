@@ -281,7 +281,7 @@ namespace OpenMetaverse.Http
             if (OnDownloadProgress != null)
             {
                 try { OnDownloadProgress(this, bytesReceived, totalBytesToReceive); }
-                catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, ex); }
+                catch (Exception ex) { Logger.Error(ex.Message, ex); }
             }
         }
 
@@ -339,7 +339,7 @@ namespace OpenMetaverse.Http
                 catch (Exception ex)
                 {
                     Logger.DebugLog($"CapsBase.GetResponse() {_CapName} : {ex.Message}");
-                    Logger.Log(ex.Message, Helpers.LogLevel.Error, ex);
+                    Logger.Error(ex.Message, ex);
                 }
             }
 
@@ -348,3 +348,4 @@ namespace OpenMetaverse.Http
         }
     }
 }
+

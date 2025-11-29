@@ -23,8 +23,7 @@ namespace TestClient.Commands.Appearance
                 var point = StateToAttachmentPoint(prim.PrimData.State);
 
                 // TODO: Fetch properties for the objects with missing property sets, so we can show names
-                Logger.Log($"[Attachment @ {point}] LocalID: {prim.LocalID} UUID: {prim.ID} Offset: {prim.Position}", 
-                    Helpers.LogLevel.Info, Client);
+                Logger.Info($"[Attachment @ {point}] LocalID: {prim.LocalID} UUID: {prim.ID} Offset: {prim.Position}", Client);
             }
 
             return $"Found {attachments.Count} attachments";
@@ -38,3 +37,4 @@ namespace TestClient.Commands.Appearance
         }
     }
 }
+

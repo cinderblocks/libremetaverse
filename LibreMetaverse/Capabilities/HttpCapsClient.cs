@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2022-2025, Sjofn, LLC.
  * All rights reserved.
  *
@@ -145,7 +145,7 @@ namespace LibreMetaverse
                 }
                 catch (Exception e)
                 {
-                    Logger.Log("Error in HTTP request: " + e, Helpers.LogLevel.Error, null, e);
+                    Logger.Error("Error in HTTP request", e);
                 }
             }
         }
@@ -794,3 +794,4 @@ namespace LibreMetaverse
         public delegate void ConnectedHandler(HttpResponseMessage response);
     }
 }
+

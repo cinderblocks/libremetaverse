@@ -208,11 +208,8 @@ namespace OpenMetaverse.Http
             // We set this manually here instead of in ServicePointManager to avoid interference with callers.
             if (request.ServicePoint.ConnectionLimit < Settings.MAX_HTTP_CONNECTIONS)
             {
-                Logger.Log(
-                    string.Format(
-                        "In CapsBase.SetupRequest() setting conn limit for {0}:{1} to {2}", 
-                        address.Host, address.Port, Settings.MAX_HTTP_CONNECTIONS), 
-                    Helpers.LogLevel.Debug);
+                Logger.Debug($"In CapsBase.SetupRequest() setting conn limit for {address.Host}:{address.Port} " +
+                    $"to {Settings.MAX_HTTP_CONNECTIONS}");
                 request.ServicePoint.ConnectionLimit = Settings.MAX_HTTP_CONNECTIONS;
             }
             // Caps requests are never sent as trickles of data, so Nagle's
@@ -334,3 +331,4 @@ namespace OpenMetaverse.Http
         }
     }
 }
+

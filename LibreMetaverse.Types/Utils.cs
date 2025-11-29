@@ -486,13 +486,21 @@ namespace OpenMetaverse
             Span<byte> outSpan = new Span<byte>(dest, pos, 4);
             if (BitConverter.IsLittleEndian)
             {
+#if NET8_0_OR_GREATER
+                MemoryMarshal.Write(outSpan, in value);
+#else
                 MemoryMarshal.Write(outSpan, ref value);
+#endif
                 return;
             }
 
             // Big-endian system: write to tmp (system order) then reverse into dest
             Span<byte> tmp = stackalloc byte[4];
+#if NET8_0_OR_GREATER
+            MemoryMarshal.Write(tmp, in value);
+#else
             MemoryMarshal.Write(tmp, ref value);
+#endif
             outSpan[0] = tmp[3];
             outSpan[1] = tmp[2];
             outSpan[2] = tmp[1];
@@ -529,12 +537,20 @@ namespace OpenMetaverse
             Span<byte> outSpan = new Span<byte>(dest, pos, 8);
             if (BitConverter.IsLittleEndian)
             {
+#if NET8_0_OR_GREATER
+                MemoryMarshal.Write(outSpan, in value);
+#else
                 MemoryMarshal.Write(outSpan, ref value);
+#endif
                 return;
             }
 
             Span<byte> tmp = stackalloc byte[8];
+#if NET8_0_OR_GREATER
+            MemoryMarshal.Write(tmp, in value);
+#else
             MemoryMarshal.Write(tmp, ref value);
+#endif
             for (int i = 0; i < 8; i++) { outSpan[i] = tmp[7 - i]; }
         }
     }

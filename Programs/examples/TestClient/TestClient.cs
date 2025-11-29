@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse.Voice.Vivox;
+using Microsoft.Extensions.Logging;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
 using TestClient.Commands.Appearance;
@@ -44,7 +45,7 @@ namespace TestClient
 
             RegisterAllCommands(Assembly.GetExecutingAssembly());
 
-            Settings.LOG_LEVEL = Helpers.LogLevel.Debug;
+            Settings.LOG_LEVEL = LogLevel.Debug;
             Settings.LOG_RESENDS = false;
             Settings.STORE_LAND_PATCHES = true;
             Settings.ALWAYS_DECODE_OBJECTS = true;
@@ -304,7 +305,7 @@ namespace TestClient
             
             AlertMessagePacket message = (AlertMessagePacket)packet;
 
-            Logger.Log("[AlertMessage] " + Utils.BytesToString(message.AlertData.Message), Helpers.LogLevel.Info, this);
+            Logger.Info("[AlertMessage] " + Utils.BytesToString(message.AlertData.Message), this);
         }
        
         private void Inventory_OnInventoryObjectReceived(object sender, InventoryObjectOfferedEventArgs e)
@@ -324,3 +325,4 @@ namespace TestClient
         }
     }
 }
+

@@ -54,7 +54,7 @@ namespace TestClient.Commands.Prims
                 if (Asset != null && Asset.Decode())
                 {
                     try { File.WriteAllBytes(Asset.AssetID + ".jp2", Asset.AssetData); }
-                    catch (Exception ex) { Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex); }
+                    catch (Exception ex) { Logger.Error(ex.Message, ex, Client); }
 
                     return $"Saved {Asset.AssetID}.jp2 ({Asset.Image.Width}x{Asset.Image.Height})";
                 }
@@ -74,3 +74,4 @@ namespace TestClient.Commands.Prims
         }
     }
 }
+

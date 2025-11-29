@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2006-2016, openmetaverse.co
  * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
@@ -80,7 +80,7 @@ namespace OpenMetaverse
                     var options = GetSerializerOptions();
                     var items = Items.Values.ToList();
 
-                    Logger.Log($"Caching {items.Count} inventory items to {filename}", Helpers.LogLevel.Info);
+                    Logger.Info($"Caching {items.Count} inventory items to {filename}");
 
                     bw.Write(Encoding.ASCII.GetBytes(InventoryCacheMagic));
                     bw.Write(InventoryCacheVersion);
@@ -89,7 +89,7 @@ namespace OpenMetaverse
             }
             catch (Exception e)
             {
-                Logger.Log("Error saving inventory cache to disk", Helpers.LogLevel.Error, e);
+                Logger.Error("Error saving inventory cache to disk", e);
             }
         }
 
@@ -102,7 +102,7 @@ namespace OpenMetaverse
             var options = GetSerializerOptions();
             var items = Items.Values.ToList();
 
-            Logger.Log($"Caching {items.Count} inventory items to {filename}", Helpers.LogLevel.Info);
+            Logger.Info($"Caching {items.Count} inventory items to {filename}");
 
             // Use asynchronous FileStream
             using (var fs = new FileStream(filename, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true))
@@ -157,39 +157,39 @@ namespace OpenMetaverse
 
                     if (br.BaseStream.Length < InventoryCacheMagic.Length + sizeof(int))
                     {
-                        Logger.Log($"Invalid inventory cache file. Missing header.", Helpers.LogLevel.Warning);
+                        Logger.Warn($"Invalid inventory cache file. Missing header.");
                         return -1;
                     }
 
                     var magic = br.ReadBytes(InventoryCacheMagic.Length);
                     if (Encoding.ASCII.GetString(magic) != InventoryCacheMagic)
                     {
-                        Logger.Log($"Invalid inventory cache file. Missing magic header.", Helpers.LogLevel.Warning);
+                        Logger.Warn($"Invalid inventory cache file. Missing magic header.");
                         return -1;
                     }
 
                     var version = br.ReadInt32();
                     if (version != InventoryCacheVersion)
                     {
-                        Logger.Log($"Invalid inventory cache file. Expected version {InventoryCacheVersion}, got {version}.", Helpers.LogLevel.Warning);
+                        Logger.Warn($"Invalid inventory cache file. Expected version {InventoryCacheVersion}, got {version}.");
                         return -1;
                     }
 
                     cacheNodes = MessagePackSerializer.Deserialize<List<InventoryNode>>(br.BaseStream, options);
                     if (cacheNodes == null)
                     {
-                        Logger.Log($"Invalid inventory cache file. Failed to deserialize contents.", Helpers.LogLevel.Warning);
+                        Logger.Warn($"Invalid inventory cache file. Failed to deserialize contents.");
                         return -1;
                     }
                 }
             }
             catch (Exception e)
             {
-                Logger.Log("Error accessing inventory cache file", Helpers.LogLevel.Error, e);
+                Logger.Error("Error accessing inventory cache file", e);
                 return -1;
             }
 
-            Logger.Log($"Read {cacheNodes.Count} items from inventory cache file", Helpers.LogLevel.Info);
+            Logger.Info($"Read {cacheNodes.Count} items from inventory cache file");
 
             var dirtyFolders = new HashSet<UUID>();
 
@@ -216,7 +216,7 @@ namespace OpenMetaverse
 
                 if (!(serverNode.Data is InventoryFolder serverFolder))
                 {
-                    Logger.Log($"Cached inventory node folder has a parent that is not an InventoryFolder", Helpers.LogLevel.Warning);
+                    Logger.Warn($"Cached inventory node folder has a parent that is not an InventoryFolder");
                     continue;
                 }
 
@@ -248,7 +248,7 @@ namespace OpenMetaverse
 
                 if (!(serverParentNode.Data is InventoryFolder serverParentFolder))
                 {
-                    Logger.Log($"Cached inventory node item {cacheItem.Name} has a parent {serverParentNode.Data.Name} that is not an InventoryFolder", Helpers.LogLevel.Warning);
+                    Logger.Warn($"Cached inventory node item {cacheItem.Name} has a parent {serverParentNode.Data.Name} that is not an InventoryFolder");
                     continue;
                 }
 
@@ -266,7 +266,7 @@ namespace OpenMetaverse
 
                 if (!Items.TryAdd(cacheItem.UUID, cacheNode))
                 {
-                    Logger.Log($"Failed to add cache item node {cacheItem.Name} with parent {serverParentFolder.Name}", Helpers.LogLevel.Info);
+                    Logger.Info($"Failed to add cache item node {cacheItem.Name} with parent {serverParentFolder.Name}");
                     continue;
                 }
 
@@ -276,7 +276,7 @@ namespace OpenMetaverse
                 itemCount++;
             }
 
-            Logger.Log($"Reassembled {itemCount} items from inventory cache file", Helpers.LogLevel.Info);
+            Logger.Info($"Reassembled {itemCount} items from inventory cache file");
             return itemCount;
         }
 
@@ -330,7 +330,7 @@ namespace OpenMetaverse
                 }
             }
 
-            Logger.Log($"Read {cacheNodes.Count} items from inventory cache file", Helpers.LogLevel.Info);
+            Logger.Info($"Read {cacheNodes.Count} items from inventory cache file");
 
             var dirtyFolders = new HashSet<UUID>();
 
@@ -357,7 +357,7 @@ namespace OpenMetaverse
 
                 if (!(serverNode.Data is InventoryFolder serverFolder))
                 {
-                    Logger.Log($"Cached inventory node folder has a parent that is not an InventoryFolder", Helpers.LogLevel.Warning);
+                    Logger.Warn($"Cached inventory node folder has a parent that is not an InventoryFolder");
                     continue;
                 }
 
@@ -389,7 +389,7 @@ namespace OpenMetaverse
 
                 if (!(serverParentNode.Data is InventoryFolder serverParentFolder))
                 {
-                    Logger.Log($"Cached inventory node item {cacheItem.Name} has a parent {serverParentNode.Data.Name} that is not an InventoryFolder", Helpers.LogLevel.Warning);
+                    Logger.Warn($"Cached inventory node item {cacheItem.Name} has a parent {serverParentNode.Data.Name} that is not an InventoryFolder");
                     continue;
                 }
 
@@ -407,7 +407,7 @@ namespace OpenMetaverse
 
                 if (!Items.TryAdd(cacheItem.UUID, cacheNode))
                 {
-                    Logger.Log($"Failed to add cache item node {cacheItem.Name} with parent {serverParentFolder.Name}", Helpers.LogLevel.Info);
+                    Logger.Info($"Failed to add cache item node {cacheItem.Name} with parent {serverParentFolder.Name}");
                     continue;
                 }
 
@@ -417,7 +417,7 @@ namespace OpenMetaverse
                 itemCount++;
             }
 
-            Logger.Log($"Reassembled {itemCount} items from inventory cache file", Helpers.LogLevel.Info);
+            Logger.Info($"Reassembled {itemCount} items from inventory cache file");
             return itemCount;
         }
 
@@ -438,3 +438,4 @@ namespace OpenMetaverse
         }
     }
 }
+

@@ -147,7 +147,7 @@ namespace OpenMetaverse.Assets
                                 }
                                 else
                                 {
-                                    //Logger.Log("Found unexpected prim XML element " + reader.Name, Helpers.LogLevel.Debug);
+                                    //Logger.Debug("Found unexpected prim XML element " + reader.Name);
                                     reader.Read();
                                 }
                                 break;
@@ -163,7 +163,7 @@ namespace OpenMetaverse.Assets
                 }
                 else
                 {
-                    Logger.Log("Failed to load root linkset prim", Helpers.LogLevel.Error);
+                    Logger.Error("Failed to load root linkset prim");
                     return false;
                 }
             }
@@ -1312,3 +1312,4 @@ namespace OpenMetaverse.Assets
         }
     }
 }
+

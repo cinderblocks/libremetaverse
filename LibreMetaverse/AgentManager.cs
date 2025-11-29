@@ -1425,7 +1425,7 @@ namespace OpenMetaverse
                     return fullPosition;
                 }
 
-                Logger.Log("Failed to determine agent sim position", Helpers.LogLevel.Warning, Client);
+                Logger.Warn("Failed to determine agent sim position", Client);
                 return relativePosition;
             }
         }
@@ -1443,10 +1443,7 @@ namespace OpenMetaverse
                     {
                         return relativeRotation * parent.Rotation;
                     }
-                    Logger.Log(
-                        $"Currently sitting on object {sittingOn} which is not tracked, SimRotation will be inaccurate",
-                        Helpers.LogLevel.Warning, Client);
-                    return relativeRotation;
+                    Logger.Warn($"Currently sitting on object {sittingOn} which is not tracked, SimRotation will be inaccurate", Client);
                 }
                 return relativeRotation;
             }
@@ -1832,7 +1829,7 @@ namespace OpenMetaverse
         {
             if (target == UUID.Zero)
             {
-                Logger.Log($"Suppressing instant message \"{message}\" to UUID.Zero", Helpers.LogLevel.Error, Client);
+                Logger.Error($"Suppressing instant message \"{message}\" to UUID.Zero", Client);
                 return;
             }
 
@@ -1891,8 +1888,7 @@ namespace OpenMetaverse
             {
                 if (!GroupChatSessions.ContainsKey(groupID))
                 {
-                    Logger.Log("No Active group chat session appears to exist, use RequestJoinGroupChat() to join one",
-                        Helpers.LogLevel.Error, Client);
+                    Logger.Error("No Active group chat session appears to exist, use RequestJoinGroupChat() to join one", Client);
                     return;
                 }
 
@@ -2361,7 +2357,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("Attempted to Stand() but agent updates are disabled", Helpers.LogLevel.Warning, Client);
+                Logger.Warn("Attempted to Stand() but agent updates are disabled", Client);
                 return false;
             }
         }
@@ -2510,7 +2506,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("Attempted to AutoPilotCancel() but agent updates are disabled", Helpers.LogLevel.Warning, Client);
+                Logger.Warn("Attempted to AutoPilotCancel() but agent updates are disabled", Client);
                 return false;
             }
         }
@@ -3088,7 +3084,7 @@ namespace OpenMetaverse
         {
             if (teleportStatus == TeleportStatus.Progress)
             {
-                Logger.Log("Teleport already in progress while attempting to teleport.", Helpers.LogLevel.Info, Client);
+                Logger.Info("Teleport already in progress while attempting to teleport.", Client);
                 return false;
             }
 
@@ -3149,7 +3145,7 @@ namespace OpenMetaverse
                 TeleportMessage = $"Invalid simulator name";
                 teleportStatus = TeleportStatus.Failed;
                 OnTeleport(new TeleportEventArgs(TeleportMessage, teleportStatus, TeleportFlags.Default));
-                Logger.Log("Teleport failed; " + TeleportMessage, Helpers.LogLevel.Warning, Client);
+                Logger.Warn("Teleport failed; " + TeleportMessage, Client);
                 return false;
             }
 
@@ -3158,14 +3154,13 @@ namespace OpenMetaverse
                 TeleportMessage = $"Not in a current simulator, cannot teleport to {simName}";
                 teleportStatus = TeleportStatus.Failed;
                 OnTeleport(new TeleportEventArgs(TeleportMessage, teleportStatus, TeleportFlags.Default));
-                Logger.Log("Teleport failed; " + TeleportMessage, Helpers.LogLevel.Warning, Client);
+                Logger.Warn("Teleport failed; " + TeleportMessage, Client);
                 return false;
             }
 
             if (teleportStatus == TeleportStatus.Progress)
             {
-                Logger.Log($"Teleport already in progress while attempting to teleport to {simName}.",
-                    Helpers.LogLevel.Info, Client);
+                Logger.Info($"Teleport already in progress while attempting to teleport to {simName}.", Client);
                 return false;
             }
 
@@ -3198,7 +3193,7 @@ namespace OpenMetaverse
                     TeleportMessage = $"Unable to resolve simulator named: {simName}";
                     teleportStatus = TeleportStatus.Failed;
                     OnTeleport(new TeleportEventArgs(TeleportMessage, teleportStatus, TeleportFlags.Default));
-                    Logger.Log("Teleport failed; " + TeleportMessage, Helpers.LogLevel.Warning, Client);
+                    Logger.Warn("Teleport failed; " + TeleportMessage, Client);
                     return false;
                 }
             }
@@ -3269,7 +3264,7 @@ namespace OpenMetaverse
                 TeleportMessage = "Teleport timed out.";
                 teleportStatus = TeleportStatus.Failed;
                 
-                Logger.Log("Teleport has timed out.", Helpers.LogLevel.Info, Client);
+                Logger.Info("Teleport has timed out.", Client);
             }
 
             return (teleportStatus == TeleportStatus.Finished);
@@ -3312,13 +3307,13 @@ namespace OpenMetaverse
                     }
                 };
 
-                Logger.Log($"Requesting teleport to region handle {regionHandle}", Helpers.LogLevel.Info, Client);
+                Logger.Info($"Requesting teleport to region handle {regionHandle}", Client);
 
                 Client.Network.SendPacket(teleport);
             }
             else
             {
-                Logger.Log("Event queue is not running, teleport abandoned.", Helpers.LogLevel.Info, Client);
+                Logger.Info("Event queue is not running, teleport abandoned.", Client);
                 TeleportMessage = "CAPS event queue is not running";
                 teleportEvent.Set();
                 teleportStatus = TeleportStatus.Failed;
@@ -3422,10 +3417,12 @@ namespace OpenMetaverse
                 InstantMessageOnline.Online, SimPosition, UUID.Zero, Utils.EmptyBytes);
             }
         }
+
         public void SendTeleportLureRequest(UUID targetID, string message)
         {
             SendTeleportLureRequest(targetID, targetID, message);
         }
+
         public void SendTeleportLureRequest(UUID targetID)
         {
             SendTeleportLureRequest(targetID, "Let me join you in your location");
@@ -3496,7 +3493,7 @@ namespace OpenMetaverse
         /// Only updates about text fields, profile url, and allow_publish.
         /// Does not update image UUID, etc. like the legacy LLUDP request.
         /// </remarks>
-        public async void UpdateProfileHttp(Avatar.AvatarProperties profile, CancellationToken cancellationToken = default)
+        public async Task UpdateProfileHttp(Avatar.AvatarProperties profile, CancellationToken cancellationToken = default)
         {
             var payload = new OSDMap
             {
@@ -3508,48 +3505,50 @@ namespace OpenMetaverse
                 ["fl_image_id"] = profile.FirstLifeImage
             };
 
-            var capability = Client.Network.CurrentSim.Caps.CapabilityURI(AGENT_PROFILE_CAP);
-            var uri = new Uri($"{capability}/{AgentID}");
-            await Client.HttpCapsClient.PutRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
-                (response, data, error) =>
-                {
-                    if (error != null)
-                    {
-                        Logger.Log($"AgentProfile update failed: {error.Message}", Helpers.LogLevel.Warning);
-                        return;
-                    }
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        Logger.Log("AgentProfile update succeeded.", Helpers.LogLevel.Debug);
-                    }
-                });
-        }
-
-        /// <summary>
-        /// Update agent's profile interests
-        /// </summary>
-        /// <param name="interests">selection of interests from <see cref="Avatar.Interests"/> struct</param>
-        public void UpdateInterests(Avatar.Interests interests)
-        {
-            AvatarInterestsUpdatePacket aiup = new AvatarInterestsUpdatePacket
+            try
             {
-                AgentData =
+                if (Client?.Network?.CurrentSim?.Caps == null)
                 {
-                    AgentID = AgentID,
-                    SessionID = SessionID
-                },
-                PropertiesData =
-                {
-                    LanguagesText = Utils.StringToBytes(interests.LanguagesText),
-                    SkillsMask = interests.SkillsMask,
-                    SkillsText = Utils.StringToBytes(interests.SkillsText),
-                    WantToMask = interests.WantToMask,
-                    WantToText = Utils.StringToBytes(interests.WantToText)
+                    Logger.Warn("Not connected to simulator or capabilities unavailable, cannot update profile.", Client);
+                    return;
                 }
-            };
 
-            Client.Network.SendPacket(aiup);
+                var capability = Client.Network.CurrentSim.Caps.CapabilityURI(AGENT_PROFILE_CAP);
+                if (capability == null)
+                {
+                    Logger.Warn("AgentProfile capability not available, cannot update profile.", Client);
+                    return;
+                }
+
+                var uri = new Uri($"{capability}/{AgentID}");
+
+                await Client.HttpCapsClient.PutRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
+                    (response, data, error) =>
+                    {
+                        if (error != null)
+                        {
+                            Logger.Warn($"AgentProfile update failed: {error.Message}", Client);
+                            return;
+                        }
+
+                        if (response != null && response.IsSuccessStatusCode)
+                        {
+                            Logger.Debug("AgentProfile update succeeded.", Client);
+                        }
+                        else
+                        {
+                            Logger.Warn($"AgentProfile update returned non-success status: {response?.StatusCode}", Client);
+                        }
+                    }).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                Logger.Debug("UpdateProfileHttp cancelled.", Client);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("AgentProfile update failed", ex, Client);
+            }
         }
 
         /// <summary>
@@ -3595,25 +3594,79 @@ namespace OpenMetaverse
         /// <param name="target">target avatar for notes</param>
         /// <param name="notes">notes to store</param>
         /// <param name="cancellationToken"></param>
-        public async void UpdateProfileNotesHttp(UUID target, string notes, CancellationToken cancellationToken = default)
+        public async Task UpdateProfileNotesHttp(UUID target, string notes, CancellationToken cancellationToken = default)
         {
             var payload = new OSDMap { ["notes"] = notes };
 
-            var capability = Client.Network.CurrentSim.Caps.CapabilityURI(AGENT_PROFILE_CAP);
-            var uri = new Uri($"{capability}/{target}");
-            await Client.HttpCapsClient.PutRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
-                (response, data, error) =>
+            try
+            {
+                if (Client?.Network?.CurrentSim?.Caps == null)
                 {
-                    if (error != null)
-                    {
-                        Logger.Log($"AgentProfile notes update failed: {error.Message}", Helpers.LogLevel.Warning);
-                    }
+                    Logger.Warn("Not connected to simulator or capabilities unavailable, cannot update profile notes.", Client);
+                    return;
+                }
 
-                    if (response.IsSuccessStatusCode)
+                var capability = Client.Network.CurrentSim.Caps.CapabilityURI(AGENT_PROFILE_CAP);
+                if (capability == null)
+                {
+                    Logger.Warn("AgentProfile capability not available, cannot update profile notes.", Client);
+                    return;
+                }
+
+                var uri = new Uri($"{capability}/{target}");
+
+                await Client.HttpCapsClient.PutRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
+                    (response, data, error) =>
                     {
-                        Logger.Log("AgentProfile notes update succeeded.", Helpers.LogLevel.Debug);
-                    }
-                });
+                        if (error != null)
+                        {
+                            Logger.Warn($"AgentProfile notes update failed: {error.Message}", Client);
+                        }
+
+                        if (response != null && response.IsSuccessStatusCode)
+                        {
+                            Logger.Debug("AgentProfile notes update succeeded.", Client);
+                        }
+                        else
+                        {
+                            Logger.Warn($"AgentProfile notes update returned non-success status: {response?.StatusCode}", Client);
+                        }
+                    }).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                Logger.Debug("UpdateProfileNotesHttp cancelled.", Client);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("AgentProfile notes update failed", ex, Client);
+            }
+        }
+
+        /// <summary>
+        /// Update agent's profile interests
+        /// </summary>
+        /// <param name="interests">selection of interests from <see cref="Avatar.Interests"/> struct</param>
+        public void UpdateInterests(Avatar.Interests interests)
+        {
+            AvatarInterestsUpdatePacket aiup = new AvatarInterestsUpdatePacket
+            {
+                AgentData =
+                {
+                    AgentID = AgentID,
+                    SessionID = SessionID
+                },
+                PropertiesData =
+                {
+                    LanguagesText = Utils.StringToBytes(interests.LanguagesText),
+                    SkillsMask = interests.SkillsMask,
+                    SkillsText = Utils.StringToBytes(interests.SkillsText),
+                    WantToMask = interests.WantToMask,
+                    WantToText = Utils.StringToBytes(interests.WantToText)
+                }
+            };
+
+            Client.Network.SendPacket(aiup);
         }
 
         #endregion Profile
@@ -3801,7 +3854,7 @@ namespace OpenMetaverse
             };
 
             Client.Network.SendPacket(move, simulator);
-            Logger.Log("Sending complete agent movement to " + simulator.Handle + " / " + simulator.Name, Helpers.LogLevel.Info, Client);
+            Logger.Info($"Sending complete agent movement to {simulator.Handle} / {simulator.Name}", Client);
         }
 
         /// <summary>
@@ -4035,14 +4088,14 @@ namespace OpenMetaverse
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log("Failed fetching AttachmentResources", Helpers.LogLevel.Error, Client, ex);
+                        Logger.Error("Failed fetching AttachmentResources", ex, Client);
                         callback(false, null);
                     }
                 });
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed fetching AttachmentResources", Helpers.LogLevel.Error, Client, ex);
+                Logger.Error("Failed fetching AttachmentResources", ex, Client);
                 callback(false, null);
             }
         }
@@ -4057,16 +4110,14 @@ namespace OpenMetaverse
         {
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
             {
-                Logger.Log("Not connected to simulator to set display name.",
-                    Helpers.LogLevel.Warning, Client);
+                Logger.Warn("Not connected to simulator to set display name.", Client);
                 return;
             }
 
             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("SetDisplayName");
             if (cap == null)
             {
-                Logger.Log("Unable to obtain capability to set display name.",
-                    Helpers.LogLevel.Warning, Client);
+                Logger.Warn("Unable to obtain capability to set display name.", Client);
                 return;
             }
 
@@ -4099,15 +4150,14 @@ namespace OpenMetaverse
                 Uri cap = Client.Network.CurrentSim.Caps?.CapabilityURI("UpdateAgentLanguage");
                 if (cap == null)
                 {
-                    Logger.Log("Could not retrieve 'UpdateAgentLanguage' capability.", Helpers.LogLevel.Warning, Client);
+                    Logger.Warn("Could not retrieve 'UpdateAgentLanguage' capability.", Client);
                     return;
                 }
-                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), 
-                    cancellationToken);
+                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken);
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed to update agent language", Helpers.LogLevel.Error, Client, ex);
+                Logger.Error("Failed to update agent language", ex, Client);
             }
         }
 
@@ -4148,15 +4198,15 @@ namespace OpenMetaverse
                     {
                         var map = osdMap["access_prefs"];
                         AgentAccess = ((OSDMap)map)["max"];
-                        Logger.Log($"Max maturity access set to {AgentAccess}", Helpers.LogLevel.Info, Client);
+                        Logger.Info($"Max maturity access set to {AgentAccess}", Client);
                     }
                     else if (error == null)
                     {
-                        Logger.Log($"Max maturity unchanged at {AgentAccess}", Helpers.LogLevel.Info, Client);
+                        Logger.Info($"Max maturity unchanged at {AgentAccess}", Client);
                     }
                     else
                     {
-                        Logger.Log("Failed setting max maturity access.", Helpers.LogLevel.Warning, Client);
+                        Logger.Warn("Failed setting max maturity access.", Client);
                         success = false;
                     }
 
@@ -4189,17 +4239,16 @@ namespace OpenMetaverse
 
                 if (error != null)
                 {
-                    Logger.Log($"Failed to set hover height: {error}.", Helpers.LogLevel.Warning, Client);
+                    Logger.Warn($"Failed to set hover height: {error}.", Client);
                 }
                 else if (!(result is OSDMap resultMap))
                 {
-                    Logger.Log($"Failed to set hover height: Expected {nameof(OSDMap)} response, but got {result.Type}",
-                        Helpers.LogLevel.Warning, Client);
+                    Logger.Warn($"Failed to set hover height: Expected {nameof(OSDMap)} response, but got {result.Type}", Client);
                 }
                 else
                 {
                     var confirmedHeight = resultMap["hover_height"];
-                    Logger.Log($"Hover height set to {confirmedHeight}", Helpers.LogLevel.Debug, Client);
+                    Logger.Debug($"Hover height set to {confirmedHeight}", Client);
                 }
             });
         }
@@ -4277,8 +4326,7 @@ namespace OpenMetaverse
         {
             if (error != null)
             {
-                Logger.Log($"Failed to retrieve offline messages from the simulator: {error.Message}",
-                    Helpers.LogLevel.Warning);
+                Logger.Warn($"Failed to retrieve offline messages from the simulator: {error.Message}");
                 RetrieveInstantMessagesLegacy();
                 return;
             }
@@ -4288,15 +4336,13 @@ namespace OpenMetaverse
             OSD result = OSDParser.Deserialize(data);
             if (result == null)
             {
-                Logger.Log("Failed to decode offline messages from data, trying legacy method (Null reply)",
-                  Helpers.LogLevel.Warning);
+                Logger.Warn("Failed to decode offline messages from data, trying legacy method (Null reply)");
                 RetrieveInstantMessagesLegacy();
                 return;
             }
             if (result.Type != OSDType.Array)
             {
-                Logger.Log("Failed to decode offline messages from data trying legacy method (Wrong unpack type expected array)",
-                  Helpers.LogLevel.Warning);
+                Logger.Warn("Failed to decode offline messages from data trying legacy method (Wrong unpack type expected array)");
                 RetrieveInstantMessagesLegacy();
                 return;
             }
@@ -4346,8 +4392,7 @@ namespace OpenMetaverse
             }
             catch
             {
-                Logger.Log("Failed to decode offline messages from data; trying legacy method",
-                  Helpers.LogLevel.Warning);
+                Logger.Warn("Failed to decode offline messages from data; trying legacy method");
                 RetrieveInstantMessagesLegacy();
             }
         }
@@ -4524,8 +4569,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("Got an AgentDataUpdate packet for avatar " + p.AgentData.AgentID +
-                    " instead of " + Client.Self.AgentID + ", this shouldn't happen", Helpers.LogLevel.Error, Client);
+                Logger.Error($"Got an AgentDataUpdate packet for avatar {p.AgentData.AgentID}", Client);
             }
         }
 
@@ -4601,15 +4645,13 @@ namespace OpenMetaverse
 
             if (sim == null)
             {
-                Logger.Log($"Got EstablishAgentCommunication for unknown sim {msg.Address}:{msg.Port}",
-                    Helpers.LogLevel.Error, Client);
+                Logger.Error($"Got EstablishAgentCommunication for unknown sim {msg.Address}:{msg.Port}", Client);
 
                 // FIXME: Should we use this opportunity to connect to the simulator?
             }
             else
             {
-                Logger.Log($"Got EstablishAgentCommunication for {sim}",
-                    Helpers.LogLevel.Info, Client);
+                Logger.Info($"Got EstablishAgentCommunication for {sim}", Client);
 
                 sim.SetSeedCaps(msg.SeedCapability);
             }
@@ -4735,7 +4777,7 @@ namespace OpenMetaverse
                     TeleportMessage = "Teleport finished";
                     teleportStatus = TeleportStatus.Finished;
 
-                    Logger.Log($"Moved to {newSimulator}", Helpers.LogLevel.Info, Client);
+                    Logger.Info($"Moved to {newSimulator}", Client);
                 }
                 else
                 {
@@ -4743,7 +4785,7 @@ namespace OpenMetaverse
                     teleportStatus = TeleportStatus.Failed;
 
                     // We're going to get disconnected now
-                    Logger.Log(TeleportMessage, Helpers.LogLevel.Error, Client);
+                    Logger.Error(TeleportMessage, Client);
                 }
             }
             else if (packet.Type == PacketType.TeleportCancel)
@@ -4903,7 +4945,7 @@ namespace OpenMetaverse
 
             IPEndPoint endPoint = new IPEndPoint(crossed.IP, crossed.Port);
 
-            Logger.Log($"Crossed in to new region area, attempting to connect to {endPoint}", Helpers.LogLevel.Info, Client);
+            Logger.Info($"Crossed in to new region area, attempting to connect to {endPoint}", Client);
 
             Simulator oldSim = Client.Network.CurrentSim;
             Simulator newSim = Client.Network.Connect(endPoint, crossed.RegionHandle, true, crossed.SeedCapability,
@@ -4911,7 +4953,7 @@ namespace OpenMetaverse
 
             if (newSim != null)
             {
-                Logger.Log($"Finished crossing over in to region {newSim}", Helpers.LogLevel.Info, Client);
+                Logger.Info($"Finished crossing over in to region {newSim}", Client);
                 oldSim.AgentMovementComplete = false; // We're no longer there
                 if (m_RegionCrossed != null)
                 {
@@ -4922,8 +4964,7 @@ namespace OpenMetaverse
             {
                 // The old simulator will (poorly) handle our movement still, so the connection isn't
                 // completely shot yet
-                Logger.Log($"Failed to connect to new region {endPoint} after crossing over",
-                    Helpers.LogLevel.Warning, Client);
+                Logger.Warn($"Failed to connect to new region {endPoint} after crossing over", Client);
             }
         }
 
@@ -4938,14 +4979,14 @@ namespace OpenMetaverse
             Uri seedCap = new Uri(Utils.BytesToString(crossing.RegionData.SeedCapability));
             IPEndPoint endPoint = new IPEndPoint(crossing.RegionData.SimIP, crossing.RegionData.SimPort);
 
-            Logger.Log($"Crossed in to new region area, attempting to connect to {endPoint}", Helpers.LogLevel.Info, Client);
+            Logger.Info($"Crossed in to new region area, attempting to connect to {endPoint}", Client);
 
             Simulator oldSim = Client.Network.CurrentSim;
             Simulator newSim = Client.Network.Connect(endPoint, crossing.RegionData.RegionHandle, true, seedCap);
 
             if (newSim != null)
             {
-                Logger.Log($"Finished crossing over in to region {newSim}", Helpers.LogLevel.Info, Client);
+                Logger.Info($"Finished crossing over in to region {newSim}", Client);
 
                 if (m_RegionCrossed != null)
                 {
@@ -4956,8 +4997,7 @@ namespace OpenMetaverse
             {
                 // The old simulator will (poorly) handle our movement still, so the connection isn't
                 // completely shot yet
-                Logger.Log($"Failed to connect to new region {endPoint} after crossing over",
-                    Helpers.LogLevel.Warning, Client);
+                Logger.Warn($"Failed to connect to new region {endPoint} after crossing over", Client);
             }
         }
 
@@ -4973,8 +5013,7 @@ namespace OpenMetaverse
 
             if (msg.Success) return;
             RequestJoinGroupChat(msg.SessionID);
-            Logger.Log($"Attempt to send group chat to non-existent session for group {msg.SessionID}",
-                Helpers.LogLevel.Info, Client);
+            Logger.Info($"Attempt to send group chat to non-existent session for group {msg.SessionID}", Client);
         }
 
         /// <summary>
@@ -5121,7 +5160,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed joining IM:", Helpers.LogLevel.Warning, Client, ex);
+                Logger.Warn("Failed joining IM:", ex, Client);
             }
             OnInstantMessage(new InstantMessageEventArgs(im, simulator));
         }
@@ -5303,7 +5342,7 @@ namespace OpenMetaverse
                                 }
                                 catch (Exception ex)
                                 {
-                                    Logger.Log("Failed to parse the mute list line: " + line, Helpers.LogLevel.Warning, Client, ex);
+                                    Logger.Warn("Failed to parse the mute list line: " + line, ex, Client);
                                 }
                             }
                         }
@@ -5312,7 +5351,7 @@ namespace OpenMetaverse
                     }
                     else
                     {
-                        Logger.Log("Timed out waiting for mute list download", Helpers.LogLevel.Warning, Client);
+                        Logger.Warn("Timed out waiting for mute list download", Client);
                     }
 
                     Client.Assets.XferReceived -= xferCallback;
@@ -5411,7 +5450,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Exception while disposing AgentManager: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                    Logger.Error("Exception while disposing AgentManager", ex, Client);
                 }
             }
 

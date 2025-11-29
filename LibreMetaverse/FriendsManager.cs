@@ -510,7 +510,7 @@ namespace OpenMetaverse
             Uri acceptFriendshipCap = Client.Network.CurrentSim.Caps.CapabilityURI("AcceptFriendship");
             if (acceptFriendshipCap == null)
             {
-                Logger.Log("AcceptFriendship capability not found.", Helpers.LogLevel.Warning);
+                Logger.Warn("AcceptFriendship capability not found.");
                 return;
             }
             UriBuilder builder = new UriBuilder(acceptFriendshipCap)
@@ -527,8 +527,7 @@ namespace OpenMetaverse
                 {
                     if (error != null)
                     {
-                        Logger.Log($"AcceptFriendship failed for {fromAgentID}. ({error.Message})",
-                            Helpers.LogLevel.Warning);
+                        Logger.Warn($"AcceptFriendship failed for {fromAgentID}. ({error.Message})");
                         return;
                     }
                     OSD result = OSDParser.Deserialize(data);
@@ -580,7 +579,7 @@ namespace OpenMetaverse
             Uri declineFriendshipCap = Client.Network.CurrentSim.Caps.CapabilityURI("DeclineFriendship");
             if (declineFriendshipCap == null)
             {
-                Logger.Log("DeclineFriendship capability not found.", Helpers.LogLevel.Warning);
+                Logger.Warn("DeclineFriendship capability not found.");
                 return;
             }
             UriBuilder builder = new UriBuilder(declineFriendshipCap)
@@ -594,8 +593,7 @@ namespace OpenMetaverse
                 {
                     if (error != null)
                     {
-                        Logger.Log($"DeclineFriendship failed for {fromAgentID}. ({error.Message})",
-                            Helpers.LogLevel.Warning);
+                        Logger.Warn($"DeclineFriendship failed for {fromAgentID}. ({error.Message})");
                         return;
                     }
 
@@ -671,7 +669,7 @@ namespace OpenMetaverse
             {
                 if (e?.Packet == null)
                 {
-                    Logger.Log("TerminateFriendshipHandler: received null packet", Helpers.LogLevel.Warning, Client);
+                    Logger.Warn("TerminateFriendshipHandler: received null packet", Client);
                     return;
                 }
 
@@ -683,8 +681,7 @@ namespace OpenMetaverse
                 var itsOver = e.Packet as TerminateFriendshipPacket;
                 if (itsOver == null || itsOver.ExBlock == null)
                 {
-                    Logger.Log("TerminateFriendshipHandler: malformed TerminateFriendshipPacket",
-                        Helpers.LogLevel.Warning, Client);
+                    Logger.Warn("TerminateFriendshipHandler: malformed TerminateFriendshipPacket", Client);
                     return;
                 }
 
@@ -699,8 +696,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log($"Exception in TerminateFriendshipHandler: {ex.Message}", Helpers.LogLevel.Error, Client,
-                    ex);
+                Logger.Error($"Exception in TerminateFriendshipHandler: {ex.Message}", ex, Client);
             }
         }
 
@@ -710,7 +706,7 @@ namespace OpenMetaverse
             {
                 if (e?.Packet == null)
                 {
-                    Logger.Log("ChangeUserRightsHandler: received null packet", Helpers.LogLevel.Warning, Client);
+                    Logger.Warn("ChangeUserRightsHandler: received null packet", Client);
                     return;
                 }
 
@@ -722,8 +718,7 @@ namespace OpenMetaverse
                 var rights = e.Packet as ChangeUserRightsPacket;
                 if (rights == null || rights.Rights == null)
                 {
-                    Logger.Log("ChangeUserRightsHandler: malformed ChangeUserRightsPacket", Helpers.LogLevel.Warning,
-                        Client);
+                    Logger.Warn("ChangeUserRightsHandler: malformed ChangeUserRightsPacket", Client);
                     return;
                 }
 
@@ -754,7 +749,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log($"Exception in ChangeUserRightsHandler: {ex.Message}", Helpers.LogLevel.Error, Client, ex);
+                Logger.Error($"Exception in ChangeUserRightsHandler: {ex.Message}", ex, Client);
             }
         }
 
@@ -765,7 +760,7 @@ namespace OpenMetaverse
                 if (m_FriendFound == null) return;
                 if (e?.Packet == null)
                 {
-                    Logger.Log("OnFindAgentReplyHandler: received null packet", Helpers.LogLevel.Warning, Client);
+                    Logger.Warn("OnFindAgentReplyHandler: received null packet", Client);
                     return;
                 }
 
@@ -775,7 +770,7 @@ namespace OpenMetaverse
                 if (reply == null || reply.AgentBlock == null || reply.LocationBlock == null ||
                     reply.LocationBlock.Length == 0)
                 {
-                    Logger.Log("OnFindAgentReplyHandler: malformed FindAgentPacket", Helpers.LogLevel.Warning, Client);
+                    Logger.Warn("OnFindAgentReplyHandler: malformed FindAgentPacket", Client);
                     return;
                 }
 
@@ -792,7 +787,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log($"Exception in OnFindAgentReplyHandler: {ex.Message}", Helpers.LogLevel.Error, Client, ex);
+                Logger.Error($"Exception in OnFindAgentReplyHandler: {ex.Message}", ex, Client);
             }
         }
 
@@ -1100,7 +1095,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Exception while disposing FriendsManager: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                    Logger.Error("Exception while disposing FriendsManager: " + ex.Message, ex, Client);
                 }
             }
 
@@ -1279,3 +1274,4 @@ namespace OpenMetaverse
     }
     #endregion
 }
+

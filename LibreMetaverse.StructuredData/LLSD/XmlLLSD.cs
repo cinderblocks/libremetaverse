@@ -52,9 +52,15 @@ namespace OpenMetaverse.StructuredData
             bool match = LINDEN_LAB_LOVES_BAD_PI.All(t => xmlStream.ReadByte() == t);
             if (match)
             {
-                // read until the linebreak >
-                while (xmlStream.ReadByte() != '\n')
-                { }
+                // consume until the processing-instruction terminator "?>" (not a newline)
+                int prev = -1;
+                int curr;
+                while ((curr = xmlStream.ReadByte()) != -1)
+                {
+                    if (prev == '?' && curr == '>')
+                        break;
+                    prev = curr;
+                }
             } else {
                 xmlStream.Seek(0, SeekOrigin.Begin);
             }

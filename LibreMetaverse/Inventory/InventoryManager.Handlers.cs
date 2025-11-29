@@ -110,14 +110,14 @@ namespace OpenMetaverse
                         fromTask = false;
                         break;
                     case InstantMessageDialog.InventoryOffered:
-                        Logger.Log("Malformed inventory offer from agent", Helpers.LogLevel.Warning, Client);
+                        Logger.Warn("Malformed inventory offer from agent", Client);
                         return;
                     case InstantMessageDialog.TaskInventoryOffered when e.IM.BinaryBucket.Length == 1:
                         type = (AssetType)e.IM.BinaryBucket[0];
                         fromTask = true;
                         break;
                     case InstantMessageDialog.TaskInventoryOffered:
-                        Logger.Log("Malformed inventory offer from object", Helpers.LogLevel.Warning, Client);
+                        Logger.Warn("Malformed inventory offer from object", Client);
                         return;
                 }
 
@@ -195,7 +195,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                    Logger.Error(ex.Message, ex, Client);
                 }
             }
         }
@@ -211,7 +211,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception e)
                 {
-                    Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
+                    Logger.Error(e.Message, e, Client);
                 }
 
                 return;
@@ -225,7 +225,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception e)
                 {
-                    Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
+                    Logger.Error(e.Message, e, Client);
                 }
             }
 
@@ -274,7 +274,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception e)
                     {
-                        Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
+                        Logger.Error(e.Message, e, Client);
                     }
                 }
                 else
@@ -285,7 +285,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception e)
                     {
-                        Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
+                        Logger.Error(e.Message, e, Client);
                     }
                 }
             }
@@ -298,7 +298,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception e)
                 {
-                    Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
+                    Logger.Error(e.Message, e, Client);
                 }
             }
         }
@@ -341,7 +341,7 @@ namespace OpenMetaverse
                         }
                         catch (Exception e)
                         {
-                            Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
+                            Logger.Error(e.Message, e, Client);
                         }
                     }
                 }
@@ -358,7 +358,7 @@ namespace OpenMetaverse
                         }
                         catch (Exception e)
                         {
-                            Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
+                            Logger.Error(e.Message, e, Client);
                         }
                     }
                     else
@@ -370,7 +370,7 @@ namespace OpenMetaverse
                         }
                         catch (Exception e)
                         {
-                            Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
+                            Logger.Error(e.Message, e, Client);
                         }
                     }
                 }
@@ -382,7 +382,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception e)
                     {
-                        Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
+                        Logger.Error(e.Message, e, Client);
                     }
                 }
             }
@@ -404,7 +404,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception e)
                 {
-                    Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
+                    Logger.Error(e.Message, e, Client);
                 }
             }
         }
@@ -424,7 +424,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception e)
                 {
-                    Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
+                    Logger.Error(e.Message, e, Client);
                 }
 
                 return;
@@ -482,7 +482,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception e)
                     {
-                        Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
+                        Logger.Error(e.Message, e, Client);
                     }
                 }
                 else
@@ -494,7 +494,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception e)
                     {
-                        Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
+                        Logger.Error(e.Message, e, Client);
                     }
                 }
             }
@@ -507,7 +507,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception e)
                 {
-                    Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
+                    Logger.Error(e.Message, e, Client);
                 }
             }
         }
@@ -550,3 +550,4 @@ namespace OpenMetaverse
         }
     }
 }
+

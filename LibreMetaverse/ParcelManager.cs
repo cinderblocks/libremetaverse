@@ -35,7 +35,6 @@ using OpenMetaverse.Interfaces;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Messages.Linden;
 using System.Threading.Tasks;
-using LibreMetaverse;
 
 namespace OpenMetaverse
 {
@@ -1029,7 +1028,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Exception while disposing ParcelManager: " + ex.Message, Helpers.LogLevel.Warning, Client, ex);
+                    Logger.Warn("Exception while disposing ParcelManager: " + ex.Message, ex, Client);
                 }
 
                 try
@@ -1042,7 +1041,7 @@ namespace OpenMetaverse
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Exception disposing WaitForSimParcel: " + ex.Message, Helpers.LogLevel.Warning, Client, ex);
+                    Logger.Warn("Exception disposing WaitForSimParcel: " + ex.Message, ex, Client);
                 }
             }
 
@@ -1217,7 +1216,7 @@ namespace OpenMetaverse
         {
             if (simulator.DownloadingParcelMap)
             {
-                Logger.Log($"Already downloading parcels in {simulator.Name}", Helpers.LogLevel.Info, Client);
+                Logger.Info($"Already downloading parcels in {simulator.Name}", Client);
                 return;
             }
 
@@ -1248,7 +1247,7 @@ namespace OpenMetaverse
         {
             if (simulator.DownloadingParcelMap)
             {
-                Logger.Log($"Already downloading parcels in {simulator.Name}", Helpers.LogLevel.Info, Client);
+                Logger.Info($"Already downloading parcels in {simulator.Name}", Client);
                 return;
             }
 
@@ -1492,10 +1491,8 @@ namespace OpenMetaverse
             if (simulator.ParcelMap[(byte)position.Y / 4, (byte)position.X / 4] > 0)
                 return simulator.ParcelMap[(byte)position.Y / 4, (byte)position.X / 4];
             
-            Logger.Log(
-                $"ParcelMap returned an default/invalid value for location {(byte)position.Y / 4}/{(byte)position.X / 4} " + 
-                "Did you use RequestAllSimParcels() to populate the dictionaries?", 
-                Helpers.LogLevel.Warning);
+            Logger.Warn($"ParcelMap returned an default/invalid value for location {(byte)position.Y / 4}/{(byte)position.X / 4} " + 
+                "Did you use RequestAllSimParcels() to populate the dictionaries?");
             
             return 0;
         }
@@ -1564,8 +1561,7 @@ namespace OpenMetaverse
                 Parcel p;
                 if (!simulator.Parcels.TryGetValue(localID, out p))
                 {
-                    Logger.Log($"Can't find parcel {localID} in simulator {simulator}",
-                        Helpers.LogLevel.Warning, Client);
+                    Logger.Warn($"Can't find parcel {localID} in simulator {simulator}", Client);
                     return false;
                 }
 
@@ -1575,7 +1571,7 @@ namespace OpenMetaverse
 
             if (!simulator.TerrainHeightAtPoint(x, y, out height))
             {
-                Logger.Log("Land Patch not stored for location", Helpers.LogLevel.Warning, Client);
+                Logger.Warn("Land Patch not stored for location", Client);
                 return false;
             }
 
@@ -1765,7 +1761,7 @@ namespace OpenMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed to fetch remote parcel ID: ", Helpers.LogLevel.Debug, Client, ex);
+                Logger.Debug("Failed to fetch remote parcel ID: ", ex, Client);
             }
 
             return UUID.Zero;
@@ -1841,14 +1837,14 @@ namespace OpenMetaverse
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log("Failed fetching land resources", Helpers.LogLevel.Error, Client, ex);
+                            Logger.Error("Failed fetching land resources", ex, Client);
                             callback(false, null);
                         }
                     });
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed fetching land resources:", Helpers.LogLevel.Error, Client, ex);
+                Logger.Error("Failed fetching land resources:", ex, Client);
                 callback(false, null);
             }
         }
@@ -2011,8 +2007,7 @@ namespace OpenMetaverse
 
                 if (!set)
                 {
-                    Logger.Log("Received a parcel with a bitmap that did not map to any locations",
-                        Helpers.LogLevel.Warning);
+                    Logger.Warn("Received a parcel with a bitmap that did not map to any locations");
                 }
             }
 
@@ -2192,8 +2187,8 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("Parcel overlay with sequence ID of " + overlay.ParcelData.SequenceID +
-                    " received from " + simulator, Helpers.LogLevel.Warning, Client);
+                Logger.Warn("Parcel overlay with sequence ID of " + overlay.ParcelData.SequenceID +
+                    " received from " + simulator, Client);
             }
         }
 
@@ -2279,9 +2274,8 @@ namespace OpenMetaverse
                     }
                 }
 
-                Logger.Log($"Full simulator parcel information retrieved. Sent {count} parcel requests. " +
-                           $"Current outgoing queue: {Client.Network.OutboxCount}, Retry Count {timeouts}",
-                    Helpers.LogLevel.Info, Client);
+                Logger.Info($"Full simulator parcel information retrieved. Sent {count} parcel requests. " +
+                           $"Current outgoing queue: {Client.Network.OutboxCount}, Retry Count {timeouts}", Client);
             }
             finally
             {
@@ -2557,3 +2551,4 @@ namespace OpenMetaverse
     }
     #endregion
 }
+

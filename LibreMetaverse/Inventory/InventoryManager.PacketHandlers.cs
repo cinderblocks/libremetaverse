@@ -27,7 +27,6 @@
 
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.Packets;
 
@@ -58,6 +57,10 @@ namespace OpenMetaverse
             var packet = e.Packet;
 
             var reply = (InventoryDescendentsPacket)packet;
+
+            // Include folder and agent context for correlation across logs for this reply
+            using (Logger.BeginScope(new { FolderId = reply.AgentData.FolderID, OwnerId = reply.AgentData.OwnerID }))
+            {
 
             if (reply.AgentData.Descendents > 0)
             {
@@ -149,16 +152,14 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log($"No reference for FolderID {reply.AgentData.FolderID} or it is not a folder",
-                    Helpers.LogLevel.Error, Client);
+                Logger.Error($"No reference for FolderID {reply.AgentData.FolderID} or it is not a folder", Client);
                 return;
             }
 
             if (reply.AgentData.Version < parentFolder.Version)
             {
-                Logger.Log($"Received outdated InventoryDescendents packet for folder {parentFolder.Name}, " +
-                           $"this version = {reply.AgentData.Version}, latest version = {parentFolder.Version}",
-                    Helpers.LogLevel.Warning, Client);
+                Logger.Warn($"Received outdated InventoryDescendents packet for folder {parentFolder.Name}, " +
+                           $"this version = {reply.AgentData.Version}, latest version = {parentFolder.Version}", Client);
                 return;
             }
 
@@ -220,6 +221,7 @@ namespace OpenMetaverse
 
             // Callback for inventory folder contents being updated
             OnFolderUpdated(new FolderUpdatedEventArgs(parentFolder.UUID, true));
+            }
         }
 
         /// <summary>
@@ -237,93 +239,96 @@ namespace OpenMetaverse
 
             foreach (var dataBlock in reply.InventoryData)
             {
-                if (dataBlock.InvType == (sbyte)InventoryType.Folder)
+                using (Logger.BeginScope(new { CallbackId = dataBlock.CallbackID }))
                 {
-                    Logger.Log(
-                        "Received InventoryFolder in an UpdateCreateInventoryItem packet, this should not happen!",
-                        Helpers.LogLevel.Error, Client);
-                    continue;
-                }
-
-                var item = CreateInventoryItem((InventoryType)dataBlock.InvType, dataBlock.ItemID);
-                item.AssetType = (AssetType)dataBlock.Type;
-                item.AssetUUID = dataBlock.AssetID;
-                item.CreationDate = Utils.UnixTimeToDateTime(dataBlock.CreationDate);
-                item.CreatorID = dataBlock.CreatorID;
-                item.Description = Utils.BytesToString(dataBlock.Description);
-                item.Flags = dataBlock.Flags;
-                item.GroupID = dataBlock.GroupID;
-                item.GroupOwned = dataBlock.GroupOwned;
-                item.Name = Utils.BytesToString(dataBlock.Name);
-                item.OwnerID = dataBlock.OwnerID;
-                item.ParentUUID = dataBlock.FolderID;
-                item.Permissions = new Permissions(
-                    dataBlock.BaseMask,
-                    dataBlock.EveryoneMask,
-                    dataBlock.GroupMask,
-                    dataBlock.NextOwnerMask,
-                    dataBlock.OwnerMask);
-                item.SalePrice = dataBlock.SalePrice;
-                item.SaleType = (SaleType)dataBlock.SaleType;
-
-                /*
-                 * When attaching new objects, an UpdateCreateInventoryItem packet will be
-                 * returned by the server that has a FolderID/ParentUUID of zero. It is up
-                 * to the client to make sure that the item gets a good folder, otherwise
-                 * it will end up inaccessible in inventory.
-                 */
-                if (item.ParentUUID == UUID.Zero)
-                {
-                    // assign default folder for type
-                    item.ParentUUID = FindFolderForType(item.AssetType);
-
-                    Logger.Log(
-                        "Received an item through UpdateCreateInventoryItem with no parent folder, assigning to folder " +
-                        item.ParentUUID, Helpers.LogLevel.Info);
-
-                    // send update to the sim
-                    RequestUpdateItem(item);
-                }
-
-                // Update the local copy
-                _Store[item.UUID] = item;
-
-                // Look for an "item created" callback
-                if (_ItemCreatedCallbacks.TryGetValue(dataBlock.CallbackID, out var createdCallback))
-                {
-                    _ItemCreatedCallbacks.TryRemove(dataBlock.CallbackID, out _);
-
-                    try
+                    if (dataBlock.InvType == (sbyte)InventoryType.Folder)
                     {
-                        createdCallback(true, item);
+                        Logger.Error("Received InventoryFolder in an UpdateCreateInventoryItem packet, this should not happen!", Client);
+                        continue;
                     }
-                    catch (Exception ex)
-                    {
-                        Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
-                    }
-                }
 
-                // TODO: Is this callback even triggered when items are copied?
-                // Look for an "item copied" callback
-                if (_ItemCopiedCallbacks.TryGetValue(dataBlock.CallbackID, out var copyCallback))
-                {
-                    _ItemCopiedCallbacks.TryRemove(dataBlock.CallbackID, out _);
-
-                    try
+                    var item = CreateInventoryItem((InventoryType)dataBlock.InvType, dataBlock.ItemID);
+                    using (Logger.BeginScope(new { ItemId = item.UUID }))
                     {
-                        copyCallback(item);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
-                    }
-                }
+                        item.AssetType = (AssetType)dataBlock.Type;
+                        item.AssetUUID = dataBlock.AssetID;
+                        item.CreationDate = Utils.UnixTimeToDateTime(dataBlock.CreationDate);
+                        item.CreatorID = dataBlock.CreatorID;
+                        item.Description = Utils.BytesToString(dataBlock.Description);
+                        item.Flags = dataBlock.Flags;
+                        item.GroupID = dataBlock.GroupID;
+                        item.GroupOwned = dataBlock.GroupOwned;
+                        item.Name = Utils.BytesToString(dataBlock.Name);
+                        item.OwnerID = dataBlock.OwnerID;
+                        item.ParentUUID = dataBlock.FolderID;
+                        item.Permissions = new Permissions(
+                            dataBlock.BaseMask,
+                            dataBlock.EveryoneMask,
+                            dataBlock.GroupMask,
+                            dataBlock.NextOwnerMask,
+                            dataBlock.OwnerMask);
+                        item.SalePrice = dataBlock.SalePrice;
+                        item.SaleType = (SaleType)dataBlock.SaleType;
 
-                //This is triggered when an item is received from a task
-                if (m_TaskItemReceived != null)
-                {
-                    OnTaskItemReceived(new TaskItemReceivedEventArgs(item.UUID, dataBlock.FolderID,
-                        item.CreatorID, item.AssetUUID, item.InventoryType));
+                        /*
+                         * When attaching new objects, an UpdateCreateInventoryItem packet will be
+                         * returned by the server that has a FolderID/ParentUUID of zero. It is up
+                         * to the client to make sure that the item gets a good folder, otherwise
+                         * it will end up inaccessible in inventory.
+                         */
+                        if (item.ParentUUID == UUID.Zero)
+                        {
+                            // assign default folder for type
+                            item.ParentUUID = FindFolderForType(item.AssetType);
+
+                            Logger.Info($"Received an item through UpdateCreateInventoryItem with no parent folder, assigning to folder {item.ParentUUID}");
+
+                            // send update to the sim
+                            RequestUpdateItem(item);
+                        }
+
+                        // Update the local copy
+                        _Store[item.UUID] = item;
+
+                        // Look for an "item created" callback
+                        if (_ItemCreatedCallbacks.TryGetValue(dataBlock.CallbackID, out var createdCallback))
+                        {
+                            _ItemCreatedCallbacks.TryRemove(dataBlock.CallbackID, out _);
+
+                            try
+                            {
+                                Logger.Debug($"Invoking created callback for CallbackID={dataBlock.CallbackID}", Client);
+                                createdCallback(true, item);
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Error(ex.Message, ex, Client);
+                            }
+                        }
+
+                        // TODO: Is this callback even triggered when items are copied?
+                        // Look for an "item copied" callback
+                        if (_ItemCopiedCallbacks.TryGetValue(dataBlock.CallbackID, out var copyCallback))
+                        {
+                            _ItemCopiedCallbacks.TryRemove(dataBlock.CallbackID, out _);
+
+                            try
+                            {
+                                copyCallback(item);
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Error(ex.Message, ex, Client);
+                            }
+                        }
+
+                        //This is triggered when an item is received from a task
+                        if (m_TaskItemReceived != null)
+                        {
+                            OnTaskItemReceived(new TaskItemReceivedEventArgs(item.UUID, dataBlock.FolderID,
+                                item.CreatorID, item.AssetUUID, item.InventoryType));
+                        }
+                    }
                 }
             }
         }
@@ -342,10 +347,8 @@ namespace OpenMetaverse
                 // FIXME: Do something here
                 var newName = Utils.BytesToString(data.NewName);
 
-                Logger.Log(
-                    $"MoveInventoryItemHandler: Item {data.ItemID} is moving to Folder {data.FolderID} with new name \"{newName}\"." +
-                    " Someone write this function!",
-                    Helpers.LogLevel.Warning, Client);
+                Logger.Warn($"MoveInventoryItemHandler: Item {data.ItemID} is moving to Folder {data.FolderID} with new name \"{newName}\"." +
+                    " Someone write this function!", Client);
             }
         }
 
@@ -418,7 +421,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                        Logger.Error(ex.Message, ex, Client);
                     }
                 }
 
@@ -433,7 +436,7 @@ namespace OpenMetaverse
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                        Logger.Error(ex.Message, ex, Client);
                     }
                 }
             }
@@ -513,7 +516,7 @@ namespace OpenMetaverse
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                            Logger.Error(ex.Message, ex, Client);
                         }
                     }
 
@@ -528,7 +531,7 @@ namespace OpenMetaverse
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log(ex.Message, Helpers.LogLevel.Error, Client, ex);
+                            Logger.Error(ex.Message, ex, Client);
                         }
                     }
                 }
@@ -547,8 +550,7 @@ namespace OpenMetaverse
             {
                 if (dataBlock.InvType == (sbyte)InventoryType.Folder)
                 {
-                    Logger.Log("Received FetchInventoryReply for an inventory folder, this should not happen!",
-                        Helpers.LogLevel.Error, Client);
+                    Logger.Error("Received FetchInventoryReply for an inventory folder, this should not happen!", Client);
                     continue;
                 }
 
@@ -610,3 +612,4 @@ namespace OpenMetaverse
         }
     }
 }
+

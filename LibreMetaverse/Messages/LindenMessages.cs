@@ -1190,7 +1190,7 @@ namespace OpenMetaverse.Messages.Linden
             else if (map.ContainsKey("location"))
                 Request = new RemoteParcelRequestRequest();
             else
-                Logger.Log("Unable to deserialize RemoteParcelRequest: No message handler exists for method: " + map.AsString(), Helpers.LogLevel.Warning);
+                Logger.Warn("Unable to deserialize RemoteParcelRequest: No message handler exists for method: " + map.AsString());
 
             Request?.Deserialize(map);
         }
@@ -1990,7 +1990,7 @@ namespace OpenMetaverse.Messages.Linden
             else if (map.ContainsKey("state") && map["state"].AsString().Equals("complete"))
                 Request = new UploaderRequestComplete();
             else
-                Logger.Log("Unable to deserialize UploadBakedTexture: No message handler exists for state " + map["state"].AsString(), Helpers.LogLevel.Warning);
+                Logger.Warn("Unable to deserialize UploadBakedTexture: No message handler exists for state " + map["state"].AsString());
 
             Request?.Deserialize(map);
         }
@@ -2155,7 +2155,7 @@ namespace OpenMetaverse.Messages.Linden
             else if (map.ContainsKey("state") && map["state"].AsString().Equals("complete"))
                 Request = new UploaderRequestComplete();
             else
-                Logger.Log("Unable to deserialize UploadScriptTask: No message handler exists for state " + map["state"].AsString(), Helpers.LogLevel.Warning);
+                Logger.Warn("Unable to deserialize UploadScriptTask: No message handler exists for state " + map["state"].AsString());
 
             Request.Deserialize(map);
         }
@@ -2248,7 +2248,7 @@ namespace OpenMetaverse.Messages.Linden
             else if (map.ContainsKey("state") && map["state"].AsString().Equals("complete"))
                 Request = new UploaderRequestComplete();
             else
-                Logger.Log("Unable to deserialize UpdateGestureAgentInventory: No message handler exists: " + map.AsString(), Helpers.LogLevel.Warning);
+                Logger.Warn("Unable to deserialize UpdateGestureAgentInventory: No message handler exists: " + map.AsString());
 
             Request?.Deserialize(map);
         }
@@ -2355,7 +2355,7 @@ namespace OpenMetaverse.Messages.Linden
             else if (map.ContainsKey("state") && map["state"].AsString().Equals("complete"))
                 Request = new UploaderRequestComplete();
             else
-                Logger.Log("Unable to deserialize UpdateNotecardAgentInventory: No message handler exists for state " + map["state"].AsString(), Helpers.LogLevel.Warning);
+                Logger.Warn("Unable to deserialize UpdateNotecardAgentInventory: No message handler exists for state " + map["state"].AsString());
 
             Request?.Deserialize(map);
         }
@@ -2522,7 +2522,7 @@ namespace OpenMetaverse.Messages.Linden
             else if (map.ContainsKey("state") && map["state"].AsString().Equals("complete"))
                 Request = new UploaderRequestScriptComplete();
             else
-                Logger.Log("Unable to deserialize UpdateScriptTaskMessage: No message handler exists for state " + map["state"].AsString(), Helpers.LogLevel.Warning);
+                Logger.Warn("Unable to deserialize UpdateScriptTaskMessage: No message handler exists for state " + map["state"].AsString());
 
             Request?.Deserialize(map);
         }
@@ -2632,7 +2632,7 @@ namespace OpenMetaverse.Messages.Linden
             else if (map.ContainsKey("state") && map["state"].AsString().Equals("complete"))
                 Request = new UploaderRequestScriptComplete();
             else
-                Logger.Log("Unable to deserialize UpdateScriptAgent: No message handler exists for state " + map["state"].AsString(), Helpers.LogLevel.Warning);
+                Logger.Warn("Unable to deserialize UpdateScriptAgent: No message handler exists for state " + map["state"].AsString());
 
             Request?.Deserialize(map);
         }
@@ -2833,7 +2833,7 @@ namespace OpenMetaverse.Messages.Linden
             else if (map.ContainsKey("Flags"))
                 Request = new MapLayerRequestVariant();
             else
-                Logger.Log("Unable to deserialize MapLayerMessage: No message handler exists", Helpers.LogLevel.Warning);
+                Logger.Warn("Unable to deserialize MapLayerMessage: No message handler exists");
 
             Request?.Deserialize(map);
         }
@@ -2950,7 +2950,7 @@ namespace OpenMetaverse.Messages.Linden
             else if (map.ContainsKey("classified_id"))
                 Request = new SearchStatRequestRequest();
             else
-                Logger.Log("Unable to deserialize SearchStatRequest: No message handler exists for method " + map["method"].AsString(), Helpers.LogLevel.Warning);
+                Logger.Warn("Unable to deserialize SearchStatRequest: No message handler exists for method " + map["method"].AsString());
 
             Request.Deserialize(map);
         }
@@ -3154,7 +3154,7 @@ namespace OpenMetaverse.Messages.Linden
             else if (map.ContainsKey("method") && map["method"].AsString().Equals("accept invitation"))
                 Request = new ChatSessionAcceptInvitation();
             else
-                Logger.Log("Unable to deserialize ChatSessionRequest: No message handler exists for method " + map["method"].AsString(), Helpers.LogLevel.Warning);
+                Logger.Warn("Unable to deserialize ChatSessionRequest: No message handler exists for method " + map["method"].AsString());
 
             Request.Deserialize(map);
         }
@@ -3711,7 +3711,7 @@ namespace OpenMetaverse.Messages.Linden
             else if (map.ContainsKey("events"))
                 Messages = new EventQueueEvent();
             else
-                Logger.Log("Unable to deserialize EventQueueGetMessage: No message handler exists for event", Helpers.LogLevel.Warning);
+                Logger.Warn("Unable to deserialize EventQueueGetMessage: No message handler exists for event");
 
             Messages.Deserialize(map);
         }
@@ -4547,7 +4547,7 @@ namespace OpenMetaverse.Messages.Linden
             }
             catch (Exception ex)
             {
-                Logger.Log("Failed to decode RenderMaterials message:", Helpers.LogLevel.Warning, ex);
+                Logger.Warn("Failed to decode RenderMaterials message:", ex);
                 MaterialData = new OSDMap();
             }
         }
@@ -4622,7 +4622,7 @@ namespace OpenMetaverse.Messages.Linden
         public void Deserialize(OSDMap map)
         {
             if (map.Count != 1)
-                Logger.Log("GetObjectCostMessage returned values for more than one object! Function needs to be fixed for that!", Helpers.LogLevel.Error);                    
+                Logger.Error("GetObjectCostMessage returned values for more than one object! Function needs to be fixed for that!");                    
 
             foreach (string key in map.Keys)
             {
@@ -4967,7 +4967,7 @@ namespace OpenMetaverse.Messages.Linden
             else if (map.ContainsKey("object_media_version"))
                 Request = new ObjectMediaResponse();
             else
-                Logger.Log("Unable to deserialize ObjectMedia: No message handler exists for method: " + map.AsString(), Helpers.LogLevel.Warning);
+                Logger.Warn("Unable to deserialize ObjectMedia: No message handler exists for method: " + map.AsString());
 
             Request?.Deserialize(map);
         }
@@ -5783,3 +5783,4 @@ namespace OpenMetaverse.Messages.Linden
     }
     #endregion
 }
+

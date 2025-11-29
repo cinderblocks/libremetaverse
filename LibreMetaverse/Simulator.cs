@@ -33,6 +33,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
 using LibreMetaverse;
+using LibreMetaverse.Threading;
 using OpenMetaverse.Packets;
 
 namespace OpenMetaverse
@@ -286,7 +287,7 @@ namespace OpenMetaverse
             public int GetSentPings() => Interlocked.Add(ref _sentPings, 0);
 
             public void IncrementReceivedPongs() => Interlocked.Increment(ref _receivedPongs);
-            public void GetReceivedPongs() => Interlocked.Add(ref _receivedPongs, 0);
+            public int GetReceivedPongs() => Interlocked.Add(ref _receivedPongs, 0);
 
             public int GetAndIncrementLastPingID()
             {
@@ -433,7 +434,7 @@ namespace OpenMetaverse
         /// Flags indicating which protocols this region supports
         /// </summary>
         public RegionProtocols Protocols;
-       
+      
 
         /// <summary>The current sequence number for packets sent to this
         /// simulator. Must be Interlocked before modifying. Only
@@ -631,13 +632,13 @@ namespace OpenMetaverse
                         {
                             if (Client?.Network?.CurrentSim?.Caps != null)
                             {
-                                Logger.Log($"Event queue start requested (attempt {attempt + 1}/{maxAttempts}).", Helpers.LogLevel.Info, Client);
+                                Logger.Info($"Event queue start requested (attempt {attempt + 1}/{maxAttempts}).", Client);
                                 Client.Network.CurrentSim.Caps.EventQueue.Start();
                             }
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log("Failed to request EventQueue start: " + ex.Message, Helpers.LogLevel.Warning, Client, ex);
+                            Logger.Warn("Failed to request EventQueue start: " + ex.Message, ex, Client);
                         }
 
                         // Wait for the notification or timeout
@@ -699,12 +700,16 @@ namespace OpenMetaverse
                     {
                         try
                         {
-                            SendAcks();
-                            ResendUnacked();
+                            using (Logger.BeginClientScope(Client))
+                            using (Logger.BeginRegionScope(this))
+                            {
+                                SendAcks();
+                                ResendUnacked();
+                            }
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log("Error in Ack loop: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                            Logger.Error("Error in Ack loop: " + ex.Message, ex, Client);
                         }
 
                         await Task.Delay(Settings.NETWORK_TICK_INTERVAL, token).ConfigureAwait(false);
@@ -722,11 +727,15 @@ namespace OpenMetaverse
                     {
                         try
                         {
-                            StatsTimer_Elapsed(null);
+                            using (Logger.BeginClientScope(Client))
+                            using (Logger.BeginRegionScope(this))
+                            {
+                                StatsTimer_Elapsed(null);
+                            }
                         }
                         catch (Exception ex)
                         {
-                            Logger.Log("Error in Stats loop: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                            Logger.Error("Error in Stats loop: " + ex.Message, ex, Client);
                         }
 
                         await Task.Delay(1000, token).ConfigureAwait(false);
@@ -746,11 +755,15 @@ namespace OpenMetaverse
                         {
                             try
                             {
-                                PingTimer_Elapsed(null);
+                                using (Logger.BeginClientScope(Client))
+                                using (Logger.BeginRegionScope(this))
+                                {
+                                    PingTimer_Elapsed(null);
+                                }
                             }
                             catch (Exception ex)
                             {
-                                Logger.Log("Error in Ping loop: " + ex.Message, Helpers.LogLevel.Error, Client, ex);
+                                Logger.Error("Error in Ping loop: " + ex.Message, ex, Client);
                             }
 
                             await Task.Delay(Settings.PING_INTERVAL, token).ConfigureAwait(false);
@@ -763,6 +776,13 @@ namespace OpenMetaverse
 
         private void StopTimerTasks()
         {
+            // Backward-compatible synchronous wrapper for the async implementation
+            StopTimerTasksAsync().GetAwaiter().GetResult();
+        }
+
+        // Async variant that cancels timer token and waits for background tasks to finish with a timeout
+        private async Task StopTimerTasksAsync(int timeoutMs = 2000)
+        {
             if (_timerCts == null) return;
 
             try
@@ -771,15 +791,54 @@ namespace OpenMetaverse
             }
             catch (Exception) { }
 
-            try { _ackLoopTask?.Wait(1000); } catch { }
-            try { _statsLoopTask?.Wait(1000); } catch { }
-            try { _pingLoopTask?.Wait(1000); } catch { }
+            var tasksToWait = new List<Task>();
+            if (_ackLoopTask != null) tasksToWait.Add(_ackLoopTask);
+            if (_statsLoopTask != null) tasksToWait.Add(_statsLoopTask);
+            if (_pingLoopTask != null) tasksToWait.Add(_pingLoopTask);
+
+            if (tasksToWait.Count > 0)
+            {
+                try
+                {
+                    var all = Task.WhenAll(tasksToWait);
+                    var delay = Task.Delay(timeoutMs);
+
+                    var completed = await Task.WhenAny(all, delay).ConfigureAwait(false);
+                    if (completed != all)
+                    {
+                        Logger.Debug($"One or more Simulator timer tasks did not stop within {timeoutMs}ms for {this}", Client);
+                    }
+
+                    // Await all to observe exceptions if completed
+                    try
+                    {
+                        await all.ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error($"Exception while awaiting Simulator timer tasks: {ex}", ex, Client);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"Exception while waiting for Simulator timer tasks: {ex}", ex, Client);
+                }
+
+                // Observe and log any task exceptions to avoid unobserved exceptions
+                foreach (var t in tasksToWait)
+                {
+                    if (t.IsFaulted && t.Exception != null)
+                    {
+                        try { Logger.Error($"Simulator timer task faulted: {t.Exception}", t.Exception, Client); } catch { }
+                    }
+                }
+            }
 
             _ackLoopTask = null;
             _statsLoopTask = null;
             _pingLoopTask = null;
 
-            _timerCts.Dispose();
+            try { _timerCts.Dispose(); } catch { }
             _timerCts = null;
         }
 
@@ -845,27 +904,24 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Attempt to connect to this simulator
+        /// Attempt to connect to this simulator (async variant)
         /// </summary>
-        /// <param name="moveToSim">Whether to move our agent in to this sim or not</param>
-        /// <returns>True if the connection succeeded or  unknown, false if there
-        /// was a failure</returns>
-        public bool Connect(bool moveToSim)
+        public async Task<bool> ConnectAsync(bool moveToSim)
         {
             handshakeComplete = false;
 
             if (connected)
             {
-                UseCircuitCode(true);
+                await UseCircuitCodeAsync(true).ConfigureAwait(false);
                 if (moveToSim)
                 {
-                    Thread.Sleep(500);
+                    await Task.Delay(500).ConfigureAwait(false);
                     Client.Self.CompleteAgentMovement(this);
                 }
                 return true;
             }
 
-            Logger.Log($"Connecting to {this}", Helpers.LogLevel.Info, Client);
+            Logger.Info($"Connecting to {this}", Client);
 
             try
             {
@@ -876,21 +932,22 @@ namespace OpenMetaverse
                 connected = true;
 
                 // Initiate connection
-                UseCircuitCode(true);
+                await UseCircuitCodeAsync(true).ConfigureAwait(false);
 
                 Stats.SetConnectTime(Environment.TickCount);
 
                 // Move our agent in to the sim to complete the connection
                 if (moveToSim)
                 {
-                    Thread.Sleep(500);
+                    await Task.Delay(500).ConfigureAwait(false);
                     Client.Self.CompleteAgentMovement(this);
                 }
 
-                if (!ConnectedEvent.Wait(Client.Settings.LOGIN_TIMEOUT))
+                // Wait for handshake event asynchronously
+                bool signaled = await WaitHandleAsyncFactory.FromWaitHandle(ConnectedEvent.WaitHandle, TimeSpan.FromMilliseconds(Client.Settings.LOGIN_TIMEOUT)).ConfigureAwait(false);
+                if (!signaled)
                 {
-                    Logger.Log($"Giving up waiting for RegionHandshake for {this}",
-                        Helpers.LogLevel.Warning, Client);
+                    Logger.Warn($"Giving up waiting for RegionHandshake for {this}", Client);
                     //Remove the simulator from the list, not useful if we haven't received the RegionHandshake
                     lock (Client.Network.Simulators) {
                         Client.Network.Simulators.Remove(this);
@@ -910,17 +967,24 @@ namespace OpenMetaverse
             }
             catch (Exception e)
             {
-                Logger.Log(e.Message, Helpers.LogLevel.Error, Client, e);
+                Logger.Error(e.Message, e, Client);
             }
 
             return false;
         }
 
         /// <summary>
-        /// Initiates connection to the simulator
+        /// Backwards-compatible synchronous wrapper
         /// </summary>
-        /// <param name="waitForAck">Should we block until ack for this packet is received</param>
-        public void UseCircuitCode(bool waitForAck)
+        public bool Connect(bool moveToSim)
+        {
+            return ConnectAsync(moveToSim).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Initiates connection to the simulator (async variant)
+        /// </summary>
+        public async Task<bool> UseCircuitCodeAsync(bool waitForAck)
         {
             // Send the UseCircuitCode packet to initiate the connection
             UseCircuitCodePacket use = new UseCircuitCodePacket
@@ -937,16 +1001,40 @@ namespace OpenMetaverse
             {
                 GotUseCircuitCodeAck.Reset();
             }
-            
+
             // Send the initial packet out
             SendPacket(use);
-            
+
             if (waitForAck)
             {
-                if (!GotUseCircuitCodeAck.Wait(Client.Settings.LOGIN_TIMEOUT))
+                bool signaled = await WaitHandleAsyncFactory.FromWaitHandle(GotUseCircuitCodeAck.WaitHandle, TimeSpan.FromMilliseconds(Client.Settings.LOGIN_TIMEOUT)).ConfigureAwait(false);
+                if (!signaled)
                 {
-                    Logger.Log("Failed to get ACK for UseCircuitCode packet", Helpers.LogLevel.Error, Client);
+                    Logger.Error("Failed to get ACK for UseCircuitCode packet", Client);
                 }
+                return signaled;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Backwards-compatible synchronous wrapper
+        /// </summary>
+        public void UseCircuitCode(bool waitForAck)
+        {
+            // Prefer async implementation while preserving synchronous behavior
+            try
+            {
+                bool signaled = UseCircuitCodeAsync(waitForAck).GetAwaiter().GetResult();
+                if (waitForAck && !signaled)
+                {
+                    Logger.Error("Failed to get ACK for UseCircuitCode packet", Client);
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e.Message, e, Client);
             }
         }
 
@@ -956,7 +1044,7 @@ namespace OpenMetaverse
             {
                 if (Caps._SeedCapsURI == seedcaps && !changedSim) return;
 
-                Logger.Log("Unexpected change of seed capability", Helpers.LogLevel.Warning, Client);
+                Logger.Warn("Unexpected change of seed capability", Client);
                 Caps.Disconnect(true);
                 Caps = null;
             }
@@ -968,7 +1056,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Log("Setting up a sim without valid http capabilities", Helpers.LogLevel.Error, Client);
+                Logger.Error("Setting up a sim without valid http capabilities", Client);
             }
         }
 
@@ -1088,7 +1176,7 @@ namespace OpenMetaverse
         {
             // DEBUG: This can go away after we are sure nothing in the library is trying to do this
             if (packet.Header.AppendedAcks || (packet.Header.AckList != null && packet.Header.AckList.Length > 0))
-                Logger.Log("Attempting to send packet " + packet.Type + " with ACKs appended before serialization", Helpers.LogLevel.Error);
+                Logger.Error("Attempting to send packet " + packet.Type + " with ACKs appended before serialization");
 
             if (packet.HasVariableBlocks)
             {
@@ -1096,14 +1184,14 @@ namespace OpenMetaverse
                 try { datas = packet.ToBytesMultiple(); }
                 catch (NullReferenceException)
                 {
-                    Logger.Log("Failed to serialize " + packet.Type + " packet to one or more payloads due to a missing block or field. StackTrace: " +
-                        Environment.StackTrace, Helpers.LogLevel.Error);
+                    Logger.Error("Failed to serialize " + packet.Type + " packet to one or more payloads due to a missing block or field. StackTrace: " +
+                        Environment.StackTrace);
                     return;
                 }
                 int packetCount = datas.Length;
 
                 if (packetCount > 1)
-                    Logger.DebugLog("Split " + packet.Type + " packet into " + packetCount + " packets");
+                    Logger.Debug("Split " + packet.Type + " packet into " + packetCount + " packets");
 
                 for (int i = 0; i < packetCount; i++)
                 {
@@ -1172,57 +1260,61 @@ namespace OpenMetaverse
 
         internal void SendPacketFinal(NetworkManager.OutgoingPacket outgoingPacket)
         {
-            UDPPacketBuffer buffer = outgoingPacket.Buffer;
-            byte flags = buffer.Data[0];
-            bool isResend = (flags & Helpers.MSG_RESENT) != 0;
-            bool isReliable = (flags & Helpers.MSG_RELIABLE) != 0;
-
-            // Keep track of when this packet was sent out (right now)
-            outgoingPacket.TickCount = Environment.TickCount;
-
-            #region ACK Appending
-
-            int dataLength = buffer.DataLength;
-
-            // Keep appending ACKs until there is no room left in the packet or there are
-            // no more ACKs to append
-            uint ackCount = 0;
-            uint ack;
-            while (dataLength + 5 < Packet.MTU && PendingAcks.TryDequeue(out ack))
+            using (Logger.BeginClientScope(Client))
+            using (Logger.BeginRegionScope(this))
             {
-                Utils.UIntToBytesBig(ack, buffer.Data, dataLength);
-                dataLength += 4;
-                ++ackCount;
-            }
+                UDPPacketBuffer buffer = outgoingPacket.Buffer;
+                byte flags = buffer.Data[0];
+                bool isResend = (flags & Helpers.MSG_RESENT) != 0;
+                bool isReliable = (flags & Helpers.MSG_RELIABLE) != 0;
 
-            if (ackCount > 0)
-            {
-                // Set the last byte of the packet equal to the number of appended ACKs
-                buffer.Data[dataLength++] = (byte)ackCount;
-                // Set the appended ACKs flag on this packet
-                buffer.Data[0] |= Helpers.MSG_APPENDED_ACKS;
-            }
+                // Keep track of when this packet was sent out (right now)
+                outgoingPacket.TickCount = Environment.TickCount;
 
-            buffer.DataLength = dataLength;
+                #region ACK Appending
 
-            #endregion ACK Appending
+                int dataLength = buffer.DataLength;
 
-            if (!isResend)
-            {
-                // Not a resend, assign a new sequence number
-                uint sequenceNumber = (uint)Interlocked.Increment(ref Sequence);
-                Utils.UIntToBytesBig(sequenceNumber, buffer.Data, 1);
-                outgoingPacket.SequenceNumber = sequenceNumber;
-
-                if (isReliable)
+                // Keep appending ACKs until there is no room left in the packet or there are
+                // no more ACKs to append
+                uint ackCount = 0;
+                uint ack;
+                while (dataLength + 5 < Packet.MTU && PendingAcks.TryDequeue(out ack))
                 {
-                    // Add this packet to the list of ACK responses we are waiting on from the server
-                    lock (NeedAck) NeedAck[sequenceNumber] = outgoingPacket;
+                    Utils.UIntToBytesBig(ack, buffer.Data, dataLength);
+                    dataLength += 4;
+                    ++ackCount;
                 }
-            }
 
-            // Put the UDP payload on the wire
-            AsyncBeginSend(buffer);
+                if (ackCount > 0)
+                {
+                    // Set the last byte of the packet equal to the number of appended ACKs
+                    buffer.Data[dataLength++] = (byte)ackCount;
+                    // Set the appended ACKs flag on this packet
+                    buffer.Data[0] |= Helpers.MSG_APPENDED_ACKS;
+                }
+
+                buffer.DataLength = dataLength;
+
+                #endregion ACK Appending
+
+                if (!isResend)
+                {
+                    // Not a resend, assign a new sequence number
+                    uint sequenceNumber = (uint)Interlocked.Increment(ref Sequence);
+                    Utils.UIntToBytesBig(sequenceNumber, buffer.Data, 1);
+                    outgoingPacket.SequenceNumber = sequenceNumber;
+
+                    if (isReliable)
+                    {
+                        // Add this packet to the list of ACK responses we are waiting on from the server
+                        lock (NeedAck) NeedAck[sequenceNumber] = outgoingPacket;
+                    }
+                }
+
+                // Put the UDP payload on the wire
+                AsyncBeginSend(buffer);
+            }
         }
 
         /// <summary>
@@ -1318,140 +1410,141 @@ namespace OpenMetaverse
 
         protected override void PacketReceived(UDPPacketBuffer buffer)
         {
-            Packet packet = null;
-
-            // Check if this packet came from the server we expected it to come from
-            if (!remoteEndPoint.Address.Equals(((IPEndPoint)buffer.RemoteEndPoint).Address))
+            using (Logger.BeginClientScope(Client))
+            using (Logger.BeginRegionScope(this))
             {
-                Logger.Log($"Received {buffer.DataLength} bytes of data from unrecognized source {(IPEndPoint)buffer.RemoteEndPoint}",
-                    Helpers.LogLevel.Warning, Client);
-                return;
-            }
+                Packet packet = null;
 
-            // Update the disconnect flag so this sim doesn't time out
-            DisconnectCandidate = false;
-
-            #region Packet Decoding
-
-            int packetEnd = buffer.DataLength - 1;
-
-            try
-            {
-                packet = Packet.BuildPacket(buffer.Data, ref packetEnd,
-                    // Only allocate a buffer for zerodecoding if the packet is zerocoded
-                    ((buffer.Data[0] & Helpers.MSG_ZEROCODED) != 0) ? new byte[8192] : null);
-            }
-            catch (MalformedDataException)
-            {
-                Logger.Log(
-                    $"Malformed data, cannot parse packet:\n{Utils.BytesToHexString(buffer.Data, buffer.DataLength, null)}", Helpers.LogLevel.Error);
-            }
-
-            // Fail-safe check
-            if (packet == null)
-            {
-                Logger.Log("Couldn't build a message from the incoming data", Helpers.LogLevel.Warning, Client);
-                return;
-            }
-
-            Stats.AddRecvBytes(buffer.DataLength);
-            Stats.IncrementRecvPackets();
-
-            #endregion Packet Decoding
-
-            if (packet.Header.Resent)
-                Stats.IncrementReceivedResends();
-
-            #region ACK Receiving
-
-            // Handle appended ACKs
-            if (packet.Header.AppendedAcks && packet.Header.AckList != null)
-            {
-                lock (NeedAck)
+                // Check if this packet came from the server we expected it to come from
+                if (!remoteEndPoint.Address.Equals(((IPEndPoint)buffer.RemoteEndPoint).Address))
                 {
-                    foreach (var t in packet.Header.AckList)
-                    {
-                        if (NeedAck.ContainsKey(t) && NeedAck[t].Type == PacketType.UseCircuitCode)
-                        {
-                            GotUseCircuitCodeAck.Set();
-                        }
-                        NeedAck.Remove(t);
-                    }
-                }
-            }
-
-            // Handle PacketAck packets
-            if (packet.Type == PacketType.PacketAck)
-            {
-                PacketAckPacket ackPacket = (PacketAckPacket)packet;
-
-                lock (NeedAck)
-                {
-                    foreach (var t in ackPacket.Packets)
-                    {
-                        if (NeedAck.ContainsKey(t.ID) && NeedAck[t.ID].Type == PacketType.UseCircuitCode)
-                        {
-                            GotUseCircuitCodeAck.Set();
-                        }
-                        NeedAck.Remove(t.ID);
-                    }
-                }
-            }
-
-            #endregion ACK Receiving
-
-            if (packet.Header.Reliable)
-            {
-                #region ACK Sending
-
-                // Add this packet to the list of ACKs that need to be sent out
-                var sequence = packet.Header.Sequence;
-                PendingAcks.Enqueue(sequence);
-
-                // Send out ACKs if we have a lot of them
-                if (PendingAcks.Count >= Client.Settings.MAX_PENDING_ACKS)
-                    SendAcks();
-
-                #endregion ACK Sending
-
-                // Check the archive of received packet IDs to see whether we already received this packet
-                if (!PacketArchive.TryEnqueue(packet.Header.Sequence))
-                {
-                    if (packet.Header.Resent)
-                        Logger.DebugLog(
-                            string.Format(
-                                "Received a resend of already processed packet #{0}, type: {1} from {2}", 
-                                packet.Header.Sequence, packet.Type, Name));
-                    else
-                        Logger.Log(
-                            string.Format(
-                                "Received a duplicate (not marked as resend) of packet #{0}, type: {1} for {2} from {3}", 
-                                packet.Header.Sequence, packet.Type, Client.Self.Name, Name),
-                            Helpers.LogLevel.Warning);
-
-                    // Avoid firing a callback twice for the same packet
+                    Logger.Warn($"Received {buffer.DataLength} bytes of data from unrecognized source {(IPEndPoint)buffer.RemoteEndPoint}", Client);
                     return;
                 }
+
+                // Update the disconnect flag so this sim doesn't time out
+                DisconnectCandidate = false;
+
+                #region Packet Decoding
+
+                int packetEnd = buffer.DataLength - 1;
+
+                try
+                {
+                    packet = Packet.BuildPacket(buffer.Data, ref packetEnd,
+                        // Only allocate a buffer for zerodecoding if the packet is zerocoded
+                        ((buffer.Data[0] & Helpers.MSG_ZEROCODED) != 0) ? new byte[8192] : null);
+                }
+                catch (MalformedDataException)
+                {
+                    Logger.Error($"Malformed data, cannot parse packet:\n{Utils.BytesToHexString(buffer.Data, buffer.DataLength, null)}");
+                }
+
+                // Fail-safe check
+                if (packet == null)
+                {
+                    Logger.Warn("Couldn't build a message from the incoming data", Client);
+                    return;
+                }
+
+                Stats.AddRecvBytes(buffer.DataLength);
+                Stats.IncrementRecvPackets();
+
+                #endregion Packet Decoding
+
+                if (packet.Header.Resent)
+                    Stats.IncrementReceivedResends();
+
+                #region ACK Receiving
+
+                // Handle appended ACKs
+                if (packet.Header.AppendedAcks && packet.Header.AckList != null)
+                {
+                    lock (NeedAck)
+                    {
+                        foreach (var t in packet.Header.AckList)
+                        {
+                            if (NeedAck.ContainsKey(t) && NeedAck[t].Type == PacketType.UseCircuitCode)
+                            {
+                                GotUseCircuitCodeAck.Set();
+                            }
+                            NeedAck.Remove(t);
+                        }
+                    }
+                }
+
+                // Handle PacketAck packets
+                if (packet.Type == PacketType.PacketAck)
+                {
+                    PacketAckPacket ackPacket = (PacketAckPacket)packet;
+
+                    lock (NeedAck)
+                    {
+                        foreach (var t in ackPacket.Packets)
+                        {
+                            if (NeedAck.ContainsKey(t.ID) && NeedAck[t.ID].Type == PacketType.UseCircuitCode)
+                            {
+                                GotUseCircuitCodeAck.Set();
+                            }
+                            NeedAck.Remove(t.ID);
+                        }
+                    }
+                }
+
+                #endregion ACK Receiving
+
+                if (packet.Header.Reliable)
+                {
+                    #region ACK Sending
+
+                    // Add this packet to the list of ACKs that need to be sent out
+                    var sequence = packet.Header.Sequence;
+                    PendingAcks.Enqueue(sequence);
+
+                    // Send out ACKs if we have a lot of them
+                    if (PendingAcks.Count >= Client.Settings.MAX_PENDING_ACKS)
+                        SendAcks();
+
+                    #endregion ACK Sending
+
+                    // Check the archive of received packet IDs to see whether we already received this packet
+                    if (!PacketArchive.TryEnqueue(packet.Header.Sequence))
+                    {
+                        if (packet.Header.Resent)
+                            Logger.Debug(
+                                string.Format(
+                                    "Received a resend of already processed packet #{0}, type: {1} from {2}", 
+                                    packet.Header.Sequence, packet.Type, Name));
+                        else
+                            Logger.Warn(
+                                string.Format(
+                                    "Received a duplicate (not marked as resend) of packet #{0}, type: {1} for {2} from {3}", 
+                                    packet.Header.Sequence, packet.Type, Client.Self.Name, Name));
+
+                        // Avoid firing a callback twice for the same packet
+                        return;
+                    }
+                }
+
+                #region Inbox Insertion
+
+                var incomingPacket = new NetworkManager.IncomingPacket
+                {
+                    Simulator = this,
+                    Packet = packet
+                };
+
+                Network.EnqueueIncoming(incomingPacket);
+
+                #endregion Inbox Insertion
+
+                #region Stats Tracking
+                if (Client.Settings.TRACK_UTILIZATION)
+                {
+                    Client.Stats.Update(packet.Type.ToString(), OpenMetaverse.Stats.Type.Packet, 0, packet.Length);
+                }
+                #endregion
             }
-
-            #region Inbox Insertion
-
-            var incomingPacket = new NetworkManager.IncomingPacket
-            {
-                Simulator = this,
-                Packet = packet
-            };
-
-            Network.EnqueueIncoming(incomingPacket);
-
-            #endregion Inbox Insertion
-
-            #region Stats Tracking
-            if (Client.Settings.TRACK_UTILIZATION)
-            {
-                Client.Stats.Update(packet.Type.ToString(), OpenMetaverse.Stats.Type.Packet, 0, packet.Length);
-            }
-            #endregion
         }
         
         protected override void PacketSent(UDPPacketBuffer buffer, int bytesSent)
@@ -1524,7 +1617,7 @@ namespace OpenMetaverse
                 {
                     if (Client.Settings.LOG_RESENDS)
                     {
-                        Logger.DebugLog(string.Format("Resending {2} packet #{0}, {1}ms have passed",
+                        Logger.Debug(string.Format("Resending {2} packet #{0}, {1}ms have passed",
                             outgoing.SequenceNumber, now - outgoing.TickCount, outgoing.Type), Client);
                     }
 
@@ -1543,7 +1636,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    Logger.DebugLog(string.Format("Dropping packet #{0} after {1} failed attempts",
+                    Logger.Debug(string.Format("Dropping packet #{0} after {1} failed attempts",
                         outgoing.SequenceNumber, outgoing.ResendCount));
 
                     lock (NeedAck) NeedAck.Remove(outgoing.SequenceNumber);
@@ -1578,7 +1671,7 @@ namespace OpenMetaverse
                 Stats.SetOutgoingBPS((int)(sent - old_out) / Client.Settings.STATS_QUEUE_SIZE);
                 //Client.Log("Incoming: " + IncomingBPS + " Out: " + OutgoingBPS +
                 //    " Lag: " + LastLag + " Pings: " + ReceivedPongs +
-                //    "/" + SentPings, Helpers.LogLevel.Debug); 
+                //    "/" + SentPings, LogLevel.Debug); 
             }
         }
 
@@ -1628,48 +1721,85 @@ namespace OpenMetaverse
 
     public class SimulatorDataPool
     {
-        private static Timer InactiveSimReaper;
+        private static CancellationTokenSource InactiveSimReaperCts;
+        private static Task InactiveSimReaperTask;
 
-        private static void RemoveOldSims(object state)
+        private static async Task InactiveSimReaperLoop(CancellationToken token)
         {
-            lock (SimulatorDataPools)
+            try
             {
-                int simTimeout = Settings.SIMULATOR_POOL_TIMEOUT;
-                var reap = (from pool in SimulatorDataPools.Values
-                    where pool.InactiveSince != DateTime.MaxValue
-                          && pool.InactiveSince.AddMilliseconds(simTimeout) < DateTime.Now
-                    select pool.Handle).ToList();
-                foreach (var hndl in reap)
+                while (!token.IsCancellationRequested)
                 {
-                    SimulatorDataPools.Remove(hndl);
+                    try
+                    {
+                        lock (SimulatorDataPools)
+                        {
+                            int simTimeout = Settings.SIMULATOR_POOL_TIMEOUT;
+                            var reap = (from pool in SimulatorDataPools.Values
+                                        where pool.InactiveSince != DateTime.MaxValue
+                                              && pool.InactiveSince.AddMilliseconds(simTimeout) < DateTime.Now
+                                        select pool.Handle).ToList();
+                            foreach (var hndl in reap)
+                            {
+                                SimulatorDataPools.Remove(hndl);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        try { Logger.Error($"InactiveSimReaperLoop exception", ex); } catch { }
+                    }
+
+                    await Task.Delay(TimeSpan.FromMinutes(3), token).ConfigureAwait(false);
                 }
+            }
+            catch (TaskCanceledException) { }
+            catch (Exception ex)
+            {
+                try { Logger.Error($"InactiveSimReaperLoop fatal exception", ex); } catch { }
             }
         }
 
-        public static void SimulatorAdd(Simulator sim)
-        {
+         public static void SimulatorAdd(Simulator sim)
+         {
             lock (SimulatorDataPools)
             {
-                if (InactiveSimReaper == null)
+                if (InactiveSimReaperCts == null)
                 {
-                    InactiveSimReaper = new Timer(RemoveOldSims, null, TimeSpan.FromMinutes(3), TimeSpan.FromMinutes(3));
+                    InactiveSimReaperCts = new CancellationTokenSource();
+                    InactiveSimReaperTask = Task.Run(() => InactiveSimReaperLoop(InactiveSimReaperCts.Token));
                 }
                 var pool = GetSimulatorData(sim.Handle);
                 if (pool.ActiveClients < 1) pool.ActiveClients = 1; else pool.ActiveClients++;
                 pool.InactiveSince = DateTime.MaxValue;
             }
-        }
-        public static void SimulatorRelease(Simulator sim)
+         }
+         public static void SimulatorRelease(Simulator sim)
+         {
+             var hndl = sim.Handle;
+             lock (SimulatorDataPools)
+             {
+                 SimulatorDataPool dataPool = GetSimulatorData(hndl);
+                 dataPool.ActiveClients--;
+                 if (dataPool.ActiveClients <= 0)
+                 {
+                     dataPool.InactiveSince = DateTime.Now;
+                 }
+             }
+         }
+        
+        // Optional: allow explicit shutdown of the reaper (not currently called)
+        public static void ShutdownReaper()
         {
-            var hndl = sim.Handle;
             lock (SimulatorDataPools)
             {
-                SimulatorDataPool dataPool = GetSimulatorData(hndl);
-                dataPool.ActiveClients--;
-                if (dataPool.ActiveClients <= 0)
+                try
                 {
-                    dataPool.InactiveSince = DateTime.Now;
+                    InactiveSimReaperCts?.Cancel();
                 }
+                catch { }
+                InactiveSimReaperCts = null;
+                InactiveSimReaperTask = null;
             }
         }
 
@@ -1756,3 +1886,4 @@ namespace OpenMetaverse
         }
     }
 }
+

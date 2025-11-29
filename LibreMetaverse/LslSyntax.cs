@@ -107,11 +107,11 @@ namespace LibreMetaverse
             }
             catch (FileNotFoundException)
             {
-                Logger.Log($"Failed to find {keywordFile}.", Helpers.LogLevel.Warning);
+                Logger.Warn($"Failed to find {keywordFile}.");
             }
             catch (IOException e)
             {
-                Logger.Log($"Failed to read {keywordFile}: {e.Message}", Helpers.LogLevel.Warning);
+                Logger.Warn($"Failed to read {keywordFile}: {e.Message}");
             }
         }
 
@@ -145,24 +145,20 @@ namespace LibreMetaverse
                                 {
                                     if (error != null)
                                     {
-                                        Logger.Log($"Failed to retrieve syntax file. Error: {error.Message}",
-                                            Helpers.LogLevel.Warning, _client);
+                                        Logger.Warn($"Failed to retrieve syntax file. Error: {error.Message}", _client);
                                         return;
                                     }
 
                                     if (!response.IsSuccessStatusCode)
                                     {
-                                        Logger.Log(
-                                            $"Failed to retrieve syntax file. Status: {response.StatusCode} {response.ReasonPhrase}",
-                                            Helpers.LogLevel.Warning, _client);
+                                        Logger.Warn($"Failed to retrieve syntax file. Status: {response.StatusCode} {response.ReasonPhrase}", _client);
                                         return;
                                     }
 
                                     OSD features = OSDParser.Deserialize(data);
                                     if (features.Type != OSDType.Map)
                                     {
-                                        Logger.Log("Invalid format for syntax file. Root element is not a map.",
-                                            Helpers.LogLevel.Warning);
+                                        Logger.Warn("Invalid format for syntax file. Root element is not a map.");
                                         return;
                                     }
 
@@ -194,11 +190,11 @@ namespace LibreMetaverse
             }
             catch (FileNotFoundException)
             {
-                Logger.Log($"Failed to find {keywordFile}.", Helpers.LogLevel.Warning);
+                Logger.Warn($"Failed to find {keywordFile}.");
             }
             catch (IOException e)
             {
-                Logger.Log($"Failed to read {keywordFile}: {e.Message}", Helpers.LogLevel.Warning);
+                Logger.Warn($"Failed to read {keywordFile}: {e.Message}");
             }
 
             _client.Network.SimChanged += Network_OnSimChanged;
@@ -222,19 +218,18 @@ namespace LibreMetaverse
             {
                 if (error != null)
                 {
-                    Logger.Log($"Failed to retrieve syntax file. Error: {error.Message}", Helpers.LogLevel.Warning, _client);
+                    Logger.Warn($"Failed to retrieve syntax file. Error: {error.Message}", _client);
                     return;
                 }
                 if (!response.IsSuccessStatusCode)
                 {
-                    Logger.Log($"Failed to retrieve syntax file. Status: {response.StatusCode} {response.ReasonPhrase}",
-                        Helpers.LogLevel.Warning, _client);
+                    Logger.Warn($"Failed to retrieve syntax file. Status: {response.StatusCode} {response.ReasonPhrase}", _client);
                     return;
                 }
                 OSD features = OSDParser.Deserialize(data);
                 if (features.Type != OSDType.Map)
                 {
-                    Logger.Log("Invalid format for syntax file. Root element is not a map.", Helpers.LogLevel.Warning);
+                    Logger.Warn("Invalid format for syntax file. Root element is not a map.");
                     return;
                 }
                 Parse((OSDMap)features);
@@ -256,7 +251,7 @@ namespace LibreMetaverse
                 var deserialized = OSDParser.DeserializeLLSDXml(reader);
                 if (deserialized.Type != OSDType.Map)
                 {
-                    Logger.Log("Invalid format for syntax file. Root element is not a map.", Helpers.LogLevel.Warning);
+                    Logger.Warn("Invalid format for syntax file. Root element is not a map.");
                     return;
                 }
                 Parse((OSDMap)deserialized);
@@ -267,13 +262,11 @@ namespace LibreMetaverse
         {
             if (!map.TryGetValue(VERSION_KEY, out var version))
             {
-                Logger.Log("Syntax file does not contain a version key. Contents may not parse correctly.", 
-                    Helpers.LogLevel.Warning);
+                Logger.Warn("Syntax file does not contain a version key. Contents may not parse correctly.");
             } 
             else if (version.AsInteger() != 2)
             {
-                Logger.Log($"Syntax file version {version.AsInteger()} is incompatible. Contents may not parse correctly.",
-                    Helpers.LogLevel.Warning);
+                Logger.Warn($"Syntax file version {version.AsInteger()} is incompatible. Contents may not parse correctly.");
             }
 
             int tokens = 0, added = 0;
@@ -343,9 +336,9 @@ namespace LibreMetaverse
             }
             catch (Exception e)
             {
-                Logger.Log($"Syntax parser exception: {e.Message}", Helpers.LogLevel.Warning);
+                Logger.Warn($"Syntax parser exception: {e.Message}");
             }
-            Logger.Log($"Parsed Syntax file, added {added}/{tokens} tokens.", Helpers.LogLevel.Debug);
+            Logger.Debug($"Parsed Syntax file, added {added}/{tokens} tokens.");
             lock(_keywords) { _keywords = keywords; }
             OnSyntaxChanged();
         }

@@ -27,6 +27,7 @@
 
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
 
@@ -34,14 +35,11 @@ namespace PacketDump
 {
     internal class PacketDump
 	{
-        private static bool LoginSuccess = false;
-        private static AutoResetEvent LoginEvent = new AutoResetEvent(false);
-
 		/// <summary>
 		/// The main entry point for the application.
 		/// </summary>
 		[STAThread]
-        private static void Main(string[] args)
+        private static async Task Main(string[] args)
 		{
             if (args.Length != 4)
 			{
@@ -68,16 +66,25 @@ namespace PacketDump
             client.Network.LoginProgress += LoginHandler;
             client.Network.Disconnected += DisconnectHandler;
 
-            // Start the login process
-            client.Network.BeginLogin(client.Network.DefaultLoginParams(args[0], args[1], args[2], "PacketDump", "1.0.0"));
+            // Start the login process using the async API with a timeout
+            var loginParams = client.Network.DefaultLoginParams(args[0], args[1], args[2], "PacketDump", "1.0.0");
 
-            // Wait until LoginEvent is set in the LoginHandler callback, or we time out
-            if (LoginEvent.WaitOne(TimeSpan.FromSeconds(20), false))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
             {
-                if (LoginSuccess)
+                bool success;
+                try
                 {
-                    // Network.LoginMessage is set after a successful login
-                    Logger.Log("Message of the day: " + client.Network.LoginMessage, Helpers.LogLevel.Info);
+                    success = await client.Network.LoginAsync(loginParams, cts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    Logger.Error("Login timed out");
+                    return;
+                }
+
+                if (success)
+                {
+                    Logger.Info("Message of the day: " + client.Network.LoginMessage);
 
                     // Determine how long to run for
                     var start = Environment.TickCount;
@@ -88,7 +95,7 @@ namespace PacketDump
                     // thread until we run out of time or the program is closed
                     while (true)
                     {
-                        System.Threading.Thread.Sleep(100);
+                        await Task.Delay(100).ConfigureAwait(false);
 
                         if (!forever && Environment.TickCount - start > milliseconds)
                             break;
@@ -99,27 +106,20 @@ namespace PacketDump
                 }
                 else
                 {
-                    Logger.Log("Login failed: " + client.Network.LoginMessage, Helpers.LogLevel.Error);
+                    Logger.Error("Login failed: " + client.Network.LoginMessage);
                 }
-            }
-            else
-            {
-                Logger.Log("Login timed out", Helpers.LogLevel.Error);
             }
 		}
 
         private static void LoginHandler(object sender, LoginProgressEventArgs e)
         {
-            Logger.Log($"Login: {e.Status} ({e.Message})", Helpers.LogLevel.Info);
+            Logger.Info($"Login: {e.Status} ({e.Message})");
 
             switch (e.Status)
             {
                 case LoginStatus.Failed:
-                    LoginEvent.Set();
                     break;
                 case LoginStatus.Success:
-                    LoginSuccess = true;
-                    LoginEvent.Set();
                     break;
             }
         }
@@ -138,7 +138,8 @@ namespace PacketDump
 
         public static void DefaultHandler(object sender, PacketReceivedEventArgs e)
         {
-            Logger.Log(e.Packet.ToString(), Helpers.LogLevel.Info);
+            Logger.Info(e.Packet.ToString());
         }
 	}
 }
+
