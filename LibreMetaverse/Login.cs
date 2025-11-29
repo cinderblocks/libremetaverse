@@ -628,12 +628,13 @@ namespace OpenMetaverse
         /// message will be returned</summary>
         public string LoginMessage { get; private set; } = string.Empty;
 
-        /// <summary>Maximum number of groups an agent can belong to, -1 for unlimited</summary>
-        public int MaxAgentGroups = -1;
-        /// <summary>Server side baking service URL</summary>
-        public string AgentAppearanceServiceURL;
         /// <summary>Parsed login response data</summary>
         public LoginResponseData LoginResponseData;
+
+        /// <summary>Maximum number of groups an agent can belong to, -1 for unlimited</summary>
+        public int MaxAgentGroups => LoginResponseData?.MaxAgentGroups ?? -1;
+        /// <summary>Server side baking service URL</summary>
+        public string AgentAppearanceServiceURL => LoginResponseData?.AgentAppearanceServiceURL;
 
         #endregion Public Members
 
@@ -758,10 +759,10 @@ namespace OpenMetaverse
             }
 
             // These parameters are stored in NetworkManager, so instead of registering
-            // another callback for them we just set the values here
+            // another callback for them, we set the values here
             Client.Network.CircuitCode = (uint)circuitCode;
             LoginSeedCapability = new Uri(seedcap);
-            
+
             UpdateLoginStatus(LoginStatus.ConnectingToSim, "Connecting to simulator...");
 
             var handle = Utils.UIntsToLong(regionX, regionY);
@@ -1260,6 +1261,10 @@ namespace OpenMetaverse
                 var data = new LoginResponseData();
                 data.Parse(resMap);
 
+                // Store parsed login response on the NetworkManager so other
+                // properties (e.g. AgentAppearanceServiceURL) can read it after login
+                LoginResponseData = data;
+
                 if (resMap.TryGetValue("login", out OSD osd))
                 {
                     var loginSuccess = osd.AsBoolean();
@@ -1363,10 +1368,7 @@ namespace OpenMetaverse
             // set the parsed result for LoginResponseData
             if (loginResultTcs != null)
             {
-                if (LoginStatusCode == LoginStatus.Success)
-                    loginResultTcs.TrySetResult(LoginResponseData);
-                else
-                    loginResultTcs.TrySetResult(null);
+                loginResultTcs.TrySetResult(LoginStatusCode == LoginStatus.Success ? LoginResponseData : null);
             }
         }
 
