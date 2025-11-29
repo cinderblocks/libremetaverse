@@ -1174,36 +1174,44 @@ namespace OpenMetaverse
             UpdateLoginStatus(LoginStatus.ConnectingToLogin,
                 $"Logging in as {loginParams.FirstName} {loginParams.LastName}...");
 
-            // Use task-based PostAsync to get response and data, then pass to the async handler
-            var loginTask = Task.Run(async () =>
-            {
-                try
-                {
-                    var (resp, data) = await Client.HttpCapsClient.PostAsync(loginUri, OSDFormat.Xml, loginLLSD, loginCts.Token).ConfigureAwait(false);
-                    await LoginReplyLLSDHandler(resp, data, null).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException) when (loginCts.IsCancellationRequested)
-                {
-                    // login canceled
-                    UpdateLoginStatus(LoginStatus.Failed, "Login canceled");
-                }
-                catch (Exception ex)
-                {
-                    try { await LoginReplyLLSDHandler(null, null, ex).ConfigureAwait(false); }
-                    catch (Exception inner)
-                    {
-                        Logger.Error("Unhandled exception in login task", inner, Client);
-                    }
-                }
-            }, CancellationToken.None);
+            // Start an asynchronous login flow using a proper async method (no Task.Run fire-and-forget)
+            var loginTask = PerformLoginAsync(loginUri, loginLLSD, loginCts.Token);
 
-            // Observe exceptions to avoid unobserved task exceptions
+            // Observe exceptions to avoid unobserved task exceptions and log them
             loginTask.ContinueWith(t =>
             {
                 if (t.Exception != null)
                     Logger.Error("Login task faulted", t.Exception.Flatten(), Client);
             }, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
          }
+
+        // Perform the HTTP POST and handle the LLSD reply asynchronously.
+        // Separated into its own async method to avoid Task.Run and allow the Task to be observed.
+        private async Task PerformLoginAsync(Uri loginUri, OSDMap loginLLSD, CancellationToken token)
+        {
+            try
+            {
+                var (resp, data) = await Client.HttpCapsClient.PostAsync(loginUri, OSDFormat.Xml, loginLLSD, token).ConfigureAwait(false);
+                await LoginReplyLLSDHandler(resp, data, null).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                // login canceled
+                UpdateLoginStatus(LoginStatus.Failed, "Login canceled");
+            }
+            catch (Exception ex)
+            {
+                // Forward the exception into the reply handler so existing error handling is used
+                try
+                {
+                    await LoginReplyLLSDHandler(null, null, ex).ConfigureAwait(false);
+                }
+                catch (Exception inner)
+                {
+                    Logger.Error("Unhandled exception in PerformLoginAsync", inner, Client);
+                }
+            }
+        }
 
         private void UpdateLoginStatus(LoginStatus status, string message)
         {
