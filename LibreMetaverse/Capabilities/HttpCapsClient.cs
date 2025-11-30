@@ -608,9 +608,10 @@ namespace LibreMetaverse
                 var (response, data) = await SendRequestTaskAsync(request, cancellationToken, progress, connectedHandler).ConfigureAwait(false);
                 completeHandler?.Invoke(response, data, null);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException oce)
             {
-                // Preserve previous behavior: swallow cancellations
+                // Invoke legacy callback with explicit cancellation error to inform callers
+                completeHandler?.Invoke(null, null, oce);
             }
             catch (HttpRequestException httpReqEx)
             {
