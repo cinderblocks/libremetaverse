@@ -66,8 +66,7 @@ namespace LibreMetaverse
         /// </summary>
         public static Vector3d GlobalPosition(Simulator sim, Vector3 localPos)
         {
-            if (sim == null) return Vector3d.Zero;
-            return ToGlobalPosition(sim.Handle, localPos);
+            return sim == null ? Vector3d.Zero : ToGlobalPosition(sim.Handle, localPos);
         }
 
         /// <summary>
@@ -75,8 +74,8 @@ namespace LibreMetaverse
         /// </summary>
         public static Vector3d GlobalPosition(Primitive prim, Simulator currentSim)
         {
-            if (prim == null || currentSim == null) return Vector3d.Zero;
-            return GlobalPosition(currentSim, prim.Position);
+            return (prim == null || currentSim == null) ? Vector3d.Zero
+                : GlobalPosition(currentSim, prim.Position);
         }
 
         /// <summary>
