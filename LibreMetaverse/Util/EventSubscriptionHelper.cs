@@ -60,12 +60,7 @@ namespace LibreMetaverse
             subscribe(handler);
             try
             {
-                if (tcs.Task.Wait(timeoutMs))
-                {
-                    return tcs.Task.Result;
-                }
-
-                return defaultValue;
+                return tcs.Task.Wait(timeoutMs) ? tcs.Task.Result : defaultValue;
             }
             finally
             {
