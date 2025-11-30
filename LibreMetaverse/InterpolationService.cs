@@ -1,0 +1,217 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace OpenMetaverse
+{
+    internal sealed class InterpolationService : IDisposable
+    {
+        private readonly GridClient _client;
+        private Timer _timer;
+#if NET6_0_OR_GREATER
+        private System.Threading.PeriodicTimer _periodicTimer;
+        private CancellationTokenSource _cts;
+        private Task _loopTask;
+#endif
+        private bool _started;
+
+        public InterpolationService(GridClient client)
+        {
+            _client = client ?? throw new ArgumentNullException(nameof(client));
+        }
+
+        public void Start()
+        {
+            if (!_client.Settings.USE_INTERPOLATION_TIMER || _started) return;
+
+#if NET6_0_OR_GREATER
+            _cts = new CancellationTokenSource();
+            _periodicTimer = new System.Threading.PeriodicTimer(TimeSpan.FromMilliseconds(_client.Settings.INTERPOLATION_INTERVAL));
+            _loopTask = Task.Run(() => LoopAsync(_cts.Token));
+#else
+            _timer = new Timer(TimerElapsed, null, _client.Settings.INTERPOLATION_INTERVAL, Timeout.Infinite);
+#endif
+            _started = true;
+        }
+
+        public void Stop()
+        {
+            if (!_started) return;
+
+#if NET6_0_OR_GREATER
+            try { _cts?.Cancel(); } catch { }
+            try { _loopTask?.Wait(500); } catch { }
+            try { _periodicTimer?.Dispose(); } catch { }
+            try { _cts?.Dispose(); } catch { }
+            _periodicTimer = null;
+            _cts = null;
+            _loopTask = null;
+#else
+            try { _timer?.Dispose(); } catch { }
+            _timer = null;
+#endif
+            _started = false;
+        }
+
+#if NET6_0_OR_GREATER
+        private async Task LoopAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                while (await _periodicTimer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    PerformInterpolationPass();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected on shutdown
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Interpolation loop failed: " + ex.Message, ex, _client);
+            }
+        }
+
+#else
+        private void TimerElapsed(object state)
+        {
+            PerformInterpolationPass();
+
+            // Start the timer again. Use a minimum of a 50ms pause in between calculations
+            int elapsed = _client.Self.lastInterpolation - Environment.TickCount;
+            int delay = Math.Max(50, _client.Settings.INTERPOLATION_INTERVAL - elapsed);
+            _timer?.Change(delay, Timeout.Infinite);
+        }
+#endif
+
+        private void PerformInterpolationPass()
+        {
+            int elapsed = 0;
+
+            if (_client.Network.Connected)
+            {
+                int start = Environment.TickCount;
+
+                int interval = unchecked(Environment.TickCount - _client.Self.lastInterpolation);
+                float seconds = interval / 1000f;
+
+                // Iterate through all simulators
+                var sims = _client.Network.Simulators.ToArray();
+                foreach (var sim in sims)
+                {
+                    float adjSeconds = seconds * sim.Stats.Dilation;
+
+                    // Iterate through all of this region's avatars
+                    foreach (var avatar in sim.ObjectsAvatars)
+                    {
+                        var av = avatar.Value;
+
+                        Vector3 velocity, acceleration, position;
+                        lock (av)
+                        {
+                            velocity = av.Velocity;
+                            acceleration = av.Acceleration;
+                            position = av.Position;
+                        }
+
+                        if (acceleration != Vector3.Zero)
+                        {
+                            velocity += acceleration * adjSeconds;
+                        }
+
+                        if (velocity != Vector3.Zero)
+                        {
+                            position += velocity * adjSeconds;
+                        }
+
+                        lock (av)
+                        {
+                            av.Velocity = velocity;
+                            av.Position = position;
+                        }
+                    }
+
+                    // Iterate through all the simulator's primitives
+                    foreach (var prim in sim.ObjectsPrimitives)
+                    {
+                        var pv = prim.Value;
+
+                        JointType joint;
+                        Vector3 angVel, velocity, acceleration, position;
+                        Quaternion rotation;
+
+                        lock (pv)
+                        {
+                            joint = pv.Joint;
+                            angVel = pv.AngularVelocity;
+                            velocity = pv.Velocity;
+                            acceleration = pv.Acceleration;
+                            position = pv.Position;
+                            rotation = pv.Rotation;
+                        }
+
+                        switch (joint)
+                        {
+                            case JointType.Invalid:
+                            {
+                                const float omegaThresholdSquared = 0.00001f;
+                                float omegaSquared = angVel.LengthSquared();
+
+                                if (omegaSquared > omegaThresholdSquared)
+                                {
+                                    float omega = (float)Math.Sqrt(omegaSquared);
+                                    float angle = omega * adjSeconds;
+                                    Vector3 normalizedAngVel = angVel * (1.0f / omega);
+                                    Quaternion dQ = Quaternion.CreateFromAxisAngle(normalizedAngVel, angle);
+
+                                    rotation *= dQ;
+                                }
+
+                                // Only do movement interpolation (extrapolation) when there is non-zero velocity
+                                // but no acceleration
+                                if (velocity != Vector3.Zero && acceleration == Vector3.Zero)
+                                {
+                                    position += (velocity + acceleration *
+                                        (0.5f * (adjSeconds - ObjectManager.HAVOK_TIMESTEP))) * adjSeconds;
+                                    velocity += acceleration * adjSeconds;
+                                }
+
+                                lock (pv)
+                                {
+                                    pv.Position = position;
+                                    pv.Velocity = velocity;
+                                    pv.Rotation = rotation;
+                                }
+
+                                break;
+                            }
+                            case JointType.Hinge:
+                                //FIXME: Hinge movement extrapolation
+                                break;
+                            case JointType.Point:
+                                //FIXME: Point movement extrapolation
+                                break;
+                            default:
+                                Logger.Warn($"Unhandled joint type {joint}", _client);
+                                break;
+                        }
+                    }
+                }
+
+                // Make sure the last interpolated time is always updated
+                _client.Self.lastInterpolation = Environment.TickCount;
+
+                elapsed = _client.Self.lastInterpolation - start;
+            }
+
+            // No scheduling here; scheduling handled by caller
+        }
+
+        public void Dispose()
+        {
+            Stop();
+        }
+    }
+}

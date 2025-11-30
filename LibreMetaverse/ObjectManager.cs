@@ -511,15 +511,8 @@ namespace OpenMetaverse
 
         /// <summary>Reference to the GridClient object</summary>
         protected GridClient Client;
-        /// <summary>Does periodic dead reckoning calculation to convert
-        /// velocity and acceleration to new positions for objects</summary>
-        private Timer InterpolationTimer;
-#if NET6_0_OR_GREATER
-        // PeriodicTimer-based background task for modern targets
-        private System.Threading.PeriodicTimer _periodicTimer;
-        private CancellationTokenSource _interpCts;
-        private Task _interpLoopTask;
-#endif
+
+        private InterpolationService _interpolationService;
 
         /// <summary>
         /// Construct a new instance of the ObjectManager class
@@ -552,7 +545,11 @@ namespace OpenMetaverse
                 // Dispose managed resources and unregister callbacks
                 try
                 {
-                    if (Client != null && Client.Network != null)
+                    // Stop interpolation service if active
+                    try { _interpolationService?.Stop(); } catch { }
+                    _interpolationService = null;
+
+                    if (Client?.Network != null)
                     {
                         try { Client.Network.UnregisterCallback(PacketType.ObjectUpdate, ObjectUpdateHandler); } catch { }
                         try { Client.Network.UnregisterCallback(PacketType.ImprovedTerseObjectUpdate, ImprovedTerseObjectUpdateHandler); } catch { }
@@ -565,24 +562,6 @@ namespace OpenMetaverse
                         try { Client.Network.UnregisterCallback(PacketType.ObjectAnimation, ObjectAnimationHandler); } catch { }
                         try { Client.Network.UnregisterEventCallback("ObjectPhysicsProperties", ObjectPhysicsPropertiesHandler); } catch { }
                     }
-
-                    if (InterpolationTimer != null)
-                    {
-                        try { InterpolationTimer.Dispose(); } catch { }
-                        InterpolationTimer = null;
-                    }
-#if NET6_0_OR_GREATER
-                    if (_interpCts != null)
-                    {
-                        try { _interpCts.Cancel(); } catch { }
-                        try { _interpLoopTask?.Wait(500); } catch { }
-                        try { _periodicTimer?.Dispose(); } catch { }
-                        try { _interpCts.Dispose(); } catch { }
-                        _periodicTimer = null;
-                        _interpCts = null;
-                        _interpLoopTask = null;
-                    }
-#endif
                 }
                 catch (Exception ex)
                 {
@@ -611,25 +590,11 @@ namespace OpenMetaverse
 
         private void Network_OnDisconnected(NetworkManager.DisconnectType reason, string message)
         {
-#if NET6_0_OR_GREATER
-            if (_interpCts != null)
+            if (_interpolationService != null)
             {
-                try { _interpCts.Cancel(); } catch { }
-                try { _interpLoopTask?.Wait(500); } catch { }
-                try { _periodicTimer?.Dispose(); } catch { }
-                try { _interpCts.Dispose(); } catch { }
-                _periodicTimer = null;
-                _interpCts = null;
-                _interpLoopTask = null;
-            }
-            else
-#endif
-            {
-                if (InterpolationTimer != null)
-                {
-                    InterpolationTimer.Dispose();
-                    InterpolationTimer = null;
-                }
+                try { _interpolationService.Stop(); } catch { }
+                _interpolationService = null;
+                return;
             }
         }
 
@@ -637,13 +602,9 @@ namespace OpenMetaverse
         {
             if (Client.Settings.USE_INTERPOLATION_TIMER)
             {
-#if NET6_0_OR_GREATER
-                _interpCts = new CancellationTokenSource();
-                _periodicTimer = new System.Threading.PeriodicTimer(TimeSpan.FromMilliseconds(Client.Settings.INTERPOLATION_INTERVAL));
-                _interpLoopTask = Task.Run(() => InterpolationLoopAsync(_interpCts.Token));
-#else
-                InterpolationTimer = new Timer(InterpolationTimer_Elapsed, null, Client.Settings.INTERPOLATION_INTERVAL, Timeout.Infinite);
-#endif
+                // Use the extracted service to manage interpolation scheduling and lifecycle
+                _interpolationService = new InterpolationService(Client);
+                _interpolationService.Start();
             }
         }
 
@@ -2753,40 +2714,7 @@ namespace OpenMetaverse
 
                 elapsed = Client.Self.lastInterpolation - start;
             }
-
-            // No scheduling here; scheduling handled by caller
         }
-
-        protected void InterpolationTimer_Elapsed(object obj)
-        {
-            PerformInterpolationPass();
-
-            // Start the timer again. Use a minimum of a 50ms pause in between calculations
-            int elapsed = Client.Self.lastInterpolation - Environment.TickCount;
-            int delay = Math.Max(50, Client.Settings.INTERPOLATION_INTERVAL - elapsed);
-            InterpolationTimer?.Change(delay, Timeout.Infinite);
-        }
-
-#if NET6_0_OR_GREATER
-        private async Task InterpolationLoopAsync(CancellationToken cancellationToken)
-        {
-            try
-            {
-                while (await _periodicTimer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    PerformInterpolationPass();
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected on shutdown
-            }
-            catch (Exception ex)
-            {
-                Logger.Error("Interpolation loop failed: " + ex.Message, ex, Client);
-            }
-        }
-#endif
     }
 }
 
