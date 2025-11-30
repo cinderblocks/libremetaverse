@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using OpenMetaverse;
 using Vector3 = OpenMetaverse.Vector3;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Prims
 {
@@ -43,8 +44,8 @@ namespace TestClient.Commands.Prims
             // *** find all objects in radius ***
             var prims = (from kvp 
                 in Client.Network.CurrentSim.ObjectsPrimitives 
-                where kvp.Value != null select kvp.Value into prim let pos = prim.Position 
-                where prim.ParentID == 0 && pos != Vector3.Zero && Vector3.Distance(pos, location) < radius select prim).ToList();
+                where kvp.Value != null select kvp.Value into prim let pos = PositionHelper.GetPrimPosition(Client.Network.CurrentSim, prim) 
+                where pos != Vector3.Zero && Vector3.Distance(pos, location) < radius select prim).ToList();
 
             // *** request properties of these objects ***
             var complete = await RequestObjectPropertiesAsync(prims, 250).ConfigureAwait(false);

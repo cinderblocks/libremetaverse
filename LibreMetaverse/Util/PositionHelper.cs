@@ -79,6 +79,24 @@ namespace LibreMetaverse
         }
 
         /// <summary>
+        /// Get the region handle (aligned to region grid) for given global X/Y coordinates
+        /// </summary>
+        public static ulong RegionHandleFromGlobal(uint globalX, uint globalY)
+        {
+            uint x = (globalX / Simulator.DefaultRegionSizeX) * Simulator.DefaultRegionSizeX;
+            uint y = (globalY / Simulator.DefaultRegionSizeY) * Simulator.DefaultRegionSizeY;
+            return Utils.UIntsToLong(x, y);
+        }
+
+        /// <summary>
+        /// Get the region handle for a global position
+        /// </summary>
+        public static ulong RegionHandleFromGlobalPosition(Vector3d globalPos)
+        {
+            return RegionHandleFromGlobal((uint)globalPos.X, (uint)globalPos.Y);
+        }
+
+        /// <summary>
         /// Calculate the position of an avatar accounting for parent prim (if sitting)
         /// </summary>
         public static Vector3 GetAvatarPosition(Simulator sim, Avatar avatar)

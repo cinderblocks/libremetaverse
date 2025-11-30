@@ -35,6 +35,7 @@ using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
+using LibreMetaverse;
 
 namespace OpenMetaverse
 {
@@ -2617,13 +2618,14 @@ namespace OpenMetaverse
                         EventHandler<PrimEventArgs> handler = m_ObjectUpdate;
                         if (handler != null)
                         {
+                            // Ensure event handlers get the computed world position when necessary
                             ThreadPool.QueueUserWorkItem(delegate(object o)
                                 { handler(this, new PrimEventArgs(simulator, prim, update.RegionData.TimeDilation, isNewObject, attachment)); });
                         }
-                        //OnParticleUpdate handler replacing decode particles, PCode.Particle system appears to be deprecated this is a fix
-                        if (prim.ParticleSys.PartMaxAge != 0) {
-                            OnParticleUpdate(new ParticleUpdateEventArgs(simulator, prim.ParticleSys, prim));
-                        }
+                         //OnParticleUpdate handler replacing decode particles, PCode.Particle system appears to be deprecated this is a fix
+                         if (prim.ParticleSys.PartMaxAge != 0) {
+                             OnParticleUpdate(new ParticleUpdateEventArgs(simulator, prim.ParticleSys, prim));
+                         }
 
                         break;
                     #endregion Prim and Foliage
@@ -2676,7 +2678,7 @@ namespace OpenMetaverse
                         avatar.NameValues = nameValues;
                         if (nameValues.Length > 0)
                         {   
-							// Not great modularity, but considering how often this method runs, better to not, e.g., have Avatar define an ObjectDataBlockUpdate handler.
+                            // Not great modularity, but considering how often this method runs, better to not, e.g., have Avatar define an ObjectDataBlockUpdate handler.
                             avatar._cachedName = avatar._cachedGroupName = null;
                         }
                         avatar.PrimData = data;
@@ -2694,6 +2696,7 @@ namespace OpenMetaverse
 
                         #endregion Create an Avatar from the decoded data
 
+                        // Provide avatar position accounting for parent prim when invoking handlers
                         OnAvatarUpdate(new AvatarUpdateEventArgs(simulator, avatar, update.RegionData.TimeDilation, isNewAvatar));
 
                         break;
