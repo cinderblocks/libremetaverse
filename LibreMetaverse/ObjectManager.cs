@@ -514,6 +514,12 @@ namespace OpenMetaverse
         /// <summary>Does periodic dead reckoning calculation to convert
         /// velocity and acceleration to new positions for objects</summary>
         private Timer InterpolationTimer;
+#if NET6_0_OR_GREATER
+        // PeriodicTimer-based background task for modern targets
+        private System.Threading.PeriodicTimer _periodicTimer;
+        private CancellationTokenSource _interpCts;
+        private Task _interpLoopTask;
+#endif
 
         /// <summary>
         /// Construct a new instance of the ObjectManager class
@@ -565,6 +571,18 @@ namespace OpenMetaverse
                         try { InterpolationTimer.Dispose(); } catch { }
                         InterpolationTimer = null;
                     }
+#if NET6_0_OR_GREATER
+                    if (_interpCts != null)
+                    {
+                        try { _interpCts.Cancel(); } catch { }
+                        try { _interpLoopTask?.Wait(500); } catch { }
+                        try { _periodicTimer?.Dispose(); } catch { }
+                        try { _interpCts.Dispose(); } catch { }
+                        _periodicTimer = null;
+                        _interpCts = null;
+                        _interpLoopTask = null;
+                    }
+#endif
                 }
                 catch (Exception ex)
                 {
@@ -593,10 +611,25 @@ namespace OpenMetaverse
 
         private void Network_OnDisconnected(NetworkManager.DisconnectType reason, string message)
         {
-            if (InterpolationTimer != null)
+#if NET6_0_OR_GREATER
+            if (_interpCts != null)
             {
-                InterpolationTimer.Dispose();
-                InterpolationTimer = null;
+                try { _interpCts.Cancel(); } catch { }
+                try { _interpLoopTask?.Wait(500); } catch { }
+                try { _periodicTimer?.Dispose(); } catch { }
+                try { _interpCts.Dispose(); } catch { }
+                _periodicTimer = null;
+                _interpCts = null;
+                _interpLoopTask = null;
+            }
+            else
+#endif
+            {
+                if (InterpolationTimer != null)
+                {
+                    InterpolationTimer.Dispose();
+                    InterpolationTimer = null;
+                }
             }
         }
 
@@ -604,7 +637,13 @@ namespace OpenMetaverse
         {
             if (Client.Settings.USE_INTERPOLATION_TIMER)
             {
+#if NET6_0_OR_GREATER
+                _interpCts = new CancellationTokenSource();
+                _periodicTimer = new System.Threading.PeriodicTimer(TimeSpan.FromMilliseconds(Client.Settings.INTERPOLATION_INTERVAL));
+                _interpLoopTask = Task.Run(() => InterpolationLoopAsync(_interpCts.Token));
+#else
                 InterpolationTimer = new Timer(InterpolationTimer_Elapsed, null, Client.Settings.INTERPOLATION_INTERVAL, Timeout.Infinite);
+#endif
             }
         }
 
@@ -2580,7 +2619,11 @@ namespace OpenMetaverse
 
         #endregion Object Tracking Link
 
-        protected void InterpolationTimer_Elapsed(object obj)
+        /// <summary>
+        /// Perform a single interpolation pass. Separated so both Timer and PeriodicTimer
+        /// paths can reuse the same logic without handling scheduling.
+        /// </summary>
+        private void PerformInterpolationPass()
         {
             int elapsed = 0;
 
@@ -2600,10 +2643,8 @@ namespace OpenMetaverse
                     // Iterate through all of this region's avatars
                     foreach (var avatar in sim.ObjectsAvatars)
                     {
-                        #region Linear Motion
-
                         var av = avatar.Value;
-                        
+
                         Vector3 velocity, acceleration, position;
                         lock (av)
                         {
@@ -2627,19 +2668,17 @@ namespace OpenMetaverse
                             av.Velocity = velocity;
                             av.Position = position;
                         }
-
-                        #endregion Linear Motion
                     }
 
                     // Iterate through all the simulator's primitives
                     foreach (var prim in sim.ObjectsPrimitives)
                     {
                         var pv = prim.Value;
-                        
+
                         JointType joint;
                         Vector3 angVel, velocity, acceleration, position;
                         Quaternion rotation;
-                        
+
                         lock (pv)
                         {
                             joint = pv.Joint;
@@ -2704,10 +2743,39 @@ namespace OpenMetaverse
                 elapsed = Client.Self.lastInterpolation - start;
             }
 
+            // No scheduling here; scheduling handled by caller
+        }
+
+        protected void InterpolationTimer_Elapsed(object obj)
+        {
+            PerformInterpolationPass();
+
             // Start the timer again. Use a minimum of a 50ms pause in between calculations
+            int elapsed = Client.Self.lastInterpolation - Environment.TickCount;
             int delay = Math.Max(50, Client.Settings.INTERPOLATION_INTERVAL - elapsed);
             InterpolationTimer?.Change(delay, Timeout.Infinite);
         }
+
+#if NET6_0_OR_GREATER
+        private async Task InterpolationLoopAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                while (await _periodicTimer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    PerformInterpolationPass();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected on shutdown
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Interpolation loop failed: " + ex.Message, ex, Client);
+            }
+        }
+#endif
     }
 }
 
