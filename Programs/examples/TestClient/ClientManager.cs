@@ -29,7 +29,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using OpenMetaverse;
 using TestClient.Commands.Inventory;
 using TestClient.Commands.System;
@@ -229,20 +228,11 @@ namespace TestClient
         /// <param name="noGUI">Run with Gui or nah</param>
         public void Run(bool noGUI)
         {
-            // Keep a synchronous wrapper for callers that expect blocking behavior
-            RunAsync(noGUI).GetAwaiter().GetResult();
-        }
-
-        /// <summary>
-        /// Async version of Run that allows awaiting command execution without blocking threads
-        /// </summary>
-        public async Task RunAsync(bool noGUI)
-        {
             if (noGUI)
             {
                 while (Running)
                 {
-                    await Task.Delay(2 * 1000).ConfigureAwait(false);
+                    System.Threading.Tasks.Task.Delay(2 * 1000).GetAwaiter().GetResult();
                 }
             }
             else {
@@ -252,8 +242,7 @@ namespace TestClient
                 {
                     PrintPrompt();
                     string input = Console.ReadLine();
-                    // Fire-and-forget is not desired: await commands so they run inline and don't block threadpool
-                    await DoCommandAllAsync(input, UUID.Zero).ConfigureAwait(false);
+                    DoCommandAll(input, UUID.Zero);
                 }
             }
 
@@ -274,25 +263,18 @@ namespace TestClient
         }
 
         /// <summary>
-        /// Synchronous wrapper for the async command dispatcher
+        /// 
         /// </summary>
+        /// <param name="commandLine"></param>
+        /// <param name="fromAgentID"></param>
         public void DoCommandAll(string commandLine, UUID fromAgentID)
-        {
-            DoCommandAllAsync(commandLine, fromAgentID).GetAwaiter().GetResult();
-        }
-
-        /// <summary>
-        /// Async command dispatcher that awaits command.ExecuteAsync without blocking threadpool threads
-        /// </summary>
-        public async Task DoCommandAllAsync(string commandLine, UUID fromAgentID)
         {
             if (commandLine == null)
                 return;
-
             string[] tokens = commandLine.Trim().Split(' ', '\t');
             if (tokens.Length == 0)
                 return;
-
+            
             string firstToken = tokens[0].ToLower();
             if (string.IsNullOrEmpty(firstToken))
                 return;
@@ -315,7 +297,7 @@ namespace TestClient
                 }
                 return;
             }
-
+            
             string[] args = new string[tokens.Length - 1];
             if (args.Length > 0)
                 Array.Copy(tokens, 1, args, 0, args.Length);
@@ -335,9 +317,8 @@ namespace TestClient
                 {
                     foreach (TestClient client in Clients.Values)
                     {
-                        // Use async API and await
-                        var res = await client.Commands["help"].ExecuteAsync(args, UUID.Zero).ConfigureAwait(false);
-                        Console.WriteLine(res);
+                        // Use async API but keep synchronous behavior for the caller
+                        Console.WriteLine(client.Commands["help"].ExecuteAsync(args, UUID.Zero).GetAwaiter().GetResult());
                         break;
                     }
                 }
@@ -350,8 +331,7 @@ namespace TestClient
             {
                 // No reason to pass this to all bots, and we also want to allow it when there are no bots
                 ScriptCommand command = new ScriptCommand(null);
-                var res = await command.ExecuteAsync(args, UUID.Zero).ConfigureAwait(false);
-                Logger.Info(res);
+                Logger.Info(command.ExecuteAsync(args, UUID.Zero).GetAwaiter().GetResult());
             }
             else if (firstToken == "waitforlogin")
             {
@@ -359,8 +339,7 @@ namespace TestClient
                 if (ClientManager.Instance.PendingLogins > 0)
                 {
                     WaitForLoginCommand command = new WaitForLoginCommand(null);
-                    var res = await command.ExecuteAsync(args, UUID.Zero).ConfigureAwait(false);
-                    Logger.Info(res);
+                    Logger.Info(command.ExecuteAsync(args, UUID.Zero).GetAwaiter().GetResult());
                 }
                 else
                 {
@@ -372,7 +351,7 @@ namespace TestClient
                 // Make an immutable copy of the Clients dictionary to safely iterate over
                 Dictionary<UUID, TestClient> clientsCopy = new Dictionary<UUID, TestClient>(Clients);
 
-                var tasks = new List<Task>();
+                var tasks = new List<System.Threading.Tasks.Task>();
 
                 foreach (TestClient client in clientsCopy.Values)
                 {
@@ -382,8 +361,19 @@ namespace TestClient
                     {
                         if (testClient.Commands.TryGetValue(firstToken, out var command))
                         {
-                            // Execute the async command and log result; don't use Task.Run so execution stays asynchronous
-                            var task = ExecuteAndLogAsync(command, args, fromAgentID, testClient, firstToken);
+                            var task = System.Threading.Tasks.Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    var result = await command.ExecuteAsync(args, fromAgentID).ConfigureAwait(false);
+                                    Logger.Info(result, testClient);
+                                }
+                                catch (Exception e)
+                                {
+                                    Logger.Error($"{firstToken} raised exception {e}", testClient);
+                                }
+                            });
+
                             tasks.Add(task);
                         }
                         else
@@ -393,21 +383,9 @@ namespace TestClient
                     }
                 }
 
+                // Wait for all command tasks to complete
                 if (tasks.Count > 0)
-                    await Task.WhenAll(tasks).ConfigureAwait(false);
-            }
-        }
-
-        private static async Task ExecuteAndLogAsync(Command command, string[] args, UUID fromAgentID, TestClient testClient, string commandName)
-        {
-            try
-            {
-                var result = await command.ExecuteAsync(args, fromAgentID).ConfigureAwait(false);
-                Logger.Info(result, testClient);
-            }
-            catch (Exception e)
-            {
-                Logger.Error($"{commandName} raised exception {e}", testClient);
+                    System.Threading.Tasks.Task.WhenAll(tasks).GetAwaiter().GetResult();
             }
         }
 
