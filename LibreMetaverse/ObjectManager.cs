@@ -1044,11 +1044,12 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>        
         /// <param name="localID">The Local ID of the object</param>
+        [Obsolete("Use ClickObjectAsync(simulator, localID, CancellationToken) instead.")]
         public void ClickObject(Simulator simulator, uint localID)
-        {
-            // Preserve synchronous API by blocking on the async implementation
-            ClickObjectAsync(simulator, localID).GetAwaiter().GetResult();
-        }
+         {
+             // Preserve synchronous API by blocking on the async implementation
+             ClickObjectAsync(simulator, localID).GetAwaiter().GetResult();
+         }
 
         /// <summary>
         /// Perform a click action (Grab) on a single object
@@ -1062,83 +1063,92 @@ namespace OpenMetaverse
         /// <param name="normal">The surface normal of the position to touch (A normal is a vector perpendicular to the surface)</param>
         /// <param name="binormal">The surface binormal of the position to touch (A binormal is a vector tangent to the surface
         /// pointing along the U direction of the tangent space</param>
+        [Obsolete("Use ClickObjectAsync(simulator, localID, uvCoord, stCoord, faceIndex, position, normal, binormal, CancellationToken) instead.")]
         public void ClickObject(Simulator simulator, uint localID, Vector3 uvCoord, Vector3 stCoord, int faceIndex, Vector3 position,
             Vector3 normal, Vector3 binormal)
-        {
-            // Preserve synchronous API by blocking on the async implementation
-            ClickObjectAsync(simulator, localID, uvCoord, stCoord, faceIndex, position, normal, binormal).GetAwaiter().GetResult();
-        }
+         {
+             // Preserve synchronous API by blocking on the async implementation
+             ClickObjectAsync(simulator, localID, uvCoord, stCoord, faceIndex, position, normal, binormal).GetAwaiter().GetResult();
+         }
 
         /// <summary>
         /// Async variant of ClickObject. Sends a grab packet, waits a short delay
         /// and then sends the de-grab packet. Uses Task.Delay instead of Thread.Sleep.
         /// </summary>
-        public async Task ClickObjectAsync(Simulator simulator, uint localID)
+        public async Task ClickObjectAsync(Simulator simulator, uint localID, CancellationToken cancellationToken = default)
         {
-            await ClickObjectAsync(simulator, localID, Vector3.Zero, Vector3.Zero, 0, Vector3.Zero, Vector3.Zero, Vector3.Zero).ConfigureAwait(false);
+            await ClickObjectAsync(simulator, localID, Vector3.Zero, Vector3.Zero, 0, Vector3.Zero, Vector3.Zero, Vector3.Zero, cancellationToken).ConfigureAwait(false);
         }
-
-        /// <summary>
-        /// Async variant of ClickObject. Sends a grab packet, waits a short delay
-        /// and then sends the de-grab packet. Uses Task.Delay instead of Thread.Sleep.
-        /// </summary>
+ 
+         /// <summary>
+         /// Async variant of ClickObject. Sends a grab packet, waits a short delay
+         /// and then sends the de-grab packet. Uses Task.Delay instead of Thread.Sleep.
+         /// </summary>
         public async Task ClickObjectAsync(Simulator simulator, uint localID, Vector3 uvCoord, Vector3 stCoord, int faceIndex, Vector3 position,
-            Vector3 normal, Vector3 binormal)
-        {
-            ObjectGrabPacket grab = new ObjectGrabPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                ObjectData =
-                {
-                    GrabOffset = Vector3.Zero,
-                    LocalID = localID
-                },
-                SurfaceInfo = new ObjectGrabPacket.SurfaceInfoBlock[1]
-            };
-            grab.SurfaceInfo[0] = new ObjectGrabPacket.SurfaceInfoBlock
-            {
-                UVCoord = uvCoord,
-                STCoord = stCoord,
-                FaceIndex = faceIndex,
-                Position = position,
-                Normal = normal,
-                Binormal = binormal
-            };
+            Vector3 normal, Vector3 binormal, CancellationToken cancellationToken = default)
+         {
+             ObjectGrabPacket grab = new ObjectGrabPacket
+             {
+                 AgentData =
+                 {
+                     AgentID = Client.Self.AgentID,
+                     SessionID = Client.Self.SessionID
+                 },
+                 ObjectData =
+                 {
+                     GrabOffset = Vector3.Zero,
+                     LocalID = localID
+                 },
+                 SurfaceInfo = new ObjectGrabPacket.SurfaceInfoBlock[1]
+             };
+             grab.SurfaceInfo[0] = new ObjectGrabPacket.SurfaceInfoBlock
+             {
+                 UVCoord = uvCoord,
+                 STCoord = stCoord,
+                 FaceIndex = faceIndex,
+                 Position = position,
+                 Normal = normal,
+                 Binormal = binormal
+             };
+ 
+             Client.Network.SendPacket(grab, simulator);
 
-            Client.Network.SendPacket(grab, simulator);
 
-            // Use async delay instead of blocking the thread
-            await Task.Delay(50).ConfigureAwait(false);
+            // Use async delay instead of blocking the thread; respect cancellation but always send degrab
+            try
+            {
+                await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancellation requested; continue to send degrab to avoid leaving the object grabbed
+            }
 
             ObjectDeGrabPacket degrab = new ObjectDeGrabPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                ObjectData =
-                {
-                    LocalID = localID
-                },
-                SurfaceInfo = new ObjectDeGrabPacket.SurfaceInfoBlock[1]
-            };
-            degrab.SurfaceInfo[0] = new ObjectDeGrabPacket.SurfaceInfoBlock
-            {
-                UVCoord = uvCoord,
-                STCoord = stCoord,
-                FaceIndex = faceIndex,
-                Position = position,
-                Normal = normal,
-                Binormal = binormal
-            };
-
-            Client.Network.SendPacket(degrab, simulator);
-        }
+             {
+                 AgentData =
+                 {
+                     AgentID = Client.Self.AgentID,
+                     SessionID = Client.Self.SessionID
+                 },
+                 ObjectData =
+                 {
+                     LocalID = localID
+                 },
+                 SurfaceInfo = new ObjectDeGrabPacket.SurfaceInfoBlock[1]
+             };
+             degrab.SurfaceInfo[0] = new ObjectDeGrabPacket.SurfaceInfoBlock
+             {
+                 UVCoord = uvCoord,
+                 STCoord = stCoord,
+                 FaceIndex = faceIndex,
+                 Position = position,
+                 Normal = normal,
+                 Binormal = binormal
+             };
+ 
+             Client.Network.SendPacket(degrab, simulator);
+         }
         
         /// <summary>
         /// Create (rez) a new prim object in a simulator
@@ -1757,10 +1767,11 @@ namespace OpenMetaverse
         /// <summary>
         /// Change the position of an object
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
-        /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
+        /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>
+        /// <param name="localID">The Local ID of the object</param>
         /// <param name="position">The new position of the object</param>
-        /// <param name="childOnly">if true, will change position of (this) child prim only, not entire linkset</param>
+        /// <param name="childOnly">if true, a call to <see cref="DeselectObject"/> is
+        /// made immediately following the request</param>
         public void SetPosition(Simulator simulator, uint localID, Vector3 position, bool childOnly)
         {
             UpdateType type = UpdateType.Position;
