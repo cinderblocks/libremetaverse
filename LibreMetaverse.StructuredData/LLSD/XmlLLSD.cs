@@ -31,6 +31,7 @@ using System.IO;
 using System.Linq;
 using System.Xml;
 using System.Text;
+using System.Diagnostics;
 
 namespace OpenMetaverse.StructuredData
 {
@@ -48,32 +49,43 @@ namespace OpenMetaverse.StructuredData
         /// <returns></returns>
         public static OSD DeserializeLLSDXml(Stream xmlStream)
         {
-            // XmlReader don't take no shit from nobody. Parse out Linden Lab's bad PI.
-            bool match = LINDEN_LAB_LOVES_BAD_PI.All(t => xmlStream.ReadByte() == t);
-            if (match)
+            if (xmlStream == null) throw new ArgumentNullException(nameof(xmlStream));
+
+            // Read the incoming stream to a string so we can safely strip
+            // Linden Lab's non-standard processing instruction if present.
+            string xml;
+            using (var sr = new StreamReader(xmlStream, Encoding.UTF8, true, 1024, leaveOpen: true))
             {
-                // consume until the processing-instruction terminator "?>" (not a newline)
-                int prev = -1;
-                int curr;
-                while ((curr = xmlStream.ReadByte()) != -1)
-                {
-                    if (prev == '?' && curr == '>')
-                        break;
-                    prev = curr;
-                }
-            } else {
-                xmlStream.Seek(0, SeekOrigin.Begin);
+                xml = sr.ReadToEnd();
             }
+
+            // Remove the Linden PI "<? LLSD/... ?>" if present at the start (case-insensitive)
+            string trimmed = xml.TrimStart();
+            if (trimmed.StartsWith("<?", StringComparison.Ordinal))
+            {
+                int endPi = trimmed.IndexOf("?>", StringComparison.Ordinal);
+                if (endPi >= 0)
+                {
+                    trimmed = trimmed.Substring(endPi + 2).TrimStart();
+                }
+            }
+
+            // Trim any characters before the first XML '<' to avoid stray text confusing the reader
+            int firstLt = trimmed.IndexOf('<');
+            if (firstLt > 0)
+                trimmed = trimmed.Substring(firstLt);
 
             XmlReaderSettings settings = new XmlReaderSettings
             {
                 ValidationType = ValidationType.None,
                 CheckCharacters = false,
                 IgnoreComments = true,
-                IgnoreProcessingInstructions = false,
+                IgnoreProcessingInstructions = true,
                 DtdProcessing = DtdProcessing.Ignore
             };
-            using (XmlReader xrd = XmlReader.Create(xmlStream, settings))
+
+            using (var sr2 = new StringReader(trimmed))
+            using (XmlReader xrd = XmlReader.Create(sr2, settings))
             {
                 return DeserializeLLSDXml(xrd);
             }
@@ -109,10 +121,22 @@ namespace OpenMetaverse.StructuredData
         {
             try
             {
-                xmlData.Read();
-                SkipWhitespace(xmlData);
+                // Position the reader at the first content node
+                xmlData.MoveToContent();
 
-                xmlData.Read();
+                // If the root element is the standard wrapper <llsd>, advance into it
+                if (xmlData.NodeType == XmlNodeType.Element && xmlData.LocalName == "llsd")
+                {
+                    if (xmlData.IsEmptyElement)
+                    {
+                        xmlData.Read();
+                        return new OSD();
+                    }
+                    // Move into the contents of <llsd>
+                    xmlData.Read();
+                    SkipWhitespace(xmlData);
+                }
+
                 OSD ret = ParseLLSDXmlElement(xmlData);
 
                 return ret;
