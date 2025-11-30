@@ -1007,7 +1007,8 @@ namespace OpenMetaverse
         /// <param name="localID">The Local ID of the object</param>
         public void ClickObject(Simulator simulator, uint localID)
         {
-            ClickObject(simulator, localID, Vector3.Zero, Vector3.Zero, 0, Vector3.Zero, Vector3.Zero, Vector3.Zero);
+            // Preserve synchronous API by blocking on the async implementation
+            ClickObjectAsync(simulator, localID).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -1023,6 +1024,26 @@ namespace OpenMetaverse
         /// <param name="binormal">The surface binormal of the position to touch (A binormal is a vector tangent to the surface
         /// pointing along the U direction of the tangent space</param>
         public void ClickObject(Simulator simulator, uint localID, Vector3 uvCoord, Vector3 stCoord, int faceIndex, Vector3 position,
+            Vector3 normal, Vector3 binormal)
+        {
+            // Preserve synchronous API by blocking on the async implementation
+            ClickObjectAsync(simulator, localID, uvCoord, stCoord, faceIndex, position, normal, binormal).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Async variant of ClickObject. Sends a grab packet, waits a short delay
+        /// and then sends the de-grab packet. Uses Task.Delay instead of Thread.Sleep.
+        /// </summary>
+        public async Task ClickObjectAsync(Simulator simulator, uint localID)
+        {
+            await ClickObjectAsync(simulator, localID, Vector3.Zero, Vector3.Zero, 0, Vector3.Zero, Vector3.Zero, Vector3.Zero).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Async variant of ClickObject. Sends a grab packet, waits a short delay
+        /// and then sends the de-grab packet. Uses Task.Delay instead of Thread.Sleep.
+        /// </summary>
+        public async Task ClickObjectAsync(Simulator simulator, uint localID, Vector3 uvCoord, Vector3 stCoord, int faceIndex, Vector3 position,
             Vector3 normal, Vector3 binormal)
         {
             ObjectGrabPacket grab = new ObjectGrabPacket
@@ -1051,9 +1072,8 @@ namespace OpenMetaverse
 
             Client.Network.SendPacket(grab, simulator);
 
-            // TODO: If these hit the server out of order the click will fail 
-            // and we'll be grabbing the object
-            Thread.Sleep(50);
+            // Use async delay instead of blocking the thread
+            await Task.Delay(50).ConfigureAwait(false);
 
             ObjectDeGrabPacket degrab = new ObjectDeGrabPacket
             {
