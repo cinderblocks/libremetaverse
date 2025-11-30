@@ -437,71 +437,28 @@ namespace OpenMetaverse
 
             if (!disposing) { return; }
 
-            try
-            {
-                // Unregister packet callbacks
-                try { Client?.Network?.UnregisterCallback(PacketType.AgentWearablesUpdate, AgentWearablesUpdateHandler); } catch (Exception ex) { Logger.Warn($"Failed to unregister AgentWearablesUpdate callback: {ex}", Client); }
-                try { Client?.Network?.UnregisterCallback(PacketType.AgentCachedTextureResponse, AgentCachedTextureResponseHandler); } catch (Exception ex) { Logger.Warn($"Failed to unregister AgentCachedTextureResponse callback: {ex}", Client); }
-                try { Client?.Network?.UnregisterCallback(PacketType.RebakeAvatarTextures, RebakeAvatarTexturesHandler); } catch (Exception ex) { Logger.Warn($"Failed to unregister RebakeAvatarTextures callback: {ex}", Client); }
+            // Unregister packet callbacks safely
+            DisposalHelper.SafeAction(() => Client?.Network?.UnregisterCallback(PacketType.AgentWearablesUpdate, AgentWearablesUpdateHandler), "Unregister AgentWearablesUpdate", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
+            DisposalHelper.SafeAction(() => Client?.Network?.UnregisterCallback(PacketType.AgentCachedTextureResponse, AgentCachedTextureResponseHandler), "Unregister AgentCachedTextureResponse", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
+            DisposalHelper.SafeAction(() => Client?.Network?.UnregisterCallback(PacketType.RebakeAvatarTextures, RebakeAvatarTexturesHandler), "Unregister RebakeAvatarTextures", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
 
-                // Unsubscribe from events
-                try { if (Client?.Objects != null) Client.Objects.ObjectUpdate -= Objects_AttachmentUpdate; } catch (Exception ex) { Logger.Warn($"Failed to unsubscribe Objects.ObjectUpdate: {ex}", Client); }
-
-                if (Client?.Network != null)
-                {
-                    try { Client.Network.Disconnected -= Network_OnDisconnected; } catch (Exception ex) { Logger.Warn($"Failed to unsubscribe Network.Disconnected: {ex}", Client); }
-                    try { Client.Network.SimChanged -= Network_OnSimChanged; } catch (Exception ex) { Logger.Warn($"Failed to unsubscribe Network.SimChanged: {ex}", Client); }
-
-                    if (Client.Network.CurrentSim?.Caps != null)
-                    {
-                        try { Client.Network.CurrentSim.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived; } catch (Exception ex) { Logger.Warn($"Failed to unsubscribe CapabilitiesReceived: {ex}", Client); }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn($"Unexpected error during Dispose cleanup: {ex}", Client);
-            }
+            // Unsubscribe from events
+            DisposalHelper.SafeAction(() => { if (Client?.Objects != null) Client.Objects.ObjectUpdate -= Objects_AttachmentUpdate; }, "Unsubscribe Objects.ObjectUpdate", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
+            DisposalHelper.SafeAction(() => { if (Client?.Network != null) Client.Network.Disconnected -= Network_OnDisconnected; }, "Unsubscribe Network.Disconnected", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
+            DisposalHelper.SafeAction(() => { if (Client?.Network != null) Client.Network.SimChanged -= Network_OnSimChanged; }, "Unsubscribe Network.SimChanged", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
+            DisposalHelper.SafeAction(() => { if (Client?.Network?.CurrentSim?.Caps != null) Client.Network.CurrentSim.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived; }, "Unsubscribe CapabilitiesReceived", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
 
             // Cancel and dispose cancellation token source
-            try
-            {
-                if (AppearanceCts != null)
-                {
-                    try { AppearanceCts.Cancel(); } catch (Exception ex) { Logger.Debug($"AppearanceCts.Cancel failed: {ex}", Client); }
-                    try { AppearanceCts.Dispose(); } catch (Exception ex) { Logger.Debug($"AppearanceCts.Dispose failed: {ex}", Client); }
-                    AppearanceCts = null;
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn($"Failed during AppearanceCts cleanup: {ex}", Client);
-            }
+            DisposalHelper.SafeCancelAndDispose(AppearanceCts, (m, e) => Logger.Debug(m, e));
+            AppearanceCts = null;
 
             // Dispose timer
-            try
-            {
-                if (RebakeScheduleTimer != null)
-                {
-                    try { RebakeScheduleTimer.Dispose(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleTimer.Dispose failed: {ex}", Client); }
-                    RebakeScheduleTimer = null;
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn($"Failed disposing RebakeScheduleTimer: {ex}", Client);
-            }
+            DisposalHelper.SafeDispose(RebakeScheduleTimer, "RebakeScheduleTimer", (m, e) => Logger.Debug(m, e));
+            RebakeScheduleTimer = null;
 
             // Clear thread references/state
-            try
-            {
-                AppearanceThread = null;
-                Interlocked.Exchange(ref AppearanceThreadRunning, 0);
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn($"Failed clearing appearance thread state: {ex}", Client);
-            }
+            DisposalHelper.SafeAction(() => AppearanceThread = null, "Clear AppearanceThread", (m,e) => Logger.Debug(m, e));
+            Interlocked.Exchange(ref AppearanceThreadRunning, 0);
         }
         #endregion Private Members
 
@@ -1987,7 +1944,7 @@ namespace OpenMetaverse
                             {
                                 assetTexture.Decode();
                             }
-                            catch (Exception decodeEx)
+ catch (Exception decodeEx)
                             {
                                 Logger.Debug($"Failed to decode texture {textureId}: {decodeEx}", Client);
                             }
@@ -2770,503 +2727,493 @@ namespace OpenMetaverse
             }
             else
         {
-                Logger.Error($"Failed to download folder contents of {folder}", Client);
-                return false;
-            }
-
-            return true;
+            Logger.Error($"Failed to download folder contents of {folder}", Client);
+            return false;
         }
 
-        /// <summary>
-        /// Async variant of GetFolderWearables that returns the results and a success flag.
-        /// </summary>
-        /// <param name="folder">Folder UUID to enumerate</param>
-        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
-        /// <returns>Tuple (success, wearables, attachments)</returns>
-        public async Task<(bool Success, List<InventoryWearable> Wearables, List<InventoryItem> Attachments)> GetFolderWearablesAsync(UUID folder, CancellationToken cancellationToken = default)
+        return true;
+    }
+
+    /// <summary>
+    /// Async variant of GetFolderWearables that returns the results and a success flag.
+    /// </summary>
+    /// <param name="folder">Folder UUID to enumerate</param>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
+    /// <returns>Tuple (success, wearables, attachments)</returns>
+    public async Task<(bool Success, List<InventoryWearable> Wearables, List<InventoryItem> Attachments)> GetFolderWearablesAsync(UUID folder, CancellationToken cancellationToken = default)
+    {
+        var wearables = new List<InventoryWearable>();
+        var attachments = new List<InventoryItem>();
+
+        List<InventoryBase> objects = null;
+        try
         {
-            var wearables = new List<InventoryWearable>();
-            var attachments = new List<InventoryItem>();
-
-            List<InventoryBase> objects = null;
-            try
-            {
-                objects = await Client.Inventory.FolderContentsAsync(folder, Client.Self.AgentID, false, true,
-                    InventorySortOrder.ByName, cancellationToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                Logger.Debug($"GetFolderWearablesAsync cancelled while fetching folder {folder}", Client);
-                return (false, null, null);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Failed to download folder contents of {folder}: {ex}", Client);
-                return (false, null, null);
-            }
-
-            if (objects != null)
-            {
-                foreach (var ib in objects)
-                {
-                    switch (ib)
-                    {
-                        case InventoryWearable wearable:
-                            Logger.DebugLog($"Adding wearable {wearable.Name}", Client);
-                            wearables.Add(wearable);
-                            break;
-                        case InventoryAttachment attachment:
-                            Logger.DebugLog($"Adding attachment (attachment) {attachment.Name}", Client);
-                            attachments.Add(attachment);
-                            break;
-                        case InventoryObject inventoryObject:
-                            Logger.DebugLog($"Adding attachment (object) {inventoryObject.Name}", Client);
-                            attachments.Add(inventoryObject);
-                            break;
-                        default:
-                            Logger.DebugLog($"Ignoring inventory item {ib.Name}", Client);
-                            break;
-                    }
-                }
-
-                return (true, wearables, attachments);
-            }
-
-            Logger.Error($"Failed to download folder contents of {folder}", Client);
+            objects = await Client.Inventory.FolderContentsAsync(folder, Client.Self.AgentID, false, true,
+                InventorySortOrder.ByName, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            Logger.Debug($"GetFolderWearablesAsync cancelled while fetching folder {folder}", Client);
+            return (false, null, null);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Failed to download folder contents of {folder}: {ex}", Client);
             return (false, null, null);
         }
 
-        #endregion Inventory Helpers
-
-        #region Callbacks
-
-        protected void AgentWearablesUpdateHandler(object sender, PacketReceivedEventArgs e)
+        if (objects != null)
         {
-            var update = (AgentWearablesUpdatePacket)e.Packet;
-
-            Logger.DebugLog("Received AgentWearablesUpdate");
-
-            // At one point this was necessary, but Second Life now sends dummy items back...
-            // So let's just ignore the dumdum, k? 
-
-            // Fire the callback
-            OnAgentWearables(new AgentWearablesReplyEventArgs());
-        }
-
-        protected void RebakeAvatarTexturesHandler(object sender, PacketReceivedEventArgs e)
-        {
-            var rebake = (RebakeAvatarTexturesPacket)e.Packet;
-
-            // allow the library to do the rebake
-            if (Client.Settings.SEND_AGENT_APPEARANCE)
+            foreach (var ib in objects)
             {
-                RequestSetAppearance(true);
+                switch (ib)
+                {
+                    case InventoryWearable wearable:
+                        Logger.DebugLog($"Adding wearable {wearable.Name}", Client);
+                        wearables.Add(wearable);
+                        break;
+                    case InventoryAttachment attachment:
+                        Logger.DebugLog($"Adding attachment (attachment) {attachment.Name}", Client);
+                        attachments.Add(attachment);
+                        break;
+                    case InventoryObject inventoryObject:
+                        Logger.DebugLog($"Adding attachment (object) {inventoryObject.Name}", Client);
+                        attachments.Add(inventoryObject);
+                        break;
+                    default:
+                        Logger.DebugLog($"Ignoring inventory item {ib.Name}", Client);
+                        break;
+                }
             }
 
-            OnRebakeAvatar(new RebakeAvatarTexturesEventArgs(rebake.TextureData.TextureID));
+            return (true, wearables, attachments);
         }
 
-        protected void AgentCachedTextureResponseHandler(object sender, PacketReceivedEventArgs e)
+        Logger.Error($"Failed to download folder contents of {folder}", Client);
+        return (false, null, null);
+    }
+
+    #endregion Inventory Helpers
+
+    #region Callbacks
+
+    protected void AgentWearablesUpdateHandler(object sender, PacketReceivedEventArgs e)
+    {
+        var update = (AgentWearablesUpdatePacket)e.Packet;
+
+        Logger.DebugLog("Received AgentWearablesUpdate");
+
+        // At one point this was necessary, but Second Life now sends dummy items back...
+        // So let's just ignore the dumdum, k? 
+
+        // Fire the callback
+        OnAgentWearables(new AgentWearablesReplyEventArgs());
+    }
+
+    protected void RebakeAvatarTexturesHandler(object sender, PacketReceivedEventArgs e)
+    {
+        var rebake = (RebakeAvatarTexturesPacket)e.Packet;
+
+        // allow the library to do the rebake
+        if (Client.Settings.SEND_AGENT_APPEARANCE)
         {
-            var response = (AgentCachedTextureResponsePacket)e.Packet;
+            RequestSetAppearance(true);
+        }
 
-            foreach (var block in response.WearableData)
+        OnRebakeAvatar(new RebakeAvatarTexturesEventArgs(rebake.TextureData.TextureID));
+    }
+
+    protected void AgentCachedTextureResponseHandler(object sender, PacketReceivedEventArgs e)
+    {
+        var response = (AgentCachedTextureResponsePacket)e.Packet;
+
+        foreach (var block in response.WearableData)
+        {
+            var bakeType = (BakeType)block.TextureIndex;
+            var index = BakeTypeToAgentTextureIndex(bakeType);
+
+            Logger.DebugLog($"Cache response for {bakeType}, TextureID={block.TextureID}", Client);
+
+            if (block.TextureID != UUID.Zero)
             {
-                var bakeType = (BakeType)block.TextureIndex;
-                var index = BakeTypeToAgentTextureIndex(bakeType);
+                // A simulator has a cache of this bake layer
 
-                Logger.DebugLog($"Cache response for {bakeType}, TextureID={block.TextureID}", Client);
+                // FIXME: Use this. Right now we don't bother to check if this is a foreign host
+                var host = Utils.BytesToString(block.HostName);
 
-                if (block.TextureID != UUID.Zero)
+                Textures[(int)index].TextureID = block.TextureID;
+            }
+            else
+            {
+                // The server does not have a cache of this bake layer
+                // FIXME:
+            }
+        }
+
+        OnAgentCachedBakes(new AgentCachedBakesReplyEventArgs());
+    }
+
+    private void Network_OnDisconnected(object sender, DisconnectedEventArgs e)
+    {
+        DisposalHelper.SafeDispose(RebakeScheduleTimer, "RebakeScheduleTimer", (m, ex) => Logger.Debug(m, ex));
+        RebakeScheduleTimer = null;
+
+        DisposalHelper.SafeCancelAndDispose(AppearanceCts, (m, ex) => Logger.Debug(m, ex));
+        AppearanceCts = null;
+
+        DisposalHelper.SafeAction(() => AppearanceThread = null, "Clear AppearanceThread", (m, ex) => Logger.Debug(m, ex));
+        Interlocked.Exchange(ref AppearanceThreadRunning, 0);
+    }
+
+    private void Network_OnSimChanged(object sender, SimChangedEventArgs e)
+    {
+        Client.Network.CurrentSim.Caps.CapabilitiesReceived += Simulator_OnCapabilitiesReceived;
+    }
+
+    private void Objects_AttachmentUpdate(object sender, PrimEventArgs e)
+    {
+        Primitive prim = e.Prim;
+
+        if (Client.Self.LocalID == 0
+            || prim.ParentID != Client.Self.LocalID
+            || prim.NameValues == null
+            || !prim.IsAttachment
+            || !e.IsNew)
+        {
+            return;
+        }
+
+        // Updates Attachment points as soon as the data arrives
+        for (int i = 0; i < prim.NameValues.Length; ++i)
+        {
+            if (prim.NameValues[i].Name != "AttachItemID")
+            {
+                continue;
+            }
+
+            try
+            {
+                var valueStr = prim.NameValues[i].Value?.ToString();
+                if (UUID.TryParse(valueStr, out var inventoryID))
                 {
-                    // A simulator has a cache of this bake layer
-
-                    // FIXME: Use this. Right now we don't bother to check if this is a foreign host
-                    var host = Utils.BytesToString(block.HostName);
-
-                    Textures[(int)index].TextureID = block.TextureID;
+                    var attachPoint = prim.PrimData.AttachmentPoint;
+                    // Always add or update using the attachment point from the primitive
+                    Attachments.AddOrUpdate(inventoryID, attachPoint, (id, old) => attachPoint);
                 }
                 else
                 {
-                    // The server does not have a cache of this bake layer
-                    // FIXME:
+                    Logger.Debug($"Objects_AttachmentUpdate: AttachItemID '{valueStr}' could not be parsed to UUID", Client);
                 }
-            }
-
-            OnAgentCachedBakes(new AgentCachedBakesReplyEventArgs());
-        }
-
-        private void Network_OnDisconnected(object sender, DisconnectedEventArgs e)
-        {
-            if (RebakeScheduleTimer != null)
-            {
-                RebakeScheduleTimer.Dispose();
-                RebakeScheduleTimer = null;
-            }
-
-            if (AppearanceCts != null)
-            {
-                AppearanceCts.Cancel();
-                AppearanceCts.Dispose();
-                AppearanceCts = null;
-            }
-
-            if (AppearanceThread != null)
-            {
-                AppearanceThread = null;
-                AppearanceThreadRunning = 0;
-            }
-        }
-
-        private void Network_OnSimChanged(object sender, SimChangedEventArgs e)
-        {
-            Client.Network.CurrentSim.Caps.CapabilitiesReceived += Simulator_OnCapabilitiesReceived;
-        }
-
-        private void Objects_AttachmentUpdate(object sender, PrimEventArgs e)
-        {
-            Primitive prim = e.Prim;
-
-            if (Client.Self.LocalID == 0
-                || prim.ParentID != Client.Self.LocalID
-                || prim.NameValues == null
-                || !prim.IsAttachment
-                || !e.IsNew)
-            {
-                return;
-            }
-
-            // Updates Attachment points as soon as the data arrives
-            for (int i = 0; i < prim.NameValues.Length; ++i)
-            {
-                if (prim.NameValues[i].Name != "AttachItemID")
-                {
-                    continue;
-                }
-
-                try
-                {
-                    var valueStr = prim.NameValues[i].Value?.ToString();
-                    if (UUID.TryParse(valueStr, out var inventoryID))
-                    {
-                        var attachPoint = prim.PrimData.AttachmentPoint;
-                        // Always add or update using the attachment point from the primitive
-                        Attachments.AddOrUpdate(inventoryID, attachPoint, (id, old) => attachPoint);
-                    }
-                    else
-                    {
-                        Logger.Debug($"Objects_AttachmentUpdate: AttachItemID '{valueStr}' could not be parsed to UUID", Client);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Debug($"Objects_AttachmentUpdate: failed parsing AttachItemID: {ex}", Client);
-                }
-
-                break;
-            }
-        }
-
-        private async void Simulator_OnCapabilitiesReceived(object sender, CapabilitiesReceivedEventArgs e)
-        {
-            try
-            {
-                e.Simulator.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived;
-
-                if (e.Simulator == Client.Network.CurrentSim && Client.Settings.SEND_AGENT_APPEARANCE)
-                {
-                    var updateSucceeded = await UpdateAvatarAppearanceAsync(CancellationToken.None).ConfigureAwait(false);
-                    if (updateSucceeded)
-                    {
-                        await SendOutfitToCurrentSimulatorAsync(CancellationToken.None).ConfigureAwait(false);
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                Logger.Debug("Simulator_OnCapabilitiesReceived cancelled.", Client);
             }
             catch (Exception ex)
             {
-                Logger.Warn($"Simulator_OnCapabilitiesReceived failed: {ex}", Client);
-            }
-        }
-
-        #endregion Callbacks
-
-        #region Static Helpers
-
-        /// <summary>
-        /// Converts a WearableType to a bodypart or clothing WearableType
-        /// </summary>
-        /// <param name="type">A WearableType</param>
-        /// <returns>AssetType.Bodypart or AssetType.Clothing or AssetType.Unknown</returns>
-        public static AssetType WearableTypeToAssetType(WearableType type)
-        {
-            switch (type)
-            {
-                case WearableType.Shape:
-                case WearableType.Skin:
-                case WearableType.Hair:
-                case WearableType.Eyes:
-                    return AssetType.Bodypart;
-                case WearableType.Shirt:
-                case WearableType.Pants:
-                case WearableType.Shoes:
-                case WearableType.Socks:
-                case WearableType.Jacket:
-                case WearableType.Gloves:
-                case WearableType.Undershirt:
-                case WearableType.Underpants:
-                case WearableType.Skirt:
-                case WearableType.Tattoo:
-                case WearableType.Alpha:
-                case WearableType.Physics:
-                    return AssetType.Clothing;
-                default:
-                    return AssetType.Unknown;
-            }
-        }
-
-        /// <summary>
-        /// Converts a BakeType to the corresponding baked texture slot in AvatarTextureIndex
-        /// </summary>
-        /// <param name="index">A BakeType</param>
-        /// <returns>The AvatarTextureIndex slot that holds the given BakeType</returns>
-        public static AvatarTextureIndex BakeTypeToAgentTextureIndex(BakeType index)
-        {
-            switch (index)
-            {
-                case BakeType.Head:
-                    return AvatarTextureIndex.HeadBaked;
-                case BakeType.UpperBody:
-                    return AvatarTextureIndex.UpperBaked;
-                case BakeType.LowerBody:
-                    return AvatarTextureIndex.LowerBaked;
-                case BakeType.Eyes:
-                    return AvatarTextureIndex.EyesBaked;
-                case BakeType.Skirt:
-                    return AvatarTextureIndex.SkirtBaked;
-                case BakeType.Hair:
-                    return AvatarTextureIndex.HairBaked;
-                case BakeType.BakedLeftArm:
-                    return AvatarTextureIndex.LeftArmBaked;
-                case BakeType.BakedLeftLeg:
-                    return AvatarTextureIndex.LegLegBaked;
-                case BakeType.BakedAux1:
-                    return AvatarTextureIndex.Aux1Baked;
-                case BakeType.BakedAux2:
-                    return AvatarTextureIndex.Aux2Baked;
-                case BakeType.BakedAux3:
-                    return AvatarTextureIndex.Aux3Baked;
-                default:
-                    return AvatarTextureIndex.Unknown;
-            }
-        }
-
-        /// <summary>
-        /// Gives the layer number that is used for morph mask
-        /// </summary>
-        /// <param name="bakeType">>A BakeType</param>
-        /// <returns>Which layer number as defined in BakeTypeToTextures is used for morph mask</returns>
-        public static AvatarTextureIndex MorphLayerForBakeType(BakeType bakeType)
-        {
-            // Indexes return here correspond to those returned
-            // in BakeTypeToTextures(), those two need to be in sync.
-            // Which wearable layer is used for morph is defined in avatar_lad.xml
-            // by looking for <layer> that has <morph_mask> defined in it, and
-            // looking up which wearable is defined in that layer. Morph mask
-            // is never combined, it's always a straight copy of one single clothing
-            // item's alpha channel per bake.
-            switch (bakeType)
-            {
-                case BakeType.Head:
-                    return AvatarTextureIndex.Hair; // hair
-                case BakeType.UpperBody:
-                    return AvatarTextureIndex.UpperShirt; // shirt
-                case BakeType.LowerBody:
-                    return AvatarTextureIndex.LowerPants; // lower pants
-                case BakeType.Skirt:
-                    return AvatarTextureIndex.Skirt; // skirt
-                case BakeType.Hair:
-                    return AvatarTextureIndex.Hair; // hair
-                case BakeType.BakedLeftArm:
-                    return AvatarTextureIndex.LeftArmTattoo;
-                case BakeType.BakedLeftLeg:
-                    return AvatarTextureIndex.LeftLegTattoo;
-                case BakeType.BakedAux1:
-                    return AvatarTextureIndex.Aux1Tattoo;
-                case BakeType.BakedAux2:
-                    return AvatarTextureIndex.Aux2Tattoo;
-                case BakeType.BakedAux3:
-                    return AvatarTextureIndex.Aux3Tattoo;
-                default:
-                    return AvatarTextureIndex.Unknown;
-            }
-        }
-
-        /// <summary>
-        /// Converts a BakeType to a list of the texture slots that make up that bake
-        /// </summary>
-        /// <param name="bakeType">A BakeType</param>
-        /// <returns>A list of texture slots that are inputs for the given bake</returns>
-        public static List<AvatarTextureIndex> BakeTypeToTextures(BakeType bakeType)
-        {
-            var textures = new List<AvatarTextureIndex>();
-
-            switch (bakeType)
-            {
-                case BakeType.Head:
-                    textures.Add(AvatarTextureIndex.HeadBodypaint);
-                    textures.Add(AvatarTextureIndex.HeadTattoo);
-                    textures.Add(AvatarTextureIndex.Hair);
-                    textures.Add(AvatarTextureIndex.HeadAlpha);
-                    break;
-                case BakeType.UpperBody:
-                    textures.Add(AvatarTextureIndex.UpperBodypaint);
-                    textures.Add(AvatarTextureIndex.UpperTattoo);
-                    textures.Add(AvatarTextureIndex.UpperGloves);
-                    textures.Add(AvatarTextureIndex.UpperUndershirt);
-                    textures.Add(AvatarTextureIndex.UpperShirt);
-                    textures.Add(AvatarTextureIndex.UpperJacket);
-                    textures.Add(AvatarTextureIndex.UpperAlpha);
-                    break;
-                case BakeType.LowerBody:
-                    textures.Add(AvatarTextureIndex.LowerBodypaint);
-                    textures.Add(AvatarTextureIndex.LowerTattoo);
-                    textures.Add(AvatarTextureIndex.LowerUnderpants);
-                    textures.Add(AvatarTextureIndex.LowerSocks);
-                    textures.Add(AvatarTextureIndex.LowerShoes);
-                    textures.Add(AvatarTextureIndex.LowerPants);
-                    textures.Add(AvatarTextureIndex.LowerJacket);
-                    textures.Add(AvatarTextureIndex.LowerAlpha);
-                    break;
-                case BakeType.Eyes:
-                    textures.Add(AvatarTextureIndex.EyesIris);
-                    textures.Add(AvatarTextureIndex.EyesAlpha);
-                    break;
-                case BakeType.Skirt:
-                    textures.Add(AvatarTextureIndex.Skirt);
-                    break;
-                case BakeType.Hair:
-                    textures.Add(AvatarTextureIndex.Hair);
-                    textures.Add(AvatarTextureIndex.HairAlpha);
-                    break;
+                Logger.Debug($"Objects_AttachmentUpdate: failed parsing AttachItemID: {ex}", Client);
             }
 
-            return textures;
+            break;
         }
+    }
 
-        #endregion Static Helpers
-
-        /// <summary>
-        /// Async implementation of the appearance setting workflow.
-        /// </summary>
-        private async Task RequestSetAppearanceAsync(bool forceRebake, CancellationToken cancellationToken)
+    private async void Simulator_OnCapabilitiesReceived(object sender, CapabilitiesReceivedEventArgs e)
+    {
+        try
         {
-            var success = true;
-            try
+            e.Simulator.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived;
+
+            if (e.Simulator == Client.Network.CurrentSim && Client.Settings.SEND_AGENT_APPEARANCE)
             {
-                if (forceRebake)
+                var updateSucceeded = await UpdateAvatarAppearanceAsync(CancellationToken.None).ConfigureAwait(false);
+                if (updateSucceeded)
                 {
-                    for (var bakedIndex = 0; bakedIndex < BAKED_TEXTURE_COUNT; bakedIndex++)
-                        Textures[(int)BakeTypeToAgentTextureIndex((BakeType)bakedIndex)].TextureID = UUID.Zero;
+                    await SendOutfitToCurrentSimulatorAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            Logger.Debug("Simulator_OnCapabilitiesReceived cancelled.", Client);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"Simulator_OnCapabilitiesReceived failed: {ex}", Client);
+        }
+    }
+
+    #endregion Callbacks
+
+    #region Static Helpers
+
+    /// <summary>
+    /// Converts a WearableType to a bodypart or clothing WearableType
+    /// </summary>
+    /// <param name="type">A WearableType</param>
+    /// <returns>AssetType.Bodypart or AssetType.Clothing or AssetType.Unknown</returns>
+    public static AssetType WearableTypeToAssetType(WearableType type)
+    {
+        switch (type)
+        {
+            case WearableType.Shape:
+            case WearableType.Skin:
+            case WearableType.Hair:
+            case WearableType.Eyes:
+                return AssetType.Bodypart;
+            case WearableType.Shirt:
+            case WearableType.Pants:
+            case WearableType.Shoes:
+            case WearableType.Socks:
+            case WearableType.Jacket:
+            case WearableType.Gloves:
+            case WearableType.Undershirt:
+            case WearableType.Underpants:
+            case WearableType.Skirt:
+            case WearableType.Tattoo:
+            case WearableType.Alpha:
+            case WearableType.Physics:
+                return AssetType.Clothing;
+            default:
+                return AssetType.Unknown;
+        }
+    }
+
+    /// <summary>
+    /// Converts a BakeType to the corresponding baked texture slot in AvatarTextureIndex
+    /// </summary>
+    /// <param name="index">A BakeType</param>
+    /// <returns>The AvatarTextureIndex slot that holds the given BakeType</returns>
+    public static AvatarTextureIndex BakeTypeToAgentTextureIndex(BakeType index)
+    {
+        switch (index)
+        {
+            case BakeType.Head:
+                return AvatarTextureIndex.HeadBaked;
+            case BakeType.UpperBody:
+                return AvatarTextureIndex.UpperBaked;
+            case BakeType.LowerBody:
+                return AvatarTextureIndex.LowerBaked;
+            case BakeType.Eyes:
+                return AvatarTextureIndex.EyesBaked;
+            case BakeType.Skirt:
+                return AvatarTextureIndex.SkirtBaked;
+            case BakeType.Hair:
+                return AvatarTextureIndex.HairBaked;
+            case BakeType.BakedLeftArm:
+                return AvatarTextureIndex.LeftArmBaked;
+            case BakeType.BakedLeftLeg:
+                return AvatarTextureIndex.LegLegBaked;
+            case BakeType.BakedAux1:
+                return AvatarTextureIndex.Aux1Baked;
+            case BakeType.BakedAux2:
+                return AvatarTextureIndex.Aux2Baked;
+            case BakeType.BakedAux3:
+                return AvatarTextureIndex.Aux3Baked;
+            default:
+                return AvatarTextureIndex.Unknown;
+        }
+    }
+
+    /// <summary>
+    /// Gives the layer number that is used for morph mask
+    /// </summary>
+    /// <param name="bakeType">>A BakeType</param>
+    /// <returns>Which layer number as defined in BakeTypeToTextures is used for morph mask</returns>
+    public static AvatarTextureIndex MorphLayerForBakeType(BakeType bakeType)
+    {
+        // Indexes return here correspond to those returned
+        // in BakeTypeToTextures(), those two need to be in sync.
+        // Which wearable layer is used for morph is defined in avatar_lad.xml
+        // by looking for <layer> that has <morph_mask> defined in it, and
+        // looking up which wearable is defined in that layer. Morph mask
+        // is never combined, it's always a straight copy of one single clothing
+        // item's alpha channel per bake.
+        switch (bakeType)
+        {
+            case BakeType.Head:
+                return AvatarTextureIndex.Hair; // hair
+            case BakeType.UpperBody:
+                return AvatarTextureIndex.UpperShirt; // shirt
+            case BakeType.LowerBody:
+                return AvatarTextureIndex.LowerPants; // lower pants
+            case BakeType.Skirt:
+                return AvatarTextureIndex.Skirt; // skirt
+            case BakeType.Hair:
+                return AvatarTextureIndex.Hair; // hair
+            case BakeType.BakedLeftArm:
+                return AvatarTextureIndex.LeftArmTattoo;
+            case BakeType.BakedLeftLeg:
+                return AvatarTextureIndex.LeftLegTattoo;
+            case BakeType.BakedAux1:
+                return AvatarTextureIndex.Aux1Tattoo;
+            case BakeType.BakedAux2:
+                return AvatarTextureIndex.Aux2Tattoo;
+            case BakeType.BakedAux3:
+                return AvatarTextureIndex.Aux3Tattoo;
+            default:
+                return AvatarTextureIndex.Unknown;
+        }
+    }
+
+    /// <summary>
+    /// Converts a BakeType to a list of the texture slots that make up that bake
+    /// </summary>
+    /// <param name="bakeType">A BakeType</param>
+    /// <returns>A list of texture slots that are inputs for the given bake</returns>
+    public static List<AvatarTextureIndex> BakeTypeToTextures(BakeType bakeType)
+    {
+        var textures = new List<AvatarTextureIndex>();
+
+        switch (bakeType)
+        {
+            case BakeType.Head:
+                textures.Add(AvatarTextureIndex.HeadBodypaint);
+                textures.Add(AvatarTextureIndex.HeadTattoo);
+                textures.Add(AvatarTextureIndex.Hair);
+                textures.Add(AvatarTextureIndex.HeadAlpha);
+                break;
+            case BakeType.UpperBody:
+                textures.Add(AvatarTextureIndex.UpperBodypaint);
+                textures.Add(AvatarTextureIndex.UpperTattoo);
+                textures.Add(AvatarTextureIndex.UpperGloves);
+                textures.Add(AvatarTextureIndex.UpperUndershirt);
+                textures.Add(AvatarTextureIndex.UpperShirt);
+                textures.Add(AvatarTextureIndex.UpperJacket);
+                textures.Add(AvatarTextureIndex.UpperAlpha);
+                break;
+            case BakeType.LowerBody:
+                textures.Add(AvatarTextureIndex.LowerBodypaint);
+                textures.Add(AvatarTextureIndex.LowerTattoo);
+                textures.Add(AvatarTextureIndex.LowerUnderpants);
+                textures.Add(AvatarTextureIndex.LowerSocks);
+                textures.Add(AvatarTextureIndex.LowerShoes);
+                textures.Add(AvatarTextureIndex.LowerPants);
+                textures.Add(AvatarTextureIndex.LowerJacket);
+                textures.Add(AvatarTextureIndex.LowerAlpha);
+                break;
+            case BakeType.Eyes:
+                textures.Add(AvatarTextureIndex.EyesIris);
+                textures.Add(AvatarTextureIndex.EyesAlpha);
+                break;
+            case BakeType.Skirt:
+                textures.Add(AvatarTextureIndex.Skirt);
+                break;
+            case BakeType.Hair:
+                textures.Add(AvatarTextureIndex.Hair);
+                textures.Add(AvatarTextureIndex.HairAlpha);
+                break;
+        }
+
+        return textures;
+    }
+
+    #endregion Static Helpers
+
+    /// <summary>
+    /// Async implementation of the appearance setting workflow.
+    /// </summary>
+    private async Task RequestSetAppearanceAsync(bool forceRebake, CancellationToken cancellationToken)
+    {
+        var success = true;
+        try
+        {
+            if (forceRebake)
+            {
+                for (var bakedIndex = 0; bakedIndex < BAKED_TEXTURE_COUNT; bakedIndex++)
+                    Textures[(int)BakeTypeToAgentTextureIndex((BakeType)bakedIndex)].TextureID = UUID.Zero;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!GatherAgentAttachments())
+            {
+                Logger.Warn("Failed to retrieve a list of current agent attachments, appearance cannot be set", Client);
+                throw new AppearanceManagerException(
+                    "Failed to retrieve a list of current agent attachments, appearance cannot be set");
+            }
+
+            if (ServerBakingRegion())
+            {
+                if (!Wearables.Any())
+                {
+                    await GatherAgentWearablesAsync(cancellationToken).ConfigureAwait(false);
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (!GatherAgentAttachments())
+                if (!ServerBakingDone || forceRebake)
                 {
-                    Logger.Warn("Failed to retrieve a list of current agent attachments, appearance cannot be set", Client);
-                    throw new AppearanceManagerException(
-                        "Failed to retrieve a list of current agent attachments, appearance cannot be set");
-                }
-
-                if (ServerBakingRegion())
-                {
-                    if (!Wearables.Any())
+                    if (await UpdateAvatarAppearanceAsync(cancellationToken).ConfigureAwait(false))
                     {
-                        await GatherAgentWearablesAsync(cancellationToken).ConfigureAwait(false);
+                        ServerBakingDone = true;
                     }
-
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    if (!ServerBakingDone || forceRebake)
-                    {
-                        if (await UpdateAvatarAppearanceAsync(cancellationToken).ConfigureAwait(false))
-                        {
-                            ServerBakingDone = true;
-                        }
-                        else
-                        {
-                            success = false;
-                        }
-                    }
-                }
-                else
-                {
-                    if (!Wearables.Any())
-                    {
-                        if (!await GatherAgentWearablesAsync(cancellationToken))
-                        {
-                            Logger.Error("Failed to retrieve a list of current agent wearables, appearance cannot be set", Client);
-                            throw new AppearanceManagerException(
-                                "Failed to retrieve a list of current agent wearables, appearance cannot be set");
-                        }
-                    }
-
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    ServerBakingDone = false;
-
-                    if (!await DownloadWearablesAsync().ConfigureAwait(false))
+                    else
                     {
                         success = false;
-                        Logger.Warn("One or more agent wearables failed to download, appearance will be incomplete", Client);
                     }
-
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    if (SetAppearanceSerialNum == 0 && !forceRebake)
-                    {
-                        if (!await GetCachedBakesAsync().ConfigureAwait(false))
-                        {
-                            Logger.Warn("Failed to get a list of cached bakes from the simulator, appearance will be rebaked", Client);
-                        }
-                    }
-
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    if (!await CreateBakesAsync().ConfigureAwait(false))
-                    {
-                        success = false;
-                        Logger.Warn("Failed to create or upload one or more bakes, appearance will be incomplete", Client);
-                    }
-
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    RequestAgentSetAppearance();
                 }
             }
-            catch (Exception e)
+            else
             {
-                if (e is OperationCanceledException)
+                if (!Wearables.Any())
                 {
-                    Logger.Debug("Setting appearance cancelled.", Client);
-                }
-                else
-                {
-                    Logger.Warn($"Failed to set appearance with exception {e}", Client);
+                    if (!await GatherAgentWearablesAsync(cancellationToken))
+                    {
+                        Logger.Error("Failed to retrieve a list of current agent wearables, appearance cannot be set", Client);
+                        throw new AppearanceManagerException(
+                            "Failed to retrieve a list of current agent wearables, appearance cannot be set");
+                    }
                 }
 
-                success = false;
-            }
-            finally
-            {
-                Interlocked.Exchange(ref AppearanceThreadRunning, 0);
-                OnAppearanceSet(new AppearanceSetEventArgs(success));
+                cancellationToken.ThrowIfCancellationRequested();
+
+                ServerBakingDone = false;
+
+                if (!await DownloadWearablesAsync().ConfigureAwait(false))
+                {
+                    success = false;
+                    Logger.Warn("One or more agent wearables failed to download, appearance will be incomplete", Client);
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (SetAppearanceSerialNum == 0 && !forceRebake)
+                {
+                    if (!await GetCachedBakesAsync().ConfigureAwait(false))
+                    {
+                        Logger.Warn("Failed to get a list of cached bakes from the simulator, appearance will be rebaked", Client);
+                    }
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (!await CreateBakesAsync().ConfigureAwait(false))
+                {
+                    success = false;
+                    Logger.Warn("Failed to create or upload one or more bakes, appearance will be incomplete", Client);
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                RequestAgentSetAppearance();
             }
         }
+        catch (Exception e)
+        {
+            if (e is OperationCanceledException)
+            {
+                Logger.Debug("Setting appearance cancelled.", Client);
+            }
+            else
+            {
+                Logger.Warn($"Failed to set appearance with exception {e}", Client);
+            }
+
+            success = false;
+        }
+        finally
+        {
+            Interlocked.Exchange(ref AppearanceThreadRunning, 0);
+            OnAppearanceSet(new AppearanceSetEventArgs(success));
+        }
+    }
     }
 
     #region AppearanceManager EventArgs Classes

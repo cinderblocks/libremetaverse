@@ -92,7 +92,7 @@ namespace OpenMetaverse.Http
             }
             catch { /* noop */ }
 
-            _queueCts?.Dispose();
+            DisposalHelper.SafeCancelAndDispose(_queueCts);
             _queueCts = null;
             GC.SuppressFinalize(this);
         }
@@ -119,8 +119,8 @@ namespace OpenMetaverse.Http
                 _reqPayloadMap = initial;
                 _reqPayloadBytes = OSDParser.SerializeLLSDXmlBytes(_reqPayloadMap);
             }
-            _queueCts?.Cancel();
-            _queueCts?.Dispose();
+            // Cancel and dispose any previous CTS safely
+            DisposalHelper.SafeCancelAndDispose(_queueCts);
             _queueCts = new CancellationTokenSource();
 
             _eqTask = Repeat.IntervalAsync(TimeSpan.FromSeconds(1), ack, _queueCts.Token, true);
@@ -168,29 +168,30 @@ namespace OpenMetaverse.Http
         public void Stop(bool immediate)
         {
             // do we need to POST one more request telling EQ we are done? i dunno!
-            _queueCts.Cancel();
+            DisposalHelper.SafeCancelAndDispose(_queueCts);
 
             // Wait a short time for the background task to finish so resources are cleaned up
             try
             {
                 if (_eqTask != null)
                 {
-                    // Wait up to 2 seconds for the repeating task to stop
-                    if (!_eqTask.Wait(2000))
+                    // Wait up to 2 seconds for the repeating task to stop and observe exceptions
+                    DisposalHelper.SafeWaitTask(_eqTask, TimeSpan.FromSeconds(2), (m, ex) =>
                     {
-                        Logger.Debug($"EventQueueClient background task did not stop within timeout for {Simulator}");
-                    }
-
-                    // Observe any exceptions to avoid unobserved task exceptions
-                    if (_eqTask.IsFaulted && _eqTask.Exception != null)
-                    {
-                        Logger.Error($"EventQueueClient background task faulted: {_eqTask.Exception}");
-                    }
+                        if (ex == null)
+                        {
+                            Logger.Debug($"{m} for {Simulator}");
+                        }
+                        else
+                        {
+                            Logger.Error(m, ex);
+                        }
+                    });
                 }
             }
-            catch (AggregateException ae)
+            catch (Exception ex)
             {
-                Logger.Error($"Exception while waiting for EventQueueClient task to stop: {ae}");
+                Logger.Error($"Exception while waiting for EventQueueClient task to stop: {ex.Message}", ex);
             }
         }
 
@@ -216,7 +217,7 @@ namespace OpenMetaverse.Http
         /// of the payload to detect HTML/DOCTYPE bodies or LLSD/XML markers. Centralized to keep parsing
         /// decision logic in one place and to provide consistent logging behaviour.
         /// </summary>
-        /// <param name="response">The HTTP response message (may be null).</param>
+        /// <param name="response">The HTTP response message (might be null).</param>
         /// <param name="data">The response body bytes.</param>
         /// <returns>True if the payload should be treated as LLSD/XML and can be parsed; false otherwise.</returns>
         private static bool IsLikelyLLSD(HttpResponseMessage response, byte[] data)

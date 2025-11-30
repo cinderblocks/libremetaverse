@@ -133,6 +133,71 @@ namespace LibreMetaverse
         }
 
         /// <summary>
+        /// Safely wait for a <see cref="Task"/> to complete with a timeout and observe exceptions.
+        /// Returns true if the task completed within the timeout, false otherwise.
+        /// </summary>
+        public static bool SafeWaitTask(Task task, TimeSpan timeout, Action<string, Exception> logger = null)
+        {
+            if (task == null) return true;
+
+            try
+            {
+                if (!task.Wait(timeout))
+                {
+                    logger?.Invoke("Task did not complete in time", null);
+                    return false;
+                }
+
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    // Unwrap AggregateException for logging
+                    logger?.Invoke("Task faulted", task.Exception);
+                }
+
+                return true;
+            }
+            catch (AggregateException ae)
+            {
+                logger?.Invoke("Error waiting for task", ae);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                logger?.Invoke("Error waiting for task", ex);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Async-friendly variant that awaits a <see cref="Task"/> with a timeout and observes exceptions.
+        /// Returns true if the task completed within the timeout, false otherwise.
+        /// </summary>
+        public static async Task<bool> SafeWaitTaskAsync(Task task, TimeSpan timeout, Action<string, Exception> logger = null)
+        {
+            if (task == null) return true;
+
+            try
+            {
+                var completed = await Task.WhenAny(task, Task.Delay(timeout)).ConfigureAwait(false);
+                if (completed != task)
+                {
+                    logger?.Invoke("Task did not complete in time", null);
+                    return false;
+                }
+
+                // Await again to propagate exceptions if any
+                await task.ConfigureAwait(false);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logger?.Invoke("Error awaiting task", ex);
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Execute an action with automatic resource disposal
         /// </summary>
         public static TResult Using<TDisposable, TResult>(
@@ -180,6 +245,24 @@ namespace LibreMetaverse
                     disposed = true;
                     onDispose();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Execute an action safely catching any exceptions and reporting via logger.
+        /// </summary>
+        public static void SafeAction(Action action, string actionName = null, Action<string, Exception> logger = null)
+        {
+            if (action == null) return;
+
+            try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                var message = string.IsNullOrEmpty(actionName) ? "Error executing action" : $"Error executing {actionName}";
+                logger?.Invoke(message, ex);
             }
         }
     }

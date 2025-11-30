@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2024, Sjofn LLC.
+ * Copyright (c) 2021-2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -137,16 +137,18 @@ namespace LibreMetaverse.Voice.Vivox
             // Start the background thread
             if (_posThread != null && _posThread.IsAlive)
             {
-                _posRestart.Set();
-                _posTokenSource.Cancel();
+                try { _posRestart?.Set(); } catch { }
+                DisposalHelper.SafeCancelAndDispose(_posTokenSource, (m, ex) => Logger.Debug(m, ex));
             }
-            
+
             _posTokenSource = new CancellationTokenSource();
             _posThread = new Thread(PositionThreadBody)
             {
                 Name = "VoicePositionUpdate",
                 IsBackground = true
             };
+            // Ensure we dispose any previous event and create a fresh one
+            DisposalHelper.SafeDispose(_posRestart);
             _posRestart = new ManualResetEvent(false);
             _posThread.Start();
 
@@ -234,11 +236,21 @@ namespace LibreMetaverse.Voice.Vivox
             {
                 if (_posThread.IsAlive)
                 {
-                    _posRestart.Set();
-                    _posTokenSource.Cancel();
+                    try { _posRestart?.Set(); } catch { }
+                    DisposalHelper.SafeCancelAndDispose(_posTokenSource, (m, ex) => Logger.Debug(m, ex));
+                    DisposalHelper.SafeJoinThread(_posThread, TimeSpan.FromSeconds(2), (m, ex) =>
+                    {
+                        if (ex == null) Logger.Debug(m);
+                        else Logger.Error(m, ex);
+                    });
                 }
+
                 _posThread = null;
             }
+
+            // Dispose ManualResetEvent
+            DisposalHelper.SafeDispose(_posRestart, "Voice position restart event", (m, ex) => Logger.Debug(m, ex));
+            _posRestart = null;
 
             // Close all sessions
             foreach (var s in _sessions.Values)

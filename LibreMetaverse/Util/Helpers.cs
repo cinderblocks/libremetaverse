@@ -659,7 +659,26 @@ namespace OpenMetaverse
             }
             return decodedOsd;
         }
+
+        /// <summary>
+        /// Execute an action safely catching any exceptions and reporting via logger.
+        /// </summary>
+        public static void SafeAction(Action action, string actionName = null, Action<string, Exception> logger = null)
+        {
+            if (action == null) return;
+
+            try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                var message = string.IsNullOrEmpty(actionName) ? "Error executing action" : $"Error executing {actionName}";
+                logger?.Invoke(message, ex);
+            }
+        }
     }
+
     public static class AsyncHelper
     {
 
