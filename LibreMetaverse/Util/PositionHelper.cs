@@ -25,6 +25,7 @@
  */
 
 using OpenMetaverse;
+using System.Collections.Generic;
 
 namespace LibreMetaverse
 {
@@ -123,7 +124,22 @@ namespace LibreMetaverse
         /// </summary>
         public static string FormatRegionCoordinates(string regionName, int? x = null, int? y = null, int? z = null)
         {
-            return regionName + Utilities.FormatCoordinates(x, y, z);
+            return regionName + FormatCoordinates(x, y, z);
+        }
+
+        /// <summary>
+        /// Create a formatted coordinate string from optional X, Y, Z values
+        /// </summary>
+        public static string FormatCoordinates(int? x = null, int? y = null, int? z = null)
+        {
+            if (x == null && y == null && z == null) return string.Empty;
+
+            var coords = new List<string>();
+            if (x.HasValue) coords.Add(x.Value.ToString());
+            if (y.HasValue) coords.Add(y.Value.ToString());
+            if (z.HasValue) coords.Add(z.Value.ToString());
+
+            return coords.Count > 0 ? $" ({string.Join(",", coords)})" : string.Empty;
         }
     }
 }
