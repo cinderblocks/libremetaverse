@@ -629,18 +629,24 @@ namespace OpenMetaverse
             if (callback != null && Cache.HasAsset(assetID))
             {
                 byte[] data = Cache.GetCachedAssetBytes(assetID);
-                transfer.AssetData = data;
-                transfer.Success = true;
-                transfer.Status = StatusCode.OK;
+                if (data != null)
+                {
+                    transfer.AssetData = data;
+                    transfer.Success = true;
+                    transfer.Status = StatusCode.OK;
 
-                Asset asset = CreateAssetWrapper(assetType);
-                asset.AssetData = data;
-                asset.AssetID = assetID;
+                    Asset asset = CreateAssetWrapper(assetType);
+                    asset.AssetData = data;
+                    asset.AssetID = assetID;
 
-                try { callback(transfer, asset); }
-                catch (Exception e) { Logger.Error(e.Message, e, Client); }
+                    try { callback(transfer, asset); }
+                    catch (Exception e) { Logger.Error(e.Message, e, Client); }
 
-                return;
+                    return;
+                }
+
+                // cache entry exists but could not be read; treat as cache miss and fall through to network fetch
+                Logger.Warn($"Asset cache entry exists for {assetID} but reading failed; fetching from server", Client);
             }
 
             // If ViewerAsset capability exists and asset is directly fetchable, use that,
@@ -859,18 +865,24 @@ namespace OpenMetaverse
             if (callback != null && Cache.HasAsset(assetID))
             {
                 byte[] data = Cache.GetCachedAssetBytes(assetID);
-                transfer.AssetData = data;
-                transfer.Success = true;
-                transfer.Status = StatusCode.OK;
+                if (data != null)
+                {
+                    transfer.AssetData = data;
+                    transfer.Success = true;
+                    transfer.Status = StatusCode.OK;
 
-                Asset asset = CreateAssetWrapper(assetType);
-                asset.AssetData = data;
-                asset.AssetID = assetID;
+                    Asset asset = CreateAssetWrapper(assetType);
+                    asset.AssetData = data;
+                    asset.AssetID = assetID;
 
-                try { callback(transfer, asset); }
-                catch (Exception e) { Logger.Error(e.Message, e, Client); }
+                    try { callback(transfer, asset); }
+                    catch (Exception e) { Logger.Error(e.Message, e, Client); }
 
-                return;
+                    return;
+                }
+
+                // cache entry exists but could not be read; treat as cache miss and fall through to network fetch
+                Logger.Warn($"Asset cache entry exists for {assetID} but reading failed; fetching from server", Client);
             }
             
             // If ViewerAsset capability exists, use that, if not, fallback to UDP
