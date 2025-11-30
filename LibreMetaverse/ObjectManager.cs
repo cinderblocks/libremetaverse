@@ -2013,7 +2013,7 @@ namespace OpenMetaverse
         /// <param name="newURL">Set current URL to this</param>
         /// <param name="face">Prim face number</param>
         /// <param name="sim">Simulator in which prim is located</param>
-        public void NavigateObjectMedia(UUID primID, int face, string newURL, Simulator sim)
+        public void NavigateObjectMedia(UUID primID, int face, string newURL, Simulator sim, CancellationToken cancellationToken = default)
         {
             Uri cap;
             if ((cap = Client.Network.CurrentSim.Caps?.CapabilityURI("ObjectMediaNavigate")) == null)
@@ -2027,9 +2027,13 @@ namespace OpenMetaverse
                 PrimID = primID, URL = newURL, Face = face
             };
 
-            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(), 
-                CancellationToken.None, (response, data, error) =>
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(),
+                cancellationToken, (response, data, error) =>
             {
+                // If the operation was cancelled, ignore the response
+                if (cancellationToken.IsCancellationRequested)
+                    return;
+
                 if (error != null)
                 {
                     Logger.Error($"ObjectMediaNavigate: {error.Message}", error, Client);
@@ -2044,7 +2048,7 @@ namespace OpenMetaverse
         /// <param name="faceMedia">Array the length of prims number of faces. Null on face indexes where there is
         /// no media, <see cref="MediaEntry"/> on faces which contain the media</param>
         /// <param name="sim">Simulator in which prim is located</param>
-        public void UpdateObjectMedia(UUID primID, MediaEntry[] faceMedia, Simulator sim)
+        public void UpdateObjectMedia(UUID primID, MediaEntry[] faceMedia, Simulator sim, CancellationToken cancellationToken = default)
         {
             Uri cap;
             if (sim.Caps == null || (cap = Client.Network.CurrentSim.Caps.CapabilityURI("ObjectMedia")) == null)
@@ -2055,9 +2059,12 @@ namespace OpenMetaverse
 
             ObjectMediaUpdate payload = new ObjectMediaUpdate {PrimID = primID, FaceMedia = faceMedia, Verb = "UPDATE"};
 
-            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(), 
-                CancellationToken.None, (response, data, error) =>
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(),
+                cancellationToken, (response, data, error) =>
             {
+                if (cancellationToken.IsCancellationRequested)
+                    return;
+
                 if (error != null)
                 {
                     Logger.Error($"ObjectMediaUpdate: {error.Message}", error, Client);
@@ -2072,7 +2079,7 @@ namespace OpenMetaverse
         /// <param name="primID">UUID of the primitive</param>
         /// <param name="sim">Simulator where prim is located</param>
         /// <param name="callback">Call this callback when done</param>
-        public void RequestObjectMedia(UUID primID, Simulator sim, ObjectMediaCallback callback)
+        public void RequestObjectMedia(UUID primID, Simulator sim, ObjectMediaCallback callback, CancellationToken cancellationToken = default)
         {
             Uri cap;
             if (sim.Caps != null && (cap = Client.Network.CurrentSim.Caps.CapabilityURI("ObjectMedia")) != null)
@@ -2080,48 +2087,54 @@ namespace OpenMetaverse
                 ObjectMediaRequest payload = new ObjectMediaRequest {PrimID = primID, Verb = "GET"};
 
                 Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(),
-                    CancellationToken.None, (httpResponse, data, error) =>
-                {
-                    if (error != null)
+                    cancellationToken, (httpResponse, data, error) =>
                     {
-                        Logger.Error("Failed retrieving ObjectMedia data", error, Client);
-                        try { callback(false, string.Empty, null); }
-                        catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                        return;
-                    }
-
-                    ObjectMediaMessage msg = new ObjectMediaMessage();
-                    OSD result = OSDParser.Deserialize(data);
-                    msg.Deserialize((OSDMap)result);
-
-                    if (msg.Request is ObjectMediaResponse response)
-                    {
-                        if (Client.Settings.OBJECT_TRACKING)
+                        // If cancelled, invoke callback with failure and ignore response
+                        if (cancellationToken.IsCancellationRequested)
                         {
-                            var kvp = sim.ObjectsPrimitives.FirstOrDefault(
-                                p => p.Value.ID == primID);
-                            if (kvp.Value != null)
-                            {
-                                Primitive prim = kvp.Value;
-                                if (prim != null)
-                                {
-                                    prim.MediaVersion = response.Version;
-                                    prim.FaceMedia = response.FaceMedia;
-                                }
-
-                                sim.ObjectsPrimitives.TryUpdate(kvp.Key, prim, kvp.Value);
-                            }
+                            try { callback(false, string.Empty, null); } catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                            return;
                         }
+                         if (error != null)
+                         {
+                             Logger.Error("Failed retrieving ObjectMedia data", error, Client);
+                             try { callback(false, string.Empty, null); }
+                             catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                             return;
+                         }
 
-                        try { callback(true, response.Version, response.FaceMedia); }
-                        catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                    }
-                    else
-                    {
-                        try { callback(false, string.Empty, null); }
-                        catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                    }
-                });
+                         ObjectMediaMessage msg = new ObjectMediaMessage();
+                         OSD result = OSDParser.Deserialize(data);
+                         msg.Deserialize((OSDMap)result);
+
+                         if (msg.Request is ObjectMediaResponse response)
+                         {
+                             if (Client.Settings.OBJECT_TRACKING)
+                             {
+                                 var kvp = sim.ObjectsPrimitives.FirstOrDefault(
+                                     p => p.Value.ID == primID);
+                                 if (kvp.Value != null)
+                                 {
+                                     Primitive prim = kvp.Value;
+                                     if (prim != null)
+                                     {
+                                         prim.MediaVersion = response.Version;
+                                         prim.FaceMedia = response.FaceMedia;
+                                     }
+
+                                     sim.ObjectsPrimitives.TryUpdate(kvp.Key, prim, kvp.Value);
+                                 }
+                             }
+
+                             try { callback(true, response.Version, response.FaceMedia); }
+                             catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                         }
+                         else
+                         {
+                             try { callback(false, string.Empty, null); }
+                             catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                         }
+                     });
             }
             else
             {
@@ -2131,13 +2144,20 @@ namespace OpenMetaverse
             }
         }
 
-        public async Task<IEnumerable<LegacyMaterial>> RequestMaterials(Simulator sim)
+        public async Task<IEnumerable<LegacyMaterial>> RequestMaterials(Simulator sim, CancellationToken cancellationToken = default)
         {
             if (sim == null) { return null; }
 
             if (sim.Caps == null)
             {
-                await Task.Delay(TimeSpan.FromSeconds(10));
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return null;
+                }
             }
 
             if (sim.Caps == null)
@@ -2152,7 +2172,7 @@ namespace OpenMetaverse
 
             Logger.Info($"Awaiting materials from {uri}", Client);
 
-            await Client.HttpCapsClient.GetRequestAsync(uri, CancellationToken.None,
+            await Client.HttpCapsClient.GetRequestAsync(uri, cancellationToken,
                    ((response, data, error) =>
                    {
                        if (error != null)
@@ -2204,18 +2224,25 @@ namespace OpenMetaverse
                                Logger.Info("Response unparsable; " + System.Text.Encoding.UTF8.GetString(data), Client);
                            }
                        }
-                   }));
+                   })).ConfigureAwait(false);
 
             return matsToReturn;
         }
 
-        public async Task<IEnumerable<LegacyMaterial>> RequestMaterials(Simulator sim, IEnumerable<UUID> materials)
+        public async Task<IEnumerable<LegacyMaterial>> RequestMaterials(Simulator sim, IEnumerable<UUID> materials, CancellationToken cancellationToken = default)
         {
             if (sim == null) { return null; }
 
             if (sim.Caps == null)
             {
-                await Task.Delay(TimeSpan.FromSeconds(10));
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return null;
+                }
             }
 
             if (sim.Caps == null)
@@ -2242,7 +2269,7 @@ namespace OpenMetaverse
 
             Logger.Info($"Awaiting materials (x{array.Count}) from {uri}", Client);
 
-            await Client.HttpCapsClient.PostRequestAsync(uri, OSDFormat.Xml, request, CancellationToken.None,
+            await Client.HttpCapsClient.PostRequestAsync(uri, OSDFormat.Xml, request, cancellationToken,
                        (response, data, error) =>
                        {
                            if (error != null)
@@ -2301,7 +2328,7 @@ namespace OpenMetaverse
                                    Logger.Info("Unable to parse response; " + System.Text.Encoding.UTF8.GetString(data), Client);
                                }
                            }
-                       });
+                       }).ConfigureAwait(false);
 
             return matsToReturn;
         }
