@@ -628,8 +628,7 @@ namespace OpenMetaverse
             // Check asset cache first
             if (callback != null && Cache.HasAsset(assetID))
             {
-                byte[] data = Cache.GetCachedAssetBytes(assetID);
-                if (data != null)
+                if (Cache.TryGetCachedAssetBytes(assetID, out var data))
                 {
                     transfer.AssetData = data;
                     transfer.Success = true;
@@ -864,8 +863,7 @@ namespace OpenMetaverse
             // Check asset cache first
             if (callback != null && Cache.HasAsset(assetID))
             {
-                byte[] data = Cache.GetCachedAssetBytes(assetID);
-                if (data != null)
+                if (Cache.TryGetCachedAssetBytes(assetID, out var data))
                 {
                     transfer.AssetData = data;
                     transfer.Success = true;
@@ -1332,8 +1330,15 @@ namespace OpenMetaverse
                 // Do we have this mesh asset in the cache?
                 if (Client.Assets.Cache.HasAsset(meshID))
                 {
-                    callback(true, new AssetMesh(meshID, Client.Assets.Cache.GetCachedAssetBytes(meshID)));
-                    return;
+                    // Use TryGetCachedAssetBytes to avoid race where HasAsset() exists but read fails
+                    if (Client.Assets.Cache.TryGetCachedAssetBytes(meshID, out var meshBytes))
+                    {
+                        callback(true, new AssetMesh(meshID, meshBytes));
+                        return;
+                    }
+
+                    // Cache entry exists but read failed; fall through to network fetch
+                    Logger.Warn($"Mesh cache entry exists for {meshID} but reading failed; fetching from server", Client);
                 }
                 var req = new DownloadRequest(new Uri($"{Client.Network.CurrentSim.Caps.GetMeshCapURI()}?mesh_id={meshID}"), null, null, null)
                 {
@@ -1524,8 +1529,7 @@ namespace OpenMetaverse
 
             byte[] assetData;
             // Do we have this image in the cache?
-            if (Client.Assets.Cache.HasAsset(textureID)
-                && (assetData = Client.Assets.Cache.GetCachedAssetBytes(textureID)) != null)
+            if (Client.Assets.Cache.HasAsset(textureID) && Client.Assets.Cache.TryGetCachedAssetBytes(textureID, out assetData))
             {
                 ImageDownload image = new ImageDownload {ID = textureID, AssetData = assetData};
                 image.Size = image.AssetData.Length;
@@ -1599,21 +1603,26 @@ namespace OpenMetaverse
 
             byte[] assetData;
             // Do we have this image in the cache?
-            if (Client.Assets.Cache.HasAsset(textureID)
-                && (assetData = await Client.Assets.Cache.GetCachedAssetBytesAsync(textureID)) != null)
+            if (Client.Assets.Cache.HasAsset(textureID))
             {
-                ImageDownload image = new ImageDownload {ID = textureID, AssetData = assetData};
-                image.Size = image.AssetData.Length;
-                image.Transferred = image.AssetData.Length;
-                image.ImageType = imageType;
-                image.AssetType = AssetType.Texture;
-                image.Success = true;
+                var cacheResult = await Client.Assets.Cache.TryGetCachedAssetBytesAsync(textureID).ConfigureAwait(false);
+                if (cacheResult.Success && cacheResult.Data != null)
+                {
+                    assetData = cacheResult.Data;
+                    ImageDownload image = new ImageDownload {ID = textureID, AssetData = assetData};
+                    image.Size = image.AssetData.Length;
+                    image.Transferred = image.AssetData.Length;
+                    image.ImageType = imageType;
+                    image.AssetType = AssetType.Texture;
+                    image.Success = true;
 
-                callback(TextureRequestState.Finished, new AssetTexture(image.ID, image.AssetData));
-                FireImageProgressEvent(image.ID, image.Transferred, image.Size);
-                return;
+                    callback(TextureRequestState.Finished, new AssetTexture(image.ID, image.AssetData));
+                    FireImageProgressEvent(image.ID, image.Transferred, image.Size);
+                    return;
+                }
+
+                Logger.Warn($"Texture cache entry exists for {textureID} but reading failed; fetching from network", Client);
             }
-
             IProgress<LibreMetaverse.HttpCapsClient.ProgressReport> progressReporter = null;
 
             if (progress)
@@ -1884,6 +1893,8 @@ namespace OpenMetaverse
                     catch (Exception ex) { Logger.Error(ex.Message, ex, Client); }
                 }
                 else
+                    try { download.Callback(download, null); }
+                    catch (Exception ex) { Logger.Error(ex.Message, ex, Client); }
                 {
                     download.AssetData = new byte[download.Size];
 
