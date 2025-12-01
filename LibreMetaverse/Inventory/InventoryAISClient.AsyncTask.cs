@@ -226,5 +226,211 @@ namespace LibreMetaverse
             return (success, folders ?? new List<InventoryFolder>(), items ?? new List<InventoryItem>(), links ?? new List<InventoryItem>());
         }
 
+        public async Task<bool> MoveCategoryAsync(UUID sourceUuid, UUID destUuid, CancellationToken cancellationToken = default)
+        {
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                try
+                {
+                    await MoveCategory(sourceUuid, destUuid, success => tcs.TrySetResult(success), cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+
+                return await tcs.Task.ConfigureAwait(false);
+            }
+        }
+
+        public async Task<bool> MoveItemAsync(UUID itemUuid, UUID destUuid, CancellationToken cancellationToken = default)
+        {
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                try
+                {
+                    await MoveItem(itemUuid, destUuid, success => tcs.TrySetResult(success), cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+
+                return await tcs.Task.ConfigureAwait(false);
+            }
+        }
+
+        public async Task<bool> CopyItemAsync(UUID itemUuid, UUID destUuid, CancellationToken cancellationToken = default)
+        {
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                try
+                {
+                    await CopyItem(itemUuid, destUuid, success => tcs.TrySetResult(success), cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+
+                return await tcs.Task.ConfigureAwait(false);
+            }
+        }
+
+        public async Task<bool> CopyCategoryAsync(UUID sourceUuid, UUID destUuid, bool simulate = false, CancellationToken cancellationToken = default)
+        {
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                try
+                {
+                    await CopyCategory(sourceUuid, destUuid, simulate, success => tcs.TrySetResult(success), cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+
+                return await tcs.Task.ConfigureAwait(false);
+            }
+        }
+
+        public async Task<bool> RemoveItemAsync(UUID itemUuid, CancellationToken cancellationToken = default)
+        {
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                try
+                {
+                    await RemoveItem(itemUuid, (success, id) => tcs.TrySetResult(success), cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+
+                return await tcs.Task.ConfigureAwait(false);
+            }
+        }
+
+        public async Task<bool> RemoveCategoryAsync(UUID categoryUuid, CancellationToken cancellationToken = default)
+        {
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                try
+                {
+                    await RemoveCategory(categoryUuid, (success, id) => tcs.TrySetResult(success), cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+
+                return await tcs.Task.ConfigureAwait(false);
+            }
+        }
+
+        public async Task<bool> PurgeDescendentsAsync(UUID categoryUuid, CancellationToken cancellationToken = default)
+        {
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                try
+                {
+                    await PurgeDescendents(categoryUuid, (success, id) => tcs.TrySetResult(success), cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+
+                return await tcs.Task.ConfigureAwait(false);
+            }
+        }
+
+        public async Task<bool> CopyLibraryCategoryAsync(UUID sourceUuid, UUID destUuid, bool copySubfolders, CancellationToken cancellationToken = default)
+        {
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                try
+                {
+                    await CopyLibraryCategory(sourceUuid, destUuid, copySubfolders, success => tcs.TrySetResult(success), cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+
+                return await tcs.Task.ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
+        /// Task-based wrapper that creates inventory and returns the created item.
+        /// </summary>
+        public async Task<(bool success, InventoryItem created)> CreateInventoryAsync(UUID parentUuid, OSD newInventory, bool createLink, CancellationToken cancellationToken = default)
+        {
+            var tcs = new TaskCompletionSource<(bool, InventoryItem)>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                try
+                {
+                    await CreateInventory(parentUuid, newInventory, createLink, (success, item) => tcs.TrySetResult((success, item)), cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+
+                return await tcs.Task.ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
+        /// Task-based wrapper for UpdateCategory.
+        /// </summary>
+        public async Task<bool> UpdateCategoryAsync(UUID categoryUuid, OSD updates, CancellationToken cancellationToken = default)
+        {
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                try
+                {
+                    await UpdateCategory(categoryUuid, updates, success => tcs.TrySetResult(success), cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+
+                return await tcs.Task.ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
+        /// Task-based wrapper for UpdateItem.
+        /// </summary>
+        public async Task<bool> UpdateItemAsync(UUID itemUuid, OSD updates, CancellationToken cancellationToken = default)
+        {
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (cancellationToken.Register(() => tcs.TrySetCanceled()))
+            {
+                try
+                {
+                    await UpdateItem(itemUuid, updates, success => tcs.TrySetResult(success), cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+
+                return await tcs.Task.ConfigureAwait(false);
+            }
+        }
     }
 }

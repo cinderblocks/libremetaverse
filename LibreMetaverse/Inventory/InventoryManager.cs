@@ -46,12 +46,9 @@ namespace OpenMetaverse
     {
         /// <summary>Used for converting shadow_id to asset_id</summary>
         public static readonly UUID MAGIC_ID = new UUID("3c115e51-04f4-523c-9fa6-98aff1034730");
-
         public static Task<List<InventoryBase>> NoResults = Task.FromResult<List<InventoryBase>>(null);
-
         /// <summary>Maximum items allowed to give</summary>
         public const int MAX_GIVE_ITEMS = 66; // viewer code says 66, but 42 in the notification
-
         protected struct InventorySearch
         {
             public UUID Folder;
@@ -953,6 +950,27 @@ namespace OpenMetaverse
                 }
             }
 
+            if (Client.AisClient.IsAvailable)
+            {
+                // Fire-and-forget AIS move using Task-based API. Log failures.
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var success = await Client.AisClient.MoveCategoryAsync(folderID, newParentID).ConfigureAwait(false);
+                        if (!success)
+                        {
+                            Logger.Warn($"AIS MoveCategory failed for {folderID} -> {newParentID}", Client);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"AIS MoveCategory exception for {folderID} -> {newParentID}: {ex.Message}", Client);
+                    }
+                });
+                return;
+            }
+
             var move = new MoveInventoryFolderPacket
             {
                 AgentData =
@@ -995,6 +1013,39 @@ namespace OpenMetaverse
                 }
             }
 
+            if (Client.AisClient.IsAvailable)
+            {
+                // Fire-and-forget AIS calls for each folder move. Run concurrently and log failures.
+                _ = Task.Run(async () =>
+                {
+                    var tasks = new List<Task<bool>>();
+                    foreach (var kv in foldersNewParents)
+                    {
+                        tasks.Add(Client.AisClient.MoveCategoryAsync(kv.Key, kv.Value));
+                    }
+
+                    try
+                    {
+                        var results = await Task.WhenAll(tasks).ConfigureAwait(false);
+                        var idx = 0;
+                        foreach (var kv in foldersNewParents)
+                        {
+                            if (!results[idx])
+                            {
+                                Logger.Warn($"AIS MoveCategory failed for {kv.Key} -> {kv.Value}", Client);
+                            }
+                            idx++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"AIS MoveFolders exception: {ex.Message}", Client);
+                    }
+                });
+
+                return;
+            }
+
             //TODO: Test if this truly supports multiple-folder move
             var move = new MoveInventoryFolderPacket
             {
@@ -1022,7 +1073,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Move an inventory item to a new folder
+        /// Move an inventory item to a new folder (convenience overload)
         /// </summary>
         /// <param name="itemID">The <see cref="UUID"/> of the source item to move</param>
         /// <param name="folderID">The <see cref="UUID"/> of the destination folder</param>
@@ -1032,36 +1083,65 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Move and rename an inventory item
+        /// Move and optionally rename an inventory item
         /// </summary>
         /// <param name="itemID">The <see cref="UUID"/> of the source item to move</param>
         /// <param name="folderID">The <see cref="UUID"/> of the destination folder</param>
-        /// <param name="newName">The name to change the folder to</param>
+        /// <param name="newName">Optional new name for the item</param>
         public void MoveItem(UUID itemID, UUID folderID, string newName)
         {
-            using (var writeLock = _storeLock.WriteLock())
+            // Update local store under write lock
+            try
             {
-                if (_Store.TryGetValue(itemID, out var storeItem) && storeItem is InventoryItem inv)
+                using (var writeLock = _storeLock?.WriteLock())
                 {
-                    if (!string.IsNullOrEmpty(newName))
+                    if (_Store != null && _Store.TryGetValue(itemID, out var storeItem) && storeItem is InventoryItem inv)
                     {
-                        inv.Name = newName;
+                        if (!string.IsNullOrEmpty(newName)) inv.Name = newName;
+                        inv.ParentUUID = folderID;
+                        _Store.UpdateNodeFor(inv);
                     }
-                    inv.ParentUUID = folderID;
-                    _Store.UpdateNodeFor(inv);
                 }
             }
+            catch (Exception ex)
+            {
+                Logger.Warn($"MoveItem local update failed: {ex.Message}", Client);
+            }
 
+            // Prefer AISv3 when available
+            if (Client?.AisClient?.IsAvailable == true)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var success = await Client.AisClient.MoveItemAsync(itemID, folderID).ConfigureAwait(false);
+                        if (!success)
+                        {
+                            Logger.Warn($"AIS MoveItem failed for {itemID} -> {folderID}", Client);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"AIS MoveItem exception for {itemID} -> {folderID}: {ex.Message}", Client);
+                    }
+                });
+
+                return;
+            }
+
+            // Fallback to LLUDP packet
             var move = new MoveInventoryItemPacket
             {
                 AgentData =
                 {
                     AgentID = Client.Self.AgentID,
                     SessionID = Client.Self.SessionID,
-                    Stamp = false //FIXME: ??
+                    Stamp = false
                 },
                 InventoryData = new MoveInventoryItemPacket.InventoryDataBlock[1]
             };
+
             move.InventoryData[0] = new MoveInventoryItemPacket.InventoryDataBlock
             {
                 ItemID = itemID,
@@ -1072,53 +1152,70 @@ namespace OpenMetaverse
             Client.Network.SendPacket(move);
         }
 
-        /// <summary>
-        /// Move multiple inventory items to new locations
-        /// </summary>
-        /// <param name="itemsNewParents">A Dictionary containing the 
-        /// <see cref="UUID"/> of the source item as the key, and the 
-        /// <see cref="UUID"/> of the destination folder as the value</param>
-        public void MoveItems(Dictionary<UUID, UUID> itemsNewParents)
+        public void MoveItems(UUID[] itemIDs, UUID folderID)
         {
             using (var writeLock = _storeLock.WriteLock())
             {
-                foreach (var entry in itemsNewParents)
+                foreach (var itemID in itemIDs)
                 {
-                    if (_Store != null 
-                        && _Store.TryGetValue(entry.Key, out var storeItem)
-                        && storeItem is InventoryItem inv)
+                    if (_Store != null && _Store.TryGetValue(itemID, out var storeItem) && storeItem is InventoryItem inv)
                     {
-                        inv.ParentUUID = entry.Value;
+                        inv.ParentUUID = folderID;
                         _Store.UpdateNodeFor(inv);
                     }
                 }
             }
 
-            var move = new MoveInventoryItemPacket
+            if (Client.AisClient.IsAvailable)
             {
-                AgentData =
+                // Fire-and-forget for each item move
+                _ = Task.Run(async () =>
                 {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID,
-                    Stamp = false //FIXME: ??
-                },
-                InventoryData = new MoveInventoryItemPacket.InventoryDataBlock[itemsNewParents.Count]
-            };
-
-            var index = 0;
-            foreach (var entry in itemsNewParents)
-            {
-                var block = new MoveInventoryItemPacket.InventoryDataBlock
-                {
-                    ItemID = entry.Key,
-                    FolderID = entry.Value,
-                    NewName = Utils.EmptyBytes
-                };
-                move.InventoryData[index++] = block;
+                    foreach (var itemID in itemIDs)
+                    {
+                        try
+                        {
+                            var success = await Client.AisClient.MoveItemAsync(itemID, folderID).ConfigureAwait(false);
+                            if (!success)
+                            {
+                                Logger.Warn($"AIS MoveItem failed for {itemID} -> {folderID}", Client);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warn($"AIS MoveItem exception for {itemID} -> {folderID}: {ex.Message}", Client);
+                        }
+                    }
+                });
             }
+            else
+            {
+                //TODO: Test if this truly supports multiple-item move
+                var move = new MoveInventoryItemPacket
+                {
+                    AgentData =
+                    {
+                        AgentID = Client.Self.AgentID,
+                        SessionID = Client.Self.SessionID,
+                        Stamp = false //FIXME: ??
+                    },
+                    InventoryData = new MoveInventoryItemPacket.InventoryDataBlock[itemIDs.Length]
+                };
 
-            Client.Network.SendPacket(move);
+                for (var i = 0; i < itemIDs.Length; i++)
+                {
+                    move.InventoryData[i] = new MoveInventoryItemPacket.InventoryDataBlock
+                    {
+                        ItemID = itemIDs[i],
+                        FolderID = folderID
+                    };
+                }
+
+                Client.Network.SendPacket(move);
+            }
         }
+
+        // MoveItem implementations are defined elsewhere in this partial class.
 
         #endregion Move
 
@@ -1193,8 +1290,19 @@ namespace OpenMetaverse
         {
             if (Client.AisClient.IsAvailable)
             {
-                // Fire-and-forget AIS call
-                _ = Client.AisClient.PurgeDescendents(folder, RemoveLocalUi, cancellationToken);
+                // Fire-and-forget AIS call using Task-based API and update local UI on success
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var success = await Client.AisClient.PurgeDescendentsAsync(folder, cancellationToken).ConfigureAwait(false);
+                        RemoveLocalUi(success, folder);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"AIS PurgeDescendents exception for {folder}: {ex.Message}", Client);
+                    }
+                }, cancellationToken);
             }
             else
             {
@@ -1212,17 +1320,30 @@ namespace OpenMetaverse
             }
         }
 
-        /// <summary>
-        /// Remove a single item from inventory
-        /// </summary>
-        /// <param name="item">The <see cref="UUID"/> of the inventory item to remove</param>
-        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
         public void RemoveItem(UUID item, CancellationToken cancellationToken = default)
         {
             if (Client.AisClient.IsAvailable)
             {
-                // Fire-and-forget AIS call
-                _ = Client.AisClient.RemoveItem(item, RemoveLocalUi, cancellationToken);
+                // Fire-and-forget AIS call using Task-based API and update local UI on success
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var success = await Client.AisClient.RemoveItemAsync(item, cancellationToken).ConfigureAwait(false);
+                        if (success)
+                        {
+                            RemoveLocalUi(true, item);
+                        }
+                        else
+                        {
+                            Logger.Warn($"AIS RemoveItem failed for {item}", Client);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"AIS RemoveItem exception for {item}: {ex.Message}", Client);
+                    }
+                });
             }
             else
             {
@@ -1239,11 +1360,31 @@ namespace OpenMetaverse
 
             if (Client.AisClient.IsAvailable)
             {
-                var tasks = items
-                    .Select(n => Client.AisClient.RemoveItem(n, RemoveLocalUi, cancellationToken))
-                    .ToList();
+                var tasks = items.Select(async n =>
+                {
+                    try
+                    {
+                        var success = await Client.AisClient.RemoveItemAsync(n, cancellationToken).ConfigureAwait(false);
+                        if (success)
+                        {
+                            RemoveLocalUi(true, n);
+                        }
+                        else
+                        {
+                            Logger.Warn($"AIS RemoveItem failed for {n}", Client);
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"AIS RemoveItem exception for {n}: {ex.Message}", Client);
+                    }
+                }).ToList();
 
-                await Task.WhenAll(tasks);
+                await Task.WhenAll(tasks).ConfigureAwait(false);
             }
             else
             {
@@ -1262,9 +1403,26 @@ namespace OpenMetaverse
         {
             if (Client.AisClient.IsAvailable)
             {
-                // Fire-and-forget AIS call
-                _ = Client.AisClient.RemoveCategory(folder, RemoveLocalUi, cancellationToken);
-            } 
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var success = await Client.AisClient.RemoveCategoryAsync(folder, cancellationToken).ConfigureAwait(false);
+                        if (success)
+                        {
+                            RemoveLocalUi(true, folder);
+                        }
+                        else
+                        {
+                            Logger.Warn($"AIS RemoveCategory failed for {folder}", Client);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"AIS RemoveCategory exception for {folder}: {ex.Message}", Client);
+                    }
+                });
+            }
             else
             {
                 var folders = new List<UUID>(1) { folder };
@@ -1356,7 +1514,53 @@ namespace OpenMetaverse
         /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
         public void EmptyTrash(CancellationToken cancellationToken = default)
         {
-            EmptySystemFolder(FolderType.Trash, cancellationToken);
+            if (Client.AisClient.IsAvailable)
+            {
+                // Try to locate the Trash system folder in local store so we can update UI after successful server-side empty
+                var folderKey = UUID.Zero;
+                if (_Store != null && _Store.RootFolder != null)
+                {
+                    try
+                    {
+                        var rootContents = _Store.GetContents(_Store.RootFolder);
+                        foreach (var item in rootContents)
+                        {
+                            var folder = item as InventoryFolder;
+                            if (folder?.PreferredType == FolderType.Trash)
+                            {
+                                folderKey = folder.UUID;
+                                break;
+                            }
+                        }
+                    }
+                    catch (Exception) { /* ignore errors when reading local store */ }
+                }
+
+                // Fire-and-forget AIS call and update local UI on success
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var success = await Client.AisClient.EmptyTrash(cancellationToken).ConfigureAwait(false);
+                        if (success && folderKey != UUID.Zero)
+                        {
+                            RemoveLocalUi(true, folderKey);
+                        }
+                        else if (!success)
+                        {
+                            Logger.Warn("AIS EmptyTrash failed", Client);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"AIS EmptyTrash exception: {ex.Message}", Client);
+                    }
+                }, cancellationToken);
+            }
+            else
+            {
+                EmptySystemFolder(FolderType.Trash, cancellationToken);
+            }
         }
 
         private void EmptySystemFolder(FolderType folderType, CancellationToken cancellationToken = default)
@@ -1724,8 +1928,47 @@ namespace OpenMetaverse
                 links.Add(link);
 
                 var newInventory = new OSDMap { { "links", links } };
-                // Fire-and-forget AIS call
-                _ = Client.AisClient.CreateInventory(folderID, newInventory, true, callback, cancellationToken);
+
+                // Wrap user callback to merge created item into local store and notify listeners
+                InventoryManager.ItemCreatedCallback wrappedCallback = (success, createdItem) =>
+                {
+                    try
+                    {
+                        if (success && createdItem != null)
+                        {
+                            if (_Store != null)
+                            {
+                                using (var writeLock = _storeLock.WriteLock())
+                                {
+                                    _Store[createdItem.UUID] = createdItem;
+                                }
+                            }
+                            else
+                            {
+                                Logger.Debug("Inventory store is not initialized, created item will not be cached locally", Client);
+                            }
+
+                            try
+                            {
+                                OnItemReceived(new ItemReceivedEventArgs(createdItem));
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Debug($"OnItemReceived handler threw: {ex.Message}", ex, Client);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Debug($"Failed merging created inventory item into local store: {ex.Message}", ex, Client);
+                    }
+
+                    // Invoke user callback last
+                    try { callback?.Invoke(success, createdItem); } catch (Exception ex) { Logger.Debug($"ItemCreated callback threw: {ex.Message}", ex, Client); }
+                };
+
+                // Fire-and-forget AIS call with wrapped callback
+                _ = Client.AisClient.CreateInventory(folderID, newInventory, true, wrappedCallback, cancellationToken);
             }
             else
             {
@@ -1813,7 +2056,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="objectID">Usually UUID.Zero for copying an asset from a notecard</param>
         /// <param name="notecardID">UUID of the notecard to request an asset from</param>
-        /// <param name="folderID">Target folder for asset to go to in your inventory</param>
+        /// <param name="folderID">Put newly created inventory in this folder</param>
         /// <param name="itemID">UUID of the embedded asset</param>
         /// <param name="callback">callback to run when item is copied to inventory</param>
         /// <param name="cancellationToken"></param>
@@ -1913,8 +2156,38 @@ namespace OpenMetaverse
                             update["hash_id"] = item.TransactionID;
                         }
                     }
-                    // Fire-and-forget AIS update
-                    _ = Client.AisClient.UpdateItem(item.UUID, update, null);
+                    // Fire-and-forget AIS update — wrap callback to merge into local store
+                    Action<bool> aisCallback = success =>
+                    {
+                        if (!success) return;
+
+                        if (_Store != null)
+                        {
+                            using (var writeLock = _storeLock.WriteLock())
+                            {
+                                if (_Store.TryGetValue(item.UUID, out var storeItem) && storeItem is InventoryItem existing)
+                                {
+                                    try
+                                    {
+                                        existing.Update(update);
+                                        _Store.UpdateNodeFor(existing);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Logger.Debug($"Failed to apply AIS update to local item {item.UUID}: {ex.Message}", ex, Client);
+                                    }
+                                }
+                            }
+
+                            // Notify listeners about the updated item
+                            if (_Store != null && _Store.TryGetValue(item.UUID, out var updated) && updated is InventoryItem updatedItem)
+                            {
+                                OnItemReceived(new ItemReceivedEventArgs(updatedItem));
+                            }
+                        }
+                    };
+
+                    _ = Client.AisClient.UpdateItem(item.UUID, update, aisCallback);
                 }
             }
             else

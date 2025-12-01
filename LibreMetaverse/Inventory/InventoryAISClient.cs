@@ -1072,7 +1072,10 @@ namespace LibreMetaverse
 
             try
             {
-                if (!Uri.TryCreate($"{cap}/item/{itemUuid}?tid={UUID.Random()}", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
+                if (!Uri.TryCreate($"{cap}/item/{itemUuid}?tid={UUID.Random()}", UriKind.Absolute, out var uri))
+                {
+                    callback?.Invoke(false); return;
+                }
 
                 using (var request = new HttpRequestMessage(new HttpMethod("MOVE"), uri))
                 {
