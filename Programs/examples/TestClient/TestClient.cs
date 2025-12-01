@@ -33,7 +33,7 @@ using System.Threading.Tasks;
 using LibreMetaverse.Voice.Vivox;
 using Microsoft.Extensions.Logging;
 using OpenMetaverse;
-using OpenMetaverse.Appearance;
+using LibreMetaverse.Appearance;
 using OpenMetaverse.Packets;
 using TestClient.Commands.Appearance;
 

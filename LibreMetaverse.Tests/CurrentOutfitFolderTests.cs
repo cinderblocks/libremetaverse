@@ -1,6 +1,6 @@
 using NUnit.Framework;
 using OpenMetaverse;
-using OpenMetaverse.Appearance;
+using LibreMetaverse.Appearance;
 using System;
 using System.Collections.Generic;
 using System.Threading;
