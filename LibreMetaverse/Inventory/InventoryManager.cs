@@ -1658,13 +1658,14 @@ namespace OpenMetaverse
         /// <param name="cancellationToken"></param>
         public void CreateLink(UUID folderID, InventoryBase bse, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
         {
-            if (bse is InventoryFolder folder)
+            switch (bse)
             {
-                CreateLink(folderID, folder, callback, cancellationToken);
-            }
-            else if (bse is InventoryItem item)
-            {
-                CreateLink(folderID, item.UUID, item.Name, item.Description, item.InventoryType, UUID.Random(), callback, cancellationToken);
+                case InventoryFolder folder:
+                    CreateLink(folderID, folder, callback, cancellationToken);
+                    break;
+                case InventoryItem item:
+                    CreateLink(folderID, item.UUID, item.Name, item.Description, item.InventoryType, UUID.Random(), callback, cancellationToken);
+                    break;
             }
         }
 
@@ -2147,7 +2148,7 @@ namespace OpenMetaverse
             }
 
             // Schedule cleanup in case the server never responds. If the callback is
-            // already removed by a successful response the TryRemove here will fail
+            // already removed by a successful response the TryRemove here will fail,
             // and we won't invoke the callback twice.
             Task.Run(async () =>
             {
