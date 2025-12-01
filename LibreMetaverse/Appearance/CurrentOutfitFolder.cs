@@ -43,20 +43,28 @@ namespace OpenMetaverse.Appearance
 
         protected GridClient client;
         private readonly CompositeCurrentOutfitPolicy policy = new CompositeCurrentOutfitPolicy();
-        private bool initializedCOF = false;
+        private volatile bool initializedCOF = false;
         private bool disposed = false;
 
+        // Protects access to client, COF and event registration
+        private readonly object stateLock = new object();
+
+        private InventoryFolder _cof;
         /// <summary>
         /// The Current Outfit Folder inventory folder
         /// </summary>
-        public InventoryFolder COF { get; private set; }
+        public InventoryFolder COF
+        {
+            get { lock (stateLock) { return _cof; } }
+            private set { lock (stateLock) { _cof = value; } }
+        }
 
         /// <summary>
         /// Maximum number of clothing layers that can be worn simultaneously
         /// </summary>
         public int MaxClothingLayers => 60;
 
-        private readonly System.Threading.SemaphoreSlim cofInitLock = new System.Threading.SemaphoreSlim(1, 1);
+        private readonly SemaphoreSlim cofInitLock = new SemaphoreSlim(1, 1);
         private Task<bool> cofInitTask;
 
         #endregion Fields
@@ -87,15 +95,17 @@ namespace OpenMetaverse.Appearance
         /// </summary>
         protected virtual void Dispose(bool disposing)
         {
-            if (disposed) { return; }
-
-            if (disposing)
+            lock (stateLock)
             {
-                UnregisterClientEvents(client);
-                try { cofInitLock?.Dispose(); } catch { }
-            }
+                if (disposed) { return; }
 
-            disposed = true;
+                if (disposing)
+                {
+                    UnregisterClientEvents(client);
+                }
+
+                disposed = true;
+            }
         }
 
         #endregion Construction and disposal
@@ -128,20 +138,46 @@ namespace OpenMetaverse.Appearance
 
         private void RegisterClientEvents(GridClient client)
         {
-            client.Network.SimChanged += Network_OnSimChanged;
-            client.Inventory.FolderUpdated += Inventory_FolderUpdated;
-            client.Objects.KillObject += Objects_KillObject;
+            lock (stateLock)
+            {
+                client.Network.SimChanged += Network_OnSimChanged;
+                client.Inventory.FolderUpdated += Inventory_FolderUpdated;
+                client.Objects.KillObject += Objects_KillObject;
+            }
         }
 
         private void UnregisterClientEvents(GridClient client)
         {
-            client.Network.SimChanged -= Network_OnSimChanged;
-            client.Inventory.FolderUpdated -= Inventory_FolderUpdated;
-            client.Objects.KillObject -= Objects_KillObject;
+            lock (stateLock)
+            {
+                try { client.Network.SimChanged -= Network_OnSimChanged; } catch { }
+                try { client.Inventory.FolderUpdated -= Inventory_FolderUpdated; } catch { }
+                try { client.Objects.KillObject -= Objects_KillObject; } catch { }
 
-            initializedCOF = false;
+                initializedCOF = false;
+            }
         }
 
+        /// <summary>
+        /// Atomically update the GridClient used by this instance and re-register events.
+        /// </summary>
+        /// <param name="newClient"></param>
+        protected void UpdateClient(GridClient newClient)
+        {
+            if (newClient == null) throw new ArgumentNullException(nameof(newClient));
+
+            lock (stateLock)
+            {
+                if (ReferenceEquals(client, newClient)) return;
+
+                UnregisterClientEvents(client);
+                client = newClient;
+                RegisterClientEvents(client);
+                // Reset COF so it will be reinitialized for the new client
+                _cof = null;
+                initializedCOF = false;
+            }
+        }
         private async void Inventory_FolderUpdated(object sender, FolderUpdatedEventArgs e)
         {
             try
