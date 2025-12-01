@@ -1368,7 +1368,7 @@ namespace OpenMetaverse
             }
             else
             {
-                Logger.Error("Mesh fetch capabilities not available", Client);
+                Logger.Debug("Mesh fetch capabilities not available", Client);
                 callback(false, null);
             }
         }

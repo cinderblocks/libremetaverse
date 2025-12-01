@@ -422,7 +422,7 @@ namespace OpenMetaverse
             try
             {
                 var path = FileName(assetID);
-                DebugLog("Saving " + path + " to asset cache.");
+                Logger.Trace($"Saving {path} to asset cache.");
 
                 if (!Directory.Exists(Client.Settings.ASSET_CACHE_DIR))
                 {
