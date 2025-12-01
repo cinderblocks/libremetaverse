@@ -25,13 +25,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using OpenMetaverse;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OpenMetaverse.Appearance
+namespace LibreMetaverse.Appearance
 {
     /// <summary>
     /// Manages the Current Outfit Folder (COF) which tracks what an avatar is currently wearing.

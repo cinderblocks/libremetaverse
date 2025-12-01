@@ -31,8 +31,9 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using OpenMetaverse;
 
-namespace OpenMetaverse.Appearance
+namespace LibreMetaverse.Appearance
 {
     /// <summary>
     /// Composite policy that allows multiple ICurrentOutfitPolicy implementations to be combined.

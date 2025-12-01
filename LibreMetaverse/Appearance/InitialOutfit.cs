@@ -31,7 +31,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using OpenMetaverse;
 
-namespace OpenMetaverse.Appearance
+namespace LibreMetaverse.Appearance
 {
     /// <summary>
     /// Provides functionality for setting an avatar's initial outfit during first login by copying a predefined outfit

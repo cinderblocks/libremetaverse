@@ -28,8 +28,9 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using OpenMetaverse;
 
-namespace OpenMetaverse.Appearance
+namespace LibreMetaverse.Appearance
 {
     /// <summary>
     /// Policy interface for controlling attachment and detachment permissions for Current Outfit Folder items.

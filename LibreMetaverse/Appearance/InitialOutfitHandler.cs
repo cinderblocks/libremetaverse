@@ -27,8 +27,9 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using OpenMetaverse;
 
-namespace OpenMetaverse.Appearance
+namespace LibreMetaverse.Appearance
 {
     /// <summary>
     /// Handles the application of an initial outfit for a user upon their first login to the grid.
