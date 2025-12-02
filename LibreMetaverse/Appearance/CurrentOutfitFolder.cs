@@ -205,7 +205,7 @@ namespace LibreMetaverse.Appearance
 
                     if (items.Count > 0)
                     {
-                        client.Inventory.RequestFetchInventory(items);
+                        await client.Inventory.RequestFetchInventoryAsync(items, CancellationToken.None).ConfigureAwait(false);
                     }
                 }
             }
@@ -453,18 +453,19 @@ namespace LibreMetaverse.Appearance
             var cofLinks = await GetCurrentOutfitLinks(cancellationToken);
             if (cofLinks.Find(itemLink => itemLink.AssetUUID == item.UUID) == null)
             {
-                client.Inventory.CreateLink(COF.UUID, item.UUID, item.Name,
+                await client.Inventory.CreateLinkAsync(COF.UUID, item.UUID, item.Name,
                     newDescription, item.InventoryType, UUID.Random(),
                     (success, newItem) =>
                     {
                         if (success)
                         {
-                            client.Inventory.RequestFetchInventory(newItem.UUID, newItem.OwnerID, cancellationToken);
+                            // Fire-and-forget fetch of the created item
+                            _ = client.Inventory.RequestFetchInventoryAsync(newItem.UUID, newItem.OwnerID, cancellationToken);
                         }
                     },
                     cancellationToken
-                );
-            }
+                ).ConfigureAwait(false);
+             }
         }
 
         protected async Task RemoveLinksToByActualId(IEnumerable<UUID> actualItemIdsToRemoveLinksTo, CancellationToken cancellationToken = default)
@@ -941,7 +942,7 @@ namespace LibreMetaverse.Appearance
             }
 
             // Add link to outfit folder we're putting on
-            client.Inventory.CreateLink(
+            await client.Inventory.CreateLinkAsync(
                 currentOutfitFolder.UUID,
                 newOutfitFolderNode.Data.UUID,
                 newOutfitFolderNode.Data.Name,
@@ -952,11 +953,11 @@ namespace LibreMetaverse.Appearance
                 {
                     if (success)
                     {
-                        client.Inventory.RequestFetchInventory(newItem.UUID, newItem.OwnerID);
+                        _ = client.Inventory.RequestFetchInventoryAsync(newItem.UUID, newItem.OwnerID);
                     }
                 },
                 cancellationToken
-            );
+            ).ConfigureAwait(false);
 
             // Wear new outfit
             var tcs = new TaskCompletionSource<bool>();
@@ -1178,10 +1179,10 @@ namespace LibreMetaverse.Appearance
             client.Appearance.AddToOutfit(itemsToAdd, replace);
             _ = Task.Run(async () =>
             {
-                await Task.Delay(2000, cancellationToken).ContinueWith(_ => { });
+                await Task.Delay(2000, cancellationToken).ContinueWith(_ => { }, cancellationToken);
                 try
                 {
-                    client.Appearance.RequestSetAppearance(true);
+                    await client.Appearance.RequestSetAppearance(true);
                 }
                 catch { }
 
@@ -1190,7 +1191,7 @@ namespace LibreMetaverse.Appearance
                     await policy.ReportItemChange(itemsToAdd, itemsToRemove, cancellationToken);
                 }
                 catch { }
-            });
+            }, cancellationToken);
         }
 
         /// <summary>
@@ -1275,7 +1276,8 @@ namespace LibreMetaverse.Appearance
 
             if (!client.Inventory.Store.TryGetValue<InventoryItem>(itemLink.AssetUUID, out var inventoryItem))
             {
-                client.Inventory.RequestFetchInventory(itemLink.AssetUUID, itemLink.OwnerID);
+                // Fire-and-forget request for the linked item; do not block here
+                _ = client.Inventory.RequestFetchInventoryAsync(itemLink.AssetUUID, itemLink.OwnerID);
 
                 if (!client.Inventory.Store.TryGetValue<InventoryItem>(itemLink.AssetUUID, out inventoryItem))
                 {

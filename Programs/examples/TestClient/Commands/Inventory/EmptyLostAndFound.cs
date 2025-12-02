@@ -21,16 +21,16 @@ namespace TestClient.Commands.Inventory
             return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
         }
 
-        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        public async override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
         {
             try
             {
-                Client.Inventory.EmptyLostAndFound();
-                return Task.FromResult("Lost And Found Emptied");
+                await Client.Inventory.EmptyLostAndFoundAsync();
+                return "Lost And Found Emptied";
             }
             catch
             {
-                return Task.FromResult("Failed to empty Lost And Found");
+                return "Failed to empty Lost And Found";
             }
         }
     }

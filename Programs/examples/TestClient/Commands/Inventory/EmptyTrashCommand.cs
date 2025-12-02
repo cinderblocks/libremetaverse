@@ -17,7 +17,7 @@ namespace TestClient.Commands.Inventory
         }
 
         /// <summary>
-        /// Exectute the command
+        /// Execute the command
         /// </summary>
         /// <param name="args"></param>
         /// <param name="fromAgentID"></param>
@@ -27,17 +27,16 @@ namespace TestClient.Commands.Inventory
             return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
         }
 
-        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
         {
-            // Inventory.EmptyTrash is synchronous in this API
             try
             {
-                Client.Inventory.EmptyTrash();
-                return Task.FromResult("Trash Emptied");
+                await Client.Inventory.EmptyTrashAsync();
+                return "Trash Emptied";
             }
             catch
             {
-                return Task.FromResult("Failed to empty trash");
+                return "Failed to empty trash";
             }
         }
     }

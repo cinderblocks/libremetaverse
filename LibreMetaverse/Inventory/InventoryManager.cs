@@ -764,7 +764,7 @@ namespace OpenMetaverse
         /// <param name="inventoryOwner">The object owners <see cref="UUID"/></param>
         /// <param name="path">A string path to search, folders/objects separated by a '/'</param>
         /// <remarks>Results are sent to the <see cref="InventoryManager.OnFindObjectByPath"/> event</remarks>
-        public async Task RequestFindObjectByPath(UUID baseFolder, UUID inventoryOwner, string path)
+        public async Task RequestFindObjectByPath(UUID baseFolder, UUID inventoryOwner, string path, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentException("Empty path is not supported");
@@ -937,7 +937,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="folderID">The source folders <see cref="UUID"/></param>
         /// <param name="newParentID">The destination folders <see cref="UUID"/></param>
-        public void MoveFolder(UUID folderID, UUID newParentID)
+        public void MoveFolder(UUID folderID, UUID newParentID, CancellationToken cancellationToken = default)
         {
             using (var writeLock = _storeLock.WriteLock())
             {
@@ -952,22 +952,9 @@ namespace OpenMetaverse
 
             if (Client.AisClient.IsAvailable)
             {
-                // Fire-and-forget AIS move using Task-based API. Log failures.
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        var success = await Client.AisClient.MoveCategoryAsync(folderID, newParentID).ConfigureAwait(false);
-                        if (!success)
-                        {
-                            Logger.Warn($"AIS MoveCategory failed for {folderID} -> {newParentID}", Client);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Warn($"AIS MoveCategory exception for {folderID} -> {newParentID}: {ex.Message}", Client);
-                    }
-                });
+                // Fire-and-forget AIS move using Task-based API. Log failures and run onSuccess on success
+                var moveTask = Client.AisClient.MoveCategoryAsync(folderID, newParentID, CancellationToken.None);
+                ContinueWithLog(moveTask, $"MoveCategory {folderID} -> {newParentID}");
                 return;
             }
 
@@ -997,7 +984,7 @@ namespace OpenMetaverse
         /// <param name="foldersNewParents">A Dictionary containing the 
         /// <see cref="UUID"/> of the source as the key, and the 
         /// <see cref="UUID"/> of the destination as the value</param>
-        public void MoveFolders(Dictionary<UUID, UUID> foldersNewParents)
+        public void MoveFolders(Dictionary<UUID, UUID> foldersNewParents, CancellationToken cancellationToken = default)
         {
             using (var writeLock = _storeLock.WriteLock())
             {
@@ -1016,30 +1003,18 @@ namespace OpenMetaverse
             if (Client.AisClient.IsAvailable)
             {
                 // Fire-and-forget AIS calls for each folder move. Run concurrently and log failures.
-                _ = Task.Run(async () =>
+                var tasks = foldersNewParents.Select(kv => Client.AisClient.MoveCategoryAsync(kv.Key, kv.Value, CancellationToken.None)).ToArray();
+                var whenAll = Task.WhenAll(tasks);
+                ContinueWithWhenAllLog(whenAll, "MoveFolders", results =>
                 {
-                    var tasks = new List<Task<bool>>();
+                    var idx = 0;
                     foreach (var kv in foldersNewParents)
                     {
-                        tasks.Add(Client.AisClient.MoveCategoryAsync(kv.Key, kv.Value));
-                    }
-
-                    try
-                    {
-                        var results = await Task.WhenAll(tasks).ConfigureAwait(false);
-                        var idx = 0;
-                        foreach (var kv in foldersNewParents)
+                        if (!results[idx])
                         {
-                            if (!results[idx])
-                            {
-                                Logger.Warn($"AIS MoveCategory failed for {kv.Key} -> {kv.Value}", Client);
-                            }
-                            idx++;
+                            Logger.Warn($"AIS MoveCategory failed for {kv.Key} -> {kv.Value}", Client);
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Warn($"AIS MoveFolders exception: {ex.Message}", Client);
+                        idx++;
                     }
                 });
 
@@ -1077,9 +1052,9 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="itemID">The <see cref="UUID"/> of the source item to move</param>
         /// <param name="folderID">The <see cref="UUID"/> of the destination folder</param>
-        public void MoveItem(UUID itemID, UUID folderID)
+        public void MoveItem(UUID itemID, UUID folderID, CancellationToken cancellationToken = default)
         {
-            MoveItem(itemID, folderID, string.Empty);
+            MoveItem(itemID, folderID, string.Empty, cancellationToken);
         }
 
         /// <summary>
@@ -1088,7 +1063,7 @@ namespace OpenMetaverse
         /// <param name="itemID">The <see cref="UUID"/> of the source item to move</param>
         /// <param name="folderID">The <see cref="UUID"/> of the destination folder</param>
         /// <param name="newName">Optional new name for the item</param>
-        public void MoveItem(UUID itemID, UUID folderID, string newName)
+        public void MoveItem(UUID itemID, UUID folderID, string newName, CancellationToken cancellationToken = default)
         {
             // Update local store under write lock
             try
@@ -1111,22 +1086,8 @@ namespace OpenMetaverse
             // Prefer AISv3 when available
             if (Client?.AisClient?.IsAvailable == true)
             {
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        var success = await Client.AisClient.MoveItemAsync(itemID, folderID).ConfigureAwait(false);
-                        if (!success)
-                        {
-                            Logger.Warn($"AIS MoveItem failed for {itemID} -> {folderID}", Client);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Warn($"AIS MoveItem exception for {itemID} -> {folderID}: {ex.Message}", Client);
-                    }
-                });
-
+                var task = Client.AisClient.MoveItemAsync(itemID, folderID, CancellationToken.None);
+                ContinueWithLog(task, $"MoveItem {itemID} -> {folderID}");
                 return;
             }
 
@@ -1152,15 +1113,22 @@ namespace OpenMetaverse
             Client.Network.SendPacket(move);
         }
 
-        public void MoveItems(UUID[] itemIDs, UUID folderID)
+        /// <summary>
+        /// Move multiple items, the keys in the Dictionary parameter,
+        /// to a new folders, the value of that item's key.
+        /// </summary>
+        /// <param name="itemsNewFolders">A Dictionary containing the 
+        /// <see cref="UUID"/> of the source as the key, and the 
+        /// <see cref="UUID"/> of the destination as the value</param>
+        public void MoveItems(Dictionary<UUID, UUID> itemsNewFolders, CancellationToken cancellationToken = default)
         {
             using (var writeLock = _storeLock.WriteLock())
             {
-                foreach (var itemID in itemIDs)
+                foreach (var entry in itemsNewFolders)
                 {
-                    if (_Store != null && _Store.TryGetValue(itemID, out var storeItem) && storeItem is InventoryItem inv)
+                    if (_Store != null && _Store.TryGetValue(entry.Key, out var storeItem) && storeItem is InventoryItem inv)
                     {
-                        inv.ParentUUID = folderID;
+                        inv.ParentUUID = entry.Value;
                         _Store.UpdateNodeFor(inv);
                     }
                 }
@@ -1168,51 +1136,48 @@ namespace OpenMetaverse
 
             if (Client.AisClient.IsAvailable)
             {
-                // Fire-and-forget for each item move
-                _ = Task.Run(async () =>
+                // Fire-and-forget for each item move using token-aware AIS calls
+                var tasks = itemsNewFolders.Select(kv => Client.AisClient.MoveItemAsync(kv.Key, kv.Value, CancellationToken.None)).ToArray();
+                var whenAll = Task.WhenAll(tasks);
+                ContinueWithWhenAllLog(whenAll, "MoveItems", results =>
                 {
-                    foreach (var itemID in itemIDs)
+                    var idx = 0;
+                    foreach (var kv in itemsNewFolders)
                     {
-                        try
+                        if (!results[idx])
                         {
-                            var success = await Client.AisClient.MoveItemAsync(itemID, folderID).ConfigureAwait(false);
-                            if (!success)
-                            {
-                                Logger.Warn($"AIS MoveItem failed for {itemID} -> {folderID}", Client);
-                            }
+                            Logger.Warn($"AIS MoveItem failed for {kv.Key} -> {kv.Value}", Client);
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Warn($"AIS MoveItem exception for {itemID} -> {folderID}: {ex.Message}", Client);
-                        }
+                        idx++;
                     }
                 });
+
+                return;
             }
-            else
+
+            var move = new MoveInventoryItemPacket
             {
-                //TODO: Test if this truly supports multiple-item move
-                var move = new MoveInventoryItemPacket
+                AgentData =
                 {
-                    AgentData =
-                    {
-                        AgentID = Client.Self.AgentID,
-                        SessionID = Client.Self.SessionID,
-                        Stamp = false //FIXME: ??
-                    },
-                    InventoryData = new MoveInventoryItemPacket.InventoryDataBlock[itemIDs.Length]
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    Stamp = false //FIXME: ??
+                },
+                InventoryData = new MoveInventoryItemPacket.InventoryDataBlock[itemsNewFolders.Count]
+            };
+
+            var index = 0;
+            foreach (var item in itemsNewFolders)
+            {
+                var block = new MoveInventoryItemPacket.InventoryDataBlock
+                {
+                    ItemID = item.Key,
+                    FolderID = item.Value
                 };
-
-                for (var i = 0; i < itemIDs.Length; i++)
-                {
-                    move.InventoryData[i] = new MoveInventoryItemPacket.InventoryDataBlock
-                    {
-                        ItemID = itemIDs[i],
-                        FolderID = folderID
-                    };
-                }
-
-                Client.Network.SendPacket(move);
+                move.InventoryData[index++] = block;
             }
+
+            Client.Network.SendPacket(move);
         }
 
         // MoveItem implementations are defined elsewhere in this partial class.
@@ -1288,21 +1253,24 @@ namespace OpenMetaverse
         /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
         public void RemoveDescendants(UUID folder, CancellationToken cancellationToken = default)
         {
+            // Preserve synchronous API by delegating to async-first implementation
+            RemoveDescendantsAsync(folder, cancellationToken).GetAwaiter().GetResult();
+        }
+
+        public async Task RemoveDescendantsAsync(UUID folder, CancellationToken cancellationToken = default)
+        {
             if (Client.AisClient.IsAvailable)
             {
-                // Fire-and-forget AIS call using Task-based API and update local UI on success
-                _ = Task.Run(async () =>
+                try
                 {
-                    try
-                    {
-                        var success = await Client.AisClient.PurgeDescendentsAsync(folder, cancellationToken).ConfigureAwait(false);
-                        RemoveLocalUi(success, folder);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Warn($"AIS PurgeDescendents exception for {folder}: {ex.Message}", Client);
-                    }
-                }, cancellationToken);
+                    var success = await Client.AisClient.PurgeDescendentsAsync(folder, cancellationToken).ConfigureAwait(false);
+                    RemoveLocalUi(success, folder);
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"AIS PurgeDescendents exception for {folder}: {ex.Message}", Client);
+                }
             }
             else
             {
@@ -1320,38 +1288,10 @@ namespace OpenMetaverse
             }
         }
 
-        public void RemoveItem(UUID item, CancellationToken cancellationToken = default)
+        public void RemoveItems(UUID[] items, CancellationToken cancellationToken = default)
         {
-            if (Client.AisClient.IsAvailable)
-            {
-                // Fire-and-forget AIS call using Task-based API and update local UI on success
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        var success = await Client.AisClient.RemoveItemAsync(item, cancellationToken).ConfigureAwait(false);
-                        if (success)
-                        {
-                            RemoveLocalUi(true, item);
-                        }
-                        else
-                        {
-                            Logger.Warn($"AIS RemoveItem failed for {item}", Client);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Warn($"AIS RemoveItem exception for {item}: {ex.Message}", Client);
-                    }
-                });
-            }
-            else
-            {
-                var items = new List<UUID>(1) { item };
-#pragma warning disable CS0612 // Type or member is obsolete
-                Remove(items, null);
-#pragma warning restore CS0612 // Type or member is obsolete
-            }
+            // Preserve synchronous API by delegating to async-first implementation
+            RemoveItemsAsync(items, cancellationToken).GetAwaiter().GetResult();
         }
 
         public async Task RemoveItemsAsync(IEnumerable<UUID> items, CancellationToken cancellationToken = default)
@@ -1394,34 +1334,68 @@ namespace OpenMetaverse
             }
         }
 
-        /// <summary>
-        /// Remove a folder from inventory
-        /// </summary>
-        /// <param name="folder">The <see cref="UUID"/> of the folder to remove</param>
-        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
-        public void RemoveFolder(UUID folder, CancellationToken cancellationToken = default)
+        public void RemoveItem(UUID item, CancellationToken cancellationToken = default)
+        {
+            RemoveItemAsync(item, cancellationToken).GetAwaiter().GetResult();
+        }
+
+        public async Task RemoveItemAsync(UUID item, CancellationToken cancellationToken = default)
         {
             if (Client.AisClient.IsAvailable)
             {
-                _ = Task.Run(async () =>
+                try
                 {
-                    try
+                    var success = await Client.AisClient.RemoveItemAsync(item, cancellationToken).ConfigureAwait(false);
+                    if (success)
                     {
-                        var success = await Client.AisClient.RemoveCategoryAsync(folder, cancellationToken).ConfigureAwait(false);
-                        if (success)
-                        {
-                            RemoveLocalUi(true, folder);
-                        }
-                        else
-                        {
-                            Logger.Warn($"AIS RemoveCategory failed for {folder}", Client);
-                        }
+                        RemoveLocalUi(true, item);
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Logger.Warn($"AIS RemoveCategory exception for {folder}: {ex.Message}", Client);
+                        Logger.Warn($"AIS RemoveItem failed for {item}", Client);
                     }
-                });
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"AIS RemoveItem exception for {item}: {ex.Message}", Client);
+                }
+            }
+            else
+            {
+                var items = new List<UUID>(1) { item };
+#pragma warning disable CS0612 // Type or member is obsolete
+                Remove(items, null);
+#pragma warning restore CS0612 // Type or member is obsolete
+            }
+        }
+
+        public void RemoveFolder(UUID folder, CancellationToken cancellationToken = default)
+        {
+            RemoveFolderAsync(folder, cancellationToken).GetAwaiter().GetResult();
+        }
+
+        public async Task RemoveFolderAsync(UUID folder, CancellationToken cancellationToken = default)
+        {
+            if (Client.AisClient.IsAvailable)
+            {
+                try
+                {
+                    var success = await Client.AisClient.RemoveCategoryAsync(folder, cancellationToken).ConfigureAwait(false);
+                    if (success)
+                    {
+                        RemoveLocalUi(true, folder);
+                    }
+                    else
+                    {
+                        Logger.Warn($"AIS RemoveCategory failed for {folder}", Client);
+                    }
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"AIS RemoveCategory exception for {folder}: {ex.Message}", Client);
+                }
             }
             else
             {
@@ -1505,7 +1479,57 @@ namespace OpenMetaverse
         /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
         public void EmptyLostAndFound(CancellationToken cancellationToken = default)
         {
-            EmptySystemFolder(FolderType.LostAndFound, cancellationToken);
+            // Preserve synchronous API by delegating to async-first implementation
+            EmptyLostAndFoundAsync(cancellationToken).GetAwaiter().GetResult();
+        }
+
+        public async Task EmptyLostAndFoundAsync(CancellationToken cancellationToken = default)
+        {
+            // Try to locate the Lost and Found system folder in local store so we can update UI after successful server-side empty
+            var folderKey = UUID.Zero;
+            if (_Store != null && _Store.RootFolder != null)
+            {
+                try
+                {
+                    var rootContents = _Store.GetContents(_Store.RootFolder);
+                    foreach (var item in rootContents)
+                    {
+                        var folder = item as InventoryFolder;
+                        if (folder?.PreferredType == FolderType.LostAndFound)
+                        {
+                            folderKey = folder.UUID;
+                            break;
+                        }
+                    }
+                }
+                catch (Exception) { /* ignore errors when reading local store */ }
+            }
+
+            if (Client.AisClient.IsAvailable)
+            {
+                try
+                {
+                    // Use AIS async purge if available
+                    var success = await Client.AisClient.PurgeDescendentsAsync(folderKey, cancellationToken).ConfigureAwait(false);
+                    if (success && folderKey != UUID.Zero)
+                    {
+                        RemoveLocalUi(true, folderKey);
+                    }
+                    else if (!success)
+                    {
+                        Logger.Warn("AIS PurgeDescendents (LostAndFound) failed", Client);
+                    }
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"AIS PurgeDescendents (LostAndFound) exception: {ex.Message}", Client);
+                }
+            }
+            else
+            {
+                EmptySystemFolder(FolderType.LostAndFound, cancellationToken);
+            }
         }
 
         /// <summary>
@@ -1514,48 +1538,50 @@ namespace OpenMetaverse
         /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
         public void EmptyTrash(CancellationToken cancellationToken = default)
         {
+            EmptyTrashAsync(cancellationToken).GetAwaiter().GetResult();
+        }
+
+        public async Task EmptyTrashAsync(CancellationToken cancellationToken = default)
+        {
+            // Try to locate the Trash system folder in local store so we can update UI after successful server-side empty
+            var folderKey = UUID.Zero;
+            if (_Store != null && _Store.RootFolder != null)
+            {
+                try
+                {
+                    var rootContents = _Store.GetContents(_Store.RootFolder);
+                    foreach (var item in rootContents)
+                    {
+                        var folder = item as InventoryFolder;
+                        if (folder?.PreferredType == FolderType.Trash)
+                        {
+                            folderKey = folder.UUID;
+                            break;
+                        }
+                    }
+                }
+                catch (Exception) { /* ignore errors when reading local store */ }
+            }
+
             if (Client.AisClient.IsAvailable)
             {
-                // Try to locate the Trash system folder in local store so we can update UI after successful server-side empty
-                var folderKey = UUID.Zero;
-                if (_Store != null && _Store.RootFolder != null)
+                try
                 {
-                    try
+                    var success = await Client.AisClient.EmptyTrash(cancellationToken).ConfigureAwait(false);
+                    if (success && folderKey != UUID.Zero)
                     {
-                        var rootContents = _Store.GetContents(_Store.RootFolder);
-                        foreach (var item in rootContents)
-                        {
-                            var folder = item as InventoryFolder;
-                            if (folder?.PreferredType == FolderType.Trash)
-                            {
-                                folderKey = folder.UUID;
-                                break;
-                            }
-                        }
+                        RemoveLocalUi(true, folderKey);
                     }
-                    catch (Exception) { /* ignore errors when reading local store */ }
+                    else if (!success)
+                    {
+                        Logger.Warn("AIS EmptyTrash failed", Client);
+                    }
                 }
-
-                // Fire-and-forget AIS call and update local UI on success
-                _ = Task.Run(async () =>
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex)
                 {
-                    try
-                    {
-                        var success = await Client.AisClient.EmptyTrash(cancellationToken).ConfigureAwait(false);
-                        if (success && folderKey != UUID.Zero)
-                        {
-                            RemoveLocalUi(true, folderKey);
-                        }
-                        else if (!success)
-                        {
-                            Logger.Warn("AIS EmptyTrash failed", Client);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Warn($"AIS EmptyTrash exception: {ex.Message}", Client);
-                    }
-                }, cancellationToken);
+                    Logger.Warn($"AIS EmptyTrash exception: {ex.Message}", Client);
+                }
             }
             else
             {
@@ -1909,6 +1935,13 @@ namespace OpenMetaverse
         /// <param name="callback">Method to call upon creation of the link</param>
         /// <param name="cancellationToken"></param>
         public void CreateLink(UUID folderID, UUID itemID, string name, string description, 
+             InventoryType invType, UUID transactionID, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
+         {
+            // preserve synchronous API by delegating to async-first implementation
+            CreateLinkAsync(folderID, itemID, name, description, invType, transactionID, callback, cancellationToken).GetAwaiter().GetResult();
+        }
+        
+        public async Task CreateLinkAsync(UUID folderID, UUID itemID, string name, string description,
             InventoryType invType, UUID transactionID, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -1929,46 +1962,16 @@ namespace OpenMetaverse
 
                 var newInventory = new OSDMap { { "links", links } };
 
-                // Wrap user callback to merge created item into local store and notify listeners
-                InventoryManager.ItemCreatedCallback wrappedCallback = (success, createdItem) =>
+                var wrapped = WrapItemCreatedCallback(callback);
+                try
                 {
-                    try
-                    {
-                        if (success && createdItem != null)
-                        {
-                            if (_Store != null)
-                            {
-                                using (var writeLock = _storeLock.WriteLock())
-                                {
-                                    _Store[createdItem.UUID] = createdItem;
-                                }
-                            }
-                            else
-                            {
-                                Logger.Debug("Inventory store is not initialized, created item will not be cached locally", Client);
-                            }
-
-                            try
-                            {
-                                OnItemReceived(new ItemReceivedEventArgs(createdItem));
-                            }
-                            catch (Exception ex)
-                            {
-                                Logger.Debug($"OnItemReceived handler threw: {ex.Message}", ex, Client);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Debug($"Failed merging created inventory item into local store: {ex.Message}", ex, Client);
-                    }
-
-                    // Invoke user callback last
-                    try { callback?.Invoke(success, createdItem); } catch (Exception ex) { Logger.Debug($"ItemCreated callback threw: {ex.Message}", ex, Client); }
-                };
-
-                // Fire-and-forget AIS call with wrapped callback
-                _ = Client.AisClient.CreateInventory(folderID, newInventory, true, wrappedCallback, cancellationToken);
+                    await Client.AisClient.CreateInventory(folderID, newInventory, true, wrapped, cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex)
+                {
+                    Logger.Warn(ex.Message, Client);
+                }
             }
             else
             {
@@ -2157,35 +2160,7 @@ namespace OpenMetaverse
                         }
                     }
                     // Fire-and-forget AIS update — wrap callback to merge into local store
-                    Action<bool> aisCallback = success =>
-                    {
-                        if (!success) return;
-
-                        if (_Store != null)
-                        {
-                            using (var writeLock = _storeLock.WriteLock())
-                            {
-                                if (_Store.TryGetValue(item.UUID, out var storeItem) && storeItem is InventoryItem existing)
-                                {
-                                    try
-                                    {
-                                        existing.Update(update);
-                                        _Store.UpdateNodeFor(existing);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        Logger.Debug($"Failed to apply AIS update to local item {item.UUID}: {ex.Message}", ex, Client);
-                                    }
-                                }
-                            }
-
-                            // Notify listeners about the updated item
-                            if (_Store != null && _Store.TryGetValue(item.UUID, out var updated) && updated is InventoryItem updatedItem)
-                            {
-                                OnItemReceived(new ItemReceivedEventArgs(updatedItem));
-                            }
-                        }
-                    };
+                    Action<bool> aisCallback = success => { if (success) MergeUpdateIntoStore(update, item.UUID); };
 
                     _ = Client.AisClient.UpdateItem(item.UUID, update, aisCallback);
                 }
