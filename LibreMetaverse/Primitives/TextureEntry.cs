@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -212,18 +213,12 @@ namespace OpenMetaverse
 
             #region Properties
 
-            public bool Valid
-            {
-                get
-                {
-                    return DefaultTexture != null;
-                }
-            }
+            public bool Valid => DefaultTexture != null;
 
             /// <summary></summary>
             internal byte material
             {
-                get { return (hasAttribute & TextureAttributes.Material) != 0 ? materialb : DefaultTexture.material; }
+                get => (hasAttribute & TextureAttributes.Material) != 0 ? materialb : DefaultTexture.material;
                 set
                 {
                     materialb = value;
@@ -234,7 +229,7 @@ namespace OpenMetaverse
             /// <summary></summary>
             internal byte media
             {
-                get { return (hasAttribute & TextureAttributes.Media) != 0 ? mediab : DefaultTexture.media; }
+                get => (hasAttribute & TextureAttributes.Media) != 0 ? mediab : DefaultTexture.media;
                 set
                 {
                     mediab = value;
@@ -245,7 +240,7 @@ namespace OpenMetaverse
             /// <summary></summary>
             public Color4 RGBA
             {
-                get { return (hasAttribute & TextureAttributes.RGBA) != 0 ? rgba : DefaultTexture.rgba; }
+                get => (hasAttribute & TextureAttributes.RGBA) != 0 ? rgba : DefaultTexture.rgba;
                 set
                 {
                     rgba = value;
@@ -256,7 +251,7 @@ namespace OpenMetaverse
             /// <summary></summary>
             public float RepeatU
             {
-                get { return (hasAttribute & TextureAttributes.RepeatU) != 0 ? repeatU : DefaultTexture.repeatU; }
+                get => (hasAttribute & TextureAttributes.RepeatU) != 0 ? repeatU : DefaultTexture.repeatU;
                 set
                 {
                     repeatU = value;
@@ -267,7 +262,7 @@ namespace OpenMetaverse
             /// <summary></summary>
             public float RepeatV
             {
-                get { return (hasAttribute & TextureAttributes.RepeatV) != 0 ? repeatV : DefaultTexture.repeatV; }
+                get => (hasAttribute & TextureAttributes.RepeatV) != 0 ? repeatV : DefaultTexture.repeatV;
                 set
                 {
                     repeatV = value;
@@ -278,7 +273,7 @@ namespace OpenMetaverse
             /// <summary></summary>
             public float OffsetU
             {
-                get { return (hasAttribute & TextureAttributes.OffsetU) != 0 ? offsetU : DefaultTexture.offsetU; }
+                get => (hasAttribute & TextureAttributes.OffsetU) != 0 ? offsetU : DefaultTexture.offsetU;
                 set
                 {
                     offsetU = value;
@@ -289,7 +284,7 @@ namespace OpenMetaverse
             /// <summary></summary>
             public float OffsetV
             {
-                get { return (hasAttribute & TextureAttributes.OffsetV) != 0 ? offsetV : DefaultTexture.offsetV; }
+                get => (hasAttribute & TextureAttributes.OffsetV) != 0 ? offsetV : DefaultTexture.offsetV;
                 set
                 {
                     offsetV = value;
@@ -300,7 +295,7 @@ namespace OpenMetaverse
             /// <summary></summary>
             public float Rotation
             {
-                get { return (hasAttribute & TextureAttributes.Rotation) != 0 ? rotation : DefaultTexture.rotation; }
+                get => (hasAttribute & TextureAttributes.Rotation) != 0 ? rotation : DefaultTexture.rotation;
                 set
                 {
                     rotation = value;
@@ -311,7 +306,7 @@ namespace OpenMetaverse
             /// <summary></summary>
             public float Glow
             {
-                get { return (hasAttribute & TextureAttributes.Glow) != 0 ? glow : DefaultTexture.glow; }
+                get => (hasAttribute & TextureAttributes.Glow) != 0 ? glow : DefaultTexture.glow;
                 set
                 {
                     glow = value;
@@ -424,13 +419,7 @@ namespace OpenMetaverse
             /// <summary></summary>
             public UUID TextureID
             {
-                get
-                {
-                    if ((hasAttribute & TextureAttributes.TextureID) != 0)
-                        return textureID;
-                    else
-                        return DefaultTexture.textureID;
-                }
+                get => (hasAttribute & TextureAttributes.TextureID) != 0 ? textureID : DefaultTexture.textureID;
                 set
                 {
                     textureID = value;
@@ -441,13 +430,7 @@ namespace OpenMetaverse
             /// <summary></summary>
             public UUID MaterialID
             {
-                get
-                {
-                    if ((hasAttribute & TextureAttributes.MaterialID) != 0)
-                        return materialID;
-                    else
-                        return DefaultTexture.materialID;
-                }
+                get => (hasAttribute & TextureAttributes.MaterialID) != 0 ? materialID : DefaultTexture.materialID;
                 set
                 {
                     materialID = value;
@@ -518,7 +501,7 @@ namespace OpenMetaverse
                 face.TexMapType = (MappingType)map["mapping"].AsInteger();
                 face.Glow = (float)map["glow"].AsReal();
                 face.TextureID = map["imageid"].AsUUID();
-                face.MaterialID = map["materialid"];
+                face.MaterialID = map["materialid"].AsUUID();
                 return face;
             }
 
