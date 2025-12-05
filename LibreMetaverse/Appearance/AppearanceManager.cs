@@ -810,7 +810,9 @@ namespace OpenMetaverse
                         ItemID = wearableItem.UUID,
                         WearableType = wearableItem.WearableType
                     };
-                    if (replace || wearableItem.AssetType == AssetType.Bodypart)
+                    
+                    // Bodyparts (Shape, Skin, Eyes, Hair) and Physics must always replace - they cannot be layered
+                    if (replace || wearableItem.AssetType == AssetType.Bodypart || wearableItem.WearableType == WearableType.Physics)
                     {
                         // Dump everything from the key
                         Wearables.Remove(wearableItem.WearableType);
@@ -1391,10 +1393,9 @@ namespace OpenMetaverse
         /// <param name="wearableItems">Wearable items to replace the Wearables collection with</param>
         private void ReplaceOutfit(List<InventoryWearable> wearableItems)
         {
-            // *TODO: This could use some love. We need to sanitize wearable layers, and this may not be
-            //        the most efficient way of doing that.
+            // Sanitize wearable layers - bodyparts and physics must be single-layer
             var newWearables = new MultiValueDictionary<WearableType, WearableData>();
-            var bodyparts = new Dictionary<WearableType, WearableData>();
+            var singleLayerWearables = new Dictionary<WearableType, WearableData>();
 
             lock (Wearables)
             {
@@ -1406,7 +1407,7 @@ namespace OpenMetaverse
                     {
                         if (entry.AssetType == AssetType.Bodypart)
                         {
-                            bodyparts[wearableType.Key] = entry;
+                            singleLayerWearables[wearableType.Key] = entry;
                         }
                     }
                 }
@@ -1421,10 +1422,11 @@ namespace OpenMetaverse
                         ItemID = wearableItem.UUID,
                         WearableType = wearableItem.WearableType
                     };
-                    // Body cannot be layered. Overwrite when multiple are selected.
-                    if (wearableItem.AssetType == AssetType.Bodypart)
+                    
+                    // Bodyparts and Physics cannot be layered. Overwrite when multiple are selected.
+                    if (wearableItem.AssetType == AssetType.Bodypart || wearableItem.WearableType == WearableType.Physics)
                     {
-                        bodyparts[wearableItem.WearableType] = wd;
+                        singleLayerWearables[wearableItem.WearableType] = wd;
                     }
                     else
                     {
@@ -1432,13 +1434,13 @@ namespace OpenMetaverse
                     }
                 }
 
-                // merge bodyparts into new wearable list
-                foreach (var bodypart in bodyparts)
+                // Merge single-layer wearables (bodyparts and physics) into new wearable list
+                foreach (var singleLayer in singleLayerWearables)
                 {
-                    newWearables.Add(bodypart.Key, bodypart.Value);
+                    newWearables.Add(singleLayer.Key, singleLayer.Value);
                 }
 
-                // heavy-handed body part sanity check
+                // Validate required body parts are present (exactly one of each)
                 if (newWearables.ContainsKey(WearableType.Shape) &&
                     newWearables.ContainsKey(WearableType.Skin) &&
                     newWearables.ContainsKey(WearableType.Eyes) &&
@@ -2689,43 +2691,43 @@ namespace OpenMetaverse
             }
         }
 
-        #endregion Appearance Helpers
+    #endregion Appearance Helpers
 
-        #region Inventory Helpers
+    #region Inventory Helpers
 
-        [Obsolete("Use GetFolderWearablesAsync instead (async-first). This method will block the calling thread.")]
-        private bool GetFolderWearables(UUID folder, out List<InventoryWearable> wearables, out List<InventoryItem> attachments)
+    [Obsolete("Use GetFolderWearablesAsync instead (async-first). This method will block the calling thread.")]
+    private bool GetFolderWearables(UUID folder, out List<InventoryWearable> wearables, out List<InventoryItem> attachments)
+    {
+        wearables = new List<InventoryWearable>();
+        attachments = new List<InventoryItem>();
+        var objects = Client.Inventory.FolderContents(folder, Client.Self.AgentID, false, true,
+            InventorySortOrder.ByName, INVENTORY_TIMEOUT);
+
+        if (objects != null)
         {
-            wearables = new List<InventoryWearable>();
-            attachments = new List<InventoryItem>();
-            var objects = Client.Inventory.FolderContents(folder, Client.Self.AgentID, false, true,
-                InventorySortOrder.ByName, INVENTORY_TIMEOUT);
-
-            if (objects != null)
+            foreach (var ib in objects)
             {
-                foreach (var ib in objects)
+                switch (ib)
                 {
-                    switch (ib)
-                    {
-                        case InventoryWearable wearable:
-                            Logger.DebugLog($"Adding wearable {wearable.Name}", Client);
-                            wearables.Add(wearable);
-                            break;
-                        case InventoryAttachment attachment:
-                            Logger.DebugLog($"Adding attachment (attachment) {attachment.Name}", Client);
-                            attachments.Add(attachment);
-                            break;
-                        case InventoryObject inventoryObject:
-                            Logger.DebugLog($"Adding attachment (object) {inventoryObject.Name}", Client);
-                            attachments.Add(inventoryObject);
-                            break;
-                        default:
-                            Logger.DebugLog($"Ignoring inventory item {ib.Name}", Client);
-                            break;
-                    }
+                    case InventoryWearable wearable:
+                        Logger.DebugLog($"Adding wearable {wearable.Name}", Client);
+                        wearables.Add(wearable);
+                        break;
+                    case InventoryAttachment attachment:
+                        Logger.DebugLog($"Adding attachment (attachment) {attachment.Name}", Client);
+                        attachments.Add(attachment);
+                        break;
+                    case InventoryObject inventoryObject:
+                        Logger.DebugLog($"Adding attachment (object) {inventoryObject.Name}", Client);
+                        attachments.Add(inventoryObject);
+                        break;
+                    default:
+                        Logger.DebugLog($"Ignoring inventory item {ib.Name}", Client);
+                        break;
                 }
             }
-            else
+        }
+        else
         {
             Logger.Error($"Failed to download folder contents of {folder}", Client);
             return false;
