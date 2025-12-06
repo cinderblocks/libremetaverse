@@ -269,7 +269,7 @@ namespace LibreMetaverse.Appearance
         {
             try
             {
-                Logger.Info("COF initialization: requesting current outfit folder", client);
+                Logger.Trace("COF initialization: requesting current outfit folder", client);
 
                 COF = await client.Appearance.GetCurrentOutfitFolder(cancellationToken).ConfigureAwait(false);
 
@@ -309,13 +309,13 @@ namespace LibreMetaverse.Appearance
                 return true;
             }
 
-            Logger.Info("COF initialization requested", client);
+            Logger.Trace("COF initialization requested", client);
 
             // If another initialization is in progress, await it
             var existing = cofInitTask;
             if (existing != null)
             {
-                Logger.Info("COF initialization: awaiting existing initialization task", client);
+                Logger.Trace("COF initialization: awaiting existing initialization task", client);
                 try
                 {
                     return await existing.ConfigureAwait(false);
@@ -327,19 +327,16 @@ namespace LibreMetaverse.Appearance
                 }
             }
 
-            Logger.Info("COF initialization: acquiring init lock", client);
             await cofInitLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 if (initializedCOF)
                 {
-                    Logger.Info("COF initialization: already initialized after acquiring lock", client);
                     return true;
                 }
 
                 if (cofInitTask == null)
                 {
-                    Logger.Info("COF initialization: creating new init task", client);
                     cofInitTask = InitializeCurrentOutfitFolderInternal(cancellationToken);
                 }
             }
@@ -465,7 +462,7 @@ namespace LibreMetaverse.Appearance
                     },
                     cancellationToken
                 ).ConfigureAwait(false);
-             }
+            }
         }
 
         protected async Task RemoveLinksToByActualId(IEnumerable<UUID> actualItemIdsToRemoveLinksTo, CancellationToken cancellationToken = default)
