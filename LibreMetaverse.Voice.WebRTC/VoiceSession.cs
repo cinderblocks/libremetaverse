@@ -121,6 +121,12 @@ namespace LibreMetaverse.Voice.WebRTC
         private readonly ConcurrentDictionary<UUID, OSDMap> Peers = new ConcurrentDictionary<UUID, OSDMap>();
 
         private System.Timers.Timer positionTimer;
+        private System.Timers.Timer dataChannelKeepAliveTimer;
+        // Position and keepalive loop cancellation/tasks
+        private CancellationTokenSource positionLoopCts;
+        private Task positionLoopTask;
+        private CancellationTokenSource keepAliveLoopCts;
+        private Task keepAliveLoopTask;
 
         // Whether spatial coords changed since last send — only send updates when this is true
         private volatile bool mSpatialCoordsDirty = true;
@@ -140,8 +146,6 @@ namespace LibreMetaverse.Voice.WebRTC
         private readonly long lastRtcpSentTicks = 0;
         private readonly MediaStreamTrack _remoteAudioTrack;
 
-        private System.Timers.Timer dataChannelKeepAliveTimer;
-
         internal VoiceSession(Sdl3Audio audioDevice, ESessionType type, GridClient client)
         {
             Client = client;
@@ -149,20 +153,25 @@ namespace LibreMetaverse.Voice.WebRTC
             SessionType = type;
             SessionId = UUID.Zero;
         }
-        public async void Start()
+        public async Task StartAsync(CancellationToken ct = default)
         {
-            PeerConnection = await CreatePeerConnection();
-            iceTrickleTask = IceTrickleStart();
-
-            // Start the microphone capture after creating the connection
-            if (AudioDevice?.Source != null)
+            using (var linked = CancellationTokenSource.CreateLinkedTokenSource(Cts.Token, ct))
             {
-                AudioDevice.StartRecording();
+                var token = linked.Token;
+
+                PeerConnection = await CreatePeerConnection(token).ConfigureAwait(false);
+                iceTrickleTask = IceTrickleStart(token);
+
+                // Start the microphone capture after creating the connection
+                if (AudioDevice?.Source != null)
+                {
+                    AudioDevice.StartRecording();
+                }
             }
         }
 
         // Helper that posts to caps and returns deserialized OSD, with retries and timeout handling
-        private async Task<OSD> PostCapsWithRetries(Uri cap, OSD payload, int maxAttempts = 3, TimeSpan? timeout = null)
+        private async Task<OSD> PostCapsWithRetries(Uri cap, OSD payload, int maxAttempts = 3, TimeSpan? timeout = null, CancellationToken ct = default)
         {
             if (cap == null) throw new VoiceException("Capability URI is null.");
             if (timeout == null) timeout = TimeSpan.FromSeconds(10);
@@ -175,20 +184,21 @@ namespace LibreMetaverse.Voice.WebRTC
                 var tcs = new TaskCompletionSource<(byte[] data, Exception err)>();
                 try
                 {
-                    _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, Cts.Token, (response, data, error) =>
+                    var token = ct == default ? Cts.Token : ct;
+                    _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, token, (response, data, error) =>
                     {
                         tcs.TrySetResult((data, error));
                     });
 
-                    var delayTask = Task.Delay(timeout.Value, Cts.Token);
-                    var completed = await Task.WhenAny(tcs.Task, delayTask);
+                    var delayTask = Task.Delay(timeout.Value, token);
+                    var completed = await Task.WhenAny(tcs.Task, delayTask).ConfigureAwait(false);
                     if (completed == delayTask)
                     {
                         lastEx = new TimeoutException($"POST to {cap} timed out.");
                     }
                     else
                     {
-                        var (data, err) = await tcs.Task;
+                        var (data, err) = await tcs.Task.ConfigureAwait(false);
                         if (err != null)
                         {
                             lastEx = err;
@@ -206,13 +216,13 @@ namespace LibreMetaverse.Voice.WebRTC
                 }
 
                 // Backoff
-                await Task.Delay(TimeSpan.FromMilliseconds(200 * attempt), Cts.Token);
+                await Task.Delay(TimeSpan.FromMilliseconds(200 * attempt), ct == default ? Cts.Token : ct).ConfigureAwait(false);
             }
 
             throw new VoiceException($"Failed to POST to capability {cap}: {lastEx?.Message}");
         }
 
-        public async Task<RTCPeerConnection> CreatePeerConnection()
+        public async Task<RTCPeerConnection> CreatePeerConnection(CancellationToken ct = default)
         {
             var iceServers = new List<RTCIceServer>
     {
@@ -295,7 +305,7 @@ namespace LibreMetaverse.Voice.WebRTC
             };
 
             // Create data channel BEFORE negotiation
-            var dc = await pc.createDataChannel("SLData", new RTCDataChannelInit { ordered = true });
+            var dc = await pc.createDataChannel("SLData", new RTCDataChannelInit { ordered = true }).ConfigureAwait(false);
 
             dc.onopen += () =>
             {
@@ -305,18 +315,18 @@ namespace LibreMetaverse.Voice.WebRTC
                 TrySendDataChannelString("{\"j\":{\"p\":true}}");
 
                 // Start position updates AFTER a small delay to ensure join is processed
-                Task.Delay(100).ContinueWith(_ => StartPositionTimer());
+                Task.Delay(100).ContinueWith(_ => StartPositionLoop(), TaskScheduler.Default);
 
                 // Start data channel keepalive
-                StartDataChannelKeepAliveTimer();
+                StartKeepAliveLoop();
 
                 OnDataChannelReady?.Invoke();
             };
 
             dc.onclose += () =>
             {
-                StopPositionTimer();
-                StopDataChannelKeepAliveTimer();
+                StopPositionLoop();
+                StopKeepAliveLoop();
                 OnDataChannelReady?.Invoke();
             };
             dc.onmessage += (channel, type, data) =>
@@ -337,7 +347,7 @@ namespace LibreMetaverse.Voice.WebRTC
             // Assign the mangled SDP string directly
             offer.sdp = processedSdp;
 
-            await pc.setLocalDescription(offer);
+            await pc.setLocalDescription(offer).ConfigureAwait(false);
 
 
             // Parse the local SDP to get the Opus payload type for manual RTP sending
@@ -384,7 +394,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     if (state == RTCIceGatheringState.complete)
                     {
                         Logger.Log("ICE gathering state completed", Helpers.LogLevel.Debug, Client);
-                        await IceTrickleStop();
+                        await IceTrickleStop().ConfigureAwait(false);
                     }
                     else if (state == RTCIceGatheringState.gathering)
                     {
@@ -433,7 +443,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     if (AudioDevice?.EndPoint != null)
                     {
-                        await AudioDevice.EndPoint.StartAudioSink();
+                        await AudioDevice.EndPoint.StartAudioSink().ConfigureAwait(false);
                         Logger.Log("Audio sink started", Helpers.LogLevel.Info, Client);
                     }
                     else
@@ -444,7 +454,7 @@ namespace LibreMetaverse.Voice.WebRTC
                         {
                             try
                             {
-                                await AudioDevice.EndPoint.StartAudioSink();
+                                await AudioDevice.EndPoint.StartAudioSink().ConfigureAwait(false);
                                 Logger.Log("Audio sink started after EnsureEndpoint", Helpers.LogLevel.Info, Client);
                             }
                             catch (Exception ex)
@@ -463,7 +473,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     if (AudioDevice?.EndPoint != null)
                     {
-                        try { await AudioDevice.EndPoint.CloseAudioSink(); } catch { }
+                        try { await AudioDevice.EndPoint.CloseAudioSink().ConfigureAwait(false); } catch { }
                     }
                     OnPeerConnectionClosed?.Invoke();
                 }
@@ -474,6 +484,112 @@ namespace LibreMetaverse.Voice.WebRTC
             };
 
             return pc;
+        }
+
+        private void StartPositionLoop()
+        {
+            if (positionLoopTask != null && !positionLoopTask.IsCompleted) return;
+            positionLoopCts = CancellationTokenSource.CreateLinkedTokenSource(Cts.Token);
+            var token = positionLoopCts.Token;
+            positionLoopTask = Task.Run(async () =>
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    try
+                    {
+                        var dc = DataChannel;
+                        if (dc == null || dc.readyState != RTCDataChannelState.open) { await Task.Delay(100, token).ConfigureAwait(false); continue; }
+
+                        var globalPos = Client?.Self?.GlobalPosition ?? Vector3.Zero;
+                        var heading = Client?.Self?.RelativeRotation ?? Quaternion.Identity;
+
+                        if (globalPos == Vector3.Zero) { await Task.Delay(100, token).ConfigureAwait(false); continue; }
+
+                        bool posChanged = (Math.Abs(globalPos.X - lastObservedGlobalPos.X) > POSITION_CHANGE_THRESHOLD_METERS)
+                                          || (Math.Abs(globalPos.Y - lastObservedGlobalPos.Y) > POSITION_CHANGE_THRESHOLD_METERS)
+                                          || (Math.Abs(globalPos.Z - lastObservedGlobalPos.Z) > POSITION_CHANGE_THRESHOLD_METERS);
+
+                        bool headingChanged = (Math.Abs(heading.X - lastObservedHeading.X) > HEADING_CHANGE_THRESHOLD)
+                                              || (Math.Abs(heading.Y - lastObservedHeading.Y) > HEADING_CHANGE_THRESHOLD)
+                                              || (Math.Abs(heading.Z - lastObservedHeading.Z) > HEADING_CHANGE_THRESHOLD)
+                                              || (Math.Abs(heading.W - lastObservedHeading.W) > HEADING_CHANGE_THRESHOLD);
+
+                        if (posChanged || headingChanged)
+                        {
+                            mSpatialCoordsDirty = true;
+                            lastObservedGlobalPos = globalPos;
+                            lastObservedHeading = heading;
+                        }
+
+                        SendPositionUpdate(dc, globalPos, heading);
+                    }
+                    catch (OperationCanceledException) { break; }
+                    catch (Exception ex)
+                    {
+                        Logger.Log($"Position loop error: {ex.Message}", Helpers.LogLevel.Error, Client);
+                    }
+                    try { await Task.Delay(100, token).ConfigureAwait(false); } catch (OperationCanceledException) { break; }
+                }
+            }, token);
+        }
+
+        private void StopPositionLoop()
+        {
+            try
+            {
+                positionLoopCts?.Cancel();
+                positionLoopTask?.Wait(500);
+            }
+            catch { }
+            finally
+            {
+                positionLoopCts?.Dispose();
+                positionLoopCts = null;
+                positionLoopTask = null;
+            }
+        }
+
+        private void StartKeepAliveLoop()
+        {
+            if (keepAliveLoopTask != null && !keepAliveLoopTask.IsCompleted) return;
+            keepAliveLoopCts = CancellationTokenSource.CreateLinkedTokenSource(Cts.Token);
+            var token = keepAliveLoopCts.Token;
+            keepAliveLoopTask = Task.Run(async () =>
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    try
+                    {
+                        var dc = DataChannel;
+                        if (dc != null && dc.readyState == RTCDataChannelState.open)
+                        {
+                            TrySendDataChannelString("{\"ping\":true}");
+                        }
+                    }
+                    catch (OperationCanceledException) { break; }
+                    catch (Exception ex)
+                    {
+                        Logger.Log($"Keepalive loop error: {ex.Message}", Helpers.LogLevel.Error, Client);
+                    }
+                    try { await Task.Delay(5000, token).ConfigureAwait(false); } catch (OperationCanceledException) { break; }
+                }
+            }, token);
+        }
+
+        private void StopKeepAliveLoop()
+        {
+            try
+            {
+                keepAliveLoopCts?.Cancel();
+                keepAliveLoopTask?.Wait(500);
+            }
+            catch { }
+            finally
+            {
+                keepAliveLoopCts?.Dispose();
+                keepAliveLoopCts = null;
+                keepAliveLoopTask = null;
+            }
         }
 
         private async Task FlushPendingIceCandidates()
@@ -942,7 +1058,7 @@ namespace LibreMetaverse.Voice.WebRTC
             Logger.Log($"Setting gain for peer {peerId} to {gain}", Helpers.LogLevel.Info, Client);
             TrySendDataChannelString(json);
         }
-        private Task IceTrickleStart()
+        private Task IceTrickleStart(CancellationToken external = default)
         {
             // If a trickle task is already running, just return it
             if (iceTrickleTask != null
@@ -954,7 +1070,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
             }
 
-            iceTrickleCts = CancellationTokenSource.CreateLinkedTokenSource(Cts.Token);
+            iceTrickleCts = external == default ? CancellationTokenSource.CreateLinkedTokenSource(Cts.Token) : CancellationTokenSource.CreateLinkedTokenSource(Cts.Token, external);
 
             // Create a repeating task locally instead of calling Repeat.Interval to avoid
             // cross-assembly MethodAccessException. This loop polls every 25ms and invokes
@@ -978,7 +1094,7 @@ namespace LibreMetaverse.Voice.WebRTC
                             Logger.Log($"IceTrickle loop poll exception: {ex.Message}", Helpers.LogLevel.Debug, Client);
                         }
 
-                        try { await Task.Delay(TimeSpan.FromMilliseconds(25), token); } catch (OperationCanceledException) { break; }
+                        try { await Task.Delay(TimeSpan.FromMilliseconds(25), token).ConfigureAwait(false); } catch (OperationCanceledException) { break; }
                     }
                 }
                 catch (Exception ex)
@@ -1017,7 +1133,7 @@ namespace LibreMetaverse.Voice.WebRTC
               if (PeerConnection.iceGatheringState == RTCIceGatheringState.complete)
               {
                   iceTrickleCts?.Cancel();
-                  await SendVoiceSignalingCompleteRequest();
+                  await SendVoiceSignalingCompleteRequest().ConfigureAwait(false);
               }
          }
 
@@ -1384,43 +1500,6 @@ namespace LibreMetaverse.Voice.WebRTC
              }
          }
 
-         private void StartDataChannelKeepAliveTimer()
-         {
-             if (dataChannelKeepAliveTimer != null) { return; }
-
-             dataChannelKeepAliveTimer = new System.Timers.Timer(5000); // Send keepalive every 5 seconds
-             dataChannelKeepAliveTimer.Elapsed += (s, e) =>
-             {
-                 try
-                 {
-                     var dc = DataChannel;
-                     if (dc == null || dc.readyState != RTCDataChannelState.open) { return; }
-
-                     // Send a simple keepalive message
-                     TrySendDataChannelString("{\"ping\":true}");
-                 }
-                 catch (Exception ex)
-                 {
-                     Logger.Log($"Data channel keepalive error: {ex.Message}", Helpers.LogLevel.Error, Client);
-                 }
-             };
-             dataChannelKeepAliveTimer.Start();
-         }
-
-         private void StopDataChannelKeepAliveTimer()
-         {
-             try
-             {
-                 dataChannelKeepAliveTimer?.Stop();
-                 dataChannelKeepAliveTimer?.Dispose();
-             }
-             catch { }
-             finally
-             {
-                 dataChannelKeepAliveTimer = null;
-             }
-         }
-
          // Minimal implementation of RequestProvision to satisfy callers.
          // The real implementation is more involved; this stub returns false.
          public async Task<bool> RequestProvision()
@@ -1579,13 +1658,17 @@ namespace LibreMetaverse.Voice.WebRTC
          // Close and cleanup session resources
          public async Task CloseSession()
          {
-             StopPositionTimer();
-             StopDataChannelKeepAliveTimer();
+             // Stop loops
+             StopPositionLoop();
+             StopKeepAliveLoop();
+
              PeerConnection?.Close("ClientClose");
 
-            await SendCloseSessionRequest();
-            await SendVoiceSignalingCompleteRequest();
-            //Cts.Cancel();
-        }
-    }
-}
+            await SendCloseSessionRequest().ConfigureAwait(false);
+            await SendVoiceSignalingCompleteRequest().ConfigureAwait(false);
+
+            // Cancel internal token source to stop any background work
+            try { Cts.Cancel(); } catch { }
+         }
+     }
+ }

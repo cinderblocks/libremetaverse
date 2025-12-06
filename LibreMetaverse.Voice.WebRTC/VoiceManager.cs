@@ -126,8 +126,8 @@ namespace LibreMetaverse.Voice.WebRTC
             CurrentSession.OnMuteMapReceived += (m) => MuteMapReceived?.Invoke(m);
             CurrentSession.OnGainMapReceived += (g) => GainMapReceived?.Invoke(g);
 
-            CurrentSession.Start();
-            var provisioned = await CurrentSession.RequestProvision();
+            await CurrentSession.StartAsync().ConfigureAwait(false);
+            var provisioned = await CurrentSession.RequestProvision().ConfigureAwait(false);
             return provisioned;
         }
 
