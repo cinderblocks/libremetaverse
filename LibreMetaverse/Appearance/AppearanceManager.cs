@@ -129,7 +129,7 @@ namespace OpenMetaverse
     public class AppearanceManagerException : Exception
     {
         public AppearanceManagerException(string message)
-        : base(message) { }
+            : base(message) { }
     }
 
     public partial class AppearanceManager : IDisposable
@@ -359,9 +359,18 @@ namespace OpenMetaverse
         #region Properties and public fields
 
         /// <summary>
-        /// Returns true if AppearanceManager is busy and trying to set or change appearance will fail
+        /// Returns true if an appearance workflow task is currently running
         /// </summary>
-        public bool ManagerBusy => AppearanceThreadRunning != 0;
+        public bool ManagerBusy
+        {
+            get
+            {
+                lock (_appearanceLock)
+                {
+                    return AppearanceTask != null && !AppearanceTask.IsCompleted;
+                }
+            }
+        }
 
         /// <summary>Visual parameters last sent to the sim</summary>
         public byte[] MyVisualParameters;
@@ -383,20 +392,12 @@ namespace OpenMetaverse
         private int CacheCheckSerialNum = -1;
         /// <summary>Incrementing serial number for AgentSetAppearance packets</summary>
         private int SetAppearanceSerialNum = 0;
-        /// <summary>Indicates whether the appearance thread is currently
-        /// running, to prevent multiple appearance threads from running
-        /// simultaneously</summary>
-        private int AppearanceThreadRunning = 0;
         /// <summary>Reference to our agent</summary>
         private readonly GridClient Client;
         /// <summary>
         /// Timer used for delaying rebake on changing outfit
         /// </summary>
         private Timer RebakeScheduleTimer;
-        /// <summary>
-        /// Main appearance thread
-        /// </summary>
-        private Thread AppearanceThread;
         /// <summary>
         /// Task tracking the async appearance workflow started by RequestSetAppearance
         /// </summary>
@@ -456,8 +457,7 @@ namespace OpenMetaverse
             RebakeScheduleTimer = null;
 
             // Clear thread references/state
-            DisposalHelper.SafeAction(() => AppearanceThread = null, "Clear AppearanceThread", (m,e) => Logger.Debug(m, e));
-            Interlocked.Exchange(ref AppearanceThreadRunning, 0);
+            //            DisposalHelper.SafeAction(() => AppearanceThread = null, "Clear AppearanceThread", (m,e) => Logger.Debug(m, e));
         }
         #endregion Private Members
 
@@ -542,25 +542,10 @@ namespace OpenMetaverse
             lock (_appearanceLock)
             {
                 AppearanceCts = cts;
-                Interlocked.Exchange(ref AppearanceThreadRunning, 1);
                 AppearanceTask = Task.Run(() => RequestSetAppearanceAsync(forceRebake, ct), ct);
-
-                var runningTask = AppearanceTask;
-                runningTask.ContinueWith(t =>
-                {
-                    lock (_appearanceLock)
-                    {
-                        if (ReferenceEquals(AppearanceTask, t))
-                        {
-                            try { AppearanceCts?.Dispose(); } catch (Exception ex) { Logger.Debug($"Disposing AppearanceCts failed: {ex}", Client); }
-                            AppearanceCts = null;
-                            AppearanceTask = null;
-                        }
-                    }
-                }, TaskScheduler.Default);
-
-                return runningTask;
             }
+
+            return AppearanceTask;
         }
 
         /// <summary>
@@ -2466,8 +2451,7 @@ namespace OpenMetaverse
         DisposalHelper.SafeCancelAndDispose(AppearanceCts, (m, ex) => Logger.Debug(m, ex));
         AppearanceCts = null;
 
-        DisposalHelper.SafeAction(() => AppearanceThread = null, "Clear AppearanceThread", (m, ex) => Logger.Debug(m, ex));
-        Interlocked.Exchange(ref AppearanceThreadRunning, 0);
+        // Clear appearance workflow state
     }
 
     private void Network_OnSimChanged(object sender, SimChangedEventArgs e)
@@ -2686,7 +2670,6 @@ namespace OpenMetaverse
         }
         finally
         {
-            Interlocked.Exchange(ref AppearanceThreadRunning, 0);
             OnAppearanceSet(new AppearanceSetEventArgs(success));
         }
     }
