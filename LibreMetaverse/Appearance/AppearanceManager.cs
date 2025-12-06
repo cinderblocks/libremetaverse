@@ -397,7 +397,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Timer used for delaying rebake on changing outfit
         /// </summary>
-        private Timer RebakeScheduleTimer;
+        private CancellationTokenSource RebakeScheduleCts;
+        private Task RebakeScheduleTask;
         /// <summary>
         /// Task tracking the async appearance workflow started by RequestSetAppearance
         /// </summary>
@@ -453,8 +454,9 @@ namespace OpenMetaverse
             AppearanceCts = null;
 
             // Dispose timer
-            DisposalHelper.SafeDispose(RebakeScheduleTimer, "RebakeScheduleTimer", (m, e) => Logger.Debug(m, e));
-            RebakeScheduleTimer = null;
+            DisposalHelper.SafeCancelAndDispose(RebakeScheduleCts, (m, e) => Logger.Debug(m, e));
+            RebakeScheduleTask = null;
+            RebakeScheduleCts = null;
 
             // Clear thread references/state
             //            DisposalHelper.SafeAction(() => AppearanceThread = null, "Clear AppearanceThread", (m,e) => Logger.Debug(m, e));
@@ -511,10 +513,11 @@ namespace OpenMetaverse
                     try { previousCts?.Dispose(); } catch (Exception ex) { Logger.Debug($"Disposing previous CTS failed: {ex}", Client); }
 
                     // Dispose any scheduled rebake timer so we start fresh
-                    if (RebakeScheduleTimer != null)
+                    if (RebakeScheduleCts != null)
                     {
-                        try { RebakeScheduleTimer.Dispose(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleTimer.Dispose failed: {ex}", Client); }
-                        RebakeScheduleTimer = null;
+                        try { RebakeScheduleCts.Cancel(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleCts.Cancel failed: {ex}", Client); }
+                        RebakeScheduleTask = null;
+                        RebakeScheduleCts = null;
                     }
 
                     return StartAppearanceImmediate(forceRebake);
@@ -524,10 +527,11 @@ namespace OpenMetaverse
             }
 
             // No previous running task - start immediately
-            if (RebakeScheduleTimer != null)
+            if (RebakeScheduleCts != null)
             {
-                try { RebakeScheduleTimer.Dispose(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleTimer.Dispose failed: {ex}", Client); }
-                RebakeScheduleTimer = null;
+                try { RebakeScheduleCts.Cancel(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleCts.Cancel failed: {ex}", Client); }
+                RebakeScheduleTask = null;
+                RebakeScheduleCts = null;
             }
 
             return StartAppearanceImmediate(forceRebake);
@@ -2230,17 +2234,37 @@ namespace OpenMetaverse
 
         private void DelayedRequestSetAppearance()
         {
-            if (RebakeScheduleTimer == null)
-            {
-                RebakeScheduleTimer = new Timer(RebakeScheduleTimerTick);
-            }
-            try { RebakeScheduleTimer.Change(REBAKE_DELAY, Timeout.Infinite); }
-            catch (Exception ex) { Logger.Warn($"Failed to schedule rebake timer: {ex}", Client); }
-        }
+            // Cancel any existing scheduled rebake
+            try { DisposalHelper.SafeCancelAndDispose(RebakeScheduleCts, (m, e) => Logger.Debug(m, e)); }
+            catch (Exception ex) { Logger.Debug($"Cancel previous rebake failed: {ex}", Client); }
 
-        private void RebakeScheduleTimerTick(object state)
-        {
-            RequestSetAppearance(true);
+            var cts = new CancellationTokenSource();
+            var token = cts.Token;
+
+            lock (_appearanceLock)
+            {
+                RebakeScheduleCts = cts;
+                RebakeScheduleTask = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(REBAKE_DELAY, token).ConfigureAwait(false);
+                        try { RequestSetAppearance(true); }
+                        catch (Exception ex) { Logger.Warn($"Delayed RequestSetAppearance failed: {ex}", Client); }
+                    }
+                    catch (OperationCanceledException) { /* cancelled */ }
+                    catch (Exception ex) { Logger.Warn($"Rebake scheduler failed: {ex}", Client); }
+                    finally
+                    {
+                        lock (_appearanceLock)
+                        {
+                            RebakeScheduleTask = null;
+                            try { RebakeScheduleCts?.Dispose(); } catch { }
+                            RebakeScheduleCts = null;
+                        }
+                    }
+                }, token);
+            }
         }
 
         private async Task SyncCofVersion(CancellationToken cancellationToken)
@@ -2445,8 +2469,9 @@ namespace OpenMetaverse
 
     private void Network_OnDisconnected(object sender, DisconnectedEventArgs e)
     {
-        DisposalHelper.SafeDispose(RebakeScheduleTimer, "RebakeScheduleTimer", (m, ex) => Logger.Debug(m, ex));
-        RebakeScheduleTimer = null;
+        DisposalHelper.SafeCancelAndDispose(RebakeScheduleCts, (m, ex) => Logger.Debug(m, ex));
+        RebakeScheduleTask = null;
+        RebakeScheduleCts = null;
 
         DisposalHelper.SafeCancelAndDispose(AppearanceCts, (m, ex) => Logger.Debug(m, ex));
         AppearanceCts = null;
