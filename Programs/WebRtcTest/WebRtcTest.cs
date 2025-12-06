@@ -63,7 +63,7 @@ namespace WebRtcTest
             string lastName = args[1];
             string password = args[2];
 
-            Settings.LOG_LEVEL = Helpers.LogLevel.Debug;
+            Settings.LOG_LEVEL = Microsoft.Extensions.Logging.LogLevel.Debug;
 
             GridClient client = new GridClient
             {
