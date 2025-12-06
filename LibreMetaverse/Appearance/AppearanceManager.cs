@@ -422,6 +422,44 @@ namespace OpenMetaverse
             MaxDegreeOfParallelism = MAX_CONCURRENT_DOWNLOADS
         };
 
+        // Centralized helper to cancel a CancellationTokenSource, wait for a Task to complete
+        // (best-effort) and dispose the CTS. Keeps cancellation handling consistent.
+        private void CancelAndAwaitTask(ref CancellationTokenSource cts, ref Task task, int timeoutMs = 5000)
+        {
+            if (cts == null && task == null) return;
+
+            try
+            {
+                try { cts?.Cancel(); } catch (Exception ex) { Logger.Debug($"Cancel CTS failed: {ex}", Client); }
+
+                if (task != null)
+                {
+                    try
+                    {
+                        // Best-effort wait for task to finish so we don't leak work in background
+                        if (!task.Wait(timeoutMs))
+                        {
+                            Logger.Debug($"Task did not complete within {timeoutMs}ms", Client);
+                        }
+                    }
+                    catch (AggregateException ae)
+                    {
+                        Logger.Debug($"Waiting for task threw AggregateException: {ae}", Client);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Debug($"Waiting for task threw: {ex}", Client);
+                    }
+                }
+            }
+            finally
+            {
+                try { cts?.Dispose(); } catch (Exception ex) { Logger.Debug($"Disposing CTS failed: {ex}", Client); }
+                cts = null;
+                task = null;
+            }
+        }
+
         /// <summary>
         /// Dispose resources, unregister callbacks and event handlers
         /// </summary>
@@ -449,14 +487,9 @@ namespace OpenMetaverse
             DisposalHelper.SafeAction(() => { if (Client?.Network != null) Client.Network.SimChanged -= Network_OnSimChanged; }, "Unsubscribe Network.SimChanged", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
             DisposalHelper.SafeAction(() => { if (Client?.Network?.CurrentSim?.Caps != null) Client.Network.CurrentSim.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived; }, "Unsubscribe CapabilitiesReceived", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
 
-            // Cancel and dispose cancellation token source
-            DisposalHelper.SafeCancelAndDispose(AppearanceCts, (m, e) => Logger.Debug(m, e));
-            AppearanceCts = null;
-
-            // Dispose timer
-            DisposalHelper.SafeCancelAndDispose(RebakeScheduleCts, (m, e) => Logger.Debug(m, e));
-            RebakeScheduleTask = null;
-            RebakeScheduleCts = null;
+            // Cancel and dispose running appearance workflow and rebake scheduler reliably
+            CancelAndAwaitTask(ref AppearanceCts, ref AppearanceTask);
+            CancelAndAwaitTask(ref RebakeScheduleCts, ref RebakeScheduleTask);
 
             // Clear thread references/state
             //            DisposalHelper.SafeAction(() => AppearanceThread = null, "Clear AppearanceThread", (m,e) => Logger.Debug(m, e));
@@ -547,6 +580,12 @@ namespace OpenMetaverse
             {
                 AppearanceCts = cts;
                 AppearanceTask = Task.Run(() => RequestSetAppearanceAsync(forceRebake, ct), ct);
+                // Observe exceptions from the background appearance task to avoid unobserved exceptions
+                AppearanceTask.ContinueWith(t =>
+                {
+                    var ex = t.Exception; // Observe
+                    Logger.Warn($"AppearanceTask faulted: {ex}", Client);
+                }, TaskContinuationOptions.OnlyOnFaulted);
             }
 
             return AppearanceTask;
@@ -1802,13 +1841,13 @@ namespace OpenMetaverse
                 {
                     if (!Client.Network.Connected)
                     {
-                        await Task.Delay(50, cancellationToken);
+                        await Task.Delay(50, cancellationToken).ConfigureAwait(false);
                     }
                     else
                     {
                         if (GetOwnAvatar() == null)
                         {
-                            await Task.Delay(50, cancellationToken);
+                            await Task.Delay(50, cancellationToken).ConfigureAwait(false);
                         }
                         else
                         {
@@ -1845,7 +1884,7 @@ namespace OpenMetaverse
                         if ((textures[8] == UUID.Zero || textures[9] == UUID.Zero || textures[10] == UUID.Zero || textures[11] == UUID.Zero) || (textures[8] == DEFAULT_AVATAR_TEXTURE || textures[9] == DEFAULT_AVATAR_TEXTURE || textures[10] == DEFAULT_AVATAR_TEXTURE || textures[11] == DEFAULT_AVATAR_TEXTURE))
                         {
                             // This hasn't actually baked. Retry after a delay.
-                            await Task.Delay(REBAKE_DELAY, cancellationToken);
+                            await Task.Delay(REBAKE_DELAY, cancellationToken).ConfigureAwait(false);
                             totalRetries--;
                             continue;
                         }
@@ -1906,7 +1945,7 @@ namespace OpenMetaverse
                     Logger.Warn($"Server expected {result["expected"].AsInteger()} as COF version. " +
                                $"Version {currentOutfitFolder.Version} was sent.", Client);
 
-                    await SyncCofVersion(cancellationToken);
+                    await SyncCofVersion(cancellationToken).ConfigureAwait(false);
 
                     --totalRetries;
                     continue;
@@ -1921,7 +1960,7 @@ namespace OpenMetaverse
                 }
 
                 Logger.Info($"Avatar appearance update failed on {totalRetries} attempt.", Client);
-                await Task.Delay(REBAKE_DELAY, cancellationToken);
+                await Task.Delay(REBAKE_DELAY, cancellationToken).ConfigureAwait(false);
                 --totalRetries;
             }
         }
@@ -1935,7 +1974,7 @@ namespace OpenMetaverse
             // COF should be in the root folder. Request update to get the latest version number
             List<InventoryBase> root = await Client.Inventory.RequestFolderContents(Client.Inventory.Store.RootFolder.UUID,
                 Client.Self.AgentID, true, false, InventorySortOrder.ByDate,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             if (root == null) { return null; }
 
@@ -1988,7 +2027,6 @@ namespace OpenMetaverse
                     var found = Wearables.Any(wearableList => wearableList.Value.Any(wearable => wearable.Asset != null && wearable.Asset.Params.TryGetValue(vp.ParamID, out paramValue)));
 
                     // Try and find this value in our collection of downloaded wearables
-
                     // Use a default value if we don't have one set for it
                     if (!found)
                         paramValue = vp.DefaultValue;
@@ -2235,7 +2273,7 @@ namespace OpenMetaverse
         private void DelayedRequestSetAppearance()
         {
             // Cancel any existing scheduled rebake
-            try { DisposalHelper.SafeCancelAndDispose(RebakeScheduleCts, (m, e) => Logger.Debug(m, e)); }
+            try { DisposalHelper.SafeCancelAndDispose(RebakeScheduleCts, (m, ex) => Logger.Debug(m, ex)); }
             catch (Exception ex) { Logger.Debug($"Cancel previous rebake failed: {ex}", Client); }
 
             var cts = new CancellationTokenSource();
@@ -2249,8 +2287,19 @@ namespace OpenMetaverse
                     try
                     {
                         await Task.Delay(REBAKE_DELAY, token).ConfigureAwait(false);
-                        try { RequestSetAppearance(true); }
-                        catch (Exception ex) { Logger.Warn($"Delayed RequestSetAppearance failed: {ex}", Client); }
+                        try
+                        {
+                            var task = RequestSetAppearance(true);
+                            task.ContinueWith(t =>
+                            {
+                                var ex = t.Exception; // Observe
+                                Logger.Warn($"Delayed RequestSetAppearance task faulted: {ex}", Client);
+                            }, TaskContinuationOptions.OnlyOnFaulted);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warn($"Delayed RequestSetAppearance invocation failed: {ex}", Client);
+                        }
                     }
                     catch (OperationCanceledException) { /* cancelled */ }
                     catch (Exception ex) { Logger.Warn($"Rebake scheduler failed: {ex}", Client); }
@@ -2281,7 +2330,7 @@ namespace OpenMetaverse
 
             using (var request = new HttpRequestMessage(HttpMethod.Get, capability))
             {
-                using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken))
+                using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
                 {
                     if (!reply.IsSuccessStatusCode)
                     {
@@ -2289,13 +2338,13 @@ namespace OpenMetaverse
                     }
                     else
                     {
-                        var data = await reply.Content.ReadAsStringAsync();
+                        var data = await reply.Content.ReadAsStringAsync().ConfigureAwait(false);
 
                         if (OSDParser.Deserialize(data) is OSDMap map)
                         {
                             var version = map["version"].AsInteger();
                             Logger.Info($"Slamming {version} version to Current Outfit Folder", Client);
-                            var cof = await GetCurrentOutfitFolder(cancellationToken);
+                            var cof = await GetCurrentOutfitFolder(cancellationToken).ConfigureAwait(false);
                             cof.Version = version;
                         }
                     }
