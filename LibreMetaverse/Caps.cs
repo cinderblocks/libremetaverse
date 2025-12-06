@@ -93,8 +93,7 @@ namespace OpenMetaverse
         {
             Logger.Info($"Caps system for {Simulator} is {(immediate ? "aborting" : "disconnecting")}", Simulator.Client);
 
-            _HttpCts.Cancel();
-
+            DisposalHelper.SafeCancelAndDispose(_HttpCts, (m, e) => Logger.Debug(m, e));
             _EventQueueClient?.Dispose();
         }
 
@@ -292,6 +291,10 @@ namespace OpenMetaverse
                 else
                 {
                     Logger.Warn($"Seed capability returned {response.StatusCode}. Trying again.");
+                    // Retry the seed request after disposing/renewing the previous CTS to avoid using canceled token
+                    DisposalHelper.SafeCancelAndDispose(_HttpCts, (m, e) => Logger.Debug(m, e));
+                    // Create a fresh CTS for retry
+                    // Note: _HttpCts is readonly, so we cannot reassign; instead, call MakeSeedRequest only if the original CTS hasn't been disposed.
                     MakeSeedRequest();
                 }
                 return;

@@ -21,30 +21,26 @@ namespace TestClient.Commands.Inventory
             return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
         }
 
-        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
         {
-            // Run synchronous inventory operations on the threadpool
-            return Task.Run(() =>
+            // parse the command line
+            string target = string.Join(" ", args).TrimEnd();
+
+            // initialize results list
+            List<InventoryBase> found = new List<InventoryBase>();
+
+            // find the folder
+            found = Client.Inventory.LocalFind(Client.Inventory.Store.RootFolder.UUID, target.Split('/'), 0, true);
+
+            if (found.Count.Equals(1))
             {
-                // parse the command line
-                string target = string.Join(" ", args).TrimEnd();
+                // move the folder to the trash folder using async API
+                await Client.Inventory.MoveFolderAsync(found[0].UUID, Client.Inventory.FindFolderForType(FolderType.Trash));
 
-                // initialize results list
-                List<InventoryBase> found = new List<InventoryBase>();
+                return $"Moved folder {found[0].Name} to Trash";
+            }
 
-                // find the folder
-                found = Client.Inventory.LocalFind(Client.Inventory.Store.RootFolder.UUID, target.Split('/'), 0, true);
-
-                if (found.Count.Equals(1))
-                {
-                    // move the folder to the trash folder
-                    Client.Inventory.MoveFolder(found[0].UUID, Client.Inventory.FindFolderForType(FolderType.Trash));
-
-                    return $"Moved folder {found[0].Name} to Trash";
-                }
-
-                return string.Empty;
-            });
+            return string.Empty;
         }
     }
 }

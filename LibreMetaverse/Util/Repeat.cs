@@ -89,7 +89,7 @@ namespace LibreMetaverse
         }
     }
 
-    internal static class CancellationTokenExtensions
+    public static class CancellationTokenExtensions
     {
         public static bool WaitCancellationRequested(
             this CancellationToken token,

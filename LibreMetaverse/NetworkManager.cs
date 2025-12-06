@@ -35,6 +35,7 @@ using System.Threading.Tasks;
 using OpenMetaverse.Packets;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
+using LibreMetaverse;
 
 namespace OpenMetaverse
 {
@@ -769,7 +770,7 @@ namespace OpenMetaverse
             // No need to run the disconnect timer anymore
             if (DisconnectTimer != null)
             {
-                DisconnectTimer.Dispose();
+                DisposalHelper.SafeDispose(DisconnectTimer, "DisconnectTimer", (m, e) => Logger.Debug(m, e));
                 DisconnectTimer = null;
             }
 
@@ -907,40 +908,15 @@ namespace OpenMetaverse
             }
             
             // Cancel background processors first to speed up shutdown
-            try
-            {
-                _cts?.Cancel();
-            }
-            catch { }
+            DisposalHelper.SafeCancelAndDispose(_cts, (m, e) => Logger.Debug(m, e));
+            _cts = null;
 
-            _packetInbox?.Writer.Complete();
-            _packetOutbox?.Writer.Complete();
-
-            // Await processor tasks with a timeout to avoid hangs
-            var tasks = new List<Task>();
-            if (_incomingProcessorTask != null) tasks.Add(_incomingProcessorTask);
-            if (_outgoingProcessorTask != null) tasks.Add(_outgoingProcessorTask);
-
-            if (tasks.Count > 0)
-            {
-                var all = Task.WhenAll(tasks);
-                var completed = await Task.WhenAny(all, Task.Delay(2000)).ConfigureAwait(false);
-                if (completed != all)
-                {
-                    Logger.Warn("Background processors did not exit within timeout during Shutdown", Client);
-                }
-                else
-                {
-                    // Observe exceptions if any
-                    try { await all.ConfigureAwait(false); } catch { }
-                }
-            }
+            DisposalHelper.SafeAction(() => _packetInbox?.Writer.Complete(), "Complete packet inbox writer", (m, e) => Logger.Debug(m, e));
+            DisposalHelper.SafeAction(() => _packetOutbox?.Writer.Complete(), "Complete packet outbox writer", (m, e) => Logger.Debug(m, e));
 
             _packetInbox = null;
             _packetOutbox = null;
 
-            _cts?.Dispose();
-            _cts = null;
             _incomingProcessorTask = null;
             _outgoingProcessorTask = null;
 
@@ -1134,7 +1110,7 @@ namespace OpenMetaverse
             {
                 if (DisconnectTimer != null)
                 {
-                    DisconnectTimer.Dispose();
+                    DisposalHelper.SafeDispose(DisconnectTimer, "DisconnectTimer", (m, e) => Logger.Debug(m, e));
                     DisconnectTimer = null;
                 }
                 Connected = false;
@@ -1146,7 +1122,7 @@ namespace OpenMetaverse
 
                 if (DisconnectTimer != null)
                 {
-                    DisconnectTimer.Dispose();
+                    DisposalHelper.SafeDispose(DisconnectTimer, "DisconnectTimer", (m, e) => Logger.Debug(m, e));
                     DisconnectTimer = null;
                 }
 

@@ -3446,7 +3446,7 @@ namespace OpenMetaverse
         {
             if (Client.Network.CurrentSim.Caps.CapabilityURI(AGENT_PROFILE_CAP) != null)
             {
-                UpdateProfileHttp(profile);
+                _ = UpdateProfileHttp(profile);
             }
             else
             {
@@ -3562,7 +3562,7 @@ namespace OpenMetaverse
         {
             if (Client.Network.CurrentSim.Caps.CapabilityURI(AGENT_PROFILE_CAP) != null)
             {
-                UpdateProfileNotesHttp(target, notes);
+                _ = UpdateProfileNotesHttp(target, notes);
             }
             else
             {

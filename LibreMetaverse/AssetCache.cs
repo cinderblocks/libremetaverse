@@ -244,6 +244,108 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Try to read cached bytes synchronously in a safe manner.
+        /// Returns false on any failure (locked file, IO error, missing file).
+        /// </summary>
+        public bool TryGetCachedAssetBytes(UUID assetID, out byte[] data)
+        {
+            data = null;
+
+            if (!Operational())
+            {
+                return false;
+            }
+
+            try
+            {
+                var path = FileName(assetID);
+                if (File.Exists(path))
+                {
+                    data = File.ReadAllBytes(path);
+                    return data != null && data.Length > 0;
+                }
+
+                var staticPath = StaticFileName(assetID);
+                if (File.Exists(staticPath))
+                {
+                    DebugLog($"Reading {staticPath} from static asset cache.");
+                    data = File.ReadAllBytes(staticPath);
+                    return data != null && data.Length > 0;
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                DebugLog("Failed reading asset from cache (" + ex.Message + ")");
+                data = null;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Async variant of TryGetCachedAssetBytes. Returns (false, null) on failure.
+        /// </summary>
+        public async Task<(bool Success, byte[] Data)> TryGetCachedAssetBytesAsync(UUID assetID, CancellationToken cancellationToken = default)
+        {
+            if (!Operational())
+            {
+                return (false, null);
+            }
+
+            try
+            {
+                var path = FileName(assetID);
+                if (File.Exists(path))
+                {
+                    using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
+                    {
+                        var length = (int)fs.Length;
+                        var buffer = new byte[length];
+                        var read = 0;
+                        while (read < length)
+                        {
+                            var n = await fs.ReadAsync(buffer, read, length - read, cancellationToken).ConfigureAwait(false);
+                            if (n == 0) break;
+                            read += n;
+                        }
+                        return (buffer != null && buffer.Length > 0, buffer);
+                    }
+                }
+
+                var staticPath = StaticFileName(assetID);
+                if (File.Exists(staticPath))
+                {
+                    DebugLog($"Reading {staticPath} from static asset cache.");
+                    using (var fs = new FileStream(staticPath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
+                    {
+                        var length = (int)fs.Length;
+                        var buffer = new byte[length];
+                        var read = 0;
+                        while (read < length)
+                        {
+                            var n = await fs.ReadAsync(buffer, read, length - read, cancellationToken).ConfigureAwait(false);
+                            if (n == 0) break;
+                            read += n;
+                        }
+                        return (buffer != null && buffer.Length > 0, buffer);
+                    }
+                }
+
+                return (false, null);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                DebugLog("Failed reading asset from cache (" + ex.Message + ")");
+                return (false, null);
+            }
+        }
+
+        /// <summary>
         /// Returns ImageDownload object of the
         /// image from the local image cache, null if it does not exist
         /// </summary>
@@ -251,11 +353,13 @@ namespace OpenMetaverse
         /// <returns>ImageDownload object containing the image, or null on failure</returns>
         public ImageDownload GetCachedImage(UUID imageID)
         {
-            if (!Operational())
-                return null;
+            if (!Operational()) { return null; }
 
-            byte[] imageData = GetCachedAssetBytes(imageID);
-            if (imageData == null) { return null; }
+            if (!TryGetCachedAssetBytes(imageID, out var imageData) || imageData == null)
+            {
+                return null;
+            }
+
             ImageDownload transfer = new ImageDownload
             {
                 AssetType = AssetType.Texture,
@@ -318,7 +422,7 @@ namespace OpenMetaverse
             try
             {
                 var path = FileName(assetID);
-                DebugLog("Saving " + path + " to asset cache.");
+                Logger.Trace($"Saving {path} to asset cache.");
 
                 if (!Directory.Exists(Client.Settings.ASSET_CACHE_DIR))
                 {

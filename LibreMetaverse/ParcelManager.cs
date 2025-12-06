@@ -35,6 +35,7 @@ using OpenMetaverse.Interfaces;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Messages.Linden;
 using System.Threading.Tasks;
+using LibreMetaverse;
 
 namespace OpenMetaverse
 {
@@ -933,16 +934,6 @@ namespace OpenMetaverse
             handler?.Invoke(this, e);
         }
 
-        /// <summary>Thread sync lock object</summary>
-        private readonly object m_ParcelMediaUpdateReplyLock = new object();
-
-        /// <summary>Raised when the simulator responds to a Parcel Update request</summary>
-        public event EventHandler<ParcelMediaUpdateReplyEventArgs> ParcelMediaUpdateReply
-        {
-            add { lock (m_ParcelMediaUpdateReplyLock) { m_ParcelMediaUpdateReply += value; } }
-            remove { lock (m_ParcelMediaUpdateReplyLock) { m_ParcelMediaUpdateReply -= value; } }
-        }
-
         /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ParcelMediaCommandEventArgs> m_ParcelMediaCommand;
 
@@ -953,16 +944,6 @@ namespace OpenMetaverse
         {
             EventHandler<ParcelMediaCommandEventArgs> handler = m_ParcelMediaCommand;
             handler?.Invoke(this, e);
-        }
-
-        /// <summary>Thread sync lock object</summary>
-        private readonly object m_ParcelMediaCommandLock = new object();
-
-        /// <summary>Raised when the parcel your agent is located sends a ParcelMediaCommand</summary>
-        public event EventHandler<ParcelMediaCommandEventArgs> ParcelMediaCommand
-        {
-            add { lock (m_ParcelMediaCommandLock) { m_ParcelMediaCommand += value; } }
-            remove { lock (m_ParcelMediaCommandLock) { m_ParcelMediaCommand -= value; } }
         }
         #endregion Delegates
 
@@ -1011,31 +992,26 @@ namespace OpenMetaverse
 
             if (disposing)
             {
-                try
+                // Unregister network callbacks safely
+                if (Client?.Network != null)
                 {
-                    if (Client?.Network != null)
-                    {
-                        try { Client.Network.UnregisterCallback(PacketType.ParcelInfoReply, ParcelInfoReplyHandler); } catch { }
-                        try { Client.Network.UnregisterEventCallback("ParcelObjectOwnersReply", ParcelObjectOwnersReplyHandler); } catch { }
-                        try { Client.Network.UnregisterEventCallback("ParcelProperties", ParcelPropertiesReplyHandler); } catch { }
-                        try { Client.Network.UnregisterCallback(PacketType.ParcelDwellReply, ParcelDwellReplyHandler); } catch { }
-                        try { Client.Network.UnregisterCallback(PacketType.ParcelAccessListReply, ParcelAccessListReplyHandler); } catch { }
-                        try { Client.Network.UnregisterCallback(PacketType.ForceObjectSelect, SelectParcelObjectsReplyHandler); } catch { }
-                        try { Client.Network.UnregisterCallback(PacketType.ParcelMediaUpdate, ParcelMediaUpdateHandler); } catch { }
-                        try { Client.Network.UnregisterCallback(PacketType.ParcelOverlay, ParcelOverlayHandler); } catch { }
-                        try { Client.Network.UnregisterCallback(PacketType.ParcelMediaCommandMessage, ParcelMediaCommandMessagePacketHandler); } catch { }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Warn("Exception while disposing ParcelManager: " + ex.Message, ex, Client);
+                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelInfoReply, ParcelInfoReplyHandler), "Unregister ParcelInfoReply", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
+                    Helpers.SafeAction(() => Client.Network.UnregisterEventCallback("ParcelObjectOwnersReply", ParcelObjectOwnersReplyHandler), "Unregister ParcelObjectOwnersReply", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
+                    Helpers.SafeAction(() => Client.Network.UnregisterEventCallback("ParcelProperties", ParcelPropertiesReplyHandler), "Unregister ParcelProperties", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
+                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelDwellReply, ParcelDwellReplyHandler), "Unregister ParcelDwellReply", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
+                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelAccessListReply, ParcelAccessListReplyHandler), "Unregister ParcelAccessListReply", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
+                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ForceObjectSelect, SelectParcelObjectsReplyHandler), "Unregister ForceObjectSelect", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
+                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelMediaUpdate, ParcelMediaUpdateHandler), "Unregister ParcelMediaUpdate", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
+                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelOverlay, ParcelOverlayHandler), "Unregister ParcelOverlay", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
+                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelMediaCommandMessage, ParcelMediaCommandMessagePacketHandler), "Unregister ParcelMediaCommandMessage", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
                 }
 
+                // Cancel any waiting TCS
                 try
                 {
                     lock (WaitForSimParcelLock)
                     {
-                        try { WaitForSimParcelTcs?.TrySetCanceled(); } catch { }
+                        try { WaitForSimParcelTcs?.TrySetCanceled(); } catch (Exception ex) { Logger.Warn("Exception cancelling WaitForSimParcelTcs: " + ex.Message, ex, Client); }
                         WaitForSimParcelTcs = null;
                     }
                 }
@@ -1802,7 +1778,7 @@ namespace OpenMetaverse
                 */
                 
                 await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(),
-                    cancellationToken, (httpResponse, data, error) =>
+                    cancellationToken, ( httpResponse, data, error) =>
                     {
                         try
                         {

@@ -1,3 +1,30 @@
+/*
+ * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2019-2025, Sjofn, LLC
+ * All rights reserved.
+ *
+ * - Redistribution and use in source and binary forms, with or without 
+ *   modification, are permitted provided that the following conditions are met:
+ *
+ * - Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * - Neither the name of the openmetaverse.co nor the names 
+ *   of its contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -6,6 +33,7 @@ using System.Threading.Tasks;
 using LibreMetaverse.Voice.Vivox;
 using Microsoft.Extensions.Logging;
 using OpenMetaverse;
+using LibreMetaverse.Appearance;
 using OpenMetaverse.Packets;
 using TestClient.Commands.Appearance;
 
@@ -33,8 +61,18 @@ namespace TestClient
         private CloneCommand CloneManager;
 
         /// <summary>
-        /// Constructor
+        /// Current Outfit Folder manager for tracking and managing avatar appearance
         /// </summary>
+        public CurrentOutfitFolder OutfitManager { get; }
+
+        /// <summary>
+        /// Initializes a new instance of the TestClient class using the specified client manager.
+        /// </summary>
+        /// <remarks>This constructor sets up event handlers, configures default settings, and initializes key components
+        /// required for the TestClient to operate. It also starts the internal update timer and registers necessary network
+        /// callbacks. The provided ClientManager must be properly initialized before being passed to this
+        /// constructor.</remarks>
+        /// <param name="manager">The ClientManager instance that manages client operations and state for this TestClient.</param>
         public TestClient(ClientManager manager)
         {
             ClientManager = manager;
@@ -65,6 +103,9 @@ namespace TestClient
             Network.RegisterCallback(PacketType.AlertMessage, AlertMessageHandler);
 
             VoiceManager = new VoiceManager(this);
+
+            // Initialize Current Outfit Folder manager
+            OutfitManager = new CurrentOutfitFolder(this);
 
             updateTimer.Start();
         }
@@ -127,7 +168,6 @@ namespace TestClient
                 // Received an IM from someone that is not the bot's master, ignore
                 Console.WriteLine("<{0} ({1})> {2} (not master): {3} (@{4}:{5})", e.IM.GroupIM ? "GroupIM" : "IM", e.IM.Dialog, e.IM.FromAgentName, e.IM.Message,
                     e.IM.RegionID, e.IM.Position);
-                return;
             }
         }
 
@@ -181,7 +221,7 @@ namespace TestClient
         }
 
         /// <summary>
-        /// Asynchronously reload the groups cache with a 10 second timeout.
+        /// Asynchronously reload the groups cache with a 10-second timeout.
         /// Use this method when you can await instead of blocking the calling thread.
         /// </summary>
         public async Task ReloadGroupsCacheAsync()
@@ -219,10 +259,6 @@ namespace TestClient
                             GroupsCache = groups;
                         }
                     }
-                }
-                else
-                {
-                    // Timeout - leave existing cache as-is
                 }
             }
             finally
@@ -322,6 +358,19 @@ namespace TestClient
 
             e.Accept = true;
             return;
+        }
+
+        /// <summary>
+        /// Dispose pattern override to cleanup OutfitManager
+        /// </summary>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                OutfitManager?.Dispose();
+            }
+            
+            base.Dispose(disposing);
         }
     }
 }

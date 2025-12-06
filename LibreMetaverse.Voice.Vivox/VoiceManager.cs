@@ -875,38 +875,30 @@ namespace LibreMetaverse.Voice.Vivox
 
             if (disposing)
             {
-                try
+                // Unregister network event callback
+                DisposalHelper.SafeAction(() => _client?.Network?.UnregisterEventCallback("RequiredVoiceVersion", RequiredVoiceVersionEventHandler), "Unregister RequiredVoiceVersion", (m, e) => Logger.Warn(m + ": " + e?.Message, e, _client));
+
+                // Unregister blocking callbacks
+                DisposalHelper.SafeAction(() => OnCaptureDevices -= VoiceManager_OnCaptureDevices, "Unsubscribe OnCaptureDevices", (m, e) => Logger.Warn(m + ": " + e?.Message, e, _client));
+                DisposalHelper.SafeAction(() => OnRenderDevices -= VoiceManager_OnRenderDevices, "Unsubscribe OnRenderDevices", (m, e) => Logger.Warn(m + ": " + e?.Message, e, _client));
+                DisposalHelper.SafeAction(() => OnConnectorCreated -= VoiceManager_OnConnectorCreated, "Unsubscribe OnConnectorCreated", (m, e) => Logger.Warn(m + ": " + e?.Message, e, _client));
+                DisposalHelper.SafeAction(() => OnLogin -= VoiceManager_OnLogin, "Unsubscribe OnLogin", (m, e) => Logger.Warn(m + ": " + e?.Message, e, _client));
+
+                // Detach daemon pipe handlers and dispose pipe if present
+                if (_daemonPipe != null)
                 {
-                    // Unregister network event callback
-                    try { _client?.Network?.UnregisterEventCallback("RequiredVoiceVersion", RequiredVoiceVersionEventHandler); } catch { }
-
-                    // Unregister blocking callbacks
-                    try { OnCaptureDevices -= VoiceManager_OnCaptureDevices; } catch { }
-                    try { OnRenderDevices -= VoiceManager_OnRenderDevices; } catch { }
-                    try { OnConnectorCreated -= VoiceManager_OnConnectorCreated; } catch { }
-                    try { OnLogin -= VoiceManager_OnLogin; } catch { }
-
-                    // Detach daemon pipe handlers and dispose pipe if present
-                    try
-                    {
-                        if (_daemonPipe != null)
-                        {
-                            try { _daemonPipe.OnDisconnected -= _DaemonPipe_OnDisconnected; } catch { }
-                            try { _daemonPipe.OnReceiveLine -= _DaemonPipe_OnReceiveLine; } catch { }
-                            try { _daemonPipe.Disconnect(); } catch { }
-                            _daemonPipe = null;
-                        }
-                    }
-                    catch { }
-
-                    // Clear internal collections
-                    try { _channelMap.Clear(); } catch { }
-                    try { _captureDevices.Clear(); } catch { }
-                    try { _renderDevices.Clear(); } catch { }
-
-                    _enabled = false;
+                    DisposalHelper.SafeAction(() => _daemonPipe.OnDisconnected -= _DaemonPipe_OnDisconnected, "Detach daemon OnDisconnected", (m, e) => Logger.Debug(m, e));
+                    DisposalHelper.SafeAction(() => _daemonPipe.OnReceiveLine -= _DaemonPipe_OnReceiveLine, "Detach daemon OnReceiveLine", (m, e) => Logger.Debug(m, e));
+                    DisposalHelper.SafeAction(() => _daemonPipe.Disconnect(), "Disconnect daemon pipe", (m, e) => Logger.Debug(m, e));
+                    _daemonPipe = null;
                 }
-                catch { /* swallow exceptions in Dispose */ }
+
+                // Clear internal collections
+                DisposalHelper.SafeAction(() => _channelMap.Clear(), "Clear channel map", (m, e) => Logger.Debug(m, e));
+                DisposalHelper.SafeAction(() => _captureDevices.Clear(), "Clear capture devices", (m, e) => Logger.Debug(m, e));
+                DisposalHelper.SafeAction(() => _renderDevices.Clear(), "Clear render devices", (m, e) => Logger.Debug(m, e));
+
+                _enabled = false;
             }
 
             _disposed = true;

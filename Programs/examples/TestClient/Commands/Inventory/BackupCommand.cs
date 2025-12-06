@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using OpenMetaverse;
 using OpenMetaverse.Assets;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Inventory
 {
@@ -280,8 +281,9 @@ namespace TestClient.Commands.Inventory
 
         private string MakeValid(string path)
         {
-            // FIXME: We need to strip illegal characters out
-            return path.Trim().Replace('"', '\'');
+            // Use central sanitizer for filenames/dir names
+            if (string.IsNullOrEmpty(path)) return string.Empty;
+            return FileHelper.SafeFileName(path.Trim());
         }
 
         private void Assets_OnAssetReceived(AssetDownload asset, Asset blah)

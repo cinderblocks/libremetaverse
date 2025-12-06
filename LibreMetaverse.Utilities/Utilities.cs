@@ -269,12 +269,7 @@ namespace OpenMetaverse.Utilities
 
         public void Stop()
         {
-            try
-            {
-                _checkCts?.Cancel();
-            }
-            catch { }
-
+            LibreMetaverse.DisposalHelper.SafeCancelAndDispose(_checkCts, (m, ex) => Logger.Debug(m, ex));
             _checkCts = null;
             _checkTask = null;
         }

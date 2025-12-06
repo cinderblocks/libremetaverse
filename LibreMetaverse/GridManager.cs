@@ -35,6 +35,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using LibreMetaverse;
 
 namespace OpenMetaverse
 {
@@ -167,9 +168,7 @@ namespace OpenMetaverse
         public uint LocalY => GlobalY % Simulator.DefaultRegionSizeY;
 
         /// <summary>Get the Handle of the region</summary>
-        public ulong RegionHandle =>
-            Utils.UIntsToLong((uint)(GlobalX - (GlobalX % Simulator.DefaultRegionSizeX)),
-                (uint)(GlobalY - (GlobalY % Simulator.DefaultRegionSizeY)));
+        public ulong RegionHandle => PositionHelper.RegionHandleFromGlobal(GlobalX, GlobalY);
     }
 
     /// <summary>

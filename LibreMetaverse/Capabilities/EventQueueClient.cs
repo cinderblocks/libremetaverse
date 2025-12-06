@@ -92,8 +92,9 @@ namespace OpenMetaverse.Http
             }
             catch { /* noop */ }
 
-            _queueCts?.Dispose();
-            _queueCts = null;
+            // Atomically take ownership and dispose
+            var oldCts = Interlocked.Exchange(ref _queueCts, null);
+            DisposalHelper.SafeCancelAndDispose(oldCts);
             GC.SuppressFinalize(this);
         }
 
@@ -119,11 +120,13 @@ namespace OpenMetaverse.Http
                 _reqPayloadMap = initial;
                 _reqPayloadBytes = OSDParser.SerializeLLSDXmlBytes(_reqPayloadMap);
             }
-            _queueCts?.Cancel();
-            _queueCts?.Dispose();
-            _queueCts = new CancellationTokenSource();
 
-            _eqTask = Repeat.IntervalAsync(TimeSpan.FromSeconds(1), ack, _queueCts.Token, true);
+            // Atomically replace previous CTS and dispose it
+            var newCts = new CancellationTokenSource();
+            var prev = Interlocked.Exchange(ref _queueCts, newCts);
+            DisposalHelper.SafeCancelAndDispose(prev);
+
+            _eqTask = Repeat.IntervalAsync(TimeSpan.FromSeconds(1), ack, newCts.Token, true);
 
             async Task ack()
             {
@@ -147,7 +150,7 @@ namespace OpenMetaverse.Http
                     }
 
                     await Simulator.Client.HttpCapsClient.PostRequestAsync(
-                        Address, OSDFormat.Xml, payloadSnapshot, _queueCts.Token, RequestCompletedHandler, ConnectedResponseHandler)
+                        Address, OSDFormat.Xml, payloadSnapshot, newCts.Token, RequestCompletedHandler, ConnectedResponseHandler)
                         .ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
@@ -167,30 +170,32 @@ namespace OpenMetaverse.Http
         /// <param name="immediate">quite honestly does nothing.</param>
         public void Stop(bool immediate)
         {
-            // do we need to POST one more request telling EQ we are done? i dunno!
-            _queueCts.Cancel();
+            // Atomically take ownership and cancel/dispose the CTS
+            var old = Interlocked.Exchange(ref _queueCts, null);
+            DisposalHelper.SafeCancelAndDispose(old);
 
             // Wait a short time for the background task to finish so resources are cleaned up
             try
             {
                 if (_eqTask != null)
                 {
-                    // Wait up to 2 seconds for the repeating task to stop
-                    if (!_eqTask.Wait(2000))
+                    // Wait up to 2 seconds for the repeating task to stop and observe exceptions
+                    DisposalHelper.SafeWaitTask(_eqTask, TimeSpan.FromSeconds(2), (m, ex) =>
                     {
-                        Logger.Debug($"EventQueueClient background task did not stop within timeout for {Simulator}");
-                    }
-
-                    // Observe any exceptions to avoid unobserved task exceptions
-                    if (_eqTask.IsFaulted && _eqTask.Exception != null)
-                    {
-                        Logger.Error($"EventQueueClient background task faulted: {_eqTask.Exception}");
-                    }
+                        if (ex == null)
+                        {
+                            Logger.Debug($"{m} for {Simulator}");
+                        }
+                        else
+                        {
+                            Logger.Error(m, ex);
+                        }
+                    });
                 }
             }
-            catch (AggregateException ae)
+            catch (Exception ex)
             {
-                Logger.Error($"Exception while waiting for EventQueueClient task to stop: {ae}");
+                Logger.Error($"Exception while waiting for EventQueueClient task to stop: {ex.Message}", ex);
             }
         }
 
@@ -216,7 +221,7 @@ namespace OpenMetaverse.Http
         /// of the payload to detect HTML/DOCTYPE bodies or LLSD/XML markers. Centralized to keep parsing
         /// decision logic in one place and to provide consistent logging behaviour.
         /// </summary>
-        /// <param name="response">The HTTP response message (may be null).</param>
+        /// <param name="response">The HTTP response message (might be null).</param>
         /// <param name="data">The response body bytes.</param>
         /// <returns>True if the payload should be treated as LLSD/XML and can be parsed; false otherwise.</returns>
         private static bool IsLikelyLLSD(HttpResponseMessage response, byte[] data)
@@ -302,12 +307,21 @@ namespace OpenMetaverse.Http
                         case HttpStatusCode.Gone:
                             Logger.Info($"Closing event queue at {Simulator} due to missing caps URI");
 
-                            _queueCts.Cancel();
+                            // Cancel safely on snapshot
+                            var ctsSnapshot1 = Volatile.Read(ref _queueCts);
+                            if (ctsSnapshot1 != null)
+                            {
+                                try { ctsSnapshot1.Cancel(); } catch (ObjectDisposedException) { }
+                            }
                             break;
                         case (HttpStatusCode)499: // weird error returned occasionally, ignore for now
                             Logger.Debug($"Possible HTTP-out timeout error from {Simulator}, no need to continue");
 
-                            _queueCts.Cancel();
+                            var ctsSnapshot2 = Volatile.Read(ref _queueCts);
+                            if (ctsSnapshot2 != null)
+                            {
+                                try { ctsSnapshot2.Cancel(); } catch (ObjectDisposedException) { }
+                            }
                             break;
 
                         case HttpStatusCode.InternalServerError:
@@ -331,7 +345,11 @@ namespace OpenMetaverse.Http
                             {
                                 if (error.InnerException.Message.IndexOf(PROXY_TIMEOUT_RESPONSE, StringComparison.Ordinal) < 0)
                                 {
-                                    _queueCts.Cancel();
+                                    var ctsSnapshot3 = Volatile.Read(ref _queueCts);
+                                    if (ctsSnapshot3 != null)
+                                    {
+                                        try { ctsSnapshot3.Cancel(); } catch (ObjectDisposedException) { }
+                                    }
                                 }
                             }
                             else
@@ -340,7 +358,11 @@ namespace OpenMetaverse.Http
 
                                 if (!WILLFULLY_IGNORE_LL_SPECS_ON_EVENT_QUEUE || !Simulator.Connected)
                                 {
-                                    _queueCts.Cancel();
+                                    var ctsSnapshot4 = Volatile.Read(ref _queueCts);
+                                    if (ctsSnapshot4 != null)
+                                    {
+                                        try { ctsSnapshot4.Cancel(); } catch (ObjectDisposedException) { }
+                                    }
                                 }
                             }
                         }
@@ -432,7 +454,8 @@ namespace OpenMetaverse.Http
                     if (_reqPayloadMap == null) _reqPayloadMap = new OSDMap();
                     _reqPayloadMap["ack"] = ack;
 
-                    if (_queueCts.Token.IsCancellationRequested)
+                    var ctsLocal = Volatile.Read(ref _queueCts);
+                    if (ctsLocal == null || ctsLocal.IsCancellationRequested)
                     {
                         // We will fire off one more POST to tell the simulator, that's it we're done.
                         // Not sure if this even necessary. Only our dark lords know what 'done' does.

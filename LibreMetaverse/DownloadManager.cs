@@ -310,7 +310,7 @@ namespace OpenMetaverse.Http
                             {
                                 sw.Stop();
                                 try {
-                                    Logger.Debug($"Download completed {addr} attempts={representative.Attempt} status={(int)response.StatusCode} bytes={responseData?.Length ?? 0} time={sw.ElapsedMilliseconds}ms");
+                                    Logger.Trace($"Download completed {addr} attempts={representative.Attempt} status={(int)response.StatusCode} bytes={responseData?.Length ?? 0} time={sw.ElapsedMilliseconds}ms");
                                 } catch { }
 
                                 var handlers = activeDownload.CompletedHandlers.ToArray();

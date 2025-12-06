@@ -33,7 +33,6 @@ using System.Threading.Tasks;
 using LibreMetaverse.Materials;
 using OpenMetaverse.Packets;
 using OpenMetaverse.StructuredData;
-using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
 
 namespace OpenMetaverse
@@ -165,7 +164,7 @@ namespace OpenMetaverse
     /// Handles all network traffic related to prims and avatar positions and 
     /// movement.
     /// </summary>
-    public class ObjectManager : IDisposable
+    public partial class ObjectManager : IDisposable
     {
         public const float HAVOK_TIMESTEP = 1.0f / 45.0f;
 
@@ -512,9 +511,8 @@ namespace OpenMetaverse
 
         /// <summary>Reference to the GridClient object</summary>
         protected GridClient Client;
-        /// <summary>Does periodic dead reckoning calculation to convert
-        /// velocity and acceleration to new positions for objects</summary>
-        private Timer InterpolationTimer;
+
+        private InterpolationService _interpolationService;
 
         /// <summary>
         /// Construct a new instance of the ObjectManager class
@@ -547,7 +545,11 @@ namespace OpenMetaverse
                 // Dispose managed resources and unregister callbacks
                 try
                 {
-                    if (Client != null && Client.Network != null)
+                    // Stop interpolation service if active
+                    try { _interpolationService?.Stop(); } catch { }
+                    _interpolationService = null;
+
+                    if (Client?.Network != null)
                     {
                         try { Client.Network.UnregisterCallback(PacketType.ObjectUpdate, ObjectUpdateHandler); } catch { }
                         try { Client.Network.UnregisterCallback(PacketType.ImprovedTerseObjectUpdate, ImprovedTerseObjectUpdateHandler); } catch { }
@@ -559,12 +561,6 @@ namespace OpenMetaverse
                         try { Client.Network.UnregisterCallback(PacketType.PayPriceReply, PayPriceReplyHandler); } catch { }
                         try { Client.Network.UnregisterCallback(PacketType.ObjectAnimation, ObjectAnimationHandler); } catch { }
                         try { Client.Network.UnregisterEventCallback("ObjectPhysicsProperties", ObjectPhysicsPropertiesHandler); } catch { }
-                    }
-
-                    if (InterpolationTimer != null)
-                    {
-                        try { InterpolationTimer.Dispose(); } catch { }
-                        InterpolationTimer = null;
                     }
                 }
                 catch (Exception ex)
@@ -594,10 +590,11 @@ namespace OpenMetaverse
 
         private void Network_OnDisconnected(NetworkManager.DisconnectType reason, string message)
         {
-            if (InterpolationTimer != null)
+            if (_interpolationService != null)
             {
-                InterpolationTimer.Dispose();
-                InterpolationTimer = null;
+                try { _interpolationService.Stop(); } catch { }
+                _interpolationService = null;
+                return;
             }
         }
 
@@ -605,7 +602,9 @@ namespace OpenMetaverse
         {
             if (Client.Settings.USE_INTERPOLATION_TIMER)
             {
-                InterpolationTimer = new Timer(InterpolationTimer_Elapsed, null, Client.Settings.INTERPOLATION_INTERVAL, Timeout.Infinite);
+                // Use the extracted service to manage interpolation scheduling and lifecycle
+                _interpolationService = new InterpolationService(Client);
+                _interpolationService.Start();
             }
         }
 
@@ -1006,10 +1005,12 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>        
         /// <param name="localID">The Local ID of the object</param>
+        [Obsolete("Use ClickObjectAsync(simulator, localID, CancellationToken) instead.")]
         public void ClickObject(Simulator simulator, uint localID)
-        {
-            ClickObject(simulator, localID, Vector3.Zero, Vector3.Zero, 0, Vector3.Zero, Vector3.Zero, Vector3.Zero);
-        }
+         {
+             // Preserve synchronous API by blocking on the async implementation
+             ClickObjectAsync(simulator, localID).GetAwaiter().GetResult();
+         }
 
         /// <summary>
         /// Perform a click action (Grab) on a single object
@@ -1023,64 +1024,92 @@ namespace OpenMetaverse
         /// <param name="normal">The surface normal of the position to touch (A normal is a vector perpendicular to the surface)</param>
         /// <param name="binormal">The surface binormal of the position to touch (A binormal is a vector tangent to the surface
         /// pointing along the U direction of the tangent space</param>
+        [Obsolete("Use ClickObjectAsync(simulator, localID, uvCoord, stCoord, faceIndex, position, normal, binormal, CancellationToken) instead.")]
         public void ClickObject(Simulator simulator, uint localID, Vector3 uvCoord, Vector3 stCoord, int faceIndex, Vector3 position,
             Vector3 normal, Vector3 binormal)
+         {
+             // Preserve synchronous API by blocking on the async implementation
+             ClickObjectAsync(simulator, localID, uvCoord, stCoord, faceIndex, position, normal, binormal).GetAwaiter().GetResult();
+         }
+
+        /// <summary>
+        /// Async variant of ClickObject. Sends a grab packet, waits a short delay
+        /// and then sends the de-grab packet. Uses Task.Delay instead of Thread.Sleep.
+        /// </summary>
+        public async Task ClickObjectAsync(Simulator simulator, uint localID, CancellationToken cancellationToken = default)
         {
-            ObjectGrabPacket grab = new ObjectGrabPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                ObjectData =
-                {
-                    GrabOffset = Vector3.Zero,
-                    LocalID = localID
-                },
-                SurfaceInfo = new ObjectGrabPacket.SurfaceInfoBlock[1]
-            };
-            grab.SurfaceInfo[0] = new ObjectGrabPacket.SurfaceInfoBlock
-            {
-                UVCoord = uvCoord,
-                STCoord = stCoord,
-                FaceIndex = faceIndex,
-                Position = position,
-                Normal = normal,
-                Binormal = binormal
-            };
+            await ClickObjectAsync(simulator, localID, Vector3.Zero, Vector3.Zero, 0, Vector3.Zero, Vector3.Zero, Vector3.Zero, cancellationToken).ConfigureAwait(false);
+        }
+ 
+         /// <summary>
+         /// Async variant of ClickObject. Sends a grab packet, waits a short delay
+         /// and then sends the de-grab packet. Uses Task.Delay instead of Thread.Sleep.
+         /// </summary>
+        public async Task ClickObjectAsync(Simulator simulator, uint localID, Vector3 uvCoord, Vector3 stCoord, int faceIndex, Vector3 position,
+            Vector3 normal, Vector3 binormal, CancellationToken cancellationToken = default)
+         {
+             ObjectGrabPacket grab = new ObjectGrabPacket
+             {
+                 AgentData =
+                 {
+                     AgentID = Client.Self.AgentID,
+                     SessionID = Client.Self.SessionID
+                 },
+                 ObjectData =
+                 {
+                     GrabOffset = Vector3.Zero,
+                     LocalID = localID
+                 },
+                 SurfaceInfo = new ObjectGrabPacket.SurfaceInfoBlock[1]
+             };
+             grab.SurfaceInfo[0] = new ObjectGrabPacket.SurfaceInfoBlock
+             {
+                 UVCoord = uvCoord,
+                 STCoord = stCoord,
+                 FaceIndex = faceIndex,
+                 Position = position,
+                 Normal = normal,
+                 Binormal = binormal
+             };
+ 
+             Client.Network.SendPacket(grab, simulator);
 
-            Client.Network.SendPacket(grab, simulator);
 
-            // TODO: If these hit the server out of order the click will fail 
-            // and we'll be grabbing the object
-            Thread.Sleep(50);
+            // Use async delay instead of blocking the thread; respect cancellation but always send degrab
+            try
+            {
+                await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancellation requested; continue to send degrab to avoid leaving the object grabbed
+            }
 
             ObjectDeGrabPacket degrab = new ObjectDeGrabPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                ObjectData =
-                {
-                    LocalID = localID
-                },
-                SurfaceInfo = new ObjectDeGrabPacket.SurfaceInfoBlock[1]
-            };
-            degrab.SurfaceInfo[0] = new ObjectDeGrabPacket.SurfaceInfoBlock
-            {
-                UVCoord = uvCoord,
-                STCoord = stCoord,
-                FaceIndex = faceIndex,
-                Position = position,
-                Normal = normal,
-                Binormal = binormal
-            };
-
-            Client.Network.SendPacket(degrab, simulator);
-        }
+             {
+                 AgentData =
+                 {
+                     AgentID = Client.Self.AgentID,
+                     SessionID = Client.Self.SessionID
+                 },
+                 ObjectData =
+                 {
+                     LocalID = localID
+                 },
+                 SurfaceInfo = new ObjectDeGrabPacket.SurfaceInfoBlock[1]
+             };
+             degrab.SurfaceInfo[0] = new ObjectDeGrabPacket.SurfaceInfoBlock
+             {
+                 UVCoord = uvCoord,
+                 STCoord = stCoord,
+                 FaceIndex = faceIndex,
+                 Position = position,
+                 Normal = normal,
+                 Binormal = binormal
+             };
+ 
+             Client.Network.SendPacket(degrab, simulator);
+         }
         
         /// <summary>
         /// Create (rez) a new prim object in a simulator
@@ -1699,10 +1728,11 @@ namespace OpenMetaverse
         /// <summary>
         /// Change the position of an object
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
-        /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
+        /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>
+        /// <param name="localID">The Local ID of the object</param>
         /// <param name="position">The new position of the object</param>
-        /// <param name="childOnly">if true, will change position of (this) child prim only, not entire linkset</param>
+        /// <param name="childOnly">if true, a call to <see cref="DeselectObject"/> is
+        /// made immediately following the request</param>
         public void SetPosition(Simulator simulator, uint localID, Vector3 position, bool childOnly)
         {
             UpdateType type = UpdateType.Position;
@@ -1983,7 +2013,7 @@ namespace OpenMetaverse
         /// <param name="newURL">Set current URL to this</param>
         /// <param name="face">Prim face number</param>
         /// <param name="sim">Simulator in which prim is located</param>
-        public void NavigateObjectMedia(UUID primID, int face, string newURL, Simulator sim)
+        public void NavigateObjectMedia(UUID primID, int face, string newURL, Simulator sim, CancellationToken cancellationToken = default)
         {
             Uri cap;
             if ((cap = Client.Network.CurrentSim.Caps?.CapabilityURI("ObjectMediaNavigate")) == null)
@@ -1997,9 +2027,13 @@ namespace OpenMetaverse
                 PrimID = primID, URL = newURL, Face = face
             };
 
-            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(), 
-                CancellationToken.None, (response, data, error) =>
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(),
+                cancellationToken, (response, data, error) =>
             {
+                // If the operation was cancelled, ignore the response
+                if (cancellationToken.IsCancellationRequested)
+                    return;
+
                 if (error != null)
                 {
                     Logger.Error($"ObjectMediaNavigate: {error.Message}", error, Client);
@@ -2014,7 +2048,7 @@ namespace OpenMetaverse
         /// <param name="faceMedia">Array the length of prims number of faces. Null on face indexes where there is
         /// no media, <see cref="MediaEntry"/> on faces which contain the media</param>
         /// <param name="sim">Simulator in which prim is located</param>
-        public void UpdateObjectMedia(UUID primID, MediaEntry[] faceMedia, Simulator sim)
+        public void UpdateObjectMedia(UUID primID, MediaEntry[] faceMedia, Simulator sim, CancellationToken cancellationToken = default)
         {
             Uri cap;
             if (sim.Caps == null || (cap = Client.Network.CurrentSim.Caps.CapabilityURI("ObjectMedia")) == null)
@@ -2025,9 +2059,12 @@ namespace OpenMetaverse
 
             ObjectMediaUpdate payload = new ObjectMediaUpdate {PrimID = primID, FaceMedia = faceMedia, Verb = "UPDATE"};
 
-            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(), 
-                CancellationToken.None, (response, data, error) =>
+            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(),
+                cancellationToken, (response, data, error) =>
             {
+                if (cancellationToken.IsCancellationRequested)
+                    return;
+
                 if (error != null)
                 {
                     Logger.Error($"ObjectMediaUpdate: {error.Message}", error, Client);
@@ -2042,7 +2079,7 @@ namespace OpenMetaverse
         /// <param name="primID">UUID of the primitive</param>
         /// <param name="sim">Simulator where prim is located</param>
         /// <param name="callback">Call this callback when done</param>
-        public void RequestObjectMedia(UUID primID, Simulator sim, ObjectMediaCallback callback)
+        public void RequestObjectMedia(UUID primID, Simulator sim, ObjectMediaCallback callback, CancellationToken cancellationToken = default)
         {
             Uri cap;
             if (sim.Caps != null && (cap = Client.Network.CurrentSim.Caps.CapabilityURI("ObjectMedia")) != null)
@@ -2050,48 +2087,54 @@ namespace OpenMetaverse
                 ObjectMediaRequest payload = new ObjectMediaRequest {PrimID = primID, Verb = "GET"};
 
                 Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(),
-                    CancellationToken.None, (httpResponse, data, error) =>
-                {
-                    if (error != null)
+                    cancellationToken, (httpResponse, data, error) =>
                     {
-                        Logger.Error("Failed retrieving ObjectMedia data", error, Client);
-                        try { callback(false, string.Empty, null); }
-                        catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                        return;
-                    }
-
-                    ObjectMediaMessage msg = new ObjectMediaMessage();
-                    OSD result = OSDParser.Deserialize(data);
-                    msg.Deserialize((OSDMap)result);
-
-                    if (msg.Request is ObjectMediaResponse response)
-                    {
-                        if (Client.Settings.OBJECT_TRACKING)
+                        // If cancelled, invoke callback with failure and ignore response
+                        if (cancellationToken.IsCancellationRequested)
                         {
-                            var kvp = sim.ObjectsPrimitives.FirstOrDefault(
-                                p => p.Value.ID == primID);
-                            if (kvp.Value != null)
-                            {
-                                Primitive prim = kvp.Value;
-                                if (prim != null)
-                                {
-                                    prim.MediaVersion = response.Version;
-                                    prim.FaceMedia = response.FaceMedia;
-                                }
-
-                                sim.ObjectsPrimitives.TryUpdate(kvp.Key, prim, kvp.Value);
-                            }
+                            try { callback(false, string.Empty, null); } catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                            return;
                         }
+                         if (error != null)
+                         {
+                             Logger.Error("Failed retrieving ObjectMedia data", error, Client);
+                             try { callback(false, string.Empty, null); }
+                             catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                             return;
+                         }
 
-                        try { callback(true, response.Version, response.FaceMedia); }
-                        catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                    }
-                    else
-                    {
-                        try { callback(false, string.Empty, null); }
-                        catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                    }
-                });
+                         ObjectMediaMessage msg = new ObjectMediaMessage();
+                         OSD result = OSDParser.Deserialize(data);
+                         msg.Deserialize((OSDMap)result);
+
+                         if (msg.Request is ObjectMediaResponse response)
+                         {
+                             if (Client.Settings.OBJECT_TRACKING)
+                             {
+                                 var kvp = sim.ObjectsPrimitives.FirstOrDefault(
+                                     p => p.Value.ID == primID);
+                                 if (kvp.Value != null)
+                                 {
+                                     Primitive prim = kvp.Value;
+                                     if (prim != null)
+                                     {
+                                         prim.MediaVersion = response.Version;
+                                         prim.FaceMedia = response.FaceMedia;
+                                     }
+
+                                     sim.ObjectsPrimitives.TryUpdate(kvp.Key, prim, kvp.Value);
+                                 }
+                             }
+
+                             try { callback(true, response.Version, response.FaceMedia); }
+                             catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                         }
+                         else
+                         {
+                             try { callback(false, string.Empty, null); }
+                             catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                         }
+                     });
             }
             else
             {
@@ -2101,13 +2144,20 @@ namespace OpenMetaverse
             }
         }
 
-        public async Task<IEnumerable<LegacyMaterial>> RequestMaterials(Simulator sim)
+        public async Task<IEnumerable<LegacyMaterial>> RequestMaterials(Simulator sim, CancellationToken cancellationToken = default)
         {
             if (sim == null) { return null; }
 
             if (sim.Caps == null)
             {
-                await Task.Delay(TimeSpan.FromSeconds(10));
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return null;
+                }
             }
 
             if (sim.Caps == null)
@@ -2122,7 +2172,7 @@ namespace OpenMetaverse
 
             Logger.Info($"Awaiting materials from {uri}", Client);
 
-            await Client.HttpCapsClient.GetRequestAsync(uri, CancellationToken.None,
+            await Client.HttpCapsClient.GetRequestAsync(uri, cancellationToken,
                    ((response, data, error) =>
                    {
                        if (error != null)
@@ -2174,18 +2224,25 @@ namespace OpenMetaverse
                                Logger.Info("Response unparsable; " + System.Text.Encoding.UTF8.GetString(data), Client);
                            }
                        }
-                   }));
+                   })).ConfigureAwait(false);
 
             return matsToReturn;
         }
 
-        public async Task<IEnumerable<LegacyMaterial>> RequestMaterials(Simulator sim, IEnumerable<UUID> materials)
+        public async Task<IEnumerable<LegacyMaterial>> RequestMaterials(Simulator sim, IEnumerable<UUID> materials, CancellationToken cancellationToken = default)
         {
             if (sim == null) { return null; }
 
             if (sim.Caps == null)
             {
-                await Task.Delay(TimeSpan.FromSeconds(10));
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return null;
+                }
             }
 
             if (sim.Caps == null)
@@ -2212,7 +2269,7 @@ namespace OpenMetaverse
 
             Logger.Info($"Awaiting materials (x{array.Count}) from {uri}", Client);
 
-            await Client.HttpCapsClient.PostRequestAsync(uri, OSDFormat.Xml, request, CancellationToken.None,
+            await Client.HttpCapsClient.PostRequestAsync(uri, OSDFormat.Xml, request, cancellationToken,
                        (response, data, error) =>
                        {
                            if (error != null)
@@ -2271,1176 +2328,13 @@ namespace OpenMetaverse
                                    Logger.Info("Unable to parse response; " + System.Text.Encoding.UTF8.GetString(data), Client);
                                }
                            }
-                       });
+                       }).ConfigureAwait(false);
 
             return matsToReturn;
         }
         #endregion
 
-        #region Packet Handlers
 
-        private void ObjectAnimationHandler(object sender, PacketReceivedEventArgs e)
-        {
-            if (!(e.Packet is ObjectAnimationPacket data)) { return; }
-
-            List<Animation> signaledAnimations = new List<Animation>(data.AnimationList.Length);
-
-            for (var i = 0; i < data.AnimationList.Length; i++)
-            {
-                Animation animation = new Animation
-                {
-                    AnimationID = data.AnimationList[i].AnimID,
-                    AnimationSequence = data.AnimationList[i].AnimSequenceID
-                };
-                if (i < data.AnimationList.Length)
-                {
-                    animation.AnimationSourceObjectID = data.Sender.ID;
-                }
-
-                signaledAnimations.Add(animation);
-            }
-
-            OnObjectAnimation(new ObjectAnimationEventArgs(data.Sender.ID, signaledAnimations));
-        }
-
-        /// <summary>Process an incoming packet and raise the appropriate events</summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void ObjectUpdateHandler(object sender, PacketReceivedEventArgs e)
-        {
-            Packet packet = e.Packet;
-            Simulator simulator = e.Simulator;
-
-            ObjectUpdatePacket update = (ObjectUpdatePacket)packet;
-            UpdateDilation(e.Simulator, update.RegionData.TimeDilation);
-
-            foreach (var block in update.ObjectData)
-            {
-                ObjectMovementUpdate objectupdate = new ObjectMovementUpdate();
-                //Vector4 collisionPlane = Vector4.Zero;
-                //Vector3 position;
-                //Vector3 velocity;
-                //Vector3 acceleration;
-                //Quaternion rotation;
-                //Vector3 angularVelocity;
-                NameValue[] nameValues;
-                bool attachment = false;
-                PCode pcode = (PCode)block.PCode;
-
-                #region Relevance check
-
-                // Check if we are interested in this object
-                if (!Client.Settings.ALWAYS_DECODE_OBJECTS)
-                {
-                    switch (pcode)
-                    {
-                        case PCode.Grass:
-                        case PCode.Tree:
-                        case PCode.NewTree:
-                        case PCode.Prim:
-                            if (m_ObjectUpdate == null) continue;
-                            break;
-                        case PCode.Avatar:
-                            // Make an exception for updates about our own agent
-                            if (block.FullID != Client.Self.AgentID && m_AvatarUpdate == null) continue;
-                            break;
-                        case PCode.ParticleSystem:
-                            continue; // TODO: Do something with these
-                    }
-                }
-
-                #endregion Relevance check
-
-                #region NameValue parsing
-
-                string nameValue = Utils.BytesToString(block.NameValue);
-                if (nameValue.Length > 0)
-                {
-                    string[] lines = nameValue.Split('\n');
-                    nameValues = new NameValue[lines.Length];
-
-                    for (var i = 0; i < lines.Length; i++)
-                    {
-                        if (string.IsNullOrEmpty(lines[i])) 
-                            continue;
-                        
-                        NameValue nv = new NameValue(lines[i]);
-                        if (nv.Name == "AttachItemID") { attachment = true; }
-                        nameValues[i] = nv;
-                    }
-                }
-                else
-                {
-                    nameValues = Array.Empty<NameValue>();
-                }
-
-                #endregion NameValue parsing
-
-                #region Decode Object (primitive) parameters
-                Primitive.ConstructionData data = new Primitive.ConstructionData
-                {
-                    State = block.State,
-                    Material = (Material)block.Material,
-                    PathCurve = (PathCurve)block.PathCurve,
-                    profileCurve = block.ProfileCurve,
-                    PathBegin = Primitive.UnpackBeginCut(block.PathBegin),
-                    PathEnd = Primitive.UnpackEndCut(block.PathEnd),
-                    PathScaleX = Primitive.UnpackPathScale(block.PathScaleX),
-                    PathScaleY = Primitive.UnpackPathScale(block.PathScaleY),
-                    PathShearX = Primitive.UnpackPathShear((sbyte)block.PathShearX),
-                    PathShearY = Primitive.UnpackPathShear((sbyte)block.PathShearY),
-                    PathTwist = Primitive.UnpackPathTwist(block.PathTwist),
-                    PathTwistBegin = Primitive.UnpackPathTwist(block.PathTwistBegin),
-                    PathRadiusOffset = Primitive.UnpackPathTwist(block.PathRadiusOffset),
-                    PathTaperX = Primitive.UnpackPathTaper(block.PathTaperX),
-                    PathTaperY = Primitive.UnpackPathTaper(block.PathTaperY),
-                    PathRevolutions = Primitive.UnpackPathRevolutions(block.PathRevolutions),
-                    PathSkew = Primitive.UnpackPathTwist(block.PathSkew),
-                    ProfileBegin = Primitive.UnpackBeginCut(block.ProfileBegin),
-                    ProfileEnd = Primitive.UnpackEndCut(block.ProfileEnd),
-                    ProfileHollow = Primitive.UnpackProfileHollow(block.ProfileHollow),
-                    PCode = pcode
-                };
-
-                #endregion
-
-                #region Decode Additional packed parameters in ObjectData
-                var pos = 0;
-                switch (block.ObjectData.Length)
-                {
-                    case 76:
-                        // Collision normal for avatar
-                        objectupdate.CollisionPlane = new Vector4(block.ObjectData, pos);
-                        pos += 16;
-
-                        goto case 60;
-                    case 60:
-                        // Position
-                        objectupdate.Position = new Vector3(block.ObjectData, pos);
-                        pos += 12;
-                        // Velocity
-                        objectupdate.Velocity = new Vector3(block.ObjectData, pos);
-                        pos += 12;
-                        // Acceleration
-                        objectupdate.Acceleration = new Vector3(block.ObjectData, pos);
-                        pos += 12;
-                        // Rotation (theta)
-                        objectupdate.Rotation = new Quaternion(block.ObjectData, pos, true);
-                        pos += 12;
-                        // Angular velocity (omega)
-                        objectupdate.AngularVelocity = new Vector3(block.ObjectData, pos);
-                        pos += 12;
-
-                        break;
-                    case 48:
-                        // Collision normal for avatar
-                        objectupdate.CollisionPlane = new Vector4(block.ObjectData, pos);
-                        pos += 16;
-
-                        goto case 32;
-                    case 32:
-                        // The data is an array of unsigned shorts
-
-                        // Position
-                        objectupdate.Position = new Vector3(
-                            Utils.UInt16ToFloat(block.ObjectData, pos, -0.5f * 256.0f, 1.5f * 256.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 2, -0.5f * 256.0f, 1.5f * 256.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 4, -256.0f, 3.0f * 256.0f));
-                        pos += 6;
-                        // Velocity
-                        objectupdate.Velocity = new Vector3(
-                            Utils.UInt16ToFloat(block.ObjectData, pos, -256.0f, 256.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 2, -256.0f, 256.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 4, -256.0f, 256.0f));
-                        pos += 6;
-                        // Acceleration
-                        objectupdate.Acceleration = new Vector3(
-                            Utils.UInt16ToFloat(block.ObjectData, pos, -256.0f, 256.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 2, -256.0f, 256.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 4, -256.0f, 256.0f));
-                        pos += 6;
-                        // Rotation (theta)
-                        objectupdate.Rotation = new Quaternion(
-                            Utils.UInt16ToFloat(block.ObjectData, pos, -1.0f, 1.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 2, -1.0f, 1.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 4, -1.0f, 1.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 6, -1.0f, 1.0f));
-                        pos += 8;
-                        // Angular velocity (omega)
-                        objectupdate.AngularVelocity = new Vector3(
-                            Utils.UInt16ToFloat(block.ObjectData, pos, -256.0f, 256.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 2, -256.0f, 256.0f),
-                            Utils.UInt16ToFloat(block.ObjectData, pos + 4, -256.0f, 256.0f));
-                        pos += 6;
-
-                        break;
-                    case 16:
-                        // The data is an array of single bytes (8-bit numbers)
-
-                        // Position
-                        objectupdate.Position = new Vector3(
-                            Utils.ByteToFloat(block.ObjectData, pos, -256.0f, 256.0f),
-                            Utils.ByteToFloat(block.ObjectData, pos + 1, -256.0f, 256.0f),
-                            Utils.ByteToFloat(block.ObjectData, pos + 2, -256.0f, 256.0f));
-                        pos += 3;
-                        // Velocity
-                        objectupdate.Velocity = new Vector3(
-                            Utils.ByteToFloat(block.ObjectData, pos, -256.0f, 256.0f),
-                            Utils.ByteToFloat(block.ObjectData, pos + 1, -256.0f, 256.0f),
-                            Utils.ByteToFloat(block.ObjectData, pos + 2, -256.0f, 256.0f));
-                        pos += 3;
-                        // Acceleration
-                        objectupdate.Acceleration = new Vector3(
-                            Utils.ByteToFloat(block.ObjectData, pos, -256.0f, 256.0f),
-                            Utils.ByteToFloat(block.ObjectData, pos + 1, -256.0f, 256.0f),
-                            Utils.ByteToFloat(block.ObjectData, pos + 2, -256.0f, 256.0f));
-                        pos += 3;
-                        // Rotation
-                        objectupdate.Rotation = new Quaternion(
-                            Utils.ByteToFloat(block.ObjectData, pos, -1.0f, 1.0f),
-                            Utils.ByteToFloat(block.ObjectData, pos + 1, -1.0f, 1.0f),
-                            Utils.ByteToFloat(block.ObjectData, pos + 2, -1.0f, 1.0f),
-                            Utils.ByteToFloat(block.ObjectData, pos + 3, -1.0f, 1.0f));
-                        pos += 4;
-                        // Angular Velocity
-                        objectupdate.AngularVelocity = new Vector3(
-                            Utils.ByteToFloat(block.ObjectData, pos, -256.0f, 256.0f),
-                            Utils.ByteToFloat(block.ObjectData, pos + 1, -256.0f, 256.0f),
-                            Utils.ByteToFloat(block.ObjectData, pos + 2, -256.0f, 256.0f));
-                        pos += 3;
-
-                        break;
-                    default:
-                        Logger.Warn("Got an ObjectUpdate block with ObjectUpdate field length of " +
-                                   block.ObjectData.Length, Client);
-
-                        continue;
-                }
-                #endregion
-
-                // Determine the object type and create the appropriate class
-                switch (pcode)
-                {
-                    #region Prim and Foliage
-                    case PCode.Grass:
-                    case PCode.Tree:
-                    case PCode.NewTree:
-                    case PCode.Prim:
-
-                        bool isNewObject = !simulator.ObjectsPrimitives.ContainsKey(block.ID);
-
-                        Primitive prim = GetPrimitive(simulator, block.ID, block.FullID);
-
-                        // Textures
-                        objectupdate.Textures = new Primitive.TextureEntry(block.TextureEntry, 0,
-                            block.TextureEntry.Length);
-
-                        OnObjectDataBlockUpdate(new ObjectDataBlockUpdateEventArgs(simulator, prim, data, block, objectupdate, nameValues));
-
-                        #region Update Prim Info with decoded data
-                        prim.Flags = (PrimFlags)block.UpdateFlags;
-
-                        if ((prim.Flags & PrimFlags.ZlibCompressed) != 0)
-                        {
-                            Logger.Warn("Got a ZlibCompressed ObjectUpdate, implement me!", Client);
-                            continue;
-                        }
-
-                        // Automatically request ObjectProperties for prim if it was rezzed selected.
-                        if ((prim.Flags & PrimFlags.CreateSelected) != 0)
-                        {
-                            SelectObject(simulator, prim.LocalID);
-                        }
-
-                        prim.NameValues = nameValues;
-                        prim.LocalID = block.ID;
-                        prim.ID = block.FullID;
-                        prim.ParentID = block.ParentID;
-                        prim.RegionHandle = update.RegionData.RegionHandle;
-                        prim.Scale = block.Scale;
-                        prim.ClickAction = (ClickAction)block.ClickAction;
-                        prim.OwnerID = block.OwnerID;
-                        prim.MediaURL = Utils.BytesToString(block.MediaURL);
-                        prim.Text = Utils.BytesToString(block.Text);
-                        prim.TextColor = new Color4(block.TextColor, 0, false, true);
-                        prim.IsAttachment = attachment;
-
-                        // Sound information
-                        prim.Sound = block.Sound;
-                        prim.SoundFlags = (SoundFlags)block.Flags;
-                        prim.SoundGain = block.Gain;
-                        prim.SoundRadius = block.Radius;
-
-                        // Joint information
-                        prim.Joint = (JointType)block.JointType;
-                        prim.JointPivot = block.JointPivot;
-                        prim.JointAxisOrAnchor = block.JointAxisOrAnchor;
-
-                        // Object parameters
-                        prim.PrimData = data;
-
-                        // Textures, texture animations, particle system, and extra params
-                        prim.Textures = objectupdate.Textures;
-
-                        prim.TextureAnim = new Primitive.TextureAnimation(block.TextureAnim, 0);
-                        prim.ParticleSys = new Primitive.ParticleSystem(block.PSBlock, 0);
-                        prim.SetExtraParamsFromBytes(block.ExtraParams, 0);
-
-                        // PCode-specific data
-                        switch (pcode)
-                        {
-                            case PCode.Tree:
-                            case PCode.NewTree:
-                                if (block.Data.Length == 1)
-                                    prim.TreeSpecies = (Tree)block.Data[0];
-                                else
-                                    Logger.Warn("Got a foliage update with an invalid TreeSpecies field");
-                                //    prim.ScratchPad = Utils.EmptyBytes;
-                                //    break;
-                                //default:
-                                //    prim.ScratchPad = new byte[block.Data.Length];
-                                //    if (block.Data.Length > 0)
-                                //        Buffer.BlockCopy(block.Data, 0, prim.ScratchPad, 0, prim.ScratchPad.Length);
-                                break;
-                        }
-                        prim.ScratchPad = Utils.EmptyBytes;
-
-                        // Packed parameters
-                        prim.CollisionPlane = objectupdate.CollisionPlane;
-                        prim.Position = objectupdate.Position;
-                        prim.Velocity = objectupdate.Velocity;
-                        prim.Acceleration = objectupdate.Acceleration;
-                        prim.Rotation = objectupdate.Rotation;
-                        prim.AngularVelocity = objectupdate.AngularVelocity;
-                        #endregion
-                        
-                        EventHandler<PrimEventArgs> handler = m_ObjectUpdate;
-                        if (handler != null)
-                        {
-                            ThreadPool.QueueUserWorkItem(delegate(object o)
-                                { handler(this, new PrimEventArgs(simulator, prim, update.RegionData.TimeDilation, isNewObject, attachment)); });
-                        }
-                        //OnParticleUpdate handler replacing decode particles, PCode.Particle system appears to be deprecated this is a fix
-                        if (prim.ParticleSys.PartMaxAge != 0) {
-                            OnParticleUpdate(new ParticleUpdateEventArgs(simulator, prim.ParticleSys, prim));
-                        }
-
-                        break;
-                    #endregion Prim and Foliage
-                    #region Avatar
-                    case PCode.Avatar:
-
-                        bool isNewAvatar = !simulator.ObjectsAvatars.ContainsKey(block.ID);
-
-                        // Update some internals if this is our avatar
-                        if (block.FullID == Client.Self.AgentID && simulator == Client.Network.CurrentSim)
-                        {
-                            #region Update Client.Self
-
-                            // We need the local ID to recognize terse updates for our agent
-                            Client.Self.localID = block.ID;
-
-                            // Packed parameters
-                            Client.Self.collisionPlane = objectupdate.CollisionPlane;
-                            Client.Self.relativePosition = objectupdate.Position;
-                            Client.Self.velocity = objectupdate.Velocity;
-                            Client.Self.acceleration = objectupdate.Acceleration;
-                            Client.Self.relativeRotation = objectupdate.Rotation;
-                            Client.Self.angularVelocity = objectupdate.AngularVelocity;
-
-                            #endregion
-                        }
-
-                        #region Create an Avatar from the decoded data
-
-                        Avatar avatar = GetAvatar(simulator, block.ID, block.FullID);
-
-                        objectupdate.Avatar = true;
-                        // Textures
-                        objectupdate.Textures = new Primitive.TextureEntry(block.TextureEntry, 0,
-                            block.TextureEntry.Length);
-
-                        OnObjectDataBlockUpdate(new ObjectDataBlockUpdateEventArgs(simulator, avatar, data, block, objectupdate, nameValues));
-
-                        uint oldSeatID = avatar.ParentID;
-
-                        avatar.ID = block.FullID;
-                        avatar.LocalID = block.ID;
-                        avatar.Scale = block.Scale;
-                        avatar.CollisionPlane = objectupdate.CollisionPlane;
-                        avatar.Position = objectupdate.Position;
-                        avatar.Velocity = objectupdate.Velocity;
-                        avatar.Acceleration = objectupdate.Acceleration;
-                        avatar.Rotation = objectupdate.Rotation;
-                        avatar.AngularVelocity = objectupdate.AngularVelocity;
-                        avatar.NameValues = nameValues;
-                        if (nameValues.Length > 0)
-                        {   
-							// Not great modularity, but considering how often this method runs, better to not, e.g., have Avatar define an ObjectDataBlockUpdate handler.
-                            avatar._cachedName = avatar._cachedGroupName = null;
-                        }
-                        avatar.PrimData = data;
-                        if (block.Data.Length > 0)
-                        {
-                            Logger.Warn("Unexpected Data field for an avatar update, length " + block.Data.Length);
-                        }
-                        avatar.ParentID = block.ParentID;
-                        avatar.RegionHandle = update.RegionData.RegionHandle;
-
-                        SetAvatarSittingOn(simulator, avatar, block.ParentID, oldSeatID);
-
-                        // Textures
-                        avatar.Textures = objectupdate.Textures;
-
-                        #endregion Create an Avatar from the decoded data
-
-                        OnAvatarUpdate(new AvatarUpdateEventArgs(simulator, avatar, update.RegionData.TimeDilation, isNewAvatar));
-
-                        break;
-                    #endregion Avatar
-                    case PCode.ParticleSystem:
-                        DecodeParticleUpdate(block);
-                        break;
-                    default:
-                        Logger.Debug("Got an ObjectUpdate block with an unrecognized PCode " + pcode, Client);
-                        break;
-                }
-            }
-        }
-
-        protected void DecodeParticleUpdate(ObjectUpdatePacket.ObjectDataBlock block)
-        {
-            // TODO: Handle ParticleSystem ObjectUpdate blocks
-            // float bounce_b
-            // Vector4 scale_range
-            // Vector4 alpha_range
-            // Vector3 vel_offset
-            // float dist_begin_fadeout
-            // float dist_end_fadeout
-            // UUID image_uuid
-            // long flags
-            // byte createme
-            // Vector3 diff_eq_alpha
-            // Vector3 diff_eq_scale
-            // byte max_particles
-            // byte initial_particles
-            // float kill_plane_z
-            // Vector3 kill_plane_normal
-            // float bounce_plane_z
-            // Vector3 bounce_plane_normal
-            // float spawn_range
-            // float spawn_frequency
-            // float spawn_frequency_range
-            // Vector3 spawn_direction
-            // float spawn_direction_range
-            // float spawn_velocity
-            // float spawn_velocity_range
-            // float speed_limit
-            // float wind_weight
-            // Vector3 current_gravity
-            // float gravity_weight
-            // float global_lifetime
-            // float individual_lifetime
-            // float individual_lifetime_range
-            // float alpha_decay
-            // float scale_decay
-            // float distance_death
-            // float damp_motion_factor
-            // Vector3 wind_diffusion_factor
-        }
-
-        /// <summary>
-        /// A terse object update, used when a transformation matrix or
-        /// velocity/acceleration for an object changes but nothing else
-        /// (scale/position/rotation/acceleration/velocity)
-        /// </summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void ImprovedTerseObjectUpdateHandler(object sender, PacketReceivedEventArgs e)
-        {
-            Packet packet = e.Packet;
-            Simulator simulator = e.Simulator;
-
-            ImprovedTerseObjectUpdatePacket terse = (ImprovedTerseObjectUpdatePacket)packet;
-            UpdateDilation(simulator, terse.RegionData.TimeDilation);
-
-            foreach (var block in terse.ObjectData)
-            {
-                try
-                {
-                    int pos = 4;
-                    uint localid = Utils.BytesToUInt(block.Data, 0);
-
-                    // Check if we are interested in this update
-                    if (!Client.Settings.ALWAYS_DECODE_OBJECTS
-                        && localid != Client.Self.localID
-                        && m_TerseObjectUpdate == null)
-                    {
-                        continue;
-                    }
-
-                    #region Decode update data
-
-                    ObjectMovementUpdate update = new ObjectMovementUpdate
-                    {
-                        // LocalID
-                        LocalID = localid,
-                        // State
-                        State = block.Data[pos++],
-                        // Avatar boolean
-                        Avatar = (block.Data[pos++] != 0)
-                    };
-
-                    // Collision normal for avatar
-                    if (update.Avatar)
-                    {
-                        update.CollisionPlane = new Vector4(block.Data, pos);
-                        pos += 16;
-                    }
-                    // Position
-                    update.Position = new Vector3(block.Data, pos);
-                    pos += 12;
-                    // Velocity
-                    update.Velocity = new Vector3(
-                        Utils.UInt16ToFloat(block.Data, pos, -128.0f, 128.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 2, -128.0f, 128.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 4, -128.0f, 128.0f));
-                    pos += 6;
-                    // Acceleration
-                    update.Acceleration = new Vector3(
-                        Utils.UInt16ToFloat(block.Data, pos, -64.0f, 64.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 2, -64.0f, 64.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 4, -64.0f, 64.0f));
-                    pos += 6;
-                    // Rotation (theta)
-                    update.Rotation = new Quaternion(
-                        Utils.UInt16ToFloat(block.Data, pos, -1.0f, 1.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 2, -1.0f, 1.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 4, -1.0f, 1.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 6, -1.0f, 1.0f));
-                    pos += 8;
-                    // Angular velocity (omega)
-                    update.AngularVelocity = new Vector3(
-                        Utils.UInt16ToFloat(block.Data, pos, -64.0f, 64.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 2, -64.0f, 64.0f),
-                        Utils.UInt16ToFloat(block.Data, pos + 4, -64.0f, 64.0f));
-                    pos += 6;
-
-                    // Textures
-                    // FIXME: Why are we ignoring the first four bytes here?
-                    if (block.TextureEntry.Length != 0)
-                        update.Textures = new Primitive.TextureEntry(block.TextureEntry, 4, block.TextureEntry.Length - 4);
-
-                    #endregion Decode update data
-
-                    Primitive obj = !Client.Settings.OBJECT_TRACKING ? null : (update.Avatar) ? 
-                        GetAvatar(simulator, update.LocalID, UUID.Zero) : 
-                        GetPrimitive(simulator, update.LocalID, UUID.Zero);
-
-                    // Fire the pre-emptive notice (before we stomp the object)
-                    EventHandler<TerseObjectUpdateEventArgs> handler = m_TerseObjectUpdate;
-                    if (handler != null)
-                    {
-                        ThreadPool.QueueUserWorkItem(delegate(object o)
-                            { handler(this, new TerseObjectUpdateEventArgs(simulator, obj, update, terse.RegionData.TimeDilation)); });
-                    }
-
-                    #region Update Client.Self
-                    if (update.LocalID == Client.Self.localID)
-                    {
-                        Client.Self.collisionPlane = update.CollisionPlane;
-                        Client.Self.relativePosition = update.Position;
-                        Client.Self.velocity = update.Velocity;
-                        Client.Self.acceleration = update.Acceleration;
-                        Client.Self.relativeRotation = update.Rotation;
-                        Client.Self.angularVelocity = update.AngularVelocity;
-                    }
-                    #endregion Update Client.Self
-                    if (Client.Settings.OBJECT_TRACKING && obj != null)
-                    {
-                        obj.Position = update.Position;
-                        obj.Rotation = update.Rotation;
-                        obj.Velocity = update.Velocity;
-                        obj.CollisionPlane = update.CollisionPlane;
-                        obj.Acceleration = update.Acceleration;
-                        obj.AngularVelocity = update.AngularVelocity;
-                        obj.PrimData.State = update.State;
-                        if (update.Textures != null)
-                            obj.Textures = update.Textures;
-                    }
-
-                }
-                catch (Exception ex)
-                {
-                    Logger.Warn(ex.Message, ex, Client);
-                }
-            }
-        }
-
-        /// <summary>Process an incoming packet and raise the appropriate events</summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void ObjectUpdateCompressedHandler(object sender, PacketReceivedEventArgs e)
-        {
-            Packet packet = e.Packet;
-            Simulator simulator = e.Simulator;
-
-            ObjectUpdateCompressedPacket update = (ObjectUpdateCompressedPacket)packet;
-
-            foreach (var block in update.ObjectData)
-            {
-                int i = 0;
-
-                try
-                {
-                    // UUID
-                    UUID FullID = new UUID(block.Data, 0);
-                    i += 16;
-                    // Local ID
-                    uint LocalID = (uint)(block.Data[i++] + (block.Data[i++] << 8) +
-                                          (block.Data[i++] << 16) + (block.Data[i++] << 24));
-                    // PCode
-                    PCode pcode = (PCode)block.Data[i++];
-
-                    #region Relevance check
-
-                    if (!Client.Settings.ALWAYS_DECODE_OBJECTS)
-                    {
-                        switch (pcode)
-                        {
-                            case PCode.Grass:
-                            case PCode.Tree:
-                            case PCode.NewTree:
-                            case PCode.Prim:
-                                if (m_ObjectUpdate == null) continue;
-                                break;
-                        }
-                    }
-
-                    #endregion Relevance check
-
-                    bool isNew = !simulator.ObjectsPrimitives.ContainsKey(LocalID);
-
-                    Primitive prim = GetPrimitive(simulator, LocalID, FullID);
-
-                    prim.LocalID = LocalID;
-                    prim.ID = FullID;
-                    prim.Flags = (PrimFlags)block.UpdateFlags;
-                    prim.PrimData.PCode = pcode;
-
-                    #region Decode block and update Prim
-
-                    // State
-                    prim.PrimData.State = block.Data[i++];
-                    // CRC
-                    i += 4;
-                    // Material
-                    prim.PrimData.Material = (Material)block.Data[i++];
-                    // Click action
-                    prim.ClickAction = (ClickAction)block.Data[i++];
-                    // Scale
-                    prim.Scale = new Vector3(block.Data, i);
-                    i += 12;
-                    // Position
-                    prim.Position = new Vector3(block.Data, i);
-                    i += 12;
-                    // Rotation
-                    prim.Rotation = new Quaternion(block.Data, i, true);
-                    i += 12;
-                    // Compressed flags
-                    CompressedFlags flags = (CompressedFlags)Utils.BytesToUInt(block.Data, i);
-                    i += 4;
-
-                    prim.OwnerID = new UUID(block.Data, i);
-                    i += 16;
-
-                    // Angular velocity
-                    if ((flags & CompressedFlags.HasAngularVelocity) != 0)
-                    {
-                        prim.AngularVelocity = new Vector3(block.Data, i);
-                        i += 12;
-                    }
-
-                    // Parent ID
-                    if ((flags & CompressedFlags.HasParent) != 0)
-                    {
-                        prim.ParentID = (uint)(block.Data[i++] + (block.Data[i++] << 8) +
-                                               (block.Data[i++] << 16) + (block.Data[i++] << 24));
-                    }
-                    else
-                    {
-                        prim.ParentID = 0;
-                    }
-
-                    // Tree data
-                    if ((flags & CompressedFlags.Tree) != 0)
-                    {
-                        prim.TreeSpecies = (Tree)block.Data[i++];
-                        //prim.ScratchPad = Utils.EmptyBytes;
-                    }
-                    // Scratch pad
-                    else if ((flags & CompressedFlags.ScratchPad) != 0)
-                    {
-                        prim.TreeSpecies = 0;
-
-                        int size = block.Data[i++];
-                        //prim.ScratchPad = new byte[size];
-                        //Buffer.BlockCopy(block.Data, i, prim.ScratchPad, 0, size);
-                        i += size;
-                    }
-                    prim.ScratchPad = Utils.EmptyBytes;
-
-                    // Floating text
-                    if ((flags & CompressedFlags.HasText) != 0)
-                    {
-                        int idx = i;
-                        while (block.Data[i] != 0)
-                        {
-                            i++;
-                        }
-
-                        // Floating text
-                        prim.Text = Utils.BytesToString(block.Data, idx, i - idx);
-                        i++;
-
-                        // Text color
-                        prim.TextColor = new Color4(block.Data, i,false,true);
-                        i += 4;
-                    }
-                    else
-                    {
-                        prim.Text = string.Empty;
-                    }
-
-                    // Media URL
-                    if ((flags & CompressedFlags.MediaURL) != 0)
-                    {
-                        int idx = i;
-                        while (block.Data[i] != 0)
-                        {
-                            i++;
-                        }
-
-                        prim.MediaURL = Utils.BytesToString(block.Data, idx, i - idx);
-                        i++;
-                    }
-
-                    // Particle system
-                    if ((flags & CompressedFlags.HasParticles) != 0)
-                    {
-                        prim.ParticleSys = new Primitive.ParticleSystem(block.Data, i);
-                        i += 86;
-                    }
-
-                    // Extra parameters
-                    i += prim.SetExtraParamsFromBytes(block.Data, i);
-
-                    //Sound data
-                    if ((flags & CompressedFlags.HasSound) != 0)
-                    {
-                        prim.Sound = new UUID(block.Data, i);
-                        i += 16;
-
-                        prim.SoundGain = Utils.BytesToFloat(block.Data, i);
-                        i += 4;
-                        prim.SoundFlags = (SoundFlags)block.Data[i++];
-                        prim.SoundRadius = Utils.BytesToFloat(block.Data, i);
-                        i += 4;
-                    }
-
-                    // Name values
-                    if ((flags & CompressedFlags.HasNameValues) != 0)
-                    {
-                        string text = string.Empty;
-                        while (block.Data[i] != 0)
-                        {
-                            text += (char)block.Data[i];
-                            i++;
-                        }
-                        i++;
-
-                        // Parse the name values
-                        if (text.Length > 0)
-                        {
-                            string[] lines = text.Split('\n');
-                            prim.NameValues = new NameValue[lines.Length];
-
-                            for (var j = 0; j < lines.Length; j++)
-                            {
-                                if (string.IsNullOrEmpty(lines[j])) 
-                                    continue;
-                                
-                                NameValue nv = new NameValue(lines[j]);
-                                prim.NameValues[j] = nv;
-                            }
-                        }
-                    }
-
-                    prim.PrimData.PathCurve = (PathCurve)block.Data[i++];
-                    ushort pathBegin = Utils.BytesToUInt16(block.Data, i); i += 2;
-                    prim.PrimData.PathBegin = Primitive.UnpackBeginCut(pathBegin);
-                    ushort pathEnd = Utils.BytesToUInt16(block.Data, i); i += 2;
-                    prim.PrimData.PathEnd = Primitive.UnpackEndCut(pathEnd);
-                    prim.PrimData.PathScaleX = Primitive.UnpackPathScale(block.Data[i++]);
-                    prim.PrimData.PathScaleY = Primitive.UnpackPathScale(block.Data[i++]);
-                    prim.PrimData.PathShearX = Primitive.UnpackPathShear((sbyte)block.Data[i++]);
-                    prim.PrimData.PathShearY = Primitive.UnpackPathShear((sbyte)block.Data[i++]);
-                    prim.PrimData.PathTwist = Primitive.UnpackPathTwist((sbyte)block.Data[i++]);
-                    prim.PrimData.PathTwistBegin = Primitive.UnpackPathTwist((sbyte)block.Data[i++]);
-                    prim.PrimData.PathRadiusOffset = Primitive.UnpackPathTwist((sbyte)block.Data[i++]);
-                    prim.PrimData.PathTaperX = Primitive.UnpackPathTaper((sbyte)block.Data[i++]);
-                    prim.PrimData.PathTaperY = Primitive.UnpackPathTaper((sbyte)block.Data[i++]);
-                    prim.PrimData.PathRevolutions = Primitive.UnpackPathRevolutions(block.Data[i++]);
-                    prim.PrimData.PathSkew = Primitive.UnpackPathTwist((sbyte)block.Data[i++]);
-
-                    prim.PrimData.profileCurve = block.Data[i++];
-                    ushort profileBegin = Utils.BytesToUInt16(block.Data, i); i += 2;
-                    prim.PrimData.ProfileBegin = Primitive.UnpackBeginCut(profileBegin);
-                    ushort profileEnd = Utils.BytesToUInt16(block.Data, i); i += 2;
-                    prim.PrimData.ProfileEnd = Primitive.UnpackEndCut(profileEnd);
-                    ushort profileHollow = Utils.BytesToUInt16(block.Data, i); i += 2;
-                    prim.PrimData.ProfileHollow = Primitive.UnpackProfileHollow(profileHollow);
-
-                    // TextureEntry
-                    int textureEntryLength = (int)Utils.BytesToUInt(block.Data, i);
-                    i += 4;
-                    prim.Textures = new Primitive.TextureEntry(block.Data, i, textureEntryLength);
-                    i += textureEntryLength;
-
-                    // Texture animation
-                    if ((flags & CompressedFlags.TextureAnimation) != 0)
-                    {
-                        //int textureAnimLength = (int)Utils.BytesToUIntBig(block.Data, i);
-                        i += 4;
-                        prim.TextureAnim = new Primitive.TextureAnimation(block.Data, i);
-                    }
-
-                    #endregion
-
-                    prim.IsAttachment = (flags & CompressedFlags.HasNameValues) != 0 && prim.ParentID != 0;
-
-                    #region Raise Events
-
-                    EventHandler<PrimEventArgs> handler = m_ObjectUpdate;
-                    handler?.Invoke(this, new PrimEventArgs(simulator, prim, update.RegionData.TimeDilation, isNew, prim.IsAttachment));
-
-                    #endregion
-                }
-                catch (IndexOutOfRangeException ex)
-                {
-                    Logger.Warn("Error decoding an ObjectUpdateCompressed packet", ex, Client);
-                    Logger.Warn(block);
-                }
-            }
-        }
-
-        /// <summary>Process an incoming packet and raise the appropriate events</summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void ObjectUpdateCachedHandler(object sender, PacketReceivedEventArgs e)
-        {
-            if (Client.Settings.ALWAYS_REQUEST_OBJECTS)
-            {
-                bool cachedPrimitives = Client.Settings.CACHE_PRIMITIVES;
-                Packet packet = e.Packet;
-                Simulator simulator = e.Simulator;
-
-                ObjectUpdateCachedPacket update = (ObjectUpdateCachedPacket)packet;
-                List<uint> ids = new List<uint>(update.ObjectData.Length);
-
-                // Object caching is implemented when Client.Settings.PRIMITIVES_FACTORY is True, otherwise request updates for all of these objects
-                foreach (var odb in update.ObjectData)
-                {
-                    uint localID = odb.ID;
-                    uint crc = odb.CRC;
-
-                    if (cachedPrimitives)
-                    {
-                        if (!simulator.DataPool.NeedsRequest(localID, crc))
-                        {
-                            continue;
-                        }
-                    }                        
-                    ids.Add(localID);
-                }               
-                RequestObjects(simulator, ids);
-            }
-        }
-
-        /// <summary>Process an incoming packet and raise the appropriate events</summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void KillObjectHandler(object sender, PacketReceivedEventArgs e)
-        {
-            var packet = e.Packet;
-            var simulator = e.Simulator;
-
-            var kill = (KillObjectPacket)packet;
-
-            // Notify first, so that handler has a chance to get a
-            // reference from the ObjectTracker to the object being killed
-
-            var localIdsToKill = new List<uint>(kill.ObjectData.Length);
-            foreach (var objectToKill in kill.ObjectData)
-            {
-                if(objectToKill.ID == Client.Self.localID)
-                {
-                    continue;
-                }
-
-                localIdsToKill.Add(objectToKill.ID);
-                OnKillObject(new KillObjectEventArgs(simulator, objectToKill.ID));
-            }
-
-            OnKillObjects(new KillObjectsEventArgs(e.Simulator, localIdsToKill.ToArray()));
-
-            var parentIndex = new Dictionary<uint, List<uint>>();
-            foreach (var kv in simulator.ObjectsPrimitives)
-            {
-                var primId = kv.Key;
-                var parentId = kv.Value.ParentID;
-                if (parentId == 0) { continue; }
-
-                if (!parentIndex.TryGetValue(parentId, out var list))
-                {
-                    list = new List<uint>(4);
-                    parentIndex[parentId] = list;
-                }
-                list.Add(primId);
-            }
-
-            // For each localID to kill, find direct children quickly and traverse descendants
-            var removePrims = new List<uint>();
-            var visited = new HashSet<uint>(); // reused per batch
-            foreach (var localID in localIdsToKill)
-            {
-                // If the object itself exists as a prim, remove it
-                if (simulator.ObjectsPrimitives.ContainsKey(localID))
-                {
-                    removePrims.Add(localID);
-                    visited.Add(localID);
-                }
-
-                // If there are direct children, traverse the tree of descendents
-                if (parentIndex.TryGetValue(localID, out var directChildren))
-                {
-                    var stack = new Stack<uint>(directChildren.Count);
-                    foreach (var child in directChildren)
-                    {
-                        if (visited.Add(child))
-                        {
-                            stack.Push(child);
-                            removePrims.Add(child);
-                        }
-                    }
-
-                    while (stack.Count > 0)
-                    {
-                        var cur = stack.Pop();
-                        if (parentIndex.TryGetValue(cur, out var children))
-                        {
-                            foreach (var c in children)
-                            {
-                                if (visited.Add(c))
-                                {
-                                    stack.Push(c);
-                                    removePrims.Add(c);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                _ = simulator.ObjectsAvatars.TryRemove(localID, out _);
-            }
-
-            if (Client.Settings.CACHE_PRIMITIVES)
-            {
-                simulator.DataPool.ReleasePrims(removePrims);
-            }
-            foreach (var removeID in removePrims)
-            {
-                simulator.ObjectsPrimitives.TryRemove(removeID, out _);
-            }
-        }
-
-        /// <summary>Process an incoming packet and raise the appropriate events</summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void ObjectPropertiesHandler(object sender, PacketReceivedEventArgs e)
-        {
-            Packet packet = e.Packet;
-            Simulator simulator = e.Simulator;
-
-            ObjectPropertiesPacket op = (ObjectPropertiesPacket)packet;
-            ObjectPropertiesPacket.ObjectDataBlock[] datablocks = op.ObjectData;
-
-            foreach (var objectData in datablocks)
-            {
-                Primitive.ObjectProperties props = new Primitive.ObjectProperties
-                {
-                    ObjectID = objectData.ObjectID,
-                    AggregatePerms = objectData.AggregatePerms,
-                    AggregatePermTextures = objectData.AggregatePermTextures,
-                    AggregatePermTexturesOwner = objectData.AggregatePermTexturesOwner,
-                    Permissions = new Permissions(objectData.BaseMask, objectData.EveryoneMask, objectData.GroupMask,
-                        objectData.NextOwnerMask, objectData.OwnerMask),
-                    Category = (ObjectCategory)objectData.Category,
-                    CreationDate = Utils.UnixTimeToDateTime((uint)objectData.CreationDate),
-                    CreatorID = objectData.CreatorID,
-                    Description = Utils.BytesToString(objectData.Description),
-                    FolderID = objectData.FolderID,
-                    FromTaskID = objectData.FromTaskID,
-                    GroupID = objectData.GroupID,
-                    InventorySerial = objectData.InventorySerial,
-                    ItemID = objectData.ItemID,
-                    LastOwnerID = objectData.LastOwnerID,
-                    Name = Utils.BytesToString(objectData.Name),
-                    OwnerID = objectData.OwnerID,
-                    OwnershipCost = objectData.OwnershipCost,
-                    SalePrice = objectData.SalePrice,
-                    SaleType = (SaleType)objectData.SaleType,
-                    SitName = Utils.BytesToString(objectData.SitName),
-                    TouchName = Utils.BytesToString(objectData.TouchName)
-                };
-
-                int numTextures = objectData.TextureID.Length / 16;
-                props.TextureIDs = new UUID[numTextures];
-                for (var j = 0; j < numTextures; ++j)
-                    props.TextureIDs[j] = new UUID(objectData.TextureID, j * 16);
-
-                if (Client.Settings.OBJECT_TRACKING)
-                {
-                    if (simulator.GlobalToLocalID.TryGetValue(props.ObjectID, out var localID))
-                    {
-                        if (simulator.ObjectsPrimitives.TryGetValue(localID, out var findPrim))
-                        {
-                            if (findPrim != null)
-                            {
-                                OnObjectPropertiesUpdated(new ObjectPropertiesUpdatedEventArgs(simulator, findPrim, props));
-
-                                if (simulator.ObjectsPrimitives.TryGetValue(findPrim.LocalID, out var primitive))
-                                {
-                                    primitive.Properties = props;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                OnObjectProperties(new ObjectPropertiesEventArgs(simulator, props));
-            }
-        }
-
-        /// <summary>Process an incoming packet and raise the appropriate events</summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void ObjectPropertiesFamilyHandler(object sender, PacketReceivedEventArgs e)
-        {
-            Packet packet = e.Packet;
-            Simulator simulator = e.Simulator;
-
-            ObjectPropertiesFamilyPacket op = (ObjectPropertiesFamilyPacket)packet;
-            Primitive.ObjectProperties props = new Primitive.ObjectProperties();
-
-            ReportType requestType = (ReportType)op.ObjectData.RequestFlags;
-
-            props.ObjectID = op.ObjectData.ObjectID;
-            props.Category = (ObjectCategory)op.ObjectData.Category;
-            props.Description = Utils.BytesToString(op.ObjectData.Description);
-            props.GroupID = op.ObjectData.GroupID;
-            props.LastOwnerID = op.ObjectData.LastOwnerID;
-            props.Name = Utils.BytesToString(op.ObjectData.Name);
-            props.OwnerID = op.ObjectData.OwnerID;
-            props.OwnershipCost = op.ObjectData.OwnershipCost;
-            props.SalePrice = op.ObjectData.SalePrice;
-            props.SaleType = (SaleType)op.ObjectData.SaleType;
-            props.Permissions.BaseMask = (PermissionMask)op.ObjectData.BaseMask;
-            props.Permissions.EveryoneMask = (PermissionMask)op.ObjectData.EveryoneMask;
-            props.Permissions.GroupMask = (PermissionMask)op.ObjectData.GroupMask;
-            props.Permissions.NextOwnerMask = (PermissionMask)op.ObjectData.NextOwnerMask;
-            props.Permissions.OwnerMask = (PermissionMask)op.ObjectData.OwnerMask;
-
-            if (Client.Settings.OBJECT_TRACKING)
-            {
-                if (simulator.GlobalToLocalID.TryGetValue(props.ObjectID, out var localID))
-                {
-                    if (simulator.ObjectsPrimitives.TryGetValue(localID, out var findPrim))
-                    {
-                        if (findPrim != null)
-                        {
-                            if (simulator.ObjectsPrimitives.TryGetValue(findPrim.LocalID, out var prim))
-                            {
-                                if (prim.Properties == null)
-                                {
-                                    prim.Properties = new Primitive.ObjectProperties();
-                                }
-
-                                prim.Properties.SetFamilyProperties(props);
-                            }
-                        }
-                    }
-                }
-            }
-
-            OnObjectPropertiesFamily(new ObjectPropertiesFamilyEventArgs(simulator, props, requestType));
-        }
-
-        /// <summary>Process an incoming packet and raise the appropriate events</summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void PayPriceReplyHandler(object sender, PacketReceivedEventArgs e)
-        {
-            if (m_PayPriceReply != null)
-            {
-                Packet packet = e.Packet;
-                Simulator simulator = e.Simulator;
-
-                PayPriceReplyPacket p = (PayPriceReplyPacket)packet;
-                UUID objectID = p.ObjectData.ObjectID;
-                int defaultPrice = p.ObjectData.DefaultPayPrice;
-                int[] buttonPrices = new int[p.ButtonData.Length];
-
-                for (var i = 0; i < p.ButtonData.Length; i++)
-                {
-                    buttonPrices[i] = p.ButtonData[i].PayButton;
-                }
-
-                OnPayPriceReply(new PayPriceReplyEventArgs(simulator, objectID, defaultPrice, buttonPrices));
-            }
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="capsKey"></param>
-        /// <param name="message"></param>
-        /// <param name="simulator"></param>
-        protected void ObjectPhysicsPropertiesHandler(string capsKey, IMessage message, Simulator simulator)
-        {
-            ObjectPhysicsPropertiesMessage msg = (ObjectPhysicsPropertiesMessage)message;
-
-            if (Client.Settings.OBJECT_TRACKING)
-            {
-                foreach (var prop in msg.ObjectPhysicsProperties)
-                {
-                    if (simulator.ObjectsPrimitives.TryGetValue(prop.LocalID, out var primitive))
-                    {
-                        primitive.PhysicsProps = prop;
-                    }
-                }
-            }
-
-            if (m_PhysicsProperties != null)
-            {
-                foreach (var prop in msg.ObjectPhysicsProperties)
-                {
-                    OnPhysicsProperties(new PhysicsPropertiesEventArgs(simulator, prop));
-                }
-            }
-        }
-
-        #endregion Packet Handlers
 
         #region Utility Functions
 
@@ -3724,7 +2618,11 @@ namespace OpenMetaverse
 
         #endregion Object Tracking Link
 
-        protected void InterpolationTimer_Elapsed(object obj)
+        /// <summary>
+        /// Perform a single interpolation pass. Separated so both Timer and PeriodicTimer
+        /// paths can reuse the same logic without handling scheduling.
+        /// </summary>
+        private void PerformInterpolationPass()
         {
             int elapsed = 0;
 
@@ -3744,10 +2642,8 @@ namespace OpenMetaverse
                     // Iterate through all of this region's avatars
                     foreach (var avatar in sim.ObjectsAvatars)
                     {
-                        #region Linear Motion
-
                         var av = avatar.Value;
-                        
+
                         Vector3 velocity, acceleration, position;
                         lock (av)
                         {
@@ -3771,19 +2667,17 @@ namespace OpenMetaverse
                             av.Velocity = velocity;
                             av.Position = position;
                         }
-
-                        #endregion Linear Motion
                     }
 
                     // Iterate through all the simulator's primitives
                     foreach (var prim in sim.ObjectsPrimitives)
                     {
                         var pv = prim.Value;
-                        
+
                         JointType joint;
                         Vector3 angVel, velocity, acceleration, position;
                         Quaternion rotation;
-                        
+
                         lock (pv)
                         {
                             joint = pv.Joint;
@@ -3847,486 +2741,7 @@ namespace OpenMetaverse
 
                 elapsed = Client.Self.lastInterpolation - start;
             }
-
-            // Start the timer again. Use a minimum of a 50ms pause in between calculations
-            int delay = Math.Max(50, Client.Settings.INTERPOLATION_INTERVAL - elapsed);
-            InterpolationTimer?.Change(delay, Timeout.Infinite);
         }
     }
-    #region EventArgs classes
-
-    /// <summary>Provides data for the <see cref="ObjectManager.ObjectUpdate"/> event</summary>
-    /// <remarks><para>The <see cref="ObjectManager.ObjectUpdate"/> event occurs when the simulator sends
-    /// an <see cref="ObjectUpdatePacket"/> containing a Primitive, Foliage or Attachment data</para>
-    /// <para>Note 1: The <see cref="ObjectManager.ObjectUpdate"/> event will not be raised when the object is an Avatar</para>
-    /// <para>Note 2: It is possible for the <see cref="ObjectManager.ObjectUpdate"/> to be 
-    /// raised twice for the same object if for example the primitive moved to a new simulator, then returned to the current simulator or
-    /// if an Avatar crosses the border into a new simulator and returns to the current simulator</para>
-    /// </remarks>
-    /// <example>
-    /// The following code example uses the <see cref="PrimEventArgs.Prim"/>, <see cref="PrimEventArgs.Simulator"/>, and <see cref="PrimEventArgs.IsAttachment"/>
-    /// properties to display new Primitives and Attachments on the <see cref="Console"/> window.
-    /// <code>
-    ///     // Subscribe to the event that gives us prim and foliage information
-    ///     Client.Objects.ObjectUpdate += Objects_ObjectUpdate;
-    ///     
-    ///
-    ///     private void Objects_ObjectUpdate(object sender, PrimEventArgs e)
-    ///     {
-    ///         Console.WriteLine("Primitive {0} {1} in {2} is an attachment {3}", e.Prim.ID, e.Prim.LocalID, e.Simulator.Name, e.IsAttachment);
-    ///     }
-    /// </code>
-    /// </example>
-    /// <seealso cref="ObjectManager.ObjectUpdate"/>
-    /// <seealso cref="ObjectManager.AvatarUpdate"/>
-    /// <seealso cref="AvatarUpdateEventArgs"/>
-    public class PrimEventArgs : EventArgs
-    {
-        /// <summary>Get the simulator the <see cref="Primitive"/> originated from</summary>
-        public Simulator Simulator { get; }
-
-        /// <summary>Get the <see cref="Primitive"/> details</summary>
-        public Primitive Prim { get; }
-
-        /// <summary>true if the <see cref="Primitive"/> did not exist in the dictionary before this update (always true if object tracking has been disabled)</summary>
-        public bool IsNew { get; }
-
-        /// <summary>true if the <see cref="Primitive"/> is attached to an <see cref="Avatar"/></summary>
-        public bool IsAttachment { get; }
-
-        /// <summary>Get the simulator Time Dilation</summary>
-        public ushort TimeDilation { get; }
-
-        /// <summary>
-        /// Construct a new instance of the PrimEventArgs class
-        /// </summary>
-        /// <param name="simulator">The simulator the object originated from</param>
-        /// <param name="prim">The Primitive</param>
-        /// <param name="timeDilation">The simulator time dilation</param>
-        /// <param name="isNew">The prim was not in the dictionary before this update</param>
-        /// <param name="isAttachment">true if the primitive represents an attachment to an agent</param>
-        public PrimEventArgs(Simulator simulator, Primitive prim, ushort timeDilation, bool isNew, bool isAttachment)
-        {
-            this.Simulator = simulator;
-            this.IsNew = isNew;
-            this.IsAttachment = isAttachment;
-            this.Prim = prim;
-            this.TimeDilation = timeDilation;
-        }
-    }
-
-    /// <summary>Provides data for the <see cref="ObjectManager.AvatarUpdate"/> event</summary>
-    /// <remarks><para>The <see cref="ObjectManager.AvatarUpdate"/> event occurs when the simulator sends
-    /// <see cref="ObjectUpdatePacket"/> containing Avatar data</para>    
-    /// <para>Note 1: The <see cref="ObjectManager.AvatarUpdate"/> event will not be raised when the object is an Avatar</para>
-    /// <para>Note 2: It is possible for the <see cref="ObjectManager.AvatarUpdate"/> to be 
-    /// raised twice for the same avatar if for example the avatar moved to a new simulator, then returned to the current simulator</para>
-    /// </remarks>
-    /// <example>
-    /// The following code example uses the <see cref="AvatarUpdateEventArgs.Avatar"/> property to make a request for the top picks
-    /// using the <see cref="AvatarManager.RequestAvatarPicks"/> method in the <see cref="AvatarManager"/> class to display the names
-    /// of our own agents picks listings on the <see cref="Console"/> window.
-    /// <code>
-    ///     // subscribe to the AvatarUpdate event to get our information
-    ///     Client.Objects.AvatarUpdate += Objects_AvatarUpdate;
-    ///     Client.Avatars.AvatarPicksReply += Avatars_AvatarPicksReply;
-    ///     
-    ///     private void Objects_AvatarUpdate(object sender, AvatarUpdateEventArgs e)
-    ///     {
-    ///         // we only want our own data
-    ///         if (e.Avatar.LocalID == Client.Self.LocalID)
-    ///         {    
-    ///             // Unsubscribe from the avatar update event to prevent a loop
-    ///             // where we continually request the picks every time we get an update for ourselves
-    ///             Client.Objects.AvatarUpdate -= Objects_AvatarUpdate;
-    ///             // make the top picks request through AvatarManager
-    ///             Client.Avatars.RequestAvatarPicks(e.Avatar.ID);
-    ///         }
-    ///     }
-    ///
-    ///     private void Avatars_AvatarPicksReply(object sender, AvatarPicksReplyEventArgs e)
-    ///     {
-    ///         // we'll unsubscribe from the AvatarPicksReply event since we now have the data 
-    ///         // we were looking for
-    ///         Client.Avatars.AvatarPicksReply -= Avatars_AvatarPicksReply;
-    ///         // loop through the dictionary and extract the names of the top picks from our profile
-    ///         foreach (var pickName in e.Picks.Values)
-    ///         {
-    ///             Console.WriteLine(pickName);
-    ///         }
-    ///     }
-    /// </code>
-    /// </example>
-    /// <seealso cref="ObjectManager.ObjectUpdate"/>
-    /// <seealso cref="PrimEventArgs"/>
-    public class AvatarUpdateEventArgs : EventArgs
-    {
-        /// <summary>Get the simulator the object originated from</summary>
-        public Simulator Simulator { get; }
-
-        /// <summary>Get the <see cref="Avatar"/> data</summary>
-        public Avatar Avatar { get; }
-
-        /// <summary>Get the simulator time dilation</summary>
-        public ushort TimeDilation { get; }
-
-        /// <summary>true if the <see cref="Avatar"/> did not exist in the dictionary before this update (always true if avatar tracking has been disabled)</summary>
-        public bool IsNew { get; }
-
-        /// <summary>
-        /// Construct a new instance of the AvatarUpdateEventArgs class
-        /// </summary>
-        /// <param name="simulator">The simulator the packet originated from</param>
-        /// <param name="avatar">The <see cref="Avatar"/> data</param>
-        /// <param name="timeDilation">The simulator time dilation</param>
-        /// <param name="isNew">The avatar was not in the dictionary before this update</param>
-        public AvatarUpdateEventArgs(Simulator simulator, Avatar avatar, ushort timeDilation, bool isNew)
-        {
-            this.Simulator = simulator;
-            this.Avatar = avatar;
-            this.TimeDilation = timeDilation;
-            this.IsNew = isNew;
-        }
-    }
-
-    public class ObjectAnimationEventArgs : EventArgs
-    {
-        /// <summary>Get the ID of the agent</summary>
-        public UUID ObjectID { get; }
-
-        /// <summary>Get the list of animations to start</summary>
-        public List<Animation> Animations { get; }
-
-        /// <summary>
-        /// Construct a new instance of the AvatarAnimationEventArgs class
-        /// </summary>
-        /// <param name="objectID">The ID of the agent</param>
-        /// <param name="anims">The list of animations to start</param>
-        public ObjectAnimationEventArgs(UUID objectID, List<Animation> anims)
-        {
-            this.ObjectID = objectID;
-            this.Animations = anims;
-        }
-    }
-
-
-    public class ParticleUpdateEventArgs : EventArgs {
-        /// <summary>Get the simulator the object originated from</summary>
-        public Simulator Simulator { get; }
-
-        /// <summary>Get the <see cref="ParticleSystem"/> data</summary>
-        public Primitive.ParticleSystem ParticleSystem { get; }
-
-        /// <summary>Get <see cref="Primitive"/> source</summary>
-        public Primitive Source { get; }
-
-        /// <summary>
-        /// Construct a new instance of the ParticleUpdateEventArgs class
-        /// </summary>
-        /// <param name="simulator">The simulator the packet originated from</param>
-        /// <param name="particlesystem">The ParticleSystem data</param>
-        /// <param name="source">The Primitive source</param>
-        public ParticleUpdateEventArgs(Simulator simulator, Primitive.ParticleSystem particlesystem, Primitive source) {
-            this.Simulator = simulator;
-            this.ParticleSystem = particlesystem;
-            this.Source = source;
-        }
-    }
-
-    /// <summary>Provides additional primitive data for the <see cref="ObjectManager.ObjectProperties"/> event</summary>
-    /// <remarks><para>The <see cref="ObjectManager.ObjectProperties"/> event occurs when the simulator sends
-    /// <see cref="ObjectPropertiesPacket"/> containing additional details for a Primitive, Foliage or Attachment data</para>
-    /// <para>The <see cref="ObjectManager.ObjectProperties"/> event is also raised when a <see cref="ObjectManager.SelectObject"/> request is
-    /// made.</para>
-    /// </remarks>
-    /// <example>
-    /// The following code example uses the <see cref="PrimEventArgs.Prim"/>, <see cref="PrimEventArgs.Simulator"/> and
-    /// <see cref="ObjectPropertiesEventArgs.Properties"/>
-    /// properties to display new attachments and send a request for additional properties containing the name of the
-    /// attachment then display it on the <see cref="Console"/> window.
-    /// <code>    
-    ///     // Subscribe to the event that provides additional primitive details
-    ///     Client.Objects.ObjectProperties += Objects_ObjectProperties;
-    ///      
-    ///     // handle the properties data that arrives
-    ///     private void Objects_ObjectProperties(object sender, ObjectPropertiesEventArgs e)
-    ///     {
-    ///         Console.WriteLine("Primitive Properties: {0} Name is {1}", e.Properties.ObjectID, e.Properties.Name);
-    ///     }   
-    /// </code>
-    /// </example>
-    /// <seealso cref="ObjectManager.ObjectUpdate"/>
-    /// <seealso cref="ObjectManager.AvatarUpdate"/>
-    /// <seealso cref="AvatarUpdateEventArgs"/>
-    /// <seealso cref="PrimEventArgs"/>
-    public class ObjectPropertiesEventArgs : EventArgs
-    {
-        protected readonly Simulator m_Simulator;
-        protected readonly Primitive.ObjectProperties m_Properties;
-
-        /// <summary>Get the simulator the object is located</summary>
-        public Simulator Simulator => m_Simulator;
-
-        /// <summary>Get the primitive properties</summary>
-        public Primitive.ObjectProperties Properties => m_Properties;
-
-        /// <summary>
-        /// Construct a new instance of the ObjectPropertiesEventArgs class
-        /// </summary>
-        /// <param name="simulator">The simulator the object is located</param>
-        /// <param name="props">The primitive Properties</param>
-        public ObjectPropertiesEventArgs(Simulator simulator, Primitive.ObjectProperties props)
-        {
-            this.m_Simulator = simulator;
-            this.m_Properties = props;
-        }
-    }
-
-    /// <summary>Provides additional primitive data for the <see cref="ObjectManager.ObjectPropertiesUpdated"/> event</summary>
-    /// <remarks><para>The <see cref="ObjectManager.ObjectPropertiesUpdated"/> event occurs when the simulator sends
-    /// an <see cref="ObjectPropertiesPacket"/> containing additional details for a Primitive or Foliage data that is currently
-    /// being tracked in the <see cref="Simulator.ObjectsPrimitives"/> dictionary</para>
-    /// <para>The <see cref="ObjectManager.ObjectPropertiesUpdated"/> event is also raised when a <see cref="ObjectManager.SelectObject"/> request is
-    /// made and <see cref="Settings.OBJECT_TRACKING"/> is enabled</para>    
-    /// </remarks>    
-    public class ObjectPropertiesUpdatedEventArgs : ObjectPropertiesEventArgs
-    {
-        /// <summary>Get the primitive details</summary>
-        public Primitive Prim { get; }
-
-        /// <summary>
-        /// Construct a new instance of the ObjectPropertiesUpdatedEventArgs class
-        /// </summary>
-        /// <param name="simulator">The simulator the object is located</param>
-        /// <param name="prim">The Primitive</param>
-        /// <param name="props">The primitive Properties</param>
-        public ObjectPropertiesUpdatedEventArgs(Simulator simulator, Primitive prim, Primitive.ObjectProperties props) : base(simulator, props)
-        {
-            this.Prim = prim;
-        }
-    }
-
-    /// <summary>Provides additional primitive data, permissions and sale info for the <see cref="ObjectManager.ObjectPropertiesFamily"/> event</summary>
-    /// <remarks><para>The <see cref="ObjectManager.ObjectPropertiesFamily"/> event occurs when the simulator sends
-    /// an <see cref="ObjectPropertiesPacket"/> containing additional details for a Primitive, Foliage data or Attachment. This includes
-    /// Permissions, Sale info, and other basic details on an object</para>
-    /// <para>The <see cref="ObjectManager.ObjectProperties"/> event is also raised when a <see cref="ObjectManager.RequestObjectPropertiesFamily"/> request is
-    /// made, the viewer equivalent is hovering the mouse cursor over an object</para>
-    /// </remarks>    
-    public class ObjectPropertiesFamilyEventArgs : EventArgs
-    {
-        /// <summary>Get the simulator the object is located</summary>
-        public Simulator Simulator { get; }
-
-        /// <summary></summary>
-        public Primitive.ObjectProperties Properties { get; }
-
-        /// <summary></summary>
-        public ReportType Type { get; }
-
-        public ObjectPropertiesFamilyEventArgs(Simulator simulator, Primitive.ObjectProperties props, ReportType type)
-        {
-            this.Simulator = simulator;
-            this.Properties = props;
-            this.Type = type;
-        }
-    }
-
-    /// <summary>Provides primitive data containing updated location, velocity, rotation, textures for the
-    /// <see cref="ObjectManager.TerseObjectUpdate"/> event</summary>
-    /// <remarks><para>The <see cref="ObjectManager.TerseObjectUpdate"/> event occurs when the simulator sends updated location, velocity, rotation, etc</para>        
-    /// </remarks>
-    public class TerseObjectUpdateEventArgs : EventArgs
-    {
-        /// <summary>Get the simulator the object is located</summary>
-        public Simulator Simulator { get; }
-
-        /// <summary>Get the primitive details</summary>
-        public Primitive Prim { get; }
-
-        /// <summary></summary>
-        public ObjectMovementUpdate Update { get; }
-
-        /// <summary></summary>
-        public ushort TimeDilation { get; }
-
-        public TerseObjectUpdateEventArgs(Simulator simulator, Primitive prim, ObjectMovementUpdate update, ushort timeDilation)
-        {
-            this.Simulator = simulator;
-            this.Prim = prim;
-            this.Update = update;
-            this.TimeDilation = timeDilation;
-        }
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public class ObjectDataBlockUpdateEventArgs : EventArgs
-    {
-        /// <summary>Get the simulator the object is located</summary>
-        public Simulator Simulator { get; }
-
-        /// <summary>Get the primitive details</summary>
-        public Primitive Prim { get; }
-
-        /// <summary></summary>
-        public Primitive.ConstructionData ConstructionData { get; }
-
-        /// <summary></summary>
-        public ObjectUpdatePacket.ObjectDataBlock Block { get; }
-
-        /// <summary></summary>
-        public ObjectMovementUpdate Update { get; }
-
-        /// <summary></summary>
-        public NameValue[] NameValues { get; }
-
-        public ObjectDataBlockUpdateEventArgs(Simulator simulator, Primitive prim, Primitive.ConstructionData constructionData,
-            ObjectUpdatePacket.ObjectDataBlock block, ObjectMovementUpdate objectupdate, NameValue[] nameValues)
-        {
-            this.Simulator = simulator;
-            this.Prim = prim;
-            this.ConstructionData = constructionData;
-            this.Block = block;
-            this.Update = objectupdate;
-            this.NameValues = nameValues;
-        }
-    }
-
-    /// <summary>Provides notification when an Avatar, Object or Attachment is DeRezzed or moves out of the avatars view for the 
-    /// <see cref="ObjectManager.KillObject"/> event</summary>
-    public class KillObjectEventArgs : EventArgs
-    {
-        /// <summary>Get the simulator the object is located</summary>
-        public Simulator Simulator { get; }
-
-        /// <summary>The LocalID of the object</summary>
-        public uint ObjectLocalID { get; }
-
-        public KillObjectEventArgs(Simulator simulator, uint objectID)
-        {
-            this.Simulator = simulator;
-            this.ObjectLocalID = objectID;
-        }
-    }
-
-    /// <summary>Provides notification when an Avatar, Object or Attachment is DeRezzed or moves out of the avatars view for the 
-    /// <see cref="ObjectManager.KillObjects"/> event</summary>
-    public class KillObjectsEventArgs : EventArgs
-    {
-        /// <summary>Get the simulator the object is located</summary>
-        public Simulator Simulator { get; }
-
-        /// <summary>The LocalID of the object</summary>
-        public uint[] ObjectLocalIDs { get; }
-
-        public KillObjectsEventArgs(Simulator simulator, uint[] objectIDs)
-        {
-            this.Simulator = simulator;
-            this.ObjectLocalIDs = objectIDs;
-        }
-    }
-
-    /// <summary>
-    /// Provides updates sit position data
-    /// </summary>
-    public class AvatarSitChangedEventArgs : EventArgs
-    {
-        /// <summary>Get the simulator the object is located</summary>
-        public Simulator Simulator { get; }
-
-        /// <summary></summary>
-        public Avatar Avatar { get; }
-
-        /// <summary></summary>
-        public uint SittingOn { get; }
-
-        /// <summary></summary>
-        public uint OldSeat { get; }
-
-        public AvatarSitChangedEventArgs(Simulator simulator, Avatar avatar, uint sittingOn, uint oldSeat)
-        {
-            this.Simulator = simulator;
-            this.Avatar = avatar;
-            this.SittingOn = sittingOn;
-            this.OldSeat = oldSeat;
-        }
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public class PayPriceReplyEventArgs : EventArgs
-    {
-        /// <summary>Get the simulator the object is located</summary>
-        public Simulator Simulator { get; }
-
-        /// <summary></summary>
-        public UUID ObjectID { get; }
-
-        /// <summary></summary>
-        public int DefaultPrice { get; }
-
-        /// <summary></summary>
-        public int[] ButtonPrices { get; }
-
-        public PayPriceReplyEventArgs(Simulator simulator, UUID objectID, int defaultPrice, int[] buttonPrices)
-        {
-            this.Simulator = simulator;
-            this.ObjectID = objectID;
-            this.DefaultPrice = defaultPrice;
-            this.ButtonPrices = buttonPrices;
-        }
-    }
-
-    public class ObjectMediaEventArgs : EventArgs
-    {
-        /// <summary>
-        /// Indicates if the operation was successful
-        /// </summary>
-        public bool Success { get; set; }
-
-        /// <summary>
-        /// Media version string
-        /// </summary>
-        public string Version { get; set; }
-
-        /// <summary>
-        /// Array of media entries indexed by face number
-        /// </summary>
-        public MediaEntry[] FaceMedia { get; set; }
-
-        public ObjectMediaEventArgs(bool success, string version, MediaEntry[] faceMedia)
-        {
-            this.Success = success;
-            this.Version = version;
-            this.FaceMedia = faceMedia;
-        }
-    }
-
-    /// <summary>
-    /// Set when simulator sends us information on primitive's physical properties
-    /// </summary>
-    public class PhysicsPropertiesEventArgs : EventArgs
-    {
-        /// <summary>Simulator where the message originated</summary>
-        public Simulator Simulator;
-        /// <summary>Updated physical properties</summary>
-        public Primitive.PhysicsProperties PhysicsProperties;
-
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="sim">Simulator where the message originated</param>
-        /// <param name="props">Updated physical properties</param>
-        public PhysicsPropertiesEventArgs(Simulator sim, Primitive.PhysicsProperties props)
-        {
-            Simulator = sim;
-            PhysicsProperties = props;
-        }
-    }
-
-    #endregion
 }
 

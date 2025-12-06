@@ -38,7 +38,37 @@ namespace OpenMetaverse
 {
     public partial class InventoryManager
     {
-        // Async-first variants of several Request* methods that previously used callbacks or direct HttpCapsClient calls
+        /// <summary>
+        /// Async wrappers that delegate to existing synchronous implementations by running them on the threadpool.
+        /// These provide an async-first surface while preserving existing sync behavior.
+        /// </summary>
+        public Task MoveFolderAsync(UUID folderID, UUID newParentID, CancellationToken cancellationToken = default)
+        {
+            return Task.Run(() => MoveFolder(folderID, newParentID, cancellationToken), cancellationToken);
+        }
+
+        public Task MoveFoldersAsync(Dictionary<UUID, UUID> foldersNewParents, CancellationToken cancellationToken = default)
+        {
+            return Task.Run(() => MoveFolders(foldersNewParents, cancellationToken), cancellationToken);
+        }
+
+        public Task MoveItemAsync(UUID itemID, UUID folderID, CancellationToken cancellationToken = default)
+        {
+            return Task.Run(() => MoveItem(itemID, folderID, cancellationToken), cancellationToken);
+        }
+
+        public Task MoveItemAsync(UUID itemID, UUID folderID, string newName, CancellationToken cancellationToken = default)
+        {
+            return Task.Run(() => MoveItem(itemID, folderID, newName, cancellationToken), cancellationToken);
+        }
+
+        public Task MoveItemsAsync(Dictionary<UUID, UUID> itemsNewFolders, CancellationToken cancellationToken = default)
+        {
+            return Task.Run(() => MoveItems(itemsNewFolders, cancellationToken), cancellationToken);
+        }
+
+        
+
         public async Task RequestCreateItemFromAssetAsync(byte[] data, string name, string description, AssetType assetType,
             InventoryType invType, UUID folderID, Permissions permissions, ItemCreatedFromAssetCallback callback,
             CancellationToken cancellationToken = default, IProgress<ProgressReport> progress = null)
@@ -500,7 +530,7 @@ namespace OpenMetaverse
             {
                 try
                 {
-                    await RequestFindObjectByPath(baseFolder, inventoryOwner, path).ConfigureAwait(false);
+                    await RequestFindObjectByPath(baseFolder, inventoryOwner, path, cancellationToken).ConfigureAwait(false);
                     return await tcs.Task.ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)

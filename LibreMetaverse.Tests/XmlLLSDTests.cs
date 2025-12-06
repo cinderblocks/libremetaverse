@@ -205,6 +205,50 @@ namespace LibreMetaverse.Tests
             Assert.That(map["NAME"].AsString(), Is.EqualTo("Hippotropolis"));
         }
 
+        [Test]
+        public void DeserializeSillyPI_NoWhitespaceAfterPI()
+        {
+            string testSD = "<? LLSD/XML ?>" +
+                            "<llsd>\n" +
+                            "<map>\n" +
+                            "  <key>MINUTES</key>\n" +
+                            "  <integer>5</integer>\n" +
+                            "  <key>NAME</key>\n" +
+                            "  <string>Hippotropolis</string>\n" +
+                            "</map>\n" +
+                            "</llsd>\n";
+
+            byte[] bytes = Encoding.UTF8.GetBytes(testSD);
+            OSD theSD = OSDParser.DeserializeLLSDXml(bytes);
+
+            Assert.That(theSD, Is.InstanceOf<OSDMap>());
+            OSDMap map = (OSDMap)theSD;
+            Assert.That(map["MINUTES"].AsInteger(), Is.EqualTo(5));
+            Assert.That(map["NAME"].AsString(), Is.EqualTo("Hippotropolis"));
+        }
+
+        [Test]
+        public void DeserializeSillyPI_LowercasePI()
+        {
+            string testSD = "<? llsd/xml ?>\n" +
+                            "<llsd>\n" +
+                            "<map>\n" +
+                            "  <key>MINUTES</key>\n" +
+                            "  <integer>5</integer>\n" +
+                            "  <key>NAME</key>\n" +
+                            "  <string>Hippotropolis</string>\n" +
+                            "</map>\n" +
+                            "</llsd>\n";
+
+            byte[] bytes = Encoding.UTF8.GetBytes(testSD);
+            OSD theSD = OSDParser.DeserializeLLSDXml(bytes);
+
+            Assert.That(theSD, Is.InstanceOf<OSDMap>());
+            OSDMap map = (OSDMap)theSD;
+            Assert.That(map["MINUTES"].AsInteger(), Is.EqualTo(5));
+            Assert.That(map["NAME"].AsString(), Is.EqualTo("Hippotropolis"));
+        }
+
         /// <summary>
         /// Test that various Real representations are parsed correctly.
         /// </summary>
