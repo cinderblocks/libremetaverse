@@ -103,6 +103,8 @@ namespace LibreMetaverse.Voice.WebRTC
         public RTCDataChannel DataChannel => PeerConnection?.DataChannels?.FirstOrDefault();
         private ESessionType SessionType { get; }
         private readonly ConcurrentQueue<RTCIceCandidate> PendingCandidates = new ConcurrentQueue<RTCIceCandidate>();
+        // Fast approximate count to avoid expensive ConcurrentQueue.Count in hot paths
+        private int pendingCandidateCount = 0;
         private readonly CancellationTokenSource Cts = new CancellationTokenSource();
 
         private CancellationTokenSource iceTrickleCts;
@@ -370,6 +372,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 if (candidate != null)
                 {
                     PendingCandidates.Enqueue(candidate);
+                    System.Threading.Interlocked.Increment(ref pendingCandidateCount);
                 }
             };
 
@@ -475,7 +478,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
         private async Task FlushPendingIceCandidates()
         {
-            if (!answerReceived || PendingCandidates.IsEmpty) { return; }
+            if (!answerReceived || System.Threading.Interlocked.CompareExchange(ref pendingCandidateCount, 0, 0) == 0) { return; }
 
             var cap = Client.Network.CurrentSim.Caps?.CapabilityURI(VOICE_SIGNALING_CAP);
             if (cap == null) { return; }
@@ -483,6 +486,7 @@ namespace LibreMetaverse.Voice.WebRTC
             var candidatesArray = new OSDArray();
             while (PendingCandidates.TryDequeue(out var candidate))
             {
+                System.Threading.Interlocked.Decrement(ref pendingCandidateCount);
                 var map = new OSDMap
                 {
                     ["candidate"] = candidate.candidate,
@@ -535,8 +539,8 @@ namespace LibreMetaverse.Voice.WebRTC
 
             var canArray = new OSDArray();
 
-            // Capture approximate queue size for logging, then drain using TryDequeue
-            var queued = PendingCandidates.Count;
+            // Snapshot approximate queue size for logging, then drain using TryDequeue
+            var queued = System.Threading.Interlocked.CompareExchange(ref pendingCandidateCount, 0, 0);
             if (queued == 0) return; // Nothing to send
 
             Logger.Log($"Sending {queued} ICE candidates",
@@ -544,6 +548,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
             while (PendingCandidates.TryDequeue(out var candidate))
             {
+                System.Threading.Interlocked.Decrement(ref pendingCandidateCount);
                 var map = new OSDMap
                 {
                     { "sdpMid", candidate.sdpMid },
@@ -988,33 +993,32 @@ namespace LibreMetaverse.Voice.WebRTC
 
             async void poll()
             {
-                if (Client.Network.Connected && !SessionId.Equals(UUID.Zero) && !PendingCandidates.IsEmpty)
+                if (Client.Network.Connected && !SessionId.Equals(UUID.Zero) && System.Threading.Interlocked.CompareExchange(ref pendingCandidateCount, 0, 0) > 0)
                 {
                     await SendVoiceSignalingRequest();
                 }
-             }
-         }
+              }
+          }
 
-         private async Task IceTrickleStop()
-         {
-             while (true)
-             {
--                if (PendingCandidates.Count > 0)
-+                if (!PendingCandidates.IsEmpty)
-                 {
-                     await Task.Delay(TimeSpan.FromSeconds(1));
-                 }
-                 else
-                 {
-                     break;
-                 }
-             }
+          private async Task IceTrickleStop()
+          {
+              while (true)
+              {
+                if (System.Threading.Interlocked.CompareExchange(ref pendingCandidateCount, 0, 0) > 0)
+                  {
+                      await Task.Delay(TimeSpan.FromSeconds(1));
+                  }
+                  else
+                  {
+                      break;
+                  }
+              }
 
-             if (PeerConnection.iceGatheringState == RTCIceGatheringState.complete)
-             {
-                 iceTrickleCts?.Cancel();
-                 await SendVoiceSignalingCompleteRequest();
-             }
+              if (PeerConnection.iceGatheringState == RTCIceGatheringState.complete)
+              {
+                  iceTrickleCts?.Cancel();
+                  await SendVoiceSignalingCompleteRequest();
+              }
          }
 
          private string SanitizeRemoteSdp(string sdp)
