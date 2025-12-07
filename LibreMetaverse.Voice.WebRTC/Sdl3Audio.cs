@@ -24,8 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using Microsoft.Extensions.Logging;
 using LibreMetaverse.Voice.WebRTC;
-using OpenMetaverse;
 using SIPSorceryMedia.Abstractions;
 using SIPSorceryMedia.SDL3;
 using System;
@@ -53,15 +53,15 @@ namespace LibreMetaverse
         public (uint id, string name) RecordingDevice { get; private set; }
 
         // Convenience properties expected by some consumers
-        private float _spkrLevel = 1.0f; // 0.0 - 1.0
-        public float SpkrLevel
+        private float _speakerLevel = 1.0f; // 0.0 - 1.0
+        public float SpeakerLevel
         {
-            get => _spkrLevel;
+            get => _speakerLevel;
             set
             {
                 // clamp
                 var v = Math.Max(0.0f, Math.Min(1.0f, value));
-                _spkrLevel = v;
+                _speakerLevel = v;
                 TrySetEndpointVolume(v);
             }
         }
@@ -94,12 +94,22 @@ namespace LibreMetaverse
             return SDL3Helper.GetAudioRecordingDevices();
         }
 
-        public Sdl3Audio()
+        private readonly IVoiceLogger _log;
+
+        public Sdl3Audio(IVoiceLogger logger = null)
         {
+            _log = logger ?? new OpenMetaverseVoiceLogger();
+            // Register adapter provider so SIPSorcery components using ILoggerFactory can be wired to our voice logger
+            try
+            {
+                var factory = LoggerFactory.Create(builder => { builder.AddProvider(new VoiceLoggerProvider(_log)); });
+                // If SIPSorcery components accept a global factory, set it here. Otherwise, providers created later will pick this up when supplied.
+            }
+            catch { }
             try
             {
                 SDL3Helper.InitSDL();
-                Logger.Log("SDL3 initialized successfully", Helpers.LogLevel.Info);
+                _log.Debug("SDL3 initialized successfully");
 
                 var playbackDeviceIndex = DeviceSelection(false);
                 var recordingDeviceIndex = DeviceSelection(true);
@@ -109,67 +119,62 @@ namespace LibreMetaverse
                 PlaybackDevice = playbackDevice ?? (id:0, name:string.Empty);
                 RecordingDevice = recordingDevice ?? (id: 0, name: string.Empty);
 
-                Logger.Log($"Playback device: '{playbackDevice}'", Helpers.LogLevel.Info);
-                Logger.Log($"Recording device: '{recordingDevice}'", Helpers.LogLevel.Info);
+                _log.Debug($"Playback device: '{playbackDevice}'");
+                _log.Debug($"Recording device: '{recordingDevice}'");
 
                 EndPoint = new SDL3AudioEndPoint(PlaybackDevice.name, _audioEncoder);
-                Logger.Log("SDL3AudioEndPoint created", Helpers.LogLevel.Info);
+                _log.Debug("SDL3AudioEndPoint created");
 
                 // Use stereo sink to match incoming Opus stereo (opus/48000/2)
                 var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
                 EndPoint.SetAudioSinkFormat(fmt);
-                Logger.Log($"Audio sink format set: {fmt.Codec}, {fmt.ClockRate} Hz, {fmt.ChannelCount} ch",
-                    Helpers.LogLevel.Info);
+                _log.Debug($"Audio sink format set: {fmt.Codec}, {fmt.ClockRate} Hz, {fmt.ChannelCount} ch");
 
                 // Set initial volume
-                TrySetEndpointVolume(_spkrLevel);
+                TrySetEndpointVolume(_speakerLevel);
 
                 // Initialize recording source
                 try
                 {
                     Source = new SDL3AudioSource(RecordingDevice.name, _audioEncoder);
-                    Logger.Log("SDL3AudioSource created", Helpers.LogLevel.Info);
+                    _log.Debug("SDL3AudioSource created");
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"Failed to create audio source (recording may not work): {ex.Message}", Helpers.LogLevel.Warning);
+                    _log.Warn($"Failed to create audio source (recording may not work): {ex.Message}");
                     Source = null;
                 }
 
                 // Mark as available AFTER successful initialization
                 IsAvailable = true;
-                Logger.Log("SDL3 audio system ready", Helpers.LogLevel.Info);
+                _log.Debug("SDL3 audio system ready");
 
                 // Automatically start playback to hear audio
                 _ = StartPlaybackAsync();
             }
             catch (DllNotFoundException dllEx)
             {
-                Logger.Log($"SDL3 DLL not found: {dllEx.Message}", Helpers.LogLevel.Error);
+                _log.Error($"SDL3 DLL not found: {dllEx.Message}");
                 IsAvailable = false;
                 EndPoint = null;
             }
             catch (EntryPointNotFoundException epnEx)
             {
-                Logger.Log($"SDL3 entry point missing: {epnEx.Message}", Helpers.LogLevel.Error);
+                _log.Error($"SDL3 entry point missing: {epnEx.Message}");
                 IsAvailable = false;
                 EndPoint = null;
             }
             catch (BadImageFormatException bife)
             {
                 // Common on architecture mismatch between native SDL3 and running process
-                Logger.Log($"SDL3 initialization failed (bad image / incorrect native format): {bife.Message}", Helpers.LogLevel.Error);
-                Logger.Log("Possible causes: mixing x86/x64 native SDL3 binaries with a process of the opposite bitness.", Helpers.LogLevel.Error);
-                Logger.Log("Fixes:", Helpers.LogLevel.Error);
-                Logger.Log(" - Ensure your application process matches the SDL3 native DLL architecture (x64 vs x86).", Helpers.LogLevel.Error);
-                Logger.Log(" - Place the correct SDL3 native binary in runtimes/<rid>/native or next to the executable.", Helpers.LogLevel.Error);
-                Logger.Log(" - Or change your project PlatformTarget to match the native DLL (e.g. x64).", Helpers.LogLevel.Error);
+                _log.Error($"SDL3 initialization failed (bad image / incorrect native format): {bife.Message}");
+                _log.Error("Possible causes: mixing x86/x64 native SDL3 binaries with a process of the opposite bitness.");
                 IsAvailable = false;
                 EndPoint = null;
             }
             catch (Exception ex)
             {
-                Logger.Log($"SDL3 initialization failed: {ex.Message}\n{ex.StackTrace}", Helpers.LogLevel.Error);
+                _log.Error($"SDL3 initialization failed: {ex.Message}\n{ex.StackTrace}");
                 IsAvailable = false;
                 EndPoint = null;
             }
@@ -196,7 +201,7 @@ namespace LibreMetaverse
             catch { }
         }
 
-        private static int DeviceSelection(bool recordingDevice)
+        private int DeviceSelection(bool recordingDevice)
         {
             var deviceTypeStr = recordingDevice ? "recording" : "playback";
             var sdlDevices = recordingDevice
@@ -206,13 +211,13 @@ namespace LibreMetaverse
             // Quit if no Audio devices found
             if (sdlDevices.Count < 1)
             {
-                Logger.Log($"SDL Audio - Could not find an audio {deviceTypeStr} device.", Helpers.LogLevel.Warning);
+                _log.Warn($"SDL Audio - Could not find an audio {deviceTypeStr} device.");
                 return -1;
             }
 
             // Prefer using the system default device. SDL typically accepts a null/empty device name to mean the default
             // Return -1 to indicate "use default" and let GetDeviceName translate that to null.
-            Logger.Log($"SDL Audio - Found {sdlDevices.Count} {deviceTypeStr} devices, using system default device.", Helpers.LogLevel.Info);
+            _log.Debug($"SDL Audio - Found {sdlDevices.Count} {deviceTypeStr} devices, using system default device.");
             return -1;
         }
 
@@ -239,14 +244,13 @@ namespace LibreMetaverse
 
             if (!IsAvailable)
             {
-                Logger.Log("SDL3 audio not available", Helpers.LogLevel.Warning);
+                _log.Warn("SDL3 audio not available");
                 return;
             }
 
             if (EndPoint == null)
             {
-                Logger.Log("Audio sink EndPoint is null — SDL3 not initialized or unavailable.",
-                    Helpers.LogLevel.Warning);
+                _log.Warn("Audio sink EndPoint is null — SDL3 not initialized or unavailable.");
                 return;
             }
 
@@ -254,7 +258,7 @@ namespace LibreMetaverse
             {
                 if (_samplesReceivedCount <= 5)
                 {
-                    Logger.Log("Playback not active, attempting to start...", Helpers.LogLevel.Warning);
+                    _log.Warn("Playback not active, attempting to start...");
                     _ = StartPlaybackAsync();
                 }
                 return;
@@ -262,13 +266,13 @@ namespace LibreMetaverse
 
             if (sample == null || sample.Length == 0)
             {
-                Logger.Log("Received empty audio sample.", Helpers.LogLevel.Warning);
+                _log.Warn("Received empty audio sample.");
                 return;
             }
 
             if (_samplesReceivedCount <= 3) // Log first few samples in detail
             {
-                Logger.Log($"Decoding Opus sample #{_samplesReceivedCount}: {sample.Length} bytes, duration: {durationRtpUnits} RTP units", Helpers.LogLevel.Info);
+                _log.Debug($"Decoding Opus sample #{_samplesReceivedCount}: {sample.Length} bytes, duration: {durationRtpUnits} RTP units");
             }
 
             try
@@ -279,35 +283,35 @@ namespace LibreMetaverse
                 {
                     if (_samplesReceivedCount <= 5)
                     {
-                        Logger.Log($"Decoded PCM sample is null or empty for sample #{_samplesReceivedCount}", Helpers.LogLevel.Warning);
+                        _log.Warn($"Decoded PCM sample is null or empty for sample #{_samplesReceivedCount}");
                     }
                     return;
                 }
 
                 if (_samplesReceivedCount <= 3)
                 {
-                    Logger.Log($"Decoded to PCM: {pcmSample.Length} samples", Helpers.LogLevel.Info);
+                    _log.Debug($"Decoded to PCM: {pcmSample.Length} samples");
                 }
 
                 var pcmBytes = pcmSample.SelectMany(BitConverter.GetBytes).ToArray();
 
                 if (_samplesReceivedCount <= 3)
                 {
-                    Logger.Log($"Sending {pcmBytes.Length} bytes to sink (sample #{_samplesReceivedCount})", Helpers.LogLevel.Info);
+                    _log.Debug($"Sending {pcmBytes.Length} bytes to sink (sample #{_samplesReceivedCount})");
                 }
 
                 EndPoint.PutAudioSample(pcmBytes);
 
                 if (_samplesReceivedCount <= 3)
                 {
-                    Logger.Log($"Sample #{_samplesReceivedCount} sent to sink successfully", Helpers.LogLevel.Info);
+                    _log.Info($"Sample #{_samplesReceivedCount} sent to sink successfully");
                 }
             }
             catch (Exception ex)
             {
                 if (_samplesReceivedCount <= 5)
                 {
-                    Logger.Log($"Error processing audio sample #{_samplesReceivedCount}: {ex.Message}", Helpers.LogLevel.Error);
+                    _log.Error($"Error processing audio sample #{_samplesReceivedCount}: {ex.Message}");
                 }
             }
         }
@@ -331,11 +335,11 @@ namespace LibreMetaverse
                 PlaybackActive = true;
                 _sinkStarted = true;
                 OnPlaybackActiveChanged?.Invoke(true);
-                Logger.Log("Playback started", Helpers.LogLevel.Info);
+                _log.Debug("Playback started");
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed to start playback: {ex.Message}", Helpers.LogLevel.Warning);
+                _log.Error($"Failed to start playback: {ex.Message}");
             }
         }
 
@@ -348,11 +352,11 @@ namespace LibreMetaverse
                 PlaybackActive = false;
                 _sinkStarted = false;
                 OnPlaybackActiveChanged?.Invoke(false);
-                Logger.Log("Playback stopped", Helpers.LogLevel.Info);
+                _log.Debug("Playback stopped");
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed to stop playback: {ex.Message}", Helpers.LogLevel.Warning);
+                _log.Error($"Failed to stop playback: {ex.Message}");
             }
         }
 
@@ -366,17 +370,17 @@ namespace LibreMetaverse
                 RecordingActive = true;
                 _recordingStarted = true;
                 OnRecordingActiveChanged?.Invoke(true);
-                Logger.Log("Recording started", Helpers.LogLevel.Info);
+                _log.Debug("Recording started");
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed to start recording: {ex.Message}", Helpers.LogLevel.Warning);
+                _log.Error($"Failed to start recording: {ex.Message}");
             }
         }
 
         public void StopRecording()
         {
-            if (!IsAvailable || Source == null) return;
+            if (!IsAvailable || Source == null) { return; }
             try
             {
                 // Attempt to stop the source using known method names via reflection
@@ -384,11 +388,11 @@ namespace LibreMetaverse
                 RecordingActive = false;
                 _recordingStarted = false;
                 OnRecordingActiveChanged?.Invoke(false);
-                Logger.Log("Recording stopped", Helpers.LogLevel.Info);
+                _log.Debug("Recording stopped");
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed to stop recording: {ex.Message}", Helpers.LogLevel.Warning);
+                _log.Error($"Failed to stop recording: {ex.Message}");
             }
         }
 
@@ -409,13 +413,13 @@ namespace LibreMetaverse
                 // Set the audio sink format as done in the constructor
                 var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
                 EndPoint.SetAudioSinkFormat(fmt);
-                TrySetEndpointVolume(_spkrLevel);
+                TrySetEndpointVolume(_speakerLevel);
                 // Restart sink if it was active
                 if (_sinkStarted) { _ = StartPlaybackAsync(); }
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed to set playback device: {ex.Message}", Helpers.LogLevel.Warning);
+                _log.Warn($"Failed to set playback device: {ex.Message}");
             }
         }
 
@@ -431,7 +435,7 @@ namespace LibreMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed to set recording device: {ex.Message}", Helpers.LogLevel.Warning);
+                _log.Warn($"Failed to set recording device: {ex.Message}");
             }
         }
 
@@ -444,7 +448,7 @@ namespace LibreMetaverse
         {
             if (!IsAvailable)
             {
-                Logger.Log("Cannot ensure endpoint: SDL3 not available", Helpers.LogLevel.Warning);
+                _log.Warn("Cannot ensure endpoint: SDL3 not available");
                 return false;
             }
 
@@ -457,13 +461,13 @@ namespace LibreMetaverse
                 var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
                 EndPoint.SetAudioSinkFormat(fmt);
                 // Set volume
-                TrySetEndpointVolume(_spkrLevel);
-                Logger.Log("SDL3AudioEndPoint created by EnsureEndpoint", Helpers.LogLevel.Info);
+                TrySetEndpointVolume(_speakerLevel);
+                _log.Debug("SDL3AudioEndPoint created");
                 return true;
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed to create SDL3AudioEndPoint in EnsureEndpoint: {ex.Message}", Helpers.LogLevel.Warning);
+                _log.Error($"Failed to create SDL3AudioEndPoint: {ex.Message}");
                 EndPoint = null;
                 return false;
             }
@@ -540,7 +544,7 @@ namespace LibreMetaverse
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed to set endpoint volume: {ex.Message}", Helpers.LogLevel.Debug);
+                _log.Error($"Failed to set endpoint volume: {ex.Message}");
             }
         }
 

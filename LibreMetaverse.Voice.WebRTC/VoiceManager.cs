@@ -40,6 +40,7 @@ namespace LibreMetaverse.Voice.WebRTC
     {
         private readonly GridClient Client;
         public readonly Sdl3Audio AudioDevice;
+        private readonly IVoiceLogger _log;
         private VoiceSession CurrentSession;
         private bool _enabled = true;
 
@@ -70,10 +71,11 @@ namespace LibreMetaverse.Voice.WebRTC
         public event Action<Dictionary<UUID, int>> GainMapReceived;
         public event Action<string, int, string> OnParcelVoiceInfo;
 
-        public VoiceManager(GridClient client)
+        public VoiceManager(GridClient client, IVoiceLogger logger = null)
         {
             Client = client;
             AudioDevice = new Sdl3Audio();
+            _log = logger ?? new OpenMetaverseVoiceLogger();
             Client.Network.RegisterEventCallback("RequiredVoiceVersion", RequiredVoiceVersionEventHandler);
         }
 
@@ -83,7 +85,7 @@ namespace LibreMetaverse.Voice.WebRTC
             if (!Client.Network.Connected) { return false; }
             if (!_enabled) 
             {
-                Logger.Log("WebRTC voice is disabled due to unsupported voice version", Helpers.LogLevel.Warning, Client);
+                _log.Warn("WebRTC voice is disabled due to unsupported voice version", Client);
                 return false;
             }
 
@@ -93,14 +95,14 @@ namespace LibreMetaverse.Voice.WebRTC
             if (parcelInfoSuccess && !string.IsNullOrEmpty(ChannelId))
             {
                 sessionType = VoiceSession.ESessionType.MUTLIAGENT;
-                Logger.Log("Using multi-agent voice for private parcel", Helpers.LogLevel.Info, Client);
+                _log.Info("Using multi-agent voice for private parcel", Client);
             }
             else
             {
-                Logger.Log("Using local voice for region", Helpers.LogLevel.Info, Client);
+                _log.Info("Using local voice for region", Client);
             }
 
-            CurrentSession = new VoiceSession(AudioDevice, sessionType, Client);
+            CurrentSession = new VoiceSession(AudioDevice, sessionType, Client, _log);
 
             // Set channel info if available
             if (!string.IsNullOrEmpty(ChannelId))
@@ -212,7 +214,7 @@ namespace LibreMetaverse.Voice.WebRTC
             jw.Write(true);
             jw.WriteObjectEnd();
             jw.WriteObjectEnd();
-            Logger.Log($"Joining voice on {CurrentSession.SessionId} with {jw}", Helpers.LogLevel.Debug, Client);
+            _log.Debug($"Joining voice on {CurrentSession.SessionId} with {jw}", Client);
             _ = CurrentSession.TrySendDataChannelString(jw.ToString());
             Console.WriteLine("[WebRTC] join sent");
             SendGlobalPosition();
@@ -241,7 +243,7 @@ namespace LibreMetaverse.Voice.WebRTC
             var cap = Client.Network.CurrentSim.Caps?.CapabilityURI("ParcelVoiceInfoRequest");
             if (cap == null)
             {
-                Logger.Log("ParcelVoiceInfoRequest capability not available", Helpers.LogLevel.Warning, Client);
+                _log.Warn("ParcelVoiceInfoRequest capability not available", Client);
                 return false;
             }
 
@@ -290,7 +292,7 @@ namespace LibreMetaverse.Voice.WebRTC
             }
             catch (Exception ex)
             {
-                Logger.Log($"Failed to request parcel voice info: {ex.Message}", Helpers.LogLevel.Warning, Client);
+                _log.Warn($"Failed to request parcel voice info: {ex.Message}", Client);
             }
             return false;
         }
@@ -300,12 +302,12 @@ namespace LibreMetaverse.Voice.WebRTC
             var msg = (RequiredVoiceVersionMessage)message;
             if (msg.MajorVersion != 2)
             {
-                Logger.Log($"WebRTC voice version mismatch! Got {msg.MajorVersion}.{msg.MinorVersion}, expecting 1.x. Disabling WebRTC voice manager", Helpers.LogLevel.Error, Client);
+                _log.Error($"WebRTC voice version mismatch! Got {msg.MajorVersion}.{msg.MinorVersion}, expecting 1.x. Disabling WebRTC voice manager", Client);
                 _enabled = false;
             }
             else
             {
-                Logger.Log($"WebRTC voice version {msg.MajorVersion}.{msg.MinorVersion} supported", Helpers.LogLevel.Info, Client);
+                _log.Debug($"WebRTC voice version {msg.MajorVersion}.{msg.MinorVersion} supported", Client);
             }
         }
     }
