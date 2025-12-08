@@ -33,6 +33,7 @@ using OpenMetaverse;
 using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.StructuredData;
+using System.IO;
 
 namespace LibreMetaverse.Voice.WebRTC
 {
@@ -308,6 +309,96 @@ namespace LibreMetaverse.Voice.WebRTC
             else
             {
                 _log.Debug($"WebRTC voice version {msg.MajorVersion}.{msg.MinorVersion} supported", Client);
+            }
+        }
+
+        // Start playing a WAV file and use it as the microphone/recording source
+        public void PlayWavAsMic(string path, bool loop = false)
+        {
+            try
+            {
+                AudioDevice.StartFilePlayback(path, loop);
+            }
+            catch (Exception ex)
+            {
+                _log.Warn($"Failed to start WAV playback as mic: {ex.Message}", Client);
+                throw;
+            }
+        }
+
+        // Stop any active WAV file playback and restore recording source behavior
+        public void StopWavAsMic()
+        {
+            try
+            {
+                AudioDevice.StopFilePlayback();
+            }
+            catch (Exception ex)
+            {
+                _log.Warn($"Failed to stop WAV playback as mic: {ex.Message}", Client);
+                throw;
+            }
+        }
+
+        // Fields to track a raw file stream opened by the manager
+        private FileStream _rawFileStream;
+        private bool _rawFileStreamActive = false;
+
+        /// <summary>
+        /// Play a raw PCM file or WAV as the microphone source. If sampleRate is 48000 the helper will use the internal file-loop
+        /// which auto-detects WAV headers; if a different sampleRate is provided the file is opened and streamed with that rate.
+        /// </summary>
+        public void PlayRawFile(string path, int channels = 1, int sampleRate = 48000, bool loop = true)
+        {
+            if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
+            if (!File.Exists(path)) throw new FileNotFoundException(path);
+
+            try
+            {
+                // If the caller requests the default 48k path, let the audio layer manage opening/looping (it detects WAV headers)
+                if (sampleRate == 48000)
+                {
+                    AudioDevice.StartRawPcmFileLoop(path, channels, loop);
+                    _rawFileStreamActive = false;
+                }
+                else
+                {
+                    // Open and pass the stream to the audio device; we must keep the stream open until stopped
+                    StopRawFile();
+                    _rawFileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    AudioDevice.StartRawPcmStream(_rawFileStream, channels, sampleRate);
+                    _rawFileStreamActive = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Warn($"Failed to start raw file playback: {ex.Message}", Client);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Stop playback started by PlayRawFile. Closes any FileStream opened by PlayRawFile when necessary.
+        /// </summary>
+        public void StopRawFile()
+        {
+            try
+            {
+                // Stop any streaming regardless of how it was started
+                AudioDevice.StopRawPcmStream();
+                AudioDevice.StopFilePlayback();
+
+                if (_rawFileStreamActive && _rawFileStream != null)
+                {
+                    try { _rawFileStream.Dispose(); } catch { }
+                    _rawFileStream = null;
+                    _rawFileStreamActive = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Warn($"Failed to stop raw file playback: {ex.Message}", Client);
+                throw;
             }
         }
     }

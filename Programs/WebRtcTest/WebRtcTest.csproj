@@ -24,4 +24,9 @@
     <None Include="..\..\data\logo.png" Pack="true" PackagePath="\" />
     <None Include="WebRtcTest.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="scarlet-fire-44100.pcm">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

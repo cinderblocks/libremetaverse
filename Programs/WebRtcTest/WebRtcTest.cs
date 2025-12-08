@@ -30,6 +30,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
+using System.IO;
+using System.Linq;
 
 namespace WebRtcTest
 {
@@ -135,6 +137,32 @@ namespace WebRtcTest
                 
                 Console.WriteLine($"Connected Primary Region to voice {client.Network.CurrentSim.Name}...");
 
+                // Example: play the raw PCM file in the WebRtcTest directory
+                try
+                {
+                    // Try to locate the file relative to the running directory first
+                    var candidates = new[] {
+                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "scarlet-fire-44100.pcm"),
+                        Path.Combine(Directory.GetCurrentDirectory(), "scarlet-fire-44100.pcm"),
+                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\..\\..\\", "scarlet-fire-44100.pcm")
+                    };
+                    string pcmPath = candidates.FirstOrDefault(p => !string.IsNullOrEmpty(p) && File.Exists(p));
+                    if (!string.IsNullOrEmpty(pcmPath))
+                    {
+                        Console.WriteLine($"Playing raw PCM file as microphone: {pcmPath} (44100 Hz, 16-bit, mono)\nLooping... Press any key to stop playback and disconnect.");
+                        // Play at 44100 Hz, mono, loop
+                        voice.PlayRawFile(pcmPath, channels: 1, sampleRate: 44100, loop: true);
+                    }
+                    else
+                    {
+                        Console.WriteLine("scarlet-fire-44100.pcm not found in working directories; skipping example playback.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to start example PCM playback: {ex.Message}");
+                }
+
                 Console.WriteLine("Press any key to disconnect...");
                 Console.ReadKey();
 
@@ -173,22 +201,22 @@ namespace WebRtcTest
 
         private static void WebRtc_PeerAudioUpdated(UUID id, VoiceSession.PeerAudioState state)
         {
-            Logger.Log($"[Voice] PeerAudioUpdated {id} Power={state.Power} VAD={state.VoiceActive} JoinedPrimary={state.JoinedPrimary} Left={state.Left}", Helpers.LogLevel.Info);
+            Logger.Info($"[Voice] PeerAudioUpdated {id} Power={state.Power} VAD={state.VoiceActive} JoinedPrimary={state.JoinedPrimary} Left={state.Left}");
         }
 
         private static void WebRtc_PeerPositionUpdatedTyped(UUID id, VoiceSession.AvatarPosition pos)
         {
-            Logger.Log($"[Voice] PeerPosition {id} sp={pos.SenderPosition?.X},{pos.SenderPosition?.Y},{pos.SenderPosition?.Z}", Helpers.LogLevel.Info);
+            Logger.Info($"[Voice] PeerPosition {id} sp={pos.SenderPosition?.X},{pos.SenderPosition?.Y},{pos.SenderPosition?.Z}");
         }
 
         private static void WebRtc_MuteMapReceived(Dictionary<UUID, bool> m)
         {
-            foreach (var kv in m) Logger.Log($"[Voice] Mute {kv.Key} = {kv.Value}", Helpers.LogLevel.Info);
+            foreach (var kv in m) Logger.Info($"[Voice] Mute {kv.Key} = {kv.Value}");
         }
 
         private static void WebRtc_GainMapReceived(Dictionary<UUID, int> g)
         {
-            foreach (var kv in g) Logger.Log($"[Voice] Gain {kv.Key} = {kv.Value}", Helpers.LogLevel.Info);
+            foreach (var kv in g) Logger.Info($"[Voice] Gain {kv.Key} = {kv.Value}");
         }
 
         #endregion
