@@ -256,6 +256,7 @@ namespace LibreMetaverse.Voice.WebRTC
                                 var lower = (respText ?? string.Empty).ToLowerInvariant();
                                 bool looksLikeHtml = lower.Contains("<html") || lower.Contains("<!doctype") || lower.Contains("<head") || lower.Contains("<body");
                                 bool containsUnauthorized = lower.Contains("unauthorized") || lower.Contains("forbidden") || lower.Contains("401") || lower.Contains("403") || lower.Contains("unknown session");
+                                bool containsUnknownConference = lower.Contains("unknown conference");
 
                                 if (statusCode.HasValue && statusCode.Value >= 400)
                                 {
@@ -266,6 +267,11 @@ namespace LibreMetaverse.Voice.WebRTC
                                 if (containsUnauthorized)
                                 {
                                     throw new VoiceException($"Authorization error when POSTing to {cap}: {preview}");
+                                }
+
+                                if (containsUnknownConference)
+                                {
+                                    throw new VoiceException($"Server reported unknown conference when POSTing to {cap}: {preview}");
                                 }
 
                                 if (looksLikeHtml)
