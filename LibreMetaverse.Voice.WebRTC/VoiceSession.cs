@@ -1197,7 +1197,7 @@ namespace LibreMetaverse.Voice.WebRTC
                         try
                         {
                             // Run the poll body.
-                            poll();
+                            await poll().ConfigureAwait(false);
                         }
                         catch (OperationCanceledException) { break; }
                         catch (Exception ex)
@@ -1218,11 +1218,22 @@ namespace LibreMetaverse.Voice.WebRTC
 
             return iceTrickleTask;
 
-            async void poll()
+            async Task poll()
             {
                 if (Client.Network.Connected && !SessionId.Equals(UUID.Zero) && Interlocked.CompareExchange(ref pendingCandidateCount, 0, 0) > 0)
                 {
-                    await SendVoiceSignalingRequest();
+                    try
+                    {
+                        await SendVoiceSignalingRequest().ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Swallow - cancellation will be handled by the loop's token checks
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Warn($"SendVoiceSignalingRequest failed in poll: {ex.Message}", Client);
+                    }
                 }
             }
           }
