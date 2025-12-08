@@ -182,13 +182,13 @@ namespace LibreMetaverse.Voice.WebRTC
             while (attempt < maxAttempts)
             {
                 attempt++;
-                var tcs = new TaskCompletionSource<(byte[] data, Exception err)>();
+                var tcs = new TaskCompletionSource<(object response, byte[] data, Exception err)>();
                 try
                 {
                     var token = ct == default ? Cts.Token : ct;
                     _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, token, (response, data, error) =>
                     {
-                        tcs.TrySetResult((data, error));
+                        tcs.TrySetResult((response, data, error));
                     });
 
                     var delayTask = Task.Delay(timeout.Value, token);
@@ -199,20 +199,90 @@ namespace LibreMetaverse.Voice.WebRTC
                     }
                     else
                     {
-                        var (data, err) = await tcs.Task.ConfigureAwait(false);
+                        var (response, data, err) = await tcs.Task.ConfigureAwait(false);
                         if (err != null)
                         {
                             lastEx = err;
                         }
                         else
                         {
-                            var osd = OSDParser.Deserialize(data);
-                            return osd;
+                            try
+                            {
+                                // Attempt to deserialize LLSD/OSD. If parsing fails, capture raw response for diagnostics.
+                                var osd = OSDParser.Deserialize(data);
+                                return osd;
+                            }
+                            catch (Exception parseEx)
+                            {
+                                string respText = string.Empty;
+                                try { respText = Encoding.UTF8.GetString(data); } catch { }
+
+                                // Try to infer HTTP status code or status text from the response object if available
+                                int? statusCode = null;
+                                string statusText = null;
+                                try
+                                {
+                                    if (response != null)
+                                    {
+                                        var respType = response.GetType();
+                                        var statusProp = respType.GetProperty("StatusCode") ?? respType.GetProperty("Status");
+                                        if (statusProp != null)
+                                        {
+                                            var val = statusProp.GetValue(response);
+                                            if (val != null)
+                                            {
+                                                statusText = val.ToString();
+                                                if (int.TryParse(statusText, out var si)) statusCode = si;
+                                            }
+                                        }
+
+                                        // Some HttpResponseMessage-like types expose ReasonPhrase
+                                        var reasonProp = respType.GetProperty("ReasonPhrase") ?? respType.GetProperty("StatusDescription");
+                                        if (reasonProp != null && statusText == null)
+                                        {
+                                            var rv = reasonProp.GetValue(response);
+                                            if (rv != null) statusText = rv.ToString();
+                                        }
+                                    }
+                                }
+                                catch { }
+
+                                var preview = respText;
+                                if (preview != null && preview.Length > 1000) preview = preview.Substring(0, 1000) + "...";
+
+
+
+                                // Detect common non-OSD responses that are non-retryable
+                                var lower = (respText ?? string.Empty).ToLowerInvariant();
+                                bool looksLikeHtml = lower.Contains("<html") || lower.Contains("<!doctype") || lower.Contains("<head") || lower.Contains("<body");
+                                bool containsUnauthorized = lower.Contains("unauthorized") || lower.Contains("forbidden") || lower.Contains("401") || lower.Contains("403") || lower.Contains("unknown session");
+
+                                if (statusCode.HasValue && statusCode.Value >= 400)
+                                {
+                                    // HTTP error - do not retry
+                                    throw new VoiceException($"HTTP {(statusCode.Value)} when POSTing to {cap}: {statusText ?? ""}. Response preview: {preview}");
+                                }
+
+                                if (containsUnauthorized)
+                                {
+                                    throw new VoiceException($"Authorization error when POSTing to {cap}: {preview}");
+                                }
+
+                                if (looksLikeHtml)
+                                {
+                                    throw new VoiceException($"Received HTML error page when POSTing to {cap}. Response preview: {preview}");
+                                }
+
+                                // Otherwise keep the parsing exception for possible retry, but include the raw response for diagnostics
+                                lastEx = new Exception($"Failed to parse capability response: {parseEx.Message}. Raw response: {preview}");
+                            }
                         }
                     }
                 }
                 catch (Exception ex)
                 {
+                    // If we threw a VoiceException above (non-retryable), rethrow immediately
+                    if (ex is VoiceException) throw;
                     lastEx = ex;
                 }
 
@@ -226,16 +296,16 @@ namespace LibreMetaverse.Voice.WebRTC
         public async Task<RTCPeerConnection> CreatePeerConnection(CancellationToken ct = default)
         {
             var iceServers = new List<RTCIceServer>
-    {
-        new RTCIceServer { urls = "stun:stun1.agni.secondlife.io:3478" },
-        new RTCIceServer { urls = "stun:stun2.agni.secondlife.io:3478" },
-        new RTCIceServer { urls = "stun:stun3.agni.secondlife.io:3478" },
-        new RTCIceServer { urls = "stun:stun1.agni.secondlife.io:3478" },
-        new RTCIceServer { urls = "stun:stun.l.google.com:19302" },
-        new RTCIceServer { urls = "stun:stun2.l.google.com:19302" },
-        new RTCIceServer { urls = "stun:stun.nextcloud.com:443" },
-        new RTCIceServer { urls = "stun:stun.twilio.com:3478" }
-    };
+            {
+                new RTCIceServer { urls = "stun:stun1.agni.secondlife.io:3478" },
+                new RTCIceServer { urls = "stun:stun2.agni.secondlife.io:3478" },
+                new RTCIceServer { urls = "stun:stun3.agni.secondlife.io:3478" },
+                new RTCIceServer { urls = "stun:stun1.agni.secondlife.io:3478" },
+                new RTCIceServer { urls = "stun:stun.l.google.com:19302" },
+                new RTCIceServer { urls = "stun:stun2.l.google.com:19302" },
+                new RTCIceServer { urls = "stun:stun.nextcloud.com:443" },
+                new RTCIceServer { urls = "stun:stun.twilio.com:3478" }
+            };
 
             try
             {
@@ -1609,14 +1679,18 @@ namespace LibreMetaverse.Voice.WebRTC
 
                   var desc = SDP.ParseSDPDescription(sdpString);
                   var set = PeerConnection.SetRemoteDescription(SdpType.answer, desc);
-                  answerReceived = true;
-                  _ = FlushPendingIceCandidates();
                   if (set != SetDescriptionResultEnum.OK)
                   {
                       PeerConnection.Close("Failed to set remote description (multiagent).");
                       throw new VoiceException("Failed to set remote description (multiagent).");
                   }
+
+                  // Ensure the session id is stored before we start flushing/trickling ICE candidates
                   SessionId = sessionId;
+
+                  // Mark that we've received the answer and flush any pending ICE candidates
+                  answerReceived = true;
+                  _ = FlushPendingIceCandidates();
 
                   if (osdMap.ContainsKey("channel")) ChannelId = osdMap["channel"].AsString();
                   if (osdMap.ContainsKey("credentials")) ChannelCredentials = osdMap["credentials"].AsString();
