@@ -223,8 +223,25 @@ namespace LibreMetaverse
             return -1;
         }
 
-        private static (uint id, string name)? GetDevice(int index, bool recordingDevice)
+        private (uint id, string name)? GetDevice(int index, bool recordingDevice)
         {
+            // Treat negative index as a signal to use the system default device. The SDL3Helper
+            // string overloads accept null/empty to mean the default device. Passing a negative
+            // index to the integer overload currently throws ArgumentOutOfRangeException.
+            if (index < 0)
+            {
+                try
+                {
+                    var deviceTypeStr = recordingDevice ? "recording" : "playback";
+                    _log?.Debug($"SDL Audio - Selecting system default {deviceTypeStr} device (index={index})");
+                }
+                catch { }
+
+                return recordingDevice
+                    ? SDL3Helper.GetAudioRecordingDevice(null)
+                    : SDL3Helper.GetAudioPlaybackDevice(null);
+            }
+
             return recordingDevice
                 ? SDL3Helper.GetAudioRecordingDevice(index)
                 : SDL3Helper.GetAudioPlaybackDevice(index);
