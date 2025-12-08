@@ -63,6 +63,10 @@ namespace LibreMetaverse.Voice.WebRTC
         public event Action OnPeerConnectionReady;
         public event Action OnDataChannelReady;
 
+        // Reprovision events
+        public event Action OnReprovisionSucceeded;
+        public event Action<Exception> OnReprovisionFailed;
+
         // New events for data-channel protocol
         public event Action<UUID> OnPeerJoined;
         public event Action<UUID> OnPeerLeft;
@@ -163,11 +167,8 @@ namespace LibreMetaverse.Voice.WebRTC
                 PeerConnection = await CreatePeerConnection(token).ConfigureAwait(false);
                 iceTrickleTask = IceTrickleStart(token);
 
-                // Start the microphone capture after creating the connection
-                if (AudioDevice?.Source != null)
-                {
-                    AudioDevice.StartRecording();
-                }
+                // Do not start recording here. Recording should follow connection state to avoid
+                // capturing audio before the peer connection is established.
             }
         }
 
@@ -381,20 +382,14 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     _log.Warn("ICE connection failed - possible NAT/firewall issue", Client);
 
-                    // Attempt automatic reprovision to recover
+                    // Schedule automatic reprovision with exponential backoff to recover
                     try
                     {
-                        _ = AttemptReprovisionAsync().ContinueWith(t =>
-                        {
-                            if (t.IsFaulted)
-                            {
-                                _log.Warn($"Automatic reprovision failed: {t.Exception?.GetBaseException().Message}", Client);
-                            }
-                        }, TaskScheduler.Default);
+                        ScheduleReprovisionWithBackoff();
                     }
                     catch (Exception ex)
                     {
-                        _log.Warn($"Failed to start automatic reprovision: {ex.Message}", Client);
+                        _log.Warn($"Failed to schedule automatic reprovision: {ex.Message}", Client);
                     }
                 }
             };
@@ -578,17 +573,33 @@ namespace LibreMetaverse.Voice.WebRTC
                             _log.Debug("Audio sink not started: SDL3 EndPoint is null (SDL3 not initialized or no devices found)", Client);
                         }
                     }
-                    OnPeerConnectionReady?.Invoke();
-                }
-                else if (state == RTCPeerConnectionState.failed || state == RTCPeerConnectionState.disconnected || state == RTCPeerConnectionState.closed)
-                {
-                    if (AudioDevice?.EndPoint != null)
+                    // Start recording only when the connection is fully established
+                    try
                     {
-                        try { await AudioDevice.EndPoint.CloseAudioSink().ConfigureAwait(false); } catch { }
+                        if (AudioDevice?.Source != null)
+                        {
+                            AudioDevice.StartRecording();
+                            _log.Debug("Recording started on connection", Client);
+                        }
                     }
-                    OnPeerConnectionClosed?.Invoke();
-                }
-            };
+                    catch (Exception ex)
+                    {
+                        _log.Warn($"Failed to start recording on connection: {ex.Message}", Client);
+                    }
+                     OnPeerConnectionReady?.Invoke();
+                 }
+                 else if (state == RTCPeerConnectionState.failed || state == RTCPeerConnectionState.disconnected || state == RTCPeerConnectionState.closed)
+                 {
+                    // Stop playback and recording on disconnect/failure
+                    if (AudioDevice != null)
+                    {
+                        try { if (AudioDevice.EndPoint != null) await AudioDevice.EndPoint.CloseAudioSink().ConfigureAwait(false); } catch { }
+                        try { AudioDevice.StopRecording(); } catch { }
+                    }
+                     OnPeerConnectionClosed?.Invoke();
+                 }
+             };
+
             AudioDevice.Source.OnAudioSourceEncodedSample += (duration, sample) =>
             {
                 pc.SendAudio(duration, sample);
@@ -1288,6 +1299,53 @@ namespace LibreMetaverse.Voice.WebRTC
               }
           }
 
+        // Schedule a reprovision attempt using exponential backoff. Prevents immediate retry storms
+        // and adds diagnostic logging for each attempt.
+        private void ScheduleReprovisionWithBackoff()
+        {
+            if (reprovisionScheduled) return;
+            reprovisionScheduled = true;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    int attempt = 0;
+                    const int maxAttempts = 6; // up to ~1m total backoff
+                    int delayMs = 1000;
+
+                    while (!Cts.Token.IsCancellationRequested && attempt < maxAttempts)
+                    {
+                        attempt++;
+                        _log.Debug($"Reprovision scheduled attempt {attempt}/{maxAttempts} in {delayMs}ms", Client);
+                        try { await Task.Delay(delayMs, Cts.Token).ConfigureAwait(false); } catch (OperationCanceledException) { break; }
+
+                        try
+                        {
+                            _log.Debug($"Starting scheduled reprovision attempt {attempt}", Client);
+                            await AttemptReprovisionAsync().ConfigureAwait(false);
+                            _log.Debug($"Scheduled reprovision attempt {attempt} succeeded", Client);
+                            reprovisionScheduled = false;
+                            return;
+                        }
+                        catch (OperationCanceledException) { break; }
+                        catch (Exception ex)
+                        {
+                            _log.Warn($"Scheduled reprovision attempt {attempt} failed: {ex.Message}", Client);
+                        }
+
+                        // Exponential backoff for next attempt
+                        delayMs = Math.Min(delayMs * 2, 60000);
+                    }
+
+                    _log.Warn($"Scheduled reprovision exhausted after {attempt} attempts", Client);
+                }
+                finally
+                {
+                    reprovisionScheduled = false;
+                }
+            }, Cts.Token);
+        }
           private string SanitizeRemoteSdp(string sdp)
           {
               if (string.IsNullOrEmpty(sdp)) { return sdp; }
@@ -1410,21 +1468,34 @@ namespace LibreMetaverse.Voice.WebRTC
                       {
                           var ok = await RequestProvision();
                           if (ok)
+                          {
                               _log.Debug($"Reprovision completed, new session {SessionId}", Client);
+                              try { OnReprovisionSucceeded?.Invoke(); } catch { }
+                          }
                           else
+                          {
                               _log.Warn("Reprovision failed: client not connected to network.", Client);
+                              try { OnReprovisionFailed?.Invoke(new Exception("Client not connected to network")); } catch { }
+                          }
                       }
                       catch (Exception ex)
                       {
                           _log.Warn($"Reprovision RequestProvision failed: {ex.Message}", Client);
+                          try { OnReprovisionFailed?.Invoke(ex); } catch { }
                       }
                   }
-              }
-              finally
-              {
-                  reprovisionLock.Release();
-              }
-          }
+                  else
+                  {
+                      var ex = new Exception("Failed to create new RTCPeerConnection during reprovision");
+                      try { OnReprovisionFailed?.Invoke(ex); } catch { }
+                  }
+               }
+               finally
+               {
+                   reprovisionLock.Release();
+               }
+           }
+
           private OSDMap GetWorldPosition()
           {
               var pos = Client?.Self?.GlobalPosition ?? Vector3.Zero;
@@ -1516,9 +1587,7 @@ namespace LibreMetaverse.Voice.WebRTC
               return jw.ToString();
           }
 
-          // Backwards-compatible wrappers for older API
-          private void StartPositionTimer() => StartPositionLoop();
-          private void StopPositionTimer() => StopPositionLoop();
+
 
           // Sends a position update over the data channel (keeps last-sent tracking)
           private void SendPositionUpdate(RTCDataChannel dc, Vector3d globalPos, Quaternion heading)

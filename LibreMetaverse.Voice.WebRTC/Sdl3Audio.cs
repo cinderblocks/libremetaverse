@@ -116,7 +116,8 @@ namespace LibreMetaverse
                 }
 
                 IsAvailable = true;
-                _ = StartPlaybackAsync();
+                // Do not auto-start playback here. Playback should be controlled by connection state
+                // to avoid starting too early and to allow proper restart after disconnects.
             }
             catch (Exception ex)
             {
@@ -301,7 +302,7 @@ namespace LibreMetaverse
                             {
                                 var bytes = br.ReadBytes(bytesPerFrame);
                                 if (bytes == null || bytes.Length == 0) break;
-                                if (bytes.Length < bytesPerFrame) { var padded = new byte[bytesPerFrame]; Array.Copy(bytes, padded, bytes.Length); bytes = padded; }
+                                if (bytes.Length < bytesPerFrame) { var padded = new byte[bytesPerFrame]; Array.Copy(bytes, 0, padded, 0, bytes.Length); bytes = padded; }
 
                                 short[] pcm = new short[bytes.Length / 2];
                                 for (int i = 0, si = 0; i < bytes.Length; i += 2) pcm[si++] = BitConverter.ToInt16(bytes, i);
@@ -516,7 +517,11 @@ namespace LibreMetaverse
             try { OnAudioSourceEncodedSample?.Invoke(durationRtpUnits, sample); } catch { }
 
             if (!IsAvailable || EndPoint == null) return;
+            // Auto-start playback when the first encoded samples arrive (up to a few samples)
+            // to match previous behavior and ensure audio plays even if StartPlaybackAsync
+            // wasn't called explicitly by the host.
             if (!PlaybackActive) { if (_samplesReceivedCount <= 5) { _ = StartPlaybackAsync(); } return; }
+
             if (sample == null || sample.Length == 0) return;
             try
             {
