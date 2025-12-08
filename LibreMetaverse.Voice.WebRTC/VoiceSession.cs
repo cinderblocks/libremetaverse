@@ -105,6 +105,8 @@ namespace LibreMetaverse.Voice.WebRTC
         private readonly ConcurrentQueue<RTCIceCandidate> PendingCandidates = new ConcurrentQueue<RTCIceCandidate>();
         // Fast approximate count to avoid expensive ConcurrentQueue.Count in hot paths
         private int pendingCandidateCount = 0;
+        // Lock to keep queue and counter consistent for batch operations
+        private readonly object _candidateLock = new object();
         private readonly CancellationTokenSource Cts = new CancellationTokenSource();
 
         private CancellationTokenSource iceTrickleCts;
@@ -120,8 +122,6 @@ namespace LibreMetaverse.Voice.WebRTC
         // Track peers and their last known positions
         private readonly ConcurrentDictionary<UUID, OSDMap> Peers = new ConcurrentDictionary<UUID, OSDMap>();
 
-        private System.Timers.Timer positionTimer;
-        private System.Timers.Timer dataChannelKeepAliveTimer;
         // Position and keepalive loop cancellation/tasks
         private CancellationTokenSource positionLoopCts;
         private Task positionLoopTask;
@@ -495,11 +495,8 @@ namespace LibreMetaverse.Voice.WebRTC
             // ICE and connection state handlers
             pc.onicecandidate += (candidate) =>
             {
-                if (candidate != null)
-                {
-                    PendingCandidates.Enqueue(candidate);
-                    Interlocked.Increment(ref pendingCandidateCount);
-                }
+                if (candidate == null) return;
+                EnqueueCandidate(candidate);
             };
 
             // ICE gathering state handler - ensure we send the ICE "completed" message when gathering finishes
@@ -635,6 +632,7 @@ namespace LibreMetaverse.Voice.WebRTC
                             lastObservedHeading = heading;
                         }
 
+                        // Attempt to send update; SendPositionUpdate will short-circuit if not dirty
                         SendPositionUpdate(dc, globalPos, heading);
                     }
                     catch (OperationCanceledException) { break; }
@@ -706,17 +704,49 @@ namespace LibreMetaverse.Voice.WebRTC
             }
         }
 
+        // Helper methods to keep PendingCandidates and pendingCandidateCount consistent
+        private void EnqueueCandidate(RTCIceCandidate candidate)
+        {
+            if (candidate == null) return;
+            lock (_candidateLock)
+            {
+                PendingCandidates.Enqueue(candidate);
+                Interlocked.Increment(ref pendingCandidateCount);
+            }
+        }
+
+        private List<RTCIceCandidate> DequeueAllCandidates()
+        {
+            var list = new List<RTCIceCandidate>();
+            lock (_candidateLock)
+            {
+                while (PendingCandidates.TryDequeue(out var c))
+                {
+                    list.Add(c);
+                    Interlocked.Decrement(ref pendingCandidateCount);
+                }
+            }
+            return list;
+        }
+
+        private int GetPendingCandidateCount()
+        {
+            return Interlocked.CompareExchange(ref pendingCandidateCount, 0, 0);
+        }
+
         private async Task FlushPendingIceCandidates()
         {
-            if (!answerReceived || Interlocked.CompareExchange(ref pendingCandidateCount, 0, 0) == 0) { return; }
+            if (!answerReceived || GetPendingCandidateCount() == 0) { return; }
 
             var cap = Client.Network.CurrentSim.Caps?.CapabilityURI(VOICE_SIGNALING_CAP);
             if (cap == null) { return; }
 
+            var dequeued = DequeueAllCandidates();
+            if (dequeued.Count == 0) return;
+
             var candidatesArray = new OSDArray();
-            while (PendingCandidates.TryDequeue(out var candidate))
+            foreach (var candidate in dequeued)
             {
-                Interlocked.Decrement(ref pendingCandidateCount);
                 var map = new OSDMap
                 {
                     ["candidate"] = candidate.candidate,
@@ -768,15 +798,14 @@ namespace LibreMetaverse.Voice.WebRTC
 
             var canArray = new OSDArray();
 
-            // Snapshot approximate queue size for logging, then drain using TryDequeue
-            var queued = Interlocked.CompareExchange(ref pendingCandidateCount, 0, 0);
-            if (queued == 0) return; // Nothing to send
+            // Drain queue atomically and get accurate count
+            var dequeued = DequeueAllCandidates();
+            if (dequeued.Count == 0) return; // Nothing to send
 
-            _log.Debug($"Sending {queued} ICE candidates", Client);
+            _log.Debug($"Sending {dequeued.Count} ICE candidates", Client);
 
-            while (PendingCandidates.TryDequeue(out var candidate))
+            foreach (var candidate in dequeued)
             {
-                Interlocked.Decrement(ref pendingCandidateCount);
                 var map = new OSDMap
                 {
                     { "sdpMid", candidate.sdpMid },
@@ -1242,7 +1271,7 @@ namespace LibreMetaverse.Voice.WebRTC
           {
               while (true)
               {
-                if (Interlocked.CompareExchange(ref pendingCandidateCount, 0, 0) > 0)
+                if (GetPendingCandidateCount() > 0)
                 {
                     await Task.Delay(TimeSpan.FromSeconds(1));
                 }
@@ -1487,53 +1516,11 @@ namespace LibreMetaverse.Voice.WebRTC
               return jw.ToString();
           }
 
-          // In VoiceSession.cs
-          private void StartPositionTimer()
-          {
-              if (positionTimer != null) { return; }
+          // Backwards-compatible wrappers for older API
+          private void StartPositionTimer() => StartPositionLoop();
+          private void StopPositionTimer() => StopPositionLoop();
 
-              // Run every 100ms to match viewer behavior: detect changes and decide whether to send
-              positionTimer = new System.Timers.Timer(100);
-              positionTimer.Elapsed += (s, e) =>
-              {
-                  try
-                  {
-                      var dc = DataChannel;
-                      if (dc == null || dc.readyState != RTCDataChannelState.open) { return; }
-
-                      var globalPos = Client?.Self?.GlobalPosition ?? Vector3.Zero;
-                      var heading = Client?.Self?.RelativeRotation ?? Quaternion.Identity;
-
-                      if (globalPos == Vector3.Zero) { return; }
-
-                      // Detect changes since last observed values
-                      bool posChanged = (Math.Abs(globalPos.X - lastObservedGlobalPos.X) > POSITION_CHANGE_THRESHOLD_METERS)
-                                        || (Math.Abs(globalPos.Y - lastObservedGlobalPos.Y) > POSITION_CHANGE_THRESHOLD_METERS)
-                                        || (Math.Abs(globalPos.Z - lastObservedGlobalPos.Z) > POSITION_CHANGE_THRESHOLD_METERS);
-
-                      bool headingChanged = (Math.Abs(heading.X - lastObservedHeading.X) > HEADING_CHANGE_THRESHOLD)
-                                            || (Math.Abs(heading.Y - lastObservedHeading.Y) > HEADING_CHANGE_THRESHOLD)
-                                            || (Math.Abs(heading.Z - lastObservedHeading.Z) > HEADING_CHANGE_THRESHOLD)
-                                            || (Math.Abs(heading.W - lastObservedHeading.W) > HEADING_CHANGE_THRESHOLD);
-
-                      if (posChanged || headingChanged)
-                      {
-                          mSpatialCoordsDirty = true;
-                          lastObservedGlobalPos = globalPos;
-                          lastObservedHeading = heading;
-                      }
-
-                      // Attempt to send update; SendPositionUpdate will short-circuit if not dirty
-                      SendPositionUpdate(dc, globalPos, heading);
-                  }
-                  catch (Exception ex)
-                  {
-                      _log.Error($"Position/Timer error: {ex.Message}", Client);
-                  }
-              };
-              positionTimer.Start();
-          }
-
+          // Sends a position update over the data channel (keeps last-sent tracking)
           private void SendPositionUpdate(RTCDataChannel dc, Vector3d globalPos, Quaternion heading)
           {
               // Only send when flagged dirty
@@ -1580,21 +1567,6 @@ namespace LibreMetaverse.Voice.WebRTC
               catch (Exception ex)
               {
                   _log.Warn($"Position send error: {ex.Message}", Client);
-              }
-          }
-
-          private void StopPositionTimer()
-          {
-
-              try
-              {
-                  positionTimer?.Stop();
-                  positionTimer?.Dispose();
-              }
-              catch { }
-              finally
-              {
-                  positionTimer = null;
               }
           }
 
