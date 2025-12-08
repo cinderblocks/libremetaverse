@@ -334,7 +334,34 @@ namespace LibreMetaverse.Voice.WebRTC
             };
 
             // SDP negotiation
-            var audioTrack = new MediaStreamTrack(AudioDevice.Source.GetAudioSourceFormats());
+            // Ensure we have a recording source; attempt to create a default one if missing so GetAudioSourceFormats() won't NRE.
+            if (AudioDevice == null)
+            {
+                _log.Error("AudioDevice is null in VoiceSession.CreatePeerConnection", Client);
+                throw new VoiceException("Internal error: AudioDevice is null.");
+            }
+            if (AudioDevice.Source == null)
+            {
+                _log.Warn("Audio source is null. Attempting to create default recording source.", Client);
+                try
+                {
+                    AudioDevice.SetRecordingDevice(null);
+                }
+                catch (Exception ex)
+                {
+                    _log.Warn($"Failed to create default recording source: {ex.Message}", Client);
+                }
+
+                // If we still don't have a source, fail early with a clear error instead of passing null to MediaStreamTrack
+                if (AudioDevice.Source == null)
+                {
+                    _log.Error("No audio recording source available after attempts to create one.", Client);
+                    throw new VoiceException("No audio recording source available.");
+                }
+            }
+
+            var audioTrack = new MediaStreamTrack(AudioDevice?.Source?.GetAudioSourceFormats());
+
             pc.addTrack(audioTrack);
             var offer = pc.createOffer();
             var rawSdp = offer.sdp.ToString();
@@ -1117,7 +1144,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 }
               }
 
-              if (PeerConnection.iceGatheringState == RTCIceGatheringState.complete)
+              if (PeerConnection != null && PeerConnection.iceGatheringState == RTCIceGatheringState.complete)
               {
                   iceTrickleCts?.Cancel();
                   await SendVoiceSignalingCompleteRequest().ConfigureAwait(false);
@@ -1494,6 +1521,11 @@ namespace LibreMetaverse.Voice.WebRTC
               var parcelId = Client.Parcels.CurrentParcel?.LocalID ?? -1;
               var payload = new LocalVoiceProvisionRequest(SdpLocal, parcelId).Serialize();
               _log.Debug("==> Attempting to POST for voice provision...", Client);
+              if (Client?.HttpCapsClient == null)
+              {
+                  _log.Error("HttpCapsClient is null; cannot post provisioning request", Client);
+                  throw new VoiceException("Internal error: HttpCapsClient is null.");
+              }
               var osd = await PostCapsWithRetries(cap, payload).ConfigureAwait(false);
               _log.Debug("Received provisioning response", Client);
               if (osd is OSDMap osdMap)
@@ -1518,6 +1550,12 @@ namespace LibreMetaverse.Voice.WebRTC
                   SessionId = sessionId;
 
                   // Set remote description
+                  if (PeerConnection == null)
+                  {
+                      _log.Error("PeerConnection unexpectedly null during RequestLocalVoiceProvision", Client);
+                      throw new VoiceException("Internal error: PeerConnection was null.");
+                  }
+
                   var set = PeerConnection.SetRemoteDescription(
                       SdpType.answer,
                       SDP.ParseSDPDescription(sdpString)

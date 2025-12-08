@@ -28,6 +28,7 @@ using LibreMetaverse.Voice.WebRTC;
 using OpenMetaverse;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Threading;
 
 namespace WebRtcTest
@@ -51,8 +52,11 @@ namespace WebRtcTest
     {
         private static readonly AutoResetEvent EventQueueRunningEvent = new AutoResetEvent(false);
 
-        private static void Main(string[] args)
+        private static async Task Main(string[] args)
         {
+            // Install native crash dumper to capture native heap corruption and write .dmp files
+            NativeCrashDumper.InstallCrashHandler();
+
             if (args.Length < 3)
             {
                 Console.WriteLine("Usage: WebRtcTest.exe [firstname] [lastname] [password]");
@@ -119,7 +123,7 @@ namespace WebRtcTest
 
 
                 Console.WriteLine($"Requesting a provisional account from {client.Network.CurrentSim.Name}...");
-                bool success = voice.ConnectPrimaryRegion().Result;
+                bool success = await voice.ConnectPrimaryRegion();
                 if (!success)
                 {
                     Console.WriteLine($"Failed to connect voice to '{client.Network.CurrentSim.Name}'.");

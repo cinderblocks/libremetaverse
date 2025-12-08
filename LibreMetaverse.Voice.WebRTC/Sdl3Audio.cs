@@ -83,13 +83,13 @@ namespace LibreMetaverse
         }
 
         // Returns playback device names from SDL helper
-        public Dictionary<uint, string> GetPlaybackDevices()
+        public IReadOnlyDictionary<uint, string> GetPlaybackDevices()
         {
             return SDL3Helper.GetAudioPlaybackDevices();
         }
 
         // Returns recording device names from SDL helper
-        public Dictionary<uint, string> GetRecordingDevices()
+        public IReadOnlyDictionary<uint, string> GetRecordingDevices()
         {
             return SDL3Helper.GetAudioRecordingDevices();
         }
@@ -138,6 +138,8 @@ namespace LibreMetaverse
                 {
                     Source = new SDL3AudioSource(RecordingDevice.name, _audioEncoder);
                     _log.Debug("SDL3AudioSource created");
+
+                    AttachSourceHandlers();
                 }
                 catch (Exception ex)
                 {
@@ -383,7 +385,7 @@ namespace LibreMetaverse
             if (!IsAvailable || Source == null) { return; }
             try
             {
-                // Attempt to stop the source using known method names via reflection
+                DetachSourceHandlers();
                 StopSourceSafely(Source);
                 RecordingActive = false;
                 _recordingStarted = false;
@@ -428,14 +430,66 @@ namespace LibreMetaverse
             if (!IsAvailable) return;
             try
             {
-                try { StopSourceSafely(Source); } catch { }
-                Source = new SDL3AudioSource(deviceName, _audioEncoder);
+                try { DetachSourceHandlers(); StopSourceSafely(Source); } catch { }
+
+                // Normalize: allow null to mean default but try several fallbacks
+                Exception lastEx = null;
+
+                // Attempt 1: provided name (may be null)
+                try
+                {
+                    Source = new SDL3AudioSource(deviceName, _audioEncoder);
+                }
+                catch (Exception ex1)
+                {
+                    lastEx = ex1;
+                    Source = null;
+                }
+
+                // Attempt 2: explicit null (some implementations treat null specially)
+                if (Source == null && deviceName != null)
+                {
+                    try
+                    {
+                        Source = new SDL3AudioSource(null, _audioEncoder);
+                    }
+                    catch (Exception ex2)
+                    {
+                        lastEx = ex2;
+                        Source = null;
+                    }
+                }
+
+                // Attempt 3: empty string as default
+                if (Source == null)
+                {
+                    try
+                    {
+                        Source = new SDL3AudioSource(string.Empty, _audioEncoder);
+                    }
+                    catch (Exception ex3)
+                    {
+                        lastEx = ex3;
+                        Source = null;
+                    }
+                }
+
+                if (Source == null)
+                {
+                    // Failed to create any source - surface the last exception to caller
+                    _log.Warn($"Failed to create recording source (device='{deviceName}'): {lastEx?.Message}");
+                    throw new InvalidOperationException("Failed to create SDL3 audio source.", lastEx);
+                }
+
+                AttachSourceHandlers();
+
                 // Restart recording if it was active
                 if (_recordingStarted) StartRecording();
             }
             catch (Exception ex)
             {
                 _log.Warn($"Failed to set recording device: {ex.Message}");
+                throw;
             }
         }
 
@@ -550,5 +604,39 @@ namespace LibreMetaverse
 
         private bool _sinkStarted = false;
         private bool _recordingStarted = false;
+
+        private void AttachSourceHandlers()
+        {
+            if (Source == null) return;
+
+            try
+            {
+                Source.OnAudioSourceEncodedSample += AudioSource_OnAudioSourceEncodedSample;
+            }
+            catch { }
+
+            try
+            {
+                Source.OnAudioSourceRawSample += AudioSource_OnAudioSourceRawSample;
+            }
+            catch { }
+        }
+
+        private void DetachSourceHandlers()
+        {
+            if (Source == null) return;
+
+            try
+            {
+                Source.OnAudioSourceEncodedSample -= AudioSource_OnAudioSourceEncodedSample;
+            }
+            catch { }
+
+            try
+            {
+                Source.OnAudioSourceRawSample -= AudioSource_OnAudioSourceRawSample;
+            }
+            catch { }
+        }
     }
 }
