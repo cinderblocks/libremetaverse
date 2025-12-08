@@ -172,7 +172,7 @@ namespace LibreMetaverse.Voice.WebRTC
         }
 
         // Helper that posts to caps and returns deserialized OSD, with retries and timeout handling
-        private async Task<OSD> PostCapsWithRetries(Uri cap, OSD payload, int maxAttempts = 3, TimeSpan? timeout = null, CancellationToken ct = default)
+        private async Task<OSD> PostCapsWithRetries(Uri cap, OSD payload, int maxAttempts = 10, TimeSpan? timeout = null, CancellationToken ct = default)
         {
             if (cap == null) throw new VoiceException("Capability URI is null.");
             if (timeout == null) timeout = TimeSpan.FromSeconds(10);
@@ -185,7 +185,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 var tcs = new TaskCompletionSource<(object response, byte[] data, Exception err)>();
                 try
                 {
-                    var token = ct == default ? Cts.Token : ct;
+                    var token = ct == CancellationToken.None ? Cts.Token : ct;
                     _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, token, (response, data, error) =>
                     {
                         tcs.TrySetResult((response, data, error));
@@ -286,8 +286,13 @@ namespace LibreMetaverse.Voice.WebRTC
                     lastEx = ex;
                 }
 
-                // Backoff
-                await Task.Delay(TimeSpan.FromMilliseconds(200 * attempt), ct == default ? Cts.Token : ct).ConfigureAwait(false);
+                // Slight backoff before retrying: 200ms * attempt, capped at 2000ms
+                var backoffMs = Math.Min(200 * attempt, 2000);
+                try
+                {
+                    await Task.Delay(backoffMs, ct == CancellationToken.None ? Cts.Token : ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) { break; }
             }
 
             throw new VoiceException($"Failed to POST to capability {cap}: {lastEx?.Message}");
@@ -369,6 +374,22 @@ namespace LibreMetaverse.Voice.WebRTC
                 if (state == RTCIceConnectionState.failed)
                 {
                     _log.Warn("ICE connection failed - possible NAT/firewall issue", Client);
+
+                    // Attempt automatic reprovision to recover
+                    try
+                    {
+                        _ = AttemptReprovisionAsync().ContinueWith(t =>
+                        {
+                            if (t.IsFaulted)
+                            {
+                                _log.Warn($"Automatic reprovision failed: {t.Exception?.GetBaseException().Message}", Client);
+                            }
+                        }, TaskScheduler.Default);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Warn($"Failed to start automatic reprovision: {ex.Message}", Client);
+                    }
                 }
             };
             // Create data channel BEFORE negotiation
