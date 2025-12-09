@@ -64,6 +64,9 @@ namespace LibreMetaverse.Voice.WebRTC
         public event Action<UUID> PeerLeft;
         public event Action<UUID, OSDMap> PeerPositionUpdated;
         public event Action<List<UUID>> PeerListUpdated;
+        // Expose connection events to clients
+        public event Action PeerConnectionReady;
+        public event Action PeerConnectionClosed;
 
         // Expose typed events per PDF
         public event Action<UUID, VoiceSession.PeerAudioState> PeerAudioUpdated;
@@ -114,8 +117,9 @@ namespace LibreMetaverse.Voice.WebRTC
 
             // wire internal events
             CurrentSession.OnDataChannelReady += CurrentSessionOnOnDataChannelReady;
-            CurrentSession.OnPeerConnectionReady += () => { /* reserved for future */ };
-            CurrentSession.OnPeerConnectionClosed += () => { /* reserved for future */ };
+            CurrentSession.OnPeerConnectionReady += () => { try { PeerConnectionReady?.Invoke(); } catch { } };
+            CurrentSession.OnPeerConnectionClosed += () => { try { PeerConnectionClosed?.Invoke(); } catch { } };
+                ;
 
             // forward session events (raw)
             CurrentSession.OnPeerJoined += (id) => PeerJoined?.Invoke(id);

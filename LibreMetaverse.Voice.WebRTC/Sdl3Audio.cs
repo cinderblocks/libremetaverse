@@ -185,24 +185,53 @@ namespace LibreMetaverse
             }
         }
 
+        // Tracks whether source handlers are currently attached to avoid duplicate subscriptions
+        private bool _sourceHandlersAttached = false;
+
         private void AttachSourceHandlers()
         {
             if (Source == null) return;
-            try { Source.OnAudioSourceEncodedSample += AudioSource_OnAudioSourceEncodedSample; } catch { }
-            try { Source.OnAudioSourceRawSample += AudioSource_OnAudioSourceRawSample; } catch { }
+            try
+            {
+                // Attach only if not already attached
+                if (!_sourceHandlersAttached)
+                {
+                    Source.OnAudioSourceEncodedSample += AudioSource_OnAudioSourceEncodedSample;
+                    Source.OnAudioSourceRawSample += AudioSource_OnAudioSourceRawSample;
+                    _sourceHandlersAttached = true;
+                }
+            }
+            catch { }
         }
 
         private void DetachSourceHandlers()
         {
             if (Source == null) return;
-            try { Source.OnAudioSourceEncodedSample -= AudioSource_OnAudioSourceEncodedSample; } catch { }
-            try { Source.OnAudioSourceRawSample -= AudioSource_OnAudioSourceRawSample; } catch { }
+            try
+            {
+                if (_sourceHandlersAttached)
+                {
+                    try { Source.OnAudioSourceEncodedSample -= AudioSource_OnAudioSourceEncodedSample; } catch { }
+                    try { Source.OnAudioSourceRawSample -= AudioSource_OnAudioSourceRawSample; } catch { }
+                    _sourceHandlersAttached = false;
+                }
+            }
+            catch { }
         }
 
         // Playback/recording control
         public async Task StartPlaybackAsync()
         {
-            if (!IsAvailable || EndPoint == null) return;
+            if (!IsAvailable) return;
+            if (EndPoint == null)
+            {
+                // Try to recreate endpoint if it was previously closed
+                if (!EnsureEndpoint())
+                {
+                    _log.Warn("StartPlaybackAsync: cannot create audio endpoint, playback not started");
+                    return;
+                }
+            }
             try { await EndPoint.StartAudioSink(); PlaybackActive = true; OnPlaybackActiveChanged?.Invoke(true); _log.Debug("Playback started"); } catch (Exception ex) { _log.Error($"Failed to start playback: {ex.Message}"); }
         }
 
@@ -215,7 +244,19 @@ namespace LibreMetaverse
         public void StartRecording()
         {
             if (!IsAvailable || Source == null) return;
-            try { Source.StartAudio(); RecordingActive = true; OnRecordingActiveChanged?.Invoke(true); _log.Debug("Recording started"); } catch (Exception ex) { _log.Error($"Failed to start recording: {ex.Message}"); }
+            try
+            {
+                // Ensure handlers are attached before starting so encoded/raw callbacks are received
+                AttachSourceHandlers();
+                Source.StartAudio();
+                RecordingActive = true;
+                OnRecordingActiveChanged?.Invoke(true);
+                _log.Debug("Recording started");
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Failed to start recording: {ex.Message}");
+            }
         }
 
         public void StopRecording()

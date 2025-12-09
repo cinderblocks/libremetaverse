@@ -151,7 +151,30 @@ namespace WebRtcTest
                     {
                         Console.WriteLine($"Playing raw PCM file as microphone: {pcmPath} (44100 Hz, 16-bit, mono)\nLooping... Press any key to stop playback and disconnect.");
                         // Play at 44100 Hz, mono, loop
-                        voice.PlayRawFile(pcmPath, channels: 1, sampleRate: 44100, loop: true);
+                        // Wait until peer connection is ready before starting playback. If already connected, start immediately.
+                        Action onReady = null;
+                        onReady = () =>
+                        {
+                            try
+                            {
+                                voice.PlayRawFile(pcmPath, channels: 1, sampleRate: 44100, loop: true);
+                                Console.WriteLine("Raw PCM playback started as microphone.");
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Failed to start example PCM playback on ready: {ex.Message}");
+                            }
+                            try { voice.PeerConnectionReady -= onReady; } catch { }
+                        };
+
+                        if (voice.connected)
+                        {
+                            onReady();
+                        }
+                        else
+                        {
+                            voice.PeerConnectionReady += onReady;
+                        }
                     }
                     else
                     {

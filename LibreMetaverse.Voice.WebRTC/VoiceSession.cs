@@ -549,7 +549,16 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     if (AudioDevice?.EndPoint != null)
                     {
-                        await AudioDevice.EndPoint.StartAudioSink().ConfigureAwait(false);
+                        try
+                        {
+                            await AudioDevice.StartPlaybackAsync().ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            _log.Debug($"Failed to start audio sink via AudioDevice: {ex.Message}", Client);
+                            // Fallback: attempt to start endpoint directly
+                            try { await AudioDevice.EndPoint.StartAudioSink().ConfigureAwait(false); } catch { }
+                        }
                         _log.Debug("Audio sink started", Client);
                     }
                     else
@@ -560,7 +569,7 @@ namespace LibreMetaverse.Voice.WebRTC
                         {
                             try
                             {
-                                await AudioDevice.EndPoint.StartAudioSink().ConfigureAwait(false);
+                                await AudioDevice.StartPlaybackAsync().ConfigureAwait(false);
                                 _log.Debug("Audio sink started after EnsureEndpoint", Client);
                             }
                             catch (Exception ex)
@@ -593,10 +602,10 @@ namespace LibreMetaverse.Voice.WebRTC
                     // Stop playback and recording on disconnect/failure
                     if (AudioDevice != null)
                     {
-                        try { if (AudioDevice.EndPoint != null) await AudioDevice.EndPoint.CloseAudioSink().ConfigureAwait(false); } catch { }
+                        try { await AudioDevice.StopPlaybackAsync().ConfigureAwait(false); } catch { }
                         try { AudioDevice.StopRecording(); } catch { }
                     }
-                     OnPeerConnectionClosed?.Invoke();
+                      OnPeerConnectionClosed?.Invoke();
                  }
              };
 
@@ -1722,6 +1731,23 @@ namespace LibreMetaverse.Voice.WebRTC
                   // Now flush any pending candidates
                   await SendVoiceSignalingRequest().ConfigureAwait(false);
 
+                  // Start a short watchdog: if the peer connection does not become connected
+                  // within a short timeout, schedule a reprovision attempt. This handles
+                  // cases where ICE/connectivity stalls after provisioning.
+                  Task.Run(async () =>
+                  {
+                      try
+                      {
+                          await Task.Delay(TimeSpan.FromSeconds(8)).ConfigureAwait(false);
+                          if (PeerConnection == null || PeerConnection.connectionState != RTCPeerConnectionState.connected)
+                          {
+                              _log.Warn("PeerConnection did not become connected after provisioning; scheduling reprovision.", Client);
+                              try { ScheduleReprovisionWithBackoff(); } catch { }
+                          }
+                      }
+                      catch { }
+                   });
+
                   // Store channel info if present
                   if (osdMap.ContainsKey("channel"))
                       ChannelId = osdMap["channel"].AsString();
@@ -1770,6 +1796,22 @@ namespace LibreMetaverse.Voice.WebRTC
                   // Mark that we've received the answer and flush any pending ICE candidates
                   answerReceived = true;
                   _ = FlushPendingIceCandidates();
+
+                  // Start a short watchdog for multi-agent provisioning similar to the local path.
+                  // If the peer connection doesn't reach connected within the timeout, schedule reprovision.
+                  Task.Run(async () =>
+                  {
+                      try
+                      {
+                          await Task.Delay(TimeSpan.FromSeconds(8)).ConfigureAwait(false);
+                          if (PeerConnection == null || PeerConnection.connectionState != RTCPeerConnectionState.connected)
+                          {
+                              _log.Warn("Multi-agent PeerConnection did not become connected after provisioning; scheduling reprovision.", Client);
+                              try { ScheduleReprovisionWithBackoff(); } catch { }
+                          }
+                      }
+                      catch { }
+                  });
 
                   if (osdMap.ContainsKey("channel")) ChannelId = osdMap["channel"].AsString();
                   if (osdMap.ContainsKey("credentials")) ChannelCredentials = osdMap["credentials"].AsString();
