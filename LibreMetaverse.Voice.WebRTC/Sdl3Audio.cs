@@ -34,6 +34,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.IO;
 using System.Threading;
+using System.Collections.Concurrent;
 
 namespace LibreMetaverse
 {
@@ -903,6 +904,81 @@ namespace LibreMetaverse
                 EndPoint = null;
                 return false;
             }
+        }
+
+        // per-SSRC controls
+        private readonly ConcurrentDictionary<uint, float> _ssrcGain = new ConcurrentDictionary<uint, float>(); // 0.0-2.0
+        private readonly ConcurrentDictionary<uint, bool> _ssrcMuted = new ConcurrentDictionary<uint, bool>();
+
+        // Public API to set mute/gain for a given SSRC (from VoiceSession mapping)
+        public void SetSsrcMute(uint ssrc, bool muted)
+        {
+            try
+            {
+                if (muted) _ssrcMuted[ssrc] = true; else _ssrcMuted.TryRemove(ssrc, out _);
+                _log.Debug($"SetSsrcMute ssrc={ssrc} muted={muted}");
+            }
+            catch (Exception ex) { _log.Warn($"SetSsrcMute failed: {ex.Message}"); }
+        }
+
+        public void SetSsrcGainPercent(uint ssrc, int percent)
+        {
+            if (percent < 0) percent = 0; if (percent > 200) percent = 200; // allow up to 200%
+            try
+            {
+                float g = percent / 100f;
+                _ssrcGain[ssrc] = g;
+                _log.Debug($"SetSsrcGainPercent ssrc={ssrc} gain={g}");
+            }
+            catch (Exception ex) { _log.Warn($"SetSsrcGainPercent failed: {ex.Message}"); }
+        }
+
+        // Called by VoiceSession when an RTP packet arrives. Payload is opus bytes.
+        public void PlayRtpPacket(uint ssrc, byte[] payload)
+        {
+            if (payload == null || payload.Length == 0) return;
+            // If muted for this SSRC, skip
+            try
+            {
+                if (_ssrcMuted.TryGetValue(ssrc, out var muted) && muted) return;
+
+                // Decode opus to PCM
+                var pcmSample = _audioEncoder.DecodeAudio(payload, OpusAudioEncoder.MEDIA_FORMAT_OPUS);
+                if (pcmSample == null || pcmSample.Length == 0) return;
+
+                // Apply per-SSRC gain if present
+                if (_ssrcGain.TryGetValue(ssrc, out var gain) && Math.Abs(gain - 1.0f) > 0.0001f)
+                {
+                    for (int i = 0; i < pcmSample.Length; i++)
+                    {
+                        // apply gain and clamp
+                        int v = (int)Math.Round(pcmSample[i] * gain);
+                        if (v > short.MaxValue) v = short.MaxValue;
+                        else if (v < short.MinValue) v = short.MinValue;
+                        pcmSample[i] = (short)v;
+                    }
+                }
+
+                var pcmBytes = pcmSample.SelectMany(BitConverter.GetBytes).ToArray();
+
+                // Finally send to endpoint
+                if (EndPoint == null)
+                {
+                    if (!EnsureEndpoint()) return;
+                }
+                try { EndPoint.PutAudioSample(pcmBytes); }
+                catch (Exception ex) { _log.Debug($"PlayRtpPacket PutAudioSample failed: {ex.Message}"); }
+            }
+            catch (Exception ex)
+            {
+                _log.Debug($"PlayRtpPacket failed: {ex.Message}");
+            }
+        }
+
+        // New helpers for external callers to clear SSRC mappings
+        public void ClearSsrc(uint ssrc)
+        {
+            try { _ssrcGain.TryRemove(ssrc, out _); _ssrcMuted.TryRemove(ssrc, out _); } catch { }
         }
     }
 }

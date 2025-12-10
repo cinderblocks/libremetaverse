@@ -126,6 +126,19 @@ namespace LibreMetaverse.Voice.WebRTC
         // Track peers and their last known positions
         private readonly ConcurrentDictionary<UUID, OSDMap> Peers = new ConcurrentDictionary<UUID, OSDMap>();
 
+        // Return a snapshot list of known peer UUIDs
+        public List<UUID> GetKnownPeers()
+        {
+            try
+            {
+                return Peers.Keys.ToList();
+            }
+            catch
+            {
+                return new List<UUID>();
+            }
+        }
+
         // Position and keepalive loop cancellation/tasks
         private CancellationTokenSource positionLoopCts;
         private Task positionLoopTask;
@@ -149,6 +162,10 @@ namespace LibreMetaverse.Voice.WebRTC
         private readonly long lastRtcpReceivedTicks = 0;
         private readonly long lastRtcpSentTicks = 0;
         private readonly MediaStreamTrack _remoteAudioTrack;
+
+        // SSRC <-> Peer mapping
+        private readonly ConcurrentDictionary<uint, UUID> SsrcToPeer = new ConcurrentDictionary<uint, UUID>();
+        private readonly ConcurrentDictionary<UUID, uint> PeerToSsrc = new ConcurrentDictionary<UUID, uint>();
 
         internal VoiceSession(Sdl3Audio audioDevice, ESessionType type, GridClient client, IVoiceLogger logger = null)
         {
@@ -362,9 +379,47 @@ namespace LibreMetaverse.Voice.WebRTC
 
                     if (AudioDevice?.EndPoint != null)
                     {
-                        AudioDevice.AudioSource_OnAudioSourceEncodedSample(
-                            rtpPacket.Header.Timestamp,
-                            rtpPacket.Payload);
+                        try
+                        {
+                            uint ssrcVal = 0;
+                            try
+                            {
+                                var hdr = rtpPacket.Header;
+                                var hdrType = hdr.GetType();
+                                // try many common names to be robust across versions
+                                var candidateNames = new[] { "SynchronizationSourceIdentifier", "synchronizationSourceIdentifier", "SSRC", "Ssrc", "ssrc", "SynchronizationSourceId", "SourceIdentifier", "SynchronizationSource" };
+                                foreach (var name in candidateNames)
+                                {
+                                    try
+                                    {
+                                        var pi = hdrType.GetProperty(name);
+                                        if (pi != null)
+                                        {
+                                            var v = pi.GetValue(hdr);
+                                            if (v != null) { ssrcVal = Convert.ToUInt32(v); break; }
+                                        }
+                                    }
+                                    catch { }
+                                    try
+                                    {
+                                        var fi = hdrType.GetField(name);
+                                        if (fi != null)
+                                        {
+                                            var v = fi.GetValue(hdr);
+                                            if (v != null) { ssrcVal = Convert.ToUInt32(v); break; }
+                                        }
+                                    }
+                                    catch { }
+                                }
+                            }
+                            catch { }
+
+                            AudioDevice.PlayRtpPacket(ssrcVal, rtpPacket.Payload);
+                        }
+                        catch (Exception ex)
+                        {
+                            _log.Warn($"Failed to play RTP packet: {ex.Message}", Client);
+                        }
                     }
                     else
                     {
@@ -938,6 +993,16 @@ namespace LibreMetaverse.Voice.WebRTC
                         return;
                     }
 
+                    // Extract peers from the OSD map fallback so GetKnownPeers() works even when LitJson parsing isn't used
+                    try
+                    {
+                        ExtractPeersFromOSD(map);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Debug($"ExtractPeersFromOSD failed: {ex.Message}", Client);
+                    }
+
                     // convert OSDMap to a temporary variable for downstream logic
                     // Use existing code path by assigning to 'map' variable below via a small wrapper
                     // We'll continue with handling using OSDMap as before
@@ -986,6 +1051,8 @@ namespace LibreMetaverse.Voice.WebRTC
                         {
                             var key = kObj as string;
                             if (!UUID.TryParse(key, out var peerId)) continue;
+                            // Ensure peer is known so GetKnownPeers() returns it
+                            try { Peers.AddOrUpdate(peerId, new OSDMap(), (k, v) => v); } catch { }
                             var val = jd[key];
                             if (val == null || !val.IsObject) continue;
                             var peerMap = val;
@@ -997,6 +1064,21 @@ namespace LibreMetaverse.Voice.WebRTC
                             if (peerDict != null && peerDict.Contains("V")) state.VoiceActive = ToBool(peerMap["V"]);
                             else if (peerDict != null && peerDict.Contains("v")) state.VoiceActive = ToBool(peerMap["v"]);
 
+                            // If server provides an SSRC for this peer, capture it and update mapping
+                            try
+                            {
+                                int? sInt = null;
+                                if (peerDict != null && peerDict.Contains("s")) sInt = ToInt(peerMap["s"]);
+                                else if (peerDict != null && peerDict.Contains("ssrc")) sInt = ToInt(peerMap["ssrc"]);
+                                if (sInt.HasValue)
+                                {
+                                    var ssrc = (uint)sInt.Value;
+                                    SsrcToPeer.AddOrUpdate(ssrc, peerId, (k, v) => peerId);
+                                    PeerToSsrc.AddOrUpdate(peerId, ssrc, (k, v) => ssrc);
+                                }
+                            }
+                            catch { }
+
                             if (peerDict != null && peerDict.Contains("j") && peerMap["j"].IsObject)
                             {
                                 var jmap = peerMap["j"];
@@ -1007,6 +1089,10 @@ namespace LibreMetaverse.Voice.WebRTC
                             if (peerDict != null && peerDict.Contains("l") && ToBool(peerMap["l"]) == true)
                             {
                                 state.Left = true;
+                                // remove mapping if present
+                                if (PeerToSsrc.TryRemove(peerId, out var s)) { SsrcToPeer.TryRemove(s, out _); }
+                                // ensure peer removed from known peers
+                                try { Peers.TryRemove(peerId, out _); } catch { }
                                 OnPeerLeft?.Invoke(peerId);
                             }
 
@@ -1045,6 +1131,8 @@ namespace LibreMetaverse.Voice.WebRTC
                         var idStr = JStr(jdContains.Contains("id") ? jd["id"] : null);
                         if (!string.IsNullOrEmpty(idStr)) UUID.TryParse(idStr, out peerId);
                         Peers.TryRemove(peerId, out _);
+                        // Remove mapping if present
+                        if (PeerToSsrc.TryRemove(peerId, out var s)) { SsrcToPeer.TryRemove(s, out _); }
                         OnPeerLeft?.Invoke(peerId);
                     }
 
@@ -1146,6 +1234,20 @@ namespace LibreMetaverse.Voice.WebRTC
                                 }
                             }
                         }
+
+                        // Apply to audio device where we have an SSRC mapping
+                        try
+                        {
+                            foreach (var kv in dict)
+                            {
+                                if (PeerToSsrc.TryGetValue(kv.Key, out var ssrc))
+                                {
+                                    try { AudioDevice?.SetSsrcMute(ssrc, kv.Value); } catch { }
+                                }
+                            }
+                        }
+                        catch { }
+
                         if (dict.Count > 0) OnMuteMapReceived?.Invoke(dict);
                     }
 
@@ -1167,6 +1269,20 @@ namespace LibreMetaverse.Voice.WebRTC
                                 }
                             }
                         }
+
+                        // Apply gains to audio device where mapping is known
+                        try
+                        {
+                            foreach (var kv in dict)
+                            {
+                                if (PeerToSsrc.TryGetValue(kv.Key, out var ssrc))
+                                {
+                                    try { AudioDevice?.SetSsrcGainPercent(ssrc, kv.Value); } catch { }
+                                }
+                            }
+                        }
+                        catch { }
+
                         if (dict.Count > 0) OnGainMapReceived?.Invoke(dict);
                     }
 
@@ -1181,6 +1297,8 @@ namespace LibreMetaverse.Voice.WebRTC
                             var s = JStr(item);
                             if (!string.IsNullOrEmpty(s) && UUID.TryParse(s, out var id)) list.Add(id);
                         }
+                        // add to known peers
+                        try { foreach (var id in list) Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v); } catch { }
                         OnPeerListUpdated?.Invoke(list);
                     }
                     else if (jdContains != null && contains(jdContains, "a") && jd["a"].IsObject)
@@ -1196,6 +1314,12 @@ namespace LibreMetaverse.Voice.WebRTC
                                 if (UUID.TryParse(key, out var id)) list.Add(id);
                             }
                         }
+                        // add to known peers
+                        try
+                        {
+                            foreach (var id in list) Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v);
+                        }
+                        catch { }
                         OnPeerListUpdated?.Invoke(list);
                     }
 
@@ -1925,6 +2049,44 @@ namespace LibreMetaverse.Voice.WebRTC
 
               // Cancel internal token source to stop any background work
               try { Cts.Cancel(); } catch { }
+          }
+
+          // Helper to extract peer UUIDs from an OSDMap (fallback path)
+          private void ExtractPeersFromOSD(OSDMap map)
+          {
+              if (map == null) return;
+              try
+              {
+                  foreach (var key in map.Keys)
+                  {
+                      if (UUID.TryParse(key, out var peerId))
+                      {
+                          Peers.AddOrUpdate(peerId, new OSDMap(), (k, v) => v);
+                      }
+                  }
+
+                  if (map.ContainsKey("av") && map["av"] is OSDArray avArr)
+                  {
+                      foreach (var item in avArr)
+                      {
+                          try
+                          {
+                              var s = item.AsString();
+                              if (UUID.TryParse(s, out var id)) Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v);
+                          }
+                          catch { }
+                      }
+                  }
+
+                  if (map.ContainsKey("a") && map["a"] is OSDMap amap)
+                  {
+                      foreach (var k in amap.Keys)
+                      {
+                          if (UUID.TryParse(k, out var id)) Peers.AddOrUpdate(id, new OSDMap(), (kk, vv) => vv);
+                      }
+                  }
+              }
+              catch { }
           }
      }
  }

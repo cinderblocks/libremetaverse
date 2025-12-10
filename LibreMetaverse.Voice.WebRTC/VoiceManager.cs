@@ -243,6 +243,13 @@ namespace LibreMetaverse.Voice.WebRTC
             CurrentSession?.SetPeerGain(peerId, gain);
         }
 
+        // Public method to get a snapshot list of known peer UUIDs
+        public List<UUID> GetKnownPeers()
+        {
+            if (CurrentSession == null) return new List<UUID>();
+            try { return CurrentSession.GetKnownPeers(); } catch { return new List<UUID>(); }
+        }
+
         public async Task<bool> RequestParcelVoiceInfo()
         {
             var cap = Client.Network.CurrentSim.Caps?.CapabilityURI("ParcelVoiceInfoRequest");

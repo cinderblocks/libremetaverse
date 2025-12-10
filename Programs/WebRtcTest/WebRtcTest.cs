@@ -32,6 +32,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.IO;
 using System.Linq;
+using System.Globalization;
 
 namespace WebRtcTest
 {
@@ -137,6 +138,8 @@ namespace WebRtcTest
                 
                 Console.WriteLine($"Connected Primary Region to voice {client.Network.CurrentSim.Name}...");
 
+                string wavPath = null;
+
                 // Example: play the WAV file in the WebRtcTest directory
                 try
                 {
@@ -146,7 +149,7 @@ namespace WebRtcTest
                         Path.Combine(Directory.GetCurrentDirectory(), "scarlet-fire.wav"),
                         Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\..\\..\\", "scarlet-fire.wav")
                     };
-                    string wavPath = candidates.FirstOrDefault(p => !string.IsNullOrEmpty(p) && File.Exists(p));
+                    wavPath = candidates.FirstOrDefault(p => !string.IsNullOrEmpty(p) && File.Exists(p));
                     if (!string.IsNullOrEmpty(wavPath))
                     {
                         Console.WriteLine($"Playing WAV file as microphone: {wavPath} (48000 Hz, 16-bit, mono)\nLooping... Press any key to stop playback and disconnect.");
@@ -186,8 +189,87 @@ namespace WebRtcTest
                     Console.WriteLine($"Failed to start example WAV playback: {ex.Message}");
                 }
 
-                Console.WriteLine("Press any key to disconnect...");
-                Console.ReadKey();
+                // Interactive command loop to exercise per-peer mute/gain and playback
+                Console.WriteLine("Interactive commands:");
+                Console.WriteLine("  peers                       - list known peer UUIDs");
+                Console.WriteLine("  mute <uuid> <true|false>    - set peer mute");
+                Console.WriteLine("  gain <uuid> <percent>       - set peer gain (0-200)");
+                Console.WriteLine("  playwav                     - start example wav as mic (if available)");
+                Console.WriteLine("  stopwav                     - stop example wav playback");
+                Console.WriteLine("  quit                        - disconnect and exit");
+
+                while (true)
+                {
+                    Console.Write("> ");
+                    var line = Console.ReadLine();
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    var parts = line.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    var cmd = parts[0].ToLowerInvariant();
+                    try
+                    {
+                        if (cmd == "quit" || cmd == "exit")
+                        {
+                            break;
+                        }
+                        else if (cmd == "mute" && parts.Length >= 3)
+                        {
+                            if (UUID.TryParse(parts[1], out var pid) && bool.TryParse(parts[2], out var mval))
+                            {
+                                voice.SetPeerMute(pid, mval);
+                                Console.WriteLine($"Sent mute {mval} for {pid}");
+                            }
+                            else Console.WriteLine("Usage: mute <uuid> <true|false>");
+                        }
+                        else if (cmd == "gain" && parts.Length >= 3)
+                        {
+                            if (UUID.TryParse(parts[1], out var pid) && int.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var gval))
+                            {
+                                voice.SetPeerGain(pid, gval);
+                                Console.WriteLine($"Sent gain {gval} for {pid}");
+                            }
+                            else Console.WriteLine("Usage: gain <uuid> <percent>");
+                        }
+                        else if (cmd == "playwav")
+                        {
+                            try
+                            {
+                                if (!string.IsNullOrEmpty(wavPath))
+                                {
+                                    voice.PlayWavAsMic(wavPath, loop: true);
+                                    Console.WriteLine("WAV playback started as microphone.");
+                                }
+                                else Console.WriteLine("No example WAV available.");
+                            }
+                            catch (Exception ex) { Console.WriteLine($"Failed to start WAV: {ex.Message}"); }
+                        }
+                        else if (cmd == "stopwav")
+                        {
+                            try { voice.StopWavAsMic(); Console.WriteLine("WAV playback stopped."); } catch (Exception ex) { Console.WriteLine($"Failed to stop WAV: {ex.Message}"); }
+                        }
+                        else if (cmd == "peers" || cmd == "list")
+                        {
+                            try
+                            {
+                                var peers = voice.GetKnownPeers();
+                                if (peers == null || peers.Count == 0) Console.WriteLine("No peers known.");
+                                else
+                                {
+                                    Console.WriteLine($"Known peers ({peers.Count}):");
+                                    foreach (var p in peers) Console.WriteLine($"  {p}");
+                                }
+                            }
+                            catch (Exception ex) { Console.WriteLine($"Failed to get peers: {ex.Message}"); }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Unknown command");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Command failed: {ex.Message}");
+                    }
+                }
 
                 voice.Disconnect();
 
