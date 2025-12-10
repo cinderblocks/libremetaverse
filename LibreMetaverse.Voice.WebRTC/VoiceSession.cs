@@ -626,6 +626,16 @@ namespace LibreMetaverse.Voice.WebRTC
                 pc.SendAudio(duration, sample);
             };
 
+            // Also wire the AudioDevice level event for file playback and other non-source audio
+            if (AudioDevice != null)
+            {
+                try { AudioDevice.OnAudioSourceEncodedSample -= pc.SendAudio; } catch { }
+                AudioDevice.OnAudioSourceEncodedSample += (duration, sample) =>
+                {
+                    pc.SendAudio(duration, sample);
+                };
+            }
+
             return pc;
         }
 
@@ -1470,6 +1480,11 @@ namespace LibreMetaverse.Voice.WebRTC
                         if (AudioDevice?.Source != null)
                         {
                             try { AudioDevice.Source.OnAudioSourceEncodedSample -= PeerConnection.SendAudio; } catch { }
+                        }
+                        // Detach AudioDevice level handler
+                        if (AudioDevice != null)
+                        {
+                            try { AudioDevice.OnAudioSourceEncodedSample -= PeerConnection.SendAudio; } catch { }
                         }
                         try { PeerConnection.Close("Reprovision"); } catch { }
                     }
