@@ -25,7 +25,7 @@
     <None Include="WebRtcTest.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="scarlet-fire-44100.pcm">
+    <None Include="scarlet-fire.wav">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -137,32 +137,32 @@ namespace WebRtcTest
                 
                 Console.WriteLine($"Connected Primary Region to voice {client.Network.CurrentSim.Name}...");
 
-                // Example: play the raw PCM file in the WebRtcTest directory
+                // Example: play the WAV file in the WebRtcTest directory
                 try
                 {
                     // Try to locate the file relative to the running directory first
                     var candidates = new[] {
-                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "scarlet-fire-44100.pcm"),
-                        Path.Combine(Directory.GetCurrentDirectory(), "scarlet-fire-44100.pcm"),
-                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\..\\..\\", "scarlet-fire-44100.pcm")
+                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "scarlet-fire.wav"),
+                        Path.Combine(Directory.GetCurrentDirectory(), "scarlet-fire.wav"),
+                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..\\..\\..\\", "scarlet-fire.wav")
                     };
-                    string pcmPath = candidates.FirstOrDefault(p => !string.IsNullOrEmpty(p) && File.Exists(p));
-                    if (!string.IsNullOrEmpty(pcmPath))
+                    string wavPath = candidates.FirstOrDefault(p => !string.IsNullOrEmpty(p) && File.Exists(p));
+                    if (!string.IsNullOrEmpty(wavPath))
                     {
-                        Console.WriteLine($"Playing raw PCM file as microphone: {pcmPath} (44100 Hz, 16-bit, mono)\nLooping... Press any key to stop playback and disconnect.");
-                        // Play at 44100 Hz, mono, loop
+                        Console.WriteLine($"Playing WAV file as microphone: {wavPath} (48000 Hz, 16-bit, mono)\nLooping... Press any key to stop playback and disconnect.");
+                        // Play at 48000 Hz, mono, loop
                         // Wait until peer connection is ready before starting playback. If already connected, start immediately.
                         Action onReady = null;
                         onReady = () =>
                         {
                             try
                             {
-                                voice.PlayRawFile(pcmPath, channels: 1, sampleRate: 44100, loop: true);
-                                Console.WriteLine("Raw PCM playback started as microphone.");
+                                voice.PlayWavAsMic(wavPath, loop: true);
+                                Console.WriteLine("WAV playback started as microphone.");
                             }
                             catch (Exception ex)
                             {
-                                Console.WriteLine($"Failed to start example PCM playback on ready: {ex.Message}");
+                                Console.WriteLine($"Failed to start example WAV playback on ready: {ex.Message}");
                             }
                             try { voice.PeerConnectionReady -= onReady; } catch { }
                         };
@@ -178,12 +178,12 @@ namespace WebRtcTest
                     }
                     else
                     {
-                        Console.WriteLine("scarlet-fire-44100.pcm not found in working directories; skipping example playback.");
+                        Console.WriteLine("scarlet-fire.wav not found in working directories; skipping example playback.");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to start example PCM playback: {ex.Message}");
+                    Console.WriteLine($"Failed to start example WAV playback: {ex.Message}");
                 }
 
                 Console.WriteLine("Press any key to disconnect...");

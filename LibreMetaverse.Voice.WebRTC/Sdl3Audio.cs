@@ -410,6 +410,8 @@ namespace LibreMetaverse
             if (string.IsNullOrEmpty(path)) throw new ArgumentException("path");
             if (!File.Exists(path)) throw new FileNotFoundException(path);
 
+            _log.Debug($"StartFilePlayback: Starting playback of {path} (loop={loop})");
+
             _filePlaybackWasRecording = RecordingActive;
             if (RecordingActive) { try { StopRecording(); } catch { } }
 
@@ -423,6 +425,7 @@ namespace LibreMetaverse
             {
                 try
                 {
+                    _log.Debug($"StartFilePlayback: Playback task started");
                     while (!token.IsCancellationRequested)
                     {
                         using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read))
@@ -453,10 +456,13 @@ namespace LibreMetaverse
                             if (dataChunkPos < 0) throw new InvalidDataException("WAV data chunk not found");
                             if (bitsPerSample != 16) { _log.Warn($"WAV playback only supports 16-bit PCM files (got {bitsPerSample})"); break; }
 
+                            _log.Debug($"StartFilePlayback: WAV format detected - channels={channels}, sampleRate={sampleRate}, bitsPerSample={bitsPerSample}");
+
                             fs.Position = dataChunkPos;
                             int frameSize = _audioEncoder.GetFrameSize();
                             int bytesPerFrame = frameSize * (bitsPerSample / 8) * channels;
 
+                            int framesProcessed = 0;
                             while (!token.IsCancellationRequested)
                             {
                                 var bytes = br.ReadBytes(bytesPerFrame);
@@ -477,20 +483,44 @@ namespace LibreMetaverse
                                     if (remaining >= frameSize) Array.Copy(mono, idx, frame, 0, frameSize); else Array.Copy(mono, idx, frame, 0, remaining);
                                     byte[] encoded = null;
                                     try { encoded = _audioEncoder.EncodeAudio(frame, OpusAudioEncoder.MEDIA_FORMAT_OPUS); } catch (Exception ex) { _log.Warn($"WAV encode failed: {ex.Message}"); encoded = null; }
-                                    if (encoded != null && encoded.Length > 0) { try { OnAudioSourceEncodedSample?.Invoke((uint)frameSize, encoded); } catch { } }
+                                    if (encoded != null && encoded.Length > 0) 
+                                    { 
+                                        try 
+                                        { 
+                                            OnAudioSourceEncodedSample?.Invoke((uint)frameSize, encoded); 
+                                            framesProcessed++;
+                                            //if (framesProcessed % 50 == 0)
+                                            //{
+                                            //    _log.Debug($"StartFilePlayback: Processed {framesProcessed} frames");
+                                            //}
+                                        } 
+                                        catch (Exception ex) 
+                                        { 
+                                            _log.Error($"StartFilePlayback: Error invoking OnAudioSourceEncodedSample: {ex.Message}"); 
+                                        } 
+                                    }
                                     idx += frameSize; if (token.IsCancellationRequested) break;
                                 }
 
                                 try { int frames = Math.Max(1, mono.Length / frameSize); await Task.Delay(20 * frames, token).ConfigureAwait(false); } catch (OperationCanceledException) { break; }
                             }
+                            _log.Debug($"StartFilePlayback: Finished reading file, total frames processed: {framesProcessed}");
                         }
 
                         if (!_filePlaybackLoop) break;
+                        _log.Debug($"StartFilePlayback: Looping playback...");
                     }
                 }
-                catch (OperationCanceledException) { }
-                catch (Exception ex) { _log.Warn($"File playback failed: {ex.Message}"); }
-                finally { _filePlaybackActive = false; }
+                catch (OperationCanceledException) 
+                { 
+                    _log.Debug("StartFilePlayback: Playback cancelled");
+                }
+                catch (Exception ex) 
+                { 
+                    _log.Warn($"File playback failed: {ex.Message}");
+                    _log.Debug($"File playback stack trace: {ex.StackTrace}");
+                }
+                finally { _filePlaybackActive = false; _log.Debug("StartFilePlayback: Playback task ended"); }
 
                 if (_filePlaybackWasRecording) { try { StartRecording(); } catch { } }
             }, token);
