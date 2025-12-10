@@ -232,7 +232,71 @@ namespace LibreMetaverse
                     return;
                 }
             }
-            try { await EndPoint.StartAudioSink(); PlaybackActive = true; OnPlaybackActiveChanged?.Invoke(true); _log.Debug("Playback started"); } catch (Exception ex) { _log.Error($"Failed to start playback: {ex.Message}"); }
+            
+            // Check if endpoint is closed and needs reinitialization
+            bool needsReinit = false;
+            try
+            {
+                var epType = EndPoint.GetType();
+                var closedField = epType.GetField("_isClosed", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (closedField != null)
+                {
+                    var isClosed = closedField.GetValue(EndPoint);
+                    if (isClosed is bool b && b)
+                    {
+                        needsReinit = true;
+                        _log.Debug("Endpoint is closed, reinitializing before starting playback");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Debug($"Could not check endpoint closed state: {ex.Message}");
+            }
+            
+            // Reinitialize endpoint if it was closed
+            if (needsReinit)
+            {
+                try
+                {
+                    var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
+                    EndPoint.SetAudioSinkFormat(fmt);
+                    TrySetEndpointVolume(_speakerLevel);
+                    _log.Debug("Endpoint reinitialized for playback");
+                }
+                catch (Exception ex)
+                {
+                    _log.Warn($"Failed to reinitialize endpoint: {ex.Message}");
+                    // Try to recreate endpoint from scratch
+                    try
+                    {
+                        EndPoint = new SDL3AudioEndPoint(PlaybackDevice.name, _audioEncoder);
+                        var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
+                        EndPoint.SetAudioSinkFormat(fmt);
+                        TrySetEndpointVolume(_speakerLevel);
+                        _log.Debug("Endpoint recreated from scratch");
+                    }
+                    catch (Exception ex2)
+                    {
+                        _log.Error($"Failed to recreate endpoint: {ex2.Message}");
+                        return;
+                    }
+                }
+            }
+            
+            try
+            {
+                // Reset the samples counter when starting playback to allow auto-restart after reconnection
+                _samplesReceivedCount = 0;
+                await EndPoint.StartAudioSink();
+                PlaybackActive = true;
+                OnPlaybackActiveChanged?.Invoke(true);
+                _log.Debug("Playback started");
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Failed to start playback: {ex.Message}");
+            }
         }
 
         public async Task StopPlaybackAsync()
@@ -246,6 +310,60 @@ namespace LibreMetaverse
             if (!IsAvailable || Source == null) return;
             try
             {
+                // Check if source needs reinitialization (after being closed)
+                bool needsReinit = false;
+                try
+                {
+                    var sourceType = Source.GetType();
+                    var streamField = sourceType.GetField("_audioStream", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    if (streamField != null)
+                    {
+                        var stream = streamField.GetValue(Source);
+                        if (stream == null)
+                        {
+                            needsReinit = true;
+                            _log.Debug("Recording source audio stream is null, reinitializing");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _log.Debug($"Could not check source stream state: {ex.Message}");
+                }
+                
+                // Reinitialize source if needed
+                if (needsReinit)
+                {
+                    try
+                    {
+                        // Get the current format and reinitialize
+                        var formats = Source.GetAudioSourceFormats();
+                        if (formats != null && formats.Count > 0)
+                        {
+                            var fmt = formats[0]; // Use first available format
+                            Source.SetAudioSourceFormat(fmt);
+                            _log.Debug("Recording source reinitialized");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Warn($"Failed to reinitialize recording source: {ex.Message}");
+                        // Try to recreate source from scratch
+                        try
+                        {
+                            DetachSourceHandlers();
+                            Source = new SDL3AudioSource(RecordingDevice.name, _audioEncoder);
+                            AttachSourceHandlers();
+                            _log.Debug("Recording source recreated from scratch");
+                        }
+                        catch (Exception ex2)
+                        {
+                            _log.Error($"Failed to recreate recording source: {ex2.Message}");
+                            return;
+                        }
+                    }
+                }
+                
                 // Ensure handlers are attached before starting so encoded/raw callbacks are received
                 AttachSourceHandlers();
                 Source.StartAudio();
@@ -557,11 +675,25 @@ namespace LibreMetaverse
             _samplesReceivedCount++;
             try { OnAudioSourceEncodedSample?.Invoke(durationRtpUnits, sample); } catch { }
 
-            if (!IsAvailable || EndPoint == null) return;
-            // Auto-start playback when the first encoded samples arrive (up to a few samples)
-            // to match previous behavior and ensure audio plays even if StartPlaybackAsync
-            // wasn't called explicitly by the host.
-            if (!PlaybackActive) { if (_samplesReceivedCount <= 5) { _ = StartPlaybackAsync(); } return; }
+            if (!IsAvailable) return;
+            if (EndPoint == null)
+            {
+                // Try to recreate endpoint if missing
+                if (!EnsureEndpoint())
+                {
+                    _log.Warn("AudioSource_OnAudioSourceEncodedSample: cannot create audio endpoint");
+                    return;
+                }
+            }
+            
+            // Auto-start playback when audio samples arrive if not already playing
+            if (!PlaybackActive) 
+            { 
+                _log.Debug($"Auto-starting playback (sample #{_samplesReceivedCount})");
+                _ = StartPlaybackAsync(); 
+                // Give playback time to start
+                System.Threading.Thread.Sleep(50);
+            }
 
             if (sample == null || sample.Length == 0) return;
             try
@@ -569,9 +701,12 @@ namespace LibreMetaverse
                 var pcmSample = _audioEncoder.DecodeAudio(sample, OpusAudioEncoder.MEDIA_FORMAT_OPUS);
                 if (pcmSample == null || pcmSample.Length == 0) return;
                 var pcmBytes = pcmSample.SelectMany(BitConverter.GetBytes).ToArray();
-                EndPoint.PutAudioSample(pcmBytes);
+                EndPoint?.PutAudioSample(pcmBytes);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _log.Debug($"Failed to decode/play audio sample: {ex.Message}");
+            }
         }
 
         public void AudioSource_OnAudioSourceRawSample(AudioSamplingRatesEnum samplingRate, uint durationMilliseconds, short[] sample)
@@ -597,12 +732,19 @@ namespace LibreMetaverse
             try
             {
                 if (deviceName == "Default Speakers" || deviceName == "Default Microphone") deviceName = null;
+                
+                bool wasPlaying = PlaybackActive;
+                
                 try { EndPoint?.CloseAudioSink().Wait(2000); } catch { }
                 EndPoint = new SDL3AudioEndPoint(deviceName, _audioEncoder);
                 var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
                 EndPoint.SetAudioSinkFormat(fmt);
                 TrySetEndpointVolume(_speakerLevel);
-                if (PlaybackActive) { _ = StartPlaybackAsync(); }
+                
+                if (wasPlaying) 
+                { 
+                    _ = StartPlaybackAsync(); 
+                }
             }
             catch (Exception ex)
             {
@@ -615,6 +757,8 @@ namespace LibreMetaverse
             if (!IsAvailable) return;
             try
             {
+                bool wasRecording = RecordingActive;
+                
                 try { DetachSourceHandlers(); StopSourceSafely(Source); } catch { }
 
                 Exception lastEx = null;
@@ -640,7 +784,7 @@ namespace LibreMetaverse
                 }
 
                 AttachSourceHandlers();
-                if (RecordingActive) StartRecording();
+                if (wasRecording) StartRecording();
             }
             catch (Exception ex)
             {
@@ -652,7 +796,68 @@ namespace LibreMetaverse
         public bool EnsureEndpoint()
         {
             if (!IsAvailable) { _log.Warn("Cannot ensure endpoint: SDL3 not available"); return false; }
-            if (EndPoint != null) return true;
+            if (EndPoint != null) 
+            {
+                // Check if endpoint is in a usable state
+                try
+                {
+                    // If endpoint exists but is closed, try to reinitialize it
+                    var epType = EndPoint.GetType();
+                    var closedField = epType.GetField("_isClosed", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    if (closedField != null)
+                    {
+                        var isClosed = closedField.GetValue(EndPoint);
+                        if (isClosed is bool b && b)
+                        {
+                            _log.Debug("Endpoint exists but is closed, recreating...");
+                            // Fall through to recreate
+                        }
+                        else
+                        {
+                            // Check if audio stream is valid
+                            var streamField = epType.GetField("_audioStream", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                            if (streamField != null)
+                            {
+                                var stream = streamField.GetValue(EndPoint);
+                                if (stream == null)
+                                {
+                                    _log.Debug("Endpoint exists but audio stream is null, reinitializing...");
+                                    // Try to reinitialize without recreating
+                                    try
+                                    {
+                                        var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
+                                        EndPoint.SetAudioSinkFormat(fmt);
+                                        TrySetEndpointVolume(_speakerLevel);
+                                        _log.Debug("Endpoint reinitialized successfully");
+                                        return true;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _log.Debug($"Failed to reinitialize endpoint: {ex.Message}, recreating...");
+                                        // Fall through to recreate
+                                    }
+                                }
+                                else
+                                {
+                                    return true; // Endpoint exists and has a stream
+                                }
+                            }
+                            else
+                            {
+                                return true; // Can't determine stream state, assume it's okay
+                            }
+                        }
+                    }
+                    else
+                    {
+                        return true; // Can't determine closed state, assume it's okay
+                    }
+                }
+                catch
+                {
+                    return true; // If reflection fails, assume endpoint is okay
+                }
+            }
             try
             {
                 EndPoint = new SDL3AudioEndPoint(PlaybackDevice.name, _audioEncoder);

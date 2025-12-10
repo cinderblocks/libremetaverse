@@ -434,7 +434,7 @@ namespace LibreMetaverse.Voice.WebRTC
             }
             if (AudioDevice.Source == null)
             {
-                _log.Warn("Audio source is null. Attempting to create default recording source.", Client);
+                _log.Warn("Recording is null. Attempting to create default recording source.", Client);
                 try
                 {
                     AudioDevice.SetRecordingDevice(null);
@@ -555,11 +555,11 @@ namespace LibreMetaverse.Voice.WebRTC
                         }
                         catch (Exception ex)
                         {
-                            _log.Debug($"Failed to start audio sink via AudioDevice: {ex.Message}", Client);
+                            _log.Debug($"Failed to start playback via AudioDevice: {ex.Message}", Client);
                             // Fallback: attempt to start endpoint directly
                             try { await AudioDevice.EndPoint.StartAudioSink().ConfigureAwait(false); } catch { }
                         }
-                        _log.Debug("Audio sink started", Client);
+                        _log.Debug("Playback started", Client);
                     }
                     else
                     {
@@ -570,16 +570,16 @@ namespace LibreMetaverse.Voice.WebRTC
                             try
                             {
                                 await AudioDevice.StartPlaybackAsync().ConfigureAwait(false);
-                                _log.Debug("Audio sink started after EnsureEndpoint", Client);
+                                _log.Debug("Playback started after EnsureEndpoint", Client);
                             }
                             catch (Exception ex)
                             {
-                                _log.Debug($"Failed to start audio sink after EnsureEndpoint: {ex.Message}", Client);
+                                _log.Debug($"Failed to start playback after EnsureEndpoint: {ex.Message}", Client);
                             }
                         }
                         else
                         {
-                            _log.Debug("Audio sink not started: SDL3 EndPoint is null (SDL3 not initialized or no devices found)", Client);
+                            _log.Debug("Playback not started: SDL3 EndPoint is null (SDL3 not initialized or no devices found)", Client);
                         }
                     }
                     // Start recording only when the connection is fully established
@@ -595,19 +595,31 @@ namespace LibreMetaverse.Voice.WebRTC
                     {
                         _log.Warn($"Failed to start recording on connection: {ex.Message}", Client);
                     }
-                     OnPeerConnectionReady?.Invoke();
-                 }
-                 else if (state == RTCPeerConnectionState.failed || state == RTCPeerConnectionState.disconnected || state == RTCPeerConnectionState.closed)
-                 {
+                    OnPeerConnectionReady?.Invoke();
+                }
+                else if (state == RTCPeerConnectionState.failed || state == RTCPeerConnectionState.disconnected || state == RTCPeerConnectionState.closed)
+                {
                     // Stop playback and recording on disconnect/failure
                     if (AudioDevice != null)
                     {
                         try { await AudioDevice.StopPlaybackAsync().ConfigureAwait(false); } catch { }
                         try { AudioDevice.StopRecording(); } catch { }
                     }
-                      OnPeerConnectionClosed?.Invoke();
-                 }
-             };
+                    
+                    // For failed/disconnected states, log but don't immediately trigger OnPeerConnectionClosed
+                    // to allow the reprovision logic to handle recovery
+                    if (state == RTCPeerConnectionState.closed)
+                    {
+                        OnPeerConnectionClosed?.Invoke();
+                    }
+                }
+            };
+
+            // Detach any existing handler to prevent duplicates on reprovision
+            if (AudioDevice?.Source != null)
+            {
+                try { AudioDevice.Source.OnAudioSourceEncodedSample -= pc.SendAudio; } catch { }
+            }
 
             AudioDevice.Source.OnAudioSourceEncodedSample += (duration, sample) =>
             {
@@ -1438,13 +1450,29 @@ namespace LibreMetaverse.Voice.WebRTC
               {
                   _log.Debug($"Starting reprovision for session {SessionId}", Client);
 
+                  // Store recording state before closing
+                  bool wasRecording = AudioDevice?.Source != null && AudioDevice.RecordingActive;
+                  bool wasPlaybackActive = AudioDevice?.EndPoint != null && AudioDevice.PlaybackActive;
+
                   try
                   {
-                      // Close existing peer connection if present
-                      if (PeerConnection != null)
-                      {
-                          try { PeerConnection.Close("Reprovision"); } catch { }
-                      }
+                    // Stop audio before closing peer connection
+                    if (AudioDevice != null)
+                    {
+                        try { AudioDevice.StopRecording(); } catch { }
+                        try { await AudioDevice.StopPlaybackAsync().ConfigureAwait(false); } catch { }
+                    }
+
+                    // Close existing peer connection if present
+                    if (PeerConnection != null)
+                    {
+                        // Detach audio source handler before closing
+                        if (AudioDevice?.Source != null)
+                        {
+                            try { AudioDevice.Source.OnAudioSourceEncodedSample -= PeerConnection.SendAudio; } catch { }
+                        }
+                        try { PeerConnection.Close("Reprovision"); } catch { }
+                    }
                   }
                   catch (Exception ex)
                   {
@@ -1453,6 +1481,9 @@ namespace LibreMetaverse.Voice.WebRTC
 
                   // Cancel any existing trickle loop
                   try { iceTrickleCts?.Cancel(); } catch { }
+
+                  // Reset answer flag to ensure ICE candidates wait for new answer
+                  answerReceived = false;
 
                   // Create a new peer connection
                   RTCPeerConnection newPc = null;
@@ -1479,6 +1510,23 @@ namespace LibreMetaverse.Voice.WebRTC
                           if (ok)
                           {
                               _log.Debug($"Reprovision completed, new session {SessionId}", Client);
+                              
+                              // Restore audio state after successful reprovision
+                              if (AudioDevice != null)
+                              {
+                                // Wait a moment for peer connection to stabilize
+                                await Task.Delay(500).ConfigureAwait(false);
+                                
+                                if (wasRecording)
+                                {
+                                    try { AudioDevice.StartRecording(); } catch (Exception ex) { _log.Warn($"Failed to restart recording after reprovision: {ex.Message}", Client); }
+                                }
+                                if (wasPlaybackActive)
+                                {
+                                    try { await AudioDevice.StartPlaybackAsync().ConfigureAwait(false); } catch (Exception ex) { _log.Warn($"Failed to restart playback after reprovision: {ex.Message}", Client); }
+                                }
+                              }
+
                               try { OnReprovisionSucceeded?.Invoke(); } catch { }
                           }
                           else
@@ -1498,12 +1546,12 @@ namespace LibreMetaverse.Voice.WebRTC
                       var ex = new Exception("Failed to create new RTCPeerConnection during reprovision");
                       try { OnReprovisionFailed?.Invoke(ex); } catch { }
                   }
-               }
-               finally
-               {
+              }
+              finally
+              {
                    reprovisionLock.Release();
-               }
-           }
+              }
+          }
 
           private OSDMap GetWorldPosition()
           {
