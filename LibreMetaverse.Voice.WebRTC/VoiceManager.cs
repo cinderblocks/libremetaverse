@@ -49,6 +49,11 @@ namespace LibreMetaverse.Voice.WebRTC
         private string _channelId;
         private string _channelCredentials;
 
+        // Track current region to detect changes
+        private ulong _currentRegionHandle = 0;
+        private readonly SemaphoreSlim _regionTransitionLock = new SemaphoreSlim(1, 1);
+        private bool _isTransitioning = false;
+
         // Expose SDP and connection state safely
         public string sdpLocal => CurrentSession?.SdpLocal;
         public string sdpRemote => CurrentSession?.SdpRemote;
@@ -75,12 +80,232 @@ namespace LibreMetaverse.Voice.WebRTC
         public event Action<Dictionary<UUID, int>> GainMapReceived;
         public event Action<string, int, string> OnParcelVoiceInfo;
 
+        // Cross-region events
+        public event Action OnRegionChangeDetected;
+        public event Action OnRegionTransitionCompleted;
+        public event Action<Exception> OnRegionTransitionFailed;
+
         public VoiceManager(GridClient client, IVoiceLogger logger = null)
         {
             Client = client;
             AudioDevice = new Sdl3Audio();
             _log = logger ?? new OpenMetaverseVoiceLogger();
             Client.Network.RegisterEventCallback("RequiredVoiceVersion", RequiredVoiceVersionEventHandler);
+            
+            // Register for region change events
+            Client.Network.SimChanged += OnSimChanged;
+            Client.Self.TeleportProgress += OnTeleport;
+        }
+
+        private void OnSimChanged(object sender, SimChangedEventArgs e)
+        {
+            _ = HandleRegionChange(e.PreviousSimulator);
+        }
+
+        private void OnTeleport(object sender, TeleportEventArgs e)
+        {
+            if (e.Status == TeleportStatus.Finished)
+            {
+                _ = HandleRegionChange(null);
+            }
+        }
+
+        private async Task HandleRegionChange(Simulator previousSim)
+        {
+            if (!_enabled || CurrentSession == null) return;
+
+            var newRegionHandle = Client.Network.CurrentSim?.Handle ?? 0;
+            
+            // Detect if we've actually changed regions
+            if (_currentRegionHandle != 0 && _currentRegionHandle == newRegionHandle)
+            {
+                return; // Same region, no action needed
+            }
+
+            if (_isTransitioning)
+            {
+                _log.Debug("Region transition already in progress, skipping duplicate", Client);
+                return;
+            }
+
+            // Acquire lock to prevent concurrent transitions
+            if (!await _regionTransitionLock.WaitAsync(0))
+            {
+                _log.Debug("Region transition lock held, skipping", Client);
+                return;
+            }
+
+            try
+            {
+                _isTransitioning = true;
+                var oldRegionHandle = _currentRegionHandle;
+                _currentRegionHandle = newRegionHandle;
+
+                _log.Info($"Region change detected: {oldRegionHandle:X} -> {newRegionHandle:X}", Client);
+                
+                try
+                {
+                    OnRegionChangeDetected?.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    _log.Warn($"Exception in OnRegionChangeDetected handler: {ex.Message}", Client);
+                }
+
+                // Store current session type and channel info before reprovisioning
+                var wasMultiAgent = !string.IsNullOrEmpty(CurrentSession.ChannelId);
+                var preservedChannelId = CurrentSession.ChannelId;
+                var preservedCredentials = CurrentSession.ChannelCredentials;
+
+                // Request new parcel voice info for the new region
+                var parcelInfoSuccess = await RequestParcelVoiceInfo();
+                
+                // For cross-region multi-agent voice, preserve channel credentials if the new
+                // region doesn't provide new ones (allows voice continuity across regions)
+                if (wasMultiAgent && string.IsNullOrEmpty(ChannelId) && !string.IsNullOrEmpty(preservedChannelId))
+                {
+                    _log.Info("Preserving channel credentials for cross-region continuity", Client);
+                    _channelId = preservedChannelId;
+                    _channelCredentials = preservedCredentials;
+                }
+
+                // Reprovision the voice session for the new region
+                await ReprovisionForNewRegion();
+
+                try
+                {
+                    OnRegionTransitionCompleted?.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    _log.Warn($"Exception in OnRegionTransitionCompleted handler: {ex.Message}", Client);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Region transition failed: {ex.Message}", Client);
+                
+                try
+                {
+                    OnRegionTransitionFailed?.Invoke(ex);
+                }
+                catch (Exception handlerEx)
+                {
+                    _log.Warn($"Exception in OnRegionTransitionFailed handler: {handlerEx.Message}", Client);
+                }
+            }
+            finally
+            {
+                _isTransitioning = false;
+                _regionTransitionLock.Release();
+            }
+        }
+
+        private async Task ReprovisionForNewRegion()
+        {
+            if (CurrentSession == null) return;
+
+            _log.Info("Reprovisioning voice session for new region", Client);
+
+            // Store audio state
+            bool wasRecording = AudioDevice?.Source != null && AudioDevice.RecordingActive;
+            bool wasPlaybackActive = AudioDevice?.EndPoint != null && AudioDevice.PlaybackActive;
+
+            try
+            {
+                // Stop audio before closing session
+                if (AudioDevice != null)
+                {
+                    try { AudioDevice.StopRecording(); } catch { }
+                    try { await AudioDevice.StopPlaybackAsync().ConfigureAwait(false); } catch { }
+                }
+
+                // Close the current session without sending logout (we're transitioning, not disconnecting)
+                if (CurrentSession != null)
+                {
+                    try
+                    {
+                        // Detach handlers to prevent duplicate events during transition
+                        CurrentSession.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady;
+                        
+                        // Close peer connection without formal logout
+                        await CurrentSession.CloseSession().ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Warn($"Error closing session during reprovision: {ex.Message}", Client);
+                    }
+                }
+
+                // Determine session type for new region
+                var sessionType = VoiceSession.ESessionType.LOCAL;
+                if (!string.IsNullOrEmpty(ChannelId))
+                {
+                    sessionType = VoiceSession.ESessionType.MUTLIAGENT;
+                    _log.Info("Using multi-agent voice for new region", Client);
+                }
+                else
+                {
+                    _log.Info("Using local voice for new region", Client);
+                }
+
+                // Create new session
+                CurrentSession = new VoiceSession(AudioDevice, sessionType, Client, _log);
+
+                // Set preserved or new channel info
+                if (!string.IsNullOrEmpty(ChannelId))
+                {
+                    CurrentSession.ChannelId = ChannelId;
+                    CurrentSession.ChannelCredentials = ChannelCredentials;
+                }
+
+                // Wire events
+                CurrentSession.OnDataChannelReady += CurrentSessionOnOnDataChannelReady;
+                CurrentSession.OnPeerConnectionReady += () => { try { PeerConnectionReady?.Invoke(); } catch { } };
+                CurrentSession.OnPeerConnectionClosed += () => { try { PeerConnectionClosed?.Invoke(); } catch { } };
+
+                // Forward session events
+                CurrentSession.OnPeerJoined += (id) => PeerJoined?.Invoke(id);
+                CurrentSession.OnPeerLeft += (id) => PeerLeft?.Invoke(id);
+                CurrentSession.OnPeerPositionUpdated += (id, map) => PeerPositionUpdated?.Invoke(id, map);
+                CurrentSession.OnPeerListUpdated += (list) => PeerListUpdated?.Invoke(list);
+
+                // Forward typed events
+                CurrentSession.OnPeerAudioUpdated += (id, state) => PeerAudioUpdated?.Invoke(id, state);
+                CurrentSession.OnPeerPositionUpdatedTyped += (id, pos) => PeerPositionUpdatedTyped?.Invoke(id, pos);
+                CurrentSession.OnMuteMapReceived += (m) => MuteMapReceived?.Invoke(m);
+                CurrentSession.OnGainMapReceived += (g) => GainMapReceived?.Invoke(g);
+
+                // Start new session
+                await CurrentSession.StartAsync().ConfigureAwait(false);
+                await CurrentSession.RequestProvision().ConfigureAwait(false);
+
+                // Restore audio state
+                await Task.Delay(500).ConfigureAwait(false); // Brief delay for connection stability
+
+                if (wasRecording && AudioDevice?.Source != null)
+                {
+                    try { AudioDevice.StartRecording(); } catch (Exception ex) 
+                    { 
+                        _log.Warn($"Failed to restart recording after region change: {ex.Message}", Client); 
+                    }
+                }
+                
+                if (wasPlaybackActive && AudioDevice?.EndPoint != null)
+                {
+                    try { await AudioDevice.StartPlaybackAsync().ConfigureAwait(false); } catch (Exception ex) 
+                    { 
+                        _log.Warn($"Failed to restart playback after region change: {ex.Message}", Client); 
+                    }
+                }
+
+                _log.Info("Voice session reprovisioned successfully for new region", Client);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Failed to reprovision voice session: {ex.Message}", Client);
+                throw;
+            }
         }
 
         public async Task<bool> ConnectPrimaryRegion()
@@ -92,6 +317,9 @@ namespace LibreMetaverse.Voice.WebRTC
                 _log.Warn("WebRTC voice is disabled due to unsupported voice version", Client);
                 return false;
             }
+
+            // Initialize current region handle
+            _currentRegionHandle = Client.Network.CurrentSim?.Handle ?? 0;
 
             // Request parcel voice info to determine if we need multi-agent or local
             var parcelInfoSuccess = await RequestParcelVoiceInfo();
@@ -142,6 +370,14 @@ namespace LibreMetaverse.Voice.WebRTC
         {
             if (CurrentSession == null) { return; }
 
+            // Unregister region change handlers
+            try
+            {
+                Client.Network.SimChanged -= OnSimChanged;
+                Client.Self.TeleportProgress -= OnTeleport;
+            }
+            catch { }
+
             // detach handlers
             CurrentSession.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady;
             // Note: events forwarded via lambda can't be individually removed; rely on session disposal.
@@ -150,6 +386,7 @@ namespace LibreMetaverse.Voice.WebRTC
             CurrentSession = null;
             _channelId = null;
             _channelCredentials = null;
+            _currentRegionHandle = 0;
         }
 
         public void SendGlobalPosition()
