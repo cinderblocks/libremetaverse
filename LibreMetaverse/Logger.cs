@@ -282,7 +282,7 @@ namespace OpenMetaverse
             if (!_logger.IsEnabled(level)) { return; }
 
             // Use structured logging and pass object directly to avoid ToString allocation
-            // Include client name as structured property when available
+            // Include client name in brackets when available
             if (exception != null)
             {
                 if (!string.IsNullOrEmpty(clientName))
@@ -293,7 +293,7 @@ namespace OpenMetaverse
             else
             {
                 if (!string.IsNullOrEmpty(clientName))
-                    _logger.Log(level, "{Client} {Message}", clientName, message);
+                    _logger.Log(level, "[{Client}] {Message}", clientName, message);
                 else
                     _logger.Log(level, "{Message}", message);
             }

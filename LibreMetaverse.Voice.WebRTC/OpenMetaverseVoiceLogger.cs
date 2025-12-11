@@ -33,29 +33,38 @@ namespace LibreMetaverse.Voice.WebRTC
     {
         private const string _prefix = "[Voice.WebRTC] ";
 
+        private string FormatMessage(string message, GridClient client)
+        {
+            if (client != null && client.Settings.LOG_NAMES && client.Self?.Name != null)
+            {
+                return $"{_prefix}[{client.Self.Name}] {message}";
+            }
+            return _prefix + message;
+        }
+
         public void Log(string message, LogLevel level, GridClient client = null)
         {
-            Logger.Log(_prefix + message, level, client);
+            Logger.Log(FormatMessage(message, client), level, (GridClient)null, (System.Exception)null);
         }
 
         public void Info(string message, GridClient client = null)
         {
-            Logger.Info(_prefix + message, client);
+            Logger.Info(FormatMessage(message, client), (GridClient)null);
         }
 
         public void Warn(string message, GridClient client = null)
         {
-            Logger.Warn(_prefix + message, client);
+            Logger.Warn(FormatMessage(message, client), (GridClient)null);
         }
 
         public void Debug(string message, GridClient client = null)
         {
-            Logger.Debug(_prefix + message, client);
+            Logger.Debug(FormatMessage(message, client), (GridClient)null);
         }
 
         public void Error(string message, GridClient client = null)
         {
-            Logger.Error(_prefix + message, client);
+            Logger.Error(FormatMessage(message, client), (GridClient)null);
         }
     }
 }
