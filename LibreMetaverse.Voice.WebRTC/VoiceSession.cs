@@ -2043,15 +2043,15 @@ namespace LibreMetaverse.Voice.WebRTC
             var h = Client.Self.RelativeRotation;
 
             // Convert to centimeters and integers
-            int posX = (int)(pos.X * 100);
-            int posY = (int)(pos.Y * 100);
-            int posZ = (int)(pos.Z);
+            int posX = (int)Math.Round(pos.X * 100);
+            int posY = (int)Math.Round(pos.Y * 100);
+            int posZ = (int)Math.Round(pos.Z * 100);
 
             // Multiply quaternion by 100 and convert to int
-            int headX = (int)(h.X * 100);
-            int headY = (int)(h.Y * 100);
-            int headZ = (int)(h.Z);
-            int headW = (int)(h.W * 100);
+            int headX = (int)Math.Round(h.X * 100);
+            int headY = (int)Math.Round(h.Y * 100);
+            int headZ = (int)Math.Round(h.Z * 100);
+            int headW = (int)Math.Round(h.W * 100);
 
             JsonWriter jw = new JsonWriter();
             jw.WriteObjectStart();
@@ -2108,16 +2108,43 @@ namespace LibreMetaverse.Voice.WebRTC
                 int headZ = (int)Math.Round(heading.Z * 100);
                 int headW = (int)Math.Round(heading.W * 100);
 
-                var json = "{" +
-                           "\"sp\":{" +
-                           "\"x\":" + posX + ",\"y\":" + posY + ",\"z\":" + posZ + "}" +
-                           ",\"sh\":{" +
-                           "\"x\":" + headX + ",\"y\":" + headY + ",\"z\":" + headZ + ",\"w\":" + headW + "}" +
-                           ",\"lp\":{" +
-                           "\"x\":" + posX + ",\"y\":" + posY + ",\"z\":" + posZ + "}" +
-                           ",\"lh\":{" +
-                           "\"x\":" + headX + ",\"y\":" + headY + ",\"z\":" + headZ + ",\"w\":" + headW + "}" +
-                           "}";
+                // Build JSON using JsonWriter to avoid manual concatenation issues
+                var jw = new JsonWriter();
+                jw.WriteObjectStart();
+
+                jw.WritePropertyName("sp");
+                jw.WriteObjectStart();
+                jw.WritePropertyName("x"); jw.Write(posX);
+                jw.WritePropertyName("y"); jw.Write(posY);
+                jw.WritePropertyName("z"); jw.Write(posZ);
+                jw.WriteObjectEnd();
+
+                jw.WritePropertyName("sh");
+                jw.WriteObjectStart();
+                jw.WritePropertyName("x"); jw.Write(headX);
+                jw.WritePropertyName("y"); jw.Write(headY);
+                jw.WritePropertyName("z"); jw.Write(headZ);
+                jw.WritePropertyName("w"); jw.Write(headW);
+                jw.WriteObjectEnd();
+
+                jw.WritePropertyName("lp");
+                jw.WriteObjectStart();
+                jw.WritePropertyName("x"); jw.Write(posX);
+                jw.WritePropertyName("y"); jw.Write(posY);
+                jw.WritePropertyName("z"); jw.Write(posZ);
+                jw.WriteObjectEnd();
+
+                jw.WritePropertyName("lh");
+                jw.WriteObjectStart();
+                jw.WritePropertyName("x"); jw.Write(headX);
+                jw.WritePropertyName("y"); jw.Write(headY);
+                jw.WritePropertyName("z"); jw.Write(headZ);
+                jw.WritePropertyName("w"); jw.Write(headW);
+                jw.WriteObjectEnd();
+
+                jw.WriteObjectEnd();
+
+                var json = jw.ToString();
 
                 _log.Debug($"Sending Position: {json}", Client);
                 TrySendDataChannelString(json);
