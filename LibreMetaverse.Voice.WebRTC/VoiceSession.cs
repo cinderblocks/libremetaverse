@@ -367,13 +367,13 @@ namespace LibreMetaverse.Voice.WebRTC
 
             pc.OnRtpPacketReceived += (IPEndPoint remoteEndPoint, SDPMediaTypesEnum mediaType, RTPPacket rtpPacket) =>
             {
-               // Logger.Log($"OnRtpPacketReceived fired for mediaType: {mediaType}", Helpers.LogLevel.Info, Client);
-               // Logger.Log($"RTP: {rtpPacket.Payload.Length} bytes, PT={rtpPacket.Header.PayloadType}, Seq={rtpPacket.Header.SequenceNumber}, TS={rtpPacket.Header.Timestamp}", Helpers.LogLevel.Debug, Client);
+                // Logger.Log($"OnRtpPacketReceived fired for mediaType: {mediaType}", Helpers.LogLevel.Info, Client);
+                // Logger.Log($"RTP: {rtpPacket.Payload.Length} bytes, PT={rtpPacket.Header.PayloadType}, Seq={rtpPacket.Header.SequenceNumber}, TS={rtpPacket.Header.Timestamp}", Helpers.LogLevel.Debug, Client);
                 if (mediaType == SDPMediaTypesEnum.audio)
                 {
-                  //  Logger.Log($"RTP Audio: {rtpPacket.Payload.Length} bytes, " +
-                        //      $"PT={rtpPacket.Header.PayloadType}, " +
- // $"Seq={rtpPacket.Header.SequenceNumber}, " +
+                    //  Logger.Log($"RTP Audio: {rtpPacket.Payload.Length} bytes, " +
+                    //      $"PT={rtpPacket.Header.PayloadType}, " +
+                    // $"Seq={rtpPacket.Header.SequenceNumber}, " +
                     //          $"TS={rtpPacket.Header.Timestamp}",
                     //    Helpers.LogLevel.Debug, Client);
 
@@ -660,7 +660,7 @@ namespace LibreMetaverse.Voice.WebRTC
                         try { await AudioDevice.StopPlaybackAsync().ConfigureAwait(false); } catch { }
                         try { AudioDevice.StopRecording(); } catch { }
                     }
-                    
+
                     // For failed/disconnected states, log but don't immediately trigger OnPeerConnectionClosed
                     // to allow the reprovision logic to handle recovery
                     if (state == RTCPeerConnectionState.closed)
@@ -1023,14 +1023,16 @@ namespace LibreMetaverse.Voice.WebRTC
                     // Helper functions (available to entire Json path)
                     int? ToInt(JsonData d)
                     {
-                        try {
+                        try
+                        {
                             if (d == null) { return null; }
                             if (d.IsInt) { return (int)d; }
                             if (d.IsLong) { return (int)(long)d; }
                             if (d.IsDouble) { return (int)(double)d; }
-                            var s = d.ToString(); 
+                            var s = d.ToString();
                             if (int.TryParse(s, out var v)) { return v; }
-                        } catch { }
+                        }
+                        catch { }
                         return null;
                     }
 
@@ -1043,7 +1045,8 @@ namespace LibreMetaverse.Voice.WebRTC
                             var s = d.ToString().Trim('"');
                             if (bool.TryParse(s, out var b)) { return b; }
                             if (int.TryParse(s, out var i)) { return i != 0; }
-                        } catch { }
+                        }
+                        catch { }
                         return null;
                     }
 
@@ -1104,9 +1107,9 @@ namespace LibreMetaverse.Voice.WebRTC
                                     // Set new mappings
                                     SsrcToPeer.AddOrUpdate(ssrc, peerId, (k, v) => peerId);
                                     PeerToSsrc.AddOrUpdate(peerId, ssrc, (k, v) => ssrc);
-                                 }
-                             }
-                             catch { }
+                                }
+                            }
+                            catch { }
 
                             if (peerDict != null && peerDict.Contains("j") && peerMap["j"].IsObject)
                             {
@@ -1334,19 +1337,19 @@ namespace LibreMetaverse.Voice.WebRTC
                         var toRemove = Peers.Keys.Except(list).ToList();
                         foreach (var r in toRemove) RemovePeer(r);
                         OnPeerListUpdated?.Invoke(list);
-                     }
-                     else if (jdContains != null && contains(jdContains, "a") && jd["a"].IsObject)
-                     {
-                         var amap = jd["a"];
-                         IDictionary amapDict = amap;
-                         var list = new List<UUID>();
-                         if (amapDict != null)
-                         {
-                             foreach (var keyObj in amapDict.Keys)
-                             {
-                                 var key = keyObj as string;
-                                 if (UUID.TryParse(key, out var id))
-                                 {
+                    }
+                    else if (jdContains != null && contains(jdContains, "a") && jd["a"].IsObject)
+                    {
+                        var amap = jd["a"];
+                        IDictionary amapDict = amap;
+                        var list = new List<UUID>();
+                        if (amapDict != null)
+                        {
+                            foreach (var keyObj in amapDict.Keys)
+                            {
+                                var key = keyObj as string;
+                                if (UUID.TryParse(key, out var id))
+                                {
                                     // Treat empty/null value as leave
                                     try
                                     {
@@ -1368,15 +1371,15 @@ namespace LibreMetaverse.Voice.WebRTC
                                     catch { }
 
                                     list.Add(id);
-                                 }
-                             }
-                         }
+                                }
+                            }
+                        }
 
-                         foreach (var id in list) Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v);
-                         var toRemoveA = Peers.Keys.Except(list).ToList();
-                         foreach (var r in toRemoveA) RemovePeer(r);
-                         OnPeerListUpdated?.Invoke(list);
-                     }
+                        foreach (var id in list) Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v);
+                        var toRemoveA = Peers.Keys.Except(list).ToList();
+                        foreach (var r in toRemoveA) RemovePeer(r);
+                        OnPeerListUpdated?.Invoke(list);
+                    }
 
                     return;
                 }
@@ -1420,6 +1423,241 @@ namespace LibreMetaverse.Voice.WebRTC
             _log.Debug($"Setting gain for peer {peerId} to {gain}", Client);
             TrySendDataChannelString(json);
         }
+
+        // --- Data-channel message helpers (viewer <-> mixer protocol) ---
+
+        public bool SendJoin(bool primary = true)
+        {
+            try
+            {
+                var jw = new JsonWriter();
+                jw.WriteObjectStart();
+                jw.WritePropertyName("j");
+                jw.WriteObjectStart();
+                jw.WritePropertyName("p"); jw.Write(primary);
+                jw.WriteObjectEnd();
+                jw.WriteObjectEnd();
+                var s = jw.ToString();
+                _log.Debug($"Sending data-channel join: {s}", Client);
+                return TrySendDataChannelString(s);
+            }
+            catch (Exception ex)
+            {
+                _log.Debug($"Failed to send join on data channel: {ex.Message}", Client);
+                return false;
+            }
+        }
+
+        public bool SendLeave()
+        {
+            try
+            {
+                var jw = new JsonWriter();
+                jw.WriteObjectStart();
+                jw.WritePropertyName("l"); jw.Write(true);
+                jw.WriteObjectEnd();
+                var s = jw.ToString();
+                _log.Debug($"Sending data-channel leave: {s}", Client);
+                return TrySendDataChannelString(s);
+            }
+            catch (Exception ex)
+            {
+                _log.Debug($"Failed to send leave on data channel: {ex.Message}", Client);
+                return false;
+            }
+        }
+
+        public bool SendPosition(Vector3d globalPos, Quaternion heading)
+        {
+            try
+            {
+                int posX = (int)Math.Round(globalPos.X * 100);
+                int posY = (int)Math.Round(globalPos.Y * 100);
+                int posZ = (int)Math.Round(globalPos.Z * 100);
+
+                int headX = (int)Math.Round(heading.X * 100);
+                int headY = (int)Math.Round(heading.Y * 100);
+                int headZ = (int)Math.Round(heading.Z * 100);
+                int headW = (int)Math.Round(heading.W * 100);
+
+                var jw = new JsonWriter();
+                jw.WriteObjectStart();
+
+                jw.WritePropertyName("sp");
+                jw.WriteObjectStart();
+                jw.WritePropertyName("x"); jw.Write(posX);
+                jw.WritePropertyName("y"); jw.Write(posY);
+                jw.WritePropertyName("z"); jw.Write(posZ);
+                jw.WriteObjectEnd();
+
+                jw.WritePropertyName("sh");
+                jw.WriteObjectStart();
+                jw.WritePropertyName("x"); jw.Write(headX);
+                jw.WritePropertyName("y"); jw.Write(headY);
+                jw.WritePropertyName("z"); jw.Write(headZ);
+                jw.WritePropertyName("w"); jw.Write(headW);
+                jw.WriteObjectEnd();
+
+                jw.WritePropertyName("lp");
+                jw.WriteObjectStart();
+                jw.WritePropertyName("x"); jw.Write(posX);
+                jw.WritePropertyName("y"); jw.Write(posY);
+                jw.WritePropertyName("z"); jw.Write(posZ);
+                jw.WriteObjectEnd();
+
+                jw.WritePropertyName("lh");
+                jw.WriteObjectStart();
+                jw.WritePropertyName("x"); jw.Write(headX);
+                jw.WritePropertyName("y"); jw.Write(headY);
+                jw.WritePropertyName("z"); jw.Write(headZ);
+                jw.WritePropertyName("w"); jw.Write(headW);
+                jw.WriteObjectEnd();
+
+                jw.WriteObjectEnd();
+
+                var s = jw.ToString();
+                _log.Debug($"Sending explicit position: {s}", Client);
+
+                var ok = TrySendDataChannelString(s);
+
+                lastSentGlobalPos = globalPos;
+                lastSentHeading = heading;
+                mSpatialCoordsDirty = false;
+
+                return ok;
+            }
+            catch (Exception ex)
+            {
+                _log.Warn($"Failed to send position on data channel: {ex.Message}", Client);
+                return false;
+            }
+        }
+
+        public bool SendAvatarArray(List<UUID> avatars)
+        {
+            try
+            {
+                var jw = new JsonWriter();
+                jw.WriteObjectStart();
+                jw.WritePropertyName("av");
+                jw.WriteArrayStart();
+                if (avatars != null)
+                {
+                    foreach (var id in avatars)
+                    {
+                        jw.Write(id.ToString());
+                    }
+                }
+                jw.WriteArrayEnd();
+                jw.WriteObjectEnd();
+
+                var s = jw.ToString();
+                _log.Debug($"Sending avatar array: {s}", Client);
+                return TrySendDataChannelString(s);
+            }
+            catch (Exception ex)
+            {
+                _log.Debug($"Failed to send avatar array: {ex.Message}", Client);
+                return false;
+            }
+        }
+
+        public bool SendAvatarMap(IEnumerable<UUID> avatars)
+        {
+            try
+            {
+                var jw = new JsonWriter();
+                jw.WriteObjectStart();
+                jw.WritePropertyName("a");
+                jw.WriteObjectStart();
+                if (avatars != null)
+                {
+                    foreach (var id in avatars)
+                    {
+                        jw.WritePropertyName(id.ToString());
+                        jw.WriteObjectStart();
+                        jw.WriteObjectEnd();
+                    }
+                }
+                jw.WriteObjectEnd();
+                jw.WriteObjectEnd();
+
+                var s = jw.ToString();
+                _log.Debug($"Sending avatar map: {s}", Client);
+                return TrySendDataChannelString(s);
+            }
+            catch (Exception ex)
+            {
+                _log.Debug($"Failed to send avatar map: {ex.Message}", Client);
+                return false;
+            }
+        }
+
+        public bool SendMuteMap(Dictionary<UUID, bool> muteMap)
+        {
+            try
+            {
+                var jw = new JsonWriter();
+                jw.WriteObjectStart();
+                jw.WritePropertyName("m");
+                jw.WriteObjectStart();
+                if (muteMap != null)
+                {
+                    foreach (var kv in muteMap)
+                    {
+                        jw.WritePropertyName(kv.Key.ToString());
+                        jw.Write(kv.Value);
+                    }
+                }
+                jw.WriteObjectEnd();
+                jw.WriteObjectEnd();
+
+                var s = jw.ToString();
+                _log.Debug($"Sending mute map: {s}", Client);
+                return TrySendDataChannelString(s);
+            }
+            catch (Exception ex)
+            {
+                _log.Debug($"Failed to send mute map: {ex.Message}", Client);
+                return false;
+            }
+        }
+
+        public bool SendGainMap(Dictionary<UUID, int> gainMap)
+        {
+            try
+            {
+                var jw = new JsonWriter();
+                jw.WriteObjectStart();
+                jw.WritePropertyName("ug");
+                jw.WriteObjectStart();
+                if (gainMap != null)
+                {
+                    foreach (var kv in gainMap)
+                    {
+                        jw.WritePropertyName(kv.Key.ToString());
+                        jw.Write(kv.Value);
+                    }
+                }
+                jw.WriteObjectEnd();
+                jw.WriteObjectEnd();
+
+                var s = jw.ToString();
+                _log.Debug($"Sending gain map: {s}", Client);
+                return TrySendDataChannelString(s);
+            }
+            catch (Exception ex)
+            {
+                _log.Debug($"Failed to send gain map: {ex.Message}", Client);
+                return false;
+            }
+        }
+
+        public bool SendPing() => TrySendDataChannelString("{\"ping\":true}");
+        public bool SendPong() => TrySendDataChannelString("{\"pong\":true}");
+
+        // --- end data-channel message helpers ---
+
         private Task IceTrickleStart(CancellationToken external = default)
         {
             // If a trickle task is already running, just return it
@@ -1487,12 +1725,12 @@ namespace LibreMetaverse.Voice.WebRTC
                     }
                 }
             }
-          }
+        }
 
-          private async Task IceTrickleStop()
-          {
-              while (true)
-              {
+        private async Task IceTrickleStop()
+        {
+            while (true)
+            {
                 if (GetPendingCandidateCount() > 0)
                 {
                     await Task.Delay(TimeSpan.FromSeconds(1));
@@ -1501,14 +1739,14 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     break;
                 }
-              }
+            }
 
-              if (PeerConnection != null && PeerConnection.iceGatheringState == RTCIceGatheringState.complete)
-              {
-                  iceTrickleCts?.Cancel();
-                  await SendVoiceSignalingCompleteRequest().ConfigureAwait(false);
-              }
-          }
+            if (PeerConnection != null && PeerConnection.iceGatheringState == RTCIceGatheringState.complete)
+            {
+                iceTrickleCts?.Cancel();
+                await SendVoiceSignalingCompleteRequest().ConfigureAwait(false);
+            }
+        }
 
         // Schedule a reprovision attempt using exponential backoff. Prevents immediate retry storms
         // and adds diagnostic logging for each attempt.
@@ -1557,95 +1795,95 @@ namespace LibreMetaverse.Voice.WebRTC
                 }
             }, Cts.Token);
         }
-          private string SanitizeRemoteSdp(string sdp)
-          {
-              if (string.IsNullOrEmpty(sdp)) { return sdp; }
-              var sb = new StringBuilder();
-              var lines = sdp.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-              foreach (var line in lines)
-              {
-                  // Drop candidate lines that contain a literal port 0 (invalid)
-                  if (line.StartsWith("a=candidate:", StringComparison.OrdinalIgnoreCase))
-                  {
-                      // Regex to find whitespace + port number + whitespace before typ or end
-                      // Candidate format contains the port as the 5th token. Simpler check for ' 0 ' is sufficient.
-                      if (Regex.IsMatch(line, "\\s0\\s"))
-                      {
-                          _log.Debug($"Dropping remote ICE candidate with port 0: {line}", Client);
-                          continue;
-                      }
-                  }
+        private string SanitizeRemoteSdp(string sdp)
+        {
+            if (string.IsNullOrEmpty(sdp)) { return sdp; }
+            var sb = new StringBuilder();
+            var lines = sdp.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                // Drop candidate lines that contain a literal port 0 (invalid)
+                if (line.StartsWith("a=candidate:", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Regex to find whitespace + port number + whitespace before typ or end
+                    // Candidate format contains the port as the 5th token. Simpler check for ' 0 ' is sufficient.
+                    if (Regex.IsMatch(line, "\\s0\\s"))
+                    {
+                        _log.Debug($"Dropping remote ICE candidate with port 0: {line}", Client);
+                        continue;
+                    }
+                }
 
-                  sb.AppendLine(line);
-              }
-              return sb.ToString();
-          }
+                sb.AppendLine(line);
+            }
+            return sb.ToString();
+        }
 
-          private string ProcessLocalSdp(string sdp)
-          {
-              var lines = sdp.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-              var output = new List<string>();
-              string opusPayload = null;
-              bool inAudioSection = false;
+        private string ProcessLocalSdp(string sdp)
+        {
+            var lines = sdp.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            var output = new List<string>();
+            string opusPayload = null;
+            bool inAudioSection = false;
 
-              foreach (var line in lines)
-              {
-                  if (line.StartsWith("m=audio"))
-                  {
-                      inAudioSection = true;
-                      output.Add(line);
-                      continue;
-                  }
+            foreach (var line in lines)
+            {
+                if (line.StartsWith("m=audio"))
+                {
+                    inAudioSection = true;
+                    output.Add(line);
+                    continue;
+                }
 
-                  if (inAudioSection && line.StartsWith("m="))
-                  {
-                      inAudioSection = false;
-                  }
+                if (inAudioSection && line.StartsWith("m="))
+                {
+                    inAudioSection = false;
+                }
 
-                  if (line.Contains("opus/48000"))
-                  {
-                      var match = Regex.Match(line, @"a=rtpmap:(\d+)\s+opus");
-                      if (match.Success)
-                      {
-                          opusPayload = match.Groups[1].Value;
-                          output.Add($"a=rtpmap:{opusPayload} opus/48000/2");
-                          continue;
-                      }
-                  }
+                if (line.Contains("opus/48000"))
+                {
+                    var match = Regex.Match(line, @"a=rtpmap:(\d+)\s+opus");
+                    if (match.Success)
+                    {
+                        opusPayload = match.Groups[1].Value;
+                        output.Add($"a=rtpmap:{opusPayload} opus/48000/2");
+                        continue;
+                    }
+                }
 
-                  if (!string.IsNullOrEmpty(opusPayload) && line.StartsWith($"a=fmtp:{opusPayload}"))
-                  {
-                      // EXACT parameters from spec - no extras
-                      var fmtp = "minptime=10;useinbandfec=1;stereo=1;sprop-stereo=1;maxplaybackrate=48000";
-                      output.Add($"a=fmtp:{opusPayload} {fmtp}");
-                      continue;
-                  }
+                if (!string.IsNullOrEmpty(opusPayload) && line.StartsWith($"a=fmtp:{opusPayload}"))
+                {
+                    // EXACT parameters from spec - no extras
+                    var fmtp = "minptime=10;useinbandfec=1;stereo=1;sprop-stereo=1;maxplaybackrate=48000";
+                    output.Add($"a=fmtp:{opusPayload} {fmtp}");
+                    continue;
+                }
 
-                  output.Add(line);
-              }
+                output.Add(line);
+            }
 
-              return string.Join("\r\n", output);
-          }
+            return string.Join("\r\n", output);
+        }
 
-          private async Task AttemptReprovisionAsync()
-          {
-              // Ensure only one reprovision runs at a time
-              if (!await reprovisionLock.WaitAsync(0))
-              {
-                  _log.Debug("Reprovision already in progress, skipping.", Client);
-                  return;
-              }
+        private async Task AttemptReprovisionAsync()
+        {
+            // Ensure only one reprovision runs at a time
+            if (!await reprovisionLock.WaitAsync(0))
+            {
+                _log.Debug("Reprovision already in progress, skipping.", Client);
+                return;
+            }
 
-              try
-              {
-                  _log.Debug($"Starting reprovision for session {SessionId}", Client);
+            try
+            {
+                _log.Debug($"Starting reprovision for session {SessionId}", Client);
 
-                  // Store recording state before closing
-                  bool wasRecording = AudioDevice?.Source != null && AudioDevice.RecordingActive;
-                  bool wasPlaybackActive = AudioDevice?.EndPoint != null && AudioDevice.PlaybackActive;
+                // Store recording state before closing
+                bool wasRecording = AudioDevice?.Source != null && AudioDevice.RecordingActive;
+                bool wasPlaybackActive = AudioDevice?.EndPoint != null && AudioDevice.PlaybackActive;
 
-                  try
-                  {
+                try
+                {
                     // Stop audio before closing peer connection
                     if (AudioDevice != null)
                     {
@@ -1668,53 +1906,53 @@ namespace LibreMetaverse.Voice.WebRTC
                         }
                         try { PeerConnection.Close("Reprovision"); } catch { }
                     }
-                  }
-                  catch (Exception ex)
-                  {
-                      _log.Warn($"Error closing peer connection during reprovision: {ex.Message}", Client);
-                  }
+                }
+                catch (Exception ex)
+                {
+                    _log.Warn($"Error closing peer connection during reprovision: {ex.Message}", Client);
+                }
 
-                  // Cancel any existing trickle loop
-                  try { iceTrickleCts?.Cancel(); } catch { }
+                // Cancel any existing trickle loop
+                try { iceTrickleCts?.Cancel(); } catch { }
 
-                  // Reset answer flag to ensure ICE candidates wait for new answer
-                  answerReceived = false;
+                // Reset answer flag to ensure ICE candidates wait for new answer
+                answerReceived = false;
 
-                  // Clear all known peers and audio state before reprovisioning
-                  try { ClearAllPeers(); } catch { }
+                // Clear all known peers and audio state before reprovisioning
+                try { ClearAllPeers(); } catch { }
 
-                  // Create a new peer connection
-                  RTCPeerConnection newPc = null;
-                  try
-                  {
-                      newPc = await CreatePeerConnection();
-                  }
-                  catch (Exception ex)
-                  {
-                      _log.Warn($"Failed to create new RTCPeerConnection during reprovision: {ex.Message}", Client);
-                  }
+                // Create a new peer connection
+                RTCPeerConnection newPc = null;
+                try
+                {
+                    newPc = await CreatePeerConnection();
+                }
+                catch (Exception ex)
+                {
+                    _log.Warn($"Failed to create new RTCPeerConnection during reprovision: {ex.Message}", Client);
+                }
 
-                  if (newPc != null)
-                  {
-                      PeerConnection = newPc;
+                if (newPc != null)
+                {
+                    PeerConnection = newPc;
 
-                      // Start trickle loop
-                      _ = IceTrickleStart();
+                    // Start trickle loop
+                    _ = IceTrickleStart();
 
-                      // Re-request provisioning from the simulator
-                      try
-                      {
-                          var ok = await RequestProvision();
-                          if (ok)
-                          {
-                              _log.Debug($"Reprovision completed, new session {SessionId}", Client);
-                              
-                              // Restore audio state after successful reprovision
-                              if (AudioDevice != null)
-                              {
+                    // Re-request provisioning from the simulator
+                    try
+                    {
+                        var ok = await RequestProvision();
+                        if (ok)
+                        {
+                            _log.Debug($"Reprovision completed, new session {SessionId}", Client);
+
+                            // Restore audio state after successful reprovision
+                            if (AudioDevice != null)
+                            {
                                 // Wait a moment for peer connection to stabilize
                                 await Task.Delay(500).ConfigureAwait(false);
-                                
+
 
                                 if (wasRecording)
                                 {
@@ -1724,375 +1962,375 @@ namespace LibreMetaverse.Voice.WebRTC
                                 {
                                     try { await AudioDevice.StartPlaybackAsync().ConfigureAwait(false); } catch (Exception ex) { _log.Warn($"Failed to restart playback after reprovision: {ex.Message}", Client); }
                                 }
-                              }
+                            }
 
-                              try { OnReprovisionSucceeded?.Invoke(); } catch { }
-                          }
-                          else
-                          {
-                              _log.Warn("Reprovision failed: client not connected to network.", Client);
-                              try { OnReprovisionFailed?.Invoke(new Exception("Client not connected to network")); } catch { }
-                          }
-                      }
-                      catch (Exception ex)
-                      {
-                          _log.Warn($"Reprovision RequestProvision failed: {ex.Message}", Client);
-                          try { OnReprovisionFailed?.Invoke(ex); } catch { }
-                      }
-                  }
-                  else
-                  {
-                      var ex = new Exception("Failed to create new RTCPeerConnection during reprovision");
-                      try { OnReprovisionFailed?.Invoke(ex); } catch { }
-                  }
-              }
-              finally
-              {
-                   reprovisionLock.Release();
-              }
-          }
+                            try { OnReprovisionSucceeded?.Invoke(); } catch { }
+                        }
+                        else
+                        {
+                            _log.Warn("Reprovision failed: client not connected to network.", Client);
+                            try { OnReprovisionFailed?.Invoke(new Exception("Client not connected to network")); } catch { }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Warn($"Reprovision RequestProvision failed: {ex.Message}", Client);
+                        try { OnReprovisionFailed?.Invoke(ex); } catch { }
+                    }
+                }
+                else
+                {
+                    var ex = new Exception("Failed to create new RTCPeerConnection during reprovision");
+                    try { OnReprovisionFailed?.Invoke(ex); } catch { }
+                }
+            }
+            finally
+            {
+                reprovisionLock.Release();
+            }
+        }
 
-          private OSDMap GetWorldPosition()
-          {
-              var pos = Client?.Self?.GlobalPosition ?? Vector3.Zero;
-              var heading = Client?.Self?.RelativeRotation * 100;
+        private OSDMap GetWorldPosition()
+        {
+            var pos = Client?.Self?.GlobalPosition ?? Vector3.Zero;
+            var heading = Client?.Self?.RelativeRotation * 100;
 
-              if (pos == Vector3.Zero)
-              {
-                  _log.Warn("Global position unavailable — returning zeroed map", Client);
-                  var zero = new OSDMap
-                  {
-                      ["x"] = 0,
-                      ["y"] = 0,
-                      ["z"] = 0
-                  };
+            if (pos == Vector3.Zero)
+            {
+                _log.Warn("Global position unavailable — returning zeroed map", Client);
+                var zero = new OSDMap
+                {
+                    ["x"] = 0,
+                    ["y"] = 0,
+                    ["z"] = 0
+                };
 
-                  return new OSDMap
-                  {
-                      ["sp"] = zero,
-                      ["lp"] = zero,
-                      ["sh"] = zero,
-                      ["lh"] = zero
-                  };
-              }
+                return new OSDMap
+                {
+                    ["sp"] = zero,
+                    ["lp"] = zero,
+                    ["sh"] = zero,
+                    ["lh"] = zero
+                };
+            }
 
-              var sp = new OSDMap
-              {
-                  ["x"] = pos.X,
-                  ["y"] = pos.Y,
-                  ["z"] = pos.Z
-              };
+            var sp = new OSDMap
+            {
+                ["x"] = pos.X,
+                ["y"] = pos.Y,
+                ["z"] = pos.Z
+            };
 
-              var sh = new OSDMap
-              {
-                  ["x"] = heading.Value.X,
-                  ["y"] = heading.Value.Y,
-                  ["z"] = heading.Value.Z
-              };
+            var sh = new OSDMap
+            {
+                ["x"] = heading.Value.X,
+                ["y"] = heading.Value.Y,
+                ["z"] = heading.Value.Z
+            };
 
-              return new OSDMap
-              {
-                  ["sp"] = sp,
-                  ["lp"] = sp,
-                  ["sh"] = sh,
-                  ["lh"] = sh
-              };
-          }
-          // Alternative using the existing SendGlobalPosition method - FIXED VERSION
-          public string SendGlobalPosition()
-          {
-              var pos = Client.Self.GlobalPosition;
-              var h = Client.Self.RelativeRotation;
+            return new OSDMap
+            {
+                ["sp"] = sp,
+                ["lp"] = sp,
+                ["sh"] = sh,
+                ["lh"] = sh
+            };
+        }
+        // Alternative using the existing SendGlobalPosition method - FIXED VERSION
+        public string SendGlobalPosition()
+        {
+            var pos = Client.Self.GlobalPosition;
+            var h = Client.Self.RelativeRotation;
 
-              // Convert to centimeters and integers
-              int posX = (int)(pos.X * 100);
-              int posY = (int)(pos.Y * 100);
-              int posZ = (int)(pos.Z);
+            // Convert to centimeters and integers
+            int posX = (int)(pos.X * 100);
+            int posY = (int)(pos.Y * 100);
+            int posZ = (int)(pos.Z);
 
-              // Multiply quaternion by 100 and convert to int
-              int headX = (int)(h.X * 100);
-              int headY = (int)(h.Y * 100);
-              int headZ = (int)(h.Z);
-              int headW = (int)(h.W * 100);
+            // Multiply quaternion by 100 and convert to int
+            int headX = (int)(h.X * 100);
+            int headY = (int)(h.Y * 100);
+            int headZ = (int)(h.Z);
+            int headW = (int)(h.W * 100);
 
-              JsonWriter jw = new JsonWriter();
-              jw.WriteObjectStart();
+            JsonWriter jw = new JsonWriter();
+            jw.WriteObjectStart();
 
-              jw.WritePropertyName("sp");
-              jw.WriteObjectStart();
-              jw.WritePropertyName("x");
-              jw.Write(posX);  // INTEGER, not float
-              jw.WritePropertyName("y");
-              jw.Write(posY);
-              jw.WritePropertyName("z");
-              jw.Write(posZ);
-              jw.WriteObjectEnd();
+            jw.WritePropertyName("sp");
+            jw.WriteObjectStart();
+            jw.WritePropertyName("x");
+            jw.Write(posX);  // INTEGER, not float
+            jw.WritePropertyName("y");
+            jw.Write(posY);
+            jw.WritePropertyName("z");
+            jw.Write(posZ);
+            jw.WriteObjectEnd();
 
-              jw.WritePropertyName("lp");
-              jw.WriteObjectStart();
-              jw.WritePropertyName("x");
-              jw.Write(posX);
-              jw.WritePropertyName("y");
-              jw.Write(posY);
-              jw.WritePropertyName("z");
-              jw.Write(posZ);
-              jw.WriteObjectEnd();
+            jw.WritePropertyName("lp");
+            jw.WriteObjectStart();
+            jw.WritePropertyName("x");
+            jw.Write(posX);
+            jw.WritePropertyName("y");
+            jw.Write(posY);
+            jw.WritePropertyName("z");
+            jw.Write(posZ);
+            jw.WriteObjectEnd();
 
-              jw.WriteObjectEnd();
+            jw.WriteObjectEnd();
 
-              return jw.ToString();
-          }
+            return jw.ToString();
+        }
 
 
 
-          // Sends a position update over the data channel (keeps last-sent tracking)
-          private void SendPositionUpdate(RTCDataChannel dc, Vector3d globalPos, Quaternion heading)
-          {
-              // Only send when flagged dirty
-              if (!mSpatialCoordsDirty) { return; }
+        // Sends a position update over the data channel (keeps last-sent tracking)
+        private void SendPositionUpdate(RTCDataChannel dc, Vector3d globalPos, Quaternion heading)
+        {
+            // Only send when flagged dirty
+            if (!mSpatialCoordsDirty) { return; }
 
-              // Avoid resending identical payloads
-              if (globalPos == lastSentGlobalPos && heading == lastSentHeading)
-              {
-                  mSpatialCoordsDirty = false; // nothing new
-                  return;
-              }
+            // Avoid resending identical payloads
+            if (globalPos == lastSentGlobalPos && heading == lastSentHeading)
+            {
+                mSpatialCoordsDirty = false; // nothing new
+                return;
+            }
 
-              try
-              {
-                  // Convert to integers per spec
-                  int posX = (int)Math.Round(globalPos.X * 100);
-                  int posY = (int)Math.Round(globalPos.Y * 100);
-                  int posZ = (int)Math.Round(globalPos.Z * 100);
+            try
+            {
+                // Convert to integers per spec
+                int posX = (int)Math.Round(globalPos.X * 100);
+                int posY = (int)Math.Round(globalPos.Y * 100);
+                int posZ = (int)Math.Round(globalPos.Z * 100);
 
-                  int headX = (int)Math.Round(heading.X * 100);
-                  int headY = (int)Math.Round(heading.Y * 100);
-                  int headZ = (int)Math.Round(heading.Z * 100);
-                  int headW = (int)Math.Round(heading.W * 100);
+                int headX = (int)Math.Round(heading.X * 100);
+                int headY = (int)Math.Round(heading.Y * 100);
+                int headZ = (int)Math.Round(heading.Z * 100);
+                int headW = (int)Math.Round(heading.W * 100);
 
-                  var json = "{" +
-                             "\"sp\":{" +
-                             "\"x\":" + posX + ",\"y\":" + posY + ",\"z\":" + posZ + "}" +
-                             ",\"sh\":{" +
-                             "\"x\":" + headX + ",\"y\":" + headY + ",\"z\":" + headZ + ",\"w\":" + headW + "}" +
-                             ",\"lp\":{" +
-                             "\"x\":" + posX + ",\"y\":" + posY + ",\"z\":" + posZ + "}" +
-                             ",\"lh\":{" +
-                             "\"x\":" + headX + ",\"y\":" + headY + ",\"z\":" + headZ + ",\"w\":" + headW + "}" +
-                             "}";
+                var json = "{" +
+                           "\"sp\":{" +
+                           "\"x\":" + posX + ",\"y\":" + posY + ",\"z\":" + posZ + "}" +
+                           ",\"sh\":{" +
+                           "\"x\":" + headX + ",\"y\":" + headY + ",\"z\":" + headZ + ",\"w\":" + headW + "}" +
+                           ",\"lp\":{" +
+                           "\"x\":" + posX + ",\"y\":" + posY + ",\"z\":" + posZ + "}" +
+                           ",\"lh\":{" +
+                           "\"x\":" + headX + ",\"y\":" + headY + ",\"z\":" + headZ + ",\"w\":" + headW + "}" +
+                           "}";
 
-                  _log.Debug($"Sending Position: {json}", Client);
-                  TrySendDataChannelString(json);
+                _log.Debug($"Sending Position: {json}", Client);
+                TrySendDataChannelString(json);
 
-                  // Update last sent and clear dirty flag
-                  lastSentGlobalPos = globalPos;
-                  lastSentHeading = heading;
-                  mSpatialCoordsDirty = false;
-              }
-              catch (Exception ex)
-              {
-                  _log.Warn($"Position send error: {ex.Message}", Client);
-              }
-          }
+                // Update last sent and clear dirty flag
+                lastSentGlobalPos = globalPos;
+                lastSentHeading = heading;
+                mSpatialCoordsDirty = false;
+            }
+            catch (Exception ex)
+            {
+                _log.Warn($"Position send error: {ex.Message}", Client);
+            }
+        }
 
-          // Minimal implementation of RequestProvision to satisfy callers.
-          // The real implementation is more involved; this stub returns false.
-          public async Task<bool> RequestProvision()
-          {
-              if (Client?.Network == null || !Client.Network.Connected) { return false; }
-              _log.Debug("Requesting voice capability...", Client);
+        // Minimal implementation of RequestProvision to satisfy callers.
+        // The real implementation is more involved; this stub returns false.
+        public async Task<bool> RequestProvision()
+        {
+            if (Client?.Network == null || !Client.Network.Connected) { return false; }
+            _log.Debug("Requesting voice capability...", Client);
 
-              var cap = Client.Network.CurrentSim.Caps?.CapabilityURI(PROVISION_VOICE_ACCOUNT_CAP);
-              if (cap == null)
-              {
-                  throw new VoiceException($"No {PROVISION_VOICE_ACCOUNT_CAP} capability available.");
-              }
+            var cap = Client.Network.CurrentSim.Caps?.CapabilityURI(PROVISION_VOICE_ACCOUNT_CAP);
+            if (cap == null)
+            {
+                throw new VoiceException($"No {PROVISION_VOICE_ACCOUNT_CAP} capability available.");
+            }
 
-              switch (SessionType)
-              {
-                  case ESessionType.LOCAL:
-                      await RequestLocalVoiceProvision(cap);
-                      break;
-                  case ESessionType.MUTLIAGENT:
-                      await RequestMultiAgentVoiceProvision(cap);
-                      break;
-              }
+            switch (SessionType)
+            {
+                case ESessionType.LOCAL:
+                    await RequestLocalVoiceProvision(cap);
+                    break;
+                case ESessionType.MUTLIAGENT:
+                    await RequestMultiAgentVoiceProvision(cap);
+                    break;
+            }
 
-              return true;
-          }
+            return true;
+        }
 
-          private async Task RequestLocalVoiceProvision(Uri cap)
-          {
-              var parcelId = Client.Parcels.CurrentParcel?.LocalID ?? -1;
-              var payload = new LocalVoiceProvisionRequest(SdpLocal, parcelId).Serialize();
-              _log.Debug("==> Attempting to POST for voice provision...", Client);
-              if (Client?.HttpCapsClient == null)
-              {
-                  _log.Error("HttpCapsClient is null; cannot post provisioning request", Client);
-                  throw new VoiceException("Internal error: HttpCapsClient is null.");
-              }
-              var osd = await PostCapsWithRetries(cap, payload).ConfigureAwait(false);
-              _log.Debug("Received provisioning response", Client);
-              if (osd is OSDMap osdMap)
-              {
-                  if (!osdMap.TryGetValue("jsep", out var j))
-                  {
-                      throw new VoiceException($"Region '{Client.Network.CurrentSim.Name}' does not support WebRtc.");
-                  }
+        private async Task RequestLocalVoiceProvision(Uri cap)
+        {
+            var parcelId = Client.Parcels.CurrentParcel?.LocalID ?? -1;
+            var payload = new LocalVoiceProvisionRequest(SdpLocal, parcelId).Serialize();
+            _log.Debug("==> Attempting to POST for voice provision...", Client);
+            if (Client?.HttpCapsClient == null)
+            {
+                _log.Error("HttpCapsClient is null; cannot post provisioning request", Client);
+                throw new VoiceException("Internal error: HttpCapsClient is null.");
+            }
+            var osd = await PostCapsWithRetries(cap, payload).ConfigureAwait(false);
+            _log.Debug("Received provisioning response", Client);
+            if (osd is OSDMap osdMap)
+            {
+                if (!osdMap.TryGetValue("jsep", out var j))
+                {
+                    throw new VoiceException($"Region '{Client.Network.CurrentSim.Name}' does not support WebRtc.");
+                }
 
-                  var jsep = (OSDMap)j;
-                  if (jsep.ContainsKey("type") && jsep["type"].AsString() != "answer")
-                  {
-                      throw new VoiceException("jsep returned is not an answer.");
-                  }
+                var jsep = (OSDMap)j;
+                if (jsep.ContainsKey("type") && jsep["type"].AsString() != "answer")
+                {
+                    throw new VoiceException("jsep returned is not an answer.");
+                }
 
-                  var sdpString = jsep["sdp"].AsString();
-                  sdpString = SanitizeRemoteSdp(sdpString);
-                  var sessionId = osdMap.ContainsKey("viewer_session")
-                      ? osdMap["viewer_session"].AsUUID()
-                      : UUID.Zero;
+                var sdpString = jsep["sdp"].AsString();
+                sdpString = SanitizeRemoteSdp(sdpString);
+                var sessionId = osdMap.ContainsKey("viewer_session")
+                    ? osdMap["viewer_session"].AsUUID()
+                    : UUID.Zero;
 
-                  SessionId = sessionId;
+                SessionId = sessionId;
 
-                  // Set remote description
-                  if (PeerConnection == null)
-                  {
-                      _log.Error("PeerConnection unexpectedly null during RequestLocalVoiceProvision", Client);
-                      throw new VoiceException("Internal error: PeerConnection was null.");
-                  }
-                  var set = PeerConnection.SetRemoteDescription(
-                      SdpType.answer,
-                      SDP.ParseSDPDescription(sdpString)
-                  );
+                // Set remote description
+                if (PeerConnection == null)
+                {
+                    _log.Error("PeerConnection unexpectedly null during RequestLocalVoiceProvision", Client);
+                    throw new VoiceException("Internal error: PeerConnection was null.");
+                }
+                var set = PeerConnection.SetRemoteDescription(
+                    SdpType.answer,
+                    SDP.ParseSDPDescription(sdpString)
+                );
 
-                  if (set != SetDescriptionResultEnum.OK)
-                  {
-                      PeerConnection.Close("Failed to set remote description.");
-                      throw new VoiceException("Failed to set remote description.");
-                  }
+                if (set != SetDescriptionResultEnum.OK)
+                {
+                    PeerConnection.Close("Failed to set remote description.");
+                    throw new VoiceException("Failed to set remote description.");
+                }
 
-                  // CRITICAL: Set flag BEFORE flushing candidates
-                  answerReceived = true;
+                // CRITICAL: Set flag BEFORE flushing candidates
+                answerReceived = true;
 
-                  // Now flush any pending candidates
-                  await SendVoiceSignalingRequest().ConfigureAwait(false);
+                // Now flush any pending candidates
+                await SendVoiceSignalingRequest().ConfigureAwait(false);
 
-                  // Start a short watchdog: if the peer connection does not become connected
-                  // within a short timeout, schedule a reprovision attempt. This handles
-                  // cases where ICE/connectivity stalls after provisioning.
-                  Task.Run(async () =>
-                  {
-                      try
-                      {
-                          await Task.Delay(TimeSpan.FromSeconds(8)).ConfigureAwait(false);
-                          if (PeerConnection == null || PeerConnection.connectionState != RTCPeerConnectionState.connected)
-                          {
-                              _log.Warn("PeerConnection did not become connected after provisioning; scheduling reprovision.", Client);
-                              try { ScheduleReprovisionWithBackoff(); } catch { }
-                          }
-                      }
-                      catch { }
-                   });
+                // Start a short watchdog: if the peer connection does not become connected
+                // within a short timeout, schedule a reprovision attempt. This handles
+                // cases where ICE/connectivity stalls after provisioning.
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(8)).ConfigureAwait(false);
+                        if (PeerConnection == null || PeerConnection.connectionState != RTCPeerConnectionState.connected)
+                        {
+                            _log.Warn("PeerConnection did not become connected after provisioning; scheduling reprovision.", Client);
+                            try { ScheduleReprovisionWithBackoff(); } catch { }
+                        }
+                    }
+                    catch { }
+                });
 
-                  // Store channel info if present
-                  if (osdMap.ContainsKey("channel"))
-                      ChannelId = osdMap["channel"].AsString();
-                  if (osdMap.ContainsKey("credentials"))
-                      ChannelCredentials = osdMap["credentials"].AsString();
+                // Store channel info if present
+                if (osdMap.ContainsKey("channel"))
+                    ChannelId = osdMap["channel"].AsString();
+                if (osdMap.ContainsKey("credentials"))
+                    ChannelCredentials = osdMap["credentials"].AsString();
 
-                  _log.Debug($"Local voice provisioned: session={sessionId}", Client);
-              }
-          }
+                _log.Debug($"Local voice provisioned: session={sessionId}", Client);
+            }
+        }
 
-          private async Task RequestMultiAgentVoiceProvision(Uri cap)
-          {
-              var req = new MultiAgentVoiceProvisionRequest(SdpLocal);
-              // include channel/credentials if present on this session
-              if (!string.IsNullOrEmpty(ChannelId)) req.ChannelId = ChannelId;
-              if (!string.IsNullOrEmpty(ChannelCredentials)) req.ChannelCredentials = ChannelCredentials;
+        private async Task RequestMultiAgentVoiceProvision(Uri cap)
+        {
+            var req = new MultiAgentVoiceProvisionRequest(SdpLocal);
+            // include channel/credentials if present on this session
+            if (!string.IsNullOrEmpty(ChannelId)) req.ChannelId = ChannelId;
+            if (!string.IsNullOrEmpty(ChannelCredentials)) req.ChannelCredentials = ChannelCredentials;
 
-              var payload = req.Serialize();
-              var osd = await PostCapsWithRetries(cap, payload).ConfigureAwait(false);
-              if (osd is OSDMap osdMap)
-              {
-                  if (!osdMap.ContainsKey("jsep"))
-                  {
-                      throw new VoiceException($"Region '{Client.Network.CurrentSim.Name}' does not support WebRtc.");
-                  }
-                  var jsep = (OSDMap)osdMap["jsep"];
-                  if (jsep.ContainsKey("type") && jsep["type"].AsString() != "answer")
-                  {
-                      throw new VoiceException($"jsep returned from '{Client.Network.CurrentSim.Name}' is not an answer.");
-                  }
-                  var sdpString = jsep["sdp"].AsString();
-                  sdpString = SanitizeRemoteSdp(sdpString);
-                  var sessionId = osdMap.ContainsKey("viewer_session") ? osdMap["viewer_session"].AsUUID() : UUID.Zero;
+            var payload = req.Serialize();
+            var osd = await PostCapsWithRetries(cap, payload).ConfigureAwait(false);
+            if (osd is OSDMap osdMap)
+            {
+                if (!osdMap.ContainsKey("jsep"))
+                {
+                    throw new VoiceException($"Region '{Client.Network.CurrentSim.Name}' does not support WebRtc.");
+                }
+                var jsep = (OSDMap)osdMap["jsep"];
+                if (jsep.ContainsKey("type") && jsep["type"].AsString() != "answer")
+                {
+                    throw new VoiceException($"jsep returned from '{Client.Network.CurrentSim.Name}' is not an answer.");
+                }
+                var sdpString = jsep["sdp"].AsString();
+                sdpString = SanitizeRemoteSdp(sdpString);
+                var sessionId = osdMap.ContainsKey("viewer_session") ? osdMap["viewer_session"].AsUUID() : UUID.Zero;
 
-                  var desc = SDP.ParseSDPDescription(sdpString);
-                  var set = PeerConnection.SetRemoteDescription(SdpType.answer, desc);
-                  if (set != SetDescriptionResultEnum.OK)
-                  {
-                      PeerConnection.Close("Failed to set remote description (multiagent).");
-                      throw new VoiceException("Failed to set remote description (multiagent).");
-                  }
+                var desc = SDP.ParseSDPDescription(sdpString);
+                var set = PeerConnection.SetRemoteDescription(SdpType.answer, desc);
+                if (set != SetDescriptionResultEnum.OK)
+                {
+                    PeerConnection.Close("Failed to set remote description (multiagent).");
+                    throw new VoiceException("Failed to set remote description (multiagent).");
+                }
 
-                  // Ensure the session id is stored before we start flushing/trickling ICE candidates
-                  SessionId = sessionId;
+                // Ensure the session id is stored before we start flushing/trickling ICE candidates
+                SessionId = sessionId;
 
-                  // Mark that we've received the answer and flush any pending ICE candidates
-                  answerReceived = true;
-                  _ = FlushPendingIceCandidates();
+                // Mark that we've received the answer and flush any pending ICE candidates
+                answerReceived = true;
+                _ = FlushPendingIceCandidates();
 
-                  // Start a short watchdog for multi-agent provisioning similar to the local path.
-                  // If the peer connection doesn't reach connected within the timeout, schedule reprovision.
-                  Task.Run(async () =>
-                  {
-                      try
-                      {
-                          await Task.Delay(TimeSpan.FromSeconds(8)).ConfigureAwait(false);
-                          if (PeerConnection == null || PeerConnection.connectionState != RTCPeerConnectionState.connected)
-                          {
-                              _log.Warn("Multi-agent PeerConnection did not become connected after provisioning; scheduling reprovision.", Client);
-                              try { ScheduleReprovisionWithBackoff(); } catch { }
-                          }
-                      }
-                      catch { }
-                  });
+                // Start a short watchdog for multi-agent provisioning similar to the local path.
+                // If the peer connection doesn't reach connected within the timeout, schedule reprovision.
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(8)).ConfigureAwait(false);
+                        if (PeerConnection == null || PeerConnection.connectionState != RTCPeerConnectionState.connected)
+                        {
+                            _log.Warn("Multi-agent PeerConnection did not become connected after provisioning; scheduling reprovision.", Client);
+                            try { ScheduleReprovisionWithBackoff(); } catch { }
+                        }
+                    }
+                    catch { }
+                });
 
-                  if (osdMap.ContainsKey("channel")) ChannelId = osdMap["channel"].AsString();
-                  if (osdMap.ContainsKey("credentials")) ChannelCredentials = osdMap["credentials"].AsString();
+                if (osdMap.ContainsKey("channel")) ChannelId = osdMap["channel"].AsString();
+                if (osdMap.ContainsKey("credentials")) ChannelCredentials = osdMap["credentials"].AsString();
 
-                  // Flush any ICE candidates gathered before the answer (ICE trickling)
-                  try
-                  {
-                  }
-                  catch (Exception ex)
-                  {
-                      _log.Warn($"Immediate ICE trickle failed (multiagent): {ex.Message}", Client);
-                  }
-              }
-          }
+                // Flush any ICE candidates gathered before the answer (ICE trickling)
+                try
+                {
+                }
+                catch (Exception ex)
+                {
+                    _log.Warn($"Immediate ICE trickle failed (multiagent): {ex.Message}", Client);
+                }
+            }
+        }
 
-          private async Task SendCloseSessionRequest()
-          {
-              var cap = Client.Network.CurrentSim.Caps?.CapabilityURI(PROVISION_VOICE_ACCOUNT_CAP);
+        private async Task SendCloseSessionRequest()
+        {
+            var cap = Client.Network.CurrentSim.Caps?.CapabilityURI(PROVISION_VOICE_ACCOUNT_CAP);
 
-              _log.Debug($"Closing voice session {SessionId}", Client);
-              var payload = new OSDMap
+            _log.Debug($"Closing voice session {SessionId}", Client);
+            var payload = new OSDMap
               {
                   { "logout", true },
                   { "voice_server_type", "webrtc" },
                   { "viewer_session", SessionId }
               };
-              try
-              {
-                  await PostCapsWithRetries(cap, payload).ConfigureAwait(false);
-              }
-              catch (Exception ex)
-              {
-                  _log.Error($"Close session request failed: {ex.Message}", Client);
-              }
-          }
+            try
+            {
+                await PostCapsWithRetries(cap, payload).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Close session request failed: {ex.Message}", Client);
+            }
+        }
 
         // Close and cleanup session resources
         public async Task CloseSession()
@@ -2106,11 +2344,11 @@ namespace LibreMetaverse.Voice.WebRTC
 
             PeerConnection?.Close("ClientClose");
 
-             await SendCloseSessionRequest().ConfigureAwait(false);
-             await SendVoiceSignalingCompleteRequest().ConfigureAwait(false);
+            await SendCloseSessionRequest().ConfigureAwait(false);
+            await SendVoiceSignalingCompleteRequest().ConfigureAwait(false);
 
-             // Cancel internal token source to stop any background work
-             try { Cts.Cancel(); } catch { }
+            // Cancel internal token source to stop any background work
+            try { Cts.Cancel(); } catch { }
         }
 
         // Helper to extract peer UUIDs from an OSDMap (fallback path)
