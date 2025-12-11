@@ -122,6 +122,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
         // Centralized peer and SSRC management helper
         private readonly PeerManager peerManager;
+        private readonly DataChannelProcessor dataChannelProcessor;
 
         // Return a snapshot list of known peer UUIDs
         public List<UUID> GetKnownPeers()
@@ -177,6 +178,8 @@ namespace LibreMetaverse.Voice.WebRTC
             peerManager.PeerAudioUpdated += (id, state) => { try { OnPeerAudioUpdated?.Invoke(id, state); } catch { } };
             peerManager.MuteMapReceived += m => { try { OnMuteMapReceived?.Invoke(m); } catch { } };
             peerManager.GainMapReceived += g => { try { OnGainMapReceived?.Invoke(g); } catch { } };
+
+            dataChannelProcessor = new DataChannelProcessor(peerManager, Client, _log, TrySendDataChannelString);
         }
         public async Task StartAsync(CancellationToken ct = default)
         {
@@ -979,52 +982,17 @@ namespace LibreMetaverse.Voice.WebRTC
         // Simple handler implementing viewer<->datachannel JSON protocol
         private void HandleDataChannelMessage(string msg)
         {
-            if (string.IsNullOrWhiteSpace(msg)) return;
-            try
-            {
-
-                // Prefer parsing with LitJson directly to avoid issues in OSDParser.DeserializeJson
-                JsonData root = null;
-                try
-                {
-                    root = JsonMapper.ToObject(msg);
-                }
-                catch (Exception litEx)
-                {
-                    _log.Debug($"LitJson parsing failed: {litEx.Message}", Client);
-                }
-
-                // Delegate LitJson path to PeerManager first
-                if (root != null && root.IsObject)
-                {
-                    peerManager.ProcessLitJson(root, TrySendDataChannelString, SessionId);
-                    return;
-                }
-
-                // Fall back to OSDParser for simpler payloads and delegate to PeerManager
-                var osd = OSDParser.DeserializeJson(msg);
-                if (osd is OSDMap map)
-                {
-                    peerManager.ProcessOSDMap(map, TrySendDataChannelString, SessionId);
-                    return;
-                }
-
-                _log.Debug($"Data channel payload is not an OSDMap (type={osd?.GetType().Name}). Raw: {msg}", Client);
-            }
-            catch (Exception ex)
-            {
-                _log.Error($"Failed to parse data channel json: {ex.GetType().Name}: {ex.Message}\nRaw message: {msg}\nStack: {ex.StackTrace}", Client);
-            }
+            dataChannelProcessor?.ProcessMessage(msg, SessionId);
         }
 
         // Public method to safely send string messages over the data channel
         public bool TrySendDataChannelString(string str)
         {
+            // Keep this as an implementation the processor will use
             try
             {
                 var dc = DataChannel;
                 if (dc == null) { return false; }
-                // RTCDataChannel in sipsorcery supports sending string payloads directly
                 dc.send(str);
                 return true;
             }
@@ -1035,253 +1003,31 @@ namespace LibreMetaverse.Voice.WebRTC
             }
         }
 
-        // Public method to set mute status for a peer
-        public void SetPeerMute(UUID peerId, bool mute)
-        {
-            string json = "{\"m\": {\"" + peerId + "\": " + (mute ? "true" : "false") + "}}";
-            _log.Debug($"Setting mute for peer {peerId} to {mute}", Client);
-            TrySendDataChannelString(json);
-        }
+        // Public facade methods that forward to the DataChannelProcessor
+        public bool SetPeerMute(UUID peerId, bool mute) => dataChannelProcessor.SetPeerMute(peerId, mute);
+        public bool SetPeerGain(UUID peerId, int gain) => dataChannelProcessor.SetPeerGain(peerId, gain);
 
-        // Public method to set gain for a peer  
-        public void SetPeerGain(UUID peerId, int gain)
-        {
-            string json = "{\"ug\": {\"" + peerId + "\": " + gain + "}}";
-            _log.Debug($"Setting gain for peer {peerId} to {gain}", Client);
-            TrySendDataChannelString(json);
-        }
-
-        // --- Data-channel message helpers (viewer <-> mixer protocol) ---
-
-        public bool SendJoin(bool primary = true)
-        {
-            try
-            {
-                var jw = new JsonWriter();
-                jw.WriteObjectStart();
-                jw.WritePropertyName("j");
-                jw.WriteObjectStart();
-                jw.WritePropertyName("p"); jw.Write(primary);
-                jw.WriteObjectEnd();
-                jw.WriteObjectEnd();
-                var s = jw.ToString();
-                _log.Debug($"Sending data-channel join: {s}", Client);
-                return TrySendDataChannelString(s);
-            }
-            catch (Exception ex)
-            {
-                _log.Debug($"Failed to send join on data channel: {ex.Message}", Client);
-                return false;
-            }
-        }
-
-        public bool SendLeave()
-        {
-            try
-            {
-                var jw = new JsonWriter();
-                jw.WriteObjectStart();
-                jw.WritePropertyName("l"); jw.Write(true);
-                jw.WriteObjectEnd();
-                var s = jw.ToString();
-                _log.Debug($"Sending data-channel leave: {s}", Client);
-                return TrySendDataChannelString(s);
-            }
-            catch (Exception ex)
-            {
-                _log.Debug($"Failed to send leave on data channel: {ex.Message}", Client);
-                return false;
-            }
-        }
+        public bool SendJoin(bool primary = true) => dataChannelProcessor.SendJoin(primary);
+        public bool SendLeave() => dataChannelProcessor.SendLeave();
 
         public bool SendPosition(Vector3d globalPos, Quaternion heading)
         {
-            try
+            var ok = dataChannelProcessor.SendPosition(globalPos, heading);
+            if (ok)
             {
-                int posX = (int)Math.Round(globalPos.X * 100);
-                int posY = (int)Math.Round(globalPos.Y * 100);
-                int posZ = (int)Math.Round(globalPos.Z * 100);
-
-                int headX = (int)Math.Round(heading.X * 100);
-                int headY = (int)Math.Round(heading.Y * 100);
-                int headZ = (int)Math.Round(heading.Z * 100);
-                int headW = (int)Math.Round(heading.W * 100);
-
-                var jw = new JsonWriter();
-                jw.WriteObjectStart();
-
-                jw.WritePropertyName("sp");
-                jw.WriteObjectStart();
-                jw.WritePropertyName("x"); jw.Write(posX);
-                jw.WritePropertyName("y"); jw.Write(posY);
-                jw.WritePropertyName("z"); jw.Write(posZ);
-                jw.WriteObjectEnd();
-
-                jw.WritePropertyName("sh");
-                jw.WriteObjectStart();
-                jw.WritePropertyName("x"); jw.Write(headX);
-                jw.WritePropertyName("y"); jw.Write(headY);
-                jw.WritePropertyName("z"); jw.Write(headZ);
-                jw.WritePropertyName("w"); jw.Write(headW);
-                jw.WriteObjectEnd();
-
-                jw.WritePropertyName("lp");
-                jw.WriteObjectStart();
-                jw.WritePropertyName("x"); jw.Write(posX);
-                jw.WritePropertyName("y"); jw.Write(posY);
-                jw.WritePropertyName("z"); jw.Write(posZ);
-                jw.WriteObjectEnd();
-
-                jw.WritePropertyName("lh");
-                jw.WriteObjectStart();
-                jw.WritePropertyName("x"); jw.Write(headX);
-                jw.WritePropertyName("y"); jw.Write(headY);
-                jw.WritePropertyName("z"); jw.Write(headZ);
-                jw.WritePropertyName("w"); jw.Write(headW);
-                jw.WriteObjectEnd();
-
-                jw.WriteObjectEnd();
-
-                var s = jw.ToString();
-                _log.Debug($"Sending explicit position: {s}", Client);
-
-                var ok = TrySendDataChannelString(s);
-
                 lastSentGlobalPos = globalPos;
                 lastSentHeading = heading;
                 mSpatialCoordsDirty = false;
-
-                return ok;
             }
-            catch (Exception ex)
-            {
-                _log.Warn($"Failed to send position on data channel: {ex.Message}", Client);
-                return false;
-            }
+            return ok;
         }
 
-        public bool SendAvatarArray(List<UUID> avatars)
-        {
-            try
-            {
-                var jw = new JsonWriter();
-                jw.WriteObjectStart();
-                jw.WritePropertyName("av");
-                jw.WriteArrayStart();
-                if (avatars != null)
-                {
-                    foreach (var id in avatars)
-                    {
-                        jw.Write(id.ToString());
-                    }
-                }
-                jw.WriteArrayEnd();
-                jw.WriteObjectEnd();
-
-                var s = jw.ToString();
-                _log.Debug($"Sending avatar array: {s}", Client);
-                return TrySendDataChannelString(s);
-            }
-            catch (Exception ex)
-            {
-                _log.Debug($"Failed to send avatar array: {ex.Message}", Client);
-                return false;
-            }
-        }
-
-        public bool SendAvatarMap(IEnumerable<UUID> avatars)
-        {
-            try
-            {
-                var jw = new JsonWriter();
-                jw.WriteObjectStart();
-                jw.WritePropertyName("a");
-                jw.WriteObjectStart();
-                if (avatars != null)
-                {
-                    foreach (var id in avatars)
-                    {
-                        jw.WritePropertyName(id.ToString());
-                        jw.WriteObjectStart();
-                        jw.WriteObjectEnd();
-                    }
-                }
-                jw.WriteObjectEnd();
-                jw.WriteObjectEnd();
-
-                var s = jw.ToString();
-                _log.Debug($"Sending avatar map: {s}", Client);
-                return TrySendDataChannelString(s);
-            }
-            catch (Exception ex)
-            {
-                _log.Debug($"Failed to send avatar map: {ex.Message}", Client);
-                return false;
-            }
-        }
-
-        public bool SendMuteMap(Dictionary<UUID, bool> muteMap)
-        {
-            try
-            {
-                var jw = new JsonWriter();
-                jw.WriteObjectStart();
-                jw.WritePropertyName("m");
-                jw.WriteObjectStart();
-                if (muteMap != null)
-                {
-                    foreach (var kv in muteMap)
-                    {
-                        jw.WritePropertyName(kv.Key.ToString());
-                        jw.Write(kv.Value);
-                    }
-                }
-                jw.WriteObjectEnd();
-                jw.WriteObjectEnd();
-
-                var s = jw.ToString();
-                _log.Debug($"Sending mute map: {s}", Client);
-                return TrySendDataChannelString(s);
-            }
-            catch (Exception ex)
-            {
-                _log.Debug($"Failed to send mute map: {ex.Message}", Client);
-                return false;
-            }
-        }
-
-        public bool SendGainMap(Dictionary<UUID, int> gainMap)
-        {
-            try
-            {
-                var jw = new JsonWriter();
-                jw.WriteObjectStart();
-                jw.WritePropertyName("ug");
-                jw.WriteObjectStart();
-                if (gainMap != null)
-                {
-                    foreach (var kv in gainMap)
-                    {
-                        jw.WritePropertyName(kv.Key.ToString());
-                        jw.Write(kv.Value);
-                    }
-                }
-                jw.WriteObjectEnd();
-                jw.WriteObjectEnd();
-
-                var s = jw.ToString();
-                _log.Debug($"Sending gain map: {s}", Client);
-                return TrySendDataChannelString(s);
-            }
-            catch (Exception ex)
-            {
-                _log.Debug($"Failed to send gain map: {ex.Message}", Client);
-                return false;
-            }
-        }
-
-        public bool SendPing() => TrySendDataChannelString("{\"ping\":true}");
-        public bool SendPong() => TrySendDataChannelString("{\"pong\":true}");
+        public bool SendAvatarArray(List<UUID> avatars) => dataChannelProcessor.SendAvatarArray(avatars);
+        public bool SendAvatarMap(IEnumerable<UUID> avatars) => dataChannelProcessor.SendAvatarMap(avatars);
+        public bool SendMuteMap(Dictionary<UUID, bool> muteMap) => dataChannelProcessor.SendMuteMap(muteMap);
+        public bool SendGainMap(Dictionary<UUID, int> gainMap) => dataChannelProcessor.SendGainMap(gainMap);
+        public bool SendPing() => dataChannelProcessor.SendPing();
+        public bool SendPong() => dataChannelProcessor.SendPong();
 
         // --- end data-channel message helpers ---
 
