@@ -275,6 +275,8 @@ namespace LibreMetaverse.Voice.WebRTC
                                 bool looksLikeHtml = lower.Contains("<html") || lower.Contains("<!doctype") || lower.Contains("<head") || lower.Contains("<body");
                                 bool containsUnauthorized = lower.Contains("unauthorized") || lower.Contains("forbidden") || lower.Contains("401") || lower.Contains("403") || lower.Contains("unknown session");
                                 bool containsUnknownConference = lower.Contains("unknown conference");
+                                // Detect credential/channel expiry or invalid credentials errors commonly returned by mixers
+                                bool containsCredentialIssue = (lower.Contains("credential") || lower.Contains("credentials") || lower.Contains("channel")) && (lower.Contains("expired") || lower.Contains("invalid") || lower.Contains("unknown") || lower.Contains("denied"));
 
                                 if (statusCode.HasValue && statusCode.Value >= 400)
                                 {
@@ -290,6 +292,12 @@ namespace LibreMetaverse.Voice.WebRTC
                                 if (containsUnknownConference)
                                 {
                                     throw new VoiceException($"Server reported unknown conference when POSTing to {cap}: {preview}");
+                                }
+
+                                if (containsCredentialIssue)
+                                {
+                                    // Credential/channel problems should trigger reprovision flow. Surface a clear error so callers can schedule reprovision.
+                                    throw new VoiceException($"Channel/credential error when POSTing to {cap}: {preview}");
                                 }
 
                                 if (looksLikeHtml)
@@ -2206,10 +2214,28 @@ namespace LibreMetaverse.Voice.WebRTC
                 }
 
                 var jsep = (OSDMap)j;
-                if (jsep.ContainsKey("type") && jsep["type"].AsString() != "answer")
+                // Detect server-provided error codes/messages that indicate credentials/channel expired
+                try
                 {
-                    throw new VoiceException("jsep returned is not an answer.");
+                    if (osdMap.ContainsKey("error") || osdMap.ContainsKey("errmsg") || osdMap.ContainsKey("message"))
+                    {
+                        var emsg = osdMap.ContainsKey("error") ? osdMap["error"].AsString() : osdMap.ContainsKey("errmsg") ? osdMap["errmsg"].AsString() : osdMap.ContainsKey("message") ? osdMap["message"].AsString() : null;
+                        if (!string.IsNullOrEmpty(emsg))
+                        {
+                            var lower = emsg.ToLowerInvariant();
+                            if (lower.Contains("credential") || lower.Contains("credentials") || lower.Contains("expired") || lower.Contains("invalid") || lower.Contains("channel") || lower.Contains("denied"))
+                            {
+                                _log.Warn($"Provisioning response indicated credential/channel problem: {emsg}", Client);
+                                // Clear local channel state and schedule reprovision
+                                ChannelId = null;
+                                ChannelCredentials = null;
+                                ScheduleReprovisionWithBackoff();
+                                throw new VoiceException($"Provisioning failed due to credentials/channel issue: {emsg}");
+                            }
+                        }
+                    }
                 }
+                catch { }
 
                 var sdpString = jsep["sdp"].AsString();
                 sdpString = SanitizeRemoteSdp(sdpString);
@@ -2260,10 +2286,8 @@ namespace LibreMetaverse.Voice.WebRTC
                 });
 
                 // Store channel info if present
-                if (osdMap.ContainsKey("channel"))
-                    ChannelId = osdMap["channel"].AsString();
-                if (osdMap.ContainsKey("credentials"))
-                    ChannelCredentials = osdMap["credentials"].AsString();
+                if (osdMap.ContainsKey("channel")) ChannelId = osdMap["channel"].AsString();
+                if (osdMap.ContainsKey("credentials")) ChannelCredentials = osdMap["credentials"].AsString();
 
                 _log.Debug($"Local voice provisioned: session={sessionId}", Client);
             }
@@ -2310,7 +2334,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
                 // Start a short watchdog for multi-agent provisioning similar to the local path.
                 // If the peer connection doesn't reach connected within the timeout, schedule reprovision.
-                Task.Run(async () =>
+                _ =Task.Run(async () =>
                 {
                     try
                     {
@@ -2327,14 +2351,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 if (osdMap.ContainsKey("channel")) ChannelId = osdMap["channel"].AsString();
                 if (osdMap.ContainsKey("credentials")) ChannelCredentials = osdMap["credentials"].AsString();
 
-                // Flush any ICE candidates gathered before the answer (ICE trickling)
-                try
-                {
-                }
-                catch (Exception ex)
-                {
-                    _log.Warn($"Immediate ICE trickle failed (multiagent): {ex.Message}", Client);
-                }
+                _log.Debug($"Multi-agent voice provisioned: session={sessionId}", Client);
             }
         }
 
@@ -2349,14 +2366,27 @@ namespace LibreMetaverse.Voice.WebRTC
                   { "voice_server_type", "webrtc" },
                   { "viewer_session", SessionId }
               };
+
+            // If this session is multi-agent, and we have a channel, include it so the mixer
+            // can close the channel/credentials server-side as part of logout.
             try
             {
+                if (!string.IsNullOrEmpty(ChannelId))
+                {
+                    payload["channel"] = ChannelId;
+                    if (!string.IsNullOrEmpty(ChannelCredentials)) payload["credentials"] = ChannelCredentials;
+                }
+
                 await PostCapsWithRetries(cap, payload).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 _log.Error($"Close session request failed: {ex.Message}", Client);
             }
+
+            // Clear local channel state after attempting to close server-side
+            ChannelId = null;
+            ChannelCredentials = null;
         }
 
         // Close and cleanup session resources
