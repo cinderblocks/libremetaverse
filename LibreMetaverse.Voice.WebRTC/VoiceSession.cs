@@ -43,7 +43,7 @@ using System.Threading.Tasks;
 
 namespace LibreMetaverse.Voice.WebRTC
 {
-    public class VoiceSession
+    public class VoiceSession : IDisposable
     {
         public const string PROVISION_VOICE_ACCOUNT_CAP = "ProvisionVoiceAccountRequest";
         public const string VOICE_SIGNALING_CAP = "VoiceSignalingRequest";
@@ -1888,7 +1888,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     if (AudioDevice != null)
                     {
                         try { AudioDevice.StopRecording(); } catch { }
-                        try { await AudioDevice.StopPlaybackAsync().ConfigureAwait(false); } catch { }
+                        try { AudioDevice.StopPlaybackAsync().Wait(250); } catch { }
                     }
 
                     // Close existing peer connection if present
@@ -2472,5 +2472,118 @@ namespace LibreMetaverse.Voice.WebRTC
             }
             catch { }
         }
+
+
+        private volatile bool _disposed = false;
+
+        // IDisposable implementation for safe cleanup
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+            _disposed = true;
+
+            if (disposing)
+            {
+                // Stop position and keepalive loops
+                try { StopPositionLoop(); } catch { }
+                try { StopKeepAliveLoop(); } catch { }
+
+                // Cancel and dispose ice trickle loop
+                try
+                {
+                    iceTrickleCts?.Cancel();
+                    try { iceTrickleTask?.Wait(250); } catch { }
+                    iceTrickleCts?.Dispose();
+                    iceTrickleCts = null;
+                    iceTrickleTask = null;
+                }
+                catch { }
+
+                // Detach audio handlers
+                try
+                {
+                    if (AudioDevice?.Source != null)
+                    {
+                        try { AudioDevice.Source.OnAudioSourceEncodedSample -= PeerConnection.SendAudio; } catch { }
+                    }
+                    if (AudioDevice != null)
+                    {
+                        try { AudioDevice.OnAudioSourceEncodedSample -= PeerConnection.SendAudio; } catch { }
+                    }
+                }
+                catch { }
+
+                // Stop audio
+                try
+                {
+                    if (AudioDevice != null)
+                    {
+                        try { AudioDevice.StopRecording(); } catch { }
+                        try { AudioDevice.StopPlaybackAsync().Wait(250); } catch { }
+                    }
+                }
+                catch { }
+
+                // Clear peers and SSRC state
+                try { ClearAllPeers(); } catch { }
+
+                // Close peer connection
+                try
+                {
+                    if (PeerConnection != null)
+                    {
+                        try { PeerConnection.Close("Dispose"); } catch { }
+                        // If RTCPeerConnection exposes Dispose, call it (best-effort)
+                        try { (PeerConnection as IDisposable)?.Dispose(); } catch { }
+                        PeerConnection = null;
+                    }
+                }
+                catch { }
+
+                // Cancel main CTS
+                try { Cts.Cancel(); } catch { }
+                try { Cts.Dispose(); } catch { }
+
+                // Dispose other token sources
+                try { positionLoopCts?.Dispose(); } catch { }
+                positionLoopCts = null;
+                try { keepAliveLoopCts?.Dispose(); } catch { }
+                keepAliveLoopCts = null;
+
+                // Release semaphore
+                try { reprovisionLock.Dispose(); } catch { }
+
+                // Null out delegates to help GC
+                try
+                {
+                    OnPeerConnectionClosed = null;
+                    OnPeerConnectionReady = null;
+                    OnDataChannelReady = null;
+                    OnReprovisionSucceeded = null;
+                    OnReprovisionFailed = null;
+                    OnPeerJoined = null;
+                    OnPeerLeft = null;
+                    OnPeerPositionUpdated = null;
+                    OnPeerListUpdated = null;
+                    OnPeerAudioUpdated = null;
+                    OnPeerPositionUpdatedTyped = null;
+                    OnMuteMapReceived = null;
+                    OnGainMapReceived = null;
+                }
+                catch { }
+            }
+        }
+
+        ~VoiceSession()
+        {
+            Dispose(false);
+        }
+
     }
 }
