@@ -31,7 +31,6 @@ using SIPSorcery.Net;
 using SIPSorcery.SIP.App;
 using SIPSorcery.Sys;
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -72,8 +71,6 @@ namespace LibreMetaverse.Voice.WebRTC
         public event Action<UUID> OnPeerLeft;
         public event Action<UUID, OSDMap> OnPeerPositionUpdated;
         public event Action<List<UUID>> OnPeerListUpdated;
-
-
 
         public class PeerAudioState
         {
@@ -123,15 +120,15 @@ namespace LibreMetaverse.Voice.WebRTC
         public string ChannelId { get; set; }
         public string ChannelCredentials { get; set; }
 
-        // Track peers and their last known positions
-        private readonly ConcurrentDictionary<UUID, OSDMap> Peers = new ConcurrentDictionary<UUID, OSDMap>();
+        // Centralized peer and SSRC management helper
+        private readonly PeerManager peerManager;
 
         // Return a snapshot list of known peer UUIDs
         public List<UUID> GetKnownPeers()
         {
             try
             {
-                return Peers.Keys.ToList();
+                return peerManager.GetKnownPeers();
             }
             catch
             {
@@ -163,10 +160,6 @@ namespace LibreMetaverse.Voice.WebRTC
         private readonly long lastRtcpSentTicks = 0;
         private readonly MediaStreamTrack _remoteAudioTrack;
 
-        // SSRC <-> Peer mapping
-        private readonly ConcurrentDictionary<uint, UUID> SsrcToPeer = new ConcurrentDictionary<uint, UUID>();
-        private readonly ConcurrentDictionary<UUID, uint> PeerToSsrc = new ConcurrentDictionary<UUID, uint>();
-
         internal VoiceSession(Sdl3Audio audioDevice, ESessionType type, GridClient client, IVoiceLogger logger = null)
         {
             Client = client;
@@ -174,6 +167,16 @@ namespace LibreMetaverse.Voice.WebRTC
             SessionType = type;
             SessionId = UUID.Zero;
             _log = logger ?? new OpenMetaverseVoiceLogger();
+
+            // Initialize peer manager and forward its events to existing VoiceSession events
+            peerManager = new PeerManager(AudioDevice, Client, _log);
+            peerManager.PeerJoined += id => { try { OnPeerJoined?.Invoke(id); } catch { } };
+            peerManager.PeerLeft += id => { try { OnPeerLeft?.Invoke(id); } catch { } };
+            peerManager.PeerPositionUpdated += (id, map) => { try { OnPeerPositionUpdated?.Invoke(id, map); } catch { } };
+            peerManager.PeerListUpdated += list => { try { OnPeerListUpdated?.Invoke(list); } catch { } };
+            peerManager.PeerAudioUpdated += (id, state) => { try { OnPeerAudioUpdated?.Invoke(id, state); } catch { } };
+            peerManager.MuteMapReceived += m => { try { OnMuteMapReceived?.Invoke(m); } catch { } };
+            peerManager.GainMapReceived += g => { try { OnGainMapReceived?.Invoke(g); } catch { } };
         }
         public async Task StartAsync(CancellationToken ct = default)
         {
@@ -991,406 +994,22 @@ namespace LibreMetaverse.Voice.WebRTC
                     _log.Debug($"LitJson parsing failed: {litEx.Message}", Client);
                 }
 
-                if (root == null || !root.IsObject)
-                {
-                    // Fall back to OSDParser for simpler payloads
-                    var osd = OSDParser.DeserializeJson(msg);
-                    if (!(osd is OSDMap map))
-                    {
-                        _log.Debug($"Data channel payload is not an OSDMap (type={osd?.GetType().Name}). Raw: {msg}", Client);
-                        return;
-                    }
-
-                    // Extract peers from the OSD map fallback so GetKnownPeers() works even when LitJson parsing isn't used
-                    try
-                    {
-                        ExtractPeersFromOSD(map);
-                    }
-                    catch (Exception ex)
-                    {
-                        _log.Debug($"ExtractPeersFromOSD failed: {ex.Message}", Client);
-                    }
-
-                    // Reply to keepalive pings from server
-                    try
-                    {
-                        if (map.ContainsKey("ping") && map["ping"] is OSD && map["ping"].AsBoolean())
-                        {
-                            TrySendDataChannelString("{\"pong\":true}");
-                        }
-                    }
-                    catch { }
-                }
-
-                // If we have a LitJson root, parse it directly (preferred path)
+                // Delegate LitJson path to PeerManager first
                 if (root != null && root.IsObject)
                 {
-                    var jd = root;
-                    IDictionary jdDict = jd;
-
-                    // Helper functions (available to entire Json path)
-                    int? ToInt(JsonData d)
-                    {
-                        try
-                        {
-                            if (d == null) { return null; }
-                            if (d.IsInt) { return (int)d; }
-                            if (d.IsLong) { return (int)(long)d; }
-                            if (d.IsDouble) { return (int)(double)d; }
-                            var s = d.ToString();
-                            if (int.TryParse(s, out var v)) { return v; }
-                        }
-                        catch { }
-                        return null;
-                    }
-
-                    bool? ToBool(JsonData d)
-                    {
-                        try
-                        {
-                            if (d == null) { return null; }
-                            if (d.IsBoolean) { return (bool)d; }
-                            var s = d.ToString().Trim('"');
-                            if (bool.TryParse(s, out var b)) { return b; }
-                            if (int.TryParse(s, out var i)) { return i != 0; }
-                        }
-                        catch { }
-                        return null;
-                    }
-
-                    // Determine if this is a mixer->client per-peer update: keys are UUIDs
-                    bool allKeysAreUuid = (from object kObj in jdDict.Keys select kObj as string)
-                        .All(k => !string.IsNullOrEmpty(k) && UUID.TryParse(k, out _));
-
-                    if (allKeysAreUuid)
-                    {
-                        // This payload is a per-peer map; process each key
-                        foreach (var kObj in jdDict.Keys)
-                        {
-                            var key = kObj as string;
-                            if (!UUID.TryParse(key, out var peerId)) continue;
-                            var val = jd[key];
-                            // If the value is null/empty treat as leave
-                            if (val == null || !val.IsObject)
-                            {
-                                RemovePeer(peerId);
-                                continue;
-                            }
-
-                            var peerMap = val;
-                            IDictionary peerDict = peerMap;
-
-                            var state = new PeerAudioState();
-
-                            // Ensure peer exists
-                            Peers.AddOrUpdate(peerId, new OSDMap(), (k, v) => v);
-
-                            if (peerDict != null && peerDict.Contains("p")) state.Power = ToInt(peerMap["p"]);
-                            if (peerDict != null && peerDict.Contains("V")) state.VoiceActive = ToBool(peerMap["V"]);
-                            else if (peerDict != null && peerDict.Contains("v")) state.VoiceActive = ToBool(peerMap["v"]);
-
-                            // If server provides an SSRC for this peer, capture it and update mapping
-                            try
-                            {
-                                int? sInt = null;
-                                if (peerDict != null && peerDict.Contains("s")) sInt = ToInt(peerMap["s"]);
-                                else if (peerDict != null && peerDict.Contains("ssrc")) sInt = ToInt(peerMap["ssrc"]);
-                                if (sInt.HasValue)
-                                {
-                                    var ssrc = (uint)sInt.Value;
-                                    // If this peer had a previous SSRC, remove old mapping and clear audio state
-                                    if (PeerToSsrc.TryGetValue(peerId, out var oldSsrc) && oldSsrc != ssrc)
-                                    {
-                                        SsrcToPeer.TryRemove(oldSsrc, out _);
-                                        try { AudioDevice?.SetSsrcMute(oldSsrc, true); } catch { }
-                                        try { AudioDevice?.ClearSsrc(oldSsrc); } catch { }
-                                    }
-
-                                    // If the new SSRC is already mapped to a different peer, clear that mapping
-                                    if (SsrcToPeer.TryGetValue(ssrc, out var mappedPeer) && mappedPeer != peerId)
-                                    {
-                                        PeerToSsrc.TryRemove(mappedPeer, out _);
-                                    }
-
-                                    // Set new mappings
-                                    SsrcToPeer.AddOrUpdate(ssrc, peerId, (k, v) => peerId);
-                                    PeerToSsrc.AddOrUpdate(peerId, ssrc, (k, v) => ssrc);
-                                }
-                            }
-                            catch { }
-
-                            if (peerDict != null && peerDict.Contains("j") && peerMap["j"].IsObject)
-                            {
-                                var jmap = peerMap["j"];
-                                if (jmap is IDictionary jdict && jdict.Contains("p")) state.JoinedPrimary = ToBool(jmap["p"]);
-                                OnPeerJoined?.Invoke(peerId);
-                            }
-
-                            if (peerDict != null && peerDict.Contains("l") && ToBool(peerMap["l"]) == true)
-                            {
-                                state.Left = true;
-                                RemovePeer(peerId);
-                            }
-
-                            OnPeerAudioUpdated?.Invoke(peerId, state);
-                        }
-
-                        return;
-                    }
-
-                    // Non-per-peer messages: handle 'j','l','sp','sh','lp','lh','m','ug','av','a'
-                    // Helper functions
-                    int? JInt(JsonData d) => ToInt(d);
-                    bool? JBool(JsonData d) => ToBool(d);
-                    string JStr(JsonData d) { try { return d?.ToString().Trim('"'); } catch { return null; } }
-
-                    var contains = new Func<IDictionary, string, bool>((dict, key) => dict != null && dict.Contains(key));
-                    var jdContains = jdDict;
-
-                    // Reply to keepalive pings from server (LitJson path)
-                    try
-                    {
-                        if (jdContains != null && contains(jdContains, "ping") && JBool(jd["ping"]) == true)
-                        {
-                            TrySendDataChannelString("{\"pong\":true}");
-                        }
-                    }
-                    catch { }
-
-                    // Join
-                    if (contains(jdContains, "j") && jd["j"].IsObject)
-                    {
-                        UUID peerId = SessionId;
-                        var joinMap = jd["j"];
-                        IDictionary joinDict = joinMap;
-                        var idStr = JStr(joinDict != null && joinDict.Contains("id") ? joinMap["id"] : null);
-                        if (!string.IsNullOrEmpty(idStr)) UUID.TryParse(idStr, out peerId);
-                        Peers.TryAdd(peerId, new OSDMap());
-                        OnPeerJoined?.Invoke(peerId);
-                    }
-
-                    // Leave
-                    if (contains(jdContains, "l") && JBool(jd["l"]) == true)
-                    {
-                        UUID peerId = SessionId;
-                        var idStr = JStr(jdContains.Contains("id") ? jd["id"] : null);
-                        if (!string.IsNullOrEmpty(idStr)) UUID.TryParse(idStr, out peerId);
-                        RemovePeer(peerId);
-                    }
-
-                    // Positions
-                    var avatarPos = new AvatarPosition { AgentId = SessionId };
-                    bool posChanged = false;
-
-                    if (contains(jdContains, "sp") && jd["sp"].IsObject)
-                    {
-                        var sp = jd["sp"];
-                        IDictionary spDict = sp;
-                        var x = JInt(spDict != null && spDict.Contains("x") ? sp["x"] : null);
-                        var y = JInt(spDict != null && spDict.Contains("y") ? sp["y"] : null);
-                        var z = JInt(spDict != null && spDict.Contains("z") ? sp["z"] : null);
-                        if (x.HasValue && y.HasValue && z.HasValue) { avatarPos.SenderPosition = new Int3 { X = x.Value, Y = y.Value, Z = z.Value }; posChanged = true; }
-                    }
-
-                    if (jdContains != null && contains(jdContains, "sh") && jd["sh"].IsObject)
-                    {
-                        var sh = jd["sh"];
-                        IDictionary shDict = sh;
-                        var x = JInt(shDict != null && shDict.Contains("x") ? sh["x"] : null);
-                        var y = JInt(shDict != null && shDict.Contains("y") ? sh["y"] : null);
-                        var z = JInt(shDict != null && shDict.Contains("z") ? sh["z"] : null);
-                        var w = JInt(shDict != null && shDict.Contains("w") ? sh["w"] : null);
-                        if (x.HasValue && y.HasValue && z.HasValue && w.HasValue) { avatarPos.SenderHeading = new Int4 { X = x.Value, Y = y.Value, Z = z.Value, W = w.Value }; posChanged = true; }
-                    }
-
-                    if (jdContains != null && contains(jdContains, "lp") && jd["lp"].IsObject)
-                    {
-                        var lp = jd["lp"];
-                        IDictionary lpDict = lp;
-                        var x = JInt(lpDict != null && lpDict.Contains("x") ? lp["x"] : null);
-                        var y = JInt(lpDict != null && lpDict.Contains("y") ? lp["y"] : null);
-                        var z = JInt(lpDict != null && lpDict.Contains("z") ? lp["z"] : null);
-                        if (x.HasValue && y.HasValue && z.HasValue) { avatarPos.ListenerPosition = new Int3 { X = x.Value, Y = y.Value, Z = z.Value }; posChanged = true; }
-                    }
-
-                    if (jdContains != null && contains(jdContains, "lh") && jd["lh"].IsObject)
-                    {
-                        var lh = jd["lh"];
-                        IDictionary lhDict = lh;
-                        var x = JInt(lhDict != null && lhDict.Contains("x") ? lh["x"] : null);
-                        var y = JInt(lhDict != null && lhDict.Contains("y") ? lh["y"] : null);
-                        var z = JInt(lhDict != null && lhDict.Contains("z") ? lh["z"] : null);
-                        var w = JInt(lhDict != null && lhDict.Contains("w") ? lh["w"] : null);
-                        if (x.HasValue && y.HasValue && z.HasValue && w.HasValue) { avatarPos.ListenerHeading = new Int4 { X = x.Value, Y = y.Value, Z = z.Value, W = w.Value }; posChanged = true; }
-                    }
-
-                    if (posChanged)
-                    {
-                        UUID peerId = SessionId;
-                        var idStr = JStr(jdContains != null && jdContains.Contains("id") ? jd["id"] : null);
-                        if (!string.IsNullOrEmpty(idStr)) UUID.TryParse(idStr, out peerId);
-                        avatarPos.AgentId = peerId;
-                        OnPeerPositionUpdatedTyped?.Invoke(peerId, avatarPos);
-                        // Convert positions into an OSDMap for legacy handler
-                        var osdMap = new OSDMap();
-                        // Minimal conversion: include sp/lp/sh/lh if present
-                        if (avatarPos.SenderPosition.HasValue)
-                        {
-                            var spm = new OSDMap { ["x"] = OSD.FromInteger(avatarPos.SenderPosition.Value.X), ["y"] = OSD.FromInteger(avatarPos.SenderPosition.Value.Y), ["z"] = OSD.FromInteger(avatarPos.SenderPosition.Value.Z) };
-                            osdMap["sp"] = spm;
-                        }
-                        if (avatarPos.SenderHeading.HasValue)
-                        {
-                            var shm = new OSDMap { ["x"] = OSD.FromInteger(avatarPos.SenderHeading.Value.X), ["y"] = OSD.FromInteger(avatarPos.SenderHeading.Value.Y), ["z"] = OSD.FromInteger(avatarPos.SenderHeading.Value.Z), ["w"] = OSD.FromInteger(avatarPos.SenderHeading.Value.W) };
-                            osdMap["sh"] = shm;
-                        }
-                        if (avatarPos.ListenerPosition.HasValue)
-                        {
-                            var lpm = new OSDMap { ["x"] = OSD.FromInteger(avatarPos.ListenerPosition.Value.X), ["y"] = OSD.FromInteger(avatarPos.ListenerPosition.Value.Y), ["z"] = OSD.FromInteger(avatarPos.ListenerPosition.Value.Z) };
-                            osdMap["lp"] = lpm;
-                        }
-                        if (avatarPos.ListenerHeading.HasValue)
-                        {
-                            var lhm = new OSDMap { ["x"] = OSD.FromInteger(avatarPos.ListenerHeading.Value.X), ["y"] = OSD.FromInteger(avatarPos.ListenerHeading.Value.Y), ["z"] = OSD.FromInteger(avatarPos.ListenerHeading.Value.Z), ["w"] = OSD.FromInteger(avatarPos.ListenerHeading.Value.W) };
-                            osdMap["lh"] = lhm;
-                        }
-                        OnPeerPositionUpdated?.Invoke(peerId, osdMap);
-                        Peers.AddOrUpdate(peerId, osdMap, (k, v) => osdMap);
-                    }
-
-                    // Mute map 'm'
-                    if (jdContains != null && contains(jdContains, "m") && jd["m"].IsObject)
-                    {
-                        var muteMap = jd["m"];
-                        IDictionary muteDict = muteMap;
-                        var dict = new Dictionary<UUID, bool>();
-                        if (muteDict != null)
-                        {
-                            foreach (var keyObj in muteDict.Keys)
-                            {
-                                var key = keyObj as string;
-                                if (UUID.TryParse(key, out var id))
-                                {
-                                    var b = JBool(muteMap[key]);
-                                    if (b.HasValue) dict[id] = b.Value;
-                                }
-                            }
-                        }
-
-                        // Apply to audio device where we have an SSRC mapping
-                        try
-                        {
-                            foreach (var kv in dict)
-                            {
-                                if (PeerToSsrc.TryGetValue(kv.Key, out var ssrc))
-                                {
-                                    try { AudioDevice?.SetSsrcMute(ssrc, kv.Value); } catch { }
-                                }
-                            }
-                        }
-                        catch { }
-
-                        if (dict.Count > 0) OnMuteMapReceived?.Invoke(dict);
-                    }
-
-                    // Gain map 'ug'
-                    if (jdContains != null && contains(jdContains, "ug") && jd["ug"].IsObject)
-                    {
-                        var gainMap = jd["ug"];
-                        IDictionary gainDict = gainMap;
-                        var dict = new Dictionary<UUID, int>();
-                        if (gainDict != null)
-                        {
-                            foreach (var keyObj in gainDict.Keys)
-                            {
-                                var key = keyObj as string;
-                                if (UUID.TryParse(key, out var id))
-                                {
-                                    var gi = JInt(gainMap[key]);
-                                    if (gi.HasValue) dict[id] = gi.Value;
-                                }
-                            }
-                        }
-
-                        // Apply gains to audio device where mapping is known
-                        try
-                        {
-                            foreach (var kv in dict)
-                            {
-                                if (PeerToSsrc.TryGetValue(kv.Key, out var ssrc))
-                                {
-                                    try { AudioDevice?.SetSsrcGainPercent(ssrc, kv.Value); } catch { }
-                                }
-                            }
-                        }
-                        catch { }
-
-                        if (dict.Count > 0) OnGainMapReceived?.Invoke(dict);
-                    }
-
-                    // Avatar list handling
-                    if (jdContains != null && contains(jdContains, "av") && jd["av"].IsArray)
-                    {
-                        var arr = jd["av"];
-                        var list = new List<UUID>();
-                        for (int i = 0; i < arr.Count; i++)
-                        {
-                            var item = arr[i];
-                            var s = JStr(item);
-                            if (!string.IsNullOrEmpty(s) && UUID.TryParse(s, out var id)) list.Add(id);
-                        }
-
-                        // Authoritative snapshot: add new and remove missing
-                        foreach (var id in list) Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v);
-                        var toRemove = Peers.Keys.Except(list).ToList();
-                        foreach (var r in toRemove) RemovePeer(r);
-                        OnPeerListUpdated?.Invoke(list);
-                    }
-                    else if (jdContains != null && contains(jdContains, "a") && jd["a"].IsObject)
-                    {
-                        var amap = jd["a"];
-                        IDictionary amapDict = amap;
-                        var list = new List<UUID>();
-                        if (amapDict != null)
-                        {
-                            foreach (var keyObj in amapDict.Keys)
-                            {
-                                var key = keyObj as string;
-                                if (UUID.TryParse(key, out var id))
-                                {
-                                    // Treat empty/null value as leave
-                                    try
-                                    {
-                                        var val = amap[key]; // JsonData
-                                        if (val == null)
-                                        {
-                                            RemovePeer(id);
-                                            continue;
-                                        }
-                                        if (val is JsonData jv)
-                                        {
-                                            if ((jv.IsObject && ((IDictionary)jv).Count == 0) || (jv.IsString && string.IsNullOrEmpty(JStr(jv))))
-                                            {
-                                                RemovePeer(id);
-                                                continue;
-                                            }
-                                        }
-                                    }
-                                    catch { }
-
-                                    list.Add(id);
-                                }
-                            }
-                        }
-
-                        foreach (var id in list) Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v);
-                        var toRemoveA = Peers.Keys.Except(list).ToList();
-                        foreach (var r in toRemoveA) RemovePeer(r);
-                        OnPeerListUpdated?.Invoke(list);
-                    }
-
+                    peerManager.ProcessLitJson(root, TrySendDataChannelString, SessionId);
                     return;
                 }
+
+                // Fall back to OSDParser for simpler payloads and delegate to PeerManager
+                var osd = OSDParser.DeserializeJson(msg);
+                if (osd is OSDMap map)
+                {
+                    peerManager.ProcessOSDMap(map, TrySendDataChannelString, SessionId);
+                    return;
+                }
+
+                _log.Debug($"Data channel payload is not an OSDMap (type={osd?.GetType().Name}). Raw: {msg}", Client);
             }
             catch (Exception ex)
             {
@@ -1927,7 +1546,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 answerReceived = false;
 
                 // Clear all known peers and audio state before reprovisioning
-                try { ClearAllPeers(); } catch { }
+                try { peerManager.ClearAllPeers(); } catch { }
 
                 // Create a new peer connection
                 RTCPeerConnection newPc = null;
@@ -2164,7 +1783,7 @@ namespace LibreMetaverse.Voice.WebRTC
             }
             catch (Exception ex)
             {
-                _log.Warn($"Position send error: {ex.Message}", Client);
+                _log.Warn($"Failed to send position on data channel: {ex.Message}", Client);
             }
         }
 
@@ -2271,7 +1890,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 // Start a short watchdog: if the peer connection does not become connected
                 // within a short timeout, schedule a reprovision attempt. This handles
                 // cases where ICE/connectivity stalls after provisioning.
-                Task.Run(async () =>
+                _ =Task.Run(async () =>
                 {
                     try
                     {
@@ -2396,8 +2015,8 @@ namespace LibreMetaverse.Voice.WebRTC
             StopPositionLoop();
             StopKeepAliveLoop();
 
-            // Clear peer state and associated audio mappings
-            try { ClearAllPeers(); } catch { }
+            // Clear peer and SSRC state
+            try { peerManager.ClearAllPeers(); } catch { }
 
             PeerConnection?.Close("ClientClose");
 
@@ -2407,102 +2026,6 @@ namespace LibreMetaverse.Voice.WebRTC
             // Cancel internal token source to stop any background work
             try { Cts.Cancel(); } catch { }
         }
-
-        // Helper to extract peer UUIDs from an OSDMap (fallback path)
-        private void ExtractPeersFromOSD(OSDMap map)
-        {
-            if (map == null) return;
-            try
-            {
-                if (map.ContainsKey("av") && map["av"] is OSDArray avArr)
-                {
-                    var list = new List<UUID>();
-                    foreach (var item in avArr)
-                    {
-                        try { var s = item.AsString(); if (UUID.TryParse(s, out var id)) list.Add(id); } catch { }
-                    }
-                    foreach (var id in list) Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v);
-                    var toRemove = Peers.Keys.Except(list).ToList();
-                    foreach (var r in toRemove) RemovePeer(r);
-                    OnPeerListUpdated?.Invoke(list);
-                    return;
-                }
-                if (map.ContainsKey("a") && map["a"] is OSDMap amap)
-                {
-                    var list = new List<UUID>();
-                    foreach (var k in amap.Keys)
-                    {
-                        if (UUID.TryParse(k, out var id))
-                        {
-                            var val = amap[k];
-                            if (val == null) { RemovePeer(id); continue; }
-                            if (val is OSDMap vm && vm.Count == 0) { RemovePeer(id); continue; }
-                            try { var s = val.AsString(); if (string.IsNullOrEmpty(s)) { RemovePeer(id); continue; } } catch { }
-                            list.Add(id);
-                        }
-                    }
-                    foreach (var id in list) Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v);
-                    var toRemove = Peers.Keys.Except(list).ToList(); foreach (var r in toRemove) RemovePeer(r);
-                    OnPeerListUpdated?.Invoke(list);
-                    return;
-                }
-                foreach (var key in map.Keys) { if (UUID.TryParse(key, out var peerId)) Peers.AddOrUpdate(peerId, new OSDMap(), (k, v) => v); }
-            }
-            catch { }
-        }
-
-        // Centralized removal and cleanup for a peer
-        private void RemovePeer(UUID peerId)
-        {
-            try
-            {
-                Peers.TryRemove(peerId, out var _);
-                try
-                {
-                    if (PeerToSsrc.TryRemove(peerId, out var ssrc))
-                    {
-                        SsrcToPeer.TryRemove(ssrc, out _);
-                        try { AudioDevice?.SetSsrcMute(ssrc, true); } catch { }
-                        try { AudioDevice?.ClearSsrc(ssrc); } catch { }
-                    }
-                }
-                catch { }
-                try { OnPeerLeft?.Invoke(peerId); } catch { }
-            }
-            catch { }
-        }
-
-        // Remove all peers and clear SSRC state from audio device
-        private void ClearAllPeers()
-        {
-            try
-            {
-                // Snapshot keys to avoid collection modification issues
-                var peers = Peers.Keys.ToList();
-                foreach (var p in peers)
-                {
-                    try { RemovePeer(p); } catch { }
-                }
-
-                // Also ensure any remaining SSRC entries are cleared
-                var ssrcs = SsrcToPeer.Keys.ToList();
-                foreach (var s in ssrcs)
-                {
-                    try
-                    {
-                        SsrcToPeer.TryRemove(s, out _);
-                        try { AudioDevice?.SetSsrcMute(s, true); } catch { }
-                        try { AudioDevice?.ClearSsrc(s); } catch { }
-                    }
-                    catch { }
-                }
-
-                PeerToSsrc.Clear();
-                Peers.Clear();
-            }
-            catch { }
-        }
-
 
         private volatile bool _disposed = false;
 
@@ -2561,7 +2084,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 catch { }
 
                 // Clear peers and SSRC state
-                try { ClearAllPeers(); } catch { }
+                try { peerManager.ClearAllPeers(); } catch { }
 
                 // Close peer connection
                 try
