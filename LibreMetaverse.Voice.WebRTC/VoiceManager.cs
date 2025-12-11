@@ -50,6 +50,17 @@ namespace LibreMetaverse.Voice.WebRTC
             public DateTime LastActivity { get; set; }
         }
 
+        // Internal class to track a group voice session
+        private class GroupVoiceSession
+        {
+            public UUID GroupId { get; set; }
+            public VoiceSession Session { get; set; }
+            public string ChannelId { get; set; }
+            public string ChannelCredentials { get; set; }
+            public DateTime JoinedAt { get; set; }
+            public DateTime LastActivity { get; set; }
+        }
+
         private readonly GridClient Client;
         public readonly Sdl3Audio AudioDevice;
         private readonly IVoiceLogger _log;
@@ -57,6 +68,9 @@ namespace LibreMetaverse.Voice.WebRTC
         // Track primary and adjacent region sessions
         private RegionVoiceSession _primarySession;
         private readonly ConcurrentDictionary<ulong, RegionVoiceSession> _adjacentSessions = new ConcurrentDictionary<ulong, RegionVoiceSession>();
+        
+        // Track group voice sessions
+        private readonly ConcurrentDictionary<UUID, GroupVoiceSession> _groupSessions = new ConcurrentDictionary<UUID, GroupVoiceSession>();
         
         private bool _enabled = true;
 
@@ -91,6 +105,11 @@ namespace LibreMetaverse.Voice.WebRTC
         // Adjacent region events
         public event Action<ulong> OnAdjacentRegionConnected;
         public event Action<ulong> OnAdjacentRegionDisconnected;
+
+        // Group voice events
+        public event Action<UUID> OnGroupVoiceJoined;
+        public event Action<UUID> OnGroupVoiceLeft;
+        public event Action<UUID, Exception> OnGroupVoiceJoinFailed;
 
         // Expose data-channel / voice events to clients (raw)
         public event Action<UUID> PeerJoined;
@@ -602,6 +621,18 @@ namespace LibreMetaverse.Voice.WebRTC
             }
             catch { }
 
+            // Close all group voice sessions
+            foreach (var kvp in _groupSessions)
+            {
+                try
+                {
+                    _ = kvp.Value.Session.CloseSession();
+                    kvp.Value.Session.Dispose();
+                }
+                catch { }
+            }
+            _groupSessions.Clear();
+
             // Close all adjacent sessions
             foreach (var kvp in _adjacentSessions)
             {
@@ -735,7 +766,7 @@ namespace LibreMetaverse.Voice.WebRTC
             try { return _primarySession.Session.GetKnownPeers(); } catch { return new List<UUID>(); }
         }
 
-        // Get aggregated peer list from all sessions (primary + adjacent)
+        // Get aggregated peer list from all sessions (primary + adjacent + groups)
         public List<UUID> GetAllKnownPeers()
         {
             var peers = new HashSet<UUID>();
@@ -753,6 +784,18 @@ namespace LibreMetaverse.Voice.WebRTC
             }
 
             foreach (var session in _adjacentSessions.Values)
+            {
+                try
+                {
+                    foreach (var peer in session.Session.GetKnownPeers())
+                    {
+                        peers.Add(peer);
+                    }
+                }
+                catch { }
+            }
+
+            foreach (var session in _groupSessions.Values)
             {
                 try
                 {
@@ -826,7 +869,7 @@ namespace LibreMetaverse.Voice.WebRTC
             return false;
         }
 
-        private void RequiredVoiceVersionEventHandler(string capsKey, IMessage message, Simulator simulator)
+        private void RequiredVoiceVersionEventHandler(String capsKey, IMessage message, Simulator simulator)
         {
             var msg = (RequiredVoiceVersionMessage)message;
             if (msg.MajorVersion != 2)
@@ -928,6 +971,255 @@ namespace LibreMetaverse.Voice.WebRTC
                 _log.Warn($"Failed to stop raw file playback: {ex.Message}", Client);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Join a group voice channel. This creates a new voice session specifically for the group.
+        /// </summary>
+        /// <param name="groupId">The UUID of the group to join voice for</param>
+        /// <returns>True if the join was successful, false otherwise</returns>
+        public async Task<bool> JoinGroupVoice(UUID groupId)
+        {
+            if (groupId == UUID.Zero)
+            {
+                _log.Warn("Cannot join group voice: invalid group ID", Client);
+                return false;
+            }
+
+            if (!_enabled)
+            {
+                _log.Warn("WebRTC voice is disabled", Client);
+                return false;
+            }
+
+            if (_groupSessions.ContainsKey(groupId))
+            {
+                _log.Info($"Already in group voice session for {groupId}", Client);
+                return true;
+            }
+
+            try
+            {
+                _log.Info($"Joining group voice for {groupId}", Client);
+
+                // Request group voice credentials from the simulator
+                var (channelUri, credentials) = await RequestGroupVoiceInfo(groupId).ConfigureAwait(false);
+
+                if (string.IsNullOrEmpty(channelUri) || string.IsNullOrEmpty(credentials))
+                {
+                    _log.Warn($"Failed to get group voice credentials for {groupId}", Client);
+                    try { OnGroupVoiceJoinFailed?.Invoke(groupId, new Exception("No voice credentials received")); } catch { }
+                    return false;
+                }
+
+                // Create a new multi-agent voice session for the group
+                var session = new VoiceSession(AudioDevice, VoiceSession.ESessionType.MUTLIAGENT, Client, _log);
+                session.ChannelId = channelUri;
+                session.ChannelCredentials = credentials;
+
+                var groupSession = new GroupVoiceSession
+                {
+                    GroupId = groupId,
+                    Session = session,
+                    ChannelId = channelUri,
+                    ChannelCredentials = credentials,
+                    JoinedAt = DateTime.UtcNow,
+                    LastActivity = DateTime.UtcNow
+                };
+
+                // Wire up events (aggregate events from all sessions)
+                session.OnPeerJoined += (id) => PeerJoined?.Invoke(id);
+                session.OnPeerLeft += (id) => PeerLeft?.Invoke(id);
+                session.OnPeerPositionUpdated += (id, map) => PeerPositionUpdated?.Invoke(id, map);
+                session.OnPeerListUpdated += (list) => PeerListUpdated?.Invoke(list);
+                session.OnPeerAudioUpdated += (id, state) => PeerAudioUpdated?.Invoke(id, state);
+                session.OnPeerPositionUpdatedTyped += (id, pos) => PeerPositionUpdatedTyped?.Invoke(id, pos);
+                session.OnMuteMapReceived += (m) => MuteMapReceived?.Invoke(m);
+                session.OnGainMapReceived += (g) => GainMapReceived?.Invoke(g);
+
+                // Store the session
+                _groupSessions[groupId] = groupSession;
+
+                // Start and provision the session
+                await session.StartAsync().ConfigureAwait(false);
+                var provisioned = await session.RequestProvision().ConfigureAwait(false);
+
+                if (provisioned)
+                {
+                    _log.Info($"Successfully joined group voice for {groupId}", Client);
+                    try { OnGroupVoiceJoined?.Invoke(groupId); } catch { }
+                    return true;
+                }
+                else
+                {
+                    _log.Warn($"Failed to provision group voice session for {groupId}", Client);
+                    _groupSessions.TryRemove(groupId, out _);
+                    try { OnGroupVoiceJoinFailed?.Invoke(groupId, new Exception("Provisioning failed")); } catch { }
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Exception joining group voice for {groupId}: {ex.Message}", Client);
+                _groupSessions.TryRemove(groupId, out _);
+                try { OnGroupVoiceJoinFailed?.Invoke(groupId, ex); } catch { }
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Leave a group voice channel.
+        /// </summary>
+        /// <param name="groupId">The UUID of the group to leave voice for</param>
+        public async Task LeaveGroupVoice(UUID groupId)
+        {
+            if (!_groupSessions.TryRemove(groupId, out var groupSession))
+            {
+                _log.Debug($"Not in group voice session for {groupId}", Client);
+                return;
+            }
+
+            try
+            {
+                _log.Info($"Leaving group voice for {groupId}", Client);
+
+                // Close and dispose the session
+                await groupSession.Session.CloseSession().ConfigureAwait(false);
+                groupSession.Session.Dispose();
+
+                try { OnGroupVoiceLeft?.Invoke(groupId); } catch { }
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Error leaving group voice for {groupId}: {ex.Message}", Client);
+            }
+        }
+
+        /// <summary>
+        /// Check if currently connected to a group voice channel.
+        /// </summary>
+        /// <param name="groupId">The UUID of the group to check</param>
+        /// <returns>True if connected to the group voice channel</returns>
+        public bool IsInGroupVoice(UUID groupId)
+        {
+            return _groupSessions.ContainsKey(groupId);
+        }
+
+        /// <summary>
+        /// Request group voice channel information from the simulator.
+        /// </summary>
+        private async Task<(string channelUri, string credentials)> RequestGroupVoiceInfo(UUID groupId)
+        {
+            var cap = Client.Network.CurrentSim.Caps?.CapabilityURI("ChatSessionRequest");
+            if (cap == null)
+            {
+                _log.Warn("ChatSessionRequest capability not available for group voice", Client);
+                return (null, null);
+            }
+
+            var payload = new OSDMap
+            {
+                ["method"] = "get voice channel info",
+                ["session-id"] = groupId
+            };
+
+            var tcs = new TaskCompletionSource<OSD>();
+            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None, (response, data, error) =>
+            {
+                if (error != null)
+                {
+                    tcs.TrySetException(error);
+                }
+                else
+                {
+                    var osd = OSDParser.Deserialize(data);
+                    tcs.TrySetResult(osd);
+                }
+            });
+
+            try
+            {
+                var osd = await tcs.Task;
+                if (osd is OSDMap map)
+                {
+                    var channelUri = "";
+                    var credentials = "";
+
+                    if (map.TryGetValue("voice_credentials", out var cred) && cred is OSDMap credMap)
+                    {
+                        channelUri = credMap.ContainsKey("channel_uri") ? credMap["channel_uri"].AsString() : "";
+                        credentials = credMap.ContainsKey("channel_credentials") ? credMap["channel_credentials"].AsString() : "";
+                    }
+
+                    _log.Debug($"Group voice credentials received for {groupId}: {channelUri}", Client);
+                    return (channelUri, credentials);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Warn($"Failed to request group voice info for {groupId}: {ex.Message}", Client);
+            }
+
+            return (null, null);
+        }
+
+        /// <summary>
+        /// Get a list of all active group voice sessions.
+        /// </summary>
+        /// <returns>List of group UUIDs with active voice sessions</returns>
+        public List<UUID> GetActiveGroupVoiceSessions()
+        {
+            return _groupSessions.Keys.ToList();
+        }
+
+        /// <summary>
+        /// Get known peers in a specific group voice session.
+        /// </summary>
+        /// <param name="groupId">The UUID of the group</param>
+        /// <returns>List of peer UUIDs in the group voice session, or empty list if not in group voice</returns>
+        public List<UUID> GetGroupVoicePeers(UUID groupId)
+        {
+            if (_groupSessions.TryGetValue(groupId, out var groupSession))
+            {
+                try
+                {
+                    return groupSession.Session.GetKnownPeers();
+                }
+                catch { }
+            }
+            return new List<UUID>();
+        }
+
+        /// <summary>
+        /// Set peer mute state in a specific group voice session.
+        /// </summary>
+        /// <param name="groupId">The UUID of the group</param>
+        /// <param name="peerId">The UUID of the peer to mute/unmute</param>
+        /// <param name="mute">True to mute, false to unmute</param>
+        /// <returns>True if the mute state was set successfully</returns>
+        public bool SetGroupVoicePeerMute(UUID groupId, UUID peerId, bool mute)
+        {
+            if (_groupSessions.TryGetValue(groupId, out var groupSession))
+            {
+                return groupSession.Session.SetPeerMute(peerId, mute);
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Set peer gain level in a specific group voice session.
+        /// </summary>
+        /// <param name="groupId">The UUID of the group</param>
+        /// <param name="peerId">The UUID of the peer</param>
+        /// <param name="gain">Gain level (0-100)</param>
+        /// <returns>True if the gain was set successfully</returns>
+        public bool SetGroupVoicePeerGain(UUID groupId, UUID peerId, int gain)
+        {
+            if (_groupSessions.TryGetValue(groupId, out var groupSession))
+            {
+                return groupSession.Session.SetPeerGain(peerId, gain);
+            }
+            return false;
         }
     }
 }
