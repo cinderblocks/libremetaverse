@@ -1003,9 +1003,15 @@ namespace LibreMetaverse.Voice.WebRTC
                         _log.Debug($"ExtractPeersFromOSD failed: {ex.Message}", Client);
                     }
 
-                    // convert OSDMap to a temporary variable for downstream logic
-                    // Use existing code path by assigning to 'map' variable below via a small wrapper
-                    // We'll continue with handling using OSDMap as before
+                    // Reply to keepalive pings from server
+                    try
+                    {
+                        if (map.ContainsKey("ping") && map["ping"] is OSD && map["ping"].AsBoolean())
+                        {
+                            TrySendDataChannelString("{\"pong\":true}");
+                        }
+                    }
+                    catch { }
                 }
 
                 // If we have a LitJson root, parse it directly (preferred path)
@@ -1129,6 +1135,16 @@ namespace LibreMetaverse.Voice.WebRTC
 
                     var contains = new Func<IDictionary, string, bool>((dict, key) => dict != null && dict.Contains(key));
                     var jdContains = jdDict;
+
+                    // Reply to keepalive pings from server (LitJson path)
+                    try
+                    {
+                        if (jdContains != null && contains(jdContains, "ping") && JBool(jd["ping"]) == true)
+                        {
+                            TrySendDataChannelString("{\"pong\":true}");
+                        }
+                    }
+                    catch { }
 
                     // Join
                     if (contains(jdContains, "j") && jd["j"].IsObject)
@@ -2111,7 +2127,8 @@ namespace LibreMetaverse.Voice.WebRTC
                         try { var s = item.AsString(); if (UUID.TryParse(s, out var id)) list.Add(id); } catch { }
                     }
                     foreach (var id in list) Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v);
-                    var toRemove = Peers.Keys.Except(list).ToList(); foreach (var r in toRemove) RemovePeer(r);
+                    var toRemove = Peers.Keys.Except(list).ToList();
+                    foreach (var r in toRemove) RemovePeer(r);
                     OnPeerListUpdated?.Invoke(list);
                     return;
                 }
