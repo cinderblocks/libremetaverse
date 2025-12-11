@@ -61,6 +61,18 @@ namespace LibreMetaverse.Voice.WebRTC
             public DateTime LastActivity { get; set; }
         }
 
+        // Internal class to track a P2P voice call session
+        private class P2PVoiceSession
+        {
+            public UUID AgentId { get; set; }
+            public VoiceSession Session { get; set; }
+            public string ChannelId { get; set; }
+            public string ChannelCredentials { get; set; }
+            public DateTime CallStarted { get; set; }
+            public DateTime LastActivity { get; set; }
+            public bool IsOutgoing { get; set; }
+        }
+
         private readonly GridClient Client;
         public readonly Sdl3Audio AudioDevice;
         private readonly IVoiceLogger _log;
@@ -71,6 +83,9 @@ namespace LibreMetaverse.Voice.WebRTC
         
         // Track group voice sessions
         private readonly ConcurrentDictionary<UUID, GroupVoiceSession> _groupSessions = new ConcurrentDictionary<UUID, GroupVoiceSession>();
+        
+        // Track P2P voice call sessions
+        private readonly ConcurrentDictionary<UUID, P2PVoiceSession> _p2pSessions = new ConcurrentDictionary<UUID, P2PVoiceSession>();
         
         private bool _enabled = true;
 
@@ -110,6 +125,14 @@ namespace LibreMetaverse.Voice.WebRTC
         public event Action<UUID> OnGroupVoiceJoined;
         public event Action<UUID> OnGroupVoiceLeft;
         public event Action<UUID, Exception> OnGroupVoiceJoinFailed;
+
+        // P2P voice call events
+        public event Action<UUID> OnP2PCallStarted;
+        public event Action<UUID> OnP2PCallEnded;
+        public event Action<UUID, Exception> OnP2PCallFailed;
+        public event Action<UUID> OnP2PCallIncoming;
+        public event Action<UUID> OnP2PCallAccepted;
+        public event Action<UUID> OnP2PCallDeclined;
 
         // Expose data-channel / voice events to clients (raw)
         public event Action<UUID> PeerJoined;
@@ -621,6 +644,18 @@ namespace LibreMetaverse.Voice.WebRTC
             }
             catch { }
 
+            // Close all P2P voice calls
+            foreach (var kvp in _p2pSessions)
+            {
+                try
+                {
+                    _ = kvp.Value.Session.CloseSession();
+                    kvp.Value.Session.Dispose();
+                }
+                catch { }
+            }
+            _p2pSessions.Clear();
+
             // Close all group voice sessions
             foreach (var kvp in _groupSessions)
             {
@@ -766,7 +801,7 @@ namespace LibreMetaverse.Voice.WebRTC
             try { return _primarySession.Session.GetKnownPeers(); } catch { return new List<UUID>(); }
         }
 
-        // Get aggregated peer list from all sessions (primary + adjacent + groups)
+        // Get aggregated peer list from all sessions (primary + adjacent + groups + P2P)
         public List<UUID> GetAllKnownPeers()
         {
             var peers = new HashSet<UUID>();
@@ -796,6 +831,18 @@ namespace LibreMetaverse.Voice.WebRTC
             }
 
             foreach (var session in _groupSessions.Values)
+            {
+                try
+                {
+                    foreach (var peer in session.Session.GetKnownPeers())
+                    {
+                        peers.Add(peer);
+                    }
+                }
+                catch { }
+            }
+
+            foreach (var session in _p2pSessions.Values)
             {
                 try
                 {
@@ -1106,6 +1153,15 @@ namespace LibreMetaverse.Voice.WebRTC
         }
 
         /// <summary>
+        /// Get a list of all active group voice sessions.
+        /// </summary>
+        /// <returns>List of group UUIDs with active voice sessions</returns>
+        public List<UUID> GetActiveGroupVoiceSessions()
+        {
+            return _groupSessions.Keys.ToList();
+        }
+
+        /// <summary>
         /// Request group voice channel information from the simulator.
         /// </summary>
         private async Task<(string channelUri, string credentials)> RequestGroupVoiceInfo(UUID groupId)
@@ -1164,15 +1220,6 @@ namespace LibreMetaverse.Voice.WebRTC
         }
 
         /// <summary>
-        /// Get a list of all active group voice sessions.
-        /// </summary>
-        /// <returns>List of group UUIDs with active voice sessions</returns>
-        public List<UUID> GetActiveGroupVoiceSessions()
-        {
-            return _groupSessions.Keys.ToList();
-        }
-
-        /// <summary>
         /// Get known peers in a specific group voice session.
         /// </summary>
         /// <param name="groupId">The UUID of the group</param>
@@ -1221,5 +1268,368 @@ namespace LibreMetaverse.Voice.WebRTC
             }
             return false;
         }
+
+        #region P2P Voice Calls
+
+        /// <summary>
+        /// Initiate a P2P voice call with another agent.
+        /// </summary>
+        /// <param name="agentId">The UUID of the agent to call</param>
+        /// <returns>True if the call was initiated successfully</returns>
+        public async Task<bool> StartP2PCall(UUID agentId)
+        {
+            if (agentId == UUID.Zero)
+            {
+                _log.Warn("Cannot start P2P call: invalid agent ID", Client);
+                return false;
+            }
+
+            if (!_enabled)
+            {
+                _log.Warn("WebRTC voice is disabled", Client);
+                return false;
+            }
+
+            if (_p2pSessions.ContainsKey(agentId))
+            {
+                _log.Info($"Already in P2P call with {agentId}", Client);
+                return true;
+            }
+
+            try
+            {
+                _log.Info($"Starting P2P voice call with {agentId}", Client);
+
+                // Request P2P voice credentials from the simulator
+                var (channelUri, credentials) = await RequestP2PVoiceInfo(agentId).ConfigureAwait(false);
+
+                if (string.IsNullOrEmpty(channelUri) || string.IsNullOrEmpty(credentials))
+                {
+                    _log.Warn($"Failed to get P2P voice credentials for {agentId}", Client);
+                    try { OnP2PCallFailed?.Invoke(agentId, new Exception("No voice credentials received")); } catch { }
+                    return false;
+                }
+
+                // Create a new multi-agent voice session for the P2P call
+                var session = new VoiceSession(AudioDevice, VoiceSession.ESessionType.MUTLIAGENT, Client, _log);
+                session.ChannelId = channelUri;
+                session.ChannelCredentials = credentials;
+
+                var p2pSession = new P2PVoiceSession
+                {
+                    AgentId = agentId,
+                    Session = session,
+                    ChannelId = channelUri,
+                    ChannelCredentials = credentials,
+                    CallStarted = DateTime.UtcNow,
+                    LastActivity = DateTime.UtcNow,
+                    IsOutgoing = true
+                };
+
+                // Wire up events (aggregate events from all sessions)
+                session.OnPeerJoined += (id) => 
+                {
+                    PeerJoined?.Invoke(id);
+                    if (id == agentId)
+                    {
+                        try { OnP2PCallAccepted?.Invoke(agentId); } catch { }
+                    }
+                };
+                session.OnPeerLeft += (id) => 
+                {
+                    PeerLeft?.Invoke(id);
+                    if (id == agentId)
+                    {
+                        _ = EndP2PCall(agentId);
+                    }
+                };
+                session.OnPeerPositionUpdated += (id, map) => PeerPositionUpdated?.Invoke(id, map);
+                session.OnPeerListUpdated += (list) => PeerListUpdated?.Invoke(list);
+                session.OnPeerAudioUpdated += (id, state) => PeerAudioUpdated?.Invoke(id, state);
+                session.OnPeerPositionUpdatedTyped += (id, pos) => PeerPositionUpdatedTyped?.Invoke(id, pos);
+                session.OnMuteMapReceived += (m) => MuteMapReceived?.Invoke(m);
+                session.OnGainMapReceived += (g) => GainMapReceived?.Invoke(g);
+
+                // Store the session
+                _p2pSessions[agentId] = p2pSession;
+
+                // Start and provision the session
+                await session.StartAsync().ConfigureAwait(false);
+                var provisioned = await session.RequestProvision().ConfigureAwait(false);
+
+                if (provisioned)
+                {
+                    _log.Info($"Successfully started P2P call with {agentId}", Client);
+                    try { OnP2PCallStarted?.Invoke(agentId); } catch { }
+                    return true;
+                }
+                else
+                {
+                    _log.Warn($"Failed to provision P2P call session for {agentId}", Client);
+                    _p2pSessions.TryRemove(agentId, out _);
+                    try { OnP2PCallFailed?.Invoke(agentId, new Exception("Provisioning failed")); } catch { }
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Exception starting P2P call with {agentId}: {ex.Message}", Client);
+                _p2pSessions.TryRemove(agentId, out _);
+                try { OnP2PCallFailed?.Invoke(agentId, ex); } catch { }
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// End a P2P voice call with another agent.
+        /// </summary>
+        /// <param name="agentId">The UUID of the agent to end the call with</param>
+        public async Task EndP2PCall(UUID agentId)
+        {
+            if (!_p2pSessions.TryRemove(agentId, out var p2pSession))
+            {
+                _log.Debug($"Not in P2P call with {agentId}", Client);
+                return;
+            }
+
+            try
+            {
+                _log.Info($"Ending P2P voice call with {agentId}", Client);
+
+                // Close and dispose the session
+                await p2pSession.Session.CloseSession().ConfigureAwait(false);
+                p2pSession.Session.Dispose();
+
+                try { OnP2PCallEnded?.Invoke(agentId); } catch { }
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Error ending P2P call with {agentId}: {ex.Message}", Client);
+            }
+        }
+
+        /// <summary>
+        /// Accept an incoming P2P voice call.
+        /// </summary>
+        /// <param name="agentId">The UUID of the agent calling</param>
+        /// <param name="channelUri">The channel URI from the call invitation</param>
+        /// <param name="credentials">The credentials from the call invitation</param>
+        /// <returns>True if the call was accepted successfully</returns>
+        public async Task<bool> AcceptP2PCall(UUID agentId, string channelUri, string credentials)
+        {
+            if (agentId == UUID.Zero || string.IsNullOrEmpty(channelUri) || string.IsNullOrEmpty(credentials))
+            {
+                _log.Warn("Cannot accept P2P call: invalid parameters", Client);
+                return false;
+            }
+
+            if (_p2pSessions.ContainsKey(agentId))
+            {
+                _log.Info($"Already in P2P call with {agentId}", Client);
+                return true;
+            }
+
+            try
+            {
+                _log.Info($"Accepting P2P voice call from {agentId}", Client);
+
+                // Create a new multi-agent voice session for the P2P call
+                var session = new VoiceSession(AudioDevice, VoiceSession.ESessionType.MUTLIAGENT, Client, _log);
+                session.ChannelId = channelUri;
+                session.ChannelCredentials = credentials;
+
+                var p2pSession = new P2PVoiceSession
+                {
+                    AgentId = agentId,
+                    Session = session,
+                    ChannelId = channelUri,
+                    ChannelCredentials = credentials,
+                    CallStarted = DateTime.UtcNow,
+                    LastActivity = DateTime.UtcNow,
+                    IsOutgoing = false
+                };
+
+                // Wire up events
+                session.OnPeerJoined += (id) => PeerJoined?.Invoke(id);
+                session.OnPeerLeft += (id) => 
+                {
+                    PeerLeft?.Invoke(id);
+                    if (id == agentId)
+                    {
+                        _ = EndP2PCall(agentId);
+                    }
+                };
+                session.OnPeerPositionUpdated += (id, map) => PeerPositionUpdated?.Invoke(id, map);
+                session.OnPeerListUpdated += (list) => PeerListUpdated?.Invoke(list);
+                session.OnPeerAudioUpdated += (id, state) => PeerAudioUpdated?.Invoke(id, state);
+                session.OnPeerPositionUpdatedTyped += (id, pos) => PeerPositionUpdatedTyped?.Invoke(id, pos);
+                session.OnMuteMapReceived += (m) => MuteMapReceived?.Invoke(m);
+                session.OnGainMapReceived += (g) => GainMapReceived?.Invoke(g);
+
+                // Store the session
+                _p2pSessions[agentId] = p2pSession;
+
+                // Start and provision the session
+                await session.StartAsync().ConfigureAwait(false);
+                var provisioned = await session.RequestProvision().ConfigureAwait(false);
+
+                if (provisioned)
+                {
+                    _log.Info($"Successfully accepted P2P call from {agentId}", Client);
+                    try { OnP2PCallAccepted?.Invoke(agentId); } catch { }
+                    try { OnP2PCallStarted?.Invoke(agentId); } catch { }
+                    return true;
+                }
+                else
+                {
+                    _log.Warn($"Failed to provision P2P call session from {agentId}", Client);
+                    _p2pSessions.TryRemove(agentId, out _);
+                    try { OnP2PCallFailed?.Invoke(agentId, new Exception("Provisioning failed")); } catch { }
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Exception accepting P2P call from {agentId}: {ex.Message}", Client);
+                _p2pSessions.TryRemove(agentId, out _);
+                try { OnP2PCallFailed?.Invoke(agentId, ex); } catch { }
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Decline an incoming P2P voice call.
+        /// </summary>
+        /// <param name="agentId">The UUID of the agent calling</param>
+        public void DeclineP2PCall(UUID agentId)
+        {
+            _log.Info($"Declining P2P voice call from {agentId}", Client);
+            try { OnP2PCallDeclined?.Invoke(agentId); } catch { }
+            // Note: The simulator should be notified of the decline via a capability request
+            // This would be implementation-specific based on the grid's protocol
+        }
+
+        /// <summary>
+        /// Check if currently in a P2P voice call with an agent.
+        /// </summary>
+        /// <param name="agentId">The UUID of the agent</param>
+        /// <returns>True if in a P2P call with the agent</returns>
+        public bool IsInP2PCall(UUID agentId)
+        {
+            return _p2pSessions.ContainsKey(agentId);
+        }
+
+        /// <summary>
+        /// Get a list of all active P2P voice calls.
+        /// </summary>
+        /// <returns>List of agent UUIDs with active P2P calls</returns>
+        public List<UUID> GetActiveP2PCalls()
+        {
+            return _p2pSessions.Keys.ToList();
+        }
+
+        /// <summary>
+        /// Get information about a P2P call.
+        /// </summary>
+        /// <param name="agentId">The UUID of the agent</param>
+        /// <returns>Call information or null if not in call</returns>
+        public (bool IsActive, bool IsOutgoing, DateTime? CallStarted) GetP2PCallInfo(UUID agentId)
+        {
+            if (_p2pSessions.TryGetValue(agentId, out var session))
+            {
+                return (true, session.IsOutgoing, session.CallStarted);
+            }
+            return (false, false, null);
+        }
+
+        /// <summary>
+        /// Set mute state for a P2P call.
+        /// </summary>
+        /// <param name="agentId">The UUID of the agent</param>
+        /// <param name="mute">True to mute, false to unmute</param>
+        /// <returns>True if the mute state was set successfully</returns>
+        public bool SetP2PCallMute(UUID agentId, bool mute)
+        {
+            if (_p2pSessions.TryGetValue(agentId, out var p2pSession))
+            {
+                return p2pSession.Session.SetPeerMute(agentId, mute);
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Set volume/gain for a P2P call.
+        /// </summary>
+        /// <param name="agentId">The UUID of the agent</param>
+        /// <param name="gain">Gain level (0-100)</param>
+        /// <returns>True if the gain was set successfully</returns>
+        public bool SetP2PCallGain(UUID agentId, int gain)
+        {
+            if (_p2pSessions.TryGetValue(agentId, out var p2pSession))
+            {
+                return p2pSession.Session.SetPeerGain(agentId, gain);
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Request P2P voice channel information from the simulator.
+        /// </summary>
+        private async Task<(string channelUri, string credentials)> RequestP2PVoiceInfo(UUID agentId)
+        {
+            var cap = Client.Network.CurrentSim.Caps?.CapabilityURI("ChatSessionRequest");
+            if (cap == null)
+            {
+                _log.Warn("ChatSessionRequest capability not available for P2P voice", Client);
+                return (null, null);
+            }
+
+            var payload = new OSDMap
+            {
+                ["method"] = "start p2p voice",
+                ["session-id"] = agentId
+            };
+
+            var tcs = new TaskCompletionSource<OSD>();
+            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None, (response, data, error) =>
+            {
+                if (error != null)
+                {
+                    tcs.TrySetException(error);
+                }
+                else
+                {
+                    var osd = OSDParser.Deserialize(data);
+                    tcs.TrySetResult(osd);
+                }
+            });
+
+            try
+            {
+                var osd = await tcs.Task;
+                if (osd is OSDMap map)
+                {
+                    var channelUri = "";
+                    var credentials = "";
+
+                    if (map.TryGetValue("voice_credentials", out var cred) && cred is OSDMap credMap)
+                    {
+                        channelUri = credMap.ContainsKey("channel_uri") ? credMap["channel_uri"].AsString() : "";
+                        credentials = credMap.ContainsKey("channel_credentials") ? credMap["channel_credentials"].AsString() : "";
+                    }
+
+                    _log.Debug($"P2P voice credentials received for {agentId}: {channelUri}", Client);
+                    return (channelUri, credentials);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Warn($"Failed to request P2P voice info for {agentId}: {ex.Message}", Client);
+            }
+
+            return (null, null);
+        }
+
+        #endregion
     }
 }
