@@ -702,56 +702,39 @@ namespace OpenMetaverse
 
         #endregion Operators
 
-        private void CollectSubtree(InventoryNode node, List<InventoryNode> list)
-        {
-            list.Add(node);
-            lock (node.Nodes.SyncRoot)
-            {
-                foreach (var child in node.Nodes.Values)
-                {
-                    CollectSubtree(child, list);
-                }
-            }
-        }
-
-        private int CountSubtree(InventoryNode node)
-        {
-            var count = 1; // count this node
-            lock (node.Nodes.SyncRoot)
-            {
-                foreach (var child in node.Nodes.Values)
-                {
-                    count += CountSubtree(child);
-                }
-            }
-            return count;
-        }
-
-        // Count only InventoryItem instances in the subtree rooted at node (includes root if item)
-        private int CountItemDescendants(InventoryNode node)
-        {
-            if (node == null) return 0;
-            int count = (node.Data is InventoryItem) ? 1 : 0;
-            lock (node.Nodes.SyncRoot)
-            {
-                foreach (var child in node.Nodes.Values)
-                {
-                    count += CountItemDescendants(child);
-                }
-            }
-            return count;
-        }
-
         // Iterative subtree item counter used by incremental updates
         private int GetItemCountInSubtree(InventoryNode node)
         {
             if (node == null) return 0;
+            
             int count = 0;
             var stack = new Stack<InventoryNode>();
+            var visited = new HashSet<UUID>();
+            int depth = 0;
+            const int maxDepth = 512;
+            
             stack.Push(node);
+            
             while (stack.Count > 0)
             {
+                depth++;
+                
+                // Defensive depth limit
+                if (depth > maxDepth)
+                {
+                    Logger.Warn($"Inventory item count exceeded maximum iterations ({maxDepth}). Possible circular reference in inventory hierarchy.", Client);
+                    break;
+                }
+                
                 var n = stack.Pop();
+                
+                // Defensive loop detection
+                if (!visited.Add(n.Data.UUID))
+                {
+                    Logger.Warn($"Inventory loop detected during item count: Node {n.Data.UUID} ('{n.Data.Name}') has already been visited. Circular parent reference detected.", Client);
+                    continue;
+                }
+                
                 if (n.Data is InventoryItem) count++;
                 lock (n.Nodes.SyncRoot)
                 {
@@ -769,10 +752,32 @@ namespace OpenMetaverse
         {
             int count = 0;
             var stack = new Stack<InventoryNode>();
+            var visited = new HashSet<UUID>();
+            int iterations = 0;
+            const int maxIterations = 100000;
+            
             stack.Push(node);
+            
             while (stack.Count > 0)
             {
+                iterations++;
+                
+                // Defensive iteration limit
+                if (iterations > maxIterations)
+                {
+                    Logger.Warn($"Inventory collection exceeded maximum iterations ({maxIterations}). Possible circular reference in inventory hierarchy.", Client);
+                    break;
+                }
+                
                 var n = stack.Pop();
+                
+                // Defensive loop detection
+                if (!visited.Add(n.Data.UUID))
+                {
+                    Logger.Warn($"Inventory loop detected during subtree collection: Node {n.Data.UUID} ('{n.Data.Name}') has already been visited. Circular parent reference detected.", Client);
+                    continue;
+                }
+                
                 list.Add(n);
                 // Remove from children index as we're collecting for deletion
                 try { RemoveFromChildrenIndex(n.Parent?.Data.UUID ?? UUID.Zero, n.Data.UUID); } catch { }

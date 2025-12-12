@@ -704,7 +704,33 @@ namespace OpenMetaverse
         public async Task GetInventoryRecursiveAsync(UUID folderID, UUID owner,
             List<InventoryFolder> cats, List<InventoryItem> items, CancellationToken cancellationToken = default)
         {
+            var visited = new HashSet<UUID>();
+            await GetInventoryRecursiveInternalAsync(folderID, owner, cats, items, visited, 0, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Internal implementation of recursive inventory fetch with loop detection
+        /// </summary>
+        private async Task GetInventoryRecursiveInternalAsync(UUID folderID, UUID owner,
+            List<InventoryFolder> cats, List<InventoryItem> items, HashSet<UUID> visited, int depth,
+            CancellationToken cancellationToken = default)
+        {
             cancellationToken.ThrowIfCancellationRequested();
+
+            // Defensive loop detection: Check if we've already visited this folder
+            if (!visited.Add(folderID))
+            {
+                Logger.Warn($"Inventory loop detected: Folder {folderID} has already been visited. Circular parentage reference detected at depth {depth}.", Client);
+                return;
+            }
+
+            // Defensive depth limit to prevent stack overflow even without circular refs
+            const int maxDepth = 512;
+            if (depth > maxDepth)
+            {
+                Logger.Warn($"Inventory traversal exceeded maximum depth of {maxDepth} at folder {folderID}. Possible circular reference or extremely deep hierarchy.", Client);
+                return;
+            }
 
             var contents = await FolderContentsAsync(
                 folderID, owner, true, true, InventorySortOrder.ByDate, cancellationToken).ConfigureAwait(false);
@@ -719,7 +745,7 @@ namespace OpenMetaverse
                 {
                     case InventoryFolder folder:
                         cats.Add(folder);
-                        await GetInventoryRecursiveAsync(folder.UUID, owner, cats, items, cancellationToken).ConfigureAwait(false);
+                        await GetInventoryRecursiveInternalAsync(folder.UUID, owner, cats, items, visited, depth + 1, cancellationToken).ConfigureAwait(false);
                         break;
                     case InventoryItem _:
                         var fetched = await FetchItemAsync(entry.UUID, owner, cancellationToken).ConfigureAwait(false);

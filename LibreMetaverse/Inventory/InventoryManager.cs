@@ -799,8 +799,29 @@ namespace OpenMetaverse
         /// <returns>A list of inventory items found</returns>
         public List<InventoryBase> LocalFind(UUID baseFolder, string[] path, int level, bool firstOnly)
         {
+            var visited = new HashSet<UUID>();
+            return LocalFindInternal(baseFolder, path, level, firstOnly, visited, 0);
+        }
+
+        private List<InventoryBase> LocalFindInternal(UUID baseFolder, string[] path, int level, bool firstOnly, HashSet<UUID> visited, int depth)
+        {
             var objects = new List<InventoryBase>();
-            //List<InventoryFolder> folders = new List<InventoryFolder>();
+
+            // Defensive loop detection
+            if (!visited.Add(baseFolder))
+            {
+                Logger.Warn($"Inventory loop detected during LocalFind: Folder {baseFolder} has already been visited. Circular parent reference detected at depth {depth}.", Client);
+                return objects;
+            }
+
+            // Defensive depth limit
+            const int maxDepth = 512;
+            if (depth > maxDepth)
+            {
+                Logger.Warn($"Inventory LocalFind exceeded maximum depth of {maxDepth} at folder {baseFolder}. Possible circular reference or extremely deep hierarchy.", Client);
+                return objects;
+            }
+
             var contents = _Store.GetContents(baseFolder);
 
             foreach (var inv in contents.Where(inv => string.Compare(inv.Name, path[level], StringComparison.Ordinal) == 0))
@@ -812,7 +833,7 @@ namespace OpenMetaverse
                 }
                 else if (inv is InventoryFolder)
                 {
-                    objects.AddRange(LocalFind(inv.UUID, path, level + 1, firstOnly));
+                    objects.AddRange(LocalFindInternal(inv.UUID, path, level + 1, firstOnly, visited, depth + 1));
                 }
             }
 
@@ -1205,11 +1226,31 @@ namespace OpenMetaverse
 
                 // Traverse descendants iteratively to avoid recursive write-lock reentrancy
                 var stack = new Stack<UUID>();
+                var visited = new HashSet<UUID>();
+                int iterations = 0;
+                const int maxIterations = 100000;
+                
                 stack.Push(itemId);
 
                 while (stack.Count > 0)
                 {
+                    iterations++;
+                    
+                    // Defensive iteration limit
+                    if (iterations > maxIterations)
+                    {
+                        Logger.Warn($"RemoveLocalUi exceeded maximum iterations ({maxIterations}). Possible circular reference in inventory hierarchy.", Client);
+                        break;
+                    }
+                    
                     var id = stack.Pop();
+
+                    // Defensive loop detection
+                    if (!visited.Add(id))
+                    {
+                        Logger.Warn($"Inventory loop detected during RemoveLocalUi: Item {id} has already been visited. Circular parent reference detected.", Client);
+                        continue;
+                    }
 
                     // GetContents is a read operation
                     var children = _Store.GetContents(id);
