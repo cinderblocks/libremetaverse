@@ -1,9 +1,9 @@
 ```
-▄▄▌  ▪  ▄▄▄▄· ▄▄▄  ▄▄▄ .• ▌ ▄ ·. ▄▄▄ .▄▄▄▄▄ ▄▄▄·  ▌ ▐·▄▄▄ .▄▄▄  .▄▄ · ▄▄▄ .
-██•  ██ ▐█ ▀█▪▀▄ █·▀▄.▀··██ ▐███▪▀▄.▀·•██  ▐█ ▀█ ▪█·█▌▀▄.▀·▀▄ █·▐█ ▀. ▀▄.▀·
-██▪  ▐█·▐█▀▀█▄▐▀▀▄ ▐▀▀▪▄▐█ ▌▐▌▐█·▐▀▀▪▄ ▐█.▪▄█▀▀█ ▐█▐█•▐▀▀▪▄▐▀▀▄ ▄▀▀▀█▄▐▀▀▪▄
-▐█▌▐▌▐█▌██▄▪▐█▐█•█▌▐█▄▄▌██ ██▌▐█▌▐█▄▄▌ ▐█▌·▐█ ▪▐▌ ███ ▐█▄▄▌▐█•█▌▐█▄▪▐█▐█▄▄▌
-.▀▀▀ ▀▀▀·▀▀▀▀ .▀  ▀ ▀▀▀ ▀▀  █▪▀▀▀ ▀▀▀  ▀▀▀  ▀  ▀ . ▀   ▀▀▀ .▀  ▀ ▀▀▀▀  ▀▀▀ 
+▗▖   ▄ ▗▖    ▄▄▄ ▗▞▀▚▖▗▖  ▗▖▗▞▀▚▖   ■  ▗▞▀▜▌▄   ▄ ▗▞▀▚▖ ▄▄▄ ▄▄▄ ▗▞▀▚▖
+▐▌   ▄ ▐▌   █    ▐▛▀▀▘▐▛▚▞▜▌▐▛▀▀▘▗▄▟▙▄▖▝▚▄▟▌█   █ ▐▛▀▀▘█   ▀▄▄  ▐▛▀▀▘
+▐▌   █ ▐▛▀▚▖█    ▝▚▄▄▖▐▌  ▐▌▝▚▄▄▖  ▐▌        ▀▄▀  ▝▚▄▄▖█   ▄▄▄▀ ▝▚▄▄▖
+▐▙▄▄▖█ ▐▙▄▞▘          ▐▌  ▐▌       ▐▌                                
+                                   ▐▌                                
 ```
 # LibreMetaverse
 
@@ -15,32 +15,143 @@ compatibility with an eye to performance, multi-threading, and memory management
 The canonical source for LibreMetaverse can be found at:
 https://github.com/cinderblocks/libremetaverse
 
-## Simple installation procedure
+## Requirements
 
-### Windows
+- .NET SDK 8.0 or 9.0 installed (recommended). Older .NET SDKs may build some projects but are not tested.
+- `dotnet` CLI available on PATH. Verify with:
 
-The `dotnet` utility is cross-platform so compilation is no different than on Linux/macOS. 
-You may, however, opt to use Visual Studio as you would any other .NET application.
+```
+dotnet --info
+```
 
-### Linux/macOS
+- On Windows you can use Visual Studio (2022/2023) with .NET workloads installed. On Linux/macOS use the official .NET SDK installers.
 
--  Make sure you have at least `dotnet` installed, with a valid SDK _and_ runtime of at least .NET6 available!
+## Recommended quick build (CLI)
 
--  From the root, run `dotnet restore LibreMetaverse.Release.sln`. You should get some errors regarding missing Windows libraries; 
-that's ok, you can ignore those, they're to be expected since Linux/macOS do _not_ include such libraries. Some test applications are Windows-only.  
-If all goes well, you should now have all dependent packages properly installed.
+From repository root:
 
--  From the root, run `dotnet msbuild LibreMetaverse.Release.sln`, and enjoy the superfast Roslyn compiler at work 😄 
-It should finish after a few minutes, depending on the speed of your machine.
+1. Restore packages:
 
--  Your binaries will be under `../bin/net8.0` or `../bin/net9.0` (there might be a few more directories under `../bin`),
-depending on what runtimes you have installed on your system. Make sure you `cd` to the correct directory depending on the runtime you have, 
-and then search for all your binaries there: they should be normal-looking executable files (with the `x` attribute set) and having the name 
-of the appropriate test application (e.g. `TestClient` for the interactive testing tool).
+```
+# Restore packages for the solution
+# Example: dotnet restore LibreMetaverse.sln
+# Or restore and build directly from the root directory:
 
--  Unlike OpenSimulator and LibOpenMetaverse, you don't need to launch the binaries with Mono, they're _directly_ executable; 
-the `dotnet` chain already embeds the small runtime that allows .NET apps to run natively on whatever operating system you've got.
+dotnet restore
+```
 
+2. Build the solution (Release):
+
+```
+# Build the entire repo (builds discovered projects)
+# Recommended: use 'dotnet build' which runs source generators automatically
+
+dotnet build -c Release
+```
+
+This builds projects for their configured target frameworks (net8.0/net9.0/netstandard2.0, etc.). 
+If you need to force a single framework for a specific project use `-f` on the `dotnet build` command for that project.
+
+Notes:
+- Some sample programs and tests target Windows-only frameworks (e.g. .NET Framework) 
+  and will produce warnings or errors on non-Windows hosts. You can ignore those when building cross-platform.
+- If you prefer MSBuild directly, be aware: some projects include custom source generators under the 
+  `SourceGenerators` folder. When using MSBuild (or `dotnet msbuild`) you may need to build/run those 
+  generator projects manually before building the consumer projects. Using `dotnet build` is recommended 
+  because it will execute source generators as part of the normal build flow when configured correctly.
+
+If you still want to run MSBuild directly:
+
+```
+# Build generator projects first (example):
+# dotnet build SourceGenerators/PacketSourceGenerator/PacketSourceGenerator.csproj -c Release
+# dotnet build SourceGenerators/VisualParamGenerator/VisualParamGenerator.csproj -c Release
+
+# Then run msbuild on the solution (adjust solution filename as needed):
+# dotnet msbuild LibreMetaverse.sln -t:Build -p:Configuration=Release
+```
+
+## Building specific projects
+
+To build an individual project (example `TestClient`):
+
+```
+dotnet build Programs/examples/TestClient/TestClient.csproj -c Release
+```
+
+Outputs for each project are under that project's `bin/<Configuration>/<TargetFramework>/` directory 
+(for example `LibreMetaverse/bin/Release/net8.0/`).
+
+## Running examples
+
+Change into the example project's output folder and run with `dotnet` (or execute the produced 
+executable on platforms that produce a native runnable file):
+
+```
+cd Programs/examples/TestClient/bin/Release/net8.0/
+dotnet TestClient.dll    # on platforms that require 'dotnet' to run
+# or
+./TestClient              # if the project produced a runnable executable on your platform
+```
+
+## Visual Studio (Windows)
+
+- Open the solution file present in the repo root (for example `LibreMetaverse.sln`) in Visual Studio.
+- Select the desired solution configuration (Debug/Release) and target framework (if applicable) and build.
+- Some solution items target .NET Framework for Windows-only tests/tools — you can unload those projects if you don't need them.
+
+## Platform-specific notes
+
+- Windows
+  - Full .NET Framework projects (e.g. `net48` test/tools) require Windows and Visual Studio/MSBuild. 
+    Use Visual Studio or `dotnet msbuild` from a Developer Command Prompt.
+  - Executables built for Windows can be run directly (`./Program.exe`) or via `dotnet` for framework-dependent builds.
+  - Some third-party SDKs (voice/Vivox, native clients) may require platform installers or SDKs — consult the 
+    specific project folders for details.
+
+- Linux
+  - Use the official .NET SDK packages for your distribution. `dotnet build` and `dotnet run` are the recommended workflow.
+  - Some projects may reference native libraries or Windows-only APIs; those projects will fail or warn during build 
+    and can be ignored if not required.
+  - If you use MSBuild directly, ensure source generators are available (see "MSBuild" notes above).
+
+- macOS
+  - Install the official .NET SDK (8.0/9.0). `dotnet build` / `dotnet run` are supported similarly to Linux.
+  - GUI or Windows-specific projects will not run; use the example CLI apps and libraries that target cross-platform frameworks.
+
+- CI and cross-platform builds
+  - For CI prefer `dotnet build` and run a matrix across `ubuntu-latest`, `macos-latest`, and `windows-latest` if you
+    need to validate cross-platform compatibility.
+  - Exclude or conditionally run Windows-only projects on non-Windows runners.
+
+- Native dependencies & source generators
+  - Some components (voice, WebRTC, Vivox) may depend on native binaries or SDKs. Check the individual project 
+    README files for native prerequisites and installation steps.
+  - If you choose to use `dotnet msbuild` directly instead of `dotnet build`, you may need to build or run 
+    the `SourceGenerators` projects first so generated sources are available to consumer projects.
+
+## Tests
+
+Some tests target Windows-only frameworks; run the cross-platform tests using the CLI where applicable. Example (where supported):
+
+```
+dotnet test LibreMetaverse.Tests/LibreMetaverse.Tests.csproj -c Release
+```
+
+## Troubleshooting
+
+- Missing Windows-only assemblies: you may see warnings/errors for projects that rely on Windows-specific APIs on Linux/macOS. 
+  These are expected for some example/test projects and can be ignored unless you need those projects.
+- Out-of-date SDK: Ensure the SDK version reported by `dotnet --info` matches the frameworks you want to build (8.0/9.0).
+- If NuGet restore fails, delete the `~/.nuget/packages` cache or run `dotnet restore` with verbosity to inspect failures.
+
+## Contributing
+
+- See the repository for contribution guidelines. Keep changes small and test builds on your target runtime.
+
+---
+
+For more project-specific details check the `Programs/examples/` folders or the individual project README files.
 
 [![LibreMetaverse NuGet-Release](https://img.shields.io/nuget/v/libremetaverse.svg?label=LibreMetaverse)](https://www.nuget.org/packages/LibreMetaverse/)  
 [![BSD Licensed](https://img.shields.io/github/license/cinderblocks/libremetaverse)](https://github.com/cinderblocks/libremetaverse/blob/master/LICENSE.txt)  
