@@ -786,7 +786,7 @@ namespace OpenMetaverse
             _Searches[id] = search;
 
             // Start the search
-            await RequestFolderContents(baseFolder, inventoryOwner, true, true, InventorySortOrder.ByName);
+            await RequestFolderContents(baseFolder, inventoryOwner, true, true, InventorySortOrder.ByName, cancellationToken);
         }
 
         /// <summary>
