@@ -26,6 +26,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using MessagePack;
 
 namespace OpenMetaverse
@@ -68,17 +69,45 @@ namespace OpenMetaverse
                 {
                     return item.CreationDate;
                 }
-                DateTime newest = default(DateTime); //.MinValue;
+
                 if (Data is InventoryFolder)
                 {
-                    foreach (var node in Nodes.Values)
+                    var visitedFolders = new HashSet<UUID>();
+                    return GetLatestModifyTimeRecursive(this, visitedFolders, 0);
+                }
+
+                return default;
+            }
+        }
+
+        private static DateTime GetLatestModifyTimeRecursive(InventoryNode node, HashSet<UUID> visitedFolders, int depth)
+        {
+            const int maxDepth = 512;
+
+            var latestModifyTime = default(DateTime);
+
+            if (node.Data is InventoryItem item)
+            {
+                return item.CreationDate;
+            }
+            else if(node.Data is InventoryFolder)
+            {
+                if(!visitedFolders.Add(node.Data.UUID) || depth > maxDepth)
+                {
+                    return latestModifyTime;
+                }
+
+                foreach (var childNode in node.Nodes.Values)
+                {
+                    var childModifyTime = GetLatestModifyTimeRecursive(childNode, visitedFolders, depth + 1);
+                    if (childModifyTime > latestModifyTime)
                     {
-                        var t = node.ModifyTime;
-                        if (t > newest) newest = t;
+                        latestModifyTime = childModifyTime;
                     }
                 }
-                return newest;
             }
+
+            return latestModifyTime;
         }
 
         public void Sort()
