@@ -323,13 +323,7 @@ namespace OpenMetaverse
                         }
                         catch { }
 
-                        var ancDec = oldParent;
-                        while (ancDec?.Data is InventoryFolder folder)
-                        {
-                            // Atomically decrement descendant count and clamp to zero
-                            AtomicallyAdjustDescendentCount(folder, -oldCount);
-                            ancDec = ancDec.Parent;
-                        }
+                        PropagateDescendentCountAdjustmentToAncestors(oldParent, -oldCount);
                     }
 
                     if (itemParent != null)
@@ -346,25 +340,14 @@ namespace OpenMetaverse
                         }
                         catch { }
 
-                        var ancInc = itemParent;
-                        while (ancInc?.Data is InventoryFolder folder)
-                        {
-                            // Atomically increment descendant count
-                            AtomicallyAdjustDescendentCount(folder, newCount);
-                            ancInc = ancInc.Parent;
-                        }
+                        PropagateDescendentCountAdjustmentToAncestors(itemParent, newCount);
                     }
                 }
                 else
                 {
                     if (delta != 0)
                     {
-                        var anc = oldParent;
-                        while (anc?.Data is InventoryFolder folder)
-                        {
-                            AtomicallyAdjustDescendentCount(folder, delta);
-                            anc = anc.Parent;
-                        }
+                        PropagateDescendentCountAdjustmentToAncestors(oldParent, delta);
                     }
                 }
 
@@ -421,12 +404,7 @@ namespace OpenMetaverse
                     // Increment ancestor counts by addedCount
                     if (itemParent != null && addedCount != 0)
                     {
-                        var p = itemParent;
-                        while (p?.Data is InventoryFolder folder)
-                        {
-                            AtomicallyAdjustDescendentCount(folder, addedCount);
-                            p = p.Parent;
-                        }
+                        PropagateDescendentCountAdjustmentToAncestors(itemParent, addedCount);
                     }
 
                     // Maintain children index for the new node
@@ -535,13 +513,7 @@ namespace OpenMetaverse
                 try { RemoveFromChildrenIndex(newParent.Data.UUID, item.UUID); } catch { }
             }
 
-            var ancestor = node.Parent;
-            while (ancestor?.Data is InventoryFolder)
-            {
-                var folder = (InventoryFolder)ancestor.Data;
-                AtomicallyAdjustDescendentCount(folder, -removedItemCount);
-                ancestor = ancestor.Parent;
-            }
+            PropagateDescendentCountAdjustmentToAncestors(node.Parent, -removedItemCount);
 
             if (itemRemovedEventArgs != null)
                 OnInventoryObjectRemoved(itemRemovedEventArgs);
@@ -877,6 +849,37 @@ namespace OpenMetaverse
                 {
                     LinksByAssetId.TryRemove(kv.Key, out _);
                 }
+            }
+        }
+
+        // Adjusts the DescendentCount of an node's entire hierarchy by delta
+        private void PropagateDescendentCountAdjustmentToAncestors(InventoryNode node, int delta)
+        {
+            const int maxDepth = 512;
+
+            var visited = new HashSet<UUID>();
+            var depth = 0;
+
+            while (node?.Data is InventoryFolder folder)
+            {
+                depth++;
+
+                // Defensive loop detection
+                if (!visited.Add(folder.UUID))
+                {
+                    Logger.Warn($"Inventory loop detected when propagating node descendent count change: Node {folder.UUID} ('{folder.Name}') has already been visited. Circular parent reference detected.", Client);
+                    break;
+                }
+
+                // Defensive depth limit
+                if (depth > maxDepth)
+                {
+                    Logger.Warn($"Inventory exceeded maximum iterations ({maxDepth}) when propagating node descendent count change. Possible circular reference in inventory hierarchy.", Client);
+                    break;
+                }
+
+                AtomicallyAdjustDescendentCount(folder, delta);
+                node = node.Parent;
             }
         }
 
