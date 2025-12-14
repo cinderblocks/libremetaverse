@@ -129,11 +129,11 @@ namespace OpenMetaverse.Imaging
         }
 
         /// <summary>
-        /// Constructs ManagedImage class from <see cref="PortableImage"/>
+        /// Constructs ManagedImage class from <see cref=InterleavedImage"/>
         /// Currently only supporting 8-bit channels;
         /// </summary>
-        /// <param name="image">Input <see cref="PortableImage"/></param>
-        public ManagedImage(PortableImage image)
+        /// <param name="image">Input <see cref="InterleavedImage"/></param>
+        public ManagedImage(InterleavedImage image)
         {
             Width = image.Width;
             Height = image.Height;
