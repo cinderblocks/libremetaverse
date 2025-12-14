@@ -97,6 +97,44 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
+        public void InventoryNodeModifyTime_SelfLoop()
+        {
+            var folder1Id = UUID.Random();
+
+            var folder1 = new InventoryFolder(folder1Id) { Name = "F1", ParentUUID = folder1Id };
+            var inventoryRoot = new InventoryNode(folder1);
+
+            Assert.That(inventoryRoot.ModifyTime, Is.Default);
+        }
+
+        [Test]
+        public void UpdateNodeFor_SelfLoop()
+        {
+            var folder1Id = UUID.Random();
+
+            var folder1 = new InventoryFolder(folder1Id) { Name = "F1", ParentUUID = folder1Id };
+            inventory.UpdateNodeFor(folder1);
+
+            Assert.That(inventory.Contains(folder1.UUID));
+        }
+
+        [Test]
+        public void UpdateNodeFor_ComplexSelfLoop()
+        {
+            var folder1Id = UUID.Random();
+            var folder2Id = UUID.Random();
+
+            // Folder1 -> Folder2 -> Folder1 -> ...
+            var folder1 = new InventoryFolder(folder1Id) { Name = "F1", ParentUUID = folder2Id };
+            var folder2 = new InventoryFolder(folder2Id) { Name = "F2", ParentUUID = folder1Id };
+
+            inventory.UpdateNodeFor(folder1);
+
+            Assert.That(inventory.Contains(folder1.UUID));
+            Assert.That(inventory.Contains(folder2.UUID));
+        }
+
+        [Test]
         public void RemoveItem()
         {
             var folder = new InventoryFolder(UUID.Random()) { Name = "Folder" };
