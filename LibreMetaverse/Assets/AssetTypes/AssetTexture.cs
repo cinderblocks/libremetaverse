@@ -80,7 +80,7 @@ namespace OpenMetaverse.Assets
         public sealed override void Encode()
         {
             AssetData = J2kImage.ToBytes(Image.ExportBitmap(),
-                new CompleteEncoderConfigurationBuilder().ForBalanced().Build());
+                new CompleteEncoderConfigurationBuilder().ForStreaming().Build());
         }
 
         /// <summary>

@@ -336,7 +336,6 @@ namespace OpenMetaverse.Imaging
 
             // We are done, encode asset for finalized bake
             bakedTexture.Encode();
-            //File.WriteAllBytes(bakeType + ".tga", bakedTexture.Image.ExportTGA());
         }
 
         private static readonly object ResourceSync = new object();
