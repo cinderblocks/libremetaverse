@@ -26,6 +26,7 @@
  */
 
 using CoreJ2K;
+using CoreJ2K.Configuration;
 using OpenMetaverse.Imaging;
 
 namespace OpenMetaverse.Assets
@@ -78,7 +79,8 @@ namespace OpenMetaverse.Assets
         /// </summary>
         public sealed override void Encode()
         {
-            AssetData = J2K.ToBytes(Image.ExportBitmap());
+            AssetData = J2kImage.ToBytes(Image.ExportBitmap(),
+                new CompleteEncoderConfigurationBuilder().ForBalanced().Build());
         }
 
         /// <summary>
