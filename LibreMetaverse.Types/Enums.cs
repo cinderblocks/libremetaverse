@@ -198,7 +198,7 @@ namespace OpenMetaverse
         /// <summary>Marketplace listings folder</summary>
         MarketplaceListings = 53,
         /// <summary>Marketplace stock folder</summary>
-        MarkplaceStock = 54,
+        MarketplaceStock = 54,
         /// <summary>Marketplace version. We *never* actually create folder of this type</summary>
         MarketplaceVersion = 55,
         /// <summary>Hypergrid Suitcase folder</summary>

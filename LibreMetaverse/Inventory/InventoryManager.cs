@@ -1528,7 +1528,7 @@ namespace OpenMetaverse
         {
             // Try to locate the Lost and Found system folder in local store so we can update UI after successful server-side empty
             var folderKey = UUID.Zero;
-            if (_Store != null && _Store.RootFolder != null)
+            if (_Store?.RootFolder != null)
             {
                 try
                 {
@@ -1586,7 +1586,7 @@ namespace OpenMetaverse
         {
             // Try to locate the Trash system folder in local store so we can update UI after successful server-side empty
             var folderKey = UUID.Zero;
-            if (_Store != null && _Store.RootFolder != null)
+            if (_Store?.RootFolder != null)
             {
                 try
                 {
@@ -1769,12 +1769,41 @@ namespace OpenMetaverse
         /// of strange problems</remarks>
         public UUID CreateFolder(UUID parentID, string name, FolderType preferredType)
         {
+            // If requesting a special preferred-type folder (e.g. Trash, LostAndFound, Current Outfit, etc.)
+            // check the local store for an existing folder with the same preferred type and return it
+            // instead of creating a duplicate.
+            if (preferredType != FolderType.None)
+            {
+                try
+                {
+                    if (_Store?.RootFolder != null)
+                    {
+                        using (var upg = _storeLock.UpgradeableLock())
+                        {
+                            var rootContents = _Store.GetContents(_Store.RootFolder.UUID);
+                            foreach (var item in rootContents)
+                            {
+                                if (item is InventoryFolder folder && folder.PreferredType == preferredType && folder.OwnerID == Client.Self.AgentID)
+                                {
+                                    // Found an existing system folder of the requested type, return its UUID
+                                    return folder.UUID;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Debug($"Error while checking for existing folder of type {preferredType}: {ex.Message}", ex, Client);
+                }
+            }
+
             var id = UUID.Random();
 
             // Assign a folder name if one is not already set
             if (string.IsNullOrEmpty(name))
             {
-                if (preferredType >= FolderType.Texture && preferredType <= FolderType.MarkplaceStock)
+                if (preferredType >= FolderType.Texture && preferredType <= FolderType.MarketplaceStock)
                 {
                     name = _NewFolderNames[(int)preferredType];
                 }
