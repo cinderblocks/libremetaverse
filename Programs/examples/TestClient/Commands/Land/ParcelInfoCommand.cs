@@ -32,7 +32,7 @@ namespace TestClient.Commands.Land
             handler = (sender, e) => tcs.TrySetResult(true);
 
             Client.Parcels.SimParcelsDownloaded += handler;
-            Client.Parcels.RequestAllSimParcels(Client.Network.CurrentSim);
+            await Client.Parcels.RequestAllSimParcelsAsync(Client.Network.CurrentSim);
 
             if (Client.Network.CurrentSim.IsParcelMapFull())
                 tcs.TrySetResult(true);

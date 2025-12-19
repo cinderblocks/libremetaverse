@@ -729,7 +729,7 @@ namespace OpenMetaverse
         #region Structs
 
         /// <summary>
-        /// Parcel Accesslist
+        /// Parcel Access list
         /// </summary>
         public struct ParcelAccessEntry
         {
@@ -748,7 +748,7 @@ namespace OpenMetaverse
         {
             /// <summary>Prim Owners <see cref="T:OpenMetaverse.UUID"/></summary>
             public UUID OwnerID;
-            /// <summary>True of owner is group</summary>
+            /// <summary>True if group owned parcel</summary>
             public bool IsGroupOwned;
             /// <summary>Total count of prims owned by OwnerID</summary>
             public int Count;
@@ -764,7 +764,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Called once parcel resource usage information has been collected
         /// </summary>
-        /// <param name="success">Indicates if operation was successfull</param>
+        /// <param name="success">Indicates if operation was successful</param>
         /// <param name="info">Parcel resource usage information</param>
         public delegate void LandResourcesCallback(bool success, LandResourcesInfo info);
 
@@ -893,7 +893,7 @@ namespace OpenMetaverse
         /// <summary>Thread sync lock object</summary>
         private readonly object m_SimParcelsDownloadedLock = new object();
 
-        /// <summary>Raised when the simulator responds to a <see cref="RequestAllSimParcels"/> request</summary>
+        /// <summary>Raised when the simulator responds to a <see cref="RequestAllSimParcelsAsync"/> request</summary>
         public event EventHandler<SimParcelsDownloadedEventArgs> SimParcelsDownloaded
         {
             add { lock (m_SimParcelsDownloadedLock) { m_SimParcelsDownloaded += value; } }
@@ -945,14 +945,59 @@ namespace OpenMetaverse
             EventHandler<ParcelMediaCommandEventArgs> handler = m_ParcelMediaCommand;
             handler?.Invoke(this, e);
         }
+        
+        /// <summary>Thread sync lock object for ParcelMediaUpdateReply</summary>
+        private readonly object m_ParcelMediaUpdateReplyLock = new object();
+
+        /// <summary>Raised when the simulator sends a ParcelMediaUpdate for the current parcel</summary>
+        public event EventHandler<ParcelMediaUpdateReplyEventArgs> ParcelMediaUpdateReply
+        {
+            add { lock (m_ParcelMediaUpdateReplyLock) { m_ParcelMediaUpdateReply += value; } }
+            remove { lock (m_ParcelMediaUpdateReplyLock) { m_ParcelMediaUpdateReply -= value; } }
+        }
+
+        /// <summary>Thread sync lock object for ParcelMediaCommand</summary>
+        private readonly object m_ParcelMediaCommandLock = new object();
+
+        /// <summary>Raised when the simulator sends a ParcelMediaCommand for the current parcel</summary>
+        public event EventHandler<ParcelMediaCommandEventArgs> ParcelMediaCommand
+        {
+            add { lock (m_ParcelMediaCommandLock) { m_ParcelMediaCommand += value; } }
+            remove { lock (m_ParcelMediaCommandLock) { m_ParcelMediaCommand -= value; } }
+        }
+
+        /// <summary>The event subscribers. null if no subscribers</summary>
+        private EventHandler<ParcelOverlayEventArgs> m_ParcelOverlaysDownloaded;
+
+        /// <summary>Raises the ParcelOverlaysDownloaded event</summary>
+        /// <param name="e">A ParcelOverlayEventArgs object containing the data</param>
+        protected virtual void OnParcelOverlaysDownloaded(ParcelOverlayEventArgs e)
+        {
+            EventHandler<ParcelOverlayEventArgs> handler = m_ParcelOverlaysDownloaded;
+            handler?.Invoke(this, e);
+        }
+
+        /// <summary>Thread sync lock object for ParcelOverlaysDownloaded</summary>
+        private readonly object m_ParcelOverlaysDownloadedLock = new object();
+
+        /// <summary>Raised when the simulator has sent all parcel overlay packets</summary>
+        public event EventHandler<ParcelOverlayEventArgs> ParcelOverlaysDownloaded
+        {
+            add { lock (m_ParcelOverlaysDownloadedLock) { m_ParcelOverlaysDownloaded += value; } }
+            remove { lock (m_ParcelOverlaysDownloadedLock) { m_ParcelOverlaysDownloaded -= value; } }
+        }
+
         #endregion Delegates
 
-        private GridClient Client;
+        private readonly GridClient Client;
         private TaskCompletionSource<bool> WaitForSimParcelTcs;
         private readonly object WaitForSimParcelLock = new object();
         // Per-request TCS map keyed by sequence id to avoid races when downloading full parcel map
         private readonly ConcurrentDictionary<int, TaskCompletionSource<bool>> _parcelTcsMap = new ConcurrentDictionary<int, TaskCompletionSource<bool>>();
         private int _parcelSequence;
+
+        private const int PARCEL_MAP_SIZE = 64;
+        private const float PARCEL_GRID_STEP = 4.0f;
 
         #region Public Methods
 
@@ -1177,59 +1222,27 @@ namespace OpenMetaverse
 
             Client.Network.SendPacket(request, simulator);
         }
-
+        
         /// <summary>
-        /// Request all simulator parcel properties (used for populating the <see cref="Simulator.Parcels" /> 
+        /// Request all simulator parcel properties (used for populating the <see cref="Simulator.Parcels" />
         /// dictionary)
         /// </summary>
         /// <param name="simulator">Simulator to request parcels from (must be connected)</param>
-        public void RequestAllSimParcels(Simulator simulator)
+        /// <param name="cancellationToken">Cancellation token to cancel the request</param>
+        public Task RequestAllSimParcelsAsync(Simulator simulator, CancellationToken cancellationToken = default)
         {
-            RequestAllSimParcels(simulator, false, TimeSpan.FromMilliseconds(750));
+            return RequestAllSimParcelsAsync(simulator, false, TimeSpan.FromMilliseconds(750), cancellationToken);
         }
-
-        private const int PARCEL_MAP_SIZE = 64;
-        private const float PARCEL_GRID_STEP = 4.0f;
         
         /// <summary>
-        /// Request all simulator parcel properties (used for populating the <see cref="Simulator.Parcels" /> 
+        /// Request all simulator parcel properties asynchronously (used for populating the <see cref="Simulator.Parcels" />
         /// dictionary)
         /// </summary>
         /// <param name="simulator">Simulator to request parcels from (must be connected)</param>
         /// <param name="refresh">If TRUE, will force a full refresh</param>
         /// <param name="delay">Pause time in between each request</param>
-        public void RequestAllSimParcels(Simulator simulator, bool refresh, TimeSpan delay)
-        {
-            if (simulator.DownloadingParcelMap)
-            {
-                Logger.Info($"Already downloading parcels in {simulator.Name}", Client);
-                return;
-            }
-
-            PrepareRequestParcelProperties(simulator, refresh);
-            
-            // Fire-and-forget the async parcel download to avoid blocking callers
-            _ = RequestParcelPropertiesAsync(simulator, delay, CancellationToken.None);
-        }
-        
-        /// <summary>
-        /// Request all simulator parcel properties asynchronously (used for populating the <see cref="Simulator.Parcels" /> 
-        /// dictionary)
-        /// </summary>
-        /// <param name="simulator">Simulator to request parcels from (must be connected)</param>
-        public Task RequestAllSimParcelsAsync(Simulator simulator)
-        {
-            return RequestAllSimParcelsAsync(simulator, false, TimeSpan.FromMilliseconds(750));
-        }
-        
-        /// <summary>
-        /// Request all simulator parcel properties asynchronously (used for populating the <see cref="Simulator.Parcels" /> 
-        /// dictionary)
-        /// </summary>
-        /// <param name="simulator">Simulator to request parcels from (must be connected)</param>
-        /// <param name="refresh">If TRUE, will force a full refresh</param>
-        /// <param name="delay">Pause time in between each request</param>
-        public async Task RequestAllSimParcelsAsync(Simulator simulator, bool refresh, TimeSpan delay, CancellationToken cancellationToken = default)
+        public async Task RequestAllSimParcelsAsync(Simulator simulator, bool refresh, TimeSpan delay, 
+            CancellationToken cancellationToken = default)
         {
             if (simulator.DownloadingParcelMap)
             {
@@ -1453,13 +1466,21 @@ namespace OpenMetaverse
         /// <param name="north"></param>
         public void ParcelJoin(Simulator simulator, float west, float south, float east, float north)
         {
-            ParcelJoinPacket join = new ParcelJoinPacket();
-            join.AgentData.AgentID = Client.Self.AgentID;
-            join.AgentData.SessionID = Client.Self.SessionID;
-            join.ParcelData.East = east;
-            join.ParcelData.North = north;
-            join.ParcelData.South = south;
-            join.ParcelData.West = west;
+            ParcelJoinPacket join = new ParcelJoinPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ParcelData =
+                {
+                    East = east,
+                    North = north,
+                    South = south,
+                    West = west
+                }
+            };
 
             Client.Network.SendPacket(join, simulator);
         }
@@ -1491,7 +1512,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Terraform (raise, lower, etc) an area or whole parcel of land
+        /// Terraform (raise, lower, etc.) an area or whole parcel of land
         /// </summary>
         /// <param name="simulator">Simulator land area is in.</param>
         /// <param name="localID">LocalID of parcel, or -1 if using bounding box</param>
@@ -1499,29 +1520,10 @@ namespace OpenMetaverse
         /// <param name="brushSize">Size of area to modify</param>
         /// <returns>true on successful request sent.</returns>
         /// <remarks>Settings.STORE_LAND_PATCHES must be true, 
-        /// Parcel information must be downloaded using <see cref="RequestAllSimParcels" /></remarks>
+        /// Parcel information must be downloaded using <see cref="RequestAllSimParcelsAsync" /></remarks>
         public bool Terraform(Simulator simulator, int localID, TerraformAction action, TerraformBrushSize brushSize)
         {
             return Terraform(simulator, localID, 0f, 0f, 0f, 0f, action, brushSize, 1);
-        }
-
-        /// <summary>
-        /// Terraform (raise, lower, etc) an area or whole parcel of land
-        /// </summary>
-        /// <param name="simulator">Simulator land area is in.</param>
-        /// <param name="west">west border of area to modify</param>
-        /// <param name="south">south border of area to modify</param>
-        /// <param name="east">east border of area to modify</param>
-        /// <param name="north">north border of area to modify</param>
-        /// <param name="action">From Enum, Raise, Lower, Level, Smooth, Etc.</param>
-        /// <param name="brushSize">Size of area to modify</param>
-        /// <returns>true on successful request sent.</returns>
-        /// <remarks>Settings.STORE_LAND_PATCHES must be true, 
-        /// Parcel information must be downloaded using <see cref="RequestAllSimParcels"/></remarks>
-        public bool Terraform(Simulator simulator, float west, float south, float east, float north,
-            TerraformAction action, TerraformBrushSize brushSize)
-        {
-            return Terraform(simulator, -1, west, south, east, north, action, brushSize, 1);
         }
 
         /// <summary>
@@ -1538,9 +1540,9 @@ namespace OpenMetaverse
         /// <param name="seconds">How many meters + or - to lower, 1 = 1 meter</param>
         /// <returns>true on successful request sent.</returns>
         /// <remarks>Settings.STORE_LAND_PATCHES must be true, 
-        /// Parcel information must be downloaded using <see cref="RequestAllSimParcels"/></remarks>
+        /// Parcel information must be downloaded using <see cref="RequestAllSimParcelsAsync"/></remarks>
         public bool Terraform(Simulator simulator, int localID, float west, float south, float east, float north,
-            TerraformAction action, TerraformBrushSize brushSize, int seconds)
+            TerraformAction action, TerraformBrushSize brushSize, int seconds = 1)
         {
             float height = 0f;
             int x, y;
@@ -1574,7 +1576,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Terraform (raise, lower, etc) an area or whole parcel of land
+        /// Terraform (raise, lower, etc.) an area or whole parcel of land
         /// </summary>
         /// <param name="simulator">Simulator land area is in.</param>
         /// <param name="localID">LocalID of parcel, or -1 if using bounding box</param>
@@ -1659,9 +1661,12 @@ namespace OpenMetaverse
                     AgentID = Client.Self.AgentID,
                     SessionID = Client.Self.SessionID
                 },
-                Data = {TargetID = targetID}
+                Data =
+                {
+                    TargetID = targetID,
+                    Flags = ban ? 1u : 0u
+                }
             };
-            eject.Data.Flags = ban ? (uint)1 : 0;
 
             Client.Network.SendPacket(eject);
         }
@@ -1680,9 +1685,12 @@ namespace OpenMetaverse
                     AgentID = Client.Self.AgentID,
                     SessionID = Client.Self.SessionID
                 },
-                Data = {TargetID = targetID}
+                Data =
+                {
+                    TargetID = targetID,
+                    Flags = freeze ? 0u : 1u
+                }
             };
-            frz.Data.Flags = freeze ? (uint)0 : 1;
 
             Client.Network.SendPacket(frz);
         }
@@ -1713,17 +1721,31 @@ namespace OpenMetaverse
         /// <param name="location">Location of the parcel in the remote region</param>
         /// <param name="regionHandle">Remote region handle</param>
         /// <param name="regionID">Remote region UUID</param>
+        /// <param name="cancellationToken">Cancellation token to cancel the request</param>
+        /// <returns>If successful UUID of the remote parcel, UUID.Zero otherwise</returns>
+        public UUID RequestRemoteParcelID(Vector3 location, ulong regionHandle, UUID regionID)
+        {
+            return RequestRemoteParcelIDAsync(location, regionHandle, regionID, CancellationToken.None).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Requests the UUID of the parcel in a remote region at a specified location
+        /// </summary>
+        /// <param name="location">Location of the parcel in the remote region</param>
+        /// <param name="regionHandle">Remote region handle</param>
+        /// <param name="regionID">Remote region UUID</param>
         /// <param name="cancellationToken">Thread cancellation token</param>
         /// <returns>If successful UUID of the remote parcel, UUID.Zero otherwise</returns>
-        public async Task<UUID> RequestRemoteParcelIDAsync(Vector3 location, ulong regionHandle, UUID regionID, CancellationToken cancellationToken)
+        public async Task<UUID> RequestRemoteParcelIDAsync(Vector3 location, ulong regionHandle, UUID regionID, CancellationToken cancellationToken = default)
         {
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
+            {
                 return UUID.Zero;
+            }
 
             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("RemoteParcelRequest");
 
-            if (cap == null) 
-                return UUID.Zero;
+            if (cap == null) { return UUID.Zero; }
             
             RemoteParcelRequestRequest msg = new RemoteParcelRequestRequest
             {
@@ -1763,18 +1785,6 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Requests the UUID of the parcel in a remote region at a specified location
-        /// </summary>
-        /// <param name="location">Location of the parcel in the remote region</param>
-        /// <param name="regionHandle">Remote region handle</param>
-        /// <param name="regionID">Remote region UUID</param>
-        /// <returns>If successful UUID of the remote parcel, UUID.Zero otherwise</returns>
-        public UUID RequestRemoteParcelID(Vector3 location, ulong regionHandle, UUID regionID)
-        {
-            return RequestRemoteParcelIDAsync(location, regionHandle, regionID, CancellationToken.None).Result;
-        }
-
-        /// <summary>
         /// Retrieves information on resources used by the parcel
         /// </summary>
         /// <param name="parcelID">UUID of the parcel</param>
@@ -1788,12 +1798,6 @@ namespace OpenMetaverse
             {
                 LandResourcesRequest req = new LandResourcesRequest { ParcelID = parcelID };
                 Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("LandResources");
-                
-                // @todo: cap == null fallback?
-                /*
-                if (cap == null)
-                    ??
-                */
                 
                 await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(),
                     cancellationToken, ( httpResponse, data, error) =>
@@ -2139,9 +2143,6 @@ namespace OpenMetaverse
         /// <remarks>Raises the <see cref="ParcelMediaUpdate"/> event</remarks>
         protected void ParcelMediaUpdateHandler(object sender, PacketReceivedEventArgs e)
         {
-            if (m_ParcelMediaUpdateReply == null) 
-                return;
-
             Packet packet = e.Packet;
             Simulator simulator = e.Simulator;
 
@@ -2184,14 +2185,16 @@ namespace OpenMetaverse
 
                 if (simulator.ParcelOverlaysReceived >= OVERLAY_COUNT)
                 {
-                    // TODO: ParcelOverlaysReceived should become internal, and reset to zero every 
-                    // time it hits four. Also need a callback here
+                    // signal overlays downloaded and reset counter
+                    simulator.ParcelOverlaysReceived = 0;
+
+                    if (m_ParcelOverlaysDownloaded != null)
+                        OnParcelOverlaysDownloaded(new ParcelOverlayEventArgs(simulator));
                 }
             }
             else
             {
-                Logger.Warn("Parcel overlay with sequence ID of " + overlay.ParcelData.SequenceID +
-                    " received from " + simulator, Client);
+                Logger.Warn($"Parcel overlay with sequence ID of {overlay.ParcelData.SequenceID} received from {simulator}");
             }
         }
 
@@ -2201,9 +2204,6 @@ namespace OpenMetaverse
         /// <remarks>Raises the <see cref="ParcelMediaCommand"/> event</remarks>
         protected void ParcelMediaCommandMessagePacketHandler(object sender, PacketReceivedEventArgs e)
         {
-            if (m_ParcelMediaCommand == null) 
-                return;
-
             Packet packet = e.Packet;
             Simulator simulator = e.Simulator;
 
@@ -2559,6 +2559,22 @@ namespace OpenMetaverse
             ParcelFlags = flags;
             MediaCommand = command;
             Time = time;
+        }
+    }
+
+    /// <summary>Contains the data returned when parcel overlay data has been received</summary>
+    public class ParcelOverlayEventArgs : EventArgs
+    {
+        /// <summary>Get the simulator the parcel overlay data was received from</summary>
+        public Simulator Simulator { get; }
+
+        /// <summary>
+        /// Construct a new instance of the ParcelOverlayEventArgs class
+        /// </summary>
+        /// <param name="simulator">The simulator the parcel overlay data was received from</param>
+        public ParcelOverlayEventArgs(Simulator simulator)
+        {
+            Simulator = simulator;
         }
     }
     #endregion
