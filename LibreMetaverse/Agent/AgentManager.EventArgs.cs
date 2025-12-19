@@ -1,0 +1,704 @@
+/*
+ * Copyright (c) 2006-2016, openmetaverse.co
+ * Copyright (c) 2019-2025, Sjofn LLC
+ * All rights reserved.
+ *
+ * - Redistribution and use in source and binary forms, with or without 
+ *   modification, are permitted provided that the following conditions are met:
+ *
+ * - Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * - Neither the name of the openmetaverse.co nor the names 
+ *   of its contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Text.RegularExpressions;
+using System.Threading;
+using OpenMetaverse.Packets;
+using OpenMetaverse.StructuredData;
+
+namespace OpenMetaverse
+{
+    public partial class AgentManager
+    {
+        #region Packet Handlers
+
+        /// <summary>
+        /// Take an incoming ImprovedInstantMessage packet, auto-parse, and if
+        /// OnInstantMessage is defined call that with the appropriate arguments
+        /// </summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        protected void InstantMessageHandler(object sender, PacketReceivedEventArgs e)
+        {
+            Packet packet = e.Packet;
+            Simulator simulator = e.Simulator;
+
+            if (packet.Type != PacketType.ImprovedInstantMessage) return;
+
+            ImprovedInstantMessagePacket im = (ImprovedInstantMessagePacket)packet;
+
+            if (m_InstantMessage != null)
+            {
+                InstantMessage message;
+                message.FromAgentID = im.AgentData.AgentID;
+                message.FromAgentName = Utils.BytesToString(im.MessageBlock.FromAgentName);
+                message.ToAgentID = im.MessageBlock.ToAgentID;
+                message.ParentEstateID = im.MessageBlock.ParentEstateID;
+                message.RegionID = im.MessageBlock.RegionID;
+                message.Position = im.MessageBlock.Position;
+                message.Dialog = (InstantMessageDialog)im.MessageBlock.Dialog;
+                message.GroupIM = im.MessageBlock.FromGroup;
+                message.IMSessionID = im.MessageBlock.ID;
+                message.Timestamp = new DateTime(im.MessageBlock.Timestamp);
+                message.Message = Utils.BytesToString(im.MessageBlock.Message);
+                message.Offline = (InstantMessageOnline)im.MessageBlock.Offline;
+                message.BinaryBucket = im.MessageBlock.BinaryBucket;
+
+                if (IsGroupMessage(message))
+                {
+                    lock (GroupChatSessions.Dictionary)
+                    {
+                        if (!GroupChatSessions.ContainsKey(message.IMSessionID))
+                            GroupChatSessions.Add(message.IMSessionID, new List<ChatSessionMember>());
+                    }
+                }
+
+                OnInstantMessage(new InstantMessageEventArgs(message, simulator));
+            }
+        }
+
+        /// <summary>
+        /// Take an incoming Chat packet, auto-parse, and if OnChat is defined call 
+        ///   that with the appropriate arguments.
+        /// </summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        protected void ChatHandler(object sender, PacketReceivedEventArgs e)
+        {
+            if (m_Chat == null) return;
+            Packet packet = e.Packet;
+
+            ChatFromSimulatorPacket chat = (ChatFromSimulatorPacket)packet;
+
+            OnChat(new ChatEventArgs(e.Simulator, Utils.BytesToString(chat.ChatData.Message),
+                (ChatAudibleLevel)chat.ChatData.Audible,
+                (ChatType)chat.ChatData.ChatType,
+                (ChatSourceType)chat.ChatData.SourceType,
+                Utils.BytesToString(chat.ChatData.FromName),
+                chat.ChatData.SourceID,
+                chat.ChatData.OwnerID,
+                chat.ChatData.Position));
+        }
+
+        /// <summary>
+        /// Used for parsing llDialogs
+        /// </summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        protected void ScriptDialogHandler(object sender, PacketReceivedEventArgs e)
+        {
+            if (m_ScriptDialog == null) return;
+            Packet packet = e.Packet;
+
+            ScriptDialogPacket dialog = (ScriptDialogPacket)packet;
+            List<string> buttons = dialog.Buttons.Select(button => Utils.BytesToString(button.ButtonLabel)).ToList();
+
+            UUID ownerID = UUID.Zero;
+
+            if (dialog.OwnerData != null && dialog.OwnerData.Length > 0)
+            {
+                ownerID = dialog.OwnerData[0].OwnerID;
+            }
+
+            OnScriptDialog(new ScriptDialogEventArgs(Utils.BytesToString(dialog.Data.Message),
+                Utils.BytesToString(dialog.Data.ObjectName),
+                dialog.Data.ImageID,
+                dialog.Data.ObjectID,
+                Utils.BytesToString(dialog.Data.FirstName),
+                Utils.BytesToString(dialog.Data.LastName),
+                dialog.Data.ChatChannel,
+                buttons,
+                ownerID));
+        }
+
+        /// <summary>
+        /// Used for parsing llRequestPermissions dialogs
+        /// </summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        protected void ScriptQuestionHandler(object sender, PacketReceivedEventArgs e)
+        {
+            if (m_ScriptQuestion == null) return;
+            Packet packet = e.Packet;
+            Simulator simulator = e.Simulator;
+
+            ScriptQuestionPacket question = (ScriptQuestionPacket)packet;
+
+            OnScriptQuestion(new ScriptQuestionEventArgs(simulator,
+                question.Data.TaskID,
+                question.Data.ItemID,
+                Utils.BytesToString(question.Data.ObjectName),
+                Utils.BytesToString(question.Data.ObjectOwner),
+                (ScriptPermission)question.Data.Questions));
+        }
+
+        /// <summary>
+        /// Handles Script Control changes when Script with permissions releases or takes a control
+        /// </summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        private void ScriptControlChangeHandler(object sender, PacketReceivedEventArgs e)
+        {
+            if (m_ScriptControl == null) return;
+            Packet packet = e.Packet;
+
+            ScriptControlChangePacket change = (ScriptControlChangePacket)packet;
+            foreach (ScriptControlChangePacket.DataBlock data in change.Data)
+            {
+                OnScriptControlChange(new ScriptControlEventArgs((ScriptControlChange)data.Controls,
+                    data.PassToAgent,
+                    data.TakeControls));
+            }
+        }
+
+        /// <summary>
+        /// Used for parsing llLoadURL Dialogs
+        /// </summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        protected void LoadURLHandler(object sender, PacketReceivedEventArgs e)
+        {
+            if (m_LoadURL == null) return;
+            Packet packet = e.Packet;
+
+            LoadURLPacket loadURL = (LoadURLPacket)packet;
+
+            OnLoadURL(new LoadUrlEventArgs(
+                Utils.BytesToString(loadURL.Data.ObjectName),
+                loadURL.Data.ObjectID,
+                loadURL.Data.OwnerID,
+                loadURL.Data.OwnerIsGroup,
+                Utils.BytesToString(loadURL.Data.Message),
+                Utils.BytesToString(loadURL.Data.URL)
+            ));
+        }
+
+        /// <summary>
+        /// Update client's Position, LookAt and region handle from incoming packet
+        /// </summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        /// <remarks>This occurs when after an avatar moves into a new sim</remarks>
+        private void MovementCompleteHandler(object sender, PacketReceivedEventArgs e)
+        {
+            Packet packet = e.Packet;
+            Simulator simulator = e.Simulator;
+
+            AgentMovementCompletePacket movement = (AgentMovementCompletePacket)packet;
+
+            relativePosition = movement.Data.Position;
+            LastPositionUpdate = DateTime.UtcNow;
+            Movement.Camera.LookDirection(movement.Data.LookAt);
+            simulator.Handle = movement.Data.RegionHandle;
+            simulator.SimVersion = Utils.BytesToString(movement.SimData.ChannelVersion);
+            simulator.AgentMovementComplete = true;
+        }
+
+        /// <summary>Process an incoming packet and raise the appropriate events</summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        protected void HealthHandler(object sender, PacketReceivedEventArgs e)
+        {
+            Packet packet = e.Packet;
+            Health = ((HealthMessagePacket)packet).HealthData.Health;
+        }
+
+        /// <summary>Process an incoming packet and raise the appropriate events</summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        protected void AgentDataUpdateHandler(object sender, PacketReceivedEventArgs e)
+        {
+            Packet packet = e.Packet;
+            Simulator simulator = e.Simulator;
+
+            AgentDataUpdatePacket p = (AgentDataUpdatePacket)packet;
+
+            if (p.AgentData.AgentID == simulator.Client.Self.AgentID)
+            {
+                FirstName = Utils.BytesToString(p.AgentData.FirstName);
+                LastName = Utils.BytesToString(p.AgentData.LastName);
+                ActiveGroup = p.AgentData.ActiveGroupID;
+                ActiveGroupPowers = (GroupPowers)p.AgentData.GroupPowers;
+
+                if (m_AgentData == null) return;
+
+                string groupTitle = Utils.BytesToString(p.AgentData.GroupTitle);
+                string groupName = Utils.BytesToString(p.AgentData.GroupName);
+
+                OnAgentData(new AgentDataReplyEventArgs(FirstName, LastName, ActiveGroup, groupTitle, ActiveGroupPowers,
+                    groupName));
+            }
+            else
+            {
+                Logger.Error($"Got an AgentDataUpdate packet for avatar {p.AgentData.AgentID}", Client);
+            }
+        }
+
+        /// <summary>Process an incoming packet and raise the appropriate events</summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        protected void MoneyBalanceReplyHandler(object sender, PacketReceivedEventArgs e)
+        {
+            Packet packet = e.Packet;
+
+            if (packet.Type == PacketType.MoneyBalanceReply)
+            {
+                MoneyBalanceReplyPacket reply = (MoneyBalanceReplyPacket)packet;
+                this.Balance = reply.MoneyData.MoneyBalance;
+
+                if (m_MoneyBalance != null)
+                {
+                    TransactionInfo transactionInfo = new TransactionInfo
+                    {
+                        TransactionType = reply.TransactionInfo.TransactionType,
+                        SourceID = reply.TransactionInfo.SourceID,
+                        IsSourceGroup = reply.TransactionInfo.IsSourceGroup,
+                        DestID = reply.TransactionInfo.DestID,
+                        IsDestGroup = reply.TransactionInfo.IsDestGroup,
+                        Amount = reply.TransactionInfo.Amount,
+                        ItemDescription = Utils.BytesToString(reply.TransactionInfo.ItemDescription)
+                    };
+
+                    OnMoneyBalanceReply(new MoneyBalanceReplyEventArgs(reply.MoneyData.TransactionID,
+                        reply.MoneyData.TransactionSuccess,
+                        reply.MoneyData.MoneyBalance,
+                        reply.MoneyData.SquareMetersCredit,
+                        reply.MoneyData.SquareMetersCommitted,
+                        Utils.BytesToString(reply.MoneyData.Description),
+                        transactionInfo));
+                }
+            }
+
+            if (m_Balance != null)
+            {
+                OnBalance(new BalanceEventArgs(Balance));
+            }
+        }
+
+        /// <summary>Process an incoming packet and raise the appropriate events</summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        protected void TeleportHandler(object sender, PacketReceivedEventArgs e)
+        {
+            Packet packet = e.Packet;
+            Simulator simulator = e.Simulator;
+
+            bool finished = false;
+            TeleportFlags flags = TeleportFlags.Default;
+
+            if (packet.Type == PacketType.TeleportStart)
+            {
+                TeleportStartPacket start = (TeleportStartPacket)packet;
+
+                TeleportMessage = "Teleport started";
+                flags = (TeleportFlags)start.Info.TeleportFlags;
+                teleportStatus = TeleportStatus.Start;
+
+                Logger.DebugLog($"TeleportStart received, Flags: {flags}", Client);
+            }
+            else if (packet.Type == PacketType.TeleportProgress)
+            {
+                TeleportProgressPacket progress = (TeleportProgressPacket)packet;
+
+                TeleportMessage = Utils.BytesToString(progress.Info.Message);
+                flags = (TeleportFlags)progress.Info.TeleportFlags;
+                teleportStatus = TeleportStatus.Progress;
+
+                Logger.DebugLog($"TeleportProgress received, Message: {TeleportMessage}, Flags: {flags}", Client);
+            }
+            else if (packet.Type == PacketType.TeleportFailed)
+            {
+                TeleportFailedPacket failed = (TeleportFailedPacket)packet;
+
+                TeleportMessage = Utils.BytesToString(failed.Info.Reason);
+
+                // expiry failure may come after teleport has finished. Ignore it.
+                if (teleportStatus == TeleportStatus.Finished || teleportStatus == TeleportStatus.None)
+                {
+                    Logger.DebugLog($"Received TeleportFailed after teleport finished, Reason: {TeleportMessage}");
+                    return;
+                }
+
+                teleportStatus = TeleportStatus.Failed;
+                finished = true;
+
+                Logger.DebugLog($"TeleportFailed received, Reason: {TeleportMessage}", Client);
+            }
+            else if (packet.Type == PacketType.TeleportFinish)
+            {
+                TeleportFinishPacket finish = (TeleportFinishPacket)packet;
+
+                flags = (TeleportFlags)finish.Info.TeleportFlags;
+                Uri seedcaps = new Uri(Utils.BytesToString(finish.Info.SeedCapability));
+                finished = true;
+
+                Logger.DebugLog($"TeleportFinish received, Flags: {flags}", Client);
+
+                // Connect to the new sim
+                Client.Network.CurrentSim.AgentMovementComplete = false; // we're not there anymore
+                Simulator newSimulator = Client.Network.Connect(new IPAddress(finish.Info.SimIP),
+                    finish.Info.SimPort, finish.Info.RegionHandle, true, seedcaps);
+
+                if (newSimulator != null)
+                {
+                    TeleportMessage = "Teleport finished";
+                    teleportStatus = TeleportStatus.Finished;
+
+                    Logger.Info($"Moved to {newSimulator}", Client);
+                }
+                else
+                {
+                    TeleportMessage = $"Failed to connect to simulator after teleport";
+                    teleportStatus = TeleportStatus.Failed;
+
+                    // We're going to get disconnected now
+                    Logger.Error(TeleportMessage, Client);
+                }
+            }
+            else if (packet.Type == PacketType.TeleportCancel)
+            {
+                //TeleportCancelPacket cancel = (TeleportCancelPacket)packet;
+
+                TeleportMessage = "Cancelled";
+                teleportStatus = TeleportStatus.Cancelled;
+                finished = true;
+
+                Logger.DebugLog($"TeleportCancel received from {simulator}", Client);
+            }
+            else if (packet.Type == PacketType.TeleportLocal)
+            {
+                TeleportLocalPacket local = (TeleportLocalPacket)packet;
+
+                TeleportMessage = "Teleport finished";
+                flags = (TeleportFlags)local.Info.TeleportFlags;
+                teleportStatus = TeleportStatus.Finished;
+                relativePosition = local.Info.Position;
+                LastPositionUpdate = DateTime.UtcNow;
+                Movement.Camera.LookDirection(local.Info.LookAt);
+                // This field is apparently not used for anything
+                //local.Info.LocationID;
+                finished = true;
+
+                Logger.DebugLog($"TeleportLocal received, Flags: {flags}", Client);
+            }
+
+            if (m_Teleport != null)
+            {
+                OnTeleport(new TeleportEventArgs(TeleportMessage, teleportStatus, flags));
+            }
+
+            if (finished)
+            {
+                teleportEvent.Set();
+            }
+        }
+
+        /// <summary>Process an incoming packet and raise the appropriate events</summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        protected void AvatarAnimationHandler(object sender, PacketReceivedEventArgs e)
+        {
+            Packet packet = e.Packet;
+            AvatarAnimationPacket animation = (AvatarAnimationPacket)packet;
+
+            if (animation.Sender.ID == Client.Self.AgentID)
+            {
+                lock (SignaledAnimations.Dictionary)
+                {
+                    // Reset the signaled animation list
+                    SignaledAnimations.Dictionary.Clear();
+
+                    for (int i = 0; i < animation.AnimationList.Length; i++)
+                    {
+                        UUID animID = animation.AnimationList[i].AnimID;
+                        int sequenceID = animation.AnimationList[i].AnimSequenceID;
+
+                        // Add this animation to the list of currently signaled animations
+                        SignaledAnimations.Dictionary[animID] = sequenceID;
+
+                        if (i < animation.AnimationSourceList.Length)
+                        {
+                            // FIXME: The server tells us which objects triggered our animations,
+                            // we should store this info
+
+                            //animation.AnimationSourceList[i].ObjectID
+                        }
+
+                        if (i < animation.PhysicalAvatarEventList.Length)
+                        {
+                            // FIXME: What is this?
+                        }
+
+                        if (!Client.Settings.SEND_AGENT_UPDATES) continue;
+                        // We have to manually tell the server to stop playing some animations
+                        if (animID == Animations.STANDUP ||
+                            animID == Animations.PRE_JUMP ||
+                            animID == Animations.LAND ||
+                            animID == Animations.MEDIUM_LAND)
+                        {
+                            Movement.FinishAnim = true;
+                            Movement.SendUpdate(true);
+                            Movement.FinishAnim = false;
+                        }
+                    }
+                }
+            }
+
+            if (m_AnimationsChanged != null)
+            {
+                ThreadPool.QueueUserWorkItem(delegate(object o)
+                {
+                    OnAnimationsChanged(new AnimationsChangedEventArgs(this.SignaledAnimations));
+                });
+            }
+        }
+
+        /// <summary>Process an incoming packet and raise the appropriate events</summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        protected void MeanCollisionAlertHandler(object sender, PacketReceivedEventArgs e)
+        {
+            if (m_MeanCollision == null) return;
+            Packet packet = e.Packet;
+            MeanCollisionAlertPacket collision = (MeanCollisionAlertPacket)packet;
+
+            foreach (MeanCollisionAlertPacket.MeanCollisionBlock block in collision.MeanCollision)
+            {
+                DateTime time = Utils.UnixTimeToDateTime(block.Time);
+                MeanCollisionType type = (MeanCollisionType)block.Type;
+
+                OnMeanCollision(new MeanCollisionEventArgs(type, block.Perp, block.Victim, block.Mag, time));
+            }
+        }
+
+        /// <summary>Process an incoming packet and raise the appropriate events</summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        /// <remarks>This packet is now being sent via the EventQueue</remarks>
+        protected void CrossedRegionHandler(object sender, PacketReceivedEventArgs e)
+        {
+            Packet packet = e.Packet;
+            CrossedRegionPacket crossing = (CrossedRegionPacket)packet;
+            Uri seedCap = new Uri(Utils.BytesToString(crossing.RegionData.SeedCapability));
+            IPEndPoint endPoint = new IPEndPoint(crossing.RegionData.SimIP, crossing.RegionData.SimPort);
+
+            Logger.Info($"Crossed in to new region area, attempting to connect to {endPoint}", Client);
+
+            Simulator oldSim = Client.Network.CurrentSim;
+            Simulator newSim = Client.Network.Connect(endPoint, crossing.RegionData.RegionHandle, true, seedCap);
+
+            if (newSim != null)
+            {
+                Logger.Info($"Finished crossing over in to region {newSim}", Client);
+
+                if (m_RegionCrossed != null)
+                {
+                    OnRegionCrossed(new RegionCrossedEventArgs(oldSim, newSim));
+                }
+            }
+            else
+            {
+                // The old simulator will (poorly) handle our movement still, so the connection isn't
+                // completely shot yet
+                Logger.Warn($"Failed to connect to new region {endPoint} after crossing over", Client);
+            }
+        }
+
+        /// <summary>Process an incoming packet and raise the appropriate events</summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        protected void AlertMessageHandler(object sender, PacketReceivedEventArgs e)
+        {
+            if (m_AlertMessage == null) return;
+            Packet packet = e.Packet;
+
+            AlertMessagePacket alert = (AlertMessagePacket)packet;
+
+            string message = Utils.BytesToString(alert.AlertData.Message);
+
+            if (alert.AlertInfo.Length > 0)
+            {
+                string notificationid = Utils.BytesToString(alert.AlertInfo[0].Message);
+                OSDMap extra = (alert.AlertInfo[0].ExtraParams != null && alert.AlertInfo[0].ExtraParams.Length > 0)
+                    ? OSDParser.Deserialize(alert.AlertInfo[0].ExtraParams) as OSDMap
+                    : null;
+                OnAlertMessage(new AlertMessageEventArgs(message, notificationid, extra));
+            }
+            else
+            {
+                OnAlertMessage(new AlertMessageEventArgs(message, null, null));
+            }
+        }
+
+        protected void AgentAlertMessageHandler(object sender, PacketReceivedEventArgs e)
+        {
+            if (m_AlertMessage == null) return;
+            Packet packet = e.Packet;
+
+            AgentAlertMessagePacket alert = (AgentAlertMessagePacket)packet;
+            // HACK: Agent alerts support modal and Generic Alerts do not, but it's all the same for
+            //       my simplified ass right now.
+            OnAlertMessage(new AlertMessageEventArgs(Utils.BytesToString(alert.AlertData.Message), null, null));
+        }
+
+        /// <summary>Process an incoming packet and raise the appropriate events</summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        protected void CameraConstraintHandler(object sender, PacketReceivedEventArgs e)
+        {
+            if (m_CameraConstraint == null) return;
+            Packet packet = e.Packet;
+
+            CameraConstraintPacket camera = (CameraConstraintPacket)packet;
+            OnCameraConstraint(new CameraConstraintEventArgs(camera.CameraCollidePlane.Plane));
+        }
+
+        /// <summary>Process an incoming packet and raise the appropriate events</summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        protected void ScriptSensorReplyHandler(object sender, PacketReceivedEventArgs e)
+        {
+            if (m_ScriptSensorReply == null) return;
+            Packet packet = e.Packet;
+
+            ScriptSensorReplyPacket reply = (ScriptSensorReplyPacket)packet;
+
+            foreach (ScriptSensorReplyPacket.SensedDataBlock block in reply.SensedData)
+            {
+                ScriptSensorReplyPacket.RequesterBlock requestor = reply.Requester;
+
+                OnScriptSensorReply(new ScriptSensorReplyEventArgs(requestor.SourceID, block.GroupID,
+                    Utils.BytesToString(block.Name),
+                    block.ObjectID, block.OwnerID, block.Position, block.Range, block.Rotation,
+                    (ScriptSensorTypeFlags)block.Type, block.Velocity));
+            }
+        }
+
+        /// <summary>Process an incoming packet and raise the appropriate events</summary>
+        /// <param name="sender">The sender</param>
+        /// <param name="e">The EventArgs object containing the packet data</param>
+        protected void AvatarSitResponseHandler(object sender, PacketReceivedEventArgs e)
+        {
+            if (m_AvatarSitResponse == null) return;
+            Packet packet = e.Packet;
+
+            AvatarSitResponsePacket sit = (AvatarSitResponsePacket)packet;
+
+            OnAvatarSitResponse(new AvatarSitResponseEventArgs(sit.SitObject.ID, sit.SitTransform.AutoPilot,
+                sit.SitTransform.CameraAtOffset,
+                sit.SitTransform.CameraEyeOffset, sit.SitTransform.ForceMouselook, sit.SitTransform.SitPosition,
+                sit.SitTransform.SitRotation));
+        }
+
+        protected void MuteListUpdateHandler(object sender, PacketReceivedEventArgs e)
+        {
+            MuteListUpdatePacket packet = (MuteListUpdatePacket)e.Packet;
+            if (packet.MuteData.AgentID != Client.Self.AgentID)
+            {
+                return;
+            }
+
+            ThreadPool.QueueUserWorkItem(sync =>
+            {
+                using (AutoResetEvent gotMuteList = new AutoResetEvent(false))
+                {
+                    string fileName = Utils.BytesToString(packet.MuteData.Filename);
+                    string muteList = string.Empty;
+                    ulong xferID = 0;
+                    byte[] assetData = null;
+
+                    EventHandler<XferReceivedEventArgs> xferCallback = (object xsender, XferReceivedEventArgs xe) =>
+                    {
+                        if (xe.Xfer.XferID != xferID) return;
+                        assetData = xe.Xfer.AssetData;
+                        gotMuteList.Set();
+                    };
+
+
+                    Client.Assets.XferReceived += xferCallback;
+                    xferID = Client.Assets.RequestAssetXfer(fileName, true, false, UUID.Zero, AssetType.Unknown, true);
+
+                    if (gotMuteList.WaitOne(TimeSpan.FromMinutes(1), false))
+                    {
+                        muteList = Utils.BytesToString(assetData);
+
+                        lock (MuteList.Dictionary)
+                        {
+                            MuteList.Dictionary.Clear();
+                            foreach (var line in muteList.Split('\n'))
+                            {
+                                if (line.Trim() == string.Empty) continue;
+
+                                try
+                                {
+                                    Match m;
+                                    if ((m = Regex.Match(line,
+                                            @"(?<MyteType>\d+)\s+(?<Key>[a-zA-Z0-9-]+)\s+(?<Name>[^|]+)|(?<Flags>.+)",
+                                            RegexOptions.CultureInvariant)).Success)
+                                    {
+                                        MuteEntry me = new MuteEntry
+                                        {
+                                            Type = (MuteType)int.Parse(m.Groups["MyteType"].Value),
+                                            ID = new UUID(m.Groups["Key"].Value),
+                                            Name = m.Groups["Name"].Value
+                                        };
+                                        int flags = 0;
+                                        int.TryParse(m.Groups["Flags"].Value, out flags);
+                                        me.Flags = (MuteFlags)flags;
+                                        MuteList[$"{me.ID}|{me.Name}"] = me;
+                                    }
+                                    else
+                                    {
+                                        throw new ArgumentException("Invalid mutelist entry line");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.Warn("Failed to parse the mute list line: " + line, ex, Client);
+                                }
+                            }
+                        }
+
+                        OnMuteListUpdated(EventArgs.Empty);
+                    }
+                    else
+                    {
+                        Logger.Warn("Timed out waiting for mute list download", Client);
+                    }
+
+                    Client.Assets.XferReceived -= xferCallback;
+                }
+            });
+        }
+
+        #endregion Packet Handlers
+    }
+}
