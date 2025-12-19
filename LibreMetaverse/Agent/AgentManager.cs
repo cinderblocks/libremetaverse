@@ -55,6 +55,7 @@ namespace OpenMetaverse
         /// <param name="success">Indicates if operation was successful</param>
         /// <param name="info">Attachment resource usage information</param>
         public delegate void AttachmentResourcesCallback(bool success, AttachmentResourcesMessage info);
+        public delegate void AgentAccessCallback(AgentAccessEventArgs e);
         #endregion Delegates
 
         #region Event Delegates
@@ -2471,6 +2472,12 @@ namespace OpenMetaverse
             try
             {
                 Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("AttachmentResources");
+                if (cap == null)
+                {
+                    Logger.Warn("AttachmentResources capability not available, cannot fetch attachment resources.", Client);
+                    callback(false, null);
+                    return;
+                }
                 await Client.HttpCapsClient.GetRequestAsync(cap, cancellationToken, 
                     (response, data, error) =>
                 {
@@ -2491,7 +2498,7 @@ namespace OpenMetaverse
                         Logger.Error("Failed fetching AttachmentResources", ex, Client);
                         callback(false, null);
                     }
-                });
+                }).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -2506,7 +2513,17 @@ namespace OpenMetaverse
         /// <param name="oldName">Previous display name</param>
         /// <param name="newName">Desired new display name</param>
         /// <param name="cancellationToken"></param>
+        [Obsolete("Use SetDisplayNameAsync instead", false)]
         public void SetDisplayName(string oldName, string newName, CancellationToken cancellationToken = default)
+        {
+            // Synchronous wrapper for compatibility
+            SetDisplayNameAsync(oldName, newName, cancellationToken).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Initiates request to set a new display name (async)
+        /// </summary>
+        public async Task SetDisplayNameAsync(string oldName, string newName, CancellationToken cancellationToken = default)
         {
             if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
             {
@@ -2527,50 +2544,44 @@ namespace OpenMetaverse
                 NewDisplayName = newName
             };
 
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), 
-                cancellationToken);
+            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken).ConfigureAwait(false);
         }
-
-        /// <summary>
-        /// Tells the sim what UI language is used, and if it's ok to share that with scripts
-        /// </summary>
-        /// <param name="language">Two letter language code</param>
-        /// <param name="isPublic">Share language info with scripts</param>
-        /// <param name="cancellationToken"></param>
+ 
+         /// <summary>
+         /// Tells the sim what UI language is used, and if it's ok to share that with scripts
+         /// </summary>
+         /// <param name="language">Two letter language code</param>
+         /// <param name="isPublic">Share language info with scripts</param>
+         /// <param name="cancellationToken"></param>
+        [Obsolete("Use UpdateAgentLanguageAsync instead", false)]
         public void UpdateAgentLanguage(string language, bool isPublic, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                UpdateAgentLanguageMessage msg = new UpdateAgentLanguageMessage
-                {
-                    Language = language,
-                    LanguagePublic = isPublic
-                };
-
-                Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentLanguage");
-                if (cap == null)
-                {
-                    Logger.Warn("Could not retrieve 'UpdateAgentLanguage' capability.", Client);
-                    return;
-                }
-                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error("Failed to update agent language", ex, Client);
-            }
+            UpdateAgentLanguageAsync(language, isPublic, cancellationToken).GetAwaiter().GetResult();
         }
 
-        public delegate void AgentAccessCallback(AgentAccessEventArgs e);
+        public async Task UpdateAgentLanguageAsync(string language, bool isPublic, CancellationToken cancellationToken = default)
+         {
+             try
+             {
+                 UpdateAgentLanguageMessage msg = new UpdateAgentLanguageMessage
+                 {
+                     Language = language,
+                     LanguagePublic = isPublic
+                 };
 
-        /// <summary>
-        /// Sets agents maturity access level
-        /// </summary>
-        /// <param name="access">PG, M or A</param>
-        public void SetAgentAccess(string access)
-        {
-            SetAgentAccess(access, null);
-        }
+                 Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentLanguage");
+                 if (cap == null)
+                 {
+                     Logger.Warn("Could not retrieve 'UpdateAgentLanguage' capability.", Client);
+                     return;
+                 }
+                await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken).ConfigureAwait(false);
+         }
+         catch (Exception ex)
+         {
+             Logger.Error("Failed to update agent language", ex, Client);
+         }
+         }
 
         /// <summary>
         /// Sets agents maturity access level
@@ -2578,64 +2589,70 @@ namespace OpenMetaverse
         /// <param name="access">PG, M or A</param>
         /// <param name="callback">Callback function</param>
         /// <param name="cancellationToken"></param>
-        public void SetAgentAccess(string access, AgentAccessCallback callback, CancellationToken cancellationToken = default)
-        {
-            if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim.Caps == null) { return; }
+        public async Task SetAgentAccessAsync(string access, AgentAccessCallback callback, CancellationToken cancellationToken = default)
+         {
+             if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim.Caps == null) { return; }
 
-            OSDMap payload = new OSDMap
-            {
-                ["access_prefs"] = new OSDMap { ["max"] = access }
-            };
-            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentInformation");
-            if (cap == null) { return; }
+             OSDMap payload = new OSDMap
+             {
+                 ["access_prefs"] = new OSDMap { ["max"] = access }
+             };
+             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentInformation");
+             if (cap == null) { return; }
 
-            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, cancellationToken,
-                (response, data, error) =>
-                {
-                    bool success = true;
-                    OSD result = OSDParser.Deserialize(data);
-                    if (error == null && result is OSDMap osdMap)
-                    {
-                        var map = osdMap["access_prefs"];
-                        AgentAccess = ((OSDMap)map)["max"];
-                        Logger.Info($"Max maturity access set to {AgentAccess}", Client);
-                    }
-                    else if (error == null)
-                    {
-                        Logger.Info($"Max maturity unchanged at {AgentAccess}", Client);
-                    }
-                    else
-                    {
-                        Logger.Warn("Failed setting max maturity access.", Client);
-                        success = false;
-                    }
+             await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, cancellationToken,
+                 (response, data, error) =>
+                 {
+                     bool success = true;
+                     OSD result = OSDParser.Deserialize(data);
+                     if (error == null && result is OSDMap osdMap)
+                     {
+                         var map = osdMap["access_prefs"];
+                         AgentAccess = ((OSDMap)map)["max"];
+                         Logger.Info($"Max maturity access set to {AgentAccess}", Client);
+                     }
+                     else if (error == null)
+                     {
+                         Logger.Info($"Max maturity unchanged at {AgentAccess}", Client);
+                     }
+                     else
+                     {
+                         Logger.Warn("Failed setting max maturity access.", Client);
+                         success = false;
+                     }
 
-                    if (callback != null)
-                    {
-                        try { callback(new AgentAccessEventArgs(success, AgentAccess)); }
-                        catch { } // *TODO: So gross
-                    }
-                });
-        }
+                     if (callback != null)
+                     {
+                         try { callback(new AgentAccessEventArgs(success, AgentAccess)); }
+                         catch { } // *TODO: So gross
+                     }
+                 }).ConfigureAwait(false);
+         }
 
         /// <summary>
         /// Sets agents hover height.
         /// </summary>
         /// <param name="hoverHeight">Hover height [-2.0, 2.0]</param>
         /// <param name="cancellationToken"></param>
+        [Obsolete("Use SetHoverHeightAsync instead", false)]
         public void SetHoverHeight(double hoverHeight, CancellationToken cancellationToken = default)
         {
-            if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim.Caps == null) { return; }
+            SetHoverHeightAsync(hoverHeight, cancellationToken).GetAwaiter().GetResult();
+        }
+
+        public async Task SetHoverHeightAsync(double hoverHeight, CancellationToken cancellationToken = default)
+         {
+             if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim.Caps == null) { return; }
 
             var postData = new OSDMap { ["hover_height"] = hoverHeight };
 
             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("AgentPreferences");
             if (cap == null) { return; }
 
-            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, postData, cancellationToken,
-                (response, data, error) =>
-            {
-                OSD result = OSDParser.Deserialize(data);
+            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, postData, cancellationToken,
+                 (response, data, error) =>
+             {
+                 OSD result = OSDParser.Deserialize(data);
 
                 if (error != null)
                 {
@@ -2650,8 +2667,8 @@ namespace OpenMetaverse
                     var confirmedHeight = resultMap["hover_height"];
                     Logger.Debug($"Hover height set to {confirmedHeight}", Client);
                 }
-            });
-        }
+            }).ConfigureAwait(false);
+         }
 
         #endregion Misc
 
