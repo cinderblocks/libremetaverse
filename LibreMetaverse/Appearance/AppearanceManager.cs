@@ -2290,7 +2290,7 @@ namespace OpenMetaverse
                         try
                         {
                             var task = RequestSetAppearance(true);
-                            task.ContinueWith(t =>
+                            await task.ContinueWith(t =>
                             {
                                 var ex = t.Exception; // Observe
                                 Logger.Warn($"Delayed RequestSetAppearance task faulted: {ex}", Client);

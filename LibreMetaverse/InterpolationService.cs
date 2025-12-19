@@ -26,7 +26,6 @@
  */
 
 using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -35,11 +34,12 @@ namespace OpenMetaverse
     internal sealed class InterpolationService : IDisposable
     {
         private readonly GridClient _client;
-        private Timer _timer;
 #if NET6_0_OR_GREATER
         private System.Threading.PeriodicTimer _periodicTimer;
         private CancellationTokenSource _cts;
         private Task _loopTask;
+#else
+        private Timer _timer;
 #endif
         private bool _started;
 
