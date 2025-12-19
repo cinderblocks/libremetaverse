@@ -46,7 +46,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Parameters used to construct a visual representation of a primitive
         /// </summary>
-        public struct ConstructionData
+        public class ConstructionData
         {
             private const byte PROFILE_MASK = 0x0F;
             private const byte HOLE_MASK = 0xF0;
@@ -183,6 +183,42 @@ namespace OpenMetaverse
                     ^ Material.GetHashCode()
                     ^ State.GetHashCode()
                     ^ PCode.GetHashCode();
+            }
+
+            /// <summary>
+            /// Default constructor
+            /// </summary>
+            public ConstructionData()
+            {
+            }
+
+            /// <summary>
+            /// Copy constructor
+            /// </summary>
+            public ConstructionData(ConstructionData other)
+            {
+                if (other == null) return;
+                profileCurve = other.profileCurve;
+                PathCurve = other.PathCurve;
+                PathEnd = other.PathEnd;
+                PathRadiusOffset = other.PathRadiusOffset;
+                PathSkew = other.PathSkew;
+                PathScaleX = other.PathScaleX;
+                PathScaleY = other.PathScaleY;
+                PathShearX = other.PathShearX;
+                PathShearY = other.PathShearY;
+                PathTaperX = other.PathTaperX;
+                PathTaperY = other.PathTaperY;
+                PathBegin = other.PathBegin;
+                PathTwist = other.PathTwist;
+                PathTwistBegin = other.PathTwistBegin;
+                PathRevolutions = other.PathRevolutions;
+                ProfileBegin = other.ProfileBegin;
+                ProfileEnd = other.ProfileEnd;
+                ProfileHollow = other.ProfileHollow;
+                Material = other.Material;
+                State = other.State;
+                PCode = other.PCode;
             }
         }
 
@@ -963,6 +999,8 @@ namespace OpenMetaverse
             // Default a few null property values to String.Empty
             Text = string.Empty;
             MediaURL = string.Empty;
+            // Default scale to 1,1,1
+            Scale = Vector3.One;
         }
 
         public Primitive(Primitive prim)
@@ -1012,7 +1050,7 @@ namespace OpenMetaverse
             }
             else
                 NameValues = null;
-            PrimData = prim.PrimData;
+            PrimData = prim.PrimData != null ? new ConstructionData(prim.PrimData) : new ConstructionData();
             Properties = prim.Properties;
             // FIXME: Get a real copy constructor for TextureEntry instead of serializing to bytes and back
             if (prim.Textures != null)
@@ -1113,89 +1151,119 @@ namespace OpenMetaverse
         public static Primitive FromOSD(OSD osd)
         {
             Primitive prim = new Primitive();
-            Primitive.ConstructionData data;
+            
+            if (!(osd is OSDMap map))
+                return prim; // not a map, return default
 
-            OSDMap map = (OSDMap)osd;
-            OSDMap volume = (OSDMap)map["volume"];
-            OSDMap path = (OSDMap)volume["path"];
-            OSDMap profile = (OSDMap)volume["profile"];
+            // Local helpers
+            T GetOrDefault<T>(OSDMap m, string key, Func<OSD, T> conv, T def)
+            {
+                if (m == null) return def;
+                if (m.TryGetValue(key, out OSD val) && val != null)
+                {
+                    try { return conv(val); }
+                    catch { return def; }
+                }
+                return def;
+            }
 
-            #region Path/Profile
+            OSDMap GetMap(OSDMap m, string key)
+            {
+                if (m == null) return null;
+                if (m.TryGetValue(key, out OSD val) && val is OSDMap om)
+                    return om;
+                return null;
+            }
 
-            data.profileCurve = (byte)0;
-            data.Material = (Material)map["material"].AsInteger();
-            data.PCode = (PCode)map["pcode"].AsInteger();
-            data.State = (byte)map["state"].AsInteger();
+            // Construct construction data safely
+            ConstructionData data = new ConstructionData();
 
-            data.PathBegin = (float)path["begin"].AsReal();
-            data.PathCurve = (PathCurve)path["curve"].AsInteger();
-            data.PathEnd = (float)path["end"].AsReal();
-            data.PathRadiusOffset = (float)path["radius_offset"].AsReal();
-            data.PathRevolutions = (float)path["revolutions"].AsReal();
-            data.PathScaleX = (float)path["scale_x"].AsReal();
-            data.PathScaleY = (float)path["scale_y"].AsReal();
-            data.PathShearX = (float)path["shear_x"].AsReal();
-            data.PathShearY = (float)path["shear_y"].AsReal();
-            data.PathSkew = (float)path["skew"].AsReal();
-            data.PathTaperX = (float)path["taper_x"].AsReal();
-            data.PathTaperY = (float)path["taper_y"].AsReal();
-            data.PathTwist = (float)path["twist"].AsReal();
-            data.PathTwistBegin = (float)path["twist_begin"].AsReal();
+            OSDMap volume = GetMap(map, "volume");
+            OSDMap path = GetMap(volume, "path");
+            OSDMap profile = GetMap(volume, "profile");
 
-            data.ProfileBegin = (float)profile["begin"].AsReal();
-            data.ProfileEnd = (float)profile["end"].AsReal();
-            data.ProfileHollow = (float)profile["hollow"].AsReal();
-            data.ProfileCurve = (ProfileCurve)profile["curve"].AsInteger();
-            data.ProfileHole = (HoleType)profile["hole"].AsInteger();
+            data.profileCurve = 0;
+            data.Material = GetOrDefault(map, "material", o => (Material)o.AsInteger(), (Material)0);
+            data.PCode = GetOrDefault(map, "pcode", o => (PCode)o.AsInteger(), (PCode)0);
+            data.State = GetOrDefault(map, "state", o => (byte)o.AsInteger(), (byte)0);
 
-            #endregion Path/Profile
+            data.PathBegin = GetOrDefault(path, "begin", o => (float)o.AsReal(), 0f);
+            data.PathCurve = GetOrDefault(path, "curve", o => (PathCurve)o.AsInteger(), PathCurve.Line);
+            data.PathEnd = GetOrDefault(path, "end", o => (float)o.AsReal(), 0f);
+            data.PathRadiusOffset = GetOrDefault(path, "radius_offset", o => (float)o.AsReal(), 0f);
+            data.PathRevolutions = GetOrDefault(path, "revolutions", o => (float)o.AsReal(), 1f);
+            data.PathScaleX = GetOrDefault(path, "scale_x", o => (float)o.AsReal(), 1f);
+            data.PathScaleY = GetOrDefault(path, "scale_y", o => (float)o.AsReal(), 1f);
+            data.PathShearX = GetOrDefault(path, "shear_x", o => (float)o.AsReal(), 0f);
+            data.PathShearY = GetOrDefault(path, "shear_y", o => (float)o.AsReal(), 0f);
+            data.PathSkew = GetOrDefault(path, "skew", o => (float)o.AsReal(), 0f);
+            data.PathTaperX = GetOrDefault(path, "taper_x", o => (float)o.AsReal(), 0f);
+            data.PathTaperY = GetOrDefault(path, "taper_y", o => (float)o.AsReal(), 0f);
+            data.PathTwist = GetOrDefault(path, "twist", o => (float)o.AsReal(), 0f);
+            data.PathTwistBegin = GetOrDefault(path, "twist_begin", o => (float)o.AsReal(), 0f);
+
+            data.ProfileBegin = GetOrDefault(profile, "begin", o => (float)o.AsReal(), 0f);
+            data.ProfileEnd = GetOrDefault(profile, "end", o => (float)o.AsReal(), 1f);
+            data.ProfileHollow = GetOrDefault(profile, "hollow", o => (float)o.AsReal(), 0f);
+            data.ProfileCurve = GetOrDefault(profile, "curve", o => (ProfileCurve)o.AsInteger(), ProfileCurve.Circle);
+            data.ProfileHole = GetOrDefault(profile, "hole", o => (HoleType)o.AsInteger(), (HoleType)0);
 
             prim.PrimData = data;
 
-            if (map["phantom"].AsBoolean())
+            // Flags
+            if (GetOrDefault(map, "phantom", o => o.AsBoolean(), false))
                 prim.Flags |= PrimFlags.Phantom;
-
-            if (map["physical"].AsBoolean())
+            if (GetOrDefault(map, "physical", o => o.AsBoolean(), false))
                 prim.Flags |= PrimFlags.Physics;
-
-            if (map["shadows"].AsBoolean())
+            if (GetOrDefault(map, "shadows", o => o.AsBoolean(), false))
                 prim.Flags |= PrimFlags.CastShadows;
 
-            prim.ID = map["id"].AsUUID();
-            prim.LocalID = map["localid"].AsUInteger();
-            prim.ParentID = map["parentid"].AsUInteger();
-            prim.Position = ((OSDArray)map["position"]).AsVector3();
-            prim.Rotation = ((OSDArray)map["rotation"]).AsQuaternion();
-            prim.Scale = ((OSDArray)map["scale"]).AsVector3();
-            
-            if (map["flex"])
-                prim.Flexible = FlexibleData.FromOSD(map["flex"]);
-            
-            if (map["light"])
-                prim.Light = LightData.FromOSD(map["light"]);
+            // Identifiers
+            prim.ID = GetOrDefault(map, "id", o => o.AsUUID(), UUID.Zero);
+            prim.LocalID = GetOrDefault(map, "localid", o => o.AsUInteger(), 0u);
+            prim.ParentID = GetOrDefault(map, "parentid", o => o.AsUInteger(), 0u);
 
-            if (map["light_image"])
-                prim.LightMap = LightImage.FromOSD(map["light_image"]);
+            // Transform
+            if (map.TryGetValue("position", out OSD posOsd) && posOsd is OSDArray posArr)
+            {
+                try { prim.Position = posArr.AsVector3(); } catch { prim.Position = Vector3.Zero; }
+            }
 
-            if (map["sculpt"])
-                prim.Sculpt = SculptData.FromOSD(map["sculpt"]);
+            if (map.TryGetValue("rotation", out OSD rotOsd) && rotOsd is OSDArray rotArr)
+            {
+                try { prim.Rotation = rotArr.AsQuaternion(); } catch { prim.Rotation = Quaternion.Identity; }
+            }
 
-            prim.Textures = TextureEntry.FromOSD(map["textures"]);
-            
-            if (map["texture_anim"])
-                prim.TextureAnim = TextureAnimation.FromOSD(map["texture_anim"]);
+            if (map.TryGetValue("scale", out OSD sclOsd) && sclOsd is OSDArray sclArr)
+            {
+                try { prim.Scale = sclArr.AsVector3(); } catch { prim.Scale = Vector3.One; }
+            }
 
+            // Optional nested data
+            if (map.TryGetValue("flex", out OSD flexOsd) && flexOsd != null)
+                prim.Flexible = FlexibleData.FromOSD(flexOsd);
+
+            if (map.TryGetValue("light", out OSD lightOsd) && lightOsd != null)
+                prim.Light = LightData.FromOSD(lightOsd);
+
+            if (map.TryGetValue("light_image", out OSD lightImgOsd) && lightImgOsd != null)
+                prim.LightMap = LightImage.FromOSD(lightImgOsd);
+
+            if (map.TryGetValue("sculpt", out OSD sculptOsd) && sculptOsd != null)
+                prim.Sculpt = SculptData.FromOSD(sculptOsd);
+
+            if (map.TryGetValue("textures", out OSD texOsd) && texOsd != null)
+                prim.Textures = TextureEntry.FromOSD(texOsd);
+
+            if (map.TryGetValue("texture_anim", out OSD animOsd) && animOsd != null)
+                prim.TextureAnim = TextureAnimation.FromOSD(animOsd);
+
+            // Properties
             prim.Properties = new ObjectProperties();
-
-            if (!string.IsNullOrEmpty(map["name"].AsString()))
-            {
-                prim.Properties.Name = map["name"].AsString();
-            }
-
-            if (!string.IsNullOrEmpty(map["description"].AsString()))
-            {
-                prim.Properties.Description = map["description"].AsString();
-            }
+            string name = GetOrDefault(map, "name", o => o.AsString(), string.Empty);
+            if (!string.IsNullOrEmpty(name)) prim.Properties.Name = name;
+            string desc = GetOrDefault(map, "description", o => o.AsString(), string.Empty);
+            if (!string.IsNullOrEmpty(desc)) prim.Properties.Description = desc;
 
             return prim;
         }
@@ -1360,51 +1428,47 @@ namespace OpenMetaverse
 
         public override int GetHashCode()
         {
-            return
-                Position.GetHashCode() ^
-                Velocity.GetHashCode() ^
-                Acceleration.GetHashCode() ^
-                Rotation.GetHashCode() ^
-                AngularVelocity.GetHashCode() ^
-                ClickAction.GetHashCode() ^
-                (Flexible != null ? Flexible.GetHashCode() : 0) ^
-                (Light != null ? Light.GetHashCode() : 0) ^
-                (Sculpt != null ? Sculpt.GetHashCode() : 0) ^
-                Flags.GetHashCode() ^
-                PrimData.Material.GetHashCode() ^
-                MediaURL.GetHashCode() ^
-                //TODO: NameValues?
-                (Properties != null ? Properties.OwnerID.GetHashCode() : 0) ^
-                ParentID.GetHashCode() ^
-                PrimData.PathBegin.GetHashCode() ^
-                PrimData.PathCurve.GetHashCode() ^
-                PrimData.PathEnd.GetHashCode() ^
-                PrimData.PathRadiusOffset.GetHashCode() ^
-                PrimData.PathRevolutions.GetHashCode() ^
-                PrimData.PathScaleX.GetHashCode() ^
-                PrimData.PathScaleY.GetHashCode() ^
-                PrimData.PathShearX.GetHashCode() ^
-                PrimData.PathShearY.GetHashCode() ^
-                PrimData.PathSkew.GetHashCode() ^
-                PrimData.PathTaperX.GetHashCode() ^
-                PrimData.PathTaperY.GetHashCode() ^
-                PrimData.PathTwist.GetHashCode() ^
-                PrimData.PathTwistBegin.GetHashCode() ^
-                PrimData.PCode.GetHashCode() ^
-                PrimData.ProfileBegin.GetHashCode() ^
-                PrimData.ProfileCurve.GetHashCode() ^
-                PrimData.ProfileEnd.GetHashCode() ^
-                PrimData.ProfileHollow.GetHashCode() ^
-                ParticleSys.GetHashCode() ^
-                TextColor.GetHashCode() ^
-                TextureAnim.GetHashCode() ^
-                (Textures != null ? Textures.GetHashCode() : 0) ^
-                SoundRadius.GetHashCode() ^
-                Scale.GetHashCode() ^
-                Sound.GetHashCode() ^
-                PrimData.State.GetHashCode() ^
-                Text.GetHashCode() ^
-                TreeSpecies.GetHashCode();
+            unchecked
+            {
+                int hash = 17;
+
+                // Construction and shape
+                hash = (hash * 397) ^ PrimData.GetHashCode();
+
+                // Transform
+                hash = (hash * 397) ^ Position.GetHashCode();
+                hash = (hash * 397) ^ Rotation.GetHashCode();
+                hash = (hash * 397) ^ Scale.GetHashCode();
+                hash = (hash * 397) ^ Velocity.GetHashCode();
+                hash = (hash * 397) ^ Acceleration.GetHashCode();
+                hash = (hash * 397) ^ AngularVelocity.GetHashCode();
+
+                // Appearance / extras
+                hash = (hash * 397) ^ ClickAction.GetHashCode();
+                hash = (hash * 397) ^ (Flexible != null ? Flexible.GetHashCode() : 0);
+                hash = (hash * 397) ^ (Light != null ? Light.GetHashCode() : 0);
+                hash = (hash * 397) ^ (LightMap != null ? LightMap.GetHashCode() : 0);
+                hash = (hash * 397) ^ (Sculpt != null ? Sculpt.GetHashCode() : 0);
+
+                // Textures / animation / particles
+                hash = (hash * 397) ^ (Textures != null ? Textures.GetHashCode() : 0);
+                hash = (hash * 397) ^ TextureAnim.GetHashCode();
+                hash = (hash * 397) ^ ParticleSys.GetHashCode();
+
+                // Other attributes
+                hash = (hash * 397) ^ Flags.GetHashCode();
+                hash = (hash * 397) ^ TextColor.GetHashCode();
+                hash = (hash * 397) ^ Sound.GetHashCode();
+                hash = (hash * 397) ^ SoundRadius.GetHashCode();
+                hash = (hash * 397) ^ SoundGain.GetHashCode();
+                hash = (hash * 397) ^ (Text != null ? Text.GetHashCode() : 0);
+                hash = (hash * 397) ^ (MediaURL != null ? MediaURL.GetHashCode() : 0);
+                hash = (hash * 397) ^ (Properties != null ? Properties.OwnerID.GetHashCode() : 0);
+                hash = (hash * 397) ^ ParentID.GetHashCode();
+                hash = (hash * 397) ^ TreeSpecies.GetHashCode();
+
+                return hash;
+            }
         }
 
         #endregion Overrides
