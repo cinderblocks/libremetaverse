@@ -1631,26 +1631,32 @@ namespace OpenMetaverse
                 if (partEndOffset < messageBytes.Length)
                 {
                     // Starting at the desired split point (previous split point offset + splitSizeInBytes),
-                    //  iterate backwards, checking each byte until we find a byte that is not a continuation
-                    //  byte (0x80-0xBF).
-                    // See: https://en.wikipedia.org/wiki/UTF-8#Byte_map
-                    while (partEndOffset > messageBytesOffset)
+                    // iterate backwards, checking each byte until we find a byte that is not a UTF-8 continuation
+                    // byte (0x80-0xBF). We check bytes at index (scan - 1) to avoid reading past the buffer.
+                    int scan = partEndOffset;
+                    while (scan > messageBytesOffset)
                     {
-                        var currentByte = messageBytes[partEndOffset];
-                        if(currentByte < 0x80 || currentByte > 0xBF)
+                        var currentByte = messageBytes[scan - 1];
+                        // continuation bytes are in range 0x80..0xBF
+                        if (currentByte < 0x80 || currentByte > 0xBF)
                         {
-                            // The current byte of the message is not a continuation byte, and we can split the message here.
+                            // found a non-continuation byte (start of a UTF-8 sequence)
                             break;
                         }
 
-                        partEndOffset--;
+                        scan--;
                     }
-                }
 
-                if (partEndOffset == messageBytesOffset)
-                {
-                    // Edge case where we're forced to split the multibyte character, such as when splitSizeInBytes is 1
-                    partEndOffset++;
+                    if (scan == messageBytesOffset)
+                    {
+                        // Edge case where we're forced to split a multibyte character (e.g., splitSizeInBytes == 1)
+                        // Advance by one byte to make progress rather than stalling.
+                        partEndOffset = Math.Min(messageBytesOffset + 1, messageBytes.Length);
+                    }
+                    else
+                    {
+                        partEndOffset = scan;
+                    }
                 }
 
                 var newMessagePart = System.Text.Encoding.UTF8.GetString(
