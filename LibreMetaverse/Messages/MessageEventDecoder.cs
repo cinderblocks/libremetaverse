@@ -112,8 +112,6 @@ namespace OpenMetaverse.Messages
                 // NewFileAgentInventory	
                 // RequestTextureDownload	
                 // SearchStatTracking	
-                // SendUserReport	
-                // SendUserReportWithScreenshot	
                 // ServerReleaseNotes	
                 // StartGroupProposal	
                 // UpdateGestureTaskInventory	
