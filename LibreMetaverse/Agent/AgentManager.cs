@@ -938,7 +938,7 @@ namespace OpenMetaverse
         public event EventHandler<TeleportEventArgs> TeleportProgress
         {
             add { lock (m_TeleportLock) { m_Teleport += value; } }
-            remove { lock (m_TeleportLock) { m_Teleport += value; } }
+            remove { lock (m_TeleportLock) { m_Teleport -= value; } }
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
@@ -1558,7 +1558,7 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.CrossedRegion, CrossedRegionHandler);
             Client.Network.RegisterEventCallback("CrossedRegion", CrossedRegionEventHandler);
             // CAPS callbacks
-            Client.Network.RegisterEventCallback("EstablishAgentCommunication", TeleportFailedEventHandler);
+            Client.Network.RegisterEventCallback("EstablishAgentCommunication", EstablishAgentCommunicationEventHandler);
             Client.Network.RegisterEventCallback("SetDisplayNameReply", SetDisplayNameReplyEventHandler);
             Client.Network.RegisterEventCallback("AgentStateUpdate", AgentStateUpdateEventHandler);
             // Incoming Group Chat
@@ -4321,7 +4321,7 @@ namespace OpenMetaverse
                     // Movement complete callback
                     try { Client.Network.UnregisterCallback(PacketType.AgentMovementComplete, MovementCompleteHandler); } catch { }
                     // Health callback
-                    try { Client.Network.UnregisterCallback(PacketType.HealthMessage, MoneyBalanceReplyHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.HealthMessage, HealthHandler); } catch { }
                     // Money callback
                     try { Client.Network.UnregisterCallback(PacketType.MoneyBalanceReply, MoneyBalanceReplyHandler); } catch { }
                     //Agent update callback
