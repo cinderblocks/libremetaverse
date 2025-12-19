@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC
+ * Copyright (c) 2021-2025, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -35,6 +35,7 @@ using OpenMetaverse.Interfaces;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Messages.Linden;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace OpenMetaverse
 {
@@ -949,6 +950,9 @@ namespace OpenMetaverse
         private GridClient Client;
         private TaskCompletionSource<bool> WaitForSimParcelTcs;
         private readonly object WaitForSimParcelLock = new object();
+        // Per-request TCS map keyed by sequence id to avoid races when downloading full parcel map
+        private readonly ConcurrentDictionary<int, TaskCompletionSource<bool>> _parcelTcsMap = new ConcurrentDictionary<int, TaskCompletionSource<bool>>();
+        private int _parcelSequence;
 
         #region Public Methods
 
@@ -1013,6 +1017,13 @@ namespace OpenMetaverse
                         try { WaitForSimParcelTcs?.TrySetCanceled(); } catch (Exception ex) { Logger.Warn("Exception cancelling WaitForSimParcelTcs: " + ex.Message, ex, Client); }
                         WaitForSimParcelTcs = null;
                     }
+
+                    // Cancel and clear any per-request TCS entries
+                    foreach (var kv in _parcelTcsMap)
+                    {
+                        try { kv.Value.TrySetCanceled(); } catch { }
+                    }
+                    _parcelTcsMap.Clear();
                 }
                 catch (Exception ex)
                 {
@@ -1463,12 +1474,19 @@ namespace OpenMetaverse
         /// dictionary.</remarks>
         public int GetParcelLocalID(Simulator simulator, Vector3 position)
         {
-            if (simulator.ParcelMap[(byte)position.Y / 4, (byte)position.X / 4] > 0)
-                return simulator.ParcelMap[(byte)position.Y / 4, (byte)position.X / 4];
-            
-            Logger.Warn($"ParcelMap returned an default/invalid value for location {(byte)position.Y / 4}/{(byte)position.X / 4} " + 
-                "Did you use RequestAllSimParcels() to populate the dictionaries?");
-            
+            // compute indices based on grid step and validate bounds
+            int ix = (int)(position.X / PARCEL_GRID_STEP);
+            int iy = (int)(position.Y / PARCEL_GRID_STEP);
+
+            if (ix >= 0 && ix < PARCEL_MAP_SIZE && iy >= 0 && iy < PARCEL_MAP_SIZE)
+            {
+                var id = simulator.ParcelMap[iy, ix];
+                if (id > 0) return id;
+                Logger.Warn($"ParcelMap returned a default/invalid value for location {iy}/{ix} - Did you use RequestAllSimParcels() to populate the dictionaries?", Client);
+                return 0;
+            }
+
+            Logger.Warn($"Position {position} mapped to out-of-range parcel map indices {iy}/{ix}", Client);
             return 0;
         }
 
@@ -1528,8 +1546,9 @@ namespace OpenMetaverse
             int x, y;
             if (localID == -1)
             {
-                x = (int)east - (int)west / 2;
-                y = (int)north - (int)south / 2;
+                // ensure correct operator precedence: subtract then divide
+                x = ((int)east - (int)west) / 2;
+                y = ((int)north - (int)south) / 2;
             }
             else
             {
@@ -1540,8 +1559,8 @@ namespace OpenMetaverse
                     return false;
                 }
 
-                x = (int)p.AABBMax.X - (int)p.AABBMin.X / 2;
-                y = (int)p.AABBMax.Y - (int)p.AABBMin.Y / 2;
+                x = ((int)p.AABBMax.X - (int)p.AABBMin.X) / 2;
+                y = ((int)p.AABBMax.Y - (int)p.AABBMin.Y) / 2;
             }
 
             if (!simulator.TerrainHeightAtPoint(x, y, out height))
@@ -1782,7 +1801,10 @@ namespace OpenMetaverse
                         try
                         {
                             if (error != null)
+                            {
                                 callback(false, null);
+                                return;
+                            }
                             
                             OSD result = OSDParser.Deserialize(data);
                             LandResourcesMessage landResourcesMessage = new LandResourcesMessage();
@@ -1986,8 +2008,14 @@ namespace OpenMetaverse
                 }
             }
 
-            if (sequenceID.Equals(int.MaxValue))
+            // signal any per-request TCS waiting for this sequence id
+            if (_parcelTcsMap.TryRemove(sequenceID, out var seqTcs))
             {
+                try { seqTcs.TrySetResult(true); } catch { }
+            }
+            else if (sequenceID.Equals(int.MaxValue))
+            {
+                // fallback for older callers that expect int.MaxValue
                 lock (WaitForSimParcelLock)
                 {
                     try { WaitForSimParcelTcs?.TrySetResult(true); } catch { }
@@ -2193,6 +2221,14 @@ namespace OpenMetaverse
         {
             simulator.DownloadingParcelMap = true;
 
+            // reset sequence counter and clear any stale TCS entries
+            _parcelSequence = 0;
+            foreach (var kv in _parcelTcsMap)
+            {
+                try { kv.Value.TrySetCanceled(); } catch { }
+            }
+            _parcelTcsMap.Clear();
+
             lock (WaitForSimParcelLock)
             {
                 WaitForSimParcelTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -2222,27 +2258,28 @@ namespace OpenMetaverse
                         if (simulator.ParcelMap[y, x] != 0)
                             continue;
 
-                        // create new TCS for this request
-                        lock (WaitForSimParcelLock)
-                        {
-                            WaitForSimParcelTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-                        }
+                        // create new per-request TCS and unique sequence id
+                        var seq = Interlocked.Increment(ref _parcelSequence);
+                        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        _parcelTcsMap[seq] = tcs;
 
                         Client.Parcels.RequestParcelProperties(simulator,
                             (y + 1) * PARCEL_GRID_STEP,
                             (x + 1) * PARCEL_GRID_STEP,
                             y * PARCEL_GRID_STEP,
                             x * PARCEL_GRID_STEP,
-                            int.MaxValue,
+                            seq,
                             false);
 
-                        var tcs = WaitForSimParcelTcs;
                         var delayTask = Task.Delay(delay, cancellationToken);
                         var completed = await Task.WhenAny(tcs.Task, delayTask).ConfigureAwait(false);
 
                         if (completed == delayTask)
                         {
                             ++timeouts;
+                            // timeout - remove the tcs and cancel it
+                            _parcelTcsMap.TryRemove(seq, out var removed);
+                            try { removed?.TrySetCanceled(); } catch { }
                         }
 
                         ++count;
