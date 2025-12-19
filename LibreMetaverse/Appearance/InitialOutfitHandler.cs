@@ -74,7 +74,8 @@ namespace LibreMetaverse.Appearance
 
                         try
                         {
-                            client.Self.SetAgentAccess("A");
+                            try { await client.Self.SetAgentAccessAsync("A", null, token).ConfigureAwait(false); } catch { }
+
                             var initial = new InitialOutfit(client, cof);
                             await initial.SetInitialOutfitAsync(loginData.InitialOutfit, token, progress).ConfigureAwait(false);
                         }

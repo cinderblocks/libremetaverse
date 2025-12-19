@@ -26,20 +26,13 @@
  */
 
 using System;
-using System.Net;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using OpenMetaverse.StructuredData;
-using OpenMetaverse.Assets;
 using OpenMetaverse.Packets;
-using OpenMetaverse.Interfaces;
 using OpenMetaverse.Messages.Linden;
-using System.Net.Http;
 using System.Threading.Tasks;
-using System.Collections;
 
 namespace OpenMetaverse
 {
@@ -680,10 +673,7 @@ namespace OpenMetaverse
             if (e != null && e.Simulator != null)
                 return e.Simulator;
 
-            if (simulator != null)
-                return simulator;
-
-            return Client?.Network?.CurrentSim;
+            return simulator != null ? simulator : Client?.Network?.CurrentSim;
         }
 
         /// <summary>Current position of the agent in the simulator</summary>
@@ -985,14 +975,22 @@ namespace OpenMetaverse
         /// <param name="z">Z coordinate to move to</param>
         public void AutoPilot(double globalX, double globalY, double z)
         {
-            GenericMessagePacket autopilot = new GenericMessagePacket();
+            GenericMessagePacket autopilot = new GenericMessagePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    TransactionID = UUID.Zero
+                },
+                MethodData =
+                {
+                    Invoice = UUID.Zero,
+                    Method = Utils.StringToBytes("autopilot")
+                },
+                ParamList = new GenericMessagePacket.ParamListBlock[3]
+            };
 
-            autopilot.AgentData.AgentID = Client.Self.AgentID;
-            autopilot.AgentData.SessionID = Client.Self.SessionID;
-            autopilot.AgentData.TransactionID = UUID.Zero;
-            autopilot.MethodData.Invoice = UUID.Zero;
-            autopilot.MethodData.Method = Utils.StringToBytes("autopilot");
-            autopilot.ParamList = new GenericMessagePacket.ParamListBlock[3];
             autopilot.ParamList[0] = new GenericMessagePacket.ParamListBlock
             {
                 Parameter = Utils.StringToBytes(globalX.ToString(CultureInfo.InvariantCulture))
@@ -1059,8 +1057,7 @@ namespace OpenMetaverse
         /// <param name="z">Floating-point value for the Z coordinate to move to</param>
         public void AutoPilotLocal(int localX, int localY, float z)
         {
-            uint x, y;
-            Utils.LongToUInts(Client.Network.CurrentSim.Handle, out x, out y);
+            Utils.LongToUInts(Client.Network.CurrentSim.Handle, out var x, out var y);
             AutoPilot((ulong)(x + localX), (ulong)(y + localY), z);
         }
 
@@ -1390,8 +1387,6 @@ namespace OpenMetaverse
                     Amount = amount
                 }
             };
-            // This is weird, apparently always set to zero though
-            // This is weird, apparently always set to zero though
 
             Client.Network.SendPacket(money);
         }
@@ -1672,7 +1667,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Request teleport to a another simulator
+        /// Request teleport to another simulator
         /// </summary>
         /// <param name="regionHandle">handle of region to teleport agent to</param>
         /// <param name="position"><see cref="Vector3"/> position in destination sim to teleport to</param>
@@ -2336,8 +2331,6 @@ namespace OpenMetaverse
                     Type = (int) type
                 }
             };
-            // TODO: this needs to be tested
-            // TODO: ?
 
             Client.Network.SendPacket(request, sim);
         }
@@ -2606,13 +2599,13 @@ namespace OpenMetaverse
                      Logger.Warn("Could not retrieve 'UpdateAgentLanguage' capability.", Client);
                      return;
                  }
-                await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken).ConfigureAwait(false);
-         }
-         catch (Exception ex) when (!(ex is OperationCanceledException))
-         {
-             Logger.Error("Failed to update agent language", ex, Client);
-             throw;
-         }
+                 await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken).ConfigureAwait(false);
+             }
+             catch (Exception ex) when (!(ex is OperationCanceledException))
+             {
+                 Logger.Error("Failed to update agent language", ex, Client);
+                 throw;
+             }
          }
 
         /// <summary>
@@ -2738,16 +2731,16 @@ namespace OpenMetaverse
                      return;
                  }
 
-                if (!(result is OSDMap resultMap))
-                {
-                    Logger.Warn($"Failed to set hover height: Expected {nameof(OSDMap)} response, but got {result.Type}", Client);
-                }
-                else
-                {
-                    var confirmedHeight = resultMap["hover_height"];
-                    Logger.Debug($"Hover height set to {confirmedHeight}", Client);
-                }
-            }).ConfigureAwait(false);
+                 if (!(result is OSDMap resultMap))
+                 {
+                     Logger.Warn($"Failed to set hover height: Expected {nameof(OSDMap)} response, but got {result.Type}", Client);
+                 }
+                 else
+                 {
+                     var confirmedHeight = resultMap["hover_height"];
+                     Logger.Debug($"Hover height set to {confirmedHeight}", Client);
+                 }
+             }).ConfigureAwait(false);
          }
 
         #endregion Misc
