@@ -1845,7 +1845,7 @@ namespace OpenMetaverse
         /// <seealso cref="UpdateProfileHttp"/>
         public void UpdateProfile(Avatar.AvatarProperties profile)
         {
-            if (Client.Network.CurrentSim.Caps.CapabilityURI(AGENT_PROFILE_CAP) != null)
+            if (Client?.Network?.CurrentSim?.Caps?.CapabilityURI(AGENT_PROFILE_CAP) != null)
             {
                 _ = UpdateProfileHttp(profile);
             }
@@ -1906,6 +1906,8 @@ namespace OpenMetaverse
                 ["fl_image_id"] = profile.FirstLifeImage
             };
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 if (Client?.Network?.CurrentSim?.Caps == null)
@@ -1932,23 +1934,25 @@ namespace OpenMetaverse
                             return;
                         }
 
-                        if (response != null && response.IsSuccessStatusCode)
+                        if (response == null)
                         {
-                            Logger.Debug("AgentProfile update succeeded.", Client);
+                            Logger.Warn("AgentProfile update failed: no response from server.", Client);
+                            return;
                         }
-                        else
+
+                        if (!response.IsSuccessStatusCode)
                         {
-                            Logger.Warn($"AgentProfile update returned non-success status: {response?.StatusCode}", Client);
+                            Logger.Warn($"AgentProfile update returned non-success status: {response.StatusCode}", Client);
+                            return;
                         }
+
+                        Logger.Debug("AgentProfile update succeeded.", Client);
                     }).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
-            {
-                Logger.Debug("UpdateProfileHttp cancelled.", Client);
-            }
-            catch (Exception ex)
+            catch (Exception ex) when (!(ex is OperationCanceledException))
             {
                 Logger.Error("AgentProfile update failed", ex, Client);
+                throw;
             }
         }
 
@@ -1961,7 +1965,7 @@ namespace OpenMetaverse
         /// <seealso cref="UpdateProfileUdp"/>
         public void UpdateProfileNotes(UUID target, string notes)
         {
-            if (Client.Network.CurrentSim.Caps.CapabilityURI(AGENT_PROFILE_CAP) != null)
+            if (Client?.Network?.CurrentSim?.Caps?.CapabilityURI(AGENT_PROFILE_CAP) != null)
             {
                 _ = UpdateProfileNotesHttp(target, notes);
             }
@@ -1999,6 +2003,8 @@ namespace OpenMetaverse
         {
             var payload = new OSDMap { ["notes"] = notes };
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 if (Client?.Network?.CurrentSim?.Caps == null)
@@ -2022,25 +2028,28 @@ namespace OpenMetaverse
                         if (error != null)
                         {
                             Logger.Warn($"AgentProfile notes update failed: {error.Message}", Client);
+                            return;
                         }
 
-                        if (response != null && response.IsSuccessStatusCode)
+                        if (response == null)
                         {
-                            Logger.Debug("AgentProfile notes update succeeded.", Client);
+                            Logger.Warn("AgentProfile notes update failed: no response from server.", Client);
+                            return;
                         }
-                        else
+
+                        if (!response.IsSuccessStatusCode)
                         {
-                            Logger.Warn($"AgentProfile notes update returned non-success status: {response?.StatusCode}", Client);
+                            Logger.Warn($"AgentProfile notes update returned non-success status: {response.StatusCode}", Client);
+                            return;
                         }
+
+                        Logger.Debug("AgentProfile notes update succeeded.", Client);
                     }).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
-            {
-                Logger.Debug("UpdateProfileNotesHttp cancelled.", Client);
-            }
-            catch (Exception ex)
+            catch (Exception ex) when (!(ex is OperationCanceledException))
             {
                 Logger.Error("AgentProfile notes update failed", ex, Client);
+                throw;
             }
         }
 
@@ -2469,41 +2478,60 @@ namespace OpenMetaverse
         /// <param name="cancellationToken">Cancellation token for capability requests</param>
         public async Task GetAttachmentResources(AttachmentResourcesCallback callback, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
-                Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("AttachmentResources");
+                var cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("AttachmentResources");
                 if (cap == null)
                 {
                     Logger.Warn("AttachmentResources capability not available, cannot fetch attachment resources.", Client);
                     callback(false, null);
                     return;
                 }
-                await Client.HttpCapsClient.GetRequestAsync(cap, cancellationToken, 
-                    (response, data, error) =>
-                {
-                    if (error != null)
-                    {
-                        callback(false, null);
-                        return;
-                    }
-                    try
-                    {
-                        OSD result = OSDParser.Deserialize(data);
-                        AttachmentResourcesMessage info = AttachmentResourcesMessage.FromOSD(result);
-                        callback(true, info);
 
-                    }
-                    catch (Exception ex)
+                await Client.HttpCapsClient.GetRequestAsync(cap, cancellationToken,
+                    (response, data, error) =>
                     {
-                        Logger.Error("Failed fetching AttachmentResources", ex, Client);
-                        callback(false, null);
-                    }
-                }).ConfigureAwait(false);
+                        if (error != null)
+                        {
+                            callback(false, null);
+                            return;
+                        }
+
+                        if (response == null)
+                        {
+                            Logger.Warn("AttachmentResources request failed: no response.", Client);
+                            callback(false, null);
+                            return;
+                        }
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            Logger.Warn($"AttachmentResources request returned non-success status: {response.StatusCode}", Client);
+                            callback(false, null);
+                            return;
+                        }
+
+                        try
+                        {
+                            OSD result = OSDParser.Deserialize(data);
+                            AttachmentResourcesMessage info = AttachmentResourcesMessage.FromOSD(result);
+                            callback(true, info);
+
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error("Failed fetching AttachmentResources", ex, Client);
+                            callback(false, null);
+                        }
+                    }).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!(ex is OperationCanceledException))
             {
                 Logger.Error("Failed fetching AttachmentResources", ex, Client);
                 callback(false, null);
+                throw;
             }
         }
 
@@ -2525,7 +2553,9 @@ namespace OpenMetaverse
         /// </summary>
         public async Task SetDisplayNameAsync(string oldName, string newName, CancellationToken cancellationToken = default)
         {
-            if (Client.Network.CurrentSim == null || Client.Network.CurrentSim.Caps == null)
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (Client?.Network?.CurrentSim?.Caps == null)
             {
                 Logger.Warn("Not connected to simulator to set display name.", Client);
                 return;
@@ -2561,6 +2591,7 @@ namespace OpenMetaverse
 
         public async Task UpdateAgentLanguageAsync(string language, bool isPublic, CancellationToken cancellationToken = default)
          {
+             cancellationToken.ThrowIfCancellationRequested();
              try
              {
                  UpdateAgentLanguageMessage msg = new UpdateAgentLanguageMessage
@@ -2569,7 +2600,7 @@ namespace OpenMetaverse
                      LanguagePublic = isPublic
                  };
 
-                 Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentLanguage");
+                 Uri cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("UpdateAgentLanguage");
                  if (cap == null)
                  {
                      Logger.Warn("Could not retrieve 'UpdateAgentLanguage' capability.", Client);
@@ -2577,9 +2608,10 @@ namespace OpenMetaverse
                  }
                 await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken).ConfigureAwait(false);
          }
-         catch (Exception ex)
+         catch (Exception ex) when (!(ex is OperationCanceledException))
          {
              Logger.Error("Failed to update agent language", ex, Client);
+             throw;
          }
          }
 
@@ -2591,7 +2623,9 @@ namespace OpenMetaverse
         /// <param name="cancellationToken"></param>
         public async Task SetAgentAccessAsync(string access, AgentAccessCallback callback, CancellationToken cancellationToken = default)
          {
-             if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim.Caps == null) { return; }
+             if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim?.Caps == null) { return; }
+
+             cancellationToken.ThrowIfCancellationRequested();
 
              OSDMap payload = new OSDMap
              {
@@ -2604,21 +2638,42 @@ namespace OpenMetaverse
                  (response, data, error) =>
                  {
                      bool success = true;
-                     OSD result = OSDParser.Deserialize(data);
-                     if (error == null && result is OSDMap osdMap)
-                     {
-                         var map = osdMap["access_prefs"];
-                         AgentAccess = ((OSDMap)map)["max"];
-                         Logger.Info($"Max maturity access set to {AgentAccess}", Client);
-                     }
-                     else if (error == null)
-                     {
-                         Logger.Info($"Max maturity unchanged at {AgentAccess}", Client);
-                     }
-                     else
+
+                     if (error != null)
                      {
                          Logger.Warn("Failed setting max maturity access.", Client);
                          success = false;
+                     }
+                     else if (response == null)
+                     {
+                         Logger.Warn("UpdateAgentInformation returned no response.", Client);
+                         success = false;
+                     }
+                     else if (!response.IsSuccessStatusCode)
+                     {
+                         Logger.Warn($"UpdateAgentInformation returned non-success status: {response.StatusCode}", Client);
+                         success = false;
+                     }
+                     else
+                     {
+                         try
+                         {
+                             OSD result = OSDParser.Deserialize(data);
+                             if (result is OSDMap osdMap && osdMap.TryGetValue("access_prefs", out var mapObj) && mapObj is OSDMap accessMap && accessMap.TryGetValue("max", out var maxVal))
+                             {
+                                 AgentAccess = maxVal;
+                                 Logger.Info($"Max maturity access set to {AgentAccess}", Client);
+                             }
+                             else
+                             {
+                                 Logger.Info($"Max maturity unchanged at {AgentAccess}", Client);
+                             }
+                         }
+                         catch (Exception ex)
+                         {
+                             Logger.Warn($"Failed to parse UpdateAgentInformation response: {ex.Message}", Client);
+                             success = false;
+                         }
                      }
 
                      if (callback != null)
@@ -2642,7 +2697,9 @@ namespace OpenMetaverse
 
         public async Task SetHoverHeightAsync(double hoverHeight, CancellationToken cancellationToken = default)
          {
-             if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim.Caps == null) { return; }
+             if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim?.Caps == null) { return; }
+
+             cancellationToken.ThrowIfCancellationRequested();
 
             var postData = new OSDMap { ["hover_height"] = hoverHeight };
 
@@ -2652,13 +2709,36 @@ namespace OpenMetaverse
             await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, postData, cancellationToken,
                  (response, data, error) =>
              {
-                 OSD result = OSDParser.Deserialize(data);
+                 if (error != null)
+                 {
+                     Logger.Warn($"Failed to set hover height: {error}.", Client);
+                     return;
+                 }
 
-                if (error != null)
-                {
-                    Logger.Warn($"Failed to set hover height: {error}.", Client);
-                }
-                else if (!(result is OSDMap resultMap))
+                 if (response == null)
+                 {
+                     Logger.Warn("Failed to set hover height: no response.", Client);
+                     return;
+                 }
+
+                 if (!response.IsSuccessStatusCode)
+                 {
+                     Logger.Warn($"Failed to set hover height: status {response.StatusCode}.", Client);
+                     return;
+                 }
+
+                 OSD result;
+                 try
+                 {
+                     result = OSDParser.Deserialize(data);
+                 }
+                 catch (Exception ex)
+                 {
+                     Logger.Warn($"Failed to parse hover height response: {ex.Message}", Client);
+                     return;
+                 }
+
+                if (!(result is OSDMap resultMap))
                 {
                     Logger.Warn($"Failed to set hover height: Expected {nameof(OSDMap)} response, but got {result.Type}", Client);
                 }
