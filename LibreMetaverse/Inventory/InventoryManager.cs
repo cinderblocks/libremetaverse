@@ -57,76 +57,6 @@ namespace OpenMetaverse
             public int Level;
         }
 
-        #region String Arrays
-
-        /// <summary>Partial mapping of FolderTypes to folder names</summary>
-        private static readonly string[] _NewFolderNames = new string[]
-        {
-            "Textures",         //  0
-            "Sounds",           //  1
-            "Calling Cards",    //  2
-            "Landmarks",        //  3
-            string.Empty,       //  4
-            "Clothing",         //  5
-            "Objects",          //  6
-            "Notecards",        //  7
-            "My Inventory",     //  8
-            string.Empty,       //  9
-            "Scripts",          // 10
-            string.Empty,       // 11
-            string.Empty,       // 12
-            "Body Parts",       // 13
-            "Trash",            // 14
-            "Photo Album",      // 15
-            "Lost And Found",   // 16
-            string.Empty,       // 17
-            string.Empty,       // 18
-            string.Empty,       // 19
-            "Animations",       // 20
-            "Gestures",         // 21
-            string.Empty,       // 22
-            "Favorites",        // 23
-            string.Empty,       // 24
-            string.Empty,       // 25
-            "New Folder",       // 26
-            "New Folder",       // 27
-            "New Folder",       // 28
-            "New Folder",       // 29
-            "New Folder",       // 30
-            "New Folder",       // 31
-            "New Folder",       // 32
-            "New Folder",       // 33
-            "New Folder",       // 34
-            "New Folder",       // 35
-            "New Folder",       // 36
-            "New Folder",       // 37
-            "New Folder",       // 38
-            "New Folder",       // 39
-            "New Folder",       // 40
-            "New Folder",       // 41
-            "New Folder",       // 42
-            "New Folder",       // 43
-            "New Folder",       // 44
-            "New Folder",       // 45
-            "Current Outfit",   // 46
-            "New Outfit",       // 47
-            "My Outfits",       // 48
-            "Meshes",           // 49
-            "Received Items",   // 50
-            "Merchant Outbox",  // 51
-            "Basic Root",       // 52
-            "Marketplace Listings",   // 53
-            "New Stock",      // 54
-            "Marketplace Version", // 55
-            "Settings",         // 56
-            "Material",         // 57
-            "Animation Overrides", //58
-            "New Folder",       // 59
-            "RLV",              // 60
-        };
-
-        #endregion String Arrays
-
         [NonSerialized]
         private readonly GridClient Client;
         [NonSerialized]
@@ -1528,7 +1458,7 @@ namespace OpenMetaverse
         {
             // Try to locate the Lost and Found system folder in local store so we can update UI after successful server-side empty
             var folderKey = UUID.Zero;
-            if (_Store != null && _Store.RootFolder != null)
+            if (_Store?.RootFolder != null)
             {
                 try
                 {
@@ -1586,7 +1516,7 @@ namespace OpenMetaverse
         {
             // Try to locate the Trash system folder in local store so we can update UI after successful server-side empty
             var folderKey = UUID.Zero;
-            if (_Store != null && _Store.RootFolder != null)
+            if (_Store?.RootFolder != null)
             {
                 try
                 {
@@ -1769,23 +1699,41 @@ namespace OpenMetaverse
         /// of strange problems</remarks>
         public UUID CreateFolder(UUID parentID, string name, FolderType preferredType)
         {
+            // If requesting a special preferred-type folder (e.g. Trash, LostAndFound, Current Outfit, etc.)
+            // check the local store for an existing folder with the same preferred type and return it
+            // instead of creating a duplicate.
+            if (preferredType != FolderType.None)
+            {
+                try
+                {
+                    if (_Store?.RootFolder != null)
+                    {
+                        using (var upg = _storeLock.UpgradeableLock())
+                        {
+                            var rootContents = _Store.GetContents(_Store.RootFolder.UUID);
+                            foreach (var item in rootContents)
+                            {
+                                if (item is InventoryFolder folder && folder.PreferredType == preferredType && folder.OwnerID == Client.Self.AgentID)
+                                {
+                                    // Found an existing system folder of the requested type, return its UUID
+                                    return folder.UUID;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Debug($"Error while checking for existing folder of type {preferredType}: {ex.Message}", ex, Client);
+                }
+            }
+
             var id = UUID.Random();
 
             // Assign a folder name if one is not already set
             if (string.IsNullOrEmpty(name))
             {
-                if (preferredType >= FolderType.Texture && preferredType <= FolderType.MarkplaceStock)
-                {
-                    name = _NewFolderNames[(int)preferredType];
-                }
-                else
-                {
-                    name = "New Folder";
-                }
-                if (name?.Length == 0)
-                {
-                    name = "New Folder";
-                }
+                name = preferredType.GetText() ?? "New Folder";
             }
 
             // Create the new folder locally

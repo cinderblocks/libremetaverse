@@ -143,65 +143,98 @@ namespace OpenMetaverse
         /// <summary>None folder type</summary>
         None = -1,
         /// <summary>Texture folder type</summary>
+        [EnumInfo(Text = "Textures")]
         Texture = 0,
         /// <summary>Sound folder type</summary>
+        [EnumInfo(Text = "Sounds")]
         Sound = 1,
         /// <summary>Calling card folder type</summary>
+        [EnumInfo(Text = "Calling Cards")]
         CallingCard = 2,
         /// <summary>Landmark folder type</summary>
+        [EnumInfo(Text = "Landmarks")]
         Landmark = 3,
         /// <summary>Clothing folder type</summary>
+        [EnumInfo(Text = "Clothing")]
         Clothing = 5,
         /// <summary>Object folder type</summary>
+        [EnumInfo(Text = "Objects")]
         Object = 6,
         /// <summary>Notecard folder type</summary>
+        [EnumInfo(Text = "Notecards")]
         Notecard = 7,
         /// <summary>The root folder type</summary>
+        [EnumInfo(Text = "My Inventory")]
         Root = 8,
         /// <summary>Non-conformant OpenSim root folder type</summary>
         [Obsolete("No longer used, please use FolderType.Root")]
         OldRoot = 9,
         /// <summary>LSLText folder</summary>
+        [EnumInfo(Text = "Scripts")]
         LSLText = 10,
         /// <summary>Bodyparts folder</summary>
+        [EnumInfo(Text = "Body Parts")]
         BodyPart = 13,
         /// <summary>Trash folder</summary>
+        [EnumInfo(Text = "Trash")]
         Trash = 14,
         /// <summary>Snapshot folder</summary>
+        [EnumInfo(Text = "Photo Album")]
         Snapshot = 15,
         /// <summary>Lost And Found folder</summary>
+        [EnumInfo(Text = "Lost And Found")]
         LostAndFound = 16,
         /// <summary>Animation folder</summary>
+        [EnumInfo(Text = "Animations")]
         Animation = 20,
         /// <summary>Gesture folder</summary>
+        [EnumInfo(Text = "Gestures")]
         Gesture = 21,
         /// <summary>Favorites folder</summary>
+        [EnumInfo(Text = "Favorites")]
         Favorites = 23,
         /// <summary>Ensemble beginning range</summary>
         EnsembleStart = 26,
         /// <summary>Ensemble ending range</summary>
         EnsembleEnd= 45,
         /// <summary>Current outfit folder</summary>
+        [EnumInfo(Text = "Current Outfit")]
         CurrentOutfit = 46,
         /// <summary>Outfit folder</summary>
+        [EnumInfo(Text = "New Outfit")]
         Outfit = 47,
         /// <summary>My outfits folder</summary>
+        [EnumInfo(Text = "My Outfits")]
         MyOutfits = 48,
         /// <summary>Mesh folder</summary>
+        [EnumInfo(Text = "Meshes")]
         Mesh = 49,
         /// <summary>Marketplace direct delivery inbox ("Received Items")</summary>
+        [EnumInfo(Text = "Received Items")]
         Inbox = 50,
         /// <summary>Marketplace direct delivery outbox</summary>
+        [EnumInfo(Text = "Merchant Outbox")]
         Outbox = 51,
         /// <summary>Basic root folder</summary>
+        [EnumInfo(Text = "Basic Root")]
         BasicRoot = 52,
         /// <summary>Marketplace listings folder</summary>
+        [EnumInfo(Text = "Marketplace Listings")]
         MarketplaceListings = 53,
         /// <summary>Marketplace stock folder</summary>
-        MarkplaceStock = 54,
+        [EnumInfo(Text = "New Stock")]
+        MarketplaceStock = 54,
         /// <summary>Marketplace version. We *never* actually create folder of this type</summary>
+        [EnumInfo(Text = "Marketplace Version")]
         MarketplaceVersion = 55,
+        /// <summary>Settings folder</summary>
+        [EnumInfo(Text = "Settings")]
+        Settings = 56,
+        /// <summary>Material folder</summary>
+        [EnumInfo(Text = "Material")]
+        Material = 57,
         /// <summary>Hypergrid Suitcase folder</summary>
+        [EnumInfo(Text = "Suitcase")]
         Suitcase = 100
     }
 
@@ -344,5 +377,31 @@ namespace OpenMetaverse
         /// <summary>Invalid wearable asset</summary>
         [EnumInfo(Text = "Invalid")]
         Invalid = 255
+    }
+
+    /// <summary>
+    /// Helper extensions for EnumInfoAttribute
+    /// </summary>
+    public static class EnumInfoExtensions
+    {
+        /// <summary>
+        /// Returns the <see cref="EnumInfoAttribute.Text"/> value for the given enum value if present; otherwise returns empty string.
+        /// </summary>
+        public static string GetText(this Enum value)
+        {
+            if (value == null) { return string.Empty; }
+            var type = value.GetType();
+            var name = Enum.GetName(type, value);
+            if (name == null) { return string.Empty; }
+            var mem = type.GetMember(name);
+            if (mem.Length <= 0) { return string.Empty; }
+
+            var attrs = mem[0].GetCustomAttributes(typeof(EnumInfoAttribute), false);
+            if (attrs.Length > 0)
+            {
+                return ((EnumInfoAttribute)attrs[0]).Text ?? string.Empty;
+            }
+            return string.Empty;
+        }
     }
 }
