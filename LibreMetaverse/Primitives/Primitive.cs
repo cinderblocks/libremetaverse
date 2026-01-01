@@ -912,7 +912,7 @@ namespace OpenMetaverse
                 : Array.Empty<Primitive>();
         }
 
-#endregion Public Members
+        #endregion Public Members
 
         #region Properties
 
@@ -1072,6 +1072,7 @@ namespace OpenMetaverse
 
         public virtual OSD GetOSD()
         {
+            if (PrimData == null) PrimData = new ConstructionData();
             OSDMap path = new OSDMap(14);
             path["begin"] = OSD.FromReal(PrimData.PathBegin);
             path["curve"] = OSD.FromInteger((int)PrimData.PathCurve);
