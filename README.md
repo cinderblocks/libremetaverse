@@ -1,10 +1,8 @@
-```
 ▗▖   ▄ ▗▖    ▄▄▄ ▗▞▀▚▖▗▖  ▗▖▗▞▀▚▖   ■  ▗▞▀▜▌▄   ▄ ▗▞▀▚▖ ▄▄▄ ▄▄▄ ▗▞▀▚▖
 ▐▌   ▄ ▐▌   █    ▐▛▀▀▘▐▛▚▞▜▌▐▛▀▀▘▗▄▟▙▄▖▝▚▄▟▌█   █ ▐▛▀▀▘█   ▀▄▄  ▐▛▀▀▘
 ▐▌   █ ▐▛▀▚▖█    ▝▚▄▄▖▐▌  ▐▌▝▚▄▄▖  ▐▌        ▀▄▀  ▝▚▄▄▖█   ▄▄▄▀ ▝▚▄▄▖
 ▐▙▄▄▖█ ▐▙▄▞▘          ▐▌  ▐▌       ▐▌                                
                                    ▐▌                                
-```
 # LibreMetaverse
 
 LibreMetaverse is a fork of libOpenMetaverse which in turn was a fork of
@@ -14,6 +12,24 @@ compatibility with an eye to performance, multi-threading, and memory management
 
 The canonical source for LibreMetaverse can be found at:
 https://github.com/cinderblocks/libremetaverse
+
+## Quick Start
+
+### New to LibreMetaverse?
+
+Check out our example applications to learn the library:
+
+- **[SimpleBot](Programs/examples/SimpleBot/)** - Build an interactive bot that responds to IMs
+- **[PrimInspector](Programs/examples/PrimInspector/)** - Inspect 3D objects and their properties
+- **[InventoryExplorer](Programs/examples/InventoryExplorer/)** - Browse and export inventory data
+
+See all examples in [`Programs/examples/`](Programs/examples/) | [Examples README](Programs/examples/README.md)
+
+### Need Tools?
+
+- **[OSDInspector](Programs/tools/OSDInspector/)** - Inspect, validate, and convert OSD data files
+
+See all tools in [`Programs/tools/`](Programs/tools/) | [Tools README](Programs/tools/README.md)
 
 ## Requirements
 
@@ -147,7 +163,23 @@ dotnet test LibreMetaverse.Tests/LibreMetaverse.Tests.csproj -c Release
 
 ## Contributing
 
-- See the repository for contribution guidelines. Keep changes small and test builds on your target runtime.
+Want to contribute? Check out our [Contributing Guide](CONTRIBUTING.md)!
+
+We welcome:
+- 🐛 Bug fixes
+- ✨ New features
+- 📝 Documentation improvements
+- 🧪 Tests and examples
+- 🔧 Tools and utilities
+
+See the repository for contribution guidelines. Keep changes small and test builds on your target runtime.
+
+## Documentation
+
+- 📖 [Quick Reference Guide](QUICK_REFERENCE.md) - Code snippets for common tasks
+- 📁 [Examples](Programs/examples/README.md) - Sample applications
+- 🔧 [Tools](Programs/tools/README.md) - Utility programs
+- 🤝 [Contributing Guide](CONTRIBUTING.md) - How to contribute
 
 ---
 

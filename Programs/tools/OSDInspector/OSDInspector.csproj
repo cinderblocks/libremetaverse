@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>OSDInspector</AssemblyName>
+    <RootNamespace>OSDInspector</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
+    <ProjectReference Include="..\..\..\LibreMetaverse\LibreMetaverse.csproj" />
+  </ItemGroup>
+
+</Project>
