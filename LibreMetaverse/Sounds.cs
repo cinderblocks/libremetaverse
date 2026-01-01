@@ -37,7 +37,7 @@ namespace OpenMetaverse
     public static class Sounds
     {
         /// <summary></summary>
-        public static readonly UUID BELL_TING = new UUID(" ed124764-705d-d497-167a-182cd9fa2e6c");
+        public static readonly UUID BELL_TING = new UUID("ed124764-705d-d497-167a-182cd9fa2e6c");
 
         /// <summary></summary>
         public static readonly UUID CLICK = new UUID("4c8c3c77-de8d-bde2-b9b8-32635e0fd4a6");
