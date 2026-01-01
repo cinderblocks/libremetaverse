@@ -125,7 +125,10 @@ namespace OpenMetaverse.Imaging
             destinationData = new byte[sourceData.Length];
             for (var i = 0; i < sourceData.Length; i++)
             {
-                destinationData[i] = (byte)sourceData[i];
+                int v = sourceData[i];
+                if (v < 0) { v = 0; }
+                else if (v > 255) { v = 255; }
+                destinationData[i] = (byte)v;
             }
         }
 
@@ -185,8 +188,14 @@ namespace OpenMetaverse.Imaging
             Height = bitmap.Height;
             var pixelCount = Width * Height;
 
-            // Initialize arrays as necessary
-            // We'll inspect the bitmap's ColorType to determine byte order
+            // Access pixel buffer via pointer and respect RowBytes to handle padding
+            IntPtr basePtr = bitmap.GetPixels();
+            if (basePtr == IntPtr.Zero)
+                throw new NotSupportedException("Unable to access SKBitmap pixel buffer on this platform.");
+
+            int rowBytes = bitmap.RowBytes;
+            int bytesPerPixel = rowBytes / Math.Max(1, Width);
+
             switch (bitmap.ColorType)
             {
                 case SKColorType.Bgra8888:
@@ -199,15 +208,20 @@ namespace OpenMetaverse.Imaging
 
                     unsafe
                     {
-                        byte* pixel = (byte*)bitmap.GetPixels();
+                        byte* start = (byte*)basePtr;
 
-                        for (var i = 0; i < pixelCount; ++i)
+                        for (int y = 0; y < Height; y++)
                         {
-                            // BGRA order in memory
-                            Blue[i] = *pixel++;
-                            Green[i] = *pixel++;
-                            Red[i] = *pixel++;
-                            Alpha[i] = *pixel++;
+                            byte* row = start + y * rowBytes;
+                            for (int x = 0; x < Width; x++)
+                            {
+                                byte* p = row + x * bytesPerPixel;
+                                int i = y * Width + x;
+                                Blue[i] = p[0];
+                                Green[i] = p[1];
+                                Red[i] = p[2];
+                                Alpha[i] = p[3];
+                            }
                         }
                     }
                     break;
@@ -221,15 +235,20 @@ namespace OpenMetaverse.Imaging
 
                     unsafe
                     {
-                        byte* pixel = (byte*)bitmap.GetPixels();
+                        byte* start = (byte*)basePtr;
 
-                        for (var i = 0; i < pixelCount; ++i)
+                        for (int y = 0; y < Height; y++)
                         {
-                            // RGBA order in memory
-                            Red[i] = *pixel++;
-                            Green[i] = *pixel++;
-                            Blue[i] = *pixel++;
-                            Alpha[i] = *pixel++;
+                            byte* row = start + y * rowBytes;
+                            for (int x = 0; x < Width; x++)
+                            {
+                                byte* p = row + x * bytesPerPixel;
+                                int i = y * Width + x;
+                                Red[i] = p[0];
+                                Green[i] = p[1];
+                                Blue[i] = p[2];
+                                Alpha[i] = p[3];
+                            }
                         }
                     }
                     break;
@@ -240,11 +259,16 @@ namespace OpenMetaverse.Imaging
 
                     unsafe
                     {
-                        byte* pixel = (byte*)bitmap.GetPixels();
+                        byte* start = (byte*)basePtr;
 
-                        for (var i = 0; i < pixelCount; ++i)
+                        for (int y = 0; y < Height; y++)
                         {
-                            Red[i] = *pixel++;
+                            byte* row = start + y * rowBytes;
+                            for (int x = 0; x < Width; x++)
+                            {
+                                int i = y * Width + x;
+                                Red[i] = row[x * bytesPerPixel];
+                            }
                         }
                     }
                     break;
@@ -255,76 +279,98 @@ namespace OpenMetaverse.Imaging
 
                     unsafe
                     {
-                        byte* pixel = (byte*)bitmap.GetPixels();
+                        byte* start = (byte*)basePtr;
 
-                        for (var i = 0; i < pixelCount; ++i)
+                        for (int y = 0; y < Height; y++)
                         {
-                            Alpha[i] = *pixel++;
+                            byte* row = start + y * rowBytes;
+                            for (int x = 0; x < Width; x++)
+                            {
+                                int i = y * Width + x;
+                                Alpha[i] = row[x * bytesPerPixel];
+                            }
                         }
                     }
                     break;
 
                 default:
-                    // Fallback: try to handle common byte-per-pixel layouts by BytesPerPixel
-                    var bpp = bitmap.BytesPerPixel;
-                    switch (bpp)
+                    // Fallback: use bytesPerPixel and assume BGR(A) or Gray layout
+                    var bpp = bytesPerPixel;
+                    if (bpp == 4)
                     {
-                        case 4:
-                            Channels = ImageChannels.Alpha | ImageChannels.Color;
-                            Red = new byte[pixelCount];
-                            Green = new byte[pixelCount];
-                            Blue = new byte[pixelCount];
-                            Alpha = new byte[pixelCount];
+                        Channels = ImageChannels.Alpha | ImageChannels.Color;
+                        Red = new byte[pixelCount];
+                        Green = new byte[pixelCount];
+                        Blue = new byte[pixelCount];
+                        Alpha = new byte[pixelCount];
 
-                            unsafe
+                        unsafe
+                        {
+                            byte* start = (byte*)basePtr;
+
+                            for (int y = 0; y < Height; y++)
                             {
-                                byte* pixel = (byte*)bitmap.GetPixels();
-
-                                for (var i = 0; i < pixelCount; ++i)
+                                byte* row = start + y * rowBytes;
+                                for (int x = 0; x < Width; x++)
                                 {
-                                    // Assume BGRA as a safe default for little-endian platforms
-                                    Blue[i] = *pixel++;
-                                    Green[i] = *pixel++;
-                                    Red[i] = *pixel++;
-                                    Alpha[i] = *pixel++;
+                                    byte* p = row + x * bpp;
+                                    int i = y * Width + x;
+                                    Blue[i] = p[0];
+                                    Green[i] = p[1];
+                                    Red[i] = p[2];
+                                    Alpha[i] = p[3];
                                 }
                             }
-                            break;
-                        case 3:
-                            Channels = ImageChannels.Color;
-                            Red = new byte[pixelCount];
-                            Green = new byte[pixelCount];
-                            Blue = new byte[pixelCount];
+                        }
+                    }
+                    else if (bpp == 3)
+                    {
+                        Channels = ImageChannels.Color;
+                        Red = new byte[pixelCount];
+                        Green = new byte[pixelCount];
+                        Blue = new byte[pixelCount];
 
-                            unsafe
+                        unsafe
+                        {
+                            byte* start = (byte*)basePtr;
+
+                            for (int y = 0; y < Height; y++)
                             {
-                                byte* pixel = (byte*)bitmap.GetPixels();
-
-                                for (var i = 0; i < pixelCount; ++i)
+                                byte* row = start + y * rowBytes;
+                                for (int x = 0; x < Width; x++)
                                 {
-                                    // Assume BGR ordering
-                                    Blue[i] = *pixel++;
-                                    Green[i] = *pixel++;
-                                    Red[i] = *pixel++;
+                                    byte* p = row + x * bpp;
+                                    int i = y * Width + x;
+                                    Blue[i] = p[0];
+                                    Green[i] = p[1];
+                                    Red[i] = p[2];
                                 }
                             }
-                            break;
-                        case 1:
-                            Channels = ImageChannels.Gray;
-                            Red = new byte[pixelCount];
+                        }
+                    }
+                    else if (bpp == 1)
+                    {
+                        Channels = ImageChannels.Gray;
+                        Red = new byte[pixelCount];
 
-                            unsafe
+                        unsafe
+                        {
+                            byte* start = (byte*)basePtr;
+
+                            for (int y = 0; y < Height; y++)
                             {
-                                byte* pixel = (byte*)bitmap.GetPixels();
-
-                                for (var i = 0; i < pixelCount; ++i)
+                                byte* row = start + y * rowBytes;
+                                for (int x = 0; x < Width; x++)
                                 {
-                                    Red[i] = *pixel++;
+                                    int i = y * Width + x;
+                                    Red[i] = row[x];
                                 }
                             }
-                            break;
-                        default:
-                            throw new NotSupportedException($"Pixel format {bitmap.ColorType} (bpp={bpp}) is not supported.");
+                        }
+                    }
+                    else
+                    {
+                        throw new NotSupportedException($"Pixel format {bitmap.ColorType} (bytesPerPixel={bpp}) is not supported.");
                     }
                     break;
             }
@@ -405,11 +451,15 @@ namespace OpenMetaverse.Imaging
             
             for (int y = 0; y < height; y++)
             {
-                int srcY = (y * Height) / height; // compute source row
+                int srcY = (y * Height) / Math.Max(1, height); // compute source row
                 for (int x = 0; x < width; x++)
                 {
-                    int srcX = (x * Width) / width; // compute source column
+                    int srcX = (x * Width) / Math.Max(1, width); // compute source column
                     int si = srcY * Width + srcX;
+                    // bounds guard
+                    if (si < 0) si = 0;
+                    else if (si >= Width * Height) si = Width * Height - 1;
+
                     if (Red != null) red[di] = Red[si];
                     if (Green != null) green[di] = Green[si];
                     if (Blue != null) blue[di] = Blue[si];
