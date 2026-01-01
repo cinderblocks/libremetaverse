@@ -198,8 +198,37 @@ namespace OpenMetaverse.Imaging
 
             switch (bitmap.ColorType)
             {
+                case SKColorType.Rgb565:
+                    // 16-bit RGB 5-6-5
+                    Channels = ImageChannels.Color;
+                    Red = new byte[pixelCount];
+                    Green = new byte[pixelCount];
+                    Blue = new byte[pixelCount];
+
+                    unsafe
+                    {
+                        byte* start = (byte*)basePtr;
+
+                        for (int y = 0; y < Height; y++)
+                        {
+                            byte* row = start + y * rowBytes;
+                            for (int x = 0; x < Width; x++)
+                            {
+                                byte* p = row + x * 2;
+                                int i = y * Width + x;
+                                ushort v = (ushort)(p[0] | (p[1] << 8));
+                                int r5 = (v >> 11) & 0x1F;
+                                int g6 = (v >> 5) & 0x3F;
+                                int b5 = v & 0x1F;
+                                Red[i] = (byte)((r5 * 255 + 15) / 31);
+                                Green[i] = (byte)((g6 * 255 + 31) / 63);
+                                Blue[i] = (byte)((b5 * 255 + 15) / 31);
+                            }
+                        }
+                    }
+                    break;
+
                 case SKColorType.Bgra8888:
-                case SKColorType.Bgra1010102:
                     Channels = ImageChannels.Alpha | ImageChannels.Color;
                     Red = new byte[pixelCount];
                     Green = new byte[pixelCount];
@@ -217,6 +246,8 @@ namespace OpenMetaverse.Imaging
                             {
                                 byte* p = row + x * bytesPerPixel;
                                 int i = y * Width + x;
+                                // For 8-bit BGRA layout this maps directly. For 10-bit packed formats
+                                // the 1010102 formats are handled in the combined 1010102 case below.
                                 Blue[i] = p[0];
                                 Green[i] = p[1];
                                 Red[i] = p[2];
@@ -248,6 +279,57 @@ namespace OpenMetaverse.Imaging
                                 Green[i] = p[1];
                                 Blue[i] = p[2];
                                 Alpha[i] = p[3];
+                            }
+                        }
+                    }
+                    break;
+
+                case SKColorType.Rgba1010102:
+                case SKColorType.Bgra1010102:
+                    // 10-bit per channel formats (packed into 4 bytes). Handle both Rgba1010102 and Bgra1010102
+                    Channels = ImageChannels.Alpha | ImageChannels.Color;
+                    Red = new byte[pixelCount];
+                    Green = new byte[pixelCount];
+                    Blue = new byte[pixelCount];
+                    Alpha = new byte[pixelCount];
+
+                    unsafe
+                    {
+                        byte* start = (byte*)basePtr;
+
+                        bool isRgbaOrder = bitmap.ColorType == SKColorType.Rgba1010102;
+
+                        for (int y = 0; y < Height; y++)
+                        {
+                            byte* row = start + y * rowBytes;
+                            for (int x = 0; x < Width; x++)
+                            {
+                                byte* p = row + x * 4;
+                                int i = y * Width + x;
+                                uint v = (uint)(p[0] | (p[1] << 8) | (p[2] << 16) | (p[3] << 24));
+
+                                if (isRgbaOrder)
+                                {
+                                    int r10 = (int)(v & 0x3FF);
+                                    int g10 = (int)((v >> 10) & 0x3FF);
+                                    int b10 = (int)((v >> 20) & 0x3FF);
+                                    int a2 = (int)((v >> 30) & 0x3);
+                                    Red[i] = (byte)((r10 * 255 + 511) / 1023);
+                                    Green[i] = (byte)((g10 * 255 + 511) / 1023);
+                                    Blue[i] = (byte)((b10 * 255 + 511) / 1023);
+                                    Alpha[i] = (byte)(a2 * 85); // map 0..3 -> 0,85,170,255
+                                }
+                                else
+                                {
+                                    int b10 = (int)(v & 0x3FF);
+                                    int g10 = (int)((v >> 10) & 0x3FF);
+                                    int r10 = (int)((v >> 20) & 0x3FF);
+                                    int a2 = (int)((v >> 30) & 0x3);
+                                    Red[i] = (byte)((r10 * 255 + 511) / 1023);
+                                    Green[i] = (byte)((g10 * 255 + 511) / 1023);
+                                    Blue[i] = (byte)((b10 * 255 + 511) / 1023);
+                                    Alpha[i] = (byte)(a2 * 85);
+                                }
                             }
                         }
                     }
