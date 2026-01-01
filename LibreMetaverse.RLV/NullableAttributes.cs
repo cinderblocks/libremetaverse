@@ -161,7 +161,7 @@ namespace System.Diagnostics.CodeAnalysis
         /// </param>
         public MemberNotNullAttribute(string member)
         {
-            Members = [member];
+            Members = new[] { member };
         }
 
         /// <summary>Initializes the attribute with the list of field and property members.</summary>
@@ -196,7 +196,7 @@ namespace System.Diagnostics.CodeAnalysis
         public MemberNotNullWhenAttribute(bool returnValue, string member)
         {
             ReturnValue = returnValue;
-            Members = [member];
+            Members = new[] { member };
         }
 
         /// <summary>Initializes the attribute with the specified return value condition and list of field and property members.</summary>
