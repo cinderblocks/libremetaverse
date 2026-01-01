@@ -28,6 +28,7 @@
 using System;
 using CoreJ2K.Util;
 using SkiaSharp;
+using System.Runtime.InteropServices;
 
 namespace OpenMetaverse.Imaging
 {
@@ -418,7 +419,8 @@ namespace OpenMetaverse.Imaging
             if ((Channels & ImageChannels.Alpha) != 0)
             {
                 if ((Channels & ImageChannels.Color) != 0)
-                    // RGBA
+                {
+                    // RGBA -> BGRA
                     for (var pos = 0; pos < Height * Width; pos++)
                     {
                         raw[pos * 4 + 0] = Blue[pos];
@@ -426,8 +428,10 @@ namespace OpenMetaverse.Imaging
                         raw[pos * 4 + 2] = Red[pos];
                         raw[pos * 4 + 3] = Alpha[pos];
                     }
+                }
                 else
-                    // Alpha only
+                {
+                    // Alpha only -> replicate to RGB, full alpha
                     for (var pos = 0; pos < Height * Width; pos++)
                     {
                         raw[pos * 4 + 0] = Alpha[pos];
@@ -435,10 +439,11 @@ namespace OpenMetaverse.Imaging
                         raw[pos * 4 + 2] = Alpha[pos];
                         raw[pos * 4 + 3] = byte.MaxValue;
                     }
+                }
             }
             else
             {
-                // RGB
+                // RGB -> BGRA
                 for (var pos = 0; pos < Height * Width; pos++)
                 {
                     raw[pos * 4 + 0] = Blue[pos];
@@ -447,11 +452,20 @@ namespace OpenMetaverse.Imaging
                     raw[pos * 4 + 3] = byte.MaxValue;
                 }
             }
-            using (var img = SKImage.FromEncodedData(raw))
+
+            var info = new SKImageInfo(Width, Height, SKColorType.Bgra8888, SKAlphaType.Unpremul);
+            var bmp = new SKBitmap(info);
+
+            IntPtr ptr = bmp.GetPixels();
+            if (ptr == IntPtr.Zero)
             {
-                var bmp = SKBitmap.FromImage(img);
-                return bmp;
+                throw new NotSupportedException("Unable to access SKBitmap pixel buffer on this platform.");
             }
+
+            // Copy raw BGRA bytes directly into bitmap buffer
+            Marshal.Copy(raw, 0, ptr, raw.Length);
+
+            return bmp;
         }
 
         [Obsolete("ExportTGA() is deprecated, please use Targa.Encode() instead.")]
