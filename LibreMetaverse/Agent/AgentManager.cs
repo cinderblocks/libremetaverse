@@ -665,15 +665,26 @@ namespace OpenMetaverse
             set => relativeRotation = value;
         }
 
-        // Helper to resolve the simulator context for packet handlers. Prefer the simulator supplied
-        // by PacketReceivedEventArgs (e.Simulator), then an explicit simulator parameter, and
-        // finally fall back to the current network simulator for compatibility.
+        /// <summary>
+        /// Helper to resolve the simulator context for packet handlers. Prefer the simulator supplied
+        /// by PacketReceivedEventArgs (e.Simulator), then an explicit simulator parameter, and
+        /// finally fall back to the current network simulator for compatibility.
+        /// </summary>
+        /// <param name="e">PacketReceivedEventArgs containing the simulator</param>
+        /// <param name="simulator">Explicit simulator parameter</param>
+        /// <returns>Resolved simulator or current simulator as fallback</returns>
         private Simulator ResolveSimulator(PacketReceivedEventArgs e = null, Simulator simulator = null)
         {
+            // First priority: simulator from PacketReceivedEventArgs
             if (e != null && e.Simulator != null)
                 return e.Simulator;
 
-            return simulator != null ? simulator : Client?.Network?.CurrentSim;
+            // Second priority: explicitly passed simulator
+            if (simulator != null)
+                return simulator;
+
+            // Last resort: current simulator
+            return Client?.Network?.CurrentSim;
         }
 
         /// <summary>Current position of the agent in the simulator</summary>

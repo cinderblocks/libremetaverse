@@ -43,6 +43,69 @@ namespace OpenMetaverse
     public partial class AgentManager
     {
         /// <summary>
+        /// Resolve the correct simulator for a CAPS/EventQueue message by examining message data.
+        /// Attempts to match by region handle or IP/port from the message.
+        /// </summary>
+        /// <param name="msg">The CAPS message (EstablishAgentCommunication, TeleportFinish, CrossedRegion, etc.)</param>
+        /// <param name="fallbackSimulator">Fallback simulator if resolution fails</param>
+        /// <returns>Resolved simulator or fallback</returns>
+        private Simulator ResolveSimulatorFromMessage(object msg, Simulator fallbackSimulator)
+        {
+            if (msg == null)
+                return fallbackSimulator ?? Client?.Network?.CurrentSim;
+
+            // Try to extract region handle from common message types
+            ulong regionHandle = 0;
+            IPEndPoint endPoint = null;
+
+            // Check known message types that contain region information
+            switch (msg)
+            {
+                case TeleportFinishMessage tfm:
+                    regionHandle = tfm.RegionHandle;
+                    endPoint = new IPEndPoint(tfm.IP, tfm.Port);
+                    break;
+                case CrossedRegionMessage crm:
+                    regionHandle = crm.RegionHandle;
+                    endPoint = new IPEndPoint(crm.IP, crm.Port);
+                    break;
+                case EstablishAgentCommunicationMessage eacm:
+                    endPoint = new IPEndPoint(eacm.Address, eacm.Port);
+                    break;
+            }
+
+            // Try to find simulator by endpoint first (most specific)
+            if (endPoint != null)
+            {
+                var sim = Client?.Network?.FindSimulator(endPoint);
+                if (sim != null)
+                {
+                    Logger.Debug($"Resolved simulator by endpoint {endPoint}: {sim.Name}", Client);
+                    return sim;
+                }
+            }
+
+            // Try to find by region handle
+            if (regionHandle != 0)
+            {
+                var sim = Client?.Network?.FindSimulator(regionHandle);
+                if (sim != null)
+                {
+                    Logger.Debug($"Resolved simulator by handle {regionHandle}: {sim.Name}", Client);
+                    return sim;
+                }
+            }
+
+            // If we have endpoint info but no simulator, log it
+            if (endPoint != null || regionHandle != 0)
+            {
+                Logger.Debug($"Could not resolve simulator for handle={regionHandle}, endpoint={endPoint}, using fallback", Client);
+            }
+
+            return fallbackSimulator ?? Client?.Network?.CurrentSim;
+        }
+
+        /// <summary>
         /// Take an incoming ImprovedInstantMessage packet, auto-parse, and if
         /// OnInstantMessage is defined call that with the appropriate arguments
         /// </summary>
@@ -51,7 +114,9 @@ namespace OpenMetaverse
         protected void InstantMessageHandler(object sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
-            Simulator simulator = e.Simulator;
+            
+            // Resolve the simulator for this IM
+            Simulator simulator = ResolveSimulator(e);
 
             if (packet.Type != PacketType.ImprovedInstantMessage) return;
 
@@ -212,16 +277,24 @@ namespace OpenMetaverse
         private void MovementCompleteHandler(object sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
-            Simulator simulator = e.Simulator;
+            
+            // Use ResolveSimulator to get the correct simulator for this movement
+            Simulator simulator = ResolveSimulator(e);
 
             AgentMovementCompletePacket movement = (AgentMovementCompletePacket)packet;
 
             relativePosition = movement.Data.Position;
             LastPositionUpdate = DateTime.UtcNow;
             Movement.Camera.LookDirection(movement.Data.LookAt);
-            simulator.Handle = movement.Data.RegionHandle;
-            simulator.SimVersion = Utils.BytesToString(movement.SimData.ChannelVersion);
-            simulator.AgentMovementComplete = true;
+            
+            if (simulator != null)
+            {
+                simulator.Handle = movement.Data.RegionHandle;
+                simulator.SimVersion = Utils.BytesToString(movement.SimData.ChannelVersion);
+                simulator.AgentMovementComplete = true;
+                
+                Logger.Debug($"Movement complete in simulator {simulator.Name}", Client);
+            }
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
@@ -514,12 +587,20 @@ namespace OpenMetaverse
 
             Logger.Info($"Crossed in to new region area, attempting to connect to {endPoint}", Client);
 
-            Simulator oldSim = Client.Network.CurrentSim;
+            // Use ResolveSimulator to get the old simulator context
+            Simulator oldSim = ResolveSimulator(e);
+            
             Simulator newSim = Client.Network.Connect(endPoint, crossing.RegionData.RegionHandle, true, seedCap);
 
             if (newSim != null)
             {
                 Logger.Info($"Finished crossing over in to region {newSim}", Client);
+                
+                // Mark old sim as no longer current
+                if (oldSim != null && oldSim != newSim)
+                {
+                    oldSim.AgentMovementComplete = false;
+                }
 
                 if (m_RegionCrossed != null)
                 {
@@ -822,19 +903,35 @@ namespace OpenMetaverse
             EstablishAgentCommunicationMessage msg = (EstablishAgentCommunicationMessage)message;
 
             if (!Client.Settings.MULTIPLE_SIMS) { return; }
+
+            // Resolve the correct simulator context using message data
+            Simulator contextSim = ResolveSimulatorFromMessage(msg, simulator);
+            
             IPEndPoint endPoint = new IPEndPoint(msg.Address, msg.Port);
             Simulator sim = Client.Network.FindSimulator(endPoint);
 
             if (sim == null)
             {
-                Logger.Error($"Got EstablishAgentCommunication for unknown sim {msg.Address}:{msg.Port}", Client);
-
-                // FIXME: Should we use this opportunity to connect to the simulator?
+                Logger.Info($"EstablishAgentCommunication for unknown sim {msg.Address}:{msg.Port}, attempting to connect", Client);
+                
+                // Attempt to connect to the new simulator
+                // Note: We don't have region handle in this message, so we need to handle that gracefully
+                // The sim will get the handle when it connects
+                sim = Client.Network.Connect(endPoint, 0, false, msg.SeedCapability, 
+                    Simulator.DefaultRegionSizeX, Simulator.DefaultRegionSizeY);
+                
+                if (sim == null)
+                {
+                    Logger.Error($"Failed to connect to new sim {msg.Address}:{msg.Port}", Client);
+                }
+                else
+                {
+                    Logger.Info($"Successfully connected to new sim {sim}", Client);
+                }
             }
             else
             {
-                Logger.Info($"Got EstablishAgentCommunication for {sim}", Client);
-
+                Logger.Info($"Got EstablishAgentCommunication for {sim}, updating seed capability", Client);
                 sim.SetSeedCaps(msg.SeedCapability);
             }
         }
@@ -849,6 +946,9 @@ namespace OpenMetaverse
         {
             TeleportFailedMessage msg = (TeleportFailedMessage)message;
 
+            // Resolve the simulator context
+            Simulator resolvedSim = ResolveSimulatorFromMessage(msg, simulator);
+
             TeleportFailedPacket failedPacket = new TeleportFailedPacket
             {
                 Info =
@@ -858,7 +958,7 @@ namespace OpenMetaverse
                 }
             };
 
-            TeleportHandler(this, new PacketReceivedEventArgs(failedPacket, simulator));
+            TeleportHandler(this, new PacketReceivedEventArgs(failedPacket, resolvedSim));
         }
 
         /// <summary>
@@ -870,6 +970,9 @@ namespace OpenMetaverse
         private void TeleportFinishEventHandler(string capsKey, IMessage message, Simulator simulator)
         {
             TeleportFinishMessage msg = (TeleportFinishMessage)message;
+            
+            // Resolve the correct simulator for this teleport finish event
+            Simulator resolvedSim = ResolveSimulatorFromMessage(msg, simulator);
 
             TeleportFinishPacket p = new TeleportFinishPacket
             {
@@ -886,8 +989,8 @@ namespace OpenMetaverse
                 }
             };
 
-            // pass the packet onto the teleport handler
-            TeleportHandler(this, new PacketReceivedEventArgs(p, simulator));
+            // Pass the resolved simulator to the teleport handler
+            TeleportHandler(this, new PacketReceivedEventArgs(p, resolvedSim));
         }
 
         private void Network_OnLoginResponse(bool loginSuccess, bool redirect, string message, string reason,
@@ -937,16 +1040,23 @@ namespace OpenMetaverse
 
             Logger.Info($"Crossed in to new region area, attempting to connect to {endPoint}", Client);
 
-            // Resolve the simulator context for this event. Use the simulator parameter as the
-            // originating (old) simulator.
-            Simulator oldSim = ResolveSimulator(null, simulator);
+            // Resolve the simulator context - the old simulator from which we're crossing
+            Simulator oldSim = ResolveSimulatorFromMessage(crossed, simulator);
+            
+            // Connect to the new simulator
             Simulator newSim = Client.Network.Connect(endPoint, crossed.RegionHandle, true, crossed.SeedCapability,
                         crossed.RegionSizeX, crossed.RegionSizeY);
 
             if (newSim != null)
             {
                 Logger.Info($"Finished crossing over in to region {newSim}", Client);
-                oldSim.AgentMovementComplete = false; // We're no longer there
+                
+                // Mark old sim as no longer current
+                if (oldSim != null && oldSim != newSim)
+                {
+                    oldSim.AgentMovementComplete = false;
+                }
+                
                 if (m_RegionCrossed != null)
                 {
                     OnRegionCrossed(new RegionCrossedEventArgs(oldSim, newSim));
