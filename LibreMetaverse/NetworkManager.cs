@@ -1365,7 +1365,7 @@ namespace OpenMetaverse
 
         protected void EnableSimulatorHandler(string capsKey, IMessage message, Simulator simulator)
         {
-            if (!Client.Settings.MULTIPLE_SIMS) return;
+            if (!Client.Settings.MULTIPLE_SIMS) { return; }
 
             EnableSimulatorMessage msg = (EnableSimulatorMessage)message;
 
@@ -1377,7 +1377,7 @@ namespace OpenMetaverse
 
                 IPEndPoint endPoint = new IPEndPoint(ip, port);
 
-                if (FindSimulator(endPoint) != null) return;
+                if (FindSimulator(endPoint) != null) { continue; }
 
                 if (Connect(ip, port, handle, false, null, t.RegionSizeX, t.RegionSizeY) == null)
                 {
