@@ -1001,6 +1001,7 @@ namespace OpenMetaverse
             MediaURL = string.Empty;
             // Default scale to 1,1,1
             Scale = Vector3.One;
+            PrimData = new ConstructionData();
         }
 
         public Primitive(Primitive prim)
