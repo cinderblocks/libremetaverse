@@ -1,6 +1,6 @@
 /**
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2019-2025, Sjofn LLC
+ * Copyright (c) 2019-2026, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -812,6 +812,9 @@ namespace OpenMetaverse
             Client = client;
 
             Movement = new AgentMovement(Client);
+            
+            // Initialize region crossing state machine
+            InitializeCrossingStateMachine();
 
             Client.Network.Disconnected += Network_OnDisconnected;
 
@@ -1969,6 +1972,15 @@ namespace OpenMetaverse
                     // Clear multi-sim tracking data
                     try { _simulatorStates.Clear(); } catch { }
                     try { _childAgentStatus.Clear(); } catch { }
+                    
+                    // Clean up crossing state machine
+                    try 
+                    { 
+                        _crossingTimeoutTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+                        _crossingTimeoutTimer?.Dispose();
+                        _crossingTimeoutTimer = null;
+                    } 
+                    catch { }
                 }
                 catch (Exception ex)
                 {

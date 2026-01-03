@@ -293,6 +293,9 @@ namespace OpenMetaverse
                 simulator.SimVersion = Utils.BytesToString(movement.SimData.ChannelVersion);
                 simulator.AgentMovementComplete = true;
                 
+                // Notify crossing state machine if we're crossing
+                NotifyMovementComplete(simulator);
+                
                 // Update per-simulator state
                 UpdateSimulatorState(simulator);
                 
@@ -605,28 +608,11 @@ namespace OpenMetaverse
             // Use ResolveSimulator to get the old simulator context
             Simulator oldSim = ResolveSimulator(e);
             
-            Simulator newSim = Client.Network.Connect(endPoint, crossing.RegionData.RegionHandle, true, seedCap);
-
-            if (newSim != null)
+            // Use the state machine to handle the crossing
+            if (!BeginRegionCrossing(oldSim, crossing.RegionData.RegionHandle, endPoint, seedCap, 
+                crossing.Info.Position, crossing.Info.LookAt))
             {
-                Logger.Info($"Finished crossing over in to region {newSim}", Client);
-                
-                // Mark old sim as no longer current
-                if (oldSim != null && oldSim != newSim)
-                {
-                    oldSim.AgentMovementComplete = false;
-                }
-
-                if (m_RegionCrossed != null)
-                {
-                    OnRegionCrossed(new RegionCrossedEventArgs(oldSim, newSim));
-                }
-            }
-            else
-            {
-                // The old simulator will (poorly) handle our movement still, so the connection isn't
-                // completely shot yet
-                Logger.Warn($"Failed to connect to new region {endPoint} after crossing over", Client);
+                Logger.Warn($"Failed to begin region crossing to {endPoint}", Client);
             }
         }
 
@@ -1058,30 +1044,11 @@ namespace OpenMetaverse
             // Resolve the simulator context - the old simulator from which we're crossing
             Simulator oldSim = ResolveSimulatorFromMessage(crossed, simulator);
             
-            // Connect to the new simulator
-            Simulator newSim = Client.Network.Connect(endPoint, crossed.RegionHandle, true, crossed.SeedCapability,
-                        crossed.RegionSizeX, crossed.RegionSizeY);
-
-            if (newSim != null)
+            // Use the state machine to handle the crossing
+            if (!BeginRegionCrossing(oldSim, crossed.RegionHandle, endPoint, crossed.SeedCapability,
+                crossed.Position, crossed.LookAt))
             {
-                Logger.Info($"Finished crossing over in to region {newSim}", Client);
-                
-                // Mark old sim as no longer current
-                if (oldSim != null && oldSim != newSim)
-                {
-                    oldSim.AgentMovementComplete = false;
-                }
-                
-                if (m_RegionCrossed != null)
-                {
-                    OnRegionCrossed(new RegionCrossedEventArgs(oldSim, newSim));
-                }
-            }
-            else
-            {
-                // The old simulator will (poorly) handle our movement still, so the connection isn't
-                // completely shot yet
-                Logger.Warn($"Failed to connect to new region {endPoint} after crossing over", Client);
+                Logger.Warn($"Failed to begin region crossing to {endPoint}", Client);
             }
         }
 
