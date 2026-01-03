@@ -271,7 +271,7 @@ namespace TestClient
         {
             if (commandLine == null)
                 return;
-            string[] tokens = commandLine.Trim().Split(' ', '\t');
+            string[] tokens = CommandLineParser.Tokenize(commandLine.Trim());
             if (tokens.Length == 0)
                 return;
             
