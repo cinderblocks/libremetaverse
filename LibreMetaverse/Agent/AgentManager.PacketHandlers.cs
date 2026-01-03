@@ -293,6 +293,21 @@ namespace OpenMetaverse
                 simulator.SimVersion = Utils.BytesToString(movement.SimData.ChannelVersion);
                 simulator.AgentMovementComplete = true;
                 
+                // Update per-simulator state
+                UpdateSimulatorState(simulator);
+                
+                // Check if we're near borders and should connect to neighbors
+                CheckAndConnectNeighbors();
+                
+                // Proactively establish child agents in neighboring regions
+                ProactiveChildAgentSetup();
+                
+                // Clean up stale object tracking in ObjectManager
+                Client.Objects.CleanupObjectTracking();
+                
+                // Clean up stale child agent tracking
+                CleanupChildAgentTracking();
+                
                 Logger.Debug($"Movement complete in simulator {simulator.Name}", Client);
             }
         }

@@ -621,6 +621,15 @@ namespace OpenMetaverse
                     update.AgentData.Flags = (byte)Flags;
 
                     Client.Network.SendPacket(update, simulator);
+                    
+                    // Check for crossing predictions when agent is moving
+                    if (Client.Settings.MULTIPLE_SIMS && Client.Self.velocity != Vector3.Zero)
+                    {
+                        Client.Self.PredictCrossing();
+                        
+                        // Proactively establish child agents near borders
+                        Client.Self.ProactiveChildAgentSetup();
+                    }
 
                     if (AutoResetControls) 
                     {

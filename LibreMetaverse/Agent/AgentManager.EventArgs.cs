@@ -343,4 +343,33 @@ namespace OpenMetaverse
             Status = status; Reason = reason; DisplayName = displayName;
         }
     }
+
+    /// <summary>
+    /// Direction an agent is crossing into a new region
+    /// </summary>
+    public enum BorderCrossingDirection
+    {
+        Unknown,
+        North,
+        South,
+        East,
+        West
+    }
+
+    /// <summary>
+    /// Event args for region crossing prediction
+    /// </summary>
+    public class RegionCrossingPredictionEventArgs : EventArgs
+    {
+        public Simulator CurrentSimulator { get; }
+        public BorderCrossingDirection Direction { get; }
+        public float TimeUntilCrossing { get; }
+
+        public RegionCrossingPredictionEventArgs(Simulator currentSim, BorderCrossingDirection direction, float timeUntilCrossing)
+        {
+            CurrentSimulator = currentSim;
+            Direction = direction;
+            TimeUntilCrossing = timeUntilCrossing;
+        }
+    }
 }

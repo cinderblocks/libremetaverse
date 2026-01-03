@@ -514,6 +514,127 @@ namespace OpenMetaverse
 
         private InterpolationService _interpolationService;
 
+        #region Multi-Simulator Object Tracking
+
+        /// <summary>
+        /// Tracks which simulators can see a particular object (for border objects)
+        /// </summary>
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<UUID, List<Simulator>> 
+            _objectSimulators = new System.Collections.Concurrent.ConcurrentDictionary<UUID, List<Simulator>>();
+
+        /// <summary>
+        /// Register that an object is visible in a particular simulator
+        /// </summary>
+        /// <param name="objectID">UUID of the object</param>
+        /// <param name="sim">Simulator where the object is visible</param>
+        public void TrackObjectInSimulator(UUID objectID, Simulator sim)
+        {
+            if (objectID == UUID.Zero || sim == null) return;
+
+            _objectSimulators.AddOrUpdate(objectID,
+                new List<Simulator> { sim },
+                (key, list) =>
+                {
+                    lock (list)
+                    {
+                        if (!list.Contains(sim))
+                        {
+                            list.Add(sim);
+                            Logger.Debug($"Object {objectID} now tracked in {sim.Name}", Client);
+                        }
+                    }
+                    return list;
+                });
+        }
+
+        /// <summary>
+        /// Remove an object from tracking in a specific simulator
+        /// </summary>
+        /// <param name="objectID">UUID of the object</param>
+        /// <param name="sim">Simulator to remove from</param>
+        public void UntrackObjectInSimulator(UUID objectID, Simulator sim)
+        {
+            if (_objectSimulators.TryGetValue(objectID, out var simList))
+            {
+                lock (simList)
+                {
+                    simList.Remove(sim);
+                    if (simList.Count == 0)
+                    {
+                        _objectSimulators.TryRemove(objectID, out _);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Get all simulators where an object is visible
+        /// </summary>
+        /// <param name="objectID">UUID of the object</param>
+        /// <returns>List of simulators, or empty list if not tracked</returns>
+        public List<Simulator> GetSimulatorsForObject(UUID objectID)
+        {
+            if (_objectSimulators.TryGetValue(objectID, out var simList))
+            {
+                lock (simList)
+                {
+                    return new List<Simulator>(simList);
+                }
+            }
+            return new List<Simulator>();
+        }
+
+        /// <summary>
+        /// Check if an object is near a region border (within threshold distance)
+        /// </summary>
+        /// <param name="position">Position of the object in region coordinates</param>
+        /// <param name="regionSizeX">Region size X</param>
+        /// <param name="regionSizeY">Region size Y</param>
+        /// <param name="threshold">Distance threshold to consider "near" border (default 32m)</param>
+        /// <returns>True if object is near any border</returns>
+        public bool IsNearBorder(Vector3 position, uint regionSizeX, uint regionSizeY, float threshold = 32f)
+        {
+            return position.X < threshold || 
+                   position.X > (regionSizeX - threshold) ||
+                   position.Y < threshold || 
+                   position.Y > (regionSizeY - threshold);
+        }
+
+        /// <summary>
+        /// Clean up object tracking for objects that are no longer relevant
+        /// </summary>
+        public void CleanupObjectTracking()
+        {
+            if (!Client.Settings.MULTIPLE_SIMS) { return; }
+
+            var connectedSims = new HashSet<Simulator>();
+            foreach (var sim in Client.Network.Simulators)
+            {
+                if (sim.Connected)
+                    connectedSims.Add(sim);
+            }
+
+            // Remove tracking for objects in disconnected simulators
+            foreach (var kvp in _objectSimulators.ToArray())
+            {
+                var objectID = kvp.Key;
+                var simList = kvp.Value;
+
+                lock (simList)
+                {
+                    simList.RemoveAll(s => !connectedSims.Contains(s));
+                    
+                    if (simList.Count == 0)
+                    {
+                        _objectSimulators.TryRemove(objectID, out _);
+                        Logger.Debug($"Removed tracking for object {objectID} (no connected sims)", Client);
+                    }
+                }
+            }
+        }
+
+        #endregion Multi-Simulator Object Tracking
+
         /// <summary>
         /// Construct a new instance of the ObjectManager class
         /// </summary>
@@ -562,6 +683,9 @@ namespace OpenMetaverse
                         try { Client.Network.UnregisterCallback(PacketType.ObjectAnimation, ObjectAnimationHandler); } catch { }
                         try { Client.Network.UnregisterEventCallback("ObjectPhysicsProperties", ObjectPhysicsPropertiesHandler); } catch { }
                     }
+
+                    // Clean up multi-sim object tracking
+                    try { _objectSimulators.Clear(); } catch { }
                 }
                 catch (Exception ex)
                 {
@@ -950,7 +1074,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Deselect a single object
         /// </summary>
-        /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>        
+        /// <param name="simulator">A reference to the <see cref="Simulator"/> object where the object resides</param>        
         /// <param name="localID">The Local ID of the object</param>
         public void DeselectObject(Simulator simulator, uint localID)
         {
@@ -1415,10 +1539,10 @@ namespace OpenMetaverse
                     AgentID = Client.Self.AgentID,
                     SessionID = Client.Self.SessionID
                 },
-                ObjectData = new OpenMetaverse.Packets.ObjectShapePacket.ObjectDataBlock[1]
+                ObjectData = new ObjectShapePacket.ObjectDataBlock[1]
             };
 
-            shape.ObjectData[0] = new OpenMetaverse.Packets.ObjectShapePacket.ObjectDataBlock
+            shape.ObjectData[0] = new ObjectShapePacket.ObjectDataBlock
             {
                 ObjectLocalID = localID,
                 PathScaleX = 100,
@@ -2481,10 +2605,10 @@ namespace OpenMetaverse
                     AgentID = Client.Self.AgentID,
                     SessionID = Client.Self.SessionID
                 },
-                ObjectData = new OpenMetaverse.Packets.ObjectShapePacket.ObjectDataBlock[1]
+                ObjectData = new ObjectShapePacket.ObjectDataBlock[1]
             };
 
-            shape.ObjectData[0] = new OpenMetaverse.Packets.ObjectShapePacket.ObjectDataBlock
+            shape.ObjectData[0] = new ObjectShapePacket.ObjectDataBlock
             {
                 ObjectLocalID = localID,
                 PathCurve = (byte)prim.PathCurve,

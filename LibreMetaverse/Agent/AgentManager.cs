@@ -556,6 +556,406 @@ namespace OpenMetaverse
         public LockingDictionary<string, MuteEntry> MuteList = new LockingDictionary<string, MuteEntry>();
         public LockingDictionary<UUID, UUID> ActiveGestures { get; } = new LockingDictionary<UUID, UUID>();
 
+        #region Multi-Simulator Support
+
+        /// <summary>Tracks agent state per simulator for multi-sim support</summary>
+        private class SimulatorAgentState
+        {
+            public Vector3 Position { get; set; }
+            public Quaternion Rotation { get; set; }
+            public uint LocalID { get; set; }
+            public bool IsPresent { get; set; }
+            public DateTime LastUpdate { get; set; }
+        }
+
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<Simulator, SimulatorAgentState> _simulatorStates 
+            = new System.Collections.Concurrent.ConcurrentDictionary<Simulator, SimulatorAgentState>();
+
+        /// <summary>The event subscribers. null if no subscribers</summary>
+        private EventHandler<RegionCrossingPredictionEventArgs> m_RegionCrossingPredicted;
+
+        /// <summary>Raises the RegionCrossingPredicted event</summary>
+        /// <param name="e">A RegionCrossingPredictionEventArgs object containing prediction data</param>
+        protected virtual void OnRegionCrossingPredicted(RegionCrossingPredictionEventArgs e)
+        {
+            EventHandler<RegionCrossingPredictionEventArgs> handler = m_RegionCrossingPredicted;
+            handler?.Invoke(this, e);
+        }
+
+        /// <summary>Thread sync lock object</summary>
+        private readonly object m_RegionCrossingPredictedLock = new object();
+
+        /// <summary>Raised when a region crossing is predicted based on agent movement</summary>
+        public event EventHandler<RegionCrossingPredictionEventArgs> RegionCrossingPredicted
+        {
+            add { lock (m_RegionCrossingPredictedLock) { m_RegionCrossingPredicted += value; } }
+            remove { lock (m_RegionCrossingPredictedLock) { m_RegionCrossingPredicted -= value; } }
+        }
+
+        /// <summary>
+        /// Predicts if agent will cross a region border soon based on velocity and position
+        /// </summary>
+        private void PredictCrossing()
+        {
+            if (!Client.Settings.MULTIPLE_SIMS) { return; }
+
+            var currentSim = Client.Network.CurrentSim;
+            if (currentSim == null || velocity == Vector3.Zero) { return; }
+
+            var pos = relativePosition;
+            var vel = velocity;
+
+            // Calculate time to each border
+            float timeToWest = vel.X < -0.1f ? -pos.X / vel.X : float.MaxValue;
+            float timeToEast = vel.X > 0.1f ? (currentSim.SizeX - pos.X) / vel.X : float.MaxValue;
+            float timeToSouth = vel.Y < -0.1f ? -pos.Y / vel.Y : float.MaxValue;
+            float timeToNorth = vel.Y > 0.1f ? (currentSim.SizeY - pos.Y) / vel.Y : float.MaxValue;
+
+            float minTime = Math.Min(Math.Min(timeToWest, timeToEast),
+                                     Math.Min(timeToSouth, timeToNorth));
+
+            // If crossing in next 3 seconds, notify
+            if (minTime < 3.0f && minTime > 0)
+            {
+                BorderCrossingDirection direction = BorderCrossingDirection.Unknown;
+                if (minTime == timeToWest) direction = BorderCrossingDirection.West;
+                else if (minTime == timeToEast) direction = BorderCrossingDirection.East;
+                else if (minTime == timeToSouth) direction = BorderCrossingDirection.South;
+                else if (minTime == timeToNorth) direction = BorderCrossingDirection.North;
+
+                Logger.Debug($"Crossing predicted in {minTime:F2}s towards {direction}", Client);
+                OnRegionCrossingPredicted(new RegionCrossingPredictionEventArgs(currentSim, direction, minTime));
+            }
+        }
+
+        /// <summary>
+        /// Proactively check and connect to neighbor simulators when near borders
+        /// </summary>
+        private void CheckAndConnectNeighbors()
+        {
+            if (!Client.Settings.MULTIPLE_SIMS) { return; }
+
+            var currentSim = Client.Network.CurrentSim;
+            if (currentSim == null) { return; }
+
+            var pos = relativePosition;
+            const float connectThreshold = 64f; // Within 64m of border
+
+            Utils.LongToUInts(currentSim.Handle, out uint x, out uint y);
+
+            // Check each border and attempt to connect to neighbors
+            if (pos.X < connectThreshold) // West border
+                TryConnectToNeighbor(x - 256, y);
+            if (pos.X > (currentSim.SizeX - connectThreshold)) // East
+                TryConnectToNeighbor(x + 256, y);
+            if (pos.Y < connectThreshold) // South
+                TryConnectToNeighbor(x, y - 256);
+            if (pos.Y > (currentSim.SizeY - connectThreshold)) // North
+                TryConnectToNeighbor(x, y + 256);
+        }
+
+        private void TryConnectToNeighbor(uint globalX, uint globalY)
+        {
+            ulong handle = Utils.UIntsToLong(globalX, globalY);
+
+            // Check if already connected
+            var existing = Client.Network.FindSimulator(handle);
+            if (existing != null)
+            {
+                return;
+            }
+
+            // The server will send EnableSimulator when it's ready
+            Logger.Debug($"Neighbor region at {globalX},{globalY} not yet connected, will connect when server sends EnableSimulator", Client);
+        }
+
+        /// <summary>
+        /// Updates per-simulator agent state
+        /// </summary>
+        private void UpdateSimulatorState(Simulator sim)
+        {
+            if (sim == null) return;
+
+            _simulatorStates.AddOrUpdate(sim,
+                new SimulatorAgentState
+                {
+                    Position = relativePosition,
+                    Rotation = relativeRotation,
+                    LocalID = localID,
+                    IsPresent = sim.AgentMovementComplete,
+                    LastUpdate = DateTime.UtcNow
+                },
+                (key, old) =>
+                {
+                    old.Position = relativePosition;
+                    old.Rotation = relativeRotation;
+                    old.LocalID = localID;
+                    old.IsPresent = sim.AgentMovementComplete;
+                    old.LastUpdate = DateTime.UtcNow;
+                    return old;
+                });
+        }
+
+        #region Proactive Child Agent Establishment
+
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<ulong, ChildAgentStatus> _childAgentStatus
+            = new System.Collections.Concurrent.ConcurrentDictionary<ulong, ChildAgentStatus>();
+
+        private class ChildAgentStatus
+        {
+            public ulong RegionHandle { get; set; }
+            public DateTime RequestTime { get; set; }
+            public bool Established { get; set; }
+            public BorderCrossingDirection Direction { get; set; }
+        }
+
+        /// <summary>
+        /// Proactively establish child agents in neighboring regions before crossing
+        /// </summary>
+        private void ProactiveChildAgentSetup()
+        {
+            if (!Client.Settings.MULTIPLE_SIMS) return;
+
+            var currentSim = Client.Network.CurrentSim;
+            if (currentSim == null || !currentSim.AgentMovementComplete) return;
+
+            var pos = relativePosition;
+            var vel = velocity;
+            const float setupThreshold = 128f; // Start setup at 128m from border
+
+            Utils.LongToUInts(currentSim.Handle, out uint x, out uint y);
+
+            // Prioritize based on movement direction and proximity
+            if (vel.X < -0.5f && pos.X < setupThreshold) // Moving west
+            {
+                EstablishChildAgent(x - 256, y, BorderCrossingDirection.West);
+            }
+            else if (vel.X > 0.5f && pos.X > (currentSim.SizeX - setupThreshold)) // Moving east
+            {
+                EstablishChildAgent(x + 256, y, BorderCrossingDirection.East);
+            }
+
+            if (vel.Y < -0.5f && pos.Y < setupThreshold) // Moving south
+            {
+                EstablishChildAgent(x, y - 256, BorderCrossingDirection.South);
+            }
+            else if (vel.Y > 0.5f && pos.Y > (currentSim.SizeY - setupThreshold)) // Moving north
+            {
+                EstablishChildAgent(x, y + 256, BorderCrossingDirection.North);
+            }
+
+            // Also establish child agents in all directions if very close to corner
+            if (IsNearCorner(pos, currentSim.SizeX, currentSim.SizeY, 64f))
+            {
+                EstablishChildAgentsInAllDirections(x, y);
+            }
+        }
+
+        private bool IsNearCorner(Vector3 position, uint sizeX, uint sizeY, float threshold)
+        {
+            bool nearWestOrEast = position.X < threshold || position.X > (sizeX - threshold);
+            bool nearSouthOrNorth = position.Y < threshold || position.Y > (sizeY - threshold);
+            return nearWestOrEast && nearSouthOrNorth;
+        }
+
+        private void EstablishChildAgentsInAllDirections(uint x, uint y)
+        {
+            // Establish in all 4 cardinal directions
+            EstablishChildAgent(x - 256, y, BorderCrossingDirection.West);
+            EstablishChildAgent(x + 256, y, BorderCrossingDirection.East);
+            EstablishChildAgent(x, y - 256, BorderCrossingDirection.South);
+            EstablishChildAgent(x, y + 256, BorderCrossingDirection.North);
+        }
+
+        private void EstablishChildAgent(uint globalX, uint globalY, BorderCrossingDirection direction)
+        {
+            ulong handle = Utils.UIntsToLong(globalX, globalY);
+
+            // Check if child agent already being established or exists
+            if (_childAgentStatus.TryGetValue(handle, out var status))
+            {
+                // Don't re-establish if recently requested (within 30 seconds)
+                if ((DateTime.UtcNow - status.RequestTime).TotalSeconds < 30)
+                {
+                    return;
+                }
+            }
+
+            // Check if already connected
+            var existing = Client.Network.FindSimulator(handle);
+            if (existing != null)
+            {
+                Logger.Debug($"Already connected to neighbor at {globalX},{globalY}", Client);
+                _childAgentStatus[handle] = new ChildAgentStatus
+                {
+                    RegionHandle = handle,
+                    RequestTime = DateTime.UtcNow,
+                    Established = true,
+                    Direction = direction
+                };
+                return;
+            }
+
+            Logger.Debug($"Requesting child agent establishment at {globalX},{globalY} (direction: {direction})", Client);
+
+            // Track this request
+            _childAgentStatus[handle] = new ChildAgentStatus
+            {
+                RegionHandle = handle,
+                RequestTime = DateTime.UtcNow,
+                Established = false,
+                Direction = direction
+            };
+        }
+
+        /// <summary>
+        /// Clean up child agent status tracking for regions we're no longer near
+        /// </summary>
+        private void CleanupChildAgentTracking()
+        {
+            if (!Client.Settings.MULTIPLE_SIMS) return;
+
+            var currentSim = Client.Network.CurrentSim;
+            if (currentSim == null) return;
+
+            var now = DateTime.UtcNow;
+            var staleThreshold = TimeSpan.FromMinutes(2);
+
+            // Remove stale tracking entries
+            foreach (var kvp in _childAgentStatus.ToArray())
+            {
+                if ((now - kvp.Value.RequestTime) > staleThreshold)
+                {
+                    _childAgentStatus.TryRemove(kvp.Key, out _);
+                }
+            }
+        }
+
+        #endregion Proactive Child Agent Establishment
+
+        #region Object Tracking Across Simulators
+
+        /// <summary>
+        /// Tracks which simulators can see a particular object (for border objects)
+        /// </summary>
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<UUID, System.Collections.Generic.List<Simulator>> 
+            _objectSimulators = new System.Collections.Concurrent.ConcurrentDictionary<UUID, System.Collections.Generic.List<Simulator>>();
+
+        /// <summary>
+        /// Register that an object is visible in a particular simulator
+        /// </summary>
+        /// <param name="objectID">UUID of the object</param>
+        /// <param name="sim">Simulator where the object is visible</param>
+        public void TrackObjectInSimulator(UUID objectID, Simulator sim)
+        {
+            if (objectID == UUID.Zero || sim == null) return;
+
+            _objectSimulators.AddOrUpdate(objectID,
+                new System.Collections.Generic.List<Simulator> { sim },
+                (key, list) =>
+                {
+                    lock (list)
+                    {
+                        if (!list.Contains(sim))
+                        {
+                            list.Add(sim);
+                            Logger.Debug($"Object {objectID} now tracked in {sim.Name}", Client);
+                        }
+                    }
+                    return list;
+                });
+        }
+
+        /// <summary>
+        /// Remove an object from tracking in a specific simulator
+        /// </summary>
+        /// <param name="objectID">UUID of the object</param>
+        /// <param name="sim">Simulator to remove from</param>
+        public void UntrackObjectInSimulator(UUID objectID, Simulator sim)
+        {
+            if (_objectSimulators.TryGetValue(objectID, out var simList))
+            {
+                lock (simList)
+                {
+                    simList.Remove(sim);
+                    if (simList.Count == 0)
+                    {
+                        _objectSimulators.TryRemove(objectID, out _);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Get all simulators where an object is visible
+        /// </summary>
+        /// <param name="objectID">UUID of the object</param>
+        /// <returns>List of simulators, or empty list if not tracked</returns>
+        public System.Collections.Generic.List<Simulator> GetSimulatorsForObject(UUID objectID)
+        {
+            if (_objectSimulators.TryGetValue(objectID, out var simList))
+            {
+                lock (simList)
+                {
+                    return new System.Collections.Generic.List<Simulator>(simList);
+                }
+            }
+            return new System.Collections.Generic.List<Simulator>();
+        }
+
+        /// <summary>
+        /// Check if an object is near a region border (within threshold distance)
+        /// </summary>
+        /// <param name="position">Position of the object in region coordinates</param>
+        /// <param name="regionSizeX">Region size X</param>
+        /// <param name="regionSizeY">Region size Y</param>
+        /// <param name="threshold">Distance threshold to consider "near" border (default 32m)</param>
+        /// <returns>True if object is near any border</returns>
+        public bool IsNearBorder(Vector3 position, uint regionSizeX, uint regionSizeY, float threshold = 32f)
+        {
+            return position.X < threshold || 
+                   position.X > (regionSizeX - threshold) ||
+                   position.Y < threshold || 
+                   position.Y > (regionSizeY - threshold);
+        }
+
+        /// <summary>
+        /// Clean up object tracking for objects that are no longer relevant
+        /// </summary>
+        private void CleanupObjectTracking()
+        {
+            if (!Client.Settings.MULTIPLE_SIMS) return;
+
+            var connectedSims = new System.Collections.Generic.HashSet<Simulator>();
+            foreach (var sim in Client.Network.Simulators)
+            {
+                if (sim.Connected)
+                    connectedSims.Add(sim);
+            }
+
+            // Remove tracking for objects in disconnected simulators
+            foreach (var kvp in _objectSimulators.ToArray())
+            {
+                var objectID = kvp.Key;
+                var simList = kvp.Value;
+
+                lock (simList)
+                {
+                    simList.RemoveAll(s => !connectedSims.Contains(s));
+                    
+                    if (simList.Count == 0)
+                    {
+                        _objectSimulators.TryRemove(objectID, out _);
+                        Logger.Debug($"Removed tracking for object {objectID} (no connected sims)", Client);
+                    }
+                }
+            }
+        }
+
+        #endregion Object Tracking Across Simulators
+
+        #endregion Multi-Simulator Support
+
         #region Properties
 
         /// <summary>Your (client) avatar's <see cref="UUID"/></summary>
@@ -869,7 +1269,7 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.ScriptControlChange, ScriptControlChangeHandler);
             // Camera Constraint (probably needs to move to AgentManagerCamera TODO:
             Client.Network.RegisterCallback(PacketType.CameraConstraint, CameraConstraintHandler);
-            Client.Network.RegisterCallback(PacketType.ScriptSensorReply, ScriptSensorReplyHandler);
+            Client.Network.RegisterCallback(PacketType.ScriptSensorReply, AvatarSitResponseHandler);
             Client.Network.RegisterCallback(PacketType.AvatarSitResponse, AvatarSitResponseHandler);
             // Process mute list update message
             Client.Network.RegisterCallback(PacketType.MuteListUpdate, MuteListUpdateHandler);
@@ -1821,7 +2221,7 @@ namespace OpenMetaverse
             if (targetID != AgentID)
             {
                 InstantMessage(Name, targetID, message, sessionID, InstantMessageDialog.RequestLure,
-                InstantMessageOnline.Online, SimPosition, UUID.Zero, Utils.EmptyBytes);
+                InstantMessageOnline.Offline, SimPosition, UUID.Zero, Utils.EmptyBytes);
             }
         }
 
@@ -2604,12 +3004,9 @@ namespace OpenMetaverse
                      LanguagePublic = isPublic
                  };
 
-                 Uri cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("UpdateAgentLanguage");
-                 if (cap == null)
-                 {
-                     Logger.Warn("Could not retrieve 'UpdateAgentLanguage' capability.", Client);
-                     return;
-                 }
+                 Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentLanguage");
+                 if (cap == null) { return; }
+
                  await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken).ConfigureAwait(false);
              }
              catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -2831,8 +3228,9 @@ namespace OpenMetaverse
                     // script control change messages, ie: when an in-world LSL script wants to take control of your agent.
                     try { Client.Network.UnregisterCallback(PacketType.ScriptControlChange, ScriptControlChangeHandler); } catch { }
                     try { Client.Network.UnregisterCallback(PacketType.CameraConstraint, CameraConstraintHandler); } catch { }
-                    try { Client.Network.UnregisterCallback(PacketType.ScriptSensorReply, ScriptSensorReplyHandler); } catch { }
+                    try { Client.Network.UnregisterCallback(PacketType.ScriptSensorReply, AvatarSitResponseHandler); } catch { }
                     try { Client.Network.UnregisterCallback(PacketType.AvatarSitResponse, AvatarSitResponseHandler); } catch { }
+                    // Process mute list update message
                     try { Client.Network.UnregisterCallback(PacketType.MuteListUpdate, MuteListUpdateHandler); } catch { }
 
                     // Clear local collections
@@ -2841,6 +3239,10 @@ namespace OpenMetaverse
                     try { ActiveGestures.Dictionary.Clear(); } catch { }
                     try { SignaledAnimations.Dictionary.Clear(); } catch { }
                     try { gestureCache.Clear(); } catch { }
+
+                    // Clear multi-sim tracking data
+                    try { _simulatorStates.Clear(); } catch { }
+                    try { _childAgentStatus.Clear(); } catch { }
                 }
                 catch (Exception ex)
                 {
