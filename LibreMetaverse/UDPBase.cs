@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006, Clutch, Inc.
+ * Copyright (c) 2026, Sjofn LLC.
  * Original Author: Jeff Cesnik
  * All rights reserved.
  *
@@ -30,6 +31,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.ObjectPool;
+using System.Collections.Concurrent;
 
 namespace OpenMetaverse
 {
@@ -52,12 +54,18 @@ namespace OpenMetaverse
         // the UDP socket
         private Socket udpSocket;
 
+        // SocketAsyncEventArgs used for receive
+        private readonly ConcurrentQueue<SocketAsyncEventArgs> _receiveEventArgsPool = new ConcurrentQueue<SocketAsyncEventArgs>();
+        private const int MAX_RECEIVE_SAEA_POOL = 4;
+
         // the all important shutdownFlag.
         private volatile bool shutdownFlag = true;
         
-        // Packet pool for default sized packets
         private readonly ObjectPool<UDPPacketBuffer> _packetPool =
             new DefaultObjectPool<UDPPacketBuffer>(new DefaultPooledObjectPolicy<UDPPacketBuffer>());
+
+        // SocketAsyncEventArgs used for send
+        private readonly ConcurrentQueue<SocketAsyncEventArgs> _sendEventArgsPool = new ConcurrentQueue<SocketAsyncEventArgs>();
 
         /// <summary>
         /// Initialize the UDP packet handler in server mode
@@ -83,7 +91,7 @@ namespace OpenMetaverse
         /// </summary>
         public void Start()
         {
-            if (!shutdownFlag) return;
+            if (!shutdownFlag) { return; }
 
             IPEndPoint ipep = new IPEndPoint(Settings.BIND_ADDR, udpPort);
             udpSocket = new Socket(
@@ -117,10 +125,10 @@ namespace OpenMetaverse
             // we're not shutting down, we're starting up
             shutdownFlag = false;
 
-            // kick off an async receive.  The Start() method will return, the
-            // actual receives will occur asynchronously and will be caught in
-            // AsyncEndReceive().
-            AsyncBeginReceive();
+            Logger.Info($"UDP listener starting on port {udpPort}");
+
+            // kick off an async receive using SocketAsyncEventArgs
+            PostReceive();
         }
 
         /// <summary>
@@ -128,142 +136,222 @@ namespace OpenMetaverse
         /// </summary>
         public void Stop()
         {
-            if (shutdownFlag) return;
+            if (shutdownFlag) { return; }
 
-            // wait indefinitely for a writer lock.  Once this is called, the .NET runtime
-            // will deny any more reader locks, in effect blocking all other send/receive
-            // threads.  Once we have the lock, we set shutdownFlag to inform the other
-            // threads that the socket is closed.
+            Logger.Info($"Stopping UDP listener on port {udpPort}");
+            // signal shutdown so no more receives are posted
             shutdownFlag = true;
-            udpSocket.Close();
+
+            try
+            {
+                // close socket first to cancel any in-flight operations
+                udpSocket.Close();
+                Logger.Info($"UDP socket on port {udpPort} closed");
+            }
+            catch (ObjectDisposedException) { Logger.DebugLog($"UDP socket on port {udpPort} already disposed during Stop()"); }
+
+            // dispose any pooled receive event args
+            while (_receiveEventArgsPool.TryDequeue(out var sa))
+            {
+                try { sa.Completed -= ReceiveCompleted; sa.Dispose(); } catch { }
+            }
         }
 
-        /// <summary>
-        /// Is UDP connection up and running
-        /// </summary>
-        public bool IsRunning => !shutdownFlag;
-
-        private void AsyncBeginReceive()
+        private void PostReceive()
         {
-            // allocate a packet buffer
+            if (shutdownFlag) { return; }
+            if (udpSocket == null) { return; }
+
+            // get a buffer from the pool for this receive
             UDPPacketBuffer buf = _packetPool.Get();
 
-            if (shutdownFlag) return;
+            // get or create a SAEA for this receive
+            var sa = GetReceiveEventArgs();
+            sa.UserToken = buf;
+            sa.RemoteEndPoint = buf.RemoteEndPoint ?? new IPEndPoint(Settings.BIND_ADDR, 0);
+            sa.SetBuffer(buf.Data, 0, UDPPacketBuffer.DEFAULT_BUFFER_SIZE);
 
+            bool willRaiseEvent = false;
             try
             {
-                // kick off an async read
-                udpSocket.BeginReceiveFrom(
-                    buf.Data,
-                    0,
-                    UDPPacketBuffer.DEFAULT_BUFFER_SIZE,
-                    SocketFlags.None,
-                    ref buf.RemoteEndPoint,
-                    AsyncEndReceive,
-                    buf);
+                willRaiseEvent = udpSocket.ReceiveFromAsync(sa);
             }
-            catch (SocketException e)
+            catch (SocketException ex) // salvage logic similar to previous behavior
             {
-                if (e.SocketErrorCode == SocketError.ConnectionReset)
-                {
-                    Logger.Error("SIO_UDP_CONNRESET was ignored, attempting to salvage the UDP listener on port " + udpPort);
-                    bool salvaged = false;
-                    while (!salvaged)
-                    {
-                        try
-                        {
-                            udpSocket.BeginReceiveFrom(
-                                //wrappedBuffer.Instance.Data,
-                                buf.Data,
-                                0,
-                                UDPPacketBuffer.DEFAULT_BUFFER_SIZE,
-                                SocketFlags.None,
-                                ref buf.RemoteEndPoint,
-                                AsyncEndReceive,
-                                //wrappedBuffer);
-                                buf);
-                            salvaged = true;
-                        }
-                        catch (SocketException) { }
-                        catch (ObjectDisposedException) { return; }
-                    }
-
-                    Logger.Info("Salvaged the UDP listener on port " + udpPort);
-                }
+                Logger.Error($"ReceiveFromAsync SocketException on port {udpPort}: {ex.SocketErrorCode} {ex.Message}");
+                // try again once synchronously
+                try { udpSocket.ReceiveFromAsync(sa); }
+                catch (Exception ex2) { Logger.DebugLog($"Second ReceiveFromAsync attempt failed: {ex2.Message}"); _packetPool.Return(buf); CleanupAndReturnReceiveEventArgs(sa); return; }
             }
-            catch (ObjectDisposedException) { }
+            catch (ObjectDisposedException ex) { Logger.DebugLog($"ReceiveFromAsync aborted, socket disposed: {ex.Message}"); _packetPool.Return(buf); CleanupAndReturnReceiveEventArgs(sa); return; }
+
+            // If the operation completed synchronously, process it now
+            if (!willRaiseEvent)
+            {
+                ProcessReceive(sa);
+            }
         }
 
-        private void AsyncEndReceive(IAsyncResult iar)
+        private void ReceiveCompleted(object sender, SocketAsyncEventArgs e)
         {
-            // Asynchronous receive operations will complete here through the call
-            // to AsyncBeginReceive
-            if (shutdownFlag) return;
+            ProcessReceive(e);
+        }
 
-            // start another receive - this keeps the server going!
-            AsyncBeginReceive();
-
-            // get the buffer that was created in AsyncBeginReceive
-            // this is the received data
-            //WrappedObject<UDPPacketBuffer> wrappedBuffer = (WrappedObject<UDPPacketBuffer>)iar.AsyncState;
-            //UDPPacketBuffer buffer = wrappedBuffer.Instance;
-            UDPPacketBuffer buffer = (UDPPacketBuffer)iar.AsyncState;
+        private void ProcessReceive(SocketAsyncEventArgs e)
+        {
+            UDPPacketBuffer buf = (UDPPacketBuffer)e.UserToken;
 
             try
             {
-                // get the length of data actually read from the socket, store it with the
-                // buffer
-                buffer.DataLength = udpSocket.EndReceiveFrom(iar, ref buffer.RemoteEndPoint);
+                if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
+                {
+                    buf.DataLength = e.BytesTransferred;
 
-                // call the abstract method PacketReceived(), passing the buffer that
-                // has just been filled from the socket read.
-                PacketReceived(buffer);
+                    // e.RemoteEndPoint contains the sender endpoint
+                    buf.RemoteEndPoint = e.RemoteEndPoint;
+
+                    PacketReceived(buf);
+                }
             }
-            catch (SocketException) { }
-            catch (ObjectDisposedException) { }
-            finally { _packetPool.Return(buffer); }
+            catch (ObjectDisposedException ex) { Logger.DebugLog($"ProcessReceive: socket disposed while processing receive: {ex.Message}"); }
+            catch (SocketException ex) { Logger.Error($"ProcessReceive SocketException: {ex.SocketErrorCode} {ex.Message}"); }
+            finally
+            {
+                // return the buffer to the pool
+                _packetPool.Return(buf);
+            }
+
+            // clean up and return the SAEA to the pool
+            CleanupAndReturnReceiveEventArgs(e);
+
+            // post another receive if still running
+            if (!shutdownFlag)
+            {
+                try { PostReceive(); }
+                catch (ObjectDisposedException) { }
+            }
         }
 
         public void AsyncBeginSend(UDPPacketBuffer buf)
         {
             if (shutdownFlag) return;
+
+            SocketAsyncEventArgs sendEventArgs = GetSendEventArgs();
+            sendEventArgs.RemoteEndPoint = buf.RemoteEndPoint;
+            sendEventArgs.SetBuffer(buf.Data, 0, buf.DataLength);
+            sendEventArgs.UserToken = buf;
+
+            bool willRaiseEvent = false;
             try
             {
-                // Profiling heavily loaded clients was showing better performance with
-                // synchronous UDP packet sending
-                udpSocket.SendTo(
-                    buf.Data,
-                    0,
-                    buf.DataLength,
-                    SocketFlags.None,
-                    buf.RemoteEndPoint);
-
-                //udpSocket.BeginSendTo(
-                //    buf.Data,
-                //    0,
-                //    buf.DataLength,
-                //    SocketFlags.None,
-                //    buf.RemoteEndPoint,
-                //    AsyncEndSend,
-                //    buf);
+                willRaiseEvent = udpSocket.SendToAsync(sendEventArgs);
             }
-            catch (SocketException) { }
-            catch (ObjectDisposedException) { }
+            catch (SocketException ex)
+            {
+                Logger.Error($"SendToAsync SocketException sending to {buf.RemoteEndPoint}: {ex.SocketErrorCode} {ex.Message}");
+                // on error, clean up and return to pool
+                CleanupAndReturnSendEventArgs(sendEventArgs);
+                return;
+            }
+            catch (ObjectDisposedException ex)
+            {
+                Logger.DebugLog($"SendToAsync aborted, socket disposed: {ex.Message}");
+                CleanupAndReturnSendEventArgs(sendEventArgs);
+                return;
+            }
+
+            // If the operation completed synchronously, process completion now
+            if (!willRaiseEvent)
+            {
+                try
+                {
+                    // Call the completion handler directly
+                    SendCompleted(this, sendEventArgs);
+                }
+                catch
+                {
+                    // swallow to match previous behavior
+                }
+            }
         }
 
-        //void AsyncEndSend(IAsyncResult result)
-        //{
-        //    try
-        //    {
-        //        UDPPacketBuffer buf = (UDPPacketBuffer)result.AsyncState;
-        //        if (!udpSocket.Connected) return;
-        //        int bytesSent = udpSocket.EndSendTo(result);
+        private void SendCompleted(object sender, SocketAsyncEventArgs e)
+        {
+            // detach handler and capture token
+            UDPPacketBuffer buf = (UDPPacketBuffer)e.UserToken;
 
-        //        PacketSent(buf, bytesSent);
-        //    }
-        //    catch (SocketException) { }
-        //    catch (ObjectDisposedException) { }
-        //}
+            int bytesSent = 0;
+            if (e.SocketError == SocketError.Success)
+            {
+                bytesSent = e.BytesTransferred;
+            }
+            else
+            {
+                Logger.Error($"Send failed to {buf.RemoteEndPoint}: {e.SocketError}");
+            }
+
+            try { PacketSent(buf, bytesSent); } catch (Exception ex) { Logger.Error($"PacketSent handler threw: {ex.Message}"); }
+
+            // clean up and return to pool for reuse
+            CleanupAndReturnSendEventArgs(e);
+        }
+
+        private SocketAsyncEventArgs GetSendEventArgs()
+        {
+            if (_sendEventArgsPool.TryDequeue(out var args)) return args;
+
+            var sea = new SocketAsyncEventArgs();
+            // Attach the completion handler once
+            sea.Completed += SendCompleted;
+            return sea;
+        }
+
+        private void CleanupAndReturnSendEventArgs(SocketAsyncEventArgs e)
+        {
+            try
+            {
+                // clear buffer and token to avoid holding references
+                try { e.SetBuffer(null, 0, 0); } catch { }
+                e.UserToken = null;
+                e.RemoteEndPoint = null;
+
+                _sendEventArgsPool.Enqueue(e);
+                Logger.DebugLog("Send SocketAsyncEventArgs returned to pool");
+            }
+            catch { try { e.Dispose(); } catch { } }
+        }
+
+        private SocketAsyncEventArgs GetReceiveEventArgs()
+        {
+            if (_receiveEventArgsPool.TryDequeue(out var args)) return args;
+
+            var sea = new SocketAsyncEventArgs();
+            sea.Completed += ReceiveCompleted;
+            return sea;
+        }
+
+        private void CleanupAndReturnReceiveEventArgs(SocketAsyncEventArgs e)
+        {
+            try
+            {
+                // clear buffer and token to avoid holding references
+                try { e.SetBuffer(null, 0, 0); } catch { }
+                e.UserToken = null;
+                e.RemoteEndPoint = null;
+
+                if (_receiveEventArgsPool.Count < MAX_RECEIVE_SAEA_POOL)
+                {
+                    _receiveEventArgsPool.Enqueue(e);
+                    Logger.DebugLog("Receive SocketAsyncEventArgs returned to pool");
+                }
+                else
+                {
+                    e.Completed -= ReceiveCompleted;
+                    Logger.DebugLog("Receive SocketAsyncEventArgs pool full, disposing instance");
+                    e.Dispose();
+                }
+            }
+            catch { try { e.Dispose(); } catch { } }
+        }
     }
 }
-
