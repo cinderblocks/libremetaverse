@@ -46,17 +46,23 @@ namespace LibreMetaverse
             CancellationToken token,
             bool immediately = false)
         {
-            return Task.Factory.StartNew(
-                () =>
-                {
-                    if (immediately) { action(); }
+            return Task.Run(async () =>
+            {
+                if (immediately) { action(); }
 
-                    for (; ; )
+                try
+                {
+                    while (!token.IsCancellationRequested)
                     {
-                        if (token.WaitCancellationRequested(pollInterval)) { break; }
+                        await Task.Delay(pollInterval, token).ConfigureAwait(false);
                         action();
                     }
-                }, token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+                }
+                catch (OperationCanceledException)
+                {
+                    // token was cancelled — exit cleanly
+                }
+            }, token);
         }
 
         /// <summary>
@@ -80,10 +86,17 @@ namespace LibreMetaverse
                     await asyncAction().ConfigureAwait(false);
                 }
 
-                for (; ; )
+                try
                 {
-                    if (token.WaitCancellationRequested(pollInterval)) { break; }
-                    await asyncAction().ConfigureAwait(false);
+                    while (!token.IsCancellationRequested)
+                    {
+                        await Task.Delay(pollInterval, token).ConfigureAwait(false);
+                        await asyncAction().ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // token was cancelled — exit cleanly
                 }
             }, token);
         }
@@ -91,6 +104,7 @@ namespace LibreMetaverse
 
     public static class CancellationTokenExtensions
     {
+        [Obsolete("Use cancellation-aware async waits (for example, await Task.Delay(timeout, token)) or CancellationToken.Register. WaitHandle-based waiting is unsafe because the CancellationTokenSource may be disposed while waiting.")]
         public static bool WaitCancellationRequested(
             this CancellationToken token,
             TimeSpan timeout)
