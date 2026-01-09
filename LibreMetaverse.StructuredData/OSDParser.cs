@@ -37,8 +37,9 @@ namespace OpenMetaverse.StructuredData
         private const string LLSD_XML_HEADER = "<llsd>";
         private const string LLSD_XML_ALT_HEADER = "<?xml";
         private const string LLSD_XML_ALT2_HEADER = "<? llsd/xml ?>";
+        private const string LLSD_PROTOBUF_HEADER = "<? llsd/protobuf ?>";
 
-        private const int HEADER_PROBE_LENGTH = 17;
+        private const int HEADER_PROBE_LENGTH = 20;
 
         public static OSD Deserialize(byte[] data)
         {
@@ -52,6 +53,11 @@ namespace OpenMetaverse.StructuredData
                 headerUtf8.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.OrdinalIgnoreCase))
             {
                 return DeserializeLLSDXml(data);
+            }
+
+            if (headerAscii.StartsWith(LLSD_PROTOBUF_HEADER, StringComparison.OrdinalIgnoreCase))
+            {
+                return DeserializeLLSDProtobuf(data);
             }
 
             if (headerAscii.StartsWith(LLSD_BINARY_HEADER, StringComparison.OrdinalIgnoreCase))
@@ -73,6 +79,10 @@ namespace OpenMetaverse.StructuredData
         {
             if (data == null) throw new ArgumentNullException(nameof(data));
 
+            if (data.StartsWith(LLSD_PROTOBUF_HEADER, StringComparison.OrdinalIgnoreCase))
+            {
+                return DeserializeLLSDProtobuf(Encoding.UTF8.GetBytes(data));
+            }
             if (data.StartsWith(LLSD_BINARY_HEADER, StringComparison.OrdinalIgnoreCase))
             {
                 return DeserializeLLSDBinary(Encoding.UTF8.GetBytes(data));
@@ -107,6 +117,8 @@ namespace OpenMetaverse.StructuredData
                 return DeserializeLLSDXml(stream);
             }
 
+            if (headerAscii.StartsWith(LLSD_PROTOBUF_HEADER, StringComparison.OrdinalIgnoreCase))
+                return DeserializeLLSDProtobuf(stream);
             if (headerAscii.StartsWith(LLSD_BINARY_HEADER, StringComparison.OrdinalIgnoreCase))
                 return DeserializeLLSDBinary(stream);
             if (headerAscii.StartsWith(LLSD_XML_HEADER, StringComparison.OrdinalIgnoreCase) || headerAscii.StartsWith(LLSD_XML_ALT_HEADER, StringComparison.OrdinalIgnoreCase) || headerAscii.StartsWith(LLSD_XML_ALT2_HEADER, StringComparison.OrdinalIgnoreCase))
