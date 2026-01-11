@@ -695,7 +695,20 @@ namespace OpenMetaverse
                 // simple case, agent not seated
                 if (sittingOn == 0)
                 {
-                    return relativePosition;
+                    Vector3 position = relativePosition;
+                    
+                    // Apply hover height offset for mesh avatars with deformed shapes
+                    // The avatar's HoverHeight.Z contains the Z-axis offset calculated from visual parameters
+                    if (Client?.Network?.CurrentSim != null)
+                    {
+                        if (Client.Network.CurrentSim.ObjectsAvatars.TryGetValue(localID, out Avatar self))
+                        {
+                            // Apply the hover height Z offset from appearance data
+                            position.Z += self.HoverHeight.Z;
+                        }
+                    }
+                    
+                    return position;
                 }
 
                 // a bit more complicated, agent sitting on a prim
