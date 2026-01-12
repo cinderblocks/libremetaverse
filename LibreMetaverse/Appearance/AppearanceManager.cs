@@ -2464,10 +2464,45 @@ namespace OpenMetaverse
     {
         var update = (AgentWearablesUpdatePacket)e.Packet;
 
-        Logger.DebugLog("Received AgentWearablesUpdate");
-
-        // At one point this was necessary, but Second Life now sends dummy items back...
-        // So let's just ignore the dumdum, k? 
+        // Second Life sends a dummy payload  since the introduction of Server Side Baking,
+        // but OpenSimulator is arrested in protocol from almost twenty years ago and still
+        // uses this packet. Process only if we are not in a server baking region.
+        if (!ServerBakingRegion() && update.WearableData != null && update.WearableData.Length > 0)
+        {
+            // On OpenSim (or older SL grids), process the actual wearable data from the packet
+            lock (Wearables)
+            {
+                var wearables = new MultiValueDictionary<WearableType, WearableData>();
+                
+                foreach (var block in update.WearableData)
+                {
+                    var wearableType = (WearableType)block.WearableType;
+                    
+                    // Skip invalid wearable types or empty slots
+                    if (wearableType == WearableType.Invalid || block.ItemID == UUID.Zero)
+                        continue;
+                    
+                    var wearableData = new WearableData
+                    {
+                        ItemID = block.ItemID,
+                        AssetID = block.AssetID,
+                        WearableType = wearableType,
+                        AssetType = WearableTypeToAssetType(wearableType)
+                    };
+                    
+                    wearables.Add(wearableType, wearableData);
+                    
+                    Logger.DebugLog($"Processing wearable from packet: {wearableType} ItemID={block.ItemID} AssetID={block.AssetID}", Client);
+                }
+                
+                // Only update if we got valid data
+                if (wearables.Any())
+                {
+                    Wearables = wearables;
+                    Logger.Info($"Updated wearables from AgentWearablesUpdate packet: {wearables.Count} types", Client);
+                }
+            }
+        }
 
         // Fire the callback
         OnAgentWearables(new AgentWearablesReplyEventArgs());
