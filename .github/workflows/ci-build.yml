@@ -7,9 +7,12 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  build-linux:
-    name: Build (Linux)
-    runs-on: ubuntu-22.04
+  build:
+    name: Build and pack
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, windows-2022]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -18,6 +21,9 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+
+      - name: Dotnet --info
+        run: dotnet --info
 
       - name: Restore
         run: dotnet restore LibreMetaverse.sln
@@ -31,39 +37,12 @@ jobs:
       - name: Upload packages
         uses: actions/upload-artifact@v4
         with:
-          name: nuget-packages-linux
-          path: artifacts
-
-  build-windows:
-    name: Build (Windows)
-    runs-on: windows-2022
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Restore
-        run: dotnet restore LibreMetaverse.sln
-
-      - name: Build
-        run: dotnet build LibreMetaverse.sln --configuration Release --no-restore --verbosity minimal
-
-      - name: Pack
-        run: dotnet pack LibreMetaverse.sln -c Release -o .\artifacts --no-build
-
-      - name: Upload packages
-        uses: actions/upload-artifact@v4
-        with:
-          name: nuget-packages-windows
+          name: nuget-packages-${{ matrix.os }}
           path: artifacts
 
   publish:
     name: Publish Packages (on tag)
-    needs: [build-linux, build-windows]
+    needs: build
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
     runs-on: windows-2022
     permissions:
@@ -72,16 +51,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download Linux packages
+      - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: nuget-packages-linux
-          path: ./artifacts
-
-      - name: Download Windows packages
-        uses: actions/download-artifact@v4
-        with:
-          name: nuget-packages-windows
           path: ./artifacts
 
       - name: List artifacts
