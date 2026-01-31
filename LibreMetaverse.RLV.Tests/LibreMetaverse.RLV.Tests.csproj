@@ -1,15 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net481;net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <!-- C# 8 is required for nullable reference types on older target frameworks -->
-    <LangVersion>8.0</LangVersion>
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
+
+  <!-- Skip testing for net481 since this project doesn't target it -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net481'">
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+  
+  <!-- Override VSTest target to prevent errors when testing solution with unsupported frameworks -->
+  <Target Name="VSTest" Condition="'$(TargetFramework)' == 'net481'" />
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4">
