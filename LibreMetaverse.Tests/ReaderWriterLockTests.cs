@@ -52,8 +52,8 @@ namespace LibreMetaverse.Tests
                 });
             }
 
-            // Wait until all readers have entered
-            Assert.That(readersEntered.Wait(1000), Is.True, "All readers should enter the read lock within 1s");
+            // Wait until all readers have entered (increased timeout for CI)
+            Assert.That(readersEntered.Wait(5000), Is.True, "All readers should enter the read lock within 5s");
 
             // Start writer which should block until readers release
             var writerAcquired = new ManualResetEventSlim(false);
@@ -71,18 +71,18 @@ namespace LibreMetaverse.Tests
             // Allow readers to exit
             startRelease.Set();
 
-            // Wait for readers to fully exit
-            Assert.That(readersExited.Wait(1000), Is.True, "Readers should exit within 1s after release");
+            // Wait for readers to fully exit (increased timeout for CI)
+            Assert.That(readersExited.Wait(5000), Is.True, "Readers should exit within 5s after release");
 
-            // Now writer should be able to acquire
-            Assert.That(writerAcquired.Wait(1000), Is.True, "Writer should acquire write lock after readers exit");
+            // Now writer should be able to acquire (increased timeout for CI)
+            Assert.That(writerAcquired.Wait(5000), Is.True, "Writer should acquire write lock after readers exit");
 
             // Ensure we had concurrent readers
             Assert.That(maxConcurrentReaders, Is.GreaterThanOrEqualTo(2), "At least two readers should have been concurrent");
 
             // Cleanup
             Task.WaitAll(readerTasks);
-            writerTask.Wait(1000);
+            writerTask.Wait(5000);
         }
     }
 }

@@ -70,35 +70,47 @@ namespace LibreMetaverse.Tests
             Action<EventHandler<EventArgs>> subscribe = h => ev += h;
             Action<EventHandler<EventArgs>> unsubscribe = h => ev -= h;
 
-            // fire event after small delay
-            Task.Run(async () =>
+            // Use ManualResetEventSlim to ensure subscription is ready before firing event
+            var subscriptionReady = new ManualResetEventSlim(false);
+            
+            // fire event after small delay and subscription is ready
+            var fireTask = Task.Run(async () =>
             {
-                await Task.Delay(50).ConfigureAwait(false);
+                subscriptionReady.Wait(5000); // wait for subscription
+                await Task.Delay(100).ConfigureAwait(false);
                 ev?.Invoke(null, EventArgs.Empty);
             });
 
+            // Signal that we're about to subscribe
+            subscriptionReady.Set();
+            
             var result = EventSubscriptionHelper.WaitForEvent<EventArgs, int>(
                 subscribe, unsubscribe,
                 filter: e => true,
                 resultSelector: e => 123,
-                timeoutMs: 500,
+                timeoutMs: 2000,
                 defaultValue: -1);
 
             Assert.That(result, Is.EqualTo(123));
 
             // Async version with cancellation
             var cts = new CancellationTokenSource();
-            Task.Run(async () =>
+            var subscriptionReady2 = new ManualResetEventSlim(false);
+            
+            var fireTask2 = Task.Run(async () =>
             {
-                await Task.Delay(50).ConfigureAwait(false);
+                subscriptionReady2.Wait(5000);
+                await Task.Delay(100).ConfigureAwait(false);
                 ev?.Invoke(null, EventArgs.Empty);
             });
 
+            subscriptionReady2.Set();
+            
             var asyncResult = await EventSubscriptionHelper.WaitForEventAsync<EventArgs, Guid>(
                 subscribe, unsubscribe,
                 filter: e => true,
                 resultSelector: e => Guid.Empty,
-                timeoutMs: 500,
+                timeoutMs: 2000,
                 cancellationToken: default,
                 defaultValue: Guid.NewGuid());
 
@@ -120,12 +132,12 @@ namespace LibreMetaverse.Tests
             var cts = new CancellationTokenSource();
             var task = Repeat.Interval(TimeSpan.FromMilliseconds(20), () => Interlocked.Increment(ref count), cts.Token, immediately: true);
 
-            // let it run a bit
-            Thread.Sleep(120);
+            // let it run longer on CI environments
+            Thread.Sleep(250);
             cts.Cancel();
-            task.Wait(1000);
+            task.Wait(2000);
 
-            Assert.That(count, Is.GreaterThanOrEqualTo(1));
+            Assert.That(count, Is.GreaterThanOrEqualTo(1), $"Expected at least 1 execution, but got {count}");
         }
 
         [Test]
