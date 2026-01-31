@@ -11,6 +11,8 @@ jobs:
   test:
     name: Test matrix
     runs-on: ${{ matrix.os }}
+    permissions:
+      checks: write
     strategy:
       fail-fast: false
       matrix:
@@ -35,15 +37,23 @@ jobs:
 
       - name: Set test framework to net8.0
         if: ${{ matrix.dotnet == '8.0.x' }}
+        shell: bash
         run: echo "TEST_FRAMEWORK=net8.0" >> $GITHUB_ENV
 
       - name: Set test framework to net9.0
         if: ${{ matrix.dotnet == '9.0.x' }}
+        shell: bash
         run: echo "TEST_FRAMEWORK=net9.0" >> $GITHUB_ENV
 
-      - name: Run tests
+      - name: Run tests (Windows)
+        if: ${{ matrix.os == 'windows-2022' }}
+        shell: bash
         run: |
-          # Run tests for the target framework selected by the matrix. Non-Windows jobs will skip net481 projects because framework is specified.
+          dotnet test LibreMetaverse.sln -c Release --no-build --framework $TEST_FRAMEWORK --logger "trx;LogFileName=TestResults.trx" --verbosity normal
+
+      - name: Run tests (Linux/macOS)
+        if: ${{ matrix.os != 'windows-2022' }}
+        run: |
           dotnet test LibreMetaverse.sln -c Release --no-build --framework $TEST_FRAMEWORK --logger "trx;LogFileName=TestResults.trx" --verbosity normal
 
       - name: Publish test results (annotations)
@@ -51,9 +61,9 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           name: Tests
+          reporter: dotnet-trx
           path: '**/*.trx'
-          format: 'trx'
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload test results
         if: always()
@@ -68,6 +78,8 @@ jobs:
   test-net48:
     name: Test (.NET Framework 4.8.1)
     runs-on: windows-2022
+    permissions:
+      checks: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -94,9 +106,9 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           name: Tests (.NET Framework 4.8.1)
+          reporter: dotnet-trx
           path: '**/*.trx'
-          format: 'trx'
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload net48 test results
         if: always()
