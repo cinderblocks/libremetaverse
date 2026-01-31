@@ -1,0 +1,109 @@
+name: CI Test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    name: Test matrix
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, ubuntu-22.04, macos-latest]
+        dotnet: [ '8.0.x', '9.0.x' ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - name: Restore
+        run: |
+          dotnet restore LibreMetaverse.sln
+
+      - name: Build
+        run: |
+          dotnet build LibreMetaverse.sln -c Release --no-restore
+
+      - name: Set test framework to net8.0
+        if: ${{ matrix.dotnet == '8.0.x' }}
+        run: echo "TEST_FRAMEWORK=net8.0" >> $GITHUB_ENV
+
+      - name: Set test framework to net9.0
+        if: ${{ matrix.dotnet == '9.0.x' }}
+        run: echo "TEST_FRAMEWORK=net9.0" >> $GITHUB_ENV
+
+      - name: Run tests
+        run: |
+          # Run tests for the target framework selected by the matrix. Non-Windows jobs will skip net481 projects because framework is specified.
+          dotnet test LibreMetaverse.sln -c Release --no-build --framework $TEST_FRAMEWORK --logger "trx;LogFileName=TestResults.trx" --verbosity normal
+
+      - name: Publish test results (annotations)
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Tests
+          path: '**/*.trx'
+          format: 'trx'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}-dotnet-${{ matrix.dotnet }}
+          path: |
+            **/TestResults
+            **/*.trx
+            **/coverage*.xml
+
+  test-net48:
+    name: Test (.NET Framework 4.8.1)
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: |
+          dotnet restore LibreMetaverse.sln
+
+      - name: Build
+        run: |
+          dotnet build LibreMetaverse.sln -c Release --no-restore
+
+      - name: Run .NET Framework tests (net481)
+        run: |
+          dotnet test LibreMetaverse.sln -c Release --no-build --framework net481 --logger "trx;LogFileName=TestResults.trx" --verbosity normal
+
+      - name: Publish net48 test results (annotations)
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Tests (.NET Framework 4.8.1)
+          path: '**/*.trx'
+          format: 'trx'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload net48 test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-windows-net481
+          path: |
+            **/TestResults
+            **/*.trx
+            **/coverage*.xml
