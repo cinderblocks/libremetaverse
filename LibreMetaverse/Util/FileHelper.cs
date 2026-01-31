@@ -31,8 +31,10 @@ namespace LibreMetaverse
 {
     public static class FileHelper
     {
-        private static readonly char[] InvalidFileNameChars = System.IO.Path.GetInvalidFileNameChars();
-        private static readonly char[] InvalidPathChars = System.IO.Path.GetInvalidPathChars();
+        private static readonly char[] InvalidFileNameChars = System.IO.Path.GetInvalidFileNameChars()
+            .Concat(new[] { ':' }).Distinct().ToArray();
+        private static readonly char[] InvalidPathChars = System.IO.Path.GetInvalidPathChars()
+            .Concat(new[] { '<', '>', ':', '"', '|', '?', '*' }).Distinct().ToArray();
 
         public static string SafeFileName(string original)
         {
