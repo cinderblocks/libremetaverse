@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006, Clutch, Inc.
+ * Copyright (c) 2026, Sjofn LLC.
  * Original Author: Jeff Cesnik
  * All rights reserved.
  *
@@ -148,7 +149,12 @@ namespace OpenMetaverse
             // allocate a packet buffer
             UDPPacketBuffer buf = _packetPool.Get();
 
-            if (shutdownFlag) return;
+            if (shutdownFlag)
+            {
+                // Return buffer to pool before exiting to prevent leak
+                _packetPool.Return(buf);
+                return;
+            }
 
             try
             {
@@ -166,32 +172,64 @@ namespace OpenMetaverse
             {
                 if (e.SocketErrorCode == SocketError.ConnectionReset)
                 {
-                    Logger.Error("SIO_UDP_CONNRESET was ignored, attempting to salvage the UDP listener on port " + udpPort);
+                    Logger.Error($"SIO_UDP_CONNRESET was ignored, attempting to salvage the UDP listener on port {udpPort}");
                     bool salvaged = false;
-                    while (!salvaged)
+                    int retryCount = 0;
+                    const int maxRetries = 100;
+
+                    while (!salvaged && retryCount < maxRetries)
                     {
+                        if (shutdownFlag)
+                        {
+                            _packetPool.Return(buf);
+                            return;
+                        }
+
                         try
                         {
                             udpSocket.BeginReceiveFrom(
-                                //wrappedBuffer.Instance.Data,
                                 buf.Data,
                                 0,
                                 UDPPacketBuffer.DEFAULT_BUFFER_SIZE,
                                 SocketFlags.None,
                                 ref buf.RemoteEndPoint,
                                 AsyncEndReceive,
-                                //wrappedBuffer);
                                 buf);
                             salvaged = true;
                         }
-                        catch (SocketException) { }
-                        catch (ObjectDisposedException) { return; }
+                        catch (SocketException)
+                        {
+                            retryCount++;
+                            if (retryCount >= maxRetries)
+                            {
+                                Logger.Error($"Failed to salvage UDP listener on port {udpPort} after {maxRetries} attempts");
+                                _packetPool.Return(buf);
+                                throw;
+                            }
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            _packetPool.Return(buf);
+                            return;
+                        }
                     }
 
-                    Logger.Info("Salvaged the UDP listener on port " + udpPort);
+                    if (salvaged)
+                    {
+                        Logger.Info($"Salvaged the UDP listener on port {udpPort} after {retryCount} retries");
+                    }
+                }
+                else
+                {
+                    // For other socket errors, return the buffer and rethrow
+                    _packetPool.Return(buf);
+                    throw;
                 }
             }
-            catch (ObjectDisposedException) { }
+            catch (ObjectDisposedException)
+            {
+                _packetPool.Return(buf);
+            }
         }
 
         private void AsyncEndReceive(IAsyncResult iar)
