@@ -2,6 +2,7 @@
   <PropertyGroup>
     <PackageId>LibreMetaverse.PacketSourceGenerator</PackageId>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <IsPackable>false</IsPackable>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <Nullable>enable</Nullable>
     <ImplicitUsings>true</ImplicitUsings>
