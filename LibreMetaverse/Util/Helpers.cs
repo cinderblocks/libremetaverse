@@ -224,8 +224,9 @@ namespace OpenMetaverse
             for (int i = 0; i < bytes.Length; ++i)
             {
                 // Check if there are any unprintable characters in the array
-                if ((i < 0x20 || i > 0x7E) && i != 0x09
-                    && i != 0x0D && i != 0x0A && i != 0x00)
+                byte b = bytes[i];
+                if ((b < 0x20 || b > 0x7E) && b != 0x09
+                    && b != 0x0D && b != 0x0A && b != 0x00)
                 {
                     printable = false;
                     break;
@@ -281,8 +282,17 @@ namespace OpenMetaverse
         /// <returns>The length of the output buffer</returns>
         public static int ZeroDecode(byte[] src, int srclen, byte[] dest)
         {
+            if (src == null)
+                throw new ArgumentNullException(nameof(src));
+            
+            if (dest == null)
+                throw new ArgumentNullException(nameof(dest));
+            
             if (srclen > src.Length)
-                throw new ArgumentException("srclen cannot be greater than src.Length");
+                throw new ArgumentException("srclen cannot be greater than src.Length", nameof(srclen));
+            
+            if (srclen < 6)
+                throw new ArgumentException("srclen must be at least 6 bytes for packet header", nameof(srclen));
 
             uint zerolen = 0;
             int bodylen = 0;
@@ -298,7 +308,17 @@ namespace OpenMetaverse
                 {
                     if (src[i] == 0x00)
                     {
-                        for (byte j = 0; j < src[i + 1]; j++)
+                        // Bounds check: ensure we can read the count byte and won't overflow dest
+                        if (i + 1 >= srclen)
+                            throw new IndexOutOfRangeException($"ZeroDecode: Cannot read zero count at position {i + 1}, srclen={srclen}");
+                        
+                        byte zeroCount = src[i + 1];
+                        
+                        // Check if destination buffer has enough space
+                        if (zerolen + zeroCount > dest.Length)
+                            throw new IndexOutOfRangeException($"ZeroDecode: Destination buffer overflow, need {zerolen + zeroCount} bytes but dest.Length={dest.Length}");
+                        
+                        for (byte j = 0; j < zeroCount; j++)
                         {
                             dest[zerolen++] = 0x00;
                         }
@@ -307,6 +327,10 @@ namespace OpenMetaverse
                     }
                     else
                     {
+                        // Check destination buffer bounds
+                        if (zerolen >= dest.Length)
+                            throw new IndexOutOfRangeException($"ZeroDecode: Destination buffer overflow at position {zerolen}, dest.Length={dest.Length}");
+                        
                         dest[zerolen++] = src[i];
                     }
                 }
@@ -314,6 +338,9 @@ namespace OpenMetaverse
                 // Copy appended ACKs
                 for (; i < srclen; i++)
                 {
+                    if (zerolen >= dest.Length)
+                        throw new IndexOutOfRangeException($"ZeroDecode: Destination buffer overflow while copying ACKs at position {zerolen}, dest.Length={dest.Length}");
+                    
                     dest[zerolen++] = src[i];
                 }
 
@@ -343,6 +370,18 @@ namespace OpenMetaverse
         /// <returns>The length of the output buffer</returns>
         public static int ZeroEncode(byte[] src, int srclen, byte[] dest)
         {
+            if (src == null)
+                throw new ArgumentNullException(nameof(src));
+            
+            if (dest == null)
+                throw new ArgumentNullException(nameof(dest));
+            
+            if (srclen > src.Length)
+                throw new ArgumentException("srclen cannot be greater than src.Length", nameof(srclen));
+            
+            if (srclen < 6)
+                throw new ArgumentException("srclen must be at least 6 bytes for packet header", nameof(srclen));
+
             uint zerolen = 0;
             byte zerocount = 0;
 
@@ -366,28 +405,42 @@ namespace OpenMetaverse
                 {
                     zerocount++;
 
+                    // Handle byte overflow: if we've hit 255 zeros, flush them out
                     if (zerocount == 0)
                     {
+                        // We wrapped around from 255 -> 0, so write out 255 zeros
+                        if (zerolen + 2 > dest.Length)
+                            throw new IndexOutOfRangeException($"ZeroEncode: Destination buffer overflow at position {zerolen}, dest.Length={dest.Length}");
+                        
                         dest[zerolen++] = 0x00;
-                        dest[zerolen++] = 0xff;
-                        zerocount++;
+                        dest[zerolen++] = 0xff;  // 255 zeros
+                        zerocount = 1; // Current zero starts a new count
                     }
                 }
                 else
                 {
                     if (zerocount != 0)
                     {
+                        if (zerolen + 2 > dest.Length)
+                            throw new IndexOutOfRangeException($"ZeroEncode: Destination buffer overflow at position {zerolen}, dest.Length={dest.Length}");
+                        
                         dest[zerolen++] = 0x00;
                         dest[zerolen++] = (byte)zerocount;
                         zerocount = 0;
                     }
 
+                    if (zerolen >= dest.Length)
+                        throw new IndexOutOfRangeException($"ZeroEncode: Destination buffer overflow at position {zerolen}, dest.Length={dest.Length}");
+                    
                     dest[zerolen++] = src[i];
                 }
             }
 
             if (zerocount != 0)
             {
+                if (zerolen + 2 > dest.Length)
+                    throw new IndexOutOfRangeException($"ZeroEncode: Destination buffer overflow at position {zerolen}, dest.Length={dest.Length}");
+                
                 dest[zerolen++] = 0x00;
                 dest[zerolen++] = (byte)zerocount;
             }
@@ -395,6 +448,9 @@ namespace OpenMetaverse
             // copy appended ACKs
             for (; i < srclen; i++)
             {
+                if (zerolen >= dest.Length)
+                    throw new IndexOutOfRangeException($"ZeroEncode: Destination buffer overflow while copying ACKs at position {zerolen}, dest.Length={dest.Length}");
+                
                 dest[zerolen++] = src[i];
             }
 
