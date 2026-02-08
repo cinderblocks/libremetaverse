@@ -41,13 +41,13 @@ namespace LitJson
         #region Fields
         private static readonly NumberFormatInfo number_format;
 
-        private WriterContext        context;
-        private Stack<WriterContext> ctx_stack;
+        private WriterContext        context = new();
+        private Stack<WriterContext> ctx_stack = new();
         private bool                 has_reached_end;
-        private char[]               hex_seq;
+        private char[]               hex_seq = new char[4];
         private int                  indentation;
         private int                  indent_value;
-        private readonly StringBuilder        inst_string_builder;
+        private readonly StringBuilder?        inst_string_builder;
 
         #endregion
 
@@ -77,7 +77,7 @@ namespace LitJson
             inst_string_builder = new StringBuilder ();
             TextWriter = new StringWriter (inst_string_builder);
 
-            Init ();
+            Reset();
         }
 
         public JsonWriter (StringBuilder sb) :
@@ -89,7 +89,7 @@ namespace LitJson
         {
             this.TextWriter = writer ?? throw new ArgumentNullException (nameof(writer));
 
-            Init ();
+            Reset();
         }
         #endregion
 
@@ -329,7 +329,7 @@ namespace LitJson
             context.ExpectingValue = false;
         }
 
-        public void Write (string str)
+        public void Write (string? str)
         {
             DoValidation (Condition.Value);
             PutNewline ();

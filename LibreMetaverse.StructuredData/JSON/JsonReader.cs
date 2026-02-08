@@ -41,7 +41,7 @@ namespace LitJson
     public class JsonReader
     {
         #region Fields
-        private static IDictionary<int, IDictionary<int, int[]>> parse_table;
+        private static IDictionary<int, IDictionary<int, int[]>> parse_table = null!;
 
         private readonly Stack<int>    automaton_stack;
         private int           current_input;
@@ -50,7 +50,7 @@ namespace LitJson
         private bool          parser_in_string;
         private bool          parser_return;
         private bool          read_started;
-        private TextReader    reader;
+        private TextReader?   reader;
         private readonly bool          reader_is_owned;
 
         #endregion
@@ -73,7 +73,7 @@ namespace LitJson
 
         public JsonToken Token { get; private set; }
 
-        public object Value { get; private set; }
+        public object? Value { get; private set; }
 
         #endregion
 
@@ -319,7 +319,7 @@ namespace LitJson
                 parser_return = true;
 
             } else if (current_symbol == (int) ParserToken.Number)  {
-                ProcessNumber (lexer.StringValue);
+                ProcessNumber (lexer.StringValue!);
 
                 parser_return = true;
 
@@ -363,7 +363,7 @@ namespace LitJson
             EndOfJson  = true;
 
             if (reader_is_owned)
-                reader.Close ();
+                reader!.Close ();
 
             reader = null;
         }

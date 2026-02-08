@@ -4,6 +4,8 @@
     <Description>LibreMetaverse structured data library</Description>
     <PackageId>LibreMetaverse.StructuredData</PackageId>
     <TargetFrameworks>netstandard2.0;net8.0;net9.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse.StructuredData</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>

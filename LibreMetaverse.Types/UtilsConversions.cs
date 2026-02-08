@@ -978,7 +978,9 @@ namespace OpenMetaverse
             Type type = value.GetType();
 
             // Get fieldinfo for this type
-            FieldInfo fieldInfo = type.GetField(value.ToString());
+            FieldInfo? fieldInfo = type.GetField(value.ToString());
+            if (fieldInfo == null)
+                return value.ToString();
 
             // Find extended attributes, if any
             EnumInfoAttribute[] attribs = (EnumInfoAttribute[])fieldInfo.GetCustomAttributes(typeof(EnumInfoAttribute), false);
@@ -1115,7 +1117,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="bytes">Byte array to copy</param>
         /// <returns>A copy of the given byte array</returns>
-        public static byte[] CopyBytes(byte[] bytes)
+        public static byte[]? CopyBytes(byte[]? bytes)
         {
             if (bytes == null)
                 return null;
@@ -1227,7 +1229,7 @@ namespace OpenMetaverse
         /// <param name="strType">String value to parse</param>
         /// <param name="result">Enumeration value on success</param>
         /// <returns>True if the parsing succeeded, otherwise false</returns>
-        public static bool EnumTryParse<T>(string strType, out T result)
+        public static bool EnumTryParse<T>(string strType, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T result)
         {
             Type t = typeof(T);
 
@@ -1245,7 +1247,7 @@ namespace OpenMetaverse
                     return true;
                 }
             }
-            result = default(T);
+            result = default!;
             return false;
         }
 
@@ -1266,11 +1268,10 @@ namespace OpenMetaverse
         /// <param name="hostname">Hostname to convert to an IPAddress</param>
         /// <returns>Converted IP address object, or null if the conversion
         /// failed</returns>
-        public static IPAddress HostnameToIPv4(string hostname)
+        public static IPAddress? HostnameToIPv4(string hostname)
         {
             // Is it already a valid IP?
-            IPAddress ip;
-            if (IPAddress.TryParse(hostname, out ip))
+            if (IPAddress.TryParse(hostname, out IPAddress? ip))
                 return ip;
 
             IPAddress[] hosts = Dns.GetHostEntry(hostname).AddressList;

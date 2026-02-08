@@ -34,6 +34,7 @@ namespace OpenMetaverse
     #region TimedCacheKey Class
 
     internal class TimedCacheKey<TKey> : IComparable<TKey>
+        where TKey : notnull
     {
         public DateTime ExpirationDate { get; private set; }
         public TKey Key { get; }
@@ -60,15 +61,16 @@ namespace OpenMetaverse
                 ExpirationDate = DateTime.UtcNow.Add(SlidingExpirationWindowSize);
         }
 
-        public int CompareTo(TKey other)
+        public int CompareTo(TKey? other)
         {
-            return Key.GetHashCode().CompareTo(other.GetHashCode());
+            return Key.GetHashCode().CompareTo(other?.GetHashCode() ?? 0);
         }
     }
 
     #endregion
 
     public sealed class ExpiringCache<TKey, TValue>
+        where TKey : notnull
     {
         const double CACHE_PURGE_HZ = 1.0;
         const int MAX_LOCK_WAIT = 5000; // milliseconds
@@ -207,7 +209,7 @@ namespace OpenMetaverse
 
         public int Count => timedStorage.Count;
 
-        public object this[TKey key]
+        public object? this[TKey key]
         {
             get
             {
@@ -252,9 +254,9 @@ namespace OpenMetaverse
             finally { Monitor.Exit(syncRoot); }
         }
 
-        public bool TryGetValue(TKey key, out TValue value)
+        public bool TryGetValue(TKey key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out TValue value)
         {
-            TValue o;
+            TValue? o;
 
             if (!Monitor.TryEnter(syncRoot, MAX_LOCK_WAIT))
                 throw new ApplicationException("Lock could not be acquired after " + MAX_LOCK_WAIT + "ms");
@@ -272,7 +274,7 @@ namespace OpenMetaverse
             }
             finally { Monitor.Exit(syncRoot); }
 
-            value = default(TValue);
+            value = default!;
             return false;
         }
 
@@ -377,7 +379,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Purges expired objects from the cache. Called automatically by the purge timer.
         /// </summary>
-        private void PurgeCache(object sender, System.Timers.ElapsedEventArgs e)
+        private void PurgeCache(object? sender, System.Timers.ElapsedEventArgs e)
         {
             // Only let one thread purge at once - a buildup could cause a crash
             // This could cause the purge to be delayed while there are lots of read/write ops 

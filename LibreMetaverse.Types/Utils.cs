@@ -452,7 +452,7 @@ namespace OpenMetaverse
         /// <returns>Enumeration of the current runtime we are running on</returns>
         public static Runtime GetRunningRuntime()
         {
-            Type t = Type.GetType("Mono.Runtime");
+            Type? t = Type.GetType("Mono.Runtime");
             return t != null ? Runtime.Mono : Runtime.Windows;
         }
 

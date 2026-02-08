@@ -288,7 +288,7 @@ namespace OpenMetaverse.StructuredData
                 throw new OSDException("Expected an element");
 
             string type = reader.LocalName;
-            OSD ret;
+            OSD? ret;
 
             switch (type)
             {
@@ -469,7 +469,7 @@ namespace OpenMetaverse.StructuredData
             }
 
             reader.Read();
-            return ret;
+            return ret!;
         }
 
         private static OSDMap ParseLLSDXmlMap(XmlReader reader)

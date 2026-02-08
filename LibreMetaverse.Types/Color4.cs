@@ -423,7 +423,7 @@ namespace OpenMetaverse
             return string.Format(Utils.EnUsCulture, "<{0}, {1}, {2}>", R, G, B);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return (obj is Color4 color4) && this == color4;
         }

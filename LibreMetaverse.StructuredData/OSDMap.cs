@@ -106,7 +106,7 @@ namespace OpenMetaverse.StructuredData
             return _mMap.Remove(key);
         }
 
-        public bool TryGetValue(string key, out OSD llsd)
+        public bool TryGetValue(string key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out OSD llsd)
         {
             return _mMap.TryGetValue(key, out llsd);
         }

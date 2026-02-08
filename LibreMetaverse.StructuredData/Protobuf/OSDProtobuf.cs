@@ -144,9 +144,9 @@ namespace OpenMetaverse.StructuredData
         private static OSD ReadProtobufValue(Stream stream)
         {
             OSDType type = OSDType.Unknown;
-            object value = null;
-            OSDMap mapEntries = null;
-            OSDArray arrayElements = null;
+            object? value = null;
+            OSDMap? mapEntries = null;
+            OSDArray? arrayElements = null;
             long startPos = stream.Position;
             long endPos = stream.Length;
 
@@ -350,8 +350,8 @@ namespace OpenMetaverse.StructuredData
             int entryLength = (int)ReadVarint(stream);
             using (var entryStream = new MemoryStream(ReadBytes(stream, entryLength)))
             {
-                string key = null;
-                OSD value = null;
+                string? key = null;
+                OSD? value = null;
 
                 while (entryStream.Position < entryStream.Length)
                 {

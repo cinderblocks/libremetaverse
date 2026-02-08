@@ -288,7 +288,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="o">An object to compare to this UUID</param>
         /// <returns>True if the object is a UUID and both UUIDs are equal</returns>
-        public override bool Equals(object o)
+        public override bool Equals(object? o)
         {
             if (!(o is UUID uuid)) return false;
 

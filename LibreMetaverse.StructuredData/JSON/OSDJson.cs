@@ -97,17 +97,17 @@ namespace OpenMetaverse.StructuredData
                     }
                 case JsonToken.String:
                     {
-                        string s = reader.Value as string;
+                        string? s = reader.Value as string;
                         return string.IsNullOrEmpty(s) ? new OSD() : OSD.FromString(s);
                     }
                 case JsonToken.Double:
-                    return OSD.FromReal((double)reader.Value);
+                    return reader.Value != null ? OSD.FromReal((double)reader.Value) : new OSD();
                 case JsonToken.Int:
-                    return OSD.FromInteger((int)reader.Value);
+                    return reader.Value != null ? OSD.FromInteger((int)reader.Value) : new OSD();
                 case JsonToken.Long:
-                    return OSD.FromLong((long)reader.Value);
+                    return reader.Value != null ? OSD.FromLong((long)reader.Value) : new OSD();
                 case JsonToken.Boolean:
-                    return OSD.FromBoolean((bool)reader.Value);
+                    return reader.Value != null ? OSD.FromBoolean((bool)reader.Value) : new OSD();
                 case JsonToken.Null:
                 case JsonToken.None:
                     return new OSD();
@@ -132,7 +132,7 @@ namespace OpenMetaverse.StructuredData
                 case JsonType.Double:
                     return OSD.FromReal((double)json);
                 case JsonType.String:
-                    string str = (string)json;
+                    string? str = (string?)json;
                     return string.IsNullOrEmpty(str) ? new OSD() : OSD.FromString(str);
                 case JsonType.Array:
                     OSDArray array = new OSDArray(json.Count);
@@ -146,9 +146,9 @@ namespace OpenMetaverse.StructuredData
                     var ordered = json as IOrderedDictionary;
                     foreach (DictionaryEntry de in ordered)
                     {
-                        string key = de.Key as string;
-                        JsonData val = de.Value as JsonData;
-                        map.Add(key ?? string.Empty, DeserializeJson(val));
+                        string key = (de.Key as string) ?? string.Empty;
+                        JsonData? val = de.Value as JsonData;
+                        map.Add(key, DeserializeJson(val ?? new JsonData()));
                     }
                     return map;
                 case JsonType.None:

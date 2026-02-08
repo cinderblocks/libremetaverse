@@ -26,6 +26,7 @@ namespace LibreMetaverse
     /// <typeparam name="TValue">The type of the value.</typeparam>
     public class MultiValueDictionary<TKey, TValue> :
         IReadOnlyDictionary<TKey, IReadOnlyCollection<TValue>>
+        where TKey : notnull
     {
         #region Variables
         /*======================================================================
@@ -116,7 +117,7 @@ namespace LibreMetaverse
         /// <param name="enumerable">IEnumerable to copy elements into this from</param>
         /// <exception cref="ArgumentNullException">enumerable must be non-null</exception>
         public MultiValueDictionary(IEnumerable<KeyValuePair<TKey, IReadOnlyCollection<TValue>>> enumerable)
-            : this(enumerable, null)
+            : this(enumerable, null!)
         { }
 
         /// <summary>
@@ -632,7 +633,7 @@ namespace LibreMetaverse
         {
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
-            if (!_dictionary.TryGetValue(key, out InnerCollectionView collection))
+            if (!_dictionary.TryGetValue(key, out InnerCollectionView? collection))
             {
                 collection = new InnerCollectionView(key, NewCollectionFactory());
                 _dictionary.Add(key, collection);
@@ -660,7 +661,7 @@ namespace LibreMetaverse
             if (values == null)
                 throw new ArgumentNullException(nameof(values));
 
-            if (!_dictionary.TryGetValue(key, out InnerCollectionView collection))
+            if (!_dictionary.TryGetValue(key, out InnerCollectionView? collection))
             {
                 collection = new InnerCollectionView(key, NewCollectionFactory());
                 _dictionary.Add(key, collection);
@@ -684,7 +685,7 @@ namespace LibreMetaverse
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            if (_dictionary.TryGetValue(key, out InnerCollectionView _) && _dictionary.Remove(key))
+            if (_dictionary.TryGetValue(key, out InnerCollectionView? _) && _dictionary.Remove(key))
             {
                 _version++;
                 return true;
@@ -711,7 +712,7 @@ namespace LibreMetaverse
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            if (_dictionary.TryGetValue(key, out InnerCollectionView collection) && collection.RemoveValue(value))
+            if (_dictionary.TryGetValue(key, out InnerCollectionView? collection) && collection.RemoveValue(value))
             {
                 if (collection.Count == 0)
                     _dictionary.Remove(key);
@@ -734,7 +735,7 @@ namespace LibreMetaverse
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            return (_dictionary.TryGetValue(key, out InnerCollectionView collection) && collection.Contains(value));
+            return (_dictionary.TryGetValue(key, out InnerCollectionView? collection) && collection.Contains(value));
         }
 
         /// <summary>
@@ -810,13 +811,13 @@ namespace LibreMetaverse
         /// <typeparamref name="TKey"/>; otherwise, <c>false</c>.
         /// </returns>
         /// <exception cref="ArgumentNullException"><paramref name="key"/> must be non-null</exception>
-        public bool TryGetValue(TKey key, out IReadOnlyCollection<TValue> value)
+        public bool TryGetValue(TKey key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out IReadOnlyCollection<TValue> value)
         {
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            var success = _dictionary.TryGetValue(key, out InnerCollectionView collection);
-            value = collection;
+            var success = _dictionary.TryGetValue(key, out InnerCollectionView? collection);
+            value = collection!;
             return success;
         }
 
@@ -853,7 +854,7 @@ namespace LibreMetaverse
                 if (key == null)
                     throw new ArgumentNullException(nameof(key));
 
-                if (_dictionary.TryGetValue(key, out InnerCollectionView collection))
+                if (_dictionary.TryGetValue(key, out InnerCollectionView? collection))
                     return collection;
 
                 throw new KeyNotFoundException();

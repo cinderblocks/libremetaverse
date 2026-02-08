@@ -20,7 +20,7 @@ namespace LitJson
     {
         public bool  Return;
         public int   NextState;
-        public Lexer L;
+        public Lexer? L;
         public int   StateStack;
     }
 
@@ -30,8 +30,8 @@ namespace LitJson
         #region Fields
         private delegate bool StateHandler (FsmContext ctx);
 
-        private static int[]          fsm_return_table;
-        private static StateHandler[] fsm_handler_table;
+        private static int[]          fsm_return_table = null!;
+        private static StateHandler[] fsm_handler_table = null!;
 
         private readonly FsmContext    fsm_context;
         private int           input_buffer;
@@ -48,7 +48,7 @@ namespace LitJson
         public bool AllowSingleQuotedStrings { get; set; }
         public bool EndOfInput { get; private set; }
         public int Token { get; private set; }
-        public string StringValue { get; private set; }
+        public string? StringValue { get; private set; }
         #endregion
 
 
@@ -204,18 +204,18 @@ namespace LitJson
 
         private static bool State1 (FsmContext ctx)
         {
-            while (ctx.L.GetChar ()) {
-                if (ctx.L.input_char == ' ' ||
-                    ctx.L.input_char >= '\t' && ctx.L.input_char <= '\r')
+            while (ctx.L!.GetChar ()) {
+                if (ctx.L!.input_char == ' ' ||
+                    ctx.L!.input_char >= '\t' && ctx.L!.input_char <= '\r')
                     continue;
 
-                if (ctx.L.input_char >= '1' && ctx.L.input_char <= '9') {
-                    ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+                if (ctx.L!.input_char >= '1' && ctx.L!.input_char <= '9') {
+                    ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
                     ctx.NextState = 3;
                     return true;
                 }
 
-                switch (ctx.L.input_char) {
+                switch (ctx.L!.input_char) {
                 case '"':
                     ctx.NextState = 19;
                     ctx.Return = true;
@@ -232,12 +232,12 @@ namespace LitJson
                     return true;
 
                 case '-':
-                    ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+                    ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
                     ctx.NextState = 2;
                     return true;
 
                 case '0':
-                    ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+                    ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
                     ctx.NextState = 4;
                     return true;
 
@@ -254,16 +254,16 @@ namespace LitJson
                     return true;
 
                 case '\'':
-                    if (! ctx.L.AllowSingleQuotedStrings)
+                    if (! ctx.L!.AllowSingleQuotedStrings)
                         return false;
 
-                    ctx.L.input_char = '"';
+                    ctx.L!.input_char = '"';
                     ctx.NextState = 23;
                     ctx.Return = true;
                     return true;
 
                 case '/':
-                    if (! ctx.L.AllowComments)
+                    if (! ctx.L!.AllowComments)
                         return false;
 
                     ctx.NextState = 25;
@@ -279,17 +279,17 @@ namespace LitJson
 
         private static bool State2 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            if (ctx.L.input_char >= '1' && ctx.L.input_char<= '9') {
-                ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+            if (ctx.L!.input_char >= '1' && ctx.L!.input_char<= '9') {
+                ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
                 ctx.NextState = 3;
                 return true;
             }
 
-            switch (ctx.L.input_char) {
+            switch (ctx.L!.input_char) {
             case '0':
-                ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+                ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
                 ctx.NextState = 4;
                 return true;
 
@@ -300,36 +300,36 @@ namespace LitJson
 
         private static bool State3 (FsmContext ctx)
         {
-            while (ctx.L.GetChar ()) {
-                if (ctx.L.input_char >= '0' && ctx.L.input_char <= '9') {
-                    ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+            while (ctx.L!.GetChar ()) {
+                if (ctx.L!.input_char >= '0' && ctx.L!.input_char <= '9') {
+                    ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
                     continue;
                 }
 
-                if (ctx.L.input_char == ' ' ||
-                    ctx.L.input_char >= '\t' && ctx.L.input_char <= '\r') {
+                if (ctx.L!.input_char == ' ' ||
+                    ctx.L!.input_char >= '\t' && ctx.L!.input_char <= '\r') {
                     ctx.Return = true;
                     ctx.NextState = 1;
                     return true;
                 }
 
-                switch (ctx.L.input_char) {
+                switch (ctx.L!.input_char) {
                 case ',':
                 case ']':
                 case '}':
-                    ctx.L.UngetChar ();
+                    ctx.L!.UngetChar ();
                     ctx.Return = true;
                     ctx.NextState = 1;
                     return true;
 
                 case '.':
-                    ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+                    ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
                     ctx.NextState = 5;
                     return true;
 
                 case 'e':
                 case 'E':
-                    ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+                    ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
                     ctx.NextState = 7;
                     return true;
 
@@ -342,32 +342,32 @@ namespace LitJson
 
         private static bool State4 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            if (ctx.L.input_char == ' ' ||
-                ctx.L.input_char >= '\t' && ctx.L.input_char <= '\r') {
+            if (ctx.L!.input_char == ' ' ||
+                ctx.L!.input_char >= '\t' && ctx.L!.input_char <= '\r') {
                 ctx.Return = true;
                 ctx.NextState = 1;
                 return true;
             }
 
-            switch (ctx.L.input_char) {
+            switch (ctx.L!.input_char) {
             case ',':
             case ']':
             case '}':
-                ctx.L.UngetChar ();
+                ctx.L!.UngetChar ();
                 ctx.Return = true;
                 ctx.NextState = 1;
                 return true;
 
             case '.':
-                ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+                ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
                 ctx.NextState = 5;
                 return true;
 
             case 'e':
             case 'E':
-                ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+                ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
                 ctx.NextState = 7;
                 return true;
 
@@ -378,42 +378,42 @@ namespace LitJson
 
         private static bool State5 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            if (ctx.L.input_char < '0' || ctx.L.input_char > '9') return false;
+            if (ctx.L!.input_char < '0' || ctx.L!.input_char > '9') return false;
 
-            ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+            ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
             ctx.NextState = 6;
             return true;
         }
 
         private static bool State6 (FsmContext ctx)
         {
-            while (ctx.L.GetChar ()) {
-                if (ctx.L.input_char >= '0' && ctx.L.input_char <= '9') {
-                    ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+            while (ctx.L!.GetChar ()) {
+                if (ctx.L!.input_char >= '0' && ctx.L!.input_char <= '9') {
+                    ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
                     continue;
                 }
 
-                if (ctx.L.input_char == ' ' ||
-                    ctx.L.input_char >= '\t' && ctx.L.input_char <= '\r') {
+                if (ctx.L!.input_char == ' ' ||
+                    ctx.L!.input_char >= '\t' && ctx.L!.input_char <= '\r') {
                     ctx.Return = true;
                     ctx.NextState = 1;
                     return true;
                 }
 
-                switch (ctx.L.input_char) {
+                switch (ctx.L!.input_char) {
                 case ',':
                 case ']':
                 case '}':
-                    ctx.L.UngetChar ();
+                    ctx.L!.UngetChar ();
                     ctx.Return = true;
                     ctx.NextState = 1;
                     return true;
 
                 case 'e':
                 case 'E':
-                    ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+                    ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
                     ctx.NextState = 7;
                     return true;
 
@@ -427,18 +427,18 @@ namespace LitJson
 
         private static bool State7 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            if (ctx.L.input_char >= '0' && ctx.L.input_char<= '9') {
-                ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+            if (ctx.L!.input_char >= '0' && ctx.L!.input_char<= '9') {
+                ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
                 ctx.NextState = 8;
                 return true;
             }
 
-            switch (ctx.L.input_char) {
+            switch (ctx.L!.input_char) {
             case '+':
             case '-':
-                ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+                ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
                 ctx.NextState = 8;
                 return true;
 
@@ -449,24 +449,24 @@ namespace LitJson
 
         private static bool State8 (FsmContext ctx)
         {
-            while (ctx.L.GetChar ()) {
-                if (ctx.L.input_char >= '0' && ctx.L.input_char<= '9') {
-                    ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+            while (ctx.L!.GetChar ()) {
+                if (ctx.L!.input_char >= '0' && ctx.L!.input_char<= '9') {
+                    ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
                     continue;
                 }
 
-                if (ctx.L.input_char == ' ' ||
-                    ctx.L.input_char >= '\t' && ctx.L.input_char<= '\r') {
+                if (ctx.L!.input_char == ' ' ||
+                    ctx.L!.input_char >= '\t' && ctx.L!.input_char<= '\r') {
                     ctx.Return = true;
                     ctx.NextState = 1;
                     return true;
                 }
 
-                switch (ctx.L.input_char) {
+                switch (ctx.L!.input_char) {
                 case ',':
                 case ']':
                 case '}':
-                    ctx.L.UngetChar ();
+                    ctx.L!.UngetChar ();
                     ctx.Return = true;
                     ctx.NextState = 1;
                     return true;
@@ -481,9 +481,9 @@ namespace LitJson
 
         private static bool State9 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            switch (ctx.L.input_char) {
+            switch (ctx.L!.input_char) {
             case 'r':
                 ctx.NextState = 10;
                 return true;
@@ -495,9 +495,9 @@ namespace LitJson
 
         private static bool State10 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            switch (ctx.L.input_char) {
+            switch (ctx.L!.input_char) {
             case 'u':
                 ctx.NextState = 11;
                 return true;
@@ -509,9 +509,9 @@ namespace LitJson
 
         private static bool State11 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            switch (ctx.L.input_char) {
+            switch (ctx.L!.input_char) {
             case 'e':
                 ctx.Return = true;
                 ctx.NextState = 1;
@@ -524,9 +524,9 @@ namespace LitJson
 
         private static bool State12 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            switch (ctx.L.input_char) {
+            switch (ctx.L!.input_char) {
             case 'a':
                 ctx.NextState = 13;
                 return true;
@@ -538,9 +538,9 @@ namespace LitJson
 
         private static bool State13 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            switch (ctx.L.input_char) {
+            switch (ctx.L!.input_char) {
             case 'l':
                 ctx.NextState = 14;
                 return true;
@@ -552,9 +552,9 @@ namespace LitJson
 
         private static bool State14 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            switch (ctx.L.input_char) {
+            switch (ctx.L!.input_char) {
             case 's':
                 ctx.NextState = 15;
                 return true;
@@ -566,9 +566,9 @@ namespace LitJson
 
         private static bool State15 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            switch (ctx.L.input_char) {
+            switch (ctx.L!.input_char) {
             case 'e':
                 ctx.Return = true;
                 ctx.NextState = 1;
@@ -581,9 +581,9 @@ namespace LitJson
 
         private static bool State16 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            switch (ctx.L.input_char) {
+            switch (ctx.L!.input_char) {
             case 'u':
                 ctx.NextState = 17;
                 return true;
@@ -595,9 +595,9 @@ namespace LitJson
 
         private static bool State17 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            switch (ctx.L.input_char) {
+            switch (ctx.L!.input_char) {
             case 'l':
                 ctx.NextState = 18;
                 return true;
@@ -609,9 +609,9 @@ namespace LitJson
 
         private static bool State18 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            switch (ctx.L.input_char) {
+            switch (ctx.L!.input_char) {
             case 'l':
                 ctx.Return = true;
                 ctx.NextState = 1;
@@ -624,10 +624,10 @@ namespace LitJson
 
         private static bool State19 (FsmContext ctx)
         {
-            while (ctx.L.GetChar ()) {
-                switch (ctx.L.input_char) {
+            while (ctx.L!.GetChar ()) {
+                switch (ctx.L!.input_char) {
                 case '"':
-                    ctx.L.UngetChar ();
+                    ctx.L!.UngetChar ();
                     ctx.Return = true;
                     ctx.NextState = 20;
                     return true;
@@ -638,7 +638,7 @@ namespace LitJson
                     return true;
 
                 default:
-                    ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+                    ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
                     continue;
                 }
             }
@@ -648,9 +648,9 @@ namespace LitJson
 
         private static bool State20 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            switch (ctx.L.input_char) {
+            switch (ctx.L!.input_char) {
             case '"':
                 ctx.Return = true;
                 ctx.NextState = 1;
@@ -663,9 +663,9 @@ namespace LitJson
 
         private static bool State21 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            switch (ctx.L.input_char) {
+            switch (ctx.L!.input_char) {
             case 'u':
                 ctx.NextState = 22;
                 return true;
@@ -679,8 +679,8 @@ namespace LitJson
             case 'n':
             case 'r':
             case 't':
-                ctx.L.string_buffer.Append (
-                    ProcessEscChar (ctx.L.input_char));
+                ctx.L!.string_buffer.Append (
+                    ProcessEscChar (ctx.L!.input_char));
                 ctx.NextState = ctx.StateStack;
                 return true;
 
@@ -694,22 +694,22 @@ namespace LitJson
             int counter = 0;
             int mult    = 4096;
 
-            ctx.L.unichar = 0;
+            ctx.L!.unichar = 0;
 
-            while (ctx.L.GetChar ()) {
+            while (ctx.L!.GetChar ()) {
 
-                if (ctx.L.input_char >= '0' && ctx.L.input_char <= '9' ||
-                    ctx.L.input_char >= 'A' && ctx.L.input_char <= 'F' ||
-                    ctx.L.input_char >= 'a' && ctx.L.input_char <= 'f') {
+                if (ctx.L!.input_char >= '0' && ctx.L!.input_char <= '9' ||
+                    ctx.L!.input_char >= 'A' && ctx.L!.input_char <= 'F' ||
+                    ctx.L!.input_char >= 'a' && ctx.L!.input_char <= 'f') {
 
-                    ctx.L.unichar += HexValue (ctx.L.input_char) * mult;
+                    ctx.L!.unichar += HexValue (ctx.L!.input_char) * mult;
 
                     counter++;
                     mult /= 16;
 
                     if (counter == 4) {
-                        ctx.L.string_buffer.Append (
-                            Convert.ToChar (ctx.L.unichar));
+                        ctx.L!.string_buffer.Append (
+                            Convert.ToChar (ctx.L!.unichar));
                         ctx.NextState = ctx.StateStack;
                         return true;
                     }
@@ -725,10 +725,10 @@ namespace LitJson
 
         private static bool State23 (FsmContext ctx)
         {
-            while (ctx.L.GetChar ()) {
-                switch (ctx.L.input_char) {
+            while (ctx.L!.GetChar ()) {
+                switch (ctx.L!.input_char) {
                 case '\'':
-                    ctx.L.UngetChar ();
+                    ctx.L!.UngetChar ();
                     ctx.Return = true;
                     ctx.NextState = 24;
                     return true;
@@ -739,7 +739,7 @@ namespace LitJson
                     return true;
 
                 default:
-                    ctx.L.string_buffer.Append ((char) ctx.L.input_char);
+                    ctx.L!.string_buffer.Append ((char) ctx.L!.input_char);
                     continue;
                 }
             }
@@ -749,11 +749,11 @@ namespace LitJson
 
         private static bool State24 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            switch (ctx.L.input_char) {
+            switch (ctx.L!.input_char) {
             case '\'':
-                ctx.L.input_char = '"';
+                ctx.L!.input_char = '"';
                 ctx.Return = true;
                 ctx.NextState = 1;
                 return true;
@@ -765,9 +765,9 @@ namespace LitJson
 
         private static bool State25 (FsmContext ctx)
         {
-            ctx.L.GetChar ();
+            ctx.L!.GetChar ();
 
-            switch (ctx.L.input_char) {
+            switch (ctx.L!.input_char) {
             case '*':
                 ctx.NextState = 27;
                 return true;
@@ -783,8 +783,8 @@ namespace LitJson
 
         private static bool State26 (FsmContext ctx)
         {
-            while (ctx.L.GetChar ()) {
-                if (ctx.L.input_char == '\n') {
+            while (ctx.L!.GetChar ()) {
+                if (ctx.L!.input_char == '\n') {
                     ctx.NextState = 1;
                     return true;
                 }
@@ -795,8 +795,8 @@ namespace LitJson
 
         private static bool State27 (FsmContext ctx)
         {
-            while (ctx.L.GetChar ()) {
-                if (ctx.L.input_char == '*') {
+            while (ctx.L!.GetChar ()) {
+                if (ctx.L!.input_char == '*') {
                     ctx.NextState = 28;
                     return true;
                 }
@@ -807,11 +807,11 @@ namespace LitJson
 
         private static bool State28 (FsmContext ctx)
         {
-            while (ctx.L.GetChar ()) {
-                if (ctx.L.input_char == '*')
+            while (ctx.L!.GetChar ()) {
+                if (ctx.L!.input_char == '*')
                     continue;
 
-                if (ctx.L.input_char == '/') {
+                if (ctx.L!.input_char == '/') {
                     ctx.NextState = 1;
                     return true;
                 }

@@ -411,7 +411,7 @@ namespace OpenMetaverse
 
         #region Overrides
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return (obj is Vector3 v3) && this == v3;
         }
