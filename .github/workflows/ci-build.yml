@@ -29,7 +29,18 @@ jobs:
         run: dotnet build LibreMetaverse.sln --configuration Release --no-restore --verbosity minimal
 
       - name: Pack
-        run: dotnet pack LibreMetaverse.sln -c Release -o ./artifacts --no-build
+        run: |
+          dotnet pack LibreMetaverse\LibreMetaverse.csproj -c Release -o ./artifacts --no-build
+          dotnet pack LibreMetaverse.Types\LibreMetaverse.Types.csproj -c Release -o ./artifacts --no-build
+          dotnet pack LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj -c Release -o ./artifacts --no-build
+          dotnet pack LibreMetaverse.Utilities\LibreMetaverse.Utilities.csproj -c Release -o ./artifacts --no-build
+          dotnet pack LibreMetaverse.LslTools\LibreMetaverse.LslTools.csproj -c Release -o ./artifacts --no-build
+          dotnet pack LibreMetaverse.RLV\LibreMetaverse.RLV.csproj -c Release -o ./artifacts --no-build
+          dotnet pack LibreMetaverse.Voice.Vivox\LibreMetaverse.Voice.Vivox.csproj -c Release -o ./artifacts --no-build
+          dotnet pack LibreMetaverse.Voice.WebRTC\LibreMetaverse.Voice.WebRTC.csproj -c Release -o ./artifacts --no-build
+          dotnet pack LibreMetaverse.Rendering.Simple\LibreMetaverse.Rendering.Simple.csproj -c Release -o ./artifacts --no-build
+          dotnet pack LibreMetaverse.Rendering.Meshmerizer\LibreMetaverse.Rendering.Meshmerizer.csproj -c Release -o ./artifacts --no-build
+          dotnet pack PrimMesher\LibreMetaverse.PrimMesher.csproj -c Release -o ./artifacts --no-build
 
       - name: Upload packages
         uses: actions/upload-artifact@v4
