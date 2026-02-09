@@ -37,7 +37,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseSimpleLocation_ParsesCorrectly()
         {
-            var parser = new LocationParser("Hooper/128/128/32");
+            var parser = new SlurlParser("Hooper/128/128/32");
             
             Assert.That(parser.Sim, Is.EqualTo("Hooper"));
             Assert.That(parser.X, Is.EqualTo(128));
@@ -51,7 +51,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseSlurl_ParsesCorrectly()
         {
-            var parser = new LocationParser("secondlife://Hooper/179/18/32");
+            var parser = new SlurlParser("secondlife://Hooper/179/18/32");
             
             Assert.That(parser.Sim, Is.EqualTo("Hooper"));
             Assert.That(parser.X, Is.EqualTo(179));
@@ -63,7 +63,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseSlurlWithTrailingSlash_ParsesCorrectly()
         {
-            var parser = new LocationParser("secondlife://Hooper/179/18/32/");
+            var parser = new SlurlParser("secondlife://Hooper/179/18/32/");
             
             Assert.That(parser.Sim, Is.EqualTo("Hooper"));
             Assert.That(parser.X, Is.EqualTo(179));
@@ -74,7 +74,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseLegacyUri_ParsesCorrectly()
         {
-            var parser = new LocationParser("uri:Hooper&179&18&32");
+            var parser = new SlurlParser("uri:Hooper&179&18&32");
             
             Assert.That(parser.Sim, Is.EqualTo("Hooper"));
             Assert.That(parser.X, Is.EqualTo(179));
@@ -86,7 +86,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseLocationWithDefaults_UsesDefaultCoordinates()
         {
-            var parser = new LocationParser("secondlife://Hooper");
+            var parser = new SlurlParser("secondlife://Hooper");
             
             Assert.That(parser.Sim, Is.EqualTo("Hooper"));
             Assert.That(parser.X, Is.EqualTo(128));
@@ -97,7 +97,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseLocationPartialCoordinates_UsesDefaults()
         {
-            var parser = new LocationParser("secondlife://Hooper/100");
+            var parser = new SlurlParser("secondlife://Hooper/100");
             
             Assert.That(parser.Sim, Is.EqualTo("Hooper"));
             Assert.That(parser.X, Is.EqualTo(100));
@@ -109,7 +109,7 @@ namespace LibreMetaverse.Tests
         public void ParseAgentSlapp_ParsesCorrectly()
         {
             var agentId = UUID.Random();
-            var parser = new LocationParser($"secondlife:///app/agent/{agentId}/about");
+            var parser = new SlurlParser($"secondlife:///app/agent/{agentId}/about");
             
             Assert.That(parser.UriType, Is.EqualTo(ViewerUriType.Application));
             Assert.That(parser.Command, Is.EqualTo(SlappCommand.Agent));
@@ -122,7 +122,7 @@ namespace LibreMetaverse.Tests
         public void ParseGroupSlapp_ParsesCorrectly()
         {
             var groupId = UUID.Random();
-            var parser = new LocationParser($"secondlife:///app/group/{groupId}/about");
+            var parser = new SlurlParser($"secondlife:///app/group/{groupId}/about");
             
             Assert.That(parser.UriType, Is.EqualTo(ViewerUriType.Application));
             Assert.That(parser.Command, Is.EqualTo(SlappCommand.Group));
@@ -132,7 +132,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseTeleportSlapp_ParsesLocationData()
         {
-            var parser = new LocationParser("secondlife:///app/teleport/Hooper/100/200/50");
+            var parser = new SlurlParser("secondlife:///app/teleport/Hooper/100/200/50");
             
             Assert.That(parser.UriType, Is.EqualTo(ViewerUriType.Application));
             Assert.That(parser.Command, Is.EqualTo(SlappCommand.Teleport));
@@ -145,7 +145,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseWorldMapSlapp_ParsesLocationData()
         {
-            var parser = new LocationParser("secondlife:///app/worldmap/Sandbox/128/128/0");
+            var parser = new SlurlParser("secondlife:///app/worldmap/Sandbox/128/128/0");
             
             Assert.That(parser.UriType, Is.EqualTo(ViewerUriType.Application));
             Assert.That(parser.Command, Is.EqualTo(SlappCommand.WorldMap));
@@ -158,7 +158,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseLoginSlapp_ParsesQueryParameters()
         {
-            var parser = new LocationParser("secondlife:///app/login?last=Resident&session=abc123&location=home");
+            var parser = new SlurlParser("secondlife:///app/login?last=Resident&session=abc123&location=home");
             
             Assert.That(parser.UriType, Is.EqualTo(ViewerUriType.Application));
             Assert.That(parser.Command, Is.EqualTo(SlappCommand.Login));
@@ -174,7 +174,7 @@ namespace LibreMetaverse.Tests
             var objId = UUID.Random();
             var ownerId = UUID.Random();
             var url = $"secondlife:///app/objectim/{objId}?name=TestObject&owner={ownerId}&groupowned=true&slurl=Hooper/128/128/25";
-            var parser = new LocationParser(url);
+            var parser = new SlurlParser(url);
             
             Assert.That(parser.Command, Is.EqualTo(SlappCommand.ObjectIm));
             Assert.That(parser.QueryParameters["name"], Is.EqualTo("TestObject"));
@@ -186,7 +186,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseSearchSlapp_ParsesCorrectly()
         {
-            var parser = new LocationParser("secondlife:///app/search/places/Sandbox");
+            var parser = new SlurlParser("secondlife:///app/search/places/Sandbox");
             
             Assert.That(parser.Command, Is.EqualTo(SlappCommand.Search));
             Assert.That(parser.CommandPath, Does.Contain("places"));
@@ -196,7 +196,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void GetRawLocation_ReturnsCorrectFormat()
         {
-            var parser = new LocationParser("Hooper/100/200/50");
+            var parser = new SlurlParser("Hooper/100/200/50");
             var raw = parser.GetRawLocation();
             
             Assert.That(raw, Is.EqualTo("Hooper/100/200/50"));
@@ -205,7 +205,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void GetSlurl_ReturnsCorrectFormat()
         {
-            var parser = new LocationParser("Hooper/100/200/50");
+            var parser = new SlurlParser("Hooper/100/200/50");
             var slurl = parser.GetSlurl();
             
             Assert.That(slurl, Is.EqualTo("secondlife://Hooper/100/200/50/"));
@@ -214,7 +214,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void GetStartLocationUri_ReturnsCorrectFormat()
         {
-            var parser = new LocationParser("Hooper/100/200/50");
+            var parser = new SlurlParser("Hooper/100/200/50");
             var uri = parser.GetStartLocationUri();
             
             Assert.That(uri, Is.EqualTo("uri:Hooper&100&200&50"));
@@ -224,7 +224,7 @@ namespace LibreMetaverse.Tests
         public void GetAgentUrl_GeneratesCorrectUrl()
         {
             var agentId = UUID.Random();
-            var url = LocationParser.GetAgentUrl(agentId, "inspect");
+            var url = SlurlParser.GetAgentUrl(agentId, "inspect");
             
             Assert.That(url, Is.EqualTo($"secondlife:///app/agent/{agentId}/inspect"));
         }
@@ -233,7 +233,7 @@ namespace LibreMetaverse.Tests
         public void GetAgentUrl_DefaultAction_UsesAbout()
         {
             var agentId = UUID.Random();
-            var url = LocationParser.GetAgentUrl(agentId);
+            var url = SlurlParser.GetAgentUrl(agentId);
             
             Assert.That(url, Does.Contain("/about"));
         }
@@ -242,7 +242,7 @@ namespace LibreMetaverse.Tests
         public void GetGroupUrl_GeneratesCorrectUrl()
         {
             var groupId = UUID.Random();
-            var url = LocationParser.GetGroupUrl(groupId, "inspect");
+            var url = SlurlParser.GetGroupUrl(groupId, "inspect");
             
             Assert.That(url, Is.EqualTo($"secondlife:///app/group/{groupId}/inspect"));
         }
@@ -250,7 +250,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void GetTeleportUrl_GeneratesCorrectUrl()
         {
-            var url = LocationParser.GetTeleportUrl("Hooper", 100, 200, 50);
+            var url = SlurlParser.GetTeleportUrl("Hooper", 100, 200, 50);
             
             Assert.That(url, Is.EqualTo("secondlife:///app/teleport/Hooper/100/200/50"));
         }
@@ -258,7 +258,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void GetTeleportUrl_WithDefaults_UsesDefaultCoordinates()
         {
-            var url = LocationParser.GetTeleportUrl("Hooper");
+            var url = SlurlParser.GetTeleportUrl("Hooper");
             
             Assert.That(url, Is.EqualTo("secondlife:///app/teleport/Hooper/128/128/0"));
         }
@@ -266,7 +266,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void GetWorldMapUrl_GeneratesCorrectUrl()
         {
-            var url = LocationParser.GetWorldMapUrl("Sandbox", 64, 64, 100);
+            var url = SlurlParser.GetWorldMapUrl("Sandbox", 64, 64, 100);
             
             Assert.That(url, Is.EqualTo("secondlife:///app/worldmap/Sandbox/64/64/100"));
         }
@@ -276,7 +276,7 @@ namespace LibreMetaverse.Tests
         {
             var objectId = UUID.Random();
             var ownerId = UUID.Random();
-            var url = LocationParser.GetObjectImUrl(objectId, "Test Object", ownerId, true, "Hooper/128/128/25");
+            var url = SlurlParser.GetObjectImUrl(objectId, "Test Object", ownerId, true, "Hooper/128/128/25");
             
             Assert.That(url, Does.Contain($"objectim/{objectId}"));
             Assert.That(url, Does.Contain("name=Test%20Object"));
@@ -290,7 +290,7 @@ namespace LibreMetaverse.Tests
         {
             var objectId = UUID.Random();
             var ownerId = UUID.Random();
-            var url = LocationParser.GetObjectImUrl(objectId, "Test Object", ownerId, false, "Hooper/128/128/25");
+            var url = SlurlParser.GetObjectImUrl(objectId, "Test Object", ownerId, false, "Hooper/128/128/25");
             
             Assert.That(url, Does.Not.Contain("groupowned"));
         }
@@ -298,7 +298,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void GetSearchUrl_GeneratesCorrectUrl()
         {
-            var url = LocationParser.GetSearchUrl("places", "sandbox island");
+            var url = SlurlParser.GetSearchUrl("places", "sandbox island");
             
             Assert.That(url, Is.EqualTo("secondlife:///app/search/places/sandbox%20island"));
         }
@@ -306,7 +306,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void GetLoginUrl_WithAllParameters_GeneratesCorrectUrl()
         {
-            var url = LocationParser.GetLoginUrl("Resident", "session123", "home");
+            var url = SlurlParser.GetLoginUrl("Resident", "session123", "home");
             
             Assert.That(url, Does.Contain("login?"));
             Assert.That(url, Does.Contain("last=Resident"));
@@ -317,7 +317,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void GetLoginUrl_WithNoParameters_GeneratesBaseUrl()
         {
-            var url = LocationParser.GetLoginUrl();
+            var url = SlurlParser.GetLoginUrl();
             
             Assert.That(url, Is.EqualTo("secondlife:///app/login"));
         }
@@ -331,7 +331,7 @@ namespace LibreMetaverse.Tests
                 { "foo", "bar" }
             };
             
-            var url = LocationParser.GetSlappUrl(SlappCommand.Help, "topic", queryParams);
+            var url = SlurlParser.GetSlappUrl(SlappCommand.Help, "topic", queryParams);
             
             Assert.That(url, Does.Contain("help/topic"));
             Assert.That(url, Does.Contain("test=value"));
@@ -341,19 +341,19 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseNull_ThrowsArgumentNullException()
         {
-            Assert.Throws<ArgumentNullException>(() => new LocationParser(null));
+            Assert.Throws<ArgumentNullException>(() => new SlurlParser(null));
         }
 
         [Test]
         public void ParseEmptyString_ThrowsArgumentException()
         {
-            Assert.Throws<ArgumentException>(() => new LocationParser(""));
+            Assert.Throws<ArgumentException>(() => new SlurlParser(""));
         }
 
         [Test]
         public void ParseUrlEncodedQueryParams_DecodesCorrectly()
         {
-            var parser = new LocationParser("secondlife:///app/search/places/sandbox%20island");
+            var parser = new SlurlParser("secondlife:///app/search/places/sandbox%20island");
             
             // The path should still be URL encoded in CommandPath
             Assert.That(parser.CommandPath, Does.Contain("sandbox%20island"));
@@ -362,9 +362,9 @@ namespace LibreMetaverse.Tests
         [Test]
         public void RoundTripLocation_PreservesData()
         {
-            var original = new LocationParser("Hooper/100/200/50");
+            var original = new SlurlParser("Hooper/100/200/50");
             var slurl = original.GetSlurl();
-            var parsed = new LocationParser(slurl);
+            var parsed = new SlurlParser(slurl);
             
             Assert.That(parsed.Sim, Is.EqualTo(original.Sim));
             Assert.That(parsed.X, Is.EqualTo(original.X));
@@ -404,7 +404,7 @@ namespace LibreMetaverse.Tests
 
             foreach (var (url, expected) in commands)
             {
-                var parser = new LocationParser(url);
+                var parser = new SlurlParser(url);
                 Assert.That(parser.Command, Is.EqualTo(expected), 
                     $"Failed to parse command for: {url}");
             }

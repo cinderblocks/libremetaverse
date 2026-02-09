@@ -1097,7 +1097,7 @@ namespace OpenMetaverse
 
             if (!string.IsNullOrEmpty(loginParams.LoginLocation))
             {
-                var startLoc = new LocationParser(loginParams.LoginLocation.Trim());
+                var startLoc = new SlurlParser(loginParams.LoginLocation.Trim());
                 loginParams.Start = startLoc.GetStartLocationUri();
             } 
             else
@@ -1108,7 +1108,7 @@ namespace OpenMetaverse
                     case "last":
                         break;
                     default:
-                        var startLoc = new LocationParser(loginParams.Start.Trim());
+                        var startLoc = new SlurlParser(loginParams.Start.Trim());
                         loginParams.Start = startLoc.GetStartLocationUri();
                         break;
                 }
