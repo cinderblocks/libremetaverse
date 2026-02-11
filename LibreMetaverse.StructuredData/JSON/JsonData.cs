@@ -140,7 +140,7 @@ namespace LitJson
 
 
         #region IOrderedDictionary Indexer
-        object IOrderedDictionary.this[int idx] {
+        object? IOrderedDictionary.this[int idx] {
             get {
                 EnsureDictionary ();
                 return object_list![idx].Value;

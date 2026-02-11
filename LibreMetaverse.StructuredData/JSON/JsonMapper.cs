@@ -62,7 +62,7 @@ namespace LitJson
     internal delegate void ExporterFunc    (object obj, JsonWriter writer);
     public   delegate void ExporterFunc<T> (T obj, JsonWriter writer);
 
-    internal delegate object ImporterFunc                (object input);
+    internal delegate object? ImporterFunc                (object? input);
     public   delegate TValue ImporterFunc<TJson, TValue> (TJson input);
 
     public delegate IJsonWrapper WrapperFactory ();
@@ -276,11 +276,11 @@ namespace LitJson
                 try {
                     conv_ops[t1].Add (t2, op);
                 } catch (ArgumentException) {
-                    return conv_ops[t1][t2]!;
+                    return conv_ops[t1][t2];
                 }
             }
 
-            return op!;
+            return op;
         }
 
         private static object? ReadValue (Type inst_type, JsonReader reader)
@@ -548,52 +548,52 @@ namespace LitJson
 
         private static void RegisterBaseImporters ()
         {
-            ImporterFunc importer = input => Convert.ToByte((int) input);
+            ImporterFunc importer = input => Convert.ToByte((int) input!);
             RegisterImporter (base_importers_table, typeof (int),
                               typeof (byte), importer);
 
-            importer = input => Convert.ToUInt64((int) input);
+            importer = input => Convert.ToUInt64((int) input!);
             RegisterImporter (base_importers_table, typeof (int),
                               typeof (ulong), importer);
 
-            importer = input => Convert.ToSByte((int) input);
+            importer = input => Convert.ToSByte((int) input!);
             RegisterImporter (base_importers_table, typeof (int),
                               typeof (sbyte), importer);
 
-            importer = input => Convert.ToInt16((int) input);
+            importer = input => Convert.ToInt16((int) input!);
             RegisterImporter (base_importers_table, typeof (int),
                               typeof (short), importer);
 
-            importer = input => Convert.ToUInt16((int) input);
+            importer = input => Convert.ToUInt16((int) input!);
             RegisterImporter (base_importers_table, typeof (int),
                               typeof (ushort), importer);
 
-            importer = input => Convert.ToUInt32((int) input);
+            importer = input => Convert.ToUInt32((int) input!);
             RegisterImporter (base_importers_table, typeof (int),
                               typeof (uint), importer);
 
-            importer = input => Convert.ToSingle((int) input);
+            importer = input => Convert.ToSingle((int) input!);
             RegisterImporter (base_importers_table, typeof (int),
                               typeof (float), importer);
 
-            importer = input => Convert.ToDouble((int) input);
+            importer = input => Convert.ToDouble((int) input!);
             RegisterImporter (base_importers_table, typeof (int),
                               typeof (double), importer);
 
-            importer = input => Convert.ToDecimal((double) input);
+            importer = input => Convert.ToDecimal((double) input!);
             RegisterImporter (base_importers_table, typeof (double),
                               typeof (decimal), importer);
 
 
-            importer = input => Convert.ToUInt32((long) input);
+            importer = input => Convert.ToUInt32((long) input!);
             RegisterImporter (base_importers_table, typeof (long),
                               typeof (uint), importer);
 
-            importer = input => Convert.ToChar((string) input);
+            importer = input => Convert.ToChar((string) input!);
             RegisterImporter (base_importers_table, typeof (string),
                               typeof (char), importer);
 
-            importer = input => Convert.ToDateTime((string) input, datetime_format);
+            importer = input => Convert.ToDateTime((string) input!, datetime_format);
             RegisterImporter (base_importers_table, typeof (string),
                               typeof (DateTime), importer);
         }

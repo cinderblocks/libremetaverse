@@ -398,7 +398,7 @@ namespace OpenMetaverse.StructuredData
 
         private static ulong MakeTag(int fieldNumber, int wireType)
         {
-            return ((ulong)fieldNumber << 3) | (ulong)wireType;
+            return (((ulong)(uint)fieldNumber) << 3) | (ulong)(uint)wireType;
         }
 
         private static ulong ReadVarint(Stream stream)
@@ -436,7 +436,7 @@ namespace OpenMetaverse.StructuredData
         {
             ulong value = ReadVarint(stream);
             // ZigZag decode
-            return (long)(value >> 1) ^ -((long)(value & 1));
+            return (long)(value >> 1) ^ -(long)(value & 1);
         }
 
         private static void WriteSignedVarint(Stream stream, int value)

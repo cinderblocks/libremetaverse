@@ -416,7 +416,7 @@ namespace OpenMetaverse.StructuredData
                 if (!Attribute.IsDefined(field, typeof(NonSerializedAttribute)))
                 {
                     if (serialized.TryGetValue(field.Name, out var serializedField))
-                        field.SetValue(obj, ToObject(field.FieldType, serializedField));
+                        field.SetValue(obj, ToObject(field.FieldType, serializedField!));
                 }
             }
         }

@@ -98,7 +98,7 @@ namespace OpenMetaverse.StructuredData
                 case JsonToken.String:
                     {
                         string? s = reader.Value as string;
-                        return string.IsNullOrEmpty(s) ? new OSD() : OSD.FromString(s);
+                        return string.IsNullOrEmpty(s) ? new OSD() : OSD.FromString(s!);
                     }
                 case JsonToken.Double:
                     return reader.Value != null ? OSD.FromReal((double)reader.Value) : new OSD();
@@ -133,7 +133,7 @@ namespace OpenMetaverse.StructuredData
                     return OSD.FromReal((double)json);
                 case JsonType.String:
                     string? str = (string?)json;
-                    return string.IsNullOrEmpty(str) ? new OSD() : OSD.FromString(str);
+                    return string.IsNullOrEmpty(str) ? new OSD() : OSD.FromString(str!);
                 case JsonType.Array:
                     OSDArray array = new OSDArray(json.Count);
                     foreach (JsonData e in json as IList)
