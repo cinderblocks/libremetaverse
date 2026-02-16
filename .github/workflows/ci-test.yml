@@ -45,6 +45,11 @@ jobs:
         shell: bash
         run: echo "TEST_FRAMEWORK=net9.0" >> $GITHUB_ENV
 
+      - name: Set test framework to net10.0
+        if: ${{ matrix.dotnet == '10.0.x' }}
+        shell: bash
+        run: echo "TEST_FRAMEWORK=net10.0" >> $GITHUB_ENV
+
       - name: Run tests (Windows)
         if: ${{ matrix.os == 'windows-2022' }}
         shell: bash
