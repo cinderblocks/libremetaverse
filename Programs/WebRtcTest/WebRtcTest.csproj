@@ -3,7 +3,7 @@
     <OutputType>Exe</OutputType>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <OutputPath>..\..\bin\</OutputPath>
-    <TargetFrameworks>net481;net9.0</TargetFrameworks>
+    <TargetFrameworks>net481;net9.0;net10.0</TargetFrameworks>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <IsPackable>false</IsPackable>
     <PackageId>WebRtcTest</PackageId>
@@ -16,7 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
-    <ProjectReference Include="..\..\LibreMetaverse.Voice.WebRtc\LibreMetaverse.Voice.WebRtc.csproj" />
+    <ProjectReference Include="..\..\LibreMetaverse.Voice.WebRTC\LibreMetaverse.Voice.WebRTC.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="\" />
