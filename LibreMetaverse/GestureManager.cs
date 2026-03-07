@@ -60,6 +60,12 @@ namespace LibreMetaverse
         /// <summary>Begin monitoring inventory changes for gesture items.</summary>
         public void BeginMonitoring()
         {
+            if (Client?.Inventory?.Store == null)
+            {
+                Logger.Debug("Cannot begin gesture monitoring: Client or Inventory.Store is null or disposed.", Client);
+                return;
+            }
+
             Client.Inventory.Store.InventoryObjectAdded += Store_InventoryObjectAdded;
             Client.Inventory.Store.InventoryObjectUpdated += Store_InventoryObjectUpdated;
 
@@ -84,6 +90,11 @@ namespace LibreMetaverse
         {
             try
             {
+                if (Client?.Inventory?.Store == null)
+                {
+                    return;
+                }
+
                 Client.Inventory.Store.InventoryObjectAdded -= Store_InventoryObjectAdded;
                 Client.Inventory.Store.InventoryObjectUpdated -= Store_InventoryObjectUpdated;
             }
