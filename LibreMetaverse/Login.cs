@@ -631,8 +631,22 @@ namespace OpenMetaverse
         /// <summary>Parsed login response data</summary>
         public LoginResponseData LoginResponseData;
 
-        /// <summary>Maximum number of groups an agent can belong to, -1 for unlimited</summary>
-        public int MaxAgentGroups => LoginResponseData?.MaxAgentGroups ?? -1;
+        /// <summary>
+        /// Maximum number of groups an agent can belong to, -1 for unlimited.
+        /// Prefers <see cref="AccountLevelBenefits.GroupMembershipLimit"/> when available,
+        /// falling back to the <c>max-agent-groups</c> login response field.
+        /// </summary>
+        public int MaxAgentGroups
+        {
+            get
+            {
+                if (LoginResponseData == null) return -1;
+                var benefitsLimit = LoginResponseData.AccountLevelBenefits?.GroupMembershipLimit ?? -1;
+                return benefitsLimit > 0 ? benefitsLimit : LoginResponseData.MaxAgentGroups;
+            }
+        }
+        /// <summary>Account level benefits returned from the login server, or null if not yet available</summary>
+        public AccountLevelBenefits AccountLevelBenefits => LoginResponseData?.AccountLevelBenefits;
         /// <summary>Server side baking service URL</summary>
         public string AgentAppearanceServiceURL => LoginResponseData?.AgentAppearanceServiceURL;
 
