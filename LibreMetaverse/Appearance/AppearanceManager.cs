@@ -2473,15 +2473,15 @@ namespace OpenMetaverse
             lock (Wearables)
             {
                 var wearables = new MultiValueDictionary<WearableType, WearableData>();
-                
+
                 foreach (var block in update.WearableData)
                 {
                     var wearableType = (WearableType)block.WearableType;
-                    
+
                     // Skip invalid wearable types or empty slots
                     if (wearableType == WearableType.Invalid || block.ItemID == UUID.Zero)
                         continue;
-                    
+
                     var wearableData = new WearableData
                     {
                         ItemID = block.ItemID,
@@ -2489,18 +2489,25 @@ namespace OpenMetaverse
                         WearableType = wearableType,
                         AssetType = WearableTypeToAssetType(wearableType)
                     };
-                    
+
                     wearables.Add(wearableType, wearableData);
-                    
+
                     Logger.DebugLog($"Processing wearable from packet: {wearableType} ItemID={block.ItemID} AssetID={block.AssetID}", Client);
                 }
-                
+
                 // Only update if we got valid data
                 if (wearables.Any())
                 {
                     Wearables = wearables;
                     Logger.Info($"Updated wearables from AgentWearablesUpdate packet: {wearables.Count} types", Client);
                 }
+            }
+
+            // Trigger client-side baking now that wearables are populated from the server.
+            // This is the primary appearance trigger for non-SSB regions (OpenSim).
+            if (Client.Settings.SEND_AGENT_APPEARANCE)
+            {
+                DelayedRequestSetAppearance();
             }
         }
 
@@ -2620,11 +2627,23 @@ namespace OpenMetaverse
 
             if (e.Simulator == Client.Network.CurrentSim && Client.Settings.SEND_AGENT_APPEARANCE)
             {
-                var updateSucceeded = await UpdateAvatarAppearanceAsync(CancellationToken.None).ConfigureAwait(false);
-                if (updateSucceeded)
+                if (ServerBakingRegion())
                 {
-                    await SendOutfitToCurrentSimulatorAsync(CancellationToken.None).ConfigureAwait(false);
+                    // Second Life (SSB): delegate baking to the server via UpdateAvatarAppearance
+                    var updateSucceeded = await UpdateAvatarAppearanceAsync(CancellationToken.None).ConfigureAwait(false);
+                    if (updateSucceeded)
+                    {
+                        await SendOutfitToCurrentSimulatorAsync(CancellationToken.None).ConfigureAwait(false);
+                    }
                 }
+                else if (Wearables.Any())
+                {
+                    // Non-SSB region (OpenSim): wearables already cached from a previous session or
+                    // AgentWearablesUpdate arrived before CAPS — rebake immediately using client-side path.
+                    await RequestSetAppearance(forceRebake: true).ConfigureAwait(false);
+                }
+                // else: wearables not yet loaded; AgentWearablesUpdateHandler will trigger baking
+                // once the server sends AgentWearablesUpdate for this region.
             }
         }
         catch (OperationCanceledException)
