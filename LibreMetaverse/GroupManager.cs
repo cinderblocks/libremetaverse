@@ -2017,27 +2017,30 @@ namespace OpenMetaverse
             {
                 groupMemberCache = TempGroupMembers.GetOrAdd(members.GroupData.RequestID, _ => new Dictionary<UUID, GroupMember>());
 
-                foreach (GroupMembersReplyPacket.MemberDataBlock block in members.MemberData)
+                lock (groupMemberCache)
                 {
-                    GroupMember groupMember = new GroupMember
+                    foreach (GroupMembersReplyPacket.MemberDataBlock block in members.MemberData)
                     {
-                        ID = block.AgentID,
-                        Contribution = block.Contribution,
-                        IsOwner = block.IsOwner,
-                        OnlineStatus = Utils.BytesToString(block.OnlineStatus),
-                        Powers = (GroupPowers) block.AgentPowers,
-                        Title = Utils.BytesToString(block.Title)
-                    };
+                        GroupMember groupMember = new GroupMember
+                        {
+                            ID = block.AgentID,
+                            Contribution = block.Contribution,
+                            IsOwner = block.IsOwner,
+                            OnlineStatus = Utils.BytesToString(block.OnlineStatus),
+                            Powers = (GroupPowers) block.AgentPowers,
+                            Title = Utils.BytesToString(block.Title)
+                        };
 
-                    groupMemberCache[block.AgentID] = groupMember;
-                }
+                        groupMemberCache[block.AgentID] = groupMember;
+                    }
 
-                if (groupMemberCache.Count >= members.GroupData.MemberCount)
-                {
-                    byte ignored;
-                    GroupMembersRequests.TryRemove(members.GroupData.RequestID, out ignored);
-                    Dictionary<UUID, GroupMember> removed;
-                    TempGroupMembers.TryRemove(members.GroupData.RequestID, out removed);
+                    if (groupMemberCache.Count >= members.GroupData.MemberCount)
+                    {
+                        byte ignored;
+                        GroupMembersRequests.TryRemove(members.GroupData.RequestID, out ignored);
+                        Dictionary<UUID, GroupMember> removed;
+                        TempGroupMembers.TryRemove(members.GroupData.RequestID, out removed);
+                    }
                 }
             }
 
@@ -2106,27 +2109,30 @@ namespace OpenMetaverse
             {
                 groupRoleCache = TempGroupRoles.GetOrAdd(roles.GroupData.RequestID, _ => new Dictionary<UUID, GroupRole>());
 
-                foreach (GroupRoleDataReplyPacket.RoleDataBlock block in roles.RoleData)
+                lock (groupRoleCache)
                 {
-                    GroupRole groupRole = new GroupRole
+                    foreach (GroupRoleDataReplyPacket.RoleDataBlock block in roles.RoleData)
                     {
-                        GroupID = roles.GroupData.GroupID,
-                        ID = block.RoleID,
-                        Description = Utils.BytesToString(block.Description),
-                        Name = Utils.BytesToString(block.Name),
-                        Powers = (GroupPowers) block.Powers,
-                        Title = Utils.BytesToString(block.Title)
-                    };
+                        GroupRole groupRole = new GroupRole
+                        {
+                            GroupID = roles.GroupData.GroupID,
+                            ID = block.RoleID,
+                            Description = Utils.BytesToString(block.Description),
+                            Name = Utils.BytesToString(block.Name),
+                            Powers = (GroupPowers) block.Powers,
+                            Title = Utils.BytesToString(block.Title)
+                        };
 
-                    groupRoleCache[block.RoleID] = groupRole;
-                }
+                        groupRoleCache[block.RoleID] = groupRole;
+                    }
 
-                if (groupRoleCache.Count >= roles.GroupData.RoleCount)
-                {
-                    byte ignored;
-                    GroupRolesRequests.TryRemove(roles.GroupData.RequestID, out ignored);
-                    Dictionary<UUID, GroupRole> removed;
-                    TempGroupRoles.TryRemove(roles.GroupData.RequestID, out removed);
+                    if (groupRoleCache.Count >= roles.GroupData.RoleCount)
+                    {
+                        byte ignored;
+                        GroupRolesRequests.TryRemove(roles.GroupData.RequestID, out ignored);
+                        Dictionary<UUID, GroupRole> removed;
+                        TempGroupRoles.TryRemove(roles.GroupData.RequestID, out removed);
+                    }
                 }
             }
 
@@ -2149,15 +2155,18 @@ namespace OpenMetaverse
             if (GroupRolesMembersRequests.ContainsKey(members.AgentData.RequestID))
             {
                 groupRoleMemberCache = TempGroupRolesMembers.GetOrAdd(members.AgentData.RequestID, _ => new List<KeyValuePair<UUID, UUID>>());
-                
-                groupRoleMemberCache.AddRange(members.MemberData.Select(block => new KeyValuePair<UUID, UUID>(block.RoleID, block.MemberID)));
 
-                if (groupRoleMemberCache.Count >= members.AgentData.TotalPairs)
+                lock (groupRoleMemberCache)
                 {
-                    byte ignored;
-                    GroupRolesMembersRequests.TryRemove(members.AgentData.RequestID, out ignored);
-                    List<KeyValuePair<UUID, UUID>> removed;
-                    TempGroupRolesMembers.TryRemove(members.AgentData.RequestID, out removed);
+                    groupRoleMemberCache.AddRange(members.MemberData.Select(block => new KeyValuePair<UUID, UUID>(block.RoleID, block.MemberID)));
+
+                    if (groupRoleMemberCache.Count >= members.AgentData.TotalPairs)
+                    {
+                        byte ignored;
+                        GroupRolesMembersRequests.TryRemove(members.AgentData.RequestID, out ignored);
+                        List<KeyValuePair<UUID, UUID>> removed;
+                        TempGroupRolesMembers.TryRemove(members.AgentData.RequestID, out removed);
+                    }
                 }
             }
 
